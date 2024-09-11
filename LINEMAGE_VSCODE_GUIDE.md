@@ -20,13 +20,14 @@ LineMage put together this list of links to learn about VSCode. We hope it's hel
 
 - [Files you need in an extension](https://code.visualstudio.com/api/get-started/extension-anatomy).
 
-The `"contributes"` part of `package.json` is how an extension mounts.
-- [Contributes Guide](https://code.visualstudio.com/api/references/contribution-points).
+- [The `package.json` schema](https://code.visualstudio.com/api/references/extension-manifest).
 
-- [package.json schema](https://code.visualstudio.com/api/references/extension-manifest).
+- ["Contributes" Guide](https://code.visualstudio.com/api/references/contribution-points) - the `"contributes"` part of `package.json` is how an extension mounts.
 
-- [activation events](https://code.visualstudio.com/api/references/activation-events) in `package.json`.
+- [Activation events](https://code.visualstudio.com/api/references/activation-events) you can define in `package.json`.
 
-- [Full VSCode Extension API](https://code.visualstudio.com/api/references/vscode-api) - look on the right side for organization.  [The bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page is easy to miss but is useful - cancellation tokens, events, disposables.
+- [The Full VSCode Extension API](https://code.visualstudio.com/api/references/vscode-api) - look on the right side for organization.
+  
+- [The bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page is easy to miss but is useful - cancellation tokens, events, disposables.
 
 

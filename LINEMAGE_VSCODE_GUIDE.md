@@ -26,8 +26,6 @@ LineMage put together this list of links to learn about VSCode. We hope it's hel
 
 - [Activation events](https://code.visualstudio.com/api/references/activation-events) you can define in `package.json`.
 
-- [The Full VSCode Extension API](https://code.visualstudio.com/api/references/vscode-api) - look on the right side for organization.
-  
-- [The bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page is easy to miss but is useful - cancellation tokens, events, disposables.
+- [The Full VSCode Extension API](https://code.visualstudio.com/api/references/vscode-api) - look on the right side for organization. The [bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page is easy to miss but is useful - cancellation tokens, events, disposables.
 
 

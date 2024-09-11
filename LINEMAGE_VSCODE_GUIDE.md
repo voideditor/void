@@ -1,77 +1,33 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Useful links
 
-Useful links when learning about the VS Code sourcecode:
+LineMage put together this list of links to learn about VSCode. We hope they're helpful!
 
-## Getting started
+## Beginners / Getting started
 
-- VSCode UI guide (describes what sidebar, aux bar, panels, etc are. intended for general public), and UX guide (for developers)
-https://code.visualstudio.com/docs/getstarted/userinterface
-https://code.visualstudio.com/api/ux-guidelines/overview
-
-
-- Files you need in an extension
-https://code.visualstudio.com/api/get-started/extension-anatomy
-
+- [VSCode UI guide](https://code.visualstudio.com/docs/getstarted/userinterface)  - covers auxbar, panels, etc.
+ 
+- [UX guide](https://code.visualstudio.com/api/ux-guidelines/overview) - covers Containers, Views, Items, etc.
 
 ## Contributing
 
-VERY USEFUL - How VS Code's sourcecode is organized (describes entry point files, what browser/ and common/ mean, etc, read the whole thing!)
-- https://github.com/microsoft/vscode/wiki/Source-Code-Organization
+- [How VS Code's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. **The most important read in this list.**
+
+- Don't forget [the bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page - cancellation tokens, events, disposables.
+
+- [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - sometimes useful to reference.
 
 
-- Full VSCode API (all functions/events/variables available in extension api - look on right hand side for organization)
-https://code.visualstudio.com/api/references/vscode-api
-(don't miss this part on cancellation tokens, how events and disposables work) https://code.visualstudio.com/api/references/vscode-api#api-patterns
+## VSCode's Extension API
+
+- [Files you need in an extension](https://code.visualstudio.com/api/get-started/extension-anatomy).
+
+The `"contributes"` part of `package.json` is how an extension mounts.
+- [Contributes Guide](https://code.visualstudio.com/api/references/contribution-points).
+
+- [package.json schema](https://code.visualstudio.com/api/references/extension-manifest).
+
+- [activation events](https://code.visualstudio.com/api/references/activation-events) in `package.json`.
+
+- [Full VSCode Extension API](https://code.visualstudio.com/api/references/vscode-api) - look on the right side for organization.
 
 
-- Guide on contributes ("contributes": part of package.json) - a "contribute" is how your extension mounts - it's all the things your extension actually contributes
-https://code.visualstudio.com/api/references/contribution-points
-(full package.json schema) https://code.visualstudio.com/api/references/extension-manifest
-(activation events you can define in package.json) https://code.visualstudio.com/api/references/activation-events
-
-
-- Every command built-in to VSCode (e.g. 'workbench.action.openWalkthrough')
-https://code.visualstudio.com/api/references/commands
-
-
-## Building VS Code's source
-
-https://github.com/microsoft/vscode/wiki/How-to-Contribute
-
-
-## Summary
-
-Editor:
-/vs/editor/contrib = allowed to depend on browser env
-/vs/editor/{common|browser} = core code ('common' and 'browser' are the only two envs that are allowed here)
-/vs/editor/{standalone} = seems unimportant - something about the standalone editor
-
-
-Workbench:
-/vs/workbench/contrib:
-    - no deps from outside here are allowed
-    - each contrib needs a single contribname.contribution.ts which serves as the entrypoint (eg /search/browser/search.contribution.ts)
-    - the contribution should expose its internal api from only 1 entrypoint and only be accessed from there, nowhere else (eg /search/common/search.ts)
-      - sounds like all services, etc should be managed by that one entrypoint
-/vs/workbench/api = provides vscode.d.ts to iinterface with stuff outside of /workbench/contrib
-/vs/workbench/{common|browser|electron-sandbox} = core code, "as minimal as possible"
-
-TODO andrew finish writing the summary from written notes (some visuals...)

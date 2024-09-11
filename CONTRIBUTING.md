@@ -6,18 +6,18 @@ This is a guide on how to contribute to LineMage. We want to make it as easy to 
 LineMage is a fork of the of [vscode](https://github.com/microsoft/vscode) repository.
 # Ways to Contribute
 
-## Getting started
+## 1. Getting started with the Extension
 
 We use a [VS Code extension](https://code.visualstudio.com/api/get-started/your-first-extension) to create most of LineMage's functionality.
 Here's how you can start contributing to the extension:
 
 1. Clone the repository
 
-`git clone https://github.com/andrewpareles/void-editor`
+`git clone https://github.com/linemagedev/linemage`
 
 2. Open the extension folder
 
-`cd /extensions/void`
+`cd /extensions/linemage`
 
 3. Install dependencies
 
@@ -29,13 +29,13 @@ Here's how you can start contributing to the extension:
 
 We're using React to build the sidebar `sidebar/index.tsx` and other parts of the extension. We use this command to compile all of the react components into raw javascript and css in the `dist/...` folder so that we can use them in vscode.
 
-5. Run the project by pressing `f5`.
+5. Run the project by pressing `F5`.
 
 This will start a new instance of VS Code with the extension enabled. If this does not work, you can press `f1 > type "Debug: Start Debugging" > press Enter > type "VS Code Extension Development"`.
 
-If you would like to use AI features, you need to insert an API key. You can do that by going to `settings (ctrl + ,) > void > "Anthropic Api Key"`. The provider is chosen based on the "Which API" environment variable, and defaults to "anthropic".
+If you would like to use AI features, you need to insert an API key. You can do that by going to `settings (ctrl + ,) > linemage > "Anthropic Api Key"`. The provider is chosen based on the "Which API" environment variable, and defaults to "anthropic".
 
-## Editing the IDE
+## 2. Editing the IDE
 
 Beyond the extension, we edit parts of the IDE in cases where we need more functionality. See below for instructions on how to contribute to the extension. If you want to make a change to the entire IDE please see VS Code's [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page, which goes over how to install dependencies and run the VS Code IDE, which works the same way as our IDE (you can often skip to the "How to Contribute" section).
 
@@ -48,6 +48,7 @@ When you've made changes and want to submit them, please submit a pull request.
 
 [[TODO!!!]]
 
+Most of LineMage's code lives in [`/extensions/linemage`](https://github.com/linemagedev/linemage/tree/main/extensions/linemage).
 
 
 

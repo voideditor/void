@@ -8,10 +8,8 @@ We're building quickly, and we welcome new contributions.
 
 To contribute, see [`CONTRIBUTING.md`](https://github.com/linemagedev/linemage/blob/main/CONTRIBUTING.md).
 
-Most of LineMage's code lives in [`/extensions/linemage`](https://github.com/linemagedev/linemage/tree/main/extensions/linemage).
+For some useful links see [`LINEMAGE_USEFUL_LINKS.md`](https://github.com/linemagedev/linemage/blob/main/LINEMAGE_VSCODE_GUIDE.md)
 
-# To contribute
-
-For a getting started guide we put together on getting started in the VS Code repo, see [TODO](), or reach out at hi@linemage.com.
+Feel free to reach out in our Discord or say at hi@linemage.com!
 
 

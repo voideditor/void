@@ -9,7 +9,7 @@ There are 3 main ways to contribute:
 - Improve Documentation
 - Build New Features
 
-See [Roadmap](#roadmap) for a list of the most important features to build, or feel free to build your own features.
+See the [Roadmap](#roadmap) section for a list of the most important features to build, or feel free to build your own features.
 
 We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of LineMage's functionality.  Scroll down to see 1. How to contribute to the Extension, or 2. How to contribute to the full IDE (for more native changes).
 
@@ -20,7 +20,9 @@ We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-f
 
 Here are the most important topics on our Roadmap that you can contribute. More ⭐'s = more important.
 
-⭐⭐⭐ Improve diffs. We define a "diff" as a single green/red codeblock that denotes a change. Here are improvements to make:
+## ⭐⭐⭐ Improve diffs. 
+
+We define a "diff" as a single green/red codeblock that denotes a change. Here are improvements to make:
 
 1. Show red deletions (-) inside diffs. Right now we're only showing green insertions (+). Diffs currently work by highlighting all of the new code in green with a simple text decoration. Instead, we would like to use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code between lines.
 
@@ -28,18 +30,27 @@ Here are the most important topics on our Roadmap that you can contribute. More 
 
 3. Make diff highlighting dynamic. Right now when the user edits text, we clear all the diffs and their highlights. Instead, we should simply update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting. 
 
-⭐⭐⭐ Make History work well. When the user submits a response or presses the apply/accept/reject button, we should add these events to the history and allow the user to use undo/redo on them. Right now there is unexpected behavior if the user tries to undo or redo their LineMage changes.
+## ⭐⭐⭐ Make History work well.
+When the user submits a response or presses the apply/accept/reject button, we should add these events to the history and allow the user to use undo/redo on them. Right now there is unexpected behavior if the user tries to undo or redo their LineMage changes.
 
-⭐⭐⭐ Build Cursor-style quick edits (ctrl+k). When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
+## ⭐⭐⭐ Build Cursor-style quick edits (ctrl+k). 
 
-⭐⭐⭐ Improve ctrl+L. One improvement is to make the model output diffs, instead of outputting the entire file. When the user clicks "apply" on a diff, the model should go through the entire file and apply the diff in the correct location.
+When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
+
+## ⭐⭐⭐ Improve ctrl+L. 
+
+Change the prompt so we output changes like `// ... rest of file`, instead of always outputting the entire file. When the user clicks "apply", the model should rewrite the file and apply diffs in the correct locations.
 
 
-⭐⭐ Integrate with Ollama. We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate LineMage's extension so that it runs natively into the VS Code editor so that we can access Node.js.
+## ⭐⭐ Integrate with Ollama. 
 
-⭐ When user presses ctrl+l it should reset from last time.
+We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate LineMage's extension so that it runs natively into the VS Code editor so that we can access Node.js.
 
-⭐ Let the user accept / reject all Diffs in an entire file.
+## ⭐ One-stars.
+
+⭐ When user presses ctrl+L it should reset from last time.
+
+⭐ Let the user accept / reject all Diffs in an entire file via the sidebar.
 
 ⭐ Allow the user to make multiple selections of code or files at once.
 

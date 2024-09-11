@@ -48,7 +48,7 @@ We have an Ollama integration coded up in the extension, but it breaks. This is 
 
 ## ⭐ One-stars.
 
-⭐ When user presses ctrl+L it should reset from last time.
+⭐ When user presses ctrl+L it should clear the sidebar's state.
 
 ⭐ Let the user accept / reject all Diffs in an entire file via the sidebar.
 

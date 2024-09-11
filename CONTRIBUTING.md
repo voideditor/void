@@ -5,7 +5,7 @@ This is a guide on how to contribute to LineMage. We want to make it as easy to 
 
 # Ways to Contribute
 
-## 1. Getting started with the Extension
+## 1. Editing the Extension
 
 We use a [VS Code extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of LineMage's functionality.
 Here's how you can start contributing to the extension:

@@ -45,7 +45,7 @@ Beyond the extension, we edit parts of the IDE in cases where we need more funct
 
 To bundle the IDE, run `yarn gulp vscode-win32-x64`. Here are the full options: vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)
 
-
+If you're on Windows, we recommend running the project inside a dev container.
 
 
 

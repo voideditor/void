@@ -1,14 +1,52 @@
 
 # Contributing to LineMage
 
-This is a guide on how to contribute to LineMage. We want to make it as easy to contribute as possible, so if you have any questions or comments please reach out via email or discord.
+Welcome! 👋 This is a guide on how to contribute to LineMage. We want to make it as easy to contribute as possible, so if you have any questions or comments, reach out via email or Discord!
 
-# Ways to Contribute
+There are 3 main ways to contribute: 
 
-## 1. Editing the Extension
+- Suggest New Features
+- Improve Documentation
+- Build New Features
 
-We use a [VS Code extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of LineMage's functionality.
-Here's how you can start contributing to the extension:
+We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of LineMage's functionality.  Scroll down to see 1. How to contribute to the Extension, or 2. How to contribute to the full IDE (for more native changes).
+
+
+
+
+## Roadmap
+
+Here are the most important topics on our Roadmap that you can contribute. More ⭐'s = more important.
+
+⭐⭐⭐ Improve diffs. We define a "diff" as a single green/red codeblock that denotes a change. Here are improvements to make:
+
+1. Show red deletions (-) inside diffs. Right now we're only showing green insertions (+). Diffs currently work by highlighting all of the new code in green with a simple text decoration. We would like to use code from VS Code's native diffEditor to show the diffs instead ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code between lines.
+
+2. Make diffs responsive. When a user accepts a diff, all of the diffs below it should be updated (because they are now on different line numbers). We're not doing this, so there is a lot of unexpected behavior. 
+
+3. Make diff highlighting dynamic. Right now when the user edits text, we clear all the diffs and their highlights. Instead, we should simply update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting. 
+
+⭐⭐⭐ Make History work well. When the user submits a response or presses the apply/accept/reject button, we should add these events to the history and allow the user to use undo/redo on them. Right now there is unexpected behavior if the user tries to undo or redo their LineMage changes.
+
+⭐⭐⭐ Build Cursor-style quick edits (ctrl+k). When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
+
+⭐⭐⭐ Improve ctrl+L. One improvement is to make the model output diffs, instead of outputting the entire file. When the user clicks "apply" on a diff, the model should go through the entire file and apply the diff in the correct location.
+
+
+⭐⭐ Integrate with Ollama. We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate LineMage's extension so that it runs natively into the VS Code editor so that we can access Node.js.
+
+⭐ When user presses ctrl+l it should reset from last time.
+
+⭐ Let the user accept / reject all Diffs in an entire file.
+
+⭐ Allow the user to make multiple selections of code or files at once.
+
+⭐ Allow user to X out of their current selection.
+
+
+
+## 1. Contributing to the Extension
+Here's how you can start contributing to the Extension:
 
 1. Clone the repository
 
@@ -32,9 +70,9 @@ Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extensio
 
 If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `linemage > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
 
-## 2. Editing the IDE
+## 2. Contributing to the full IDE
 
-Beyond the extension, we edit a few parts of the IDE in cases where we need more functionality. If you want to make a change to the IDE please follow these instructions, or see VS Code's (slightly overwhelming) [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+Beyond the extension, we sometimes edit the IDE when we need to access more functionality. If you want to make a change to the IDE, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
 1. Install all dependencies by running `yarn`.
 
@@ -48,68 +86,11 @@ If you're on Windows, we recommend running the project inside a dev container. V
 
 
 
-# Submitting a pull request
+# Submitting a Pull Request
 
 When you've made changes and want to submit them, please submit a pull request.
 
-
-
-
-
-[[TODO!!!]]
-
-
-
-
-## What to work on
-
-
-Here are the most important topics we think you can contribute.
-
-Feel free to contribute anything you like.
-
-Full list [here]([[TODO!!!]])
-
-More ⭐'s = more important.
-
-⭐⭐⭐ Add LineMage changes to the history. When the user submits a response, or presses the apply/accept/reject buttons, we should add these events to the history and allow the user to use undo/redo on them. Right now there is unexpected behavior if the user tries to undo or redo their changes related to LineMage.
-
-⭐⭐⭐ Improve diffs. We define a "diff" as a single green/red codeblock that denotes a change. Here are improvements to make:
-
-1. Show deletion (-) diffs. Right now we're only showing insertion (+) diffs. We do this by highlighting all of the new code in green using a simple text decoration. We would like to instead use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could also keep what we have and add red boxes of the deletions inline with the code.
-
-2. Make diffs responsive to edits. When a user accepts a diff, all of the diffs below it should be updated (because they are now on different line numbers). We're not doing this, so there is a lot of unexpected behavior. We should the Diffs' ranges every time there's a change.
-
-3. Implement "Diff Range". When the user makes a change (either in ctrl+k or ctrl+L) we should track the range that they changed (the "Diff Range"). All changes made inside of this range should appear as a diff. The range should disappear when all of the diffs inside of it have either been accepted or rejected.
-
-⭐⭐⭐ Build Cursor-style quick edits (ctrl+k). When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
-
-⭐⭐⭐ Improve ctrl+L. One improvement is to make the model output diffs, instead of outputting the entire file. When the user clicks "apply" on a diff, the model should go through the entire file and apply the diff in the correct location.
-
-
-⭐⭐ Integrate with Ollama. We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate LineMage's extension so that it runs natively into the VS Code editor so that we can access Node.js.
-
-⭐ When user presses ctrl+l it should reset from last time.
-
-⭐ Let the user accept / reject all Diffs in an entire file.
-
-⭐ Allow the user to make multiple selections of code or files at once.
-
-⭐ Allow user to X out of their current selection.
-
-
-
-
-## Links
-
-[[TODO!!!]]
-
-
-- TODO list
-
-
-## Building
-
+Please submit all Pull Requests to the `dev` branch.
 
 
 

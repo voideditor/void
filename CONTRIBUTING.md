@@ -1,5 +1,4 @@
 
-We're in very early stages and building quickly. We welcome all new contributions!
 
 # Contributing to LineMage
 

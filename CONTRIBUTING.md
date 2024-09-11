@@ -3,7 +3,6 @@
 
 This is a guide on how to contribute to LineMage. We want to make it as easy to contribute as possible, so if you have any questions or comments please reach out via email or discord.
 
-LineMage is a fork of the of [vscode](https://github.com/microsoft/vscode) repository.
 # Ways to Contribute
 
 ## 1. Getting started with the Extension

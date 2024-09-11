@@ -37,7 +37,7 @@ When the user submits a response or presses the apply/accept/reject button, we s
 
 When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
 
-## ⭐⭐⭐ Improve ctrl+L. 
+## ⭐⭐⭐ Improve Ctrl+L. 
 
 Change the prompt so we output changes like `// ... rest of file`, instead of always outputting the entire file. When the user clicks "apply", the model should rewrite the file and apply diffs in the correct locations.
 

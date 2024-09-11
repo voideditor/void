@@ -8,7 +8,7 @@ LineMage is a fork of the of [vscode](https://github.com/microsoft/vscode) repos
 
 ## 1. Getting started with the Extension
 
-We use a [VS Code extension](https://code.visualstudio.com/api/get-started/your-first-extension) to create most of LineMage's functionality.
+We use a [VS Code extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of LineMage's functionality.
 Here's how you can start contributing to the extension:
 
 1. Clone the repository

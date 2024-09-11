@@ -117,8 +117,8 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		for (let diff of diffs) {
 			const { range, diffid, lenses: codeLenses } = diff
 
-			let approveLens = new vscode.CodeLens(range, { title: 'Yes', command: 'myExtension.approveDiff', arguments: [{ diffid }] })
-			let discardLens = new vscode.CodeLens(range, { title: 'No', command: 'myExtension.discardDiff', arguments: [{ diffid }] })
+			let approveLens = new vscode.CodeLens(range, { title: 'Accept', command: 'myExtension.approveDiff', arguments: [{ diffid }] })
+			let discardLens = new vscode.CodeLens(range, { title: 'Reject', command: 'myExtension.discardDiff', arguments: [{ diffid }] })
 
 			codeLenses.push(discardLens, approveLens)
 		}

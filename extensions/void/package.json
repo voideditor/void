@@ -18,7 +18,7 @@
         "myExtension.whichApi": {
           "type": "string",
           "default": "anthropic",
-          "description": "Backend to Use (anthropic | openai | greptile | ollama)"
+          "description": "Choose a model to use (anthropic | openai | greptile | ollama)"
         },
         "myExtension.anthropicApiKey": {
           "type": "string",

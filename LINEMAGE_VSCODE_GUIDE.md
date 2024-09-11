@@ -10,9 +10,7 @@ LineMage put together this list of links to learn about VSCode. We hope it's hel
 
 ## Contributing
 
-- [How VS Code's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. **The most important read in this list.**
-
-- Don't forget [the bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page - cancellation tokens, events, disposables.
+- [How VS Code's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. **This is the most important read on this whole list!** We recommend reading the whole thing. [The bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page is easy to miss - cancellation tokens, events, disposables.
 
 - [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - sometimes useful to reference.
 

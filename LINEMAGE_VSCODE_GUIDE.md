@@ -18,7 +18,7 @@ LineMage put together this list of links to learn about VSCode. We hope it's hel
 
 ## VSCode's Extension API
 
-VSCode exposes an API for building extensions. Knowing about the API is really important now because LineMage is mostly an extension right now, but it won't be as relevant when we touch the sourcecode more.
+LineMage is mostly an extension right now, and these links were very useful for us to get set up.
 
 - [Files you need in an extension](https://code.visualstudio.com/api/get-started/extension-anatomy).
 

@@ -1,4 +1,6 @@
 
+We're in very early stages and building quickly. We welcome all new contributions!
+
 # Contributing to LineMage
 
 Welcome! 👋 This is a guide on how to contribute to LineMage. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or Discord!
@@ -9,7 +11,6 @@ There are 3 main ways to contribute:
 - Improve Documentation
 - Build New Features
 
-We're in very early stages and building quickly. We welcome all new contributions!
 
 See the [Roadmap](#roadmap) section for a list of the most important features to build, or feel free to build your own features.
 

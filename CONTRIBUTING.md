@@ -13,7 +13,7 @@ Here's how you can start contributing to the extension:
 
 1. Clone the repository
 
-`git clone https://github.com/linemagedev/linemage`
+ `git clone https://github.com/linemagedev/linemage`
 
 2. Open the extension folder
 
@@ -23,17 +23,17 @@ Here's how you can start contributing to the extension:
 
 `npm run install`
 
-4. Build the project.
+4. Build the project
 
 `npm run build`
 
-We're using React to build the sidebar `sidebar/index.tsx` and other parts of the extension. We use this command to compile all of the react components into raw javascript and css in the `dist/...` folder so that we can use them in vscode.
+Note: We're using React to build the sidebar `sidebar/index.tsx`, and we made this build command to compile everything to raw JS/CSS so we can run it in vscode. The output goes into the `dist/...` folder.
 
-5. Run the project by pressing `F5`.
+5. Run the project by pressing <kbd>F5</kbd>.
 
-This will start a new instance of VS Code with the extension enabled. If this does not work, you can press `f1 > type "Debug: Start Debugging" > press Enter > type "VS Code Extension Development"`.
+This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>F1</kbd>, select "Debug: Start Debugging", press <kbd>Enter</kbd>, and select "VS Code Extension Development".
 
-If you would like to use AI features, you need to insert an API key. You can do that by going to `settings (ctrl + ,) > linemage > "Anthropic Api Key"`. The provider is chosen based on the "Which API" environment variable, and defaults to "anthropic".
+If you would like to use AI features, you need to insert an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `linemage > "Anthropic Api Key"`. The provider is chosen based on the "Which API" environment variable, and defaults to "anthropic".
 
 ## 2. Editing the IDE
 
@@ -41,11 +41,11 @@ Beyond the extension, we edit parts of the IDE in cases where we need more funct
 
 1. Install all dependencies by running `yarn`.
 
-2. Press `ctrl + shift + B` to start the build process - this can take a long time.
+2. Press <kbd>Ctrl+Shift+B</kbd> to start the build process - this can take some time.
 
-3. Run `./scripts/code.sh` to open up the built IDE. To see new changes without restarting the build, use `ctrl + shift + P` and run "Reload Window".
+3. Run `./scripts/code.sh` to open up the built IDE. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
 
-To bundle the IDE, run `yarn gulp vscode-win32-x64`. Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
+To bundle the IDE, run `yarn gulp vscode-win32-x64`. Here are the full options: vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)
 
 
 

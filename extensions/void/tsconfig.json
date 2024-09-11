@@ -1,0 +1,29 @@
+{
+	"include": [
+		"src/**/*"
+	],
+	"exclude": [
+		"node_modules"
+	],
+	"compilerOptions": {
+		"jsx": "react",
+		"module": "Node16",
+		"target": "ES6",
+		"outDir": "out",
+		"types": [ // no idea how this differs from .eslintrc's node, but keeping it
+			"node",
+		],
+		"lib": [
+			"dom",
+			"es6",
+			"dom.iterable",
+		],
+		"sourceMap": true,
+		"rootDir": "src",
+		"strict": true, /* enable all strict type-checking options */
+		/* Additional Checks */
+		// "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
+		// "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
+		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
+	}
+}

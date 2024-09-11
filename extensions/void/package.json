@@ -1,0 +1,143 @@
+{
+  "name": "helloworld",
+  "displayName": "HelloWorld",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.89.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "API Keys",
+      "properties": {
+        "myExtension.whichApi": {
+          "type": "string",
+          "default": "anthropic",
+          "description": "Backend to Use (anthropic | openai | greptile | ollama)"
+        },
+        "myExtension.anthropicApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic API Key"
+        },
+        "myExtension.openAIApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key"
+        },
+        "myExtension.greptileApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Greptile API Key"
+        },
+        "myExtension.githubPAT": {
+          "type": "string",
+          "default": "",
+          "description": "Greptile - Github PAT (gives Greptile access to your repo)"
+        },
+        "myExtension.ollamaSettings": {
+          "type": "string",
+          "default": "",
+          "description": "Ollama settings (coming soon...)"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "myExtension.ctrl+l",
+        "title": "Show Sidebar"
+      },
+      {
+        "command": "myExtension.ctrl+k",
+        "title": "Show Selection Lens"
+      },
+      {
+        "command": "myExtension.approveDiff",
+        "title": "Approve Diff"
+      },
+      {
+        "command": "myExtension.discardDiff",
+        "title": "Discard Diff"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "myExtensionView",
+          "title": "My Extension",
+          "icon": "$(circuit-board)"
+        }
+      ]
+    },
+    "views": {
+      "myExtensionView": [
+        {
+          "type": "webview",
+          "id": "myExtension.customView",
+          "name": "My Custom View"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "myExtension.ctrl+l",
+        "key": "ctrl+l",
+        "mac": "cmd+l"
+      },
+      {
+        "command": "myExtension.ctrl+k",
+        "key": "ctrl+k",
+        "mac": "cmd+k"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "build": "rimraf dist && node build-tsx.js && node build-css.js",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.1",
+    "@types/diff": "^5.2.2",
+    "@types/jest": "^29.5.12",
+    "@types/mocha": "^10.0.7",
+    "@types/node": "^22.5.1",
+    "@types/react": "^18.3.4",
+    "@types/react-dom": "^18.3.0",
+    "@types/vscode": "1.92.0",
+    "@typescript-eslint/eslint-plugin": "^8.3.0",
+    "@typescript-eslint/parser": "^8.3.0",
+    "@vscode/test-cli": "0.0.10",
+    "@vscode/test-electron": "2.4.1",
+    "autoprefixer": "^10.4.20",
+    "diff": "^6.0.0-beta",
+    "esbuild": "^0.23.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.35.1",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "globals": "^15.9.0",
+    "marked": "^14.1.0",
+    "ollama": "^0.5.8",
+    "postcss": "^8.4.41",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "rimraf": "^6.0.1",
+    "tailwindcss": "^3.4.10",
+    "typescript": "5.5.4",
+    "typescript-eslint": "^8.3.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.1",
+    "openai": "^4.57.0"
+  }
+}

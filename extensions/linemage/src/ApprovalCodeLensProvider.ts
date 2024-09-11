@@ -117,8 +117,8 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		for (let diff of diffs) {
 			const { range, diffid, lenses: codeLenses } = diff
 
-			let approveLens = new vscode.CodeLens(range, { title: 'Accept', command: 'myExtension.approveDiff', arguments: [{ diffid }] })
-			let discardLens = new vscode.CodeLens(range, { title: 'Reject', command: 'myExtension.discardDiff', arguments: [{ diffid }] })
+			let approveLens = new vscode.CodeLens(range, { title: 'Accept', command: 'linemage.approveDiff', arguments: [{ diffid }] })
+			let discardLens = new vscode.CodeLens(range, { title: 'Reject', command: 'linemage.discardDiff', arguments: [{ diffid }] })
 
 			codeLenses.push(discardLens, approveLens)
 		}
@@ -138,7 +138,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		console.log('diffs after added:', this._diffsOfDocument[docUriStr])
 	}
 
-	// called on myExtension.approveDiff
+	// called on linemage.approveDiff
 	public async approveDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
@@ -168,7 +168,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 
-	// called on myExtension.discardDiff
+	// called on linemage.discardDiff
 	public async discardDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)

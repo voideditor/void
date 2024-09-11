@@ -1,6 +1,6 @@
 {
-  "name": "helloworld",
-  "displayName": "HelloWorld",
+  "name": "linemage",
+  "displayName": "LineMage",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -15,32 +15,32 @@
     "configuration": {
       "title": "API Keys",
       "properties": {
-        "myExtension.whichApi": {
+        "linemage.whichApi": {
           "type": "string",
           "default": "anthropic",
           "description": "Choose a model to use (anthropic | openai | greptile | ollama)"
         },
-        "myExtension.anthropicApiKey": {
+        "linemage.anthropicApiKey": {
           "type": "string",
           "default": "",
           "description": "Anthropic API Key"
         },
-        "myExtension.openAIApiKey": {
+        "linemage.openAIApiKey": {
           "type": "string",
           "default": "",
           "description": "OpenAI API Key"
         },
-        "myExtension.greptileApiKey": {
+        "linemage.greptileApiKey": {
           "type": "string",
           "default": "",
           "description": "Greptile API Key"
         },
-        "myExtension.githubPAT": {
+        "linemage.githubPAT": {
           "type": "string",
           "default": "",
           "description": "Greptile - Github PAT (gives Greptile access to your repo)"
         },
-        "myExtension.ollamaSettings": {
+        "linemage.ollamaSettings": {
           "type": "string",
           "default": "",
           "description": "Ollama settings (coming soon...)"
@@ -49,48 +49,48 @@
     },
     "commands": [
       {
-        "command": "myExtension.ctrl+l",
+        "command": "linemage.ctrl+l",
         "title": "Show Sidebar"
       },
       {
-        "command": "myExtension.ctrl+k",
+        "command": "linemage.ctrl+k",
         "title": "Show Selection Lens"
       },
       {
-        "command": "myExtension.approveDiff",
+        "command": "linemage.approveDiff",
         "title": "Approve Diff"
       },
       {
-        "command": "myExtension.discardDiff",
+        "command": "linemage.discardDiff",
         "title": "Discard Diff"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "myExtensionView",
+          "id": "linemageViewContainer",
           "title": "My Extension",
-          "icon": "$(circuit-board)"
+          "icon": "$(hubot)"
         }
       ]
     },
     "views": {
-      "myExtensionView": [
+      "linemageViewContainer": [
         {
           "type": "webview",
-          "id": "myExtension.customView",
-          "name": "My Custom View"
+          "id": "linemage.viewnumberone",
+          "name": "LineMage"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "myExtension.ctrl+l",
+        "command": "linemage.ctrl+l",
         "key": "ctrl+l",
         "mac": "cmd+l"
       },
       {
-        "command": "myExtension.ctrl+k",
+        "command": "linemage.ctrl+k",
         "key": "ctrl+k",
         "mac": "cmd+k"
       }

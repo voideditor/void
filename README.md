@@ -9,7 +9,7 @@ LineMage is the open-source Cursor alternative. It's a fork of the of [vscode](h
 
 To contribute, see [`CONTRIBUTING.md`](https://github.com/linemagedev/linemage/blob/main/CONTRIBUTING.md).
 
-We're building quickly, and we welcome all new contributions!
+We're in early stages and building quickly. We welcome all new contributions!
 
 ## Reference
 For some useful links we've compiled see [`LINEMAGE_USEFUL_LINKS.md`](https://github.com/linemagedev/linemage/blob/main/LINEMAGE_VSCODE_GUIDE.md).

@@ -1,7 +1,7 @@
 
 # Welcome!
 
-Welcome! This file is where we track our TODOs. Feel free to add to the list or help us knock out some bullet points. Cheers!
+This is where we track our TODOs. Feel free to add to the list or help us knock out some bullet points. Cheers!
 
 ## Core
 

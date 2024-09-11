@@ -37,7 +37,18 @@ If you would like to use AI features, you need to insert an API key. You can do 
 
 ## 2. Editing the IDE
 
-Beyond the extension, we edit parts of the IDE in cases where we need more functionality. See below for instructions on how to contribute to the extension. If you want to make a change to the entire IDE please see VS Code's [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page, which goes over how to install dependencies and run the VS Code IDE, which works the same way as our IDE (you can often skip to the "How to Contribute" section).
+Beyond the extension, we edit parts of the IDE in cases where we need more functionality. If you want to make a change to the IDE please follow these instructions, or see VS Code's (pretty overwhelming) [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+
+1. Install all dependencies by running `yarn`.
+
+2. Press `ctrl + shift + B` to start the build process - this can take a long time.
+
+3. Run `./scripts/code.sh` to open up the built IDE. To see new changes without restarting the build, use `ctrl + shift + P` and run "Reload Window".
+
+To bundle the IDE, run `yarn gulp vscode-win32-x64`. Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
+
+
+
 
 
 # Submitting a pull request
@@ -98,6 +109,33 @@ More ⭐'s = more important.
 
 
 - TODO list
+
+
+## Building
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <!--

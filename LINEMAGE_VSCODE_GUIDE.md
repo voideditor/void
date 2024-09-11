@@ -1,6 +1,6 @@
 # Useful links
 
-LineMage put together this list of links to learn about VSCode. We hope they're helpful!
+LineMage put together this list of links to learn about VSCode. We hope it's helpful!
 
 ## Beginners / Getting started
 

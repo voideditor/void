@@ -15,6 +15,6 @@ We're building quickly, and we welcome all new contributions!
 For some useful links we've compiled see [`LINEMAGE_USEFUL_LINKS.md`](https://github.com/linemagedev/linemage/blob/main/LINEMAGE_VSCODE_GUIDE.md).
 
 ## Anything else
-Feel free to reach out in our Discord or say at hi@linemage.com!
+Feel free to reach out in our Discord or say hi at hi (at) linemage (dot) com!
 
 

@@ -11,7 +11,7 @@ We're building quickly, and we welcome new contributions.
 To contribute, see [TODO](TODO)!
 
 
-See the [linemage extension](https://github.com/linemagedev/linemage/tree/main/extensions/linemage) for where most of LineMage's code lives and .
+Most of LineMage's code lives in [TODO](https://github.com/linemagedev/linemage/tree/main/extensions/linemage).
 
 # To contribute
 

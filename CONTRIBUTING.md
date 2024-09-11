@@ -1,7 +1,7 @@
 
 # Contributing to LineMage
 
-Welcome! 👋 This is a guide on how to contribute to LineMage. We want to make it as easy to contribute as possible, so if you have any questions or comments, reach out via email or Discord!
+Welcome! 👋 This is a guide on how to contribute to LineMage. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or Discord!
 
 There are 3 main ways to contribute: 
 

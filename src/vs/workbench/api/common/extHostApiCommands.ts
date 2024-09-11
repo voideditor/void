@@ -304,11 +304,11 @@ const newCommands: ApiCommand[] = [
 			})(value);
 		})
 	),
-	// // --- glass code lens
+	// // --- LineMage code lens
 	// new ApiCommand(
-	// 	'vscode.executeGlassCodeLensProvider', '_executeGlassCodeLensProvider', 'Execute glass code lens provider.',
+	// 	'vscode.executeLineMageCodeLensProvider', '_executeLineMageCodeLensProvider', 'Execute LineMage code lens provider.',
 	// 	[ApiCommandArgument.Uri, ApiCommandArgument.Number.with('itemResolveCount', 'Number of lenses that should be resolved and returned. Will only return resolved lenses, will impact performance)').optional()],
-	// 	new ApiCommandResult<languages.CodeLens[], vscode.CodeLens[] | undefined>('A promise that resolves to an array of GlassCodeLens-instances.', (value, _args, converter) => {
+	// 	new ApiCommandResult<languages.CodeLens[], vscode.CodeLens[] | undefined>('A promise that resolves to an array of LineMageCodeLens-instances.', (value, _args, converter) => {
 	// 		return tryMapWith<languages.CodeLens, vscode.CodeLens>(item => {
 	// 			return new types.CodeLens(typeConverters.Range.to(item.range), item.command && converter.fromInternal(item.command));
 	// 		})(value);

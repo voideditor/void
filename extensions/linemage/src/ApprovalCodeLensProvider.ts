@@ -138,7 +138,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		console.log('diffs after added:', this._diffsOfDocument[docUriStr])
 	}
 
-	// called on glass.approveApproval
+	// called on myExtension.approveDiff
 	public async approveDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
@@ -168,7 +168,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 
-	// called on glass.discardApproval
+	// called on myExtension.discardDiff
 	public async discardDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
@@ -180,7 +180,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		// get index of this diff in diffsOfDocument
 		const index = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
 		if (index === -1) {
-			console.error('Glass error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr])
+			console.error('LineMage error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr])
 			return
 		}
 

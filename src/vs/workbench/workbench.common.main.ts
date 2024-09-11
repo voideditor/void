@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-//#region --- glass
-import 'vs/workbench/contrib/glass/browser/glass.contribution'
+//#region --- linemage
+import 'vs/workbench/contrib/linemage/browser/linemage.contribution'
 //#endregion
 
 

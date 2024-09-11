@@ -7,7 +7,7 @@ const fs = require('fs');
 
 // Complete list of directories where yarn should be executed to install node modules
 const dirs = [
-	'extensions/helloworld', // <-- glass
+	'extensions/linemage', // <-- linemage
 
 	'',
 	'build',

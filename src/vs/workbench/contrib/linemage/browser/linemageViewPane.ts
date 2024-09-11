@@ -16,7 +16,7 @@ import { ViewPane } from 'vs/workbench/browser/parts/views/viewPane';
 // import { IHoverService } from 'vs/platform/hover/browser/hover';
 
 
-export class GlassViewPane extends ViewPane {
+export class LineMageViewPane extends ViewPane {
 
 	// constructor(
 	// 	options: IViewPaneOptions,
@@ -36,4 +36,4 @@ export class GlassViewPane extends ViewPane {
 
 }
 
-// register a singleton service that
+// register a singleton service that mounts the ViewPane here

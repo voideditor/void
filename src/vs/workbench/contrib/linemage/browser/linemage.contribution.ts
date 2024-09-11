@@ -7,7 +7,7 @@ import {
 
 import * as nls from 'vs/nls';
 
-import { GlassViewPane } from 'vs/workbench/contrib/glass/browser/glassViewPane'
+import { LineMageViewPane } from 'vs/workbench/contrib/linemage/browser/linemageViewPane'
 
 import { Codicon } from 'vs/base/common/codicons';
 import { localize } from 'vs/nls';
@@ -18,22 +18,22 @@ import { SyncDescriptor } from 'vs/platform/instantiation/common/descriptors';
 import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
 
 
-const glassViewIcon = registerIcon('glass-view-icon', Codicon.search, localize('glassViewIcon', 'View icon of the glass chat view.'));
+const linemageViewIcon = registerIcon('linemage-view-icon', Codicon.search, localize('linemageViewIcon', 'View icon of the linemage chat view.'));
 
 
 // compare against search.contribution.ts and https://app.greptile.com/chat/w1nsmt3lauwzculipycpn?repo=github%3Amain%3Amicrosoft%2Fvscode
 // and debug.contribution.ts, scm.contribution.ts (source control)
 
-const VIEW_CONTAINER_ID = 'workbench.view.glass' // called VIEWLET_ID in other places for some reason
+const VIEW_CONTAINER_ID = 'workbench.view.linemage' // called VIEWLET_ID in other places for some reason
 
 // Register view container
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 const viewContainer = viewContainerRegistry.registerViewContainer({
 	id: VIEW_CONTAINER_ID,
-	title: nls.localize2('glass', 'Glass'), // this is used to say GLASS (Ctrl + L)
+	title: nls.localize2('linemage', 'LineMage'), // this is used to say LineMage (Ctrl + L)
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [VIEW_CONTAINER_ID, { mergeViewWithContainerWhenSingleView: true }]),
 	hideIfEmpty: false,
-	icon: glassViewIcon,
+	icon: linemageViewIcon,
 	order: 1,
 }, ViewContainerLocation.AuxiliaryBar, { doNotRegisterOpenCommand: true });
 
@@ -45,10 +45,9 @@ const viewContainer = viewContainerRegistry.registerViewContainer({
 const VIEW_ID = VIEW_CONTAINER_ID // not sure if we can change this
 const viewDescriptor: IViewDescriptor = {
 	id: VIEW_ID,
-	containerIcon: glassViewIcon,
-	name: nls.localize2('glass chat', "Chat"), // this says : CHAT
-	// ctorDescriptor: new SyncDescriptor(GlassViewPane),
-	ctorDescriptor: new SyncDescriptor(GlassViewPane),
+	containerIcon: linemageViewIcon,
+	name: nls.localize2('linemage chat', "Chat"), // this says ... : CHAT
+	ctorDescriptor: new SyncDescriptor(LineMageViewPane),
 	canToggleVisibility: false,
 	canMoveView: true,
 	openCommandActionDescriptor: {

@@ -19,7 +19,7 @@
 	],
 	"workbench": [
 		{
-			"name": "vs/workbench/contrib/glass",
+			"name": "vs/workbench/contrib/linemage",
 			"project": "vscode-workbench"
 		},
 		{

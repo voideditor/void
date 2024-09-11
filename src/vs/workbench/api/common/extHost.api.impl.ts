@@ -552,10 +552,10 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			},
 
 
-			// GLASS added this
-			registerGlassCtrlKProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
-				return extHostLanguageFeatures.registerCodeLensProvider(extension, checkSelector(selector), provider);
-			},
+			// LINEMAGE added this (I think will need to add this back when add ctrl+K)
+			// registerLineMageCtrlKProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
+			// 	return extHostLanguageFeatures.registerCodeLensProvider(extension, checkSelector(selector), provider);
+			// },
 
 
 			registerDefinitionProvider(selector: vscode.DocumentSelector, provider: vscode.DefinitionProvider): vscode.Disposable {

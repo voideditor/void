@@ -15,7 +15,7 @@ export type ApiConfig = {
 		githubPAT: string,
 		repoinfo: {
 			remote: string, // e.g. 'github'
-			repository: string, // e.g. 'andrewpareles/glass_vscode'
+			repository: string, // e.g. 'linemagedev/linemage'
 			branch: string // e.g. 'main'
 		}
 	},

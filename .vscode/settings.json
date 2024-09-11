@@ -93,7 +93,7 @@
 		}
 	],
 	"git.ignoreLimitWarning": true,
-	// we removed this for glass:
+	// we removed this for LineMage:
 	// "git.branchProtection": [
 	// 	"main",
 	// 	"distro",

@@ -23,7 +23,7 @@ Here's how you can start contributing to the extension:
 
 `npm run install`
 
-4. Build the project. 
+4. Build the project.
 
 `npm run build`
 
@@ -54,9 +54,9 @@ When you've made changes and want to submit them, please submit a pull request.
 ## What to work on
 
 
-Here are the most important topics we think you can contribute. 
+Here are the most important topics we think you can contribute.
 
-Feel free to contribute anything you like. 
+Feel free to contribute anything you like.
 
 Full list [here]([[TODO!!!]])
 
@@ -121,7 +121,7 @@ More ⭐'s = more important.
 
 ### Core
 
-- Migrate the LineMage extension to live natively in VS Code. There's initial work here at `glass.contribution.ts`.
+- Migrate the LineMage extension to live natively in VS Code. There's initial work here at `linemage.contribution.ts`.
 
 - Allow access to the VS Code extension marketplace.
 

@@ -18,7 +18,7 @@ We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-f
 
 ## Roadmap
 
-Here are the most important topics on our Roadmap that you can contribute. More ⭐'s = more important.
+Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
 ## ⭐⭐⭐ Improve diffs. 
 

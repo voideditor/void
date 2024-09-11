@@ -58,6 +58,9 @@ We have an Ollama integration coded up in the extension, but it breaks. This is 
 
 ⭐ Allow user to X out of their current selection.
 
+## ⭐⭐⭐⭐ Four-stars (creative).
+
+We'd like to build "bigger" AI features than the standard Cursor ones. For example, indexing the user's codebase and letting them search, or supporting AI agents that can edit across files and make multiple LLM calls. We want to build a few examples first, and then create an API that anyone can plug into to build their own indexes, agents, etc.
 
 
 ## 1. Contributing to the Extension

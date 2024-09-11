@@ -34,7 +34,7 @@ If you would like to use AI features, you need to provide an API key. You can do
 
 ## 2. Editing the IDE
 
-Beyond the extension, we edit a few parts of the IDE in cases where we need more functionality. If you want to make a change to the IDE please follow these instructions, or see VS Code's (pretty overwhelming) [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+Beyond the extension, we edit a few parts of the IDE in cases where we need more functionality. If you want to make a change to the IDE please follow these instructions, or see VS Code's (slightly overwhelming) [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
 1. Install all dependencies by running `yarn`.
 

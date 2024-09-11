@@ -9,6 +9,8 @@ There are 3 main ways to contribute:
 - Improve Documentation
 - Build New Features
 
+See [Roadmap](#roadmap) for a list of the most important features to build, or feel free to build your own features.
+
 We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of LineMage's functionality.  Scroll down to see 1. How to contribute to the Extension, or 2. How to contribute to the full IDE (for more native changes).
 
 

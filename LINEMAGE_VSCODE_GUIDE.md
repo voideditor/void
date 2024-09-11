@@ -13,7 +13,7 @@ LineMage put together this list of links to learn about VSCode. We hope it's hel
 - [How VS Code's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. **This is the most important read on this whole list!** We recommend reading the whole thing.
 
 
-- [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - sometimes useful to reference. [The bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page is easy to miss but somewhat important - cancellation tokens, events, disposables.
+- [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - sometimes useful to reference.
 
 
 ## VSCode's Extension API
@@ -27,6 +27,6 @@ The `"contributes"` part of `package.json` is how an extension mounts.
 
 - [activation events](https://code.visualstudio.com/api/references/activation-events) in `package.json`.
 
-- [Full VSCode Extension API](https://code.visualstudio.com/api/references/vscode-api) - look on the right side for organization.
+- [Full VSCode Extension API](https://code.visualstudio.com/api/references/vscode-api) - look on the right side for organization.  [The bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page is easy to miss but is useful - cancellation tokens, events, disposables.
 
 

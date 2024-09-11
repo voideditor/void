@@ -25,15 +25,13 @@ Here's how you can start contributing to the extension:
 
 4. Build the project
 
-`npm run build`
+`npm run build`. Note: We made this build command to run React in vscode. It converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.
 
-Note: We made this build command to run React in vscode. It converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.
+5. Run the project
 
-5. Run the project by pressing <kbd>F5</kbd>.
+Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>F1</kbd>, select "Debug: Start Debugging", press <kbd>Enter</kbd>, and select "VS Code Extension Development".
 
-This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>F1</kbd>, select "Debug: Start Debugging", press <kbd>Enter</kbd>, and select "VS Code Extension Development".
-
-If you would like to use AI features, you need to insert an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `linemage > "Anthropic Api Key"`. The provider is chosen based on the "Which API" environment variable, and defaults to "anthropic".
+If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `linemage > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
 
 ## 2. Editing the IDE
 

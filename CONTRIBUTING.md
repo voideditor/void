@@ -24,7 +24,7 @@ Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
 We define a "diff" as a single green/red codeblock that denotes a change. Here are improvements to make:
 
-1. Show red deletions (-) inside diffs. Right now we're only showing green insertions (+). Diffs currently work by highlighting all of the new code in green with a simple text decoration. Instead, we would like to use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code between lines.
+1. Show deletions (-) inside diffs. Right now we're only showing insertions (+). Diffs currently work by highlighting all of the new code in green with a simple text decoration. Instead, we would like to use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code between lines.
 
 2. Make diffs responsive. When a user accepts a diff, all of the diffs below it should be updated (because they are now on different line numbers). We're not doing this, so there is a lot of unexpected behavior. 
 

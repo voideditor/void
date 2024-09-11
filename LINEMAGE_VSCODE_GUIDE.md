@@ -22,7 +22,7 @@ LineMage is mostly an extension right now, and these links were very useful for 
 
 - [Files you need in an extension](https://code.visualstudio.com/api/get-started/extension-anatomy).
 
-- [The `package.json` schema](https://code.visualstudio.com/api/references/extension-manifest).
+- [An extension's `package.json` schema](https://code.visualstudio.com/api/references/extension-manifest).
 
 - ["Contributes" Guide](https://code.visualstudio.com/api/references/contribution-points) - the `"contributes"` part of `package.json` is how an extension mounts.
 

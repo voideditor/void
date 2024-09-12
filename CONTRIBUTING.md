@@ -1,10 +1,10 @@
 
 
-# Contributing to LineMage
+# Contributing to Void
 
-Welcome! 👋 This is a guide on how to contribute to LineMage. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
+Welcome! 👋 This is a guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
-There are two main ways to contribute: 
+There are two main ways to contribute:
 
 - Suggest New Features (discord)
 - Build New Features (roadmap)
@@ -12,7 +12,7 @@ There are two main ways to contribute:
 
 See the [Roadmap](#roadmap) section for a list of the most important features to build, or feel free to build your own features.
 
-We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of LineMage's functionality.  Scroll down to see 1. How to contribute to the Extension, or 2. How to contribute to the full IDE (for more native changes).
+We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality.  Scroll down to see 1. How to contribute to the Extension, or 2. How to contribute to the full IDE (for more native changes).
 
 
 
@@ -21,30 +21,30 @@ We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-f
 
 Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
-## ⭐⭐⭐ Improve diffs. 
+## ⭐⭐⭐ Improve diffs.
 
 We define a "diff" as a single green/red pair that denotes a change. Here are improvements to make:
 
 1. Fix bugginess when the user presses "Accept" or "Reject" on a diff. One issue is that when a diff is accepted/rejected all of the diffs below should be updated (because they are now on different line numbers). There are also other miscellaneous bugs that need fixing.
 
-4. Make diff highlighting dynamic. Right now when the user edits text, we clear all the diffs and their highlights. Instead, we should simply update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting. 
+4. Make diff highlighting dynamic. Right now when the user edits text, we clear all the diffs and their highlights. Instead, we should simply update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting.
 
 5. Show deletion (-) diffs. Right now we're only showing insertion (+) diffs. Diffs currently work by highlighting all of the new code in green with a simple text decoration. Instead, we would like to use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code to indicate a deletion diff (-).
 
-## ⭐⭐⭐ Build Cursor-style quick edits (ctrl+k). 
+## ⭐⭐⭐ Build Cursor-style quick edits (ctrl+k).
 
 When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
 
 ## ⭐⭐⭐ Make History work well.
 When the user submits a response or presses the apply/accept/reject button, we should add these events to the history, allowing the user to undo/redo them. Right now there is unexpected behavior if the user tries to undo or redo their changes.
 
-## ⭐⭐⭐ Improve Ctrl+L backend. 
+## ⭐⭐⭐ Improve Ctrl+L backend.
 
 Right now, the model outputs entire files. Instead, we should change the prompt so that the model outputs partial changes like `// ... rest of file`. When the user clicks the "Apply" button, the model should rewrite the file and apply the partial changes in the correct locations.
 
-## ⭐⭐ Integrate with Ollama. 
+## ⭐⭐ Integrate with Ollama.
 
-We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate LineMage's extension so that it runs natively into the VS Code editor so that we can access Node.js.
+We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate Void's extension so that it runs natively into the VS Code editor so that we can access Node.js.
 
 ## ⭐ One-stars.
 
@@ -70,11 +70,11 @@ Here's how you can start contributing to the Extension:
 
 1. Clone the repository
 
- `git clone https://github.com/linemagedev/linemage`
+ `git clone https://github.com/voideditor/void`
 
 2. Open the extension folder
 
-`cd /extensions/linemage`
+`cd /extensions/void`
 
 3. Install dependencies
 
@@ -88,7 +88,7 @@ Here's how you can start contributing to the Extension:
 
 Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>F1</kbd>, select "Debug: Start Debugging", press <kbd>Enter</kbd>, and select "VS Code Extension Development".
 
-If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `linemage > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
+If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `void > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
 
 ## 2. Contributing to the full IDE
 
@@ -138,6 +138,9 @@ Please submit all Pull Requests to the `dev` branch.
 
 <!--
 
+TODO we should probably just delete all this... :
+
+
 ### Design principles
 
 - Least amount of eye movement necessary; if user presses submit, show them the message where they submitted
@@ -159,7 +162,7 @@ Please submit all Pull Requests to the `dev` branch.
 
 ### Core
 
-- Migrate the LineMage extension to live natively in VS Code. There's initial work here at `linemage.contribution.ts`.
+- Migrate the Void extension to live natively in VS Code. There's initial work here at `void.contribution.ts`.
 
 - Allow access to the VS Code extension marketplace.
 

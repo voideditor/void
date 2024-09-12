@@ -552,8 +552,8 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			},
 
 
-			// LINEMAGE added this (I think will need to add this back when add ctrl+K)
-			// registerLineMageCtrlKProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
+			// VOID added this (I think will need to add this back when add ctrl+K)
+			// registerVoidCtrlKProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
 			// 	return extHostLanguageFeatures.registerCodeLensProvider(extension, checkSelector(selector), provider);
 			// },
 

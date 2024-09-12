@@ -15,7 +15,7 @@ export type ApiConfig = {
 		githubPAT: string,
 		repoinfo: {
 			remote: string, // e.g. 'github'
-			repository: string, // e.g. 'linemagedev/linemage'
+			repository: string, // e.g. 'voideditor/void'
 			branch: string // e.g. 'main'
 		}
 	},

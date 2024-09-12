@@ -1,6 +1,6 @@
 {
-  "name": "linemage",
-  "displayName": "LineMage",
+  "name": "void",
+  "displayName": "Void",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -15,32 +15,32 @@
     "configuration": {
       "title": "API Keys",
       "properties": {
-        "linemage.whichApi": {
+        "void.whichApi": {
           "type": "string",
           "default": "anthropic",
           "description": "Choose a model to use (anthropic | openai | greptile | ollama)"
         },
-        "linemage.anthropicApiKey": {
+        "void.anthropicApiKey": {
           "type": "string",
           "default": "",
           "description": "Anthropic API Key"
         },
-        "linemage.openAIApiKey": {
+        "void.openAIApiKey": {
           "type": "string",
           "default": "",
           "description": "OpenAI API Key"
         },
-        "linemage.greptileApiKey": {
+        "void.greptileApiKey": {
           "type": "string",
           "default": "",
           "description": "Greptile API Key"
         },
-        "linemage.githubPAT": {
+        "void.githubPAT": {
           "type": "string",
           "default": "",
           "description": "Greptile - Github PAT (gives Greptile access to your repo)"
         },
-        "linemage.ollamaSettings": {
+        "void.ollamaSettings": {
           "type": "string",
           "default": "",
           "description": "Ollama settings (coming soon...)"
@@ -49,48 +49,48 @@
     },
     "commands": [
       {
-        "command": "linemage.ctrl+l",
+        "command": "void.ctrl+l",
         "title": "Show Sidebar"
       },
       {
-        "command": "linemage.ctrl+k",
+        "command": "void.ctrl+k",
         "title": "Show Selection Lens"
       },
       {
-        "command": "linemage.approveDiff",
+        "command": "void.approveDiff",
         "title": "Approve Diff"
       },
       {
-        "command": "linemage.discardDiff",
+        "command": "void.discardDiff",
         "title": "Discard Diff"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "linemageViewContainer",
+          "id": "voidViewContainer",
           "title": "My Extension",
           "icon": "$(hubot)"
         }
       ]
     },
     "views": {
-      "linemageViewContainer": [
+      "voidViewContainer": [
         {
           "type": "webview",
-          "id": "linemage.viewnumberone",
-          "name": "LineMage"
+          "id": "void.viewnumberone",
+          "name": "Void"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "linemage.ctrl+l",
+        "command": "void.ctrl+l",
         "key": "ctrl+l",
         "mac": "cmd+l"
       },
       {
-        "command": "linemage.ctrl+k",
+        "command": "void.ctrl+k",
         "key": "ctrl+k",
         "mac": "cmd+k"
       }

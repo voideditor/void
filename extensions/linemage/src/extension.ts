@@ -13,11 +13,11 @@ const readFileContentOfUri = async (uri: vscode.Uri) => {
 
 const getApiConfig = () => {
 	const apiConfig: ApiConfig = {
-		anthropic: { apikey: vscode.workspace.getConfiguration('linemage').get('anthropicApiKey') ?? '' },
-		openai: { apikey: vscode.workspace.getConfiguration('linemage').get('openAIApiKey') ?? '' },
+		anthropic: { apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '' },
+		openai: { apikey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
 		greptile: {
-			apikey: vscode.workspace.getConfiguration('linemage').get('greptileApiKey') ?? '',
-			githubPAT: vscode.workspace.getConfiguration('linemage').get('githubPAT') ?? '',
+			apikey: vscode.workspace.getConfiguration('void').get('greptileApiKey') ?? '',
+			githubPAT: vscode.workspace.getConfiguration('void').get('githubPAT') ?? '',
 			repoinfo: {
 				remote: 'github',
 				repository: 'TODO',
@@ -25,9 +25,9 @@ const getApiConfig = () => {
 			}
 		},
 		ollama: {
-			// apikey: vscode.workspace.getConfiguration('linemage').get('ollamaSettings') ?? '',
+			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
 		},
-		whichApi: vscode.workspace.getConfiguration('linemage').get('whichApi') ?? ''
+		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
 	return apiConfig
 }
@@ -42,14 +42,14 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// 2. Activate the sidebar on ctrl+l
 	context.subscriptions.push(
-		vscode.commands.registerCommand('linemage.ctrl+l', () => {
+		vscode.commands.registerCommand('void.ctrl+l', () => {
 
 			const editor = vscode.window.activeTextEditor
 			if (!editor)
 				return
 
 			// show the sidebar
-			vscode.commands.executeCommand('workbench.view.extension.linemageViewContainer');
+			vscode.commands.executeCommand('workbench.view.extension.voidViewContainer');
 			// vscode.commands.executeCommand('vscode.moveViewToPanel', CustomViewProvider.viewId); // move to aux bar
 
 			// get the text the user is selecting
@@ -71,10 +71,10 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', approvalCodeLensProvider));
 
 	// 4. Add approve/reject commands
-	context.subscriptions.push(vscode.commands.registerCommand('linemage.approveDiff', async (params) => {
+	context.subscriptions.push(vscode.commands.registerCommand('void.approveDiff', async (params) => {
 		approvalCodeLensProvider.approveDiff(params)
 	}));
-	context.subscriptions.push(vscode.commands.registerCommand('linemage.discardDiff', async (params) => {
+	context.subscriptions.push(vscode.commands.registerCommand('void.discardDiff', async (params) => {
 		approvalCodeLensProvider.discardDiff(params)
 	}));
 
@@ -85,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 			// when config changes, send it to the sidebar
 			vscode.workspace.onDidChangeConfiguration(e => {
-				if (e.affectsConfiguration('linemage')) {
+				if (e.affectsConfiguration('void')) {
 					const apiConfig = getApiConfig()
 					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
 				}
@@ -140,7 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// const ctrlKCodeLensProvider = new CtrlKCodeLensProvider();
 	// context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', ctrlKCodeLensProvider));
 	// context.subscriptions.push(
-	// 	vscode.commands.registerCommand('linemage.ctrl+k', () => {
+	// 	vscode.commands.registerCommand('void.ctrl+k', () => {
 	// 		const editor = vscode.window.activeTextEditor;
 	// 		if (!editor)
 	// 			return

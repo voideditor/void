@@ -13,7 +13,7 @@
 	],
 	"rules": {
 		"constructor-super": "warn",
-		"curly": "off", // <-- LineMage
+		"curly": "off", // <-- Void
 		"eqeqeq": "warn",
 		"prefer-const": [
 			"warn",
@@ -51,7 +51,7 @@
 		"no-var": "warn",
 		"jsdoc/no-types": "warn",
 		"semi": "off",
-		"@typescript-eslint/semi": "off", // <-- LineMage
+		"@typescript-eslint/semi": "off", // <-- Void
 		"@typescript-eslint/member-delimiter-style": "warn",
 		"@typescript-eslint/naming-convention": [
 			"warn",

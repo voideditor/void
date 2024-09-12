@@ -264,7 +264,7 @@ function createGitIndexVinyls(paths) {
 	return pall(fns, { concurrency: 4 }).then((r) => r.filter((p) => !!p));
 }
 
-// NO PRE COMMIT HOOKS!!!! for now... - LineMage team
+// NO PRE COMMIT HOOKS!!!! for now... - Void team
 
 // // this allows us to run hygiene as a git pre-commit hook
 // if (require.main === module) {

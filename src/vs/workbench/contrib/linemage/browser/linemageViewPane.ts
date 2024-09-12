@@ -16,7 +16,7 @@ import { ViewPane } from 'vs/workbench/browser/parts/views/viewPane';
 // import { IHoverService } from 'vs/platform/hover/browser/hover';
 
 
-export class LineMageViewPane extends ViewPane {
+export class VoidViewPane extends ViewPane {
 
 	// constructor(
 	// 	options: IViewPaneOptions,

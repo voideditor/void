@@ -117,8 +117,8 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		for (let diff of diffs) {
 			const { range, diffid, lenses: codeLenses } = diff
 
-			let approveLens = new vscode.CodeLens(range, { title: 'Accept', command: 'linemage.approveDiff', arguments: [{ diffid }] })
-			let discardLens = new vscode.CodeLens(range, { title: 'Reject', command: 'linemage.discardDiff', arguments: [{ diffid }] })
+			let approveLens = new vscode.CodeLens(range, { title: 'Accept', command: 'void.approveDiff', arguments: [{ diffid }] })
+			let discardLens = new vscode.CodeLens(range, { title: 'Reject', command: 'void.discardDiff', arguments: [{ diffid }] })
 
 			codeLenses.push(discardLens, approveLens)
 		}
@@ -138,7 +138,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		console.log('diffs after added:', this._diffsOfDocument[docUriStr])
 	}
 
-	// called on linemage.approveDiff
+	// called on void.approveDiff
 	public async approveDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
@@ -168,7 +168,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 
-	// called on linemage.discardDiff
+	// called on void.discardDiff
 	public async discardDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
@@ -180,7 +180,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		// get index of this diff in diffsOfDocument
 		const index = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
 		if (index === -1) {
-			console.error('LineMage error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr])
+			console.error('Void error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr])
 			return
 		}
 

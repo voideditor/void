@@ -12,7 +12,7 @@ function getNonce() {
 }
 
 export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
-	public static readonly viewId = 'linemage.viewnumberone';
+	public static readonly viewId = 'void.viewnumberone';
 
 	public webview: Promise<vscode.Webview> // used to send messages to the webview
 

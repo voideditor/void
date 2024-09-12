@@ -1,11 +1,11 @@
 # Useful links
 
-LineMage put together this list of links to get up and running with VSCode's sourcecode. We hope it's helpful!
+The Void team put together this list of links to get up and running with VSCode's sourcecode. We hope it's helpful!
 
 ## Beginners / Getting started
 
 - [VSCode UI guide](https://code.visualstudio.com/docs/getstarted/userinterface)  - covers auxbar, panels, etc.
- 
+
 - [UX guide](https://code.visualstudio.com/api/ux-guidelines/overview) - covers Containers, Views, Items, etc.
 
 ## Contributing
@@ -18,7 +18,7 @@ LineMage put together this list of links to get up and running with VSCode's sou
 
 ## VSCode's Extension API
 
-LineMage is mostly an extension right now, and these links were very useful for us to get set up.
+Void is mainly an extension right now, and these links were very useful for us to get set up.
 
 - [Files you need in an extension](https://code.visualstudio.com/api/get-started/extension-anatomy).
 

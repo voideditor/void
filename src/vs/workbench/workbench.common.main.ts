@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-//#region --- linemage
-import 'vs/workbench/contrib/linemage/browser/linemage.contribution'
+//#region --- void
+import 'vs/workbench/contrib/void/browser/void.contribution'
 //#endregion
 
 

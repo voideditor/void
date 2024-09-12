@@ -93,7 +93,7 @@
 		}
 	],
 	"git.ignoreLimitWarning": true,
-	// we removed this for LineMage:
+	// we removed this for Void:
 	// "git.branchProtection": [
 	// 	"main",
 	// 	"distro",

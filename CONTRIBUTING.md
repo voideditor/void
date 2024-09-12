@@ -26,7 +26,7 @@ Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
 We define a "diff" as a single green/red pair that denotes a change. Here are improvements to make:
 
-1. Fix bugginess when the user presses "Accept" or "Reject" on a diff. One issue is that when a diff is accepted/rejected, all of the diffs below should be updated (because they are now on different line numbers). 
+1. Fix bugginess when the user presses "Accept" or "Reject" on a diff. One issue is that when a diff is accepted/rejected all of the diffs below should be updated (because they are now on different line numbers). There are also other miscellaneous bugs that need fixing.
 
 4. Make diff highlighting dynamic. Right now when the user edits text, we clear all the diffs and their highlights. Instead, we should simply update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting. 
 

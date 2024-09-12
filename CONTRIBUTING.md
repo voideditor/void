@@ -7,7 +7,7 @@ Welcome! 👋 This is a guide on how to contribute to LineMage. We want to make 
 There are 3 main ways to contribute: 
 
 - Suggest New Features (discord)
-- Build New Features (roadmap below)
+- Build New Features (roadmap)
 
 
 See the [Roadmap](#roadmap) section for a list of the most important features to build, or feel free to build your own features.

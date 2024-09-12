@@ -41,7 +41,7 @@ When the user presses ctrl+k, an input box should appear inline with the code th
 
 ## ⭐⭐⭐ Improve Ctrl+L. 
 
-Change the prompt so we output changes like `// ... rest of file`, instead of always outputting the entire file. When the user clicks "apply", the model should rewrite the file and apply diffs in the correct locations.
+Change the prompt so that the model outputs partial changes like `// ... rest of file`, instead of always outputting the entire file. When the user clicks "apply", the model should rewrite the file and apply diffs in the correct locations.
 
 
 ## ⭐⭐ Integrate with Ollama. 

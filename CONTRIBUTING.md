@@ -24,25 +24,24 @@ Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
 ## ⭐⭐⭐ Improve diffs. 
 
-We define a "diff" as a single green/red codeblock that denotes a change. Here are improvements to make:
+We define a "diff" as a single green/red pair that denotes a change. Here are improvements to make:
 
-1. Show deletions (-) inside diffs. Right now we're only showing insertions (+). Diffs currently work by highlighting all of the new code in green with a simple text decoration. Instead, we would like to use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code between lines.
+1. Fix bugginess when the user presses "Accept" or "Reject" on a diff. One issue is that when a diff is accepted/rejected, all of the diffs below should be updated (because they are now on different line numbers). 
 
-2. Make diffs responsive. When a user accepts a diff, all of the diffs below it should be updated (because they are now on different line numbers). We're not doing this, so there is a lot of unexpected behavior. 
+4. Make diff highlighting dynamic. Right now when the user edits text, we clear all the diffs and their highlights. Instead, we should simply update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting. 
 
-3. Make diff highlighting dynamic. Right now when the user edits text, we clear all the diffs and their highlights. Instead, we should simply update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting. 
-
-## ⭐⭐⭐ Make History work well.
-When the user submits a response or presses the apply/accept/reject button, we should add these events to the history and allow the user to use undo/redo on them. Right now there is unexpected behavior if the user tries to undo or redo their LineMage changes.
+5. Show deletion (-) diffs. Right now we're only showing insertion (+) diffs. Diffs currently work by highlighting all of the new code in green with a simple text decoration. Instead, we would like to use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code to indicate a deletion diff (-).
 
 ## ⭐⭐⭐ Build Cursor-style quick edits (ctrl+k). 
 
 When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
 
-## ⭐⭐⭐ Improve Ctrl+L. 
+## ⭐⭐⭐ Make History work well.
+When the user submits a response or presses the apply/accept/reject button, we should add these events to the history, allowing the user to undo/redo them. Right now there is unexpected behavior if the user tries to undo or redo their changes.
 
-Change the prompt so that the model outputs partial changes like `// ... rest of file`, instead of always outputting the entire file. When the user clicks "apply", the model should rewrite the file and apply diffs in the correct locations.
+## ⭐⭐⭐ Improve Ctrl+L backend. 
 
+Right now, the model outputs entire files. Instead, we should change the prompt so that the model outputs partial changes like `// ... rest of file`. When the user clicks the "Apply" button, the model should rewrite the file and apply the partial changes in the correct locations.
 
 ## ⭐⭐ Integrate with Ollama. 
 
@@ -60,7 +59,9 @@ We have an Ollama integration coded up in the extension, but it breaks. This is 
 
 ## ⭐⭐⭐⭐ Four-stars (creative).
 
-We'd like to build "bigger" AI features than the standard Cursor ones. For example, indexing the user's codebase and letting them search, or supporting AI agents that can edit across files and make multiple LLM calls. We want to build a few examples first, and then create an API that anyone can plug into to build their own indexes, agents, etc.
+We'd like to build AI features beyond the standard Cursor ones. For example, creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
+
+Eventually, we want to build a convenient API for creating AI tools. The API will provide the most common functionalities (showing an autocomplete suggestion, or creating a new diff) and provide hooks for events (like `onKeystroke` or `onFileOpen`). This would let anyone make their own AI plugins.
 
 
 ## 1. Contributing to the Extension

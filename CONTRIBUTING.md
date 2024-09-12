@@ -4,7 +4,7 @@
 
 Welcome! 👋 This is a guide on how to contribute to LineMage. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
-There are 3 main ways to contribute: 
+There are two main ways to contribute: 
 
 - Suggest New Features (discord)
 - Build New Features (roadmap)
@@ -60,7 +60,9 @@ We have an Ollama integration coded up in the extension, but it breaks. This is 
 
 Feel free to build AI features beyond the standard Cursor ones. For example, creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
 
-Eventually, we want to build a convenient API for creating AI tools. The API will make it easy to create the UI for your tool (showing an autocomplete suggestion, or creating a new diff) and will provide hooks for you to use on the backend (like `onKeystroke` or `onFileOpen`), making it much easier for you to make your own AI plugin.
+Eventually, we want to build a convenient API for creating AI tools. The API will make it easy to create the UI for your tool (showing an autocomplete suggestion, or creating a new diff),  hooks for you to use on the backend (like `onKeystroke` or `onFileOpen`), and file-system functions (storing indexes associated with each file), making it much easier for you to make your own AI plugin.
+
+
 
 
 ## 1. Contributing to the Extension

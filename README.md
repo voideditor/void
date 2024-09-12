@@ -1,4 +1,4 @@
-# Welcome to Void!
+# Welcome to Void.
 
 
 Void is the open-source Cursor alternative. It's a fork of the of [vscode](https://github.com/microsoft/vscode) repository.

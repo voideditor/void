@@ -9,7 +9,7 @@ Void is the open-source Cursor alternative. It's a fork of the of [vscode](https
 
 To contribute, see [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
 
-We're in very early stages and building quickly. We welcome all new contributions!
+We're in very early stages and building quickly. We welcome all new contributions.
 
 ## Reference
 For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).

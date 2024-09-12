@@ -51,9 +51,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 
 	constructor() {
 		// this acts as a useEffect. Every time text changes, clear the diffs in this editor
-		// TODO ideally we wouldn't clear the diffs, we would just re-draw them and update their ranges
 		vscode.workspace.onDidChangeTextDocument((e) => {
-			// TODO we need to move all the codelenses and ranges below this one up/down depending on the number of newlines added - this is a known bug
 			const editor = vscode.window.activeTextEditor
 			if (!editor)
 				return
@@ -82,6 +80,10 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		// 0. create a diff for each suggested edit
 		const diffs: DiffType[] = []
 		for (let suggestedEdit of suggestedEdits) {
+
+			// TODO we need to account for the case when startLine > endLine (pure inserts)
+			if (suggestedEdit.startLine > suggestedEdit.endLine)
+				continue
 
 			const selectedRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.endLine, Number.MAX_SAFE_INTEGER)
 
@@ -125,9 +127,6 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 
 		// 3. apply green highlighting for each (+) diff
 		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.range))
-
-		// 4. TODO create a red placeholder for each (-) diff
-		// TODO...
 
 		// recompute _computedLensesOfDocument (can optimize this later)
 		this._computedLensesOfDocument[docUriStr] = this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses)

@@ -12,7 +12,7 @@ import * as vscode from 'vscode'
 const filesStr = (fullFiles: File[]) => {
 	return fullFiles.map(({ filepath, content }) =>
 		`
-${filepath}
+${filepath.fsPath}
 \`\`\`
 ${content}
 \`\`\``).join('\n')
@@ -203,6 +203,7 @@ const Sidebar = () => {
 
 		// add message to chat history
 		const content = userInstructionsStr(instructions, relevantFiles.files, selection)
+		// console.log('prompt:\n', content)
 		const newHistoryElt: ChatMessage = { role: 'user', content, displayContent: instructions, selection, files }
 		setChatHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
 

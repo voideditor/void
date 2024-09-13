@@ -27,9 +27,9 @@ We define a "diff" as a single green/red pair that denotes a change. Here are im
 
 1. Show deletion (-) diffs. Right now we're only showing insertion (+) diffs. Diffs currently work by highlighting all of the new code in green with a simple text decoration. Instead, we would like to use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code to indicate a deletion diff (-).
 
-2. Fix bugginess when the user presses "Accept" or "Reject" on a diff. One issue is that when a diff is accepted/rejected all of the diffs below should be updated (because they are now on different line numbers). There are also other miscellaneous bugs that need fixing.
+2. Fix bugginess when the user presses "Accept" or "Reject" on a diff. One issue is that when a diff is accepted/rejected all of the diffs below should be updated (because they are now on different line numbers). There are other miscellaneous issues too.
 
-3. Make diff highlighting dynamic. Right now when the user edits text, we clear all the diffs and their highlights. Instead, we should simply update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting.
+3. Make diff highlighting dynamic. Right now when the user edits text, all of the diffs and their highlights are cleared. Instead, we should update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting.
 
 
 ## ⭐⭐⭐ Build Cursor-style quick edits (ctrl+k).

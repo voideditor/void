@@ -61,7 +61,7 @@ We have an Ollama integration coded up in the extension, but it breaks. This is 
 
 Feel free to build AI features beyond the standard Cursor ones. For example, creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
 
-Eventually, we want to build a convenient API for creating AI tools. The API will make it easy to create the UI for your tool (showing an autocomplete suggestion, or creating a new diff),  hooks for you to use on the backend (like `onKeystroke` or `onFileOpen`), and file-system functions (storing indexes associated with each file), making it much easier for you to make your own AI plugin.
+Eventually, we want to build a convenient API for creating AI tools. The API will provide methods for creating the UI of your tool (showing an autocomplete suggestion, or creating a new diff), detecting event changes (like `onKeystroke` or `onFileOpen`), and modifying the user's file-system (storing indexes associated with each file), making it much easier to make your own AI plugin.
 
 
 

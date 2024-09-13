@@ -71,19 +71,19 @@ Here's how you can start contributing to the Extension:
 
 1. Clone the repository
 
- `git clone https://github.com/voideditor/void`
+```git clone https://github.com/voideditor/void```
 
 2. Open the extension folder
 
-`cd /extensions/void`
+```cd /extensions/void```
 
 3. Install dependencies
 
-`npm run install`
+```npm run install```
 
-4. Build the project
+4. Build the project. We created this command so that we could run React in vscode. It converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.
 
-`npm run build`. Note: We made this build command to run React in vscode. It converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.
+```npm run build```
 
 5. Run the project
 

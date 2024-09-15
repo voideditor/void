@@ -81,7 +81,7 @@ Here's how you can start contributing to the Extension:
 
 ```yarn```
 
-4. Build the project using `npm run build`. (we created this command so that we could run React in vscode - it converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.)
+4. Build the project using `yarn run build` or `npm run build`. (We created this command so that we could run React in vscode - it converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.)
 
 ```yarn run build```
 

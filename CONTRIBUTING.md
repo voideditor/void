@@ -81,7 +81,7 @@ Here's how you can start contributing to the Extension:
 
 ```npm run install```
 
-4. Build the project. We created this command so that we could run React in vscode. It converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.
+4. Build the project using `npm run build`. (we created this command so that we could run React in vscode - it converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.)
 
 ```npm run build```
 

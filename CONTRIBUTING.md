@@ -73,17 +73,17 @@ Here's how you can start contributing to the Extension:
 
 ```git clone https://github.com/voideditor/void```
 
-2. Open the extension folder
+2. Open the extension folder in VS Code
 
-```cd /extensions/void```
+```/extensions/void```
 
 3. Install dependencies
 
-```npm run install```
+```yarn```
 
 4. Build the project using `npm run build`. (we created this command so that we could run React in vscode - it converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.)
 
-```npm run build```
+```yarn run build```
 
 5. Run the project
 

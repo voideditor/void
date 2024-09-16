@@ -57,7 +57,7 @@ We have an Ollama integration coded up in the extension, but it breaks. This is 
 
 ⭐ Allow user to X out of their current selection.
 
-## ⭐⭐⭐⭐ Four-stars (creative).
+## ⭐⭐⭐ Creative.
 
 Feel free to build AI features beyond the standard Cursor ones. For example, creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
 

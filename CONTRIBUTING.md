@@ -19,7 +19,7 @@ For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github
 
 ## Roadmap
 
-Here are the most important topics on our Roadmap. More ⭐'s = more difficult.
+Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
 ## ⭐⭐⭐ Improve diffs.
 

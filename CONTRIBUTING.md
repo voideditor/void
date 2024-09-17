@@ -16,7 +16,6 @@ We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-f
 
 For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
-We are early stage, but building quickly 🚀
 
 
 ## Roadmap

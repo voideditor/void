@@ -17,4 +17,5 @@ For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github
 ## Anything else
 Feel free to reach out in our Discord or contact us via email.
 
-
+## Support
+Discord: https://discord.gg/PspNkKG5wt

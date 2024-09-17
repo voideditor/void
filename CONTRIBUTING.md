@@ -24,15 +24,6 @@ Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
 
 
-## ⭐ One-stars.
-
-⭐ When user presses ctrl+L it should clear the sidebar's state.
-
-⭐ Let the user accept / reject all Diffs in an entire file via the sidebar.
-
-⭐ Allow the user to make multiple selections of code or files at once.
-
-⭐ Allow user to X out of their current selection.
 
 
 
@@ -69,6 +60,15 @@ Feel free to build AI features beyond the standard Cursor ones. For example, cre
 Eventually, we want to build a convenient API for creating AI tools. The API will provide methods for creating the UI (showing an autocomplete suggestion, or creating a new diff), detecting event changes (like `onKeystroke` or `onFileOpen`), and modifying the user's file-system (storing indexes associated with each file), making it much easier to make your own AI plugin. We plan on building these features further along in timeline, but we wanted to list them for completeness.
 
 
+## ⭐ One-stars.
+
+⭐ When user presses ctrl+L it should clear the sidebar's state.
+
+⭐ Let the user accept / reject all Diffs in an entire file via the sidebar.
+
+⭐ Allow the user to make multiple selections of code or files at once.
+
+⭐ Allow user to X out of their current selection.
 
 
 ## 1. Building the Extension

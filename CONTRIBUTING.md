@@ -12,14 +12,20 @@ There are two main ways to contribute:
 
 See the [Roadmap](#roadmap) section for a list of the most important features to build, or feel free to build your own features.
 
-We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality.  Scroll down to see 1. How to contribute to the Extension, or 2. How to contribute to the full IDE (for more native changes).
+We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality.  Scroll down to see 1. How to build/contribute to the Extension, or 2. How to build/contribute to the full IDE (for more native changes).
 
+For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 
 
 ## Roadmap
 
 Here are the most important topics on our Roadmap. More ⭐'s = more important.
+
+
+
+
+
 
 ## ⭐⭐⭐ Improve diffs.
 
@@ -47,6 +53,13 @@ Right now, the model outputs entire files. Instead, we should change the prompt 
 
 We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate Void's extension so that it runs natively into the VS Code editor so that we can access Node.js.
 
+## ⭐⭐⭐ Creative.
+
+Feel free to build AI features beyond the standard Cursor ones. For example, creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
+
+Eventually, we want to build a convenient API for creating AI tools. The API will provide methods for creating the UI (showing an autocomplete suggestion, or creating a new diff), detecting event changes (like `onKeystroke` or `onFileOpen`), and modifying the user's file-system (storing indexes associated with each file), making it much easier to make your own AI plugin. We plan on building these features further along in timeline, but we wanted to list them for completeness.
+
+
 ## ⭐ One-stars.
 
 ⭐ When user presses ctrl+L it should clear the sidebar's state.
@@ -57,17 +70,9 @@ We have an Ollama integration coded up in the extension, but it breaks. This is 
 
 ⭐ Allow user to X out of their current selection.
 
-## ⭐⭐⭐⭐ Four-stars (creative).
 
-Feel free to build AI features beyond the standard Cursor ones. For example, creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
-
-Eventually, we want to build a convenient API for creating AI tools. The API will provide methods for creating the UI of your tool (showing an autocomplete suggestion, or creating a new diff), detecting event changes (like `onKeystroke` or `onFileOpen`), and modifying the user's file-system (storing indexes associated with each file), making it much easier to make your own AI plugin.
-
-
-
-
-## 1. Contributing to the Extension
-Here's how you can start contributing to the Extension:
+## 1. Building the Extension
+Here's how you can start contributing to and building the Extension:
 
 1. Clone the repository
 
@@ -91,9 +96,9 @@ Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extensio
 
 If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `void > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
 
-## 2. Contributing to the full IDE
+## 2. Building the full IDE
 
-Beyond the extension, we sometimes edit the IDE when we need to access more functionality. If you want to make a change to the IDE, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+Beyond the extension, we sometimes edit the IDE when we need to access more functionality. If you want to build the full IDE after making a change, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
 1. Install all dependencies by running `yarn`.
 

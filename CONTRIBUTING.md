@@ -23,7 +23,7 @@ Here's how you can start contributing to the Void Extension, where much of our c
 1. Clone the repository: ```git clone https://github.com/voideditor/void```
 2. Open the extension folder in VS Code (open it in a new workspace, *don't* just cd into it): ```/extensions/void```
 3. Install dependencies: ```yarn```
-4. Build the project: run `yarn run build` or `npm run build`. (We created this build command so that we could run React in vscode - it converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.)
+4. Build the project: `yarn run build` or `npm run build`. (We created this build command so that we could run React in vscode - it converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.)
 5. Run the project:
 Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>Ctrl+Shift+P</kbd>, select "Debug: Start Debugging", and select "VS Code Extension Development".
 

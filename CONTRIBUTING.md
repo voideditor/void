@@ -22,6 +22,20 @@ For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github
 
 Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
+
+
+## ⭐ One-stars.
+
+⭐ When user presses ctrl+L it should clear the sidebar's state.
+
+⭐ Let the user accept / reject all Diffs in an entire file via the sidebar.
+
+⭐ Allow the user to make multiple selections of code or files at once.
+
+⭐ Allow user to X out of their current selection.
+
+
+
 ## ⭐⭐⭐ Improve diffs.
 
 We define a "diff" as a single green/red pair that denotes a change. Here are improvements to make:
@@ -47,16 +61,6 @@ Right now, the model outputs entire files. Instead, we should change the prompt 
 ## ⭐⭐ Integrate with Ollama.
 
 We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate Void's extension so that it runs natively into the VS Code editor so that we can access Node.js.
-
-## ⭐ One-stars.
-
-⭐ When user presses ctrl+L it should clear the sidebar's state.
-
-⭐ Let the user accept / reject all Diffs in an entire file via the sidebar.
-
-⭐ Allow the user to make multiple selections of code or files at once.
-
-⭐ Allow user to X out of their current selection.
 
 ## ⭐⭐⭐ Creative.
 

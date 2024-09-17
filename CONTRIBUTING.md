@@ -66,8 +66,8 @@ Eventually, we want to build a convenient API for creating AI tools. The API wil
 
 
 
-## 1. Contributing to the Extension
-Here's how you can start contributing to the Extension:
+## 1. Building the Extension
+Here's how you can start contributing to and building the Extension:
 
 1. Clone the repository
 
@@ -91,9 +91,9 @@ Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extensio
 
 If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `void > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
 
-## 2. Contributing to the full IDE
+## 2. Building the full IDE
 
-Beyond the extension, we sometimes edit the IDE when we need to access more functionality. If you want to make a change to the IDE, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+Beyond the extension, we sometimes edit the IDE when we need to access more functionality. If you want to build the full IDE after making a change, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
 1. Install all dependencies by running `yarn`.
 

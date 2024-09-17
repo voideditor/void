@@ -81,7 +81,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		const diffs: DiffType[] = []
 		for (let suggestedEdit of suggestedEdits) {
 
-			// TODO we need to account for the case when startLine > endLine (pure inserts)
+			// TODO we need to account for this case (deletions)
 			if (suggestedEdit.startLine > suggestedEdit.endLine)
 				continue
 

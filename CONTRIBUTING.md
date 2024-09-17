@@ -18,7 +18,7 @@ For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github
 
 
 ## 1. Building the Extension
-Here's how you can start contributing to and building the Extension:
+Here's how you can start contributing to the Void Extension, where much of our code lives right now:
 
 1. Clone the repository
 

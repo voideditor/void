@@ -29,7 +29,7 @@ Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extensio
 
 If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (Ctrl+,) and modifying `void > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
 
-Check out our [Issues](https://github.com/voideditor/void/issues) page!
+Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page!
 
 ## 2. Building the full IDE
 
@@ -43,8 +43,7 @@ To bundle the IDE, run `yarn gulp vscode-win32-x64`. Here are the full options: 
 
 If you're on Windows, we recommend running the project inside a dev container. VSCode should prompt you to do this automatically.
 
-Check out our [Issues](https://github.com/voideditor/void/issues) page!
-
+Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page!
 
 ## Roadmap
 

@@ -1,7 +1,7 @@
 # Welcome to Void.
 
 
-Void is the open-source Cursor alternative. It's a fork of the of [vscode](https://github.com/microsoft/vscode) repository.
+Void is the open-source Cursor alternative. 
 
 If you're new, welcome! Feel free to check out our [Task board](https://github.com/orgs/voideditor/projects/2/views/3) for the most pressing Issues to work on, and see [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md) to get started with the build environment.
 
@@ -12,6 +12,9 @@ This repo contains the full sourcecode for Void. We have a [waitlist](https://vo
 To build and run Void, see [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
 
 ## Reference
+
+Void is a fork of the of [vscode](https://github.com/microsoft/vscode) repository.
+
 For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 

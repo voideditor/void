@@ -20,46 +20,26 @@ For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github
 ## 1. Building the Extension
 Here's how you can start contributing to the Void Extension, where much of our code lives right now:
 
-1. Clone the repository
+1. Clone the repository: ```git clone https://github.com/voideditor/void```
+2. Open the extension folder in VS Code (open it in a new workspace, *don't* just cd into it): ```/extensions/void```
+3. Install dependencies: ```yarn```
+4. Build the project: run `yarn run build` or `npm run build`. (We created this build command so that we could run React in vscode - it converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.)
+5. Run the project:
+Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>Ctrl+Shift+P</kbd>, select "Debug: Start Debugging", and select "VS Code Extension Development".
 
-```git clone https://github.com/voideditor/void```
-
-2. Open the extension folder in VS Code
-
-```/extensions/void```
-
-3. Install dependencies
-
-```yarn```
-
-4. Build the project using `yarn run build` or `npm run build`. (We created this command so that we could run React in vscode - it converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.)
-
-```yarn run build```
-
-5. Run the project
-
-Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>F1</kbd>, select "Debug: Start Debugging", and select "VS Code Extension Development".
-
-If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `void > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
+If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (Ctrl+,) and modifying `void > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
 
 ## 2. Building the full IDE
 
 Beyond the extension, we very occasionally edit the IDE when we need to access more functionality. If you want to work on the full IDE, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
 1. Install all dependencies by running `yarn`.
-
 2. Press <kbd>Ctrl+Shift+B</kbd> to start the build process - this can take some time.
-
 3. Run `./scripts/code.sh` to open up the built IDE. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
 
 To bundle the IDE, run `yarn gulp vscode-win32-x64`. Here are the full options: vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)
 
 If you're on Windows, we recommend running the project inside a dev container. VSCode should prompt you to do this automatically.
-
-
-
-
-
 
 ## Roadmap
 

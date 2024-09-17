@@ -1,4 +1,22 @@
 
+# Contributing to Void
+
+Welcome! 👋 This is a guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
+
+There are two main ways to contribute:
+
+- Suggest New Features (discord)
+- Build New Features (roadmap)
+
+
+See the [Roadmap](#roadmap) section for a list of the most important features to build, or feel free to build your own features.
+
+We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality.  Scroll down to see 1. How to build/contribute to the Extension, or 2. How to build/contribute to the full IDE (for more native changes).
+
+For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
+
+
+
 ## 1. Building the Extension
 Here's how you can start contributing to and building the Extension:
 
@@ -40,23 +58,6 @@ If you're on Windows, we recommend running the project inside a dev container. V
 
 
 
-
-
-# Contributing to Void
-
-Welcome! 👋 This is a guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
-
-There are two main ways to contribute:
-
-- Suggest New Features (discord)
-- Build New Features (roadmap)
-
-
-See the [Roadmap](#roadmap) section for a list of the most important features to build, or feel free to build your own features.
-
-We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality.  Scroll down to see 1. How to build/contribute to the Extension, or 2. How to build/contribute to the full IDE (for more native changes).
-
-For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 
 

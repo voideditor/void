@@ -241,6 +241,10 @@ const Sidebar = () => {
 
 	}, [messageStream])
 
+	const clearSelection = () => {
+		setSelection(null);
+	}
+
 	return <>
 		<div className="flex flex-col h-full w-full">
 			<div className="flex-grow overflow-y-auto overflow-x-hidden p-4">
@@ -258,9 +262,17 @@ const Sidebar = () => {
 					{/* selected files */}
 					<FilesSelector files={files} setFiles={setFiles} />
 					{/* selected code */}
-					{!selection?.selectionStr ? null
-						: <BlockCode text={selection?.selectionStr} disableApplyButton={true} />
-					}
+					{!selection?.selectionStr ? null:(
+                        <div className="relative">
+                            <button 
+                                onClick={clearSelection}
+                                className="absolute top-2 right-2 text-gray-500 hover:text-gray-300 z-10"
+                            >
+                                X
+                            </button>
+                            <BlockCode text={selection.selectionStr} disableApplyButton={true} />
+                        </div>
+                    )}
 				</div>
 				<form
 					ref={formRef}

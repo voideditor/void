@@ -1,8 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
-// import ollama from 'ollama'
-
 export type ApiConfig = {
 	anthropic: {
 		apikey: string,
@@ -20,7 +18,8 @@ export type ApiConfig = {
 		}
 	},
 	ollama: {
-		// TODO
+		endpoint: string,
+		model: string
 	},
 	whichApi: string
 }
@@ -220,66 +219,85 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 	if (!apiConfig) return { abort: () => { } }
 
-	const whichApi = apiConfig.whichApi
+	const whichApi = apiConfig.whichApi;
 
-	if (whichApi === 'anthropic') {
-		return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig })
+	switch (whichApi) {
+		case 'anthropic':
+			return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig });
+		case 'openai':
+			return sendOpenAIMsg({ messages, onText, onFinalMessage, apiConfig });
+		case 'greptile':
+			return sendGreptileMsg({ messages, onText, onFinalMessage, apiConfig });
+		case 'ollama':
+			return sendOllamaMsg({ messages, onText, onFinalMessage, apiConfig });
+		default:
+			console.error(`Error: whichApi was ${whichApi}, which is not recognized!`);
+			return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig }); // TODO
 	}
-	else if (whichApi === 'openai') {
-		return sendOpenAIMsg({ messages, onText, onFinalMessage, apiConfig })
-	}
-	else if (whichApi === 'greptile') {
-		return sendGreptileMsg({ messages, onText, onFinalMessage, apiConfig })
-	}
-	else if (whichApi === 'ollama') {
-		return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig }) // TODO
-	}
-	else {
-		console.error(`Error: whichApi was ${whichApi}, which is not recognized!`)
-		return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig }) // TODO
-	}
-
 }
 
 
 // Ollama
-// const sendOllamaMsg: sendMsgFnType = ({ messages, onText, onFinalMessage }) => {
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
+	let didAbort = false;
+	let fullText = "";
 
-//     let did_abort = false
-//     let fullText = ''
+	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
+	const abort = () => {
+		didAbort = true;
+	};
 
-//     // if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-//     let abort: () => void = () => {
-//         did_abort = true
-//     }
+	const handleError = (error: any) => {
+		console.error('Error:', error);
+		onFinalMessage(fullText);
+	};
 
-//     ollama.chat({ model: 'llama3.1', messages: messages, stream: true })
-//         .then(async response => {
+	if (apiConfig.ollama.endpoint.endsWith('/')) {
+		apiConfig.ollama.endpoint = apiConfig.ollama.endpoint.slice(0, -1);
+	}
 
-//             abort = () => {
-//                 // response.abort() // this isn't needed now, to keep consistency with claude will leave it commented for now
-//                 did_abort = true;
-//             }
+	fetch(`${apiConfig.ollama.endpoint}/api/chat`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			model: apiConfig.ollama.model,
+			messages: messages,
+			stream: true,
+		}),
+	})
+		.then(response => {
+			if (didAbort) return;
+			const reader = response.body?.getReader();
+			if (!reader) {
+				onFinalMessage(fullText);
+				return;
+			}
+			return reader;
+		})
+		.then(reader => {
+			if (!reader) return;
 
-//             // when receive text
-//             try {
-//                 for await (const part of response) {
-//                     if (did_abort) return
-//                     let newText = part.message.content
-//                     fullText += newText
-//                     onText(newText, fullText)
-//                 }
-//             }
-//             // when error/fail
-//             catch (e) {
-//                 onFinalMessage(fullText)
-//                 return
-//             }
+			const readStream = async () => {
+				try {
+					let done, value;
+					while ({ done, value } = await reader.read(), !done) {
+						if (didAbort) return;
+						const stringedResponse = new TextDecoder().decode(value);
+						const newText = JSON.parse(stringedResponse).message.content;
+						fullText += newText;
+						onText(newText, fullText);
+					}
+					onFinalMessage(fullText);
+				} catch (error) {
+					handleError(error);
+				}
+			};
 
-//             // when we get the final message on this stream
-//             onFinalMessage(fullText)
-//         })
+			readStream();
+		})
+		.catch(handleError);
 
-//     return { abort };
-// };
-
+	return { abort };
+};

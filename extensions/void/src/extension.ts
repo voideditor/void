@@ -25,7 +25,8 @@ const getApiConfig = () => {
 			}
 		},
 		ollama: {
-			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
+			endpoint: vscode.workspace.getConfiguration('void').get('ollamaSettings.endpoint') ?? '',
+			model: vscode.workspace.getConfiguration('void').get('ollamaSettings.model') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}

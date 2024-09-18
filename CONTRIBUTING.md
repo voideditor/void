@@ -9,7 +9,7 @@ There are two main ways to contribute:
 - Build New Features (roadmap)
 
 
-See the [Roadmap](#roadmap) section for a list of the most important features to build, or feel free to build your own features.
+See the [GitHub Issues](https://github.com/orgs/voideditor/projects/2/views/3) list for a list of the most important features to build, or feel free to build your own features.
 
 We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality.  Scroll down to see 1. How to build/contribute to the Extension, or 2. How to build/contribute to the full IDE (for more native changes).
 

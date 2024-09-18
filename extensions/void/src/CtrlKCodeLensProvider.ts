@@ -13,19 +13,31 @@ export class CtrlKCodeLensProvider implements vscode.CodeLensProvider {
 	// only called by us
 	public addNewCodeLens(document: vscode.TextDocument, selection: vscode.Selection) {
 
-		const docUri = document.uri.toString()
-
-		if (!this.codelensesOfDocument[docUri])
-			this.codelensesOfDocument[docUri] = []
-
-		// if any other codelens intersects with the selection, don't do it (and have the user now focus that codelens)
-		for (let lens of this.codelensesOfDocument[docUri]) {
-			if (lens.range.intersection(selection))
-				return
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			return;
 		}
 
-		this.codelensesOfDocument[docUri] = [
-			...this.codelensesOfDocument[docUri],
-			new vscode.CodeLens(new vscode.Range(selection.start.line, 0, selection.end.line, Infinity), { title: '', command: '' })];
+		const range = new vscode.Range(selection.start, selection.end);
+		const decorationType = vscode.window.createTextEditorDecorationType({
+			after: {
+				contentText: 'Enter value: ',
+				backgroundColor: 'rgba(0,0,0,0.1)',
+				border: '1px solid rgba(0,0,0,0.2)',
+				width: '100px',
+			},
+		});
+
+		editor.setDecorations(decorationType, [{ range }]);
+
+		vscode.window.showInputBox({ prompt: 'Enter your input' }).then((input) => {
+			if (input) {
+				editor.edit(editBuilder => {
+					editBuilder.replace(selection, input);
+				});
+			}
+
+			editor.setDecorations(decorationType, []);
+		});
 	}
 }

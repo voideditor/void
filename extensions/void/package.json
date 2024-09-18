@@ -92,8 +92,7 @@
       {
         "command": "void.ctrl+k",
         "key": "ctrl+k",
-        "mac": "cmd+k",
-        "when": "editorTextFocus"
+        "mac": "cmd+k"
       }
     ]
   },

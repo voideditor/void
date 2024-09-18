@@ -137,17 +137,17 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)
 	// TODO need to build this
+	// const ctrlKCodeLensProvider = new CtrlKCodeLensProvider();
+	// context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', ctrlKCodeLensProvider));
+	// context.subscriptions.push(
+	// 	vscode.commands.registerCommand('void.ctrl+k', () => {
+	// 		const editor = vscode.window.activeTextEditor;
+	// 		if (!editor)
+	// 			return
+	// 		ctrlKCodeLensProvider.addNewCodeLens(editor.document, editor.selection);
+	// 		// vscode.commands.executeCommand('editor.action.showHover'); // apparently this refreshes the codelenses by having the internals call provideCodeLenses
+	// 	})
+	// )
 
-	const ctrlKCodeLensProvider = new CtrlKCodeLensProvider();
-    context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', ctrlKCodeLensProvider));
-    context.subscriptions.push(
-        vscode.commands.registerCommand('void.ctrl+k', () => {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) return;
-
-            const selection = editor.selection;
-            ctrlKCodeLensProvider.addNewCodeLens(editor.document, selection);
-        })
-    );
 }
 

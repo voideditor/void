@@ -18,7 +18,7 @@ For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github
 
 
 ## 1. Building the Extension
-Here's how you can start contributing to the Void Extension, where much of our code lives right now:
+Here's how you can start contributing to the Void extension. This is where most of Void's code lives, and it's where you should get started if you're new. 
 
 1. Clone the repository:
 
@@ -26,10 +26,10 @@ Here's how you can start contributing to the Void Extension, where much of our c
 git clone https://github.com/voideditor/void
 ```
 
-2. Open the extension folder in VS Code (open it in a new workspace, *don't* just cd into it):
+2. Open the folder `/extensions/void` in VS Code (open it in a new workspace, *don't* just cd into it):
 
 ```
-/extensions/void
+open /extensions/void
 ```
 
 3. Install dependencies:

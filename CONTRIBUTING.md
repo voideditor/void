@@ -62,7 +62,7 @@ Beyond the extension, we very occasionally edit the IDE when we need to access m
 yarn
 ```
 
-2. Press <kbd>Ctrl+Shift+B</kbd> to start the build process - this can take some time.
+2. In VS Code, press <kbd>Ctrl+Shift+B</kbd> to start the build process - this can take some time. If you're not using VS Code, run `yarn watch` instead.
 
 3. Run `./scripts/code.sh` in your terminal.
 

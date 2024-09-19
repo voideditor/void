@@ -57,7 +57,7 @@ Make sure you're on the correct NodeJS version as per `.nvmrc`.
 1. Install all dependencies.
 
 ```
-npm ci
+yarn
 ```
 
 2. In VS Code, press <kbd>Ctrl+Shift+B</kbd> to start the build process - this can take some time. If you're not using VS Code, run `npm run watch` instead.

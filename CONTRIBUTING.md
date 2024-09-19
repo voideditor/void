@@ -5,11 +5,8 @@ Welcome! 👋 This is a guide on how to contribute to Void. We want to make it a
 
 There are two main ways to contribute:
 
-- Suggest New Features (discord)
-- Build New Features (roadmap)
-
-
-See the [GitHub Issues](https://github.com/orgs/voideditor/projects/2/views/3) list for a list of the most important features to build, or feel free to create new issues.
+- Suggest New Features ([discord](https://discord.gg/4GAxHVAD))
+- Build New Features ([project](https://github.com/orgs/voideditor/projects/2/views/3))
 
 We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality.  Scroll down to see 1. How to build/contribute to the Extension, or 2. How to build/contribute to the full IDE (for more native changes).
 
@@ -48,7 +45,7 @@ npm run build
 
 This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>Ctrl+Shift+P</kbd>, select "Debug: Start Debugging", and select "VS Code Extension Development".
 
-If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (Ctrl+,) and modifying `void > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
+If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (Ctrl+,) typing in "void", and adding the API key you want to use (eg. the `"Anthropic Api Key"` environment variable). The "Which API" environment variable controls the provider and defaults to "anthropic".
 
 Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page!
 
@@ -56,6 +53,7 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 Beyond the extension, we very occasionally edit the IDE when we need to access more functionality. If you want to work on the full IDE, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
+Before starting, make sure you've built the extension (by running `cd .\extensions\void\` and `npm run build`). 
 
 1. Install all dependencies. Make sure you have yarn installed (`npm install -g yarn`)
 ```

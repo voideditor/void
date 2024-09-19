@@ -96,9 +96,9 @@ export class InlineChatWidget {
 			h('div.accessibleViewer@accessibleViewer'),
 			h('div.status@status', [
 				h('div.label.info.hidden@infoLabel'),
-				h('div.actions.button-style.hidden@toolbar1'),
+				h('div.actions.hidden@toolbar1'),
 				h('div.label.status.hidden@statusLabel'),
-				h('div.actions.button-style.hidden@toolbar2'),
+				h('div.actions.secondary.hidden@toolbar2'),
 			]),
 		]
 	);
@@ -385,7 +385,7 @@ export class InlineChatWidget {
 	}
 
 	protected _getExtraHeight(): number {
-		return 4 /* padding */ + 2 /*border*/ + 4 /*shadow*/;
+		return 2 /*border*/ + 4 /*shadow*/;
 	}
 
 	get value(): string {

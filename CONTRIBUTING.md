@@ -5,10 +5,8 @@ Welcome! 👋 This is a guide on how to contribute to Void. We want to make it a
 
 There are two main ways to contribute:
 
-- Suggest New Features ([here](https://github.com/voideditor/void/issues/new))
-- Build New Features ([here](https://github.com/orgs/voideditor/projects/2/views/3))
-
-For a complete list of issues to work on, see [here](https://github.com/voideditor/void/issues/).
+- Suggest New Features ([discord](https://discord.gg/4GAxHVAD) or [create an issue](https://github.com/voideditor/void/issues/new))
+- Build New Features ([important issues](https://github.com/orgs/voideditor/projects/2/views/3))
 
 We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality.  Scroll down to see 1. How to build/contribute to the Extension, or 2. How to build/contribute to the full IDE (for more native changes).
 

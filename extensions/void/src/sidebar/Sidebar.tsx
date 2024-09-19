@@ -177,6 +177,8 @@ const Sidebar = () => {
 			// when get apiConfig, set
 			else if (m.type === 'apiConfig') {
 				setApiConfig(m.apiConfig)
+			} else if (m.type === 'clearHistory') {
+				setChatHistory([]);
 			}
 
 		}
@@ -266,7 +268,7 @@ const Sidebar = () => {
 					{!selection?.selectionStr ? null
 						: (
 							<div className="relative">
-								<button 
+								<button
 									onClick={clearSelection}
 									className="absolute top-2 right-2 text-white hover:text-gray-300 z-10"
 								>

@@ -132,6 +132,15 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	)
 
+	// 6.
+	context.subscriptions.push(
+		vscode.commands.registerCommand('void.clearHistory', () => {
+			webviewProvider.webview.then(webview => {
+				webview.postMessage({ type: 'clearHistory' } satisfies WebviewMessage);
+			});
+		})
+	);
+
 
 
 

@@ -27,6 +27,8 @@ type WebviewMessage = (
 	// editor -> sidebar
 	| { type: 'apiConfig', apiConfig: ApiConfig }
 
+	// editor -> sidebar
+	| { type: 'clearHistory' } // user clicks ctrl+u in the editor
 )
 
 type Command = WebviewMessage['type']

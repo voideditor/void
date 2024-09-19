@@ -63,6 +63,10 @@
       {
         "command": "void.discardDiff",
         "title": "Discard Diff"
+      },
+      {
+        "command": "void.clearHistory",
+        "title": "Clear History"
       }
     ],
     "viewsContainers": {
@@ -93,6 +97,11 @@
         "command": "void.ctrl+k",
         "key": "ctrl+k",
         "mac": "cmd+k"
+      },
+      {
+        "command": "void.clearHistory",
+        "key": "ctrl+u",
+        "mac": "cmd+u"
       }
     ]
   },

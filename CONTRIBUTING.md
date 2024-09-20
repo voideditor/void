@@ -12,7 +12,7 @@ We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-f
 For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 ## 1. Building the Extension
-Here's how you can start contributing to the Void extension. This is where most of Void's code lives, and it's where you should get started if you're new. 
+Here's how you can start contributing to the Void extension. This is where you should get started if you're new. 
 
 1. Clone the repository:
 

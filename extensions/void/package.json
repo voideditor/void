@@ -137,7 +137,12 @@
     "typescript-eslint": "^8.3.0"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^0.0.50",
+    "@ai-sdk/azure": "^0.0.39",
+    "@ai-sdk/openai": "^0.0.60",
     "@anthropic-ai/sdk": "^0.27.1",
+    "ai": "^3.3.43",
+    "ollama-ai-provider": "^0.15.0",
     "openai": "^4.57.0"
   }
 }

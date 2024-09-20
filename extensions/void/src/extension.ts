@@ -25,7 +25,8 @@ const getApiConfig = () => {
 			}
 		},
 		ollama: {
-			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
+			endpoint: vscode.workspace.getConfiguration('void').get('ollamaSettings.endpoint') ?? '',
+			model: vscode.workspace.getConfiguration('void').get('ollamaSettings.model') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
@@ -132,22 +133,17 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	)
 
+	const inlineInputProvider = new CtrlKCodeLensProvider();
 
-
-
-	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)
-	// TODO need to build this
-	// const ctrlKCodeLensProvider = new CtrlKCodeLensProvider();
-	// context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', ctrlKCodeLensProvider));
-	// context.subscriptions.push(
-	// 	vscode.commands.registerCommand('void.ctrl+k', () => {
-	// 		const editor = vscode.window.activeTextEditor;
-	// 		if (!editor)
-	// 			return
-	// 		ctrlKCodeLensProvider.addNewCodeLens(editor.document, editor.selection);
-	// 		// vscode.commands.executeCommand('editor.action.showHover'); // apparently this refreshes the codelenses by having the internals call provideCodeLenses
-	// 	})
-	// )
-
+    context.subscriptions.push(vscode.commands.registerCommand('void.ctrl+k', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            const selection = editor.selection; // Get the current selection
+			if (selection.isEmpty) {
+				console.log('No text selected!');
+				return; // or show a message to the user
+			}
+			await inlineInputProvider.showInlineInput(editor, selection);
+        }
+    }));
 }
-

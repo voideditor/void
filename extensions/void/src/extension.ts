@@ -13,8 +13,8 @@ const readFileContentOfUri = async (uri: vscode.Uri) => {
 
 const getApiConfig = () => {
 	const apiConfig: ApiConfig = {
-		anthropic: { apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '' },
-		openai: { apikey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
+		anthropic: { apiKey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '' },
+		openai: { apiKey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
 		greptile: {
 			apikey: vscode.workspace.getConfiguration('void').get('greptileApiKey') ?? '',
 			githubPAT: vscode.workspace.getConfiguration('void').get('githubPAT') ?? '',
@@ -25,7 +25,10 @@ const getApiConfig = () => {
 			}
 		},
 		ollama: {
-			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
+      model: vscode.workspace.getConfiguration('void').get('ollamaSettings.model') ?? '',
+      setting: {
+        baseURL: vscode.workspace.getConfiguration('void').get('ollamaSettings.baseURL') ?? '',
+      },
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}

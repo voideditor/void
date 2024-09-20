@@ -139,5 +139,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
     "openai": "^4.57.0"
-  }
+  },
+  "packageManager": "yarn@4.5.0"
 }

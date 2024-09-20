@@ -71,13 +71,13 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', approvalCodeLensProvider));
 
 	// 4. Add approve/reject commands
-	context.subscriptions.push(vscode.commands.registerCommand('void.approveDiff', async (params) => {
-		approvalCodeLensProvider.approveDiff(params)
-	}));
-	context.subscriptions.push(vscode.commands.registerCommand('void.discardDiff', async (params) => {
-		approvalCodeLensProvider.discardDiff(params)
+	context.subscriptions.push(vscode.commands.registerCommand('void.approveDiff', async (params: { diffid: number }) => {
+		approvalCodeLensProvider.approveDiff(params);
 	}));
 
+	context.subscriptions.push(vscode.commands.registerCommand('void.discardDiff', async (params: { diffid: number }) => {
+		approvalCodeLensProvider.discardDiff(params);
+	}));
 
 	// 5.
 	webviewProvider.webview.then(
@@ -136,18 +136,75 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)
-	// TODO need to build this
-	// const ctrlKCodeLensProvider = new CtrlKCodeLensProvider();
-	// context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', ctrlKCodeLensProvider));
-	// context.subscriptions.push(
-	// 	vscode.commands.registerCommand('void.ctrl+k', () => {
-	// 		const editor = vscode.window.activeTextEditor;
-	// 		if (!editor)
-	// 			return
-	// 		ctrlKCodeLensProvider.addNewCodeLens(editor.document, editor.selection);
-	// 		// vscode.commands.executeCommand('editor.action.showHover'); // apparently this refreshes the codelenses by having the internals call provideCodeLenses
-	// 	})
-	// )
+	const ctrlKCodeLensProvider = new CtrlKCodeLensProvider();
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', ctrlKCodeLensProvider));
+	context.subscriptions.push(
+		vscode.commands.registerCommand('void.ctrl+k', () => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor)
+				return
+			ctrlKCodeLensProvider.addNewCodeLens(editor.document, editor.selection);
+			vscode.commands.executeCommand('editor.action.showHover'); // apparently this refreshes the codelenses by having the internals call provideCodeLenses
+		})
+	)
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('void.approveDiff', (document: vscode.TextDocument, selection: vscode.Selection )=> {
+			const editor = vscode.window.activeTextEditor;
+			if(!editor) {
+				return
+			}
+
+			vscode.window.showInformationMessage(`Approve code selection from line ${selection.start.line} to ${selection.end.line}`);
+
+			editor.edit(editBuilder => {
+				editBuilder.insert(
+					new vscode.Position(selection.end.line + 1, 0),
+					'\n// example of approving text'
+				);
+			});
+		})
+	)
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('void.discardDiff', (document: vscode.TextDocument, selection: vscode.Selection) => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				return;
+			}
+	
+			// Show a warning message to confirm the rejection
+			vscode.window.showWarningMessage(`Rejected code from line ${selection.start.line} to ${selection.end.line}`);
+	
+			// Example action: Add a comment indicating rejection at the end of the selected range
+			editor.edit(editBuilder => {
+				editBuilder.insert(
+					new vscode.Position(selection.end.line + 1, 0),
+					'\n// Rejected'
+				);
+			});
+		})
+	)
+    //register the command to clear the codelens
+	context.subscriptions.push(
+		vscode.commands.registerCommand('void.clearCodeLenses', () => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				return;
+			}
+
+			const documentUri = editor.document.uri.toString();
+			ctrlKCodeLensProvider.clearCodeLenses(documentUri);
+			
+			// Refresh the editor to remove CodeLenses
+			vscode.commands.executeCommand('editor.action.showHover');
+		})
+	);
+
+	// Add this near the other command registrations
+	context.subscriptions.push(vscode.commands.registerCommand('void.refreshApprovalCodeLenses', () => {
+		approvalCodeLensProvider.refreshCodeLenses();
+	}));
 
 }
 

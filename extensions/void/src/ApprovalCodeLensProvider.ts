@@ -137,24 +137,39 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		console.log('diffs after added:', this._diffsOfDocument[docUriStr])
 	}
 
+	private adjustDiffRanges(docUriStr: string, startLine: number, lineDelta: number) {
+		this._diffsOfDocument[docUriStr].forEach(diff => {
+			if (diff.range.start.line > startLine) {
+				diff.range = new vscode.Range(
+					diff.range.start.line + lineDelta, diff.range.start.character,
+					diff.range.end.line + lineDelta, diff.range.end.character
+				);
+			}
+		});
+	}
+
 	// called on void.approveDiff
 	public async approveDiff({ diffid }: { diffid: number }) {
-		const editor = vscode.window.activeTextEditor
-		if (!editor)
-			return
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) return;
 
-		const docUri = editor.document.uri
-		const docUriStr = docUri.toString()
+		const docUri = editor.document.uri;
+		const docUriStr = docUri.toString();
 
-		// get index of this diff in diffsOfDocument
 		const index = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
 		if (index === -1) {
-			console.error('Error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr])
-			return
+			console.error('Error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr]);
+			return;
 		}
 
-		// remove this diff from the diffsOfDocument[docStr] (can change this behavior in future if add something like history)
-		this._diffsOfDocument[docUriStr].splice(index, 1)
+		const approvedDiff = this._diffsOfDocument[docUriStr][index];
+		const lineDelta = approvedDiff.range.end.line - approvedDiff.range.start.line + 1;
+
+		// Remove this diff from the diffsOfDocument
+		this._diffsOfDocument[docUriStr].splice(index, 1);
+
+		// Adjust ranges of diffs below the approved diff
+		this.adjustDiffRanges(docUriStr, approvedDiff.range.start.line, -lineDelta);
 
 		// clear the decoration in this diff's range
 		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.range))
@@ -169,27 +184,23 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 
 	// called on void.discardDiff
 	public async discardDiff({ diffid }: { diffid: number }) {
-		const editor = vscode.window.activeTextEditor
-		if (!editor)
-			return
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) return;
 
-		const docUri = editor.document.uri
-		const docUriStr = docUri.toString()
+		const docUri = editor.document.uri;
+		const docUriStr = docUri.toString();
 
-		// get index of this diff in diffsOfDocument
 		const index = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
 		if (index === -1) {
-			console.error('Void error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr])
-			return
+			console.error('Void error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr]);
+			return;
 		}
 
-		const { range, lenses, originalCode } = this._diffsOfDocument[docUriStr][index] // do this before we splice and mess up index
+		const { range, originalCode } = this._diffsOfDocument[docUriStr][index];
+		const lineDelta = range.end.line - range.start.line + 1;
 
-		// remove this diff from the diffsOfDocument[docStr] (can change this behavior in future if add something like history)
-		this._diffsOfDocument[docUriStr].splice(index, 1)
-
-		// clear the decoration in this diffs range
-		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.range))
+		// Remove this diff from the diffsOfDocument
+		this._diffsOfDocument[docUriStr].splice(index, 1);
 
 		// REVERT THE CHANGE (this is the only part that's different from approveDiff)
 		let workspaceEdit = new vscode.WorkspaceEdit();
@@ -199,10 +210,17 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		await vscode.workspace.save(docUri)
 		this._weAreEditing = false
 
+		// Adjust ranges of diffs below the discarded diff
+		this.adjustDiffRanges(docUriStr, range.start.line, originalCode.split('\n').length - lineDelta);
+
 		// recompute _computedLensesOfDocument (can optimize this later)
 		this._computedLensesOfDocument[docUriStr] = this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses)
 
 		// refresh
 		this._onDidChangeCodeLenses.fire()
+	}
+
+	public refreshCodeLenses() {
+		this._onDidChangeCodeLenses.fire();
 	}
 }

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import { Ollama } from 'ollama/browser'
 
 export type ApiConfig = {
 	anthropic: {
@@ -239,6 +240,8 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 
 // Ollama
 export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
+	const ollamaClient = new Ollama({ host: apiConfig.ollama.endpoint })
+
 	let didAbort = false;
 	let fullText = "";
 
@@ -247,57 +250,24 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		didAbort = true;
 	};
 
-	const handleError = (error: any) => {
-		console.error('Error:', error);
-		onFinalMessage(fullText);
-	};
-
-	if (apiConfig.ollama.endpoint.endsWith('/')) {
-		apiConfig.ollama.endpoint = apiConfig.ollama.endpoint.slice(0, -1);
-	}
-
-	fetch(`${apiConfig.ollama.endpoint}/api/chat`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			model: apiConfig.ollama.model,
-			messages: messages,
-			stream: true,
-		}),
+	ollamaClient.chat({
+		model: apiConfig.ollama.model,
+		messages: messages,
+		stream: true,
 	})
-		.then(response => {
-			if (didAbort) return;
-			const reader = response.body?.getReader();
-			if (!reader) {
-				onFinalMessage(fullText);
-				return;
+		.then(async (stream) => {
+			for await (const chunk of stream) {
+				if (didAbort) return;
+				const newText = chunk.message.content;
+				fullText += newText;
+				onText(newText, fullText);
 			}
-			return reader;
+			onFinalMessage(fullText);
 		})
-		.then(reader => {
-			if (!reader) return;
-
-			const readStream = async () => {
-				try {
-					let done, value;
-					while ({ done, value } = await reader.read(), !done) {
-						if (didAbort) return;
-						const stringedResponse = new TextDecoder().decode(value);
-						const newText = JSON.parse(stringedResponse).message.content;
-						fullText += newText;
-						onText(newText, fullText);
-					}
-					onFinalMessage(fullText);
-				} catch (error) {
-					handleError(error);
-				}
-			};
-
-			readStream();
-		})
-		.catch(handleError);
+		.catch((error) => {
+			console.error('Error:', error);
+			onFinalMessage(fullText);
+		});
 
 	return { abort };
 };

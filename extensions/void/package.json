@@ -142,6 +142,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
+    "ollama": "^0.5.9",
     "openai": "^4.57.0"
   }
 }

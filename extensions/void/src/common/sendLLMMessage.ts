@@ -223,14 +223,14 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 	if (!apiConfig) return { abort: () => { } }
 
 	if (
-		apiConfig.anthropic.apikey === "" &&
-		apiConfig.greptile.apikey === "" &&
-		apiConfig.openai.apikey === "" &&
-		apiConfig.ollama.endpoint === "" &&
-		apiConfig.ollama.model === ""
+		apiConfig.anthropic.apikey === '' &&
+		apiConfig.greptile.apikey === '' &&
+		apiConfig.openai.apikey === '' &&
+		apiConfig.ollama.endpoint === '' &&
+		apiConfig.ollama.model === '' &&
+		apiConfig.whichApi === ''
 	) {
 		getVSCodeAPI().postMessage({ type: 'displayError', message: 'Required API keys are not set.' })
-		onFinalMessage("Required API keys are not set.");
 		return { abort: () => { }}
 	}
 

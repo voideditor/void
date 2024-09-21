@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.no-select {
+    user-select: none;
+	pointer-events: none;
+	filter: blur(3px)
+}

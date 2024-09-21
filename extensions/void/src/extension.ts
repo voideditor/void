@@ -126,7 +126,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 				} else if (m.type === 'displayError') {
 
-					vscode.window.showWarningMessage(m.message, { modal: true });
+					vscode.window.showErrorMessage(m.message, { modal: true });
 				}
 				else {
 

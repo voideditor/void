@@ -58,61 +58,37 @@ ${instructions}
 
 If you make a change, rewrite the entire file.
 `; // TODO don't rewrite the whole file on prompt, instead rewrite it when click Apply
-};
+}
 
-const FilesSelector = ({
-	files,
-	setFiles,
-}: {
-	files: vscode.Uri[];
-	setFiles: (files: vscode.Uri[]) => void;
-}) => {
-	return (
-		files.length !== 0 && (
-			<div className="text-xs my-2">
-				Include files:
-				{files.map((filename, i) => (
-					<div key={i} className="flex">
-						{/* X button on a file */}
-						<button
-							type="button"
-							onClick={() => {
-								let file_index = files.indexOf(filename);
-								setFiles(files.filter((_, index) => index !== file_index));
-							}}
-						>
-							-{" "}
-							<span className="text-gray-500">
-								{getBasename(filename.fsPath)}
-							</span>
-						</button>
-					</div>
-				))}
+
+const FilesSelector = ({ files, setFiles }: { files: vscode.Uri[], setFiles: (files: vscode.Uri[]) => void }) => {
+	return files.length !== 0 && <div className='my-2'>
+		Include files:
+		{files.map((filename, i) =>
+			<div key={i} className='flex'>
+				{/* X button on a file */}
+				<button type='button' onClick={() => {
+					let file_index = files.indexOf(filename)
+					setFiles([...files.slice(0, file_index), ...files.slice(file_index + 1, Infinity)])
+				}}>
+					-{' '}<span className='text-gray-500'>{getBasename(filename.fsPath)}</span>
+				</button>
 			</div>
 		)
 	);
 };
 
 const IncludedFiles = ({ files }: { files: vscode.Uri[] }) => {
-	return (
-		files.length !== 0 && (
-			<div className="my-2">
-				{files.map((filename, i) => (
-					<div key={i} className="flex">
-						<button
-							type="button"
-							className="btn btn-secondary pointer-events-none"
-							onClick={() => {
-								// TODO redirect to the document filename.fsPath, when add this remove pointer-events-none
-							}}
-						>
-							-{" "}
-							<span className="text-gray-100">
-								{getBasename(filename.fsPath)}
-							</span>
-						</button>
-					</div>
-				))}
+	return files.length !== 0 && <div className='text-xs my-2'>
+		{files.map((filename, i) =>
+			<div key={i} className='flex'>
+				<button type='button'
+					className='btn btn-secondary pointer-events-none'
+					onClick={() => {
+						// TODO redirect to the document filename.fsPath, when add this remove pointer-events-none
+					}}>
+					-{' '}<span className='text-gray-100'>{getBasename(filename.fsPath)}</span>
+				</button>
 			</div>
 		)
 	);
@@ -144,14 +120,9 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 		chatbubbleContents = <MarkdownRender tokens={tokens} />; // sectionsHTML
 	}
 
-	return (
-		<div className={`mb-4 ${role === "user" ? "text-right" : "text-left"}`}>
-			<div
-				className={`inline-block p-2 rounded-lg space-y-2 ${role === "user" ? "bg-vscode-input-bg text-vscode-input-fg" : ""
-					} max-w-full`}
-			>
-				{chatbubbleContents}
-			</div>
+	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
+		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full`}>
+			{chatbubbleContents}
 		</div>
 	);
 };
@@ -460,10 +431,46 @@ const Sidebar = () => {
 						)}
 					</form>
 				</div>
-				{/* Red overlay when isDisabled is true */}
+
 				{isDisabled && (
 					<div className="absolute top-0 left-0 w-full h-full bg-gray-500 opacity-10 pointer-events-none" />
 				)}
+				<form
+					ref={formRef}
+					className="flex flex-row items-center rounded-md p-2 input"
+					onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
+
+					onSubmit={(e) => {
+						console.log('submit!')
+						e.preventDefault();
+						onSubmit(e)
+					}}>
+
+					<textarea
+						onChange={(e) => { setInstructions(e.target.value) }}
+						className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
+						placeholder="Ctrl+L to select"
+						rows={1}
+						onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
+					/>
+					{isLoading ?
+						<button
+							onClick={onStop}
+							className="btn btn-primary rounded-r-lg max-h-10 p-2"
+							type='button'
+						>Stop</button>
+						: <button
+							className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+							disabled={!instructions}
+							type='submit'
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<line x1="12" y1="19" x2="12" y2="5"></line>
+								<polyline points="5 12 12 5 19 12"></polyline>
+							</svg>
+						</button>
+					}
+				</form>
 			</div>
 		</>
 	);

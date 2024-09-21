@@ -12,10 +12,10 @@ const COPY_FEEDBACK_TIMEOUT = 1000
 // code block with Apply button at top
 const BlockCode = ({
 	text,
-	disableApplyButton = false,
+	hideToolbar = false,
 }: {
 	text: string
-	disableApplyButton?: boolean
+	hideToolbar?: boolean
 }) => {
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
 
@@ -40,15 +40,15 @@ const BlockCode = ({
 
 	return (
 		<div className="relative group">
-			<div className="absolute top-0 right-0 invisible group-hover:visible">
-				<div className="flex space-x-2 p-2">
-					<button
-						className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-						onClick={onCopy}
-					>
-						{copyButtonState}
-					</button>
-					{!disableApplyButton && (
+			{!hideToolbar && (
+				<div className="absolute top-0 right-0 invisible group-hover:visible">
+					<div className="flex space-x-2 p-2">
+						<button
+							className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+							onClick={onCopy}
+						>
+							{copyButtonState}
+						</button>
 						<button
 							className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 							onClick={async () => {
@@ -57,12 +57,12 @@ const BlockCode = ({
 						>
 							Apply
 						</button>
-					)}
+					</div>
 				</div>
-			</div>
+			)}
 			<div
 				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${
-					disableApplyButton ? "" : "rounded-tl-none"
+					hideToolbar ? "" : "rounded-tl-none"
 				}`}
 			>
 				<pre className="p-4">{text}</pre>

@@ -82,7 +82,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 	if (role === 'user') {
 		chatbubbleContents = <>
 			<IncludedFiles files={chatMessage.files} />
-			{chatMessage.selection?.selectionStr && <BlockCode text={chatMessage.selection.selectionStr} disableApplyButton={true} />}
+			{chatMessage.selection?.selectionStr && <BlockCode text={chatMessage.selection.selectionStr} hideToolbar />}
 			{children}
 		</>
 	}
@@ -272,7 +272,7 @@ const Sidebar = () => {
 								>
 									X
 								</button>
-								<BlockCode text={selection.selectionStr} disableApplyButton={true} />
+								<BlockCode text={selection.selectionStr} hideToolbar />
 							</div>
 					)}
 				</div>

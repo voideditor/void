@@ -10,21 +10,24 @@ export type ApiConfig = {
 	anthropic: {
 		/** @default 'claude-3-5-sonnet-20240620' */
 		model: string,
-		providerSettings?: AnthropicProviderSettings
+		apiKey: string,
+		providerSettings?: Omit<AnthropicProviderSettings, 'apiKey'>
 	},
 	openai: {
 		/** @default 'gpt-4o' */
 		model: string,
-		providerSettings?: OpenAIProviderSettings
+		apiKey: string,
+		providerSettings?: Omit<OpenAIProviderSettings, 'apiKey'>
 	},
 	azure: {
 		deploymentId: string,
-		providerSettings?: AzureOpenAIProviderSettings
+		resourceName: string,
+		apiKey: string,
+		providerSettings?: Omit<AzureOpenAIProviderSettings, 'apiKey' | 'resourceName'>
 	},
 	greptile: {
+		apiKey: string,
 		providerSettings?: {
-			apikey?: string,
-			githubPAT?: string,
 			headers?: Record<string, string>,
 			repoinfo?: {
 				remote?: string, // e.g. 'github'
@@ -83,7 +86,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 	fetch('https://api.greptile.com/v2/query', {
 		method: 'POST',
 		headers: {
-			"Authorization": `Bearer ${apiConfig.greptile.providerSettings?.apikey}`,
+			"Authorization": `Bearer ${apiConfig.greptile.apiKey}`,
 			"Content-Type": `application/json`,
 			...apiConfig.greptile.providerSettings?.headers
 		},
@@ -164,10 +167,20 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 
 export const getAiModel = (apiConfig: ApiConfig) => {
 	switch (apiConfig.provider) {
-		case 'openai': return createOpenAI(apiConfig.openai.providerSettings)(apiConfig.openai.model || 'gpt-4o')
-		case 'anthropic': return createAnthropic(apiConfig.anthropic.providerSettings)(apiConfig.anthropic.model || 'claude-3-5-sonnet-20240620')
+		case 'openai': return createOpenAI({
+			...apiConfig.openai.providerSettings,
+			apiKey: apiConfig.openai.apiKey,
+		})(apiConfig.openai.model || 'gpt-4o')
+		case 'anthropic': return createAnthropic({
+			...apiConfig.anthropic.providerSettings,
+			apiKey: apiConfig.anthropic.apiKey,
+		})(apiConfig.anthropic.model || 'claude-3-5-sonnet-20240620')
 		case 'ollama': return createOllama(apiConfig.ollama.providerSettings)(apiConfig.ollama.model || 'llama3.1')
-		case 'azure': return createAzure(apiConfig.azure.providerSettings)(`${apiConfig.azure.deploymentId}`)
+		case 'azure': return createAzure({
+			...apiConfig.azure.providerSettings,
+			apiKey: apiConfig.azure.apiKey,
+			resourceName: apiConfig.azure.resourceName,
+		})(`${apiConfig.azure.deploymentId}`)
 		default:
 			throw new Error(`Error: provider was ${apiConfig.provider}, which is not recognized!`)
 	}

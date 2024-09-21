@@ -57,11 +57,11 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
 
 		const ollamaBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('ollama.providerSettings.baseURL') || 'http://127.0.0.1:11434').toString()
-		const azureProviderSettings = vscode.workspace.getConfiguration('void').get('azure.providerSettings') as AzureOpenAIProviderSettings
-		const azureBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('azure.providerSettings.baseURL') || `https://${azureProviderSettings.resourceName}.openai.azure.com/openai/deployments`).toString()
+		const azureResourceName = vscode.workspace.getConfiguration('void').get('azure.resourceName') ?? ''
+		const azureBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('azure.providerSettings.baseURL') || `https://${azureResourceName}.openai.azure.com/openai/deployments`).toString()
 		const openaiBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('openai.providerSettings.baseURL') || 'https://api.openai.com').toString()
-		const greptileBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('greptile.providerSettings.baseURL') || 'https://api.mistral.ai').toString()
-		const anthropicBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('anthropic.providerSettings.baseURL') || 'https://api.mistral.ai').toString()
+		const greptileBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('greptile.providerSettings.baseURL') || 'https://api.greptile.com').toString()
+		const anthropicBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('anthropic.providerSettings.baseURL') || 'https://api.anthropic.com').toString()
 		const allowed_urls = [
 			ollamaBaseURL,
 			azureBaseURL,

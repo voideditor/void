@@ -15,18 +15,22 @@ const getApiConfig = () => {
 		provider: vscode.workspace.getConfiguration('void').get('provider') ?? 'anthropic',
 		anthropic: {
 			model: vscode.workspace.getConfiguration('void').get('anthropic.model') ?? 'claude-3-5-sonnet-20240620',
+			apiKey: vscode.workspace.getConfiguration('void').get('anthropic.apiKey') ?? '',
 			providerSettings: {
 				...vscode.workspace.getConfiguration('void').get('anthropic.providerSettings') ?? {},
 			},
 		},
 		openai: {
 			model: vscode.workspace.getConfiguration('void').get('openai.model') ?? 'gpt-4o',
+			apiKey: vscode.workspace.getConfiguration('void').get('openai.apiKey') ?? '',
 			providerSettings: {
 				...vscode.workspace.getConfiguration('void').get('openai.providerSettings') ?? {},
 			},
 		},
 		azure: {
 			deploymentId: vscode.workspace.getConfiguration('void').get('azure.deploymentId') ?? '',
+			resourceName: vscode.workspace.getConfiguration('void').get('azure.resourceName') ?? '',
+			apiKey: vscode.workspace.getConfiguration('void').get('azure.apiKey') ?? '',
 			providerSettings: {
 				...vscode.workspace.getConfiguration('void').get('azure.providerSettings') ?? {},
 			},
@@ -38,11 +42,13 @@ const getApiConfig = () => {
 			},
 		},
 		greptile: {
+			apiKey: vscode.workspace.getConfiguration('void').get('greptile.apiKey') ?? '',
 			providerSettings: {
 				...vscode.workspace.getConfiguration('void').get('greptile.providerSettings') ?? {},
 			}
 		},
 	}
+
 	return apiConfig
 }
 

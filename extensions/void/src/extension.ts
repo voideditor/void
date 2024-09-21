@@ -43,7 +43,6 @@ const getApiConfig = () => {
 			}
 		},
 	}
-	console.log(apiConfig);
 	return apiConfig
 }
 

@@ -36,7 +36,7 @@ If you make a change, rewrite the entire file.
 
 
 const FilesSelector = ({ files, setFiles }: { files: vscode.Uri[], setFiles: (files: vscode.Uri[]) => void }) => {
-	return files.length !== 0 && <div className='text-xs my-2'>
+	return files.length !== 0 && <div className='my-2'>
 		Include files:
 		{files.map((filename, i) =>
 			<div key={i} className='flex'>
@@ -57,7 +57,7 @@ const IncludedFiles = ({ files }: { files: vscode.Uri[] }) => {
 		{files.map((filename, i) =>
 			<div key={i} className='flex'>
 				<button type='button'
-					className='pointer-events-none'
+					className='btn btn-secondary pointer-events-none'
 					onClick={() => {
 						// TODO redirect to the document filename.fsPath, when add this remove pointer-events-none
 					}}>
@@ -92,8 +92,8 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 	}
 
 
-	return <div className={`mb-4 ${role === 'user' ? 'text-right' : 'text-left'}`}>
-		<div className={`inline-block p-2 rounded-lg ${role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'} max-w-full`}>
+	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
+		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full`}>
 			{chatbubbleContents}
 		</div>
 	</div>
@@ -247,8 +247,8 @@ const Sidebar = () => {
 	};
 
 	return <>
-		<div className="flex flex-col h-full w-full">
-			<div className="flex-grow overflow-y-auto overflow-x-hidden p-4">
+		<div className="flex flex-col h-screen w-full">
+			<div className="overflow-y-auto overflow-x-hidden space-y-4">
 				{/* previous messages */}
 				{chatMessageHistory.map((message, i) =>
 					<ChatBubble key={i} chatMessage={message} />
@@ -257,7 +257,7 @@ const Sidebar = () => {
 				<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream }} />
 			</div>
 			{/* chatbar */}
-			<div className="py-4 border-t">
+			<div className="shrink-0 py-4">
 				{/* selection */}
 				<div className="text-left">
 					{/* selected files */}
@@ -278,7 +278,7 @@ const Sidebar = () => {
 				</div>
 				<form
 					ref={formRef}
-					className="flex flex-row items-center rounded-md p-2 border border-gray-400 bg-[rgb(20,20,20)]"
+					className="flex flex-row items-center rounded-md p-2 input"
 					onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
 
 					onSubmit={(e) => {
@@ -290,8 +290,7 @@ const Sidebar = () => {
 
 					<textarea
 						onChange={(e) => { setInstructions(e.target.value) }}
-						className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden text-gray-100 rounded-md bg-[rgb(20,20,20)]"
-						style={{ outline: '0px solid' }}
+						className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
 						placeholder="Ctrl+L to select"
 						rows={1}
 						onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
@@ -300,11 +299,11 @@ const Sidebar = () => {
 					{isLoading ?
 						<button
 							onClick={onStop}
-							className="bg-gray-400 text-white p-2 rounded-r-lg max-h-10"
+							className="btn btn-primary rounded-r-lg max-h-10 p-2"
 							type='button'
 						>Stop</button>
 						: <button
-							className="cursor-pointer hover:bg-gray-700 bg-gray-600 text-white font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+							className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
 							disabled={!instructions}
 							type='submit'
 						>

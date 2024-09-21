@@ -9,6 +9,7 @@ import { MarkdownRender, BlockCode } from "./MarkdownRender";
 import * as vscode from 'vscode'
 import { FilesSelector, IncludedFiles } from "./components/Files";
 import { useChat } from "./context";
+import ThreadHistory from "./components/ThreadHistory";
 
 
 const filesStr = (fullFiles: File[]) => {
@@ -83,7 +84,7 @@ const useInstantState = <T,>(initVal: T) => {
 
 
 const Sidebar = () => {
-	const { chatMessageHistory, addMessageToHistory, setPreviousThreads } = useChat()
+	const { chatMessageHistory, addMessageToHistory, setPreviousThreads, previousThreads } = useChat()
 
 	// state of current message
 	const [selection, setSelection] = useState<Selection | null>(null) // the code the user is selecting
@@ -128,7 +129,7 @@ const Sidebar = () => {
 				setApiConfig(m.apiConfig)
 			}
 
-			// when get apiConfig, set
+			// incoming thread history
 			else if (m.type === 'threadHistory') {
 				setPreviousThreads(m.threads)
 			}
@@ -268,6 +269,7 @@ const Sidebar = () => {
 						}
 					</form>
 				</div>
+				{!!previousThreads.length && <ThreadHistory threads={previousThreads} />}
 			</div>
 		</div>
 

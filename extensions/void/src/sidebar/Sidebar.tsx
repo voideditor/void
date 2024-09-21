@@ -100,7 +100,7 @@ const Sidebar = () => {
 	// state of chat
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
-	const [showChatHistory, setShowChatHistory] = useState(false)
+	const [showThreadsHistory, setShowThreadsHistory] = useState(false)
 
 	const abortFnRef = useRef<(() => void) | null>(null)
 
@@ -212,14 +212,14 @@ const Sidebar = () => {
 		<div className="flex flex-col h-screen w-full">
 			<div className="mb-2">
 				<div className="flex justify-end space-x-2">
-					<button className="btn btn-primary px-3 py-1 rounded" onClick={startNewChat}>New chat</button>
+					{!!chatMessageHistory.length && <button className="btn btn-primary px-3 py-1 rounded" onClick={startNewChat}>New chat</button>}
 					{!!previousThreads.length && (
-						<button className="btn btn-primary px-3 py-1 rounded" onClick={() => setShowChatHistory(!showChatHistory)}>
-							{showChatHistory ? 'Hide previous chats' : 'Previous chats'}
+						<button className="btn btn-primary px-3 py-1 rounded" onClick={() => setShowThreadsHistory(!showThreadsHistory)}>
+							{showThreadsHistory ? 'Hide previous chats' : 'Previous chats'}
 						</button>
 					)}
 				</div>
-				{showChatHistory && <ThreadHistory threads={previousThreads} />}
+				{showThreadsHistory && <ThreadHistory threads={previousThreads} />}
 			</div>
 			<div className="overflow-y-auto overflow-x-hidden space-y-4">
 				{/* previous messages */}

@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react"
+import React, { ReactNode, useCallback, useEffect, useState } from "react"
 import { getVSCodeAPI } from "../getVscodeApi"
+import { classNames } from "../utils"
 
 enum CopyButtonState {
 	Copy = "Copy",
@@ -12,10 +13,14 @@ const COPY_FEEDBACK_TIMEOUT = 1000
 // code block with Apply button at top
 const BlockCode = ({
 	text,
+	toolbar,
 	hideToolbar = false,
+	className,
 }: {
 	text: string
+	toolbar?: ReactNode
 	hideToolbar?: boolean
+	className?: string
 }) => {
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
 
@@ -38,34 +43,40 @@ const BlockCode = ({
 		)
 	}, [text])
 
+	const defaultToolbar = (
+		<>
+			<button
+				className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+				onClick={onCopy}
+			>
+				{copyButtonState}
+			</button>
+			<button
+				className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+				onClick={async () => {
+					getVSCodeAPI().postMessage({ type: "applyCode", code: text })
+				}}
+			>
+				Apply
+			</button>
+		</>
+	)
+
 	return (
 		<div className="relative group">
 			{!hideToolbar && (
 				<div className="absolute top-0 right-0 invisible group-hover:visible">
-					<div className="flex space-x-2 p-2">
-						<button
-							className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-							onClick={onCopy}
-						>
-							{copyButtonState}
-						</button>
-						<button
-							className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-							onClick={async () => {
-								getVSCodeAPI().postMessage({ type: "applyCode", code: text })
-							}}
-						>
-							Apply
-						</button>
-					</div>
+					<div className="flex space-x-2 p-2">{toolbar || defaultToolbar}</div>
 				</div>
 			)}
 			<div
-				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${
-					hideToolbar ? "" : "rounded-tl-none"
-				}`}
+				className={classNames(
+					"overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg",
+					!hideToolbar && "rounded-tl-none",
+					className
+				)}
 			>
-				<pre className="p-4">{text}</pre>
+				<pre className="p-2">{text}</pre>
 			</div>
 		</div>
 	)

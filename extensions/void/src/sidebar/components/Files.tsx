@@ -20,7 +20,7 @@ export const FilesSelector = ({
 
 	return (
 		files.length !== 0 && (
-			<div className="flex flex-wrap p-2 pb-0 -mx-1 -mb-1">
+			<div className="flex flex-wrap -mx-1 -mb-1">
 				{files.map((filename, i) => (
 					<button
 						key={filename.path}

@@ -220,23 +220,33 @@ const Sidebar = () => {
 			<div className="shrink-0 py-4">
 				<div className="input">
 					{/* selection */}
-					<div className="text-left">
+					{(files.length || selection?.selectionStr) && <div className="p-2 pb-0 space-y-2">
 						{/* selected files */}
 						<FilesSelector files={files} setFiles={setFiles} />
 						{/* selected code */}
-						{!selection?.selectionStr ? null
-							: (
-								<div className="relative">
-									<button 
-										onClick={clearSelection}
-										className="absolute top-2 right-2 text-white hover:text-gray-300 z-10"
+						{!!selection?.selectionStr && (
+							<BlockCode className="rounded border border-vscode-input-border bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
+								<button 
+									onClick={clearSelection}
+									className="btn btn-primary btn-sm rounded py-2"
 									>
-										X
-									</button>
-									<BlockCode text={selection.selectionStr} hideToolbar />
-								</div>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										className="size-4"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M6 18 18 6M6 6l12 12"
+										/>
+									</svg>
+								</button>
+							)} />
 						)}
-					</div>
+					</div>}
 					<form
 						ref={formRef}
 						className="flex flex-row items-center rounded-md p-2"

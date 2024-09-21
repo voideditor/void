@@ -49,12 +49,15 @@
               "type": "string",
               "description": "Use a different URL prefix for API calls, e.g. to use proxy servers."
             },
-            "apiKey": {},
             "headers": {
               "type": "object",
               "description": "Custom headers to include in the requests."
             }
           }
+        },
+        "void.openai.apiKey": {
+          "type": "string",
+          "description": "OpenAI API key."
         },
         "void.openai.model": {
           "type": "string",
@@ -79,10 +82,6 @@
             "gpt-3.5-turbo",
             "gpt-3.5-turbo-1106"
           ]
-        },
-        "void.openai.apiKey": {
-          "type": "string",
-          "description": "OpenAI API key."
         },
         "void.openai.providerSettings": {
           "type": "object",
@@ -113,6 +112,10 @@
             }
           }
         },
+        "void.azure.apiKey": {
+          "type": "string",
+          "description": "Azure API key."
+        },
         "void.azure.deploymentId": {
           "type": "string",
           "description": "Azure API deployment ID."
@@ -121,15 +124,12 @@
           "type": "string",
           "description": "Name of the Azure OpenAI resource. Either this or `baseURL` can be used. \nThe resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`"
         },
-        "void.azure.apiKey": {
-          "type": "string",
-          "description": "Azure API key."
-        },
         "void.azure.providerSettings": {
           "type": "object",
           "properties": {
             "baseURL": {
               "type": "string",
+              "default": "https://${resourceName}.openai.azure.com/openai/deployments",
               "description": "Azure API base URL."
             },
             "headers": {
@@ -236,6 +236,7 @@
           "properties": {
             "baseURL": {
               "type": "string",
+              "default": "http://127.0.0.1:11434",
               "description": "Ollama base URL. Local API server can be started with `OLLAMA_ORIGINS=* ollama serve`"
             },
             "headers": {
@@ -248,40 +249,35 @@
           "type": "string",
           "description": "Greptile API key."
         },
-        "void.greptile": {
+        "void.greptile.providerSettings": {
           "type": "object",
           "properties": {
-            "providerSettings": {
+            "headers": {
               "type": "object",
+              "description": "Custom headers to include in the requests.",
               "properties": {
-                "headers": {
-                  "type": "object",
-                  "description": "Custom headers to include in the requests.",
-                  "properties": {
-                    "X-Github-Token": {
-                      "type": "string",
-                      "description": "GitHub PAT."
-                    }
-                  }
-                },
-                "repoinfo": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "remote": {
-                        "type": "string",
-                        "description": "GitHub remote."
-                      },
-                      "repository": {
-                        "type": "string",
-                        "description": "GitHub repository."
-                      },
-                      "branch": {
-                        "type": "string",
-                        "description": "GitHub branch."
-                      }
-                    }
+                "X-Github-Token": {
+                  "type": "string",
+                  "description": "GitHub PAT."
+                }
+              }
+            },
+            "repoinfo": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "remote": {
+                    "type": "string",
+                    "description": "GitHub remote."
+                  },
+                  "repository": {
+                    "type": "string",
+                    "description": "GitHub repository."
+                  },
+                  "branch": {
+                    "type": "string",
+                    "description": "GitHub branch."
                   }
                 }
               }

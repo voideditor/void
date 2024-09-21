@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
 import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage"
-import { File, Selection, WebviewMessage } from "../shared_types"
+import { ChatMessage, File, Selection, WebviewMessage } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, resolveAwaitingVSCodeResponse } from "./getVscodeApi"
 
 import { marked } from 'marked';
@@ -8,6 +8,7 @@ import { MarkdownRender, BlockCode } from "./MarkdownRender";
 
 import * as vscode from 'vscode'
 import { FilesSelector, IncludedFiles } from "./components/Files";
+import { useChat } from "./context";
 
 
 const filesStr = (fullFiles: File[]) => {
@@ -66,18 +67,6 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 	</div>
 }
 
-type ChatMessage = {
-	role: 'user'
-	content: string, // content sent to the llm
-	displayContent: string, // content displayed to user
-	selection: Selection | null, // the user's selection
-	files: vscode.Uri[], // the files sent in the message
-} | {
-	role: 'assistant',
-	content: string, // content received from LLM
-	displayContent: string // content displayed to user (this is the same as content for now)
-}
-
 
 // const [stateRef, setState] = useInstantState(initVal)
 // setState instantly changes the value of stateRef instead of having to wait until the next render
@@ -94,6 +83,7 @@ const useInstantState = <T,>(initVal: T) => {
 
 
 const Sidebar = () => {
+	const { chatMessageHistory, addMessageToHistory, setPreviousThreads } = useChat()
 
 	// state of current message
 	const [selection, setSelection] = useState<Selection | null>(null) // the code the user is selecting
@@ -101,7 +91,6 @@ const Sidebar = () => {
 	const [instructions, setInstructions] = useState('') // the user's instructions
 
 	// state of chat
-	const [chatMessageHistory, setChatHistory] = useState<ChatMessage[]>([])
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 
@@ -139,10 +128,15 @@ const Sidebar = () => {
 				setApiConfig(m.apiConfig)
 			}
 
+			// when get apiConfig, set
+			else if (m.type === 'threadHistory') {
+				setPreviousThreads(m.threads)
+			}
+
 		}
 		window.addEventListener('message', listener);
 		return () => { window.removeEventListener('message', listener) }
-	}, [files, selection])
+	}, [files, selection, setPreviousThreads])
 
 
 	const formRef = useRef<HTMLFormElement | null>(null)
@@ -165,7 +159,7 @@ const Sidebar = () => {
 		const content = userInstructionsStr(instructions, relevantFiles.files, selection)
 		// console.log('prompt:\n', content)
 		const newHistoryElt: ChatMessage = { role: 'user', content, displayContent: instructions, selection, files }
-		setChatHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
+		addMessageToHistory(newHistoryElt)
 
 		// send message to claude
 		let { abort } = sendLLMMessage({
@@ -175,7 +169,7 @@ const Sidebar = () => {
 
 				// add assistant's message to chat history
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
-				setChatHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
+				addMessageToHistory(newHistoryElt)
 
 				// clear selection
 				setMessageStream('')
@@ -194,12 +188,12 @@ const Sidebar = () => {
 		// if messageStream was not empty, add it to the history
 		const llmContent = messageStream || '(canceled)'
 		const newHistoryElt: ChatMessage = { role: 'assistant', displayContent: messageStream, content: llmContent }
-		setChatHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
+		addMessageToHistory(newHistoryElt)
 
 		setMessageStream('')
 		setIsLoading(false)
 
-	}, [messageStream])
+	}, [addMessageToHistory, messageStream])
 
 	//Clear code selection
 	const clearSelection = () => {

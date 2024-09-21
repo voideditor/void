@@ -43,7 +43,7 @@
         "void.ollamaSettings.endpoint": {
           "type": "string",
           "default": "",
-          "description": "Ollama Endpoint - Local API server can be started with `OLLAMA_ORIGINS="vscode-webview://*" ollama serve`"
+          "description": "Ollama Endpoint - Local API server can be started with `OLLAMA_ORIGINS=\"vscode-webview://*\" ollama serve`"
         },
         "void.ollamaSettings.model": {
           "type": "string",

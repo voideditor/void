@@ -7,10 +7,10 @@ import { awaitVSCodeResponse, getVSCodeAPI } from './getVscodeApi';
 export const BlockCode = ({ text, disableApplyButton = false }: { text: string, disableApplyButton?: boolean }) => {
 	return <div className='py-1'>
 		{disableApplyButton ? null : <div className='text-sm'>
-			<button className='px-3 py-1 text-sm text-white bg-[#1e1e1e] rounded-t-sm hover:brigtness-105'
+			<button className='btn btn-secondary px-3 py-1 text-sm rounded-t-sm'
 				onClick={async () => { getVSCodeAPI().postMessage({ type: 'applyCode', code: text }) }}>Apply</button>
 		</div>}
-		<div className={`overflow-x-auto bg-black rounded-sm text-gray-50 ${disableApplyButton ? '' : 'rounded-tl-none'}`}>
+		<div className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${disableApplyButton ? '' : 'rounded-tl-none'}`}>
 			<pre className='p-3'>
 				{text}
 			</pre>
@@ -128,7 +128,7 @@ const Render = ({ token }: { token: Token }) => {
 
 	// inline code
 	if (t.type === "codespan") {
-		return <code className='text-black bg-gray-300 px-1 rounded-sm font-mono'>{t.text}</code>;
+		return <code className='text-vscode-editor-fg bg-vscode-editor-bg px-1 rounded-sm font-mono'>{t.text}</code>;
 	}
 
 	if (t.type === "br") {

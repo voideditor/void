@@ -7,7 +7,7 @@ enum CopyButtonState {
 	Error = "Could not copy",
 }
 
-const COPY_FEEDBACK_TIMEOUT = 2000
+const COPY_FEEDBACK_TIMEOUT = 1000
 
 // code block with Apply button at top
 const BlockCode = ({
@@ -42,9 +42,15 @@ const BlockCode = ({
 		<div className="relative group">
 			<div className="absolute top-0 right-0 invisible group-hover:visible">
 				<div className="flex space-x-2 p-2">
+					<button
+						className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+						onClick={onCopy}
+					>
+						{copyButtonState}
+					</button>
 					{!disableApplyButton && (
 						<button
-							className="btn btn-secondary px-3 py-1 text-sm border border-vscode-input-border rounded"
+							className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 							onClick={async () => {
 								getVSCodeAPI().postMessage({ type: "applyCode", code: text })
 							}}
@@ -52,12 +58,6 @@ const BlockCode = ({
 							Apply
 						</button>
 					)}
-					<button
-						className="btn btn-secondary px-3 py-1 text-sm border border-vscode-input-border rounded"
-						onClick={onCopy}
-					>
-						{copyButtonState}
-					</button>
 				</div>
 			</div>
 			<div

@@ -69,7 +69,7 @@
       "activitybar": [
         {
           "id": "voidViewContainer",
-          "title": "My Extension",
+          "title": "Chat",
           "icon": "$(hubot)"
         }
       ]

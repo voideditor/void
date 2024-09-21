@@ -1,6 +1,5 @@
 // renders the code from `src/sidebar`
 
-import { AzureOpenAIProviderSettings } from '@ai-sdk/azure';
 import * as vscode from 'vscode';
 
 function getNonce() {

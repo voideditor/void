@@ -27,6 +27,9 @@ type WebviewMessage = (
 	// editor -> sidebar
 	| { type: 'apiConfig', apiConfig: ApiConfig }
 
+	// Display native vscode error
+	| { type: 'displayError', message: string } //
+
 )
 
 type Command = WebviewMessage['type']

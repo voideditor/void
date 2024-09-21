@@ -166,6 +166,7 @@ const Sidebar = () => {
 			// if user pressed ctrl+l, add their selection to the sidebar
 			if (m.type === 'ctrl+l') {
 
+
 				setSelection(m.selection)
 
 				const filepath = m.selection.filePath
@@ -223,9 +224,11 @@ const Sidebar = () => {
 			},
 			apiConfig: apiConfig
 		})
-		abortFnRef.current = abort
 
+
+		abortFnRef.current = abort
 	}
+
 
 	const onStop = useCallback(() => {
 		// abort claude
@@ -266,7 +269,7 @@ const Sidebar = () => {
 					{!selection?.selectionStr ? null
 						: (
 							<div className="relative">
-								<button 
+								<button
 									onClick={clearSelection}
 									className="absolute top-2 right-2 text-white hover:text-gray-300 z-10"
 								>

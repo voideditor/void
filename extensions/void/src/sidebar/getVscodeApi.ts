@@ -9,7 +9,8 @@ const awaiting: { [c in Command]: ((res: any) => void)[] } = {
 	"requestFiles": [],
 	"files": [],
 	"apiConfig": [],
-	"getApiConfig": []
+	"getApiConfig": [],
+	"displayError": []
 }
 
 // use this function to await responses

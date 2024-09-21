@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
+import { getVSCodeAPI } from '../sidebar/getVscodeApi';
+
 
 export type ApiConfig = {
 	anthropic: {
@@ -220,9 +222,21 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 	if (!apiConfig) return { abort: () => { } }
 
-	const whichApi = apiConfig.whichApi;
+	if (
+		apiConfig.anthropic.apikey === "" &&
+		apiConfig.greptile.apikey === "" &&
+		apiConfig.openai.apikey === "" &&
+		apiConfig.ollama.endpoint === "" &&
+		apiConfig.ollama.model === ""
+	) {
+		getVSCodeAPI().postMessage({ type: 'displayError', message: 'Required API keys are not set.' })
+		onFinalMessage("Required API keys are not set.");
+		return { abort: () => { }}
+	}
 
-	switch (whichApi) {
+
+
+	switch (apiConfig.whichApi) {
 		case 'anthropic':
 			return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig });
 		case 'openai':
@@ -232,8 +246,9 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 		case 'ollama':
 			return sendOllamaMsg({ messages, onText, onFinalMessage, apiConfig });
 		default:
-			console.error(`Error: whichApi was ${whichApi}, which is not recognized!`);
-			return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig }); // TODO
+			console.error(`Error: whichApi was ${apiConfig.whichApi}, which is not recognized!`);
+			return { abort: () => { } }
+			//return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig }); // TODO
 	}
 }
 

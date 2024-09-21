@@ -1,5 +1,6 @@
 // renders the code from `src/sidebar`
 
+import { AzureOpenAIProviderSettings } from '@ai-sdk/azure';
 import * as vscode from 'vscode';
 
 function getNonce() {
@@ -55,9 +56,20 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 		const nonce = getNonce(); // only scripts with the nonce are allowed to run, this is a recommended security measure
 
 
-		// Allow Ollama endpoint
-		const ollamaEndpoint = vscode.workspace.getConfiguration('void').get('ollamaSettings.endpoint') || 'http://localhost:11434'
-		const allowed_urls = ['https://api.anthropic.com', 'https://api.openai.com', 'https://api.greptile.com', ollamaEndpoint ]
+		const ollamaBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('ollama.providerSettings.baseURL') || 'http://127.0.0.1:11434').toString()
+		const azureProviderSettings = vscode.workspace.getConfiguration('void').get('azure.providerSettings') as AzureOpenAIProviderSettings
+		const azureBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('azure.providerSettings.baseURL') || `https://${azureProviderSettings.resourceName}.openai.azure.com/openai/deployments`).toString()
+		const openaiBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('openai.providerSettings.baseURL') || 'https://api.openai.com').toString()
+		const greptileBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('greptile.providerSettings.baseURL') || 'https://api.mistral.ai').toString()
+		const anthropicBaseURL = new URL('/', vscode.workspace.getConfiguration('void').get('anthropic.providerSettings.baseURL') || 'https://api.mistral.ai').toString()
+		const allowed_urls = [
+			ollamaBaseURL,
+			azureBaseURL,
+			openaiBaseURL,
+			greptileBaseURL,
+			anthropicBaseURL
+		]
+
 		webview.html = `<!DOCTYPE html>
       <html lang="en">
       <head>

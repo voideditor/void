@@ -2,11 +2,7 @@ import React from "react"
 import { ChatThread } from "../../shared_types"
 import { useChat } from "../context"
 
-const ThreadHistory = ({
-	threads,
-}: {
-	threads: ChatThread[]
-}) => {
+const ThreadHistory = ({ threads }: { threads: ChatThread[] }) => {
 	const { selectThread } = useChat()
 
 	return (

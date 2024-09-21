@@ -26,6 +26,7 @@ interface IChatProviderProps {
 	setPreviousThreads: (threads: any) => void
 	previousThreads: ChatThread[]
 	selectThread: (thread: ChatThread) => void
+	startNewChat: () => void
 }
 
 const defaults = {
@@ -36,6 +37,7 @@ const defaults = {
 	thread: createEmptyThread(),
 	previousThreads: [],
 	selectThread: () => {},
+	startNewChat: () => {},
 }
 
 const ChatContext = createContext<IChatProviderProps>(defaults)
@@ -59,7 +61,7 @@ function ChatProvider({ children }: { children: ReactNode }) {
 	const addMessageToHistory = (message: ChatMessage) => {
 		setThread((prev) => ({
 			...prev,
-			// if there is no thread, create a new one with current timestamp
+			// replace placeholder thread with new thread if it's the first message
 			...(!thread.id && createNewThread()),
 			messages: [...prev.messages, message],
 		}))
@@ -81,6 +83,7 @@ function ChatProvider({ children }: { children: ReactNode }) {
 				setPreviousThreads: handleReceiveThreadHistory,
 				previousThreads,
 				selectThread: setThread,
+				startNewChat: () => setThread(createNewThread()),
 			}}
 		>
 			{children}

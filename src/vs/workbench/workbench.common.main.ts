@@ -3,18 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-//#region --- void
-import 'vs/workbench/contrib/void/browser/void.contribution'
-//#endregion
-
-
 //#region --- editor/workbench core
 
 import 'vs/editor/editor.all';
 
 import 'vs/workbench/api/browser/extensionHost.contribution';
 import 'vs/workbench/browser/workbench.contribution';
-
 
 //#endregion
 

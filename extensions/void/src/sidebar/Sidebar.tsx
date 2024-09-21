@@ -4,7 +4,7 @@ import { Command, File, Selection, WebviewMessage } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, resolveAwaitingVSCodeResponse } from "./getVscodeApi"
 
 import { marked } from 'marked';
-import MarkdownRender, { BlockCode } from "./MarkdownRender";
+import { MarkdownRender, BlockCode } from "./MarkdownRender";
 
 import * as vscode from 'vscode'
 

@@ -225,24 +225,12 @@ const Sidebar = () => {
 						<FilesSelector files={files} setFiles={setFiles} />
 						{/* selected code */}
 						{!!selection?.selectionStr && (
-							<BlockCode className="rounded border border-vscode-input-border bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
+							<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
 								<button 
 									onClick={clearSelection}
-									className="btn btn-primary btn-sm rounded py-2"
-									>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										className="size-4"
-									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											d="M6 18 18 6M6 6l12 12"
-										/>
-									</svg>
+									className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+								>
+									Remove
 								</button>
 							)} />
 						)}

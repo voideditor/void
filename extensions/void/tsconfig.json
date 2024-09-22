@@ -10,8 +10,9 @@
 		"module": "Node16",
 		"target": "ES6",
 		"outDir": "out",
-		"types": [ // no idea how this differs from .eslintrc's node, but keeping it
+		"types": [
 			"node",
+			"mocha",
 		],
 		"lib": [
 			"dom",

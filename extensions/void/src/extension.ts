@@ -83,6 +83,14 @@ export function activate(context: vscode.ExtensionContext) {
 	webviewProvider.webview.then(
 		webview => {
 
+			// top navigation bar commands
+			context.subscriptions.push(vscode.commands.registerCommand('void.newChat', async () => {
+				webview.postMessage({ type: 'startNewChat' } satisfies WebviewMessage)
+			}))
+			context.subscriptions.push(vscode.commands.registerCommand('void.prevChats', async () => {
+				webview.postMessage({ type: 'showPreviousChats' } satisfies WebviewMessage)
+			}))
+
 			// when config changes, send it to the sidebar
 			vscode.workspace.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration('void')) {

@@ -36,6 +36,12 @@ type WebviewMessage = (
 	// sidebar -> editor
 	| { type: 'updateThread', thread: ChatThread }
 
+	// editor -> sidebar
+	| { type: 'startNewChat' }
+
+	// editor -> sidebar
+	| { type: 'showPreviousChats' }
+
 )
 
 type Command = WebviewMessage['type']

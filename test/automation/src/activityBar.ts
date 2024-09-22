@@ -10,6 +10,7 @@ export const enum ActivityBarPosition {
 	RIGHT = 1
 }
 
+
 export class ActivityBar {
 
 	constructor(private code: Code) { }

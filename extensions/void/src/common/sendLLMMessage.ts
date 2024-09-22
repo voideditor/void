@@ -3,6 +3,7 @@ import { createOpenAI, OpenAIProviderSettings } from '@ai-sdk/openai';
 import { AnthropicProviderSettings, createAnthropic } from '@ai-sdk/anthropic';
 import { AzureOpenAIProviderSettings, createAzure } from '@ai-sdk/azure';
 import { createOllama, OllamaProviderSettings } from 'ollama-ai-provider';
+import { getRules } from './getRules';
 
 export type ApiConfig = {
 	/** @default 'anthropic' */
@@ -142,24 +143,29 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 	if (!apiConfig) return { abort: () => { } }
 	const provider = apiConfig.provider
-	// TODO: create an @ai-sdk provider for greptile
+	// TODO: create an @ai-sdk provider for greptile,
 	if (provider === 'greptile')
 		return sendGreptileMsg({ messages, onText, onFinalMessage, apiConfig })
 
 	const model = getAiModel(apiConfig)
+
 	const abortController = new AbortController()
 	const abortSignal = abortController.signal
-	streamText({
-		model,
-		messages,
-		abortSignal,
-	}).then(async (result) => {
-		let fullText = ''
-		for await (const textPart of result.textStream) {
-			fullText += textPart
-			onText(textPart, fullText)
-		}
-		onFinalMessage(fullText)
+
+	getRules().then(rules => {
+		streamText({
+			model,
+			system: rules || '',
+			messages,
+			abortSignal,
+		}).then(async (result) => {
+			let fullText = ''
+			for await (const textPart of result.textStream) {
+				fullText += textPart
+				onText(textPart, fullText)
+			}
+			onFinalMessage(fullText)
+		})
 	})
 
 	return { abort: abortController.abort }
@@ -167,20 +173,28 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 
 export const getAiModel = (apiConfig: ApiConfig) => {
 	switch (apiConfig.provider) {
-		case 'openai': return createOpenAI({
-			...apiConfig.openai.providerSettings,
-			apiKey: apiConfig.openai.apiKey,
-		})(apiConfig.openai.model || 'gpt-4o')
-		case 'anthropic': return createAnthropic({
-			...apiConfig.anthropic.providerSettings,
-			apiKey: apiConfig.anthropic.apiKey,
-		})(apiConfig.anthropic.model || 'claude-3-5-sonnet-20240620')
-		case 'ollama': return createOllama(apiConfig.ollama.providerSettings)(apiConfig.ollama.model || 'llama3.1')
-		case 'azure': return createAzure({
-			...apiConfig.azure.providerSettings,
-			apiKey: apiConfig.azure.apiKey,
-			resourceName: apiConfig.azure.resourceName,
-		})(`${apiConfig.azure.deploymentId}`)
+		case 'openai':
+			return createOpenAI({
+				...apiConfig.openai.providerSettings,
+				apiKey: apiConfig.openai.apiKey,
+			})(apiConfig.openai.model || 'gpt-4o')
+
+		case 'anthropic':
+			return createAnthropic({
+				...apiConfig.anthropic.providerSettings,
+				apiKey: apiConfig.anthropic.apiKey,
+			})(apiConfig.anthropic.model || 'claude-3-5-sonnet-20240620')
+
+		case 'ollama':
+			return createOllama(apiConfig.ollama.providerSettings)(apiConfig.ollama.model || 'llama3.1')
+
+		case 'azure':
+			return createAzure({
+				...apiConfig.azure.providerSettings,
+				apiKey: apiConfig.azure.apiKey,
+				resourceName: apiConfig.azure.resourceName,
+			})(`${apiConfig.azure.deploymentId}`)
+
 		default:
 			throw new Error(`Error: provider was ${apiConfig.provider}, which is not recognized!`)
 	}

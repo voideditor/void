@@ -115,7 +115,22 @@ export function activate(context: vscode.ExtensionContext) {
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
 			webview.onDidReceiveMessage(async (m: WebviewMessage) => {
 
-				if (m.type === 'requestFiles') {
+				if (m.type === 'getRules') {
+					const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+					if (workspaceFolder) {
+						const rulesFilePath = vscode.Uri.joinPath(workspaceFolder.uri, '.voidrules');
+						try {
+							const rulesContent = await readFileContentOfUri(rulesFilePath);
+							webview.postMessage({ type: 'getRules', rules: rulesContent } satisfies WebviewMessage);
+						} catch (error) {
+							console.error('Error reading .voidrules file:', error);
+							webview.postMessage({ type: 'getRules', rules: null } satisfies WebviewMessage);
+						}
+					} else {
+						webview.postMessage({ type: 'getRules', rules: null } satisfies WebviewMessage);
+					}
+				}
+				else if (m.type === 'requestFiles') {
 
 					// get contents of all file paths
 					const files = await Promise.all(

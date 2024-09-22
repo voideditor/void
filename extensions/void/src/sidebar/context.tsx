@@ -9,9 +9,9 @@ import { ChatMessage, ChatThread } from "../shared_types"
 import { getVSCodeAPI } from "./getVscodeApi"
 
 const createEmptyThread = () => ({
-    id: "",
-    createdAt: "",
-    messages: [],
+	id: "",
+	createdAt: "",
+	messages: [],
 })
 
 const createNewThread = () => ({
@@ -21,7 +21,7 @@ const createNewThread = () => ({
 })
 
 interface IChatProviderProps {
-	chatMessageHistory: ChatMessage[]
+	thread: ChatThread
 	addMessageToHistory: (message: ChatMessage) => void
 	setPreviousThreads: (threads: any) => void
 	previousThreads: ChatThread[]
@@ -30,10 +30,9 @@ interface IChatProviderProps {
 }
 
 const defaults = {
-	chatMessageHistory: [],
 	addMessageToHistory: () => {},
 	setPreviousThreads: () => {},
-    // placeholder for thread until first message is sent so that createdAt date is accurate
+	// placeholder for thread until first message is sent so that createdAt date is accurate
 	thread: createEmptyThread(),
 	previousThreads: [],
 	selectThread: () => {},
@@ -78,7 +77,7 @@ function ChatProvider({ children }: { children: ReactNode }) {
 	return (
 		<ChatContext.Provider
 			value={{
-				chatMessageHistory: thread.messages,
+				thread,
 				addMessageToHistory,
 				setPreviousThreads: handleReceiveThreadHistory,
 				previousThreads,

@@ -85,10 +85,9 @@ const useInstantState = <T,>(initVal: T) => {
 
 const Sidebar = () => {
 	const {
-		chatMessageHistory,
+		thread,
 		addMessageToHistory,
 		setPreviousThreads,
-		previousThreads,
 		startNewChat,
 	} = useChat()
 
@@ -141,10 +140,21 @@ const Sidebar = () => {
 				setPreviousThreads(m.threads)
 			}
 
+			// top navigation bar command - new chat
+			else if (m.type === 'startNewChat') {
+				setShowThreadsHistory(false)
+				startNewChat()
+			}
+
+			// top navigation bar command - new chat
+			else if (m.type === 'showPreviousChats') {
+				setShowThreadsHistory(true)
+			}
+
 		}
 		window.addEventListener('message', listener);
 		return () => { window.removeEventListener('message', listener) }
-	}, [files, selection, setPreviousThreads])
+	}, [files, selection, setPreviousThreads, startNewChat])
 
 
 	const formRef = useRef<HTMLFormElement | null>(null)
@@ -171,7 +181,7 @@ const Sidebar = () => {
 
 		// send message to claude
 		let { abort } = sendLLMMessage({
-			messages: [...chatMessageHistory.map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
+			messages: [...thread.messages.map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
 
@@ -210,20 +220,14 @@ const Sidebar = () => {
 
 	return <>
 		<div className="flex flex-col h-screen w-full">
-			<div className="mb-2">
-				<div className="flex justify-end space-x-2">
-					{!!chatMessageHistory.length && <button className="btn btn-primary px-3 py-1 rounded" onClick={startNewChat}>New chat</button>}
-					{!!previousThreads.length && (
-						<button className="btn btn-primary px-3 py-1 rounded" onClick={() => setShowThreadsHistory(!showThreadsHistory)}>
-							{showThreadsHistory ? 'Hide previous chats' : 'Previous chats'}
-						</button>
-					)}
+			{showThreadsHistory && (
+				<div className="mb-2 max-h-[30vh] overflow-y-auto">
+					<ThreadHistory onClose={() => setShowThreadsHistory(false)} />
 				</div>
-				{showThreadsHistory && <ThreadHistory threads={previousThreads} />}
-			</div>
+			)}
 			<div className="overflow-y-auto overflow-x-hidden space-y-4">
 				{/* previous messages */}
-				{chatMessageHistory.map((message, i) =>
+				{thread.messages.map((message, i) =>
 					<ChatBubble key={i} chatMessage={message} />
 				)}
 				{/* message stream */}

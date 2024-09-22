@@ -13,6 +13,8 @@ const awaiting: { [c in Command]: ((res: any) => void)[] } = {
 	"getThreadHistory": [],
 	"threadHistory": [],
 	"updateThread": [],
+	"startNewChat": [],
+	"showPreviousChats": [],
 }
 
 // use this function to await responses

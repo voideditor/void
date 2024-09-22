@@ -258,7 +258,7 @@
               "properties": {
                 "X-Github-Token": {
                   "type": "string",
-                  "description": "GitHub PAT."
+                  "description": "GitHub Token."
                 }
               }
             },
@@ -269,15 +269,19 @@
                 "properties": {
                   "remote": {
                     "type": "string",
-                    "description": "GitHub remote."
+                    "description": "remote provider",
+                    "enum": [
+                      "github",
+                      "gitlab"
+                    ]
                   },
                   "repository": {
                     "type": "string",
-                    "description": "GitHub repository."
+                    "description": "repository identifier in \"owner/repository\" format."
                   },
                   "branch": {
                     "type": "string",
-                    "description": "GitHub branch."
+                    "description": "git branch."
                   }
                 }
               }

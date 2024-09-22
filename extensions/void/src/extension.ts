@@ -31,7 +31,7 @@ const getApiConfig = () => {
 		ollama: {
 			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
 		},
-		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? 'anthropic'
+		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
 	return apiConfig
 }

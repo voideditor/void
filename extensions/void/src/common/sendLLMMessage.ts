@@ -7,7 +7,7 @@ export type ApiConfig = {
 	anthropic: {
 		apikey: string,
 		model: string,
-		maxTokens: number
+		maxTokens: string
 	},
 	openai: {
 		apikey: string
@@ -62,12 +62,11 @@ type SendLLMMessageFnTypeExternal = (params: {
 // Claude
 const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 
-
 	const anthropic = new Anthropic({ apiKey: apiConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
 	const stream = anthropic.messages.stream({
 		model: apiConfig.anthropic.model,
-		max_tokens: apiConfig.anthropic.maxTokens,
+		max_tokens: parseInt(apiConfig.anthropic.maxTokens),
 		messages: messages,
 	});
 

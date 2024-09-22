@@ -16,7 +16,7 @@ const getApiConfig = () => {
 		anthropic: {
 			apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '',
 			model: vscode.workspace.getConfiguration('void').get('anthropicModel') ?? '',
-			maxTokens: vscode.workspace.getConfiguration('void').get('anthropicMaxToken') ?? 1024,
+			maxTokens: vscode.workspace.getConfiguration('void').get('anthropicMaxToken') ?? '',
 		},
 		openai: { apikey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
 		greptile: {

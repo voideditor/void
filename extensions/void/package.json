@@ -1,5 +1,6 @@
 {
   "name": "void",
+  "publisher": "void",
   "displayName": "Void",
   "description": "",
   "version": "0.0.1",
@@ -13,12 +14,18 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "API Keys",
+      "title": "Void",
       "properties": {
         "void.whichApi": {
           "type": "string",
           "default": "anthropic",
-          "description": "Choose a model to use (anthropic | openai | greptile | ollama)"
+          "description": "Choose a model to use",
+          "enum": [
+            "anthropic",
+            "openai",
+            "greptile",
+            "ollama"
+          ]
         },
         "void.anthropicApiKey": {
           "type": "string",
@@ -63,6 +70,11 @@
       {
         "command": "void.discardDiff",
         "title": "Discard Diff"
+      },
+      {
+        "command": "void.openSettings",
+        "title": "Void settings",
+        "icon": "$(settings-gear)"
       }
     ],
     "viewsContainers": {
@@ -94,7 +106,16 @@
         "key": "ctrl+k",
         "mac": "cmd+k"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "void.openSettings",
+          "when": "view == 'void.viewnumberone'",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

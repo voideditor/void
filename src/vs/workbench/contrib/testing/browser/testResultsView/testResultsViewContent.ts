@@ -322,13 +322,6 @@ export class TestResultsViewContent extends Disposable {
 		});
 	}
 
-	/**
-	 * Collapses all displayed stack frames.
-	 */
-	public collapseStack() {
-		this.callStackWidget.collapseAll();
-	}
-
 	private getCallFrames(subject: InspectSubject) {
 		if (!(subject instanceof MessageSubject)) {
 			return undefined;

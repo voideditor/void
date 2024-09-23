@@ -314,7 +314,7 @@ class HistoryItemRenderer implements ITreeRenderer<SCMHistoryItemViewModelTreeEl
 		const historyItemLabels = (historyItem.labels ?? [])
 			.filter(l => labels.includes(l.title));
 
-		if (historyItemLabels.length > 0) {
+		if (historyItemLabels) {
 			const historyItemGroupLocalColor = colorTheme.getColor(historyItemGroupLocal);
 			const historyItemGroupRemoteColor = colorTheme.getColor(historyItemGroupRemote);
 			const historyItemGroupBaseColor = colorTheme.getColor(historyItemGroupBase);

@@ -838,21 +838,22 @@ class TreeActionsProvider {
 		}
 
 		if (element instanceof TestMessageElement) {
-			id = MenuId.TestMessageContext;
-			contextKeys.push([TestingContextKeys.testMessageContext.key, element.contextValue]);
-
 			primary.push(new Action(
-				'testing.outputPeek.goToTest',
-				localize('testing.goToTest', "Go to Test"),
+				'testing.outputPeek.goToFile',
+				localize('testing.goToFile', "Go to Source"),
 				ThemeIcon.asClassName(Codicon.goToFile),
 				undefined,
 				() => this.commandService.executeCommand('vscode.revealTest', element.test.item.extId),
 			));
+		}
 
+		if (element instanceof TestMessageElement) {
+			id = MenuId.TestMessageContext;
+			contextKeys.push([TestingContextKeys.testMessageContext.key, element.contextValue]);
 			if (this.showRevealLocationOnMessages && element.location) {
 				primary.push(new Action(
 					'testing.outputPeek.goToError',
-					localize('testing.goToError', "Go to Error"),
+					localize('testing.goToError', "Go to Source"),
 					ThemeIcon.asClassName(Codicon.goToFile),
 					undefined,
 					() => this.editorService.openEditor({

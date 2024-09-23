@@ -770,11 +770,15 @@ export class CodeCompareBlockPart extends Disposable {
 			});
 
 			dom.reset(this.messageElement, message);
+
 		}
 
 		const diffData = await data.diffData;
+		if (!diffData) {
+			return;
+		}
 
-		if (!isEditApplied && diffData) {
+		if (!isEditApplied) {
 			const viewModel = this.diffEditor.createViewModel({
 				original: diffData.original,
 				modified: diffData.modified
@@ -797,7 +801,6 @@ export class CodeCompareBlockPart extends Disposable {
 		} else {
 			this.diffEditor.setModel(null);
 			this._lastDiffEditorViewModel.value = undefined;
-			this._onDidChangeContentHeight.fire();
 		}
 
 		this.toolbar.context = {

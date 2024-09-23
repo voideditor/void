@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { WebviewMessage } from './shared_types';
 import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { getDiffedLines } from './getDiffedLines';
-import { ApprovalCodeLensProvider, SuggestedEdit } from './ApprovalCodeLensProvider';
+import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 

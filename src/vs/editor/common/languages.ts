@@ -2019,9 +2019,9 @@ export interface CommentThreadChangedEvent<T> {
 }
 
 export interface CodeLens {
-	range: IRange;
-	id?: string;
-	command?: Command;
+	range: IRange;  // the range of code
+	id?: string; // no idea what this is for
+	command?: Command; // command to run when they click the codeLens
 }
 
 export interface CodeLensList {

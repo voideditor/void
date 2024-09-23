@@ -117,21 +117,22 @@ export class NotebookSearchService implements INotebookSearchService {
 	}
 
 	private async doesFileExist(includes: string[], folderQueries: IFolderQuery<URI>[], token: CancellationToken): Promise<boolean> {
-		const promises: Promise<boolean>[] = includes.map(async includePattern => {
+		const promises: Promise<void>[] = includes.map(async includePattern => {
 			const query = this.queryBuilder.file(folderQueries.map(e => e.folder), {
 				includePattern: includePattern.startsWith('/') ? includePattern : '**/' + includePattern, // todo: find cleaner way to ensure that globs match all appropriate filetypes
-				exists: true,
-				onlyFileScheme: true,
+				exists: true
 			});
 			return this.searchService.fileSearch(
 				query,
 				token
 			).then((ret) => {
-				return !!ret.limitHit;
+				if (!ret.limitHit) {
+					throw Error('File not found');
+				}
 			});
 		});
 
-		return Promise.any(promises);
+		return Promise.any(promises).then(() => true).catch(() => false);
 	}
 
 	private async getClosedNotebookResults(textQuery: ITextQuery, scannedFiles: ResourceSet, token: CancellationToken): Promise<IClosedNotebookSearchResults> {

@@ -318,8 +318,7 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 	}
 
 	afterRender(position: ContentWidgetPositionPreference | null): void {
-		// FIXME@ulugbekna: commenting trace log out until we start unmounting the widget from editor properly - https://github.com/microsoft/vscode/issues/226975
-		// this._trace('invoking afterRender, position: ', position ? 'not null' : 'null');
+		this._trace('invoking afterRender, position: ', position ? 'not null' : 'null');
 		if (position === null) {
 			// cancel rename when input widget isn't rendered anymore
 			this.cancelInput(true, 'afterRender (because position is null)');
@@ -364,7 +363,7 @@ export class RenameWidget implements IRenameWidget, IContentWidget, IDisposable 
 	}
 
 	cancelInput(focusEditor: boolean, caller: string): void {
-		// this._trace(`invoking cancelInput, caller: ${caller}, _currentCancelInput: ${this._currentAcceptInput ? 'not undefined' : 'undefined'}`);
+		this._trace(`invoking cancelInput, caller: ${caller}, _currentCancelInput: ${this._currentAcceptInput ? 'not undefined' : 'undefined'}`);
 		this._currentCancelInput?.(focusEditor);
 	}
 

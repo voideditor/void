@@ -13,8 +13,6 @@ import { URI } from 'vs/base/common/uri';
 import { IFileMatch, IFileSearchProviderStats, IFolderQuery, ISearchCompleteStats, IFileQuery, QueryGlobTester, resolvePatternsForProvider, hasSiblingFn, excludeToGlobPattern, DEFAULT_MAX_SEARCH_RESULTS } from 'vs/workbench/services/search/common/search';
 import { FileSearchProviderFolderOptions, FileSearchProviderNew, FileSearchProviderOptions } from 'vs/workbench/services/search/common/searchExtTypes';
 import { TernarySearchTree } from 'vs/base/common/ternarySearchTree';
-import { Disposable } from 'vs/base/common/lifecycle';
-import { OldFileSearchProviderConverter } from 'vs/workbench/services/search/common/searchExtConversionTypes';
 
 interface IInternalFileMatch {
 	base: URI;
@@ -55,7 +53,7 @@ class FileSearchEngine {
 
 	private globalExcludePattern?: glob.ParsedExpression;
 
-	constructor(private config: IFileQuery, private provider: FileSearchProviderNew, private sessionLifecycle?: SessionLifecycle) {
+	constructor(private config: IFileQuery, private provider: FileSearchProviderNew, private sessionToken?: unknown) {
 		this.filePattern = config.filePattern;
 		this.includePattern = config.includePattern && glob.parse(config.includePattern);
 		this.maxResults = config.maxResults || undefined;
@@ -118,11 +116,10 @@ class FileSearchEngine {
 	private async doSearch(fqs: IFolderQuery<URI>[], onResult: (match: IInternalFileMatch) => void): Promise<IFileSearchProviderStats | null> {
 		const cancellation = new CancellationTokenSource();
 		const folderOptions = fqs.map(fq => this.getSearchOptionsForFolder(fq));
-		const session = this.provider instanceof OldFileSearchProviderConverter ? this.sessionLifecycle?.tokenSource.token : this.sessionLifecycle?.obj;
 		const options: FileSearchProviderOptions = {
 			folderOptions,
 			maxResults: this.config.maxResults ?? DEFAULT_MAX_SEARCH_RESULTS,
-			session
+			session: this.sessionToken
 		};
 
 
@@ -304,30 +301,11 @@ interface IInternalSearchComplete {
 	stats?: IFileSearchProviderStats;
 }
 
-/**
- * For backwards compatibility, store both a cancellation token and a session object. The session object is the new implementation, where
- */
-class SessionLifecycle extends Disposable {
-	public readonly obj: object;
-	public readonly tokenSource: CancellationTokenSource;
-
-	constructor() {
-		super();
-		this.obj = new Object();
-		this.tokenSource = new CancellationTokenSource();
-	}
-
-	public override dispose(): void {
-		this.tokenSource.cancel();
-		super.dispose();
-	}
-}
-
 export class FileSearchManager {
 
 	private static readonly BATCH_SIZE = 512;
 
-	private readonly sessions = new Map<string, SessionLifecycle>();
+	private readonly sessions = new Map<string, unknown>();
 
 	fileSearch(config: IFileQuery, provider: FileSearchProviderNew, onBatch: (matches: IFileMatch[]) => void, token: CancellationToken): Promise<ISearchCompleteStats> {
 		const sessionTokenSource = this.getSessionTokenSource(config.cacheKey);
@@ -355,19 +333,17 @@ export class FileSearchManager {
 	}
 
 	clearCache(cacheKey: string): void {
-		// cancel the token
-		this.sessions.get(cacheKey)?.dispose();
 		// with no reference to this, it will be removed from WeakMaps
 		this.sessions.delete(cacheKey);
 	}
 
-	private getSessionTokenSource(cacheKey: string | undefined): SessionLifecycle | undefined {
+	private getSessionTokenSource(cacheKey: string | undefined): unknown {
 		if (!cacheKey) {
 			return undefined;
 		}
 
 		if (!this.sessions.has(cacheKey)) {
-			this.sessions.set(cacheKey, new SessionLifecycle());
+			this.sessions.set(cacheKey, new Object());
 		}
 
 		return this.sessions.get(cacheKey);

@@ -92,7 +92,6 @@ interface ICommonQueryBuilderOptions {
 	disregardSearchExcludeSettings?: boolean;
 	ignoreSymlinks?: boolean;
 	onlyOpenEditors?: boolean;
-	onlyFileScheme?: boolean;
 }
 
 export interface IFileQueryBuilderOptions extends ICommonQueryBuilderOptions {
@@ -261,8 +260,7 @@ export class QueryBuilder {
 			excludePattern: excludeSearchPathsInfo.pattern,
 			includePattern: includeSearchPathsInfo.pattern,
 			onlyOpenEditors: options.onlyOpenEditors,
-			maxResults: options.maxResults,
-			onlyFileScheme: options.onlyFileScheme
+			maxResults: options.maxResults
 		};
 
 		if (options.onlyOpenEditors) {

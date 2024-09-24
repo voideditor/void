@@ -120,7 +120,7 @@ Eventually, we want to build a convenient API for creating AI tools. The API wil
 
 # Guidelines
 
-Please don't make big refactors without speaking with us first. We'd like to keep the codebase similar to vscode so we can periodically rebase, and if we have big changes that gets complicated.
+Please don't make big refactors without speaking with us first. We'd like to keep the codebase similar to vscode so we can periodically rebase, and if we have big changes this gets complicated.
 
 # Submitting a Pull Request
 

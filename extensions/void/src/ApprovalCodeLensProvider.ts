@@ -6,6 +6,7 @@ type DiffType = {
 	diffid: number,
 	lenses: vscode.CodeLens[],
 	greenRange: vscode.Range,
+	redRange: vscode.Range,
 	originalCode: string, // If a revert happens, we replace the greenRange with this content.
 }
 
@@ -13,6 +14,11 @@ type DiffType = {
 const greenDecoration = vscode.window.createTextEditorDecorationType({
 	backgroundColor: 'rgba(0 255 51 / 0.2)',
 	isWholeLine: false, // after: { contentText: '       [original]', color: 'rgba(0 255 60 / 0.5)' }  // hoverMessage: originalText // this applies to hovering over after:...
+})
+
+const redDecoration = vscode.window.createTextEditorDecorationType({
+	backgroundColor: 'rgba(255 0 0 / 0.2)',
+	isWholeLine: false,
 })
 
 export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
@@ -36,8 +42,8 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 	// declared by us, registered with vscode.languages.registerCodeLensProvider()
-	constructor() {
-		// this acts as a useEffect. Every time text changes, clear the diffs in this editor
+constructor() {
+		// This acts as a useEffect. Every time text changes, clear the diffs in this editor
 		vscode.workspace.onDidChangeTextDocument((e) => {
 			const editor = vscode.window.activeTextEditor
 			if (!editor)
@@ -47,15 +53,18 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 			const docUri = editor.document.uri
 			const docUriStr = docUri.toString()
 			this._diffsOfDocument[docUriStr].splice(0) // clear diffs
-			editor.setDecorations(greenDecoration, []) // clear decorations
+			// Clear both green (additions) and red (deletions) decorations when text changes
+			editor.setDecorations(greenDecoration, []) // clear green decorations
+			editor.setDecorations(redDecoration, []) // clear red decorations
 			this._computedLensesOfDocument[docUriStr] = this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses) // recompute
 			this._onDidChangeCodeLenses.fire() // refresh
 		})
 	}
 
 	// used by us only
-	private refreshLenses = (editor: vscode.TextEditor, docUriStr: string) => {
-		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange)) // refresh highlighting
+private refreshLenses = (editor: vscode.TextEditor, docUriStr: string) => {
+		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange)) // refresh green highlighting
+		editor.setDecorations(redDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.redRange)) // refresh red highlighting
 		this._computedLensesOfDocument[docUriStr] = this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses) // recompute _computedLensesOfDocument (can optimize this later)
 		this._onDidChangeCodeLenses.fire() // fire event for vscode to refresh lenses
 	}
@@ -79,35 +88,40 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		for (let i = suggestedEdits.length - 1; i > -1; i -= 1) {
 			let suggestedEdit = suggestedEdits[i]
 
-			let greenRange: vscode.Range
+let greenRange: vscode.Range // Range for added content (green highlight)
+			let redRange: vscode.Range // Range for deleted content (red highlight)
 
 			// INSERTIONS (e.g. {originalStartLine: 0, originalEndLine: -1})
 			if (suggestedEdit.originalStartLine > suggestedEdit.originalEndLine) {
 				const originalPosition = new vscode.Position(suggestedEdit.originalStartLine, 0)
 				workspaceEdit.insert(docUri, originalPosition, suggestedEdit.newContent + '\n') // add back in the line we deleted when we made the startline->endline range go negative
 				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.endLine + 1, 0)
+				redRange = new vscode.Range(0, 0, 0, 0) // Empty range for insertions as there's no deleted content
 			}
 			// DELETIONS
 			else if (suggestedEdit.startLine > suggestedEdit.endLine) {
 				const deleteRange = new vscode.Range(suggestedEdit.originalStartLine, 0, suggestedEdit.originalEndLine + 1, 0)
 				workspaceEdit.delete(docUri, deleteRange)
-				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.startLine, 0)
+				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.startLine, 0) // Empty range for deletions as there's no added content
+				redRange = deleteRange
 				suggestedEdit.originalContent += '\n' // add back in the line we deleted when we made the startline->endline range go negative
 			}
 			// REPLACEMENTS
 			else {
 				const originalRange = new vscode.Range(suggestedEdit.originalStartLine, 0, suggestedEdit.originalEndLine, Number.MAX_SAFE_INTEGER)
 				workspaceEdit.replace(docUri, originalRange, suggestedEdit.newContent)
-				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.endLine, Number.MAX_SAFE_INTEGER)
+				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.endLine, Number.MAX_SAFE_INTEGER) // Added content
+				redRange = originalRange // Deleted content
 			}
 
 			this._diffsOfDocument[docUriStr].push({
 				diffid: this._diffidPool,
 				greenRange: greenRange,
+				redRange: redRange,
 				originalCode: suggestedEdit.originalContent,
 				lenses: [
 					new vscode.CodeLens(greenRange, { title: 'Accept', command: 'void.approveDiff', arguments: [{ diffid: this._diffidPool }] }),
-					new vscode.CodeLens(greenRange, { title: 'Reject', command: 'void.discardDiff', arguments: [{ diffid: this._diffidPool }] })
+					new vscode.CodeLens(redRange, { title: 'Reject', command: 'void.discardDiff', arguments: [{ diffid: this._diffidPool }] })
 				]
 			});
 			this._diffidPool += 1
@@ -125,7 +139,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 	// called on void.approveDiff
-	public async approveDiff({ diffid }: { diffid: number }) {
+public async approveDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
 			return
@@ -140,16 +154,19 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 			return
 		}
 
-		// remove this diff from the diffsOfDocument[docStr] (can change this behavior in future if add something like history)
+		// remove this diff from the diffsOfDocument[docStr]
 		this._diffsOfDocument[docUriStr].splice(index, 1)
+
+		// clear both green and red decorations
+		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange))
+		editor.setDecorations(redDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.redRange))
 
 		// refresh
 		this.refreshLenses(editor, docUriStr)
 	}
 
 
-	// called on void.discardDiff
-	public async discardDiff({ diffid }: { diffid: number }) {
+public async discardDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
 			return
@@ -164,17 +181,18 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 			return
 		}
 
-		const { greenRange: range, lenses, originalCode } = this._diffsOfDocument[docUriStr][index] // do this before we splice and mess up index
+		const { greenRange, redRange, originalCode } = this._diffsOfDocument[docUriStr][index] // do this before we splice and mess up index
 
-		// remove this diff from the diffsOfDocument[docStr] (can change this behavior in future if add something like history)
+		// remove this diff from the diffsOfDocument[docStr]
 		this._diffsOfDocument[docUriStr].splice(index, 1)
 
-		// clear the decoration in this diffs range
+		// clear both green and red decorations
 		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange))
+		editor.setDecorations(redDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.redRange))
 
-		// REVERT THE CHANGE (this is the only part that's different from approveDiff)
+		// REVERT THE CHANGE
 		let workspaceEdit = new vscode.WorkspaceEdit();
-		workspaceEdit.replace(docUri, range, originalCode);
+		workspaceEdit.replace(docUri, greenRange, originalCode);
 		this._weAreEditing = true
 		await vscode.workspace.applyEdit(workspaceEdit)
 		await vscode.workspace.save(docUri)

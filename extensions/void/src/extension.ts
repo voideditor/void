@@ -27,6 +27,9 @@ const getApiConfig = () => {
 		ollama: {
 			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
 		},
+		gorq: {
+			apikey: vscode.workspace.getConfiguration('void').get('gorqApiKey') ?? ''
+		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
 	return apiConfig
@@ -145,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// 		if (!editor)
 	// 			return
 	// 		ctrlKCodeLensProvider.addNewCodeLens(editor.document, editor.selection);
-	// 		// vscode.commands.executeCommand('editor.action.showHover'); // apparently this refreshes the codelenses by having the internals call provideCodeLenses
+	// 		vscode.commands.executeCommand('editor.action.showHover'); // apparently this refreshes the codelenses by having the internals call provideCodeLenses
 	// 	})
 	// )
 

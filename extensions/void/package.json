@@ -136,6 +136,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
+    "groq-sdk": "^0.7.0",
     "openai": "^4.57.0"
   }
 }

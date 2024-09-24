@@ -24,10 +24,6 @@
 		&[role="link"] {
 			cursor: pointer;
 		}
-
-		.monaco-icon-label::before {
-			height: auto;
-		}
 	}
 
 	&.collapsed {
@@ -43,7 +39,6 @@
 	.collapse-button {
 		width: 16px;
 		min-height: 1px; /* show even if empty */
-		line-height: 0;
 
 		a {
 			cursor: pointer;
@@ -61,11 +56,6 @@
 .multiCallStackWidget {
 	.multiCallStackFrameContainer {
 		background: none !important;
+		line-height: inherit !important;
 	}
-}
-
-.monaco-editor .call-stack-go-to-file-link {
-	text-decoration: underline;
-	cursor: pointer;
-	color: var(--vscode-editorLink-activeForeground) !important;
 }

@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as dom from 'vs/base/browser/dom';
-import { StandardKeyboardEvent } from 'vs/base/browser/keyboardEvent';
 import { Action, IAction, Separator, SubmenuAction } from 'vs/base/common/actions';
 import { equals } from 'vs/base/common/arrays';
 import { RunOnceScheduler } from 'vs/base/common/async';
@@ -457,24 +456,11 @@ export class TestingDecorations extends Disposable implements IEditorContributio
 				decorations.syncDecorations(this._currentUri);
 			}
 		}));
-
-		const win = dom.getWindow(editor.getDomNode());
-		this._register(dom.addDisposableListener(win, 'keydown', e => {
-			if (new StandardKeyboardEvent(e).keyCode === KeyCode.Alt && this._currentUri) {
-				decorations.updateDecorationsAlternateAction(this._currentUri, true);
+		this._register(this.editor.onKeyDown(e => {
+			if (e.keyCode === KeyCode.Alt && this._currentUri) {
+				decorations.updateDecorationsAlternateAction(this._currentUri!, true);
 			}
 		}));
-		this._register(dom.addDisposableListener(win, 'keyup', e => {
-			if (new StandardKeyboardEvent(e).keyCode === KeyCode.Alt && this._currentUri) {
-				decorations.updateDecorationsAlternateAction(this._currentUri, false);
-			}
-		}));
-		this._register(dom.addDisposableListener(win, 'blur', () => {
-			if (this._currentUri) {
-				decorations.updateDecorationsAlternateAction(this._currentUri, false);
-			}
-		}));
-
 		this._register(this.editor.onKeyUp(e => {
 			if (e.keyCode === KeyCode.Alt && this._currentUri) {
 				decorations.updateDecorationsAlternateAction(this._currentUri!, false);

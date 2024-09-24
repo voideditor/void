@@ -550,6 +550,14 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			registerCodeLensProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
 				return extHostLanguageFeatures.registerCodeLensProvider(extension, checkSelector(selector), provider);
 			},
+
+
+			// VOID added this (I think will need to add this back when add ctrl+K)
+			// registerVoidCtrlKProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
+			// 	return extHostLanguageFeatures.registerCodeLensProvider(extension, checkSelector(selector), provider);
+			// },
+
+
 			registerDefinitionProvider(selector: vscode.DocumentSelector, provider: vscode.DefinitionProvider): vscode.Disposable {
 				return extHostLanguageFeatures.registerDefinitionProvider(extension, checkSelector(selector), provider);
 			},

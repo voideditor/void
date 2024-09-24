@@ -584,7 +584,7 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 			}
 			const parsedInclude = include ? parseSearchExcludeInclude(GlobPattern.from(include)) : undefined;
 
-			const excludePatterns = globsToISearchPatternBuilder(options.exclude);
+			const excludePatterns = include ? globsToISearchPatternBuilder(options.exclude) : undefined;
 
 			return {
 				options: {
@@ -664,10 +664,7 @@ export class ExtHostWorkspace implements ExtHostWorkspaceShape, IExtHostWorkspac
 	async findTextInFilesBase(query: vscode.TextSearchQuery, queryOptions: QueryOptions<ITextQueryBuilderOptions>[] | undefined, callback: (result: ITextSearchResult<URI>, uri: URI) => void, token: vscode.CancellationToken = CancellationToken.None): Promise<vscode.TextSearchComplete> {
 		const requestId = this._requestIdProvider.getNext();
 
-		let isCanceled = false;
-		token.onCancellationRequested(_ => {
-			isCanceled = true;
-		});
+		const isCanceled = false;
 
 		this._activeSearchCallbacks[requestId] = p => {
 			if (isCanceled) {

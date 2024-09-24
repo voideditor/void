@@ -118,6 +118,10 @@ Eventually, we want to build a convenient API for creating AI tools. The API wil
 
 ⭐ Allow user to X out of their current selection.
 
+# Guidelines
+
+Please don't make big refactors without speaking with us first. We'd like to keep the codebase similar to vscode so we can periodically rebase, and if we have big changes this gets complicated.
+
 # Submitting a Pull Request
 
 When you've made changes and want to submit them, please submit a pull request.

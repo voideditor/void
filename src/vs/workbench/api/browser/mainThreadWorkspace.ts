@@ -28,7 +28,6 @@ import { IEditSessionIdentityService } from 'vs/platform/workspace/common/editSe
 import { EditorResourceAccessor, SaveReason, SideBySideEditor } from 'vs/workbench/common/editor';
 import { coalesce, firstOrDefault } from 'vs/base/common/arrays';
 import { ICanonicalUriService } from 'vs/platform/workspace/common/canonicalUri';
-import { revive } from 'vs/base/common/marshalling';
 
 @extHostNamedCustomer(MainContext.MainThreadWorkspace)
 export class MainThreadWorkspace implements MainThreadWorkspaceShape {
@@ -147,7 +146,7 @@ export class MainThreadWorkspace implements MainThreadWorkspaceShape {
 
 		const query = this._queryBuilder.file(
 			includeFolder ? [includeFolder] : workspace.folders,
-			revive(options)
+			options
 		);
 
 		return this._searchService.fileSearch(query, token).then(result => {
@@ -165,7 +164,7 @@ export class MainThreadWorkspace implements MainThreadWorkspaceShape {
 		const workspace = this._contextService.getWorkspace();
 		const folders = folder ? [folder] : workspace.folders.map(folder => folder.uri);
 
-		const query = this._queryBuilder.text(pattern, folders, revive(options));
+		const query = this._queryBuilder.text(pattern, folders, options);
 		query._reason = 'startTextSearch';
 
 		const onProgress = (p: ISearchProgressItem) => {

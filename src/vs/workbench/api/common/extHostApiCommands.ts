@@ -304,6 +304,17 @@ const newCommands: ApiCommand[] = [
 			})(value);
 		})
 	),
+	// // --- Void code lens
+	// new ApiCommand(
+	// 	'vscode.executeVoidCodeLensProvider', '_executeVoidCodeLensProvider', 'Execute Void code lens provider.',
+	// 	[ApiCommandArgument.Uri, ApiCommandArgument.Number.with('itemResolveCount', 'Number of lenses that should be resolved and returned. Will only return resolved lenses, will impact performance)').optional()],
+	// 	new ApiCommandResult<languages.CodeLens[], vscode.CodeLens[] | undefined>('A promise that resolves to an array of VoidCodeLens-instances.', (value, _args, converter) => {
+	// 		return tryMapWith<languages.CodeLens, vscode.CodeLens>(item => {
+	// 			return new types.CodeLens(typeConverters.Range.to(item.range), item.command && converter.fromInternal(item.command));
+	// 		})(value);
+	// 	})
+	// ),
+
 	// --- code actions
 	new ApiCommand(
 		'vscode.executeCodeActionProvider', '_executeCodeActionProvider', 'Execute code action provider.',

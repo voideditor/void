@@ -1,21 +1,21 @@
-import { Registry } from 'vs/platform/registry/common/platform';
+import { Registry } from '../../../../platform/registry/common/platform.js';
 import {
 	Extensions as ViewContainerExtensions, IViewContainersRegistry,
 	ViewContainerLocation, IViewsRegistry, Extensions as ViewExtensions,
 	IViewDescriptor
-} from 'vs/workbench/common/views';
+} from '../../../../workbench/common/views.js';
 
-import * as nls from 'vs/nls';
+import * as nls from '../../../../nls.js';
 
-import { VoidViewPane } from 'vs/workbench/contrib/void/browser/voidViewPane'
+import { VoidViewPane } from '../../../../workbench/contrib/void/browser/voidViewPane.js'
 
-import { Codicon } from 'vs/base/common/codicons';
-import { localize } from 'vs/nls';
-import { registerIcon } from 'vs/platform/theme/common/iconRegistry';
-import { ViewPaneContainer } from 'vs/workbench/browser/parts/views/viewPaneContainer';
+import { Codicon } from '../../../../base/common/codicons.js';
+import { localize } from '../../../../nls.js';
+import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
+import { ViewPaneContainer } from '../../../../workbench/browser/parts/views/viewPaneContainer.js';
 
-import { SyncDescriptor } from 'vs/platform/instantiation/common/descriptors';
-import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
+import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
+import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 
 
 const voidViewIcon = registerIcon('void-view-icon', Codicon.search, localize('voidViewIcon', 'View icon of the Void chat view.'));

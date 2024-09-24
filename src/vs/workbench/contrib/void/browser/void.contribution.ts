@@ -7,7 +7,7 @@ import {
 
 import * as nls from '../../../../nls.js';
 
-import { VoidViewPane } from '../../../../workbench/contrib/void/browser/voidViewPane.js'
+import { VoidViewPane } from '../../../../workbench/contrib/void/browser/voidViewPane.js';
 
 import { Codicon } from '../../../../base/common/codicons.js';
 import { localize } from '../../../../nls.js';

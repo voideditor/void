@@ -1,0 +1,13 @@
+node_modules
+public
+dist
+out
+
+*.lock
+*.log
+
+.gitignore
+.npmignore
+.prettierignore
+.DS_Store
+.eslintignore

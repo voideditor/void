@@ -2,6 +2,7 @@ node_modules
 public
 dist
 out
+build
 
 *.lock
 *.log

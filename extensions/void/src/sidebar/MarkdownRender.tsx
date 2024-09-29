@@ -1,34 +1,69 @@
-import React, { JSX, useState } from 'react';
-import { MarkedToken, Token, TokensList } from 'marked';
-import { awaitVSCodeResponse, getVSCodeAPI } from './getVscodeApi';
+import React, { JSX, useState } from "react";
+import { MarkedToken, Token, TokensList } from "marked";
+import { awaitVSCodeResponse, getVSCodeAPI } from "./getVscodeApi";
 
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { atomOneDarkReasonable } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 // code block with Apply button at top
-export const BlockCode = ({ text, disableApplyButton = false }: { text: string, disableApplyButton?: boolean }) => {
-	return <div className='py-1'>
-		{disableApplyButton ? null : <div className='text-sm'>
-			<button className='btn btn-secondary px-3 py-1 text-sm rounded-t-sm'
-				onClick={async () => { getVSCodeAPI().postMessage({ type: 'applyCode', code: text }) }}>Apply</button>
-		</div>}
-		<div className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${disableApplyButton ? '' : 'rounded-tl-none'}`}>
-			<pre className='p-3'>
-				{text}
-			</pre>
+export const BlockCode = ({
+	text,
+	language,
+	disableApplyButton = false,
+}: {
+	text: string;
+	language?: string;
+	disableApplyButton?: boolean;
+}) => {
+	const customStyle = {
+		...atomOneDarkReasonable,
+		'code[class*="language-"]': {
+			...atomOneDarkReasonable['code[class*="language-"]'],
+			background: "none",
+		},
+	};
+
+	return (
+		<div className="py-1">
+			{disableApplyButton ? null : (
+				<div className="text-sm">
+					<button
+						className="px-3 py-1 text-sm rounded-t-sm btn btn-secondary"
+						onClick={async () => {
+							getVSCodeAPI().postMessage({ type: "applyCode", code: text });
+						}}
+					>
+						Apply
+					</button>
+				</div>
+			)}
+			<div
+				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${
+					disableApplyButton ? "" : "rounded-tl-none mt-2"
+				}`}
+			>
+				<SyntaxHighlighter
+					language={language}
+					style={customStyle}
+					className={"rounded-sm"}
+				>
+					{text}
+				</SyntaxHighlighter>
+			</div>
 		</div>
-	</div>
-}
+	);
+};
 
 const Render = ({ token }: { token: Token }) => {
-
 	// deal with built-in tokens first (assume marked token)
-	const t = token as MarkedToken
+	const t = token as MarkedToken;
 
 	if (t.type === "space") {
 		return <span>{t.raw}</span>;
 	}
 
 	if (t.type === "code") {
-		return <BlockCode text={t.text} />
+		return <BlockCode text={t.text} language={t.lang} />;
 	}
 
 	if (t.type === "heading") {
@@ -42,7 +77,7 @@ const Render = ({ token }: { token: Token }) => {
 				<thead>
 					<tr>
 						{t.header.map((cell: any, index: number) => (
-							<th key={index} style={{ textAlign: t.align[index] || 'left' }}>
+							<th key={index} style={{ textAlign: t.align[index] || "left" }}>
 								{cell.raw}
 							</th>
 						))}
@@ -52,7 +87,10 @@ const Render = ({ token }: { token: Token }) => {
 					{t.rows.map((row: any[], rowIndex: number) => (
 						<tr key={rowIndex}>
 							{row.map((cell: any, cellIndex: number) => (
-								<td key={cellIndex} style={{ textAlign: t.align[cellIndex] || 'left' }}>
+								<td
+									key={cellIndex}
+									style={{ textAlign: t.align[cellIndex] || "left" }}
+								>
 									{cell.raw}
 								</td>
 							))}
@@ -72,11 +110,11 @@ const Render = ({ token }: { token: Token }) => {
 	}
 
 	if (t.type === "list") {
-
-		const ListTag = t.ordered ? 'ol' : 'ul';
+		const ListTag = t.ordered ? "ol" : "ul";
 		return (
-			<ListTag start={t.start !== '' ? t.start : undefined}
-				className={`list-inside ${t.ordered ? 'list-decimal' : 'list-disc'}`}
+			<ListTag
+				start={t.start !== "" ? t.start : undefined}
+				className={`list-inside ${t.ordered ? "list-decimal" : "list-disc"}`}
 			>
 				{t.items.map((item, index) => (
 					<li key={index}>
@@ -91,15 +129,23 @@ const Render = ({ token }: { token: Token }) => {
 	}
 
 	if (t.type === "paragraph") {
-		return <p>
-			{t.tokens.map((token, index) => (
-				<Render key={index} token={token} />
-			))}
-		</p>;
+		return (
+			<p>
+				{t.tokens.map((token, index) => (
+					<Render key={index} token={token} />
+				))}
+			</p>
+		);
 	}
 
 	if (t.type === "html") {
-		return <pre>{`<html>`}{t.raw}{`</html>`}</pre>;
+		return (
+			<pre>
+				{`<html>`}
+				{t.raw}
+				{`</html>`}
+			</pre>
+		);
 	}
 
 	if (t.type === "text" || t.type === "escape") {
@@ -111,7 +157,11 @@ const Render = ({ token }: { token: Token }) => {
 	}
 
 	if (t.type === "link") {
-		return <a href={t.href} title={t.title ?? undefined}>{t.text}</a>;
+		return (
+			<a href={t.href} title={t.title ?? undefined}>
+				{t.text}
+			</a>
+		);
 	}
 
 	if (t.type === "image") {
@@ -128,7 +178,11 @@ const Render = ({ token }: { token: Token }) => {
 
 	// inline code
 	if (t.type === "codespan") {
-		return <code className='text-vscode-editor-fg bg-vscode-editor-bg px-1 rounded-sm font-mono'>{t.text}</code>;
+		return (
+			<code className="px-1 font-mono rounded-sm text-vscode-editor-fg bg-vscode-editor-bg">
+				{t.text}
+			</code>
+		);
 	}
 
 	if (t.type === "br") {
@@ -139,12 +193,13 @@ const Render = ({ token }: { token: Token }) => {
 		return <del>{t.text}</del>;
 	}
 
-
 	// default
-	return <div className='bg-orange-50 rounded-sm overflow-hidden'>
-		<span className='text-xs text-orange-500'>Unknown type:</span>
-		{t.raw}
-	</div>;
+	return (
+		<div className="overflow-hidden rounded-sm bg-orange-50">
+			<span className="text-xs text-orange-500">Unknown type:</span>
+			{t.raw}
+		</div>
+	);
 };
 
 const MarkdownRender = ({ tokens }: { tokens: TokensList }) => {

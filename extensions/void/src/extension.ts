@@ -13,7 +13,11 @@ const readFileContentOfUri = async (uri: vscode.Uri) => {
 
 const getApiConfig = () => {
 	const apiConfig: ApiConfig = {
-		anthropic: { apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '' },
+		anthropic: {
+			apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void').get('anthropicModel') ?? '',
+			maxTokens: vscode.workspace.getConfiguration('void').get('anthropicMaxToken') ?? '',
+		},
 		openai: { apikey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
 		greptile: {
 			apikey: vscode.workspace.getConfiguration('void').get('greptileApiKey') ?? '',

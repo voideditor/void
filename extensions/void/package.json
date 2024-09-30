@@ -19,7 +19,7 @@
         "void.whichApi": {
           "type": "string",
           "default": "anthropic",
-          "description": "Choose a model to use",
+          "description": "Choose an API provider",
           "enum": [
             "anthropic",
             "openai",
@@ -31,6 +31,14 @@
           "type": "string",
           "default": "",
           "description": "Anthropic API Key"
+        },
+        "void.anthropicModel": {
+          "type": "string",
+          "default": "claude-3-5-sonnet-20240620",
+          "description": "Anthropic Model to use",
+          "enum": [
+            "claude-3-5-sonnet-20240620"
+          ]
         },
         "void.openAIApiKey": {
           "type": "string",

@@ -6,6 +6,8 @@ import OpenAI from 'openai';
 export type ApiConfig = {
 	anthropic: {
 		apikey: string,
+		model: string,
+		maxTokens: string
 	},
 	openai: {
 		apikey: string
@@ -60,12 +62,11 @@ type SendLLMMessageFnTypeExternal = (params: {
 // Claude
 const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 
-
 	const anthropic = new Anthropic({ apiKey: apiConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
 	const stream = anthropic.messages.stream({
-		model: "claude-3-5-sonnet-20240620",
-		max_tokens: 1024,
+		model: apiConfig.anthropic.model,
+		max_tokens: parseInt(apiConfig.anthropic.maxTokens),
 		messages: messages,
 	});
 

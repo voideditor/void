@@ -11,15 +11,15 @@ parameters:
     type: boolean
   - name: VSCODE_ARCH
     type: string
-  - name: VSCODE_BUILD_ESM
+  - name: VSCODE_BUILD_AMD
     type: boolean
     default: false
 
 steps:
   - ${{ if eq(parameters.VSCODE_QUALITY, 'oss') }}:
-      - checkout: self
-        fetchDepth: 1
-        retryCountOnTaskFailure: 3
+    - checkout: self
+      fetchDepth: 1
+      retryCountOnTaskFailure: 3
 
   - task: NodeTool@0
     inputs:
@@ -28,29 +28,29 @@ steps:
       nodejsMirror: https://github.com/joaomoreno/node-mirror/releases/download
 
   - ${{ if ne(parameters.VSCODE_QUALITY, 'oss') }}:
-      - template: ../distro/download-distro.yml@self
+    - template: ../distro/download-distro.yml@self
 
-      - task: AzureKeyVault@1
-        displayName: "Azure Key Vault: Get Secrets"
-        inputs:
-          azureSubscription: "vscode-builds-subscription"
-          KeyVaultName: vscode-build-secrets
-          SecretsFilter: "github-distro-mixin-password,ESRP-PKI,esrp-aad-username,esrp-aad-password"
+    - task: AzureKeyVault@2
+      displayName: "Azure Key Vault: Get Secrets"
+      inputs:
+        azureSubscription: "vscode-builds-subscription"
+        KeyVaultName: vscode-build-secrets
+        SecretsFilter: "github-distro-mixin-password,ESRP-PKI,esrp-aad-username,esrp-aad-password"
 
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          artifact: Compilation
-          path: $(Build.ArtifactStagingDirectory)
-        displayName: Download compilation output
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifact: Compilation
+        path: $(Build.ArtifactStagingDirectory)
+      displayName: Download compilation output
 
-      - script: tar -xzf $(Build.ArtifactStagingDirectory)/compilation.tar.gz
-        displayName: Extract compilation output
+    - script: tar -xzf $(Build.ArtifactStagingDirectory)/compilation.tar.gz
+      displayName: Extract compilation output
 
   - script: |
       set -e
       # Start X server
-      sudo apt-get update
-      sudo apt-get install -y pkg-config \
+      ./build/azure-pipelines/linux/apt-retry.sh sudo apt-get update
+      ./build/azure-pipelines/linux/apt-retry.sh sudo apt-get install -y pkg-config \
         dbus \
         xvfb \
         libgtk-3-0 \
@@ -155,23 +155,23 @@ steps:
     condition: and(succeeded(), ne(variables.NODE_MODULES_RESTORED, 'true'))
 
   - ${{ if ne(parameters.VSCODE_QUALITY, 'oss') }}:
-      - script: node build/azure-pipelines/distro/mixin-npm
-        condition: and(succeeded(), ne(variables.NODE_MODULES_RESTORED, 'true'))
-        displayName: Mixin distro node modules
+    - script: node build/azure-pipelines/distro/mixin-npm
+      condition: and(succeeded(), ne(variables.NODE_MODULES_RESTORED, 'true'))
+      displayName: Mixin distro node modules
 
   - ${{ else }}:
-      # Ref https://github.com/microsoft/vscode/issues/189019
-      # for the node-gyp rebuild step
-      - script: |
-          set -e
+    # Ref https://github.com/microsoft/vscode/issues/189019
+    # for the node-gyp rebuild step
+    - script: |
+        set -e
 
-          cd node_modules/native-keymap && npx node-gyp@9.4.0 -y rebuild --debug
-          cd ../.. && ./.github/workflows/check-clean-git-state.sh
-        env:
-          npm_config_arch: $(NPM_ARCH)
-          GITHUB_TOKEN: "$(github-distro-mixin-password)"
-        displayName: Rebuild debug version of native modules (OSS)
-        condition: and(succeeded(), ne(variables.NODE_MODULES_RESTORED, 'true'))
+        cd node_modules/native-keymap && npx node-gyp@9.4.0 -y rebuild --debug
+        cd ../.. && ./.github/workflows/check-clean-git-state.sh
+      env:
+        npm_config_arch: $(NPM_ARCH)
+        GITHUB_TOKEN: "$(github-distro-mixin-password)"
+      displayName: Rebuild debug version of native modules (OSS)
+      condition: and(succeeded(), ne(variables.NODE_MODULES_RESTORED, 'true'))
 
   - script: |
       set -e
@@ -182,236 +182,236 @@ steps:
     displayName: Create node_modules archive
 
   - ${{ if ne(parameters.VSCODE_QUALITY, 'oss') }}:
-      - script: node build/azure-pipelines/distro/mixin-quality
-        displayName: Mixin distro quality
+    - script: node build/azure-pipelines/distro/mixin-quality
+      displayName: Mixin distro quality
 
   - template: ../common/install-builtin-extensions.yml@self
 
   - ${{ if ne(parameters.VSCODE_QUALITY, 'oss') }}:
-      - script: |
-          set -e
-          npm run gulp vscode-linux-$(VSCODE_ARCH)-min-ci
-          ARCHIVE_PATH=".build/linux/client/code-${{ parameters.VSCODE_QUALITY }}-$(VSCODE_ARCH)-$(date +%s).tar.gz"
-          mkdir -p $(dirname $ARCHIVE_PATH)
-          echo "##vso[task.setvariable variable=CLIENT_PATH]$ARCHIVE_PATH"
-        env:
-          GITHUB_TOKEN: "$(github-distro-mixin-password)"
-        displayName: Build client
+    - script: |
+        set -e
+        npm run gulp vscode-linux-$(VSCODE_ARCH)-min-ci
+        ARCHIVE_PATH=".build/linux/client/code-${{ parameters.VSCODE_QUALITY }}-$(VSCODE_ARCH)-$(date +%s).tar.gz"
+        mkdir -p $(dirname $ARCHIVE_PATH)
+        echo "##vso[task.setvariable variable=CLIENT_PATH]$ARCHIVE_PATH"
+      env:
+        GITHUB_TOKEN: "$(github-distro-mixin-password)"
+      displayName: Build client
 
-      - ${{ if ne(parameters.VSCODE_CIBUILD, true) }}:
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              artifact: $(ARTIFACT_PREFIX)vscode_cli_linux_$(VSCODE_ARCH)_cli
-              patterns: "**"
-              path: $(Build.ArtifactStagingDirectory)/cli
-            displayName: Download VS Code CLI
-
-          - script: |
-              set -e
-              tar -xzvf $(Build.ArtifactStagingDirectory)/cli/*.tar.gz -C $(Build.ArtifactStagingDirectory)/cli
-              CLI_APP_NAME=$(node -p "require(\"$(agent.builddirectory)/VSCode-linux-$(VSCODE_ARCH)/resources/app/product.json\").tunnelApplicationName")
-              APP_NAME=$(node -p "require(\"$(agent.builddirectory)/VSCode-linux-$(VSCODE_ARCH)/resources/app/product.json\").applicationName")
-              mv $(Build.ArtifactStagingDirectory)/cli/$APP_NAME $(agent.builddirectory)/VSCode-linux-$(VSCODE_ARCH)/bin/$CLI_APP_NAME
-            displayName: Mix in CLI
+    - ${{ if ne(parameters.VSCODE_CIBUILD, true) }}:
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          artifact: $(ARTIFACT_PREFIX)vscode_cli_linux_$(VSCODE_ARCH)_cli
+          patterns: "**"
+          path: $(Build.ArtifactStagingDirectory)/cli
+        displayName: Download VS Code CLI
 
       - script: |
           set -e
-          tar -czf $CLIENT_PATH -C .. VSCode-linux-$(VSCODE_ARCH)
-        env:
-          GITHUB_TOKEN: "$(github-distro-mixin-password)"
-        displayName: Archive client
+          tar -xzvf $(Build.ArtifactStagingDirectory)/cli/*.tar.gz -C $(Build.ArtifactStagingDirectory)/cli
+          CLI_APP_NAME=$(node -p "require(\"$(agent.builddirectory)/VSCode-linux-$(VSCODE_ARCH)/resources/app/product.json\").tunnelApplicationName")
+          APP_NAME=$(node -p "require(\"$(agent.builddirectory)/VSCode-linux-$(VSCODE_ARCH)/resources/app/product.json\").applicationName")
+          mv $(Build.ArtifactStagingDirectory)/cli/$APP_NAME $(agent.builddirectory)/VSCode-linux-$(VSCODE_ARCH)/bin/$CLI_APP_NAME
+        displayName: Mix in CLI
 
+    - script: |
+        set -e
+        tar -czf $CLIENT_PATH -C .. VSCode-linux-$(VSCODE_ARCH)
+      env:
+        GITHUB_TOKEN: "$(github-distro-mixin-password)"
+      displayName: Archive client
+
+    - script: |
+        set -e
+        npm run gulp vscode-reh-linux-$(VSCODE_ARCH)-min-ci
+        mv ../vscode-reh-linux-$(VSCODE_ARCH) ../vscode-server-linux-$(VSCODE_ARCH) # TODO@joaomoreno
+        ARCHIVE_PATH=".build/linux/server/vscode-server-linux-$(VSCODE_ARCH).tar.gz"
+        UNARCHIVE_PATH="`pwd`/../vscode-server-linux-$(VSCODE_ARCH)"
+        mkdir -p $(dirname $ARCHIVE_PATH)
+        tar --owner=0 --group=0 -czf $ARCHIVE_PATH -C .. vscode-server-linux-$(VSCODE_ARCH)
+        echo "##vso[task.setvariable variable=SERVER_PATH]$ARCHIVE_PATH"
+        echo "##vso[task.setvariable variable=SERVER_UNARCHIVE_PATH]$UNARCHIVE_PATH"
+      env:
+        GITHUB_TOKEN: "$(github-distro-mixin-password)"
+      displayName: Build server
+
+    - script: |
+        set -e
+        npm run gulp vscode-reh-web-linux-$(VSCODE_ARCH)-min-ci
+        mv ../vscode-reh-web-linux-$(VSCODE_ARCH) ../vscode-server-linux-$(VSCODE_ARCH)-web # TODO@joaomoreno
+        ARCHIVE_PATH=".build/linux/web/vscode-server-linux-$(VSCODE_ARCH)-web.tar.gz"
+        mkdir -p $(dirname $ARCHIVE_PATH)
+        tar --owner=0 --group=0 -czf $ARCHIVE_PATH -C .. vscode-server-linux-$(VSCODE_ARCH)-web
+        echo "##vso[task.setvariable variable=WEB_PATH]$ARCHIVE_PATH"
+      env:
+        GITHUB_TOKEN: "$(github-distro-mixin-password)"
+      displayName: Build server (web)
+
+    - ${{ if or(eq(parameters.VSCODE_ARCH, 'x64'), eq(parameters.VSCODE_ARCH, 'arm64')) }}:
       - script: |
           set -e
-          npm run gulp vscode-reh-linux-$(VSCODE_ARCH)-min-ci
-          mv ../vscode-reh-linux-$(VSCODE_ARCH) ../vscode-server-linux-$(VSCODE_ARCH) # TODO@joaomoreno
-          ARCHIVE_PATH=".build/linux/server/vscode-server-linux-$(VSCODE_ARCH).tar.gz"
-          UNARCHIVE_PATH="`pwd`/../vscode-server-linux-$(VSCODE_ARCH)"
-          mkdir -p $(dirname $ARCHIVE_PATH)
-          tar --owner=0 --group=0 -czf $ARCHIVE_PATH -C .. vscode-server-linux-$(VSCODE_ARCH)
-          echo "##vso[task.setvariable variable=SERVER_PATH]$ARCHIVE_PATH"
-          echo "##vso[task.setvariable variable=SERVER_UNARCHIVE_PATH]$UNARCHIVE_PATH"
-        env:
-          GITHUB_TOKEN: "$(github-distro-mixin-password)"
-        displayName: Build server
 
+          source ./build/azure-pipelines/linux/setup-env.sh
+
+          EXPECTED_GLIBC_VERSION="2.28" \
+          EXPECTED_GLIBCXX_VERSION="3.4.25" \
+          ./build/azure-pipelines/linux/verify-glibc-requirements.sh
+        env:
+          SEARCH_PATH: $(SERVER_UNARCHIVE_PATH)
+          npm_config_arch: $(NPM_ARCH)
+          VSCODE_ARCH: $(VSCODE_ARCH)
+        displayName: Check GLIBC and GLIBCXX dependencies in server archive
+
+    - ${{ else }}:
       - script: |
           set -e
-          npm run gulp vscode-reh-web-linux-$(VSCODE_ARCH)-min-ci
-          mv ../vscode-reh-web-linux-$(VSCODE_ARCH) ../vscode-server-linux-$(VSCODE_ARCH)-web # TODO@joaomoreno
-          ARCHIVE_PATH=".build/linux/web/vscode-server-linux-$(VSCODE_ARCH)-web.tar.gz"
-          mkdir -p $(dirname $ARCHIVE_PATH)
-          tar --owner=0 --group=0 -czf $ARCHIVE_PATH -C .. vscode-server-linux-$(VSCODE_ARCH)-web
-          echo "##vso[task.setvariable variable=WEB_PATH]$ARCHIVE_PATH"
+
+          source ./build/azure-pipelines/linux/setup-env.sh
+
+          EXPECTED_GLIBC_VERSION="2.28" \
+          EXPECTED_GLIBCXX_VERSION="3.4.26" \
+          ./build/azure-pipelines/linux/verify-glibc-requirements.sh
         env:
-          GITHUB_TOKEN: "$(github-distro-mixin-password)"
-        displayName: Build server (web)
-
-      - ${{ if or(eq(parameters.VSCODE_ARCH, 'x64'), eq(parameters.VSCODE_ARCH, 'arm64')) }}:
-          - script: |
-              set -e
-
-              source ./build/azure-pipelines/linux/setup-env.sh
-
-              EXPECTED_GLIBC_VERSION="2.28" \
-              EXPECTED_GLIBCXX_VERSION="3.4.25" \
-              ./build/azure-pipelines/linux/verify-glibc-requirements.sh
-            env:
-              SEARCH_PATH: $(SERVER_UNARCHIVE_PATH)
-              npm_config_arch: $(NPM_ARCH)
-              VSCODE_ARCH: $(VSCODE_ARCH)
-            displayName: Check GLIBC and GLIBCXX dependencies in server archive
-
-      - ${{ else }}:
-          - script: |
-              set -e
-
-              source ./build/azure-pipelines/linux/setup-env.sh
-
-              EXPECTED_GLIBC_VERSION="2.28" \
-              EXPECTED_GLIBCXX_VERSION="3.4.26" \
-              ./build/azure-pipelines/linux/verify-glibc-requirements.sh
-            env:
-              SEARCH_PATH: $(SERVER_UNARCHIVE_PATH)
-              npm_config_arch: $(NPM_ARCH)
-              VSCODE_ARCH: $(VSCODE_ARCH)
-            displayName: Check GLIBC and GLIBCXX dependencies in server archive
+          SEARCH_PATH: $(SERVER_UNARCHIVE_PATH)
+          npm_config_arch: $(NPM_ARCH)
+          VSCODE_ARCH: $(VSCODE_ARCH)
+        displayName: Check GLIBC and GLIBCXX dependencies in server archive
 
   - ${{ else }}:
-      - script: npm run gulp "transpile-client-swc" "transpile-extensions"
-        env:
-          GITHUB_TOKEN: "$(github-distro-mixin-password)"
-        displayName: Transpile client and extensions
+    - script: npm run gulp "transpile-client-swc" "transpile-extensions"
+      env:
+        GITHUB_TOKEN: "$(github-distro-mixin-password)"
+      displayName: Transpile client and extensions
 
   - ${{ if or(eq(parameters.VSCODE_RUN_UNIT_TESTS, true), eq(parameters.VSCODE_RUN_INTEGRATION_TESTS, true), eq(parameters.VSCODE_RUN_SMOKE_TESTS, true)) }}:
-      - template: product-build-linux-test.yml@self
-        parameters:
-          VSCODE_QUALITY: ${{ parameters.VSCODE_QUALITY }}
-          VSCODE_RUN_UNIT_TESTS: ${{ parameters.VSCODE_RUN_UNIT_TESTS }}
-          VSCODE_RUN_INTEGRATION_TESTS: ${{ parameters.VSCODE_RUN_INTEGRATION_TESTS }}
-          VSCODE_RUN_SMOKE_TESTS: ${{ parameters.VSCODE_RUN_SMOKE_TESTS }}
-          VSCODE_BUILD_ESM: ${{ parameters.VSCODE_BUILD_ESM }}
-          ${{ if ne(parameters.VSCODE_QUALITY, 'oss') }}:
-            PUBLISH_TASK_NAME: 1ES.PublishPipelineArtifact@1
+    - template: product-build-linux-test.yml@self
+      parameters:
+        VSCODE_QUALITY: ${{ parameters.VSCODE_QUALITY }}
+        VSCODE_RUN_UNIT_TESTS: ${{ parameters.VSCODE_RUN_UNIT_TESTS }}
+        VSCODE_RUN_INTEGRATION_TESTS: ${{ parameters.VSCODE_RUN_INTEGRATION_TESTS }}
+        VSCODE_RUN_SMOKE_TESTS: ${{ parameters.VSCODE_RUN_SMOKE_TESTS }}
+        VSCODE_BUILD_AMD: ${{ parameters.VSCODE_BUILD_AMD }}
+        ${{ if ne(parameters.VSCODE_QUALITY, 'oss') }}:
+          PUBLISH_TASK_NAME: 1ES.PublishPipelineArtifact@1
 
   - ${{ if and(ne(parameters.VSCODE_CIBUILD, true), ne(parameters.VSCODE_QUALITY, 'oss')) }}:
-      - script: |
-          set -e
-          npm run gulp "vscode-linux-$(VSCODE_ARCH)-prepare-deb"
-        env:
-          GITHUB_TOKEN: "$(github-distro-mixin-password)"
-        displayName: Prepare deb package
+    - script:  |
+        set -e
+        npm run gulp "vscode-linux-$(VSCODE_ARCH)-prepare-deb"
+      env:
+        GITHUB_TOKEN: "$(github-distro-mixin-password)"
+      displayName: Prepare deb package
 
-      - script: |
-          set -e
-          npm run gulp "vscode-linux-$(VSCODE_ARCH)-build-deb"
-          echo "##vso[task.setvariable variable=DEB_PATH]$(ls .build/linux/deb/*/deb/*.deb)"
-        displayName: Build deb package
+    - script:  |
+        set -e
+        npm run gulp "vscode-linux-$(VSCODE_ARCH)-build-deb"
+        echo "##vso[task.setvariable variable=DEB_PATH]$(ls .build/linux/deb/*/deb/*.deb)"
+      displayName: Build deb package
 
-      - script: |
-          set -e
-          TRIPLE=""
-          if [ "$VSCODE_ARCH" == "x64" ]; then
-            TRIPLE="x86_64-linux-gnu"
-          elif [ "$VSCODE_ARCH" == "arm64" ]; then
-            TRIPLE="aarch64-linux-gnu"
-          elif [ "$VSCODE_ARCH" == "armhf" ]; then
-            TRIPLE="arm-rpi-linux-gnueabihf"
-          fi
-          export VSCODE_SYSROOT_DIR=$(Build.SourcesDirectory)/.build/sysroots
-          export STRIP="$VSCODE_SYSROOT_DIR/$TRIPLE/$TRIPLE/bin/strip"
-          npm run gulp "vscode-linux-$(VSCODE_ARCH)-prepare-rpm"
-        env:
-          VSCODE_ARCH: $(VSCODE_ARCH)
-        displayName: Prepare rpm package
+    - script:  |
+        set -e
+        TRIPLE=""
+        if [ "$VSCODE_ARCH" == "x64" ]; then
+          TRIPLE="x86_64-linux-gnu"
+        elif [ "$VSCODE_ARCH" == "arm64" ]; then
+          TRIPLE="aarch64-linux-gnu"
+        elif [ "$VSCODE_ARCH" == "armhf" ]; then
+          TRIPLE="arm-rpi-linux-gnueabihf"
+        fi
+        export VSCODE_SYSROOT_DIR=$(Build.SourcesDirectory)/.build/sysroots
+        export STRIP="$VSCODE_SYSROOT_DIR/$TRIPLE/$TRIPLE/bin/strip"
+        npm run gulp "vscode-linux-$(VSCODE_ARCH)-prepare-rpm"
+      env:
+        VSCODE_ARCH: $(VSCODE_ARCH)
+      displayName: Prepare rpm package
 
-      - script: |
-          set -e
-          npm run gulp "vscode-linux-$(VSCODE_ARCH)-build-rpm"
-          echo "##vso[task.setvariable variable=RPM_PATH]$(ls .build/linux/rpm/*/*.rpm)"
-        displayName: Build rpm package
+    - script:  |
+        set -e
+        npm run gulp "vscode-linux-$(VSCODE_ARCH)-build-rpm"
+        echo "##vso[task.setvariable variable=RPM_PATH]$(ls .build/linux/rpm/*/*.rpm)"
+      displayName: Build rpm package
 
-      - script: |
-          set -e
-          npm run gulp "vscode-linux-$(VSCODE_ARCH)-prepare-snap"
-          ARCHIVE_PATH=".build/linux/snap-tarball/snap-$(VSCODE_ARCH).tar.gz"
-          mkdir -p $(dirname $ARCHIVE_PATH)
-          tar -czf $ARCHIVE_PATH -C .build/linux snap
-          echo "##vso[task.setvariable variable=SNAP_PATH]$ARCHIVE_PATH"
-        displayName: Prepare snap package
+    - script: |
+        set -e
+        npm run gulp "vscode-linux-$(VSCODE_ARCH)-prepare-snap"
+        ARCHIVE_PATH=".build/linux/snap-tarball/snap-$(VSCODE_ARCH).tar.gz"
+        mkdir -p $(dirname $ARCHIVE_PATH)
+        tar -czf $ARCHIVE_PATH -C .build/linux snap
+        echo "##vso[task.setvariable variable=SNAP_PATH]$ARCHIVE_PATH"
+      displayName: Prepare snap package
 
-      - task: UseDotNet@2
-        inputs:
-          version: 6.x
+    - task: UseDotNet@2
+      inputs:
+        version: 6.x
 
-      - task: EsrpClientTool@1
-        continueOnError: true
-        displayName: Download ESRPClient
+    - task: EsrpClientTool@1
+      continueOnError: true
+      displayName: Download ESRPClient
 
-      - script: node build/azure-pipelines/common/sign $(Agent.ToolsDirectory)/esrpclient/*/*/net6.0/esrpcli.dll sign-pgp $(ESRP-PKI) $(esrp-aad-username) $(esrp-aad-password) .build/linux/deb '*.deb'
-        displayName: Codesign deb
+    - script: node build/azure-pipelines/common/sign $(Agent.ToolsDirectory)/esrpclient/*/*/net6.0/esrpcli.dll sign-pgp $(ESRP-PKI) $(esrp-aad-username) $(esrp-aad-password) .build/linux/deb '*.deb'
+      displayName: Codesign deb
 
-      - script: node build/azure-pipelines/common/sign $(Agent.ToolsDirectory)/esrpclient/*/*/net6.0/esrpcli.dll sign-pgp $(ESRP-PKI) $(esrp-aad-username) $(esrp-aad-password) .build/linux/rpm '*.rpm'
-        displayName: Codesign rpm
+    - script: node build/azure-pipelines/common/sign $(Agent.ToolsDirectory)/esrpclient/*/*/net6.0/esrpcli.dll sign-pgp $(ESRP-PKI) $(esrp-aad-username) $(esrp-aad-password) .build/linux/rpm '*.rpm'
+      displayName: Codesign rpm
 
-      - script: echo "##vso[task.setvariable variable=ARTIFACT_PREFIX]attempt$(System.JobAttempt)_"
-        condition: and(succeededOrFailed(), notIn(variables['Agent.JobStatus'], 'Succeeded', 'SucceededWithIssues'))
-        displayName: Generate artifact prefix
+    - script: echo "##vso[task.setvariable variable=ARTIFACT_PREFIX]attempt$(System.JobAttempt)_"
+      condition: and(succeededOrFailed(), notIn(variables['Agent.JobStatus'], 'Succeeded', 'SucceededWithIssues'))
+      displayName: Generate artifact prefix
 
-      - task: 1ES.PublishPipelineArtifact@1
-        inputs:
-          targetPath: $(CLIENT_PATH)
-          artifactName: $(ARTIFACT_PREFIX)vscode_client_linux_$(VSCODE_ARCH)_archive-unsigned
-          sbomBuildDropPath: $(Agent.BuildDirectory)/VSCode-linux-$(VSCODE_ARCH)
-          sbomPackageName: "VS Code Linux $(VSCODE_ARCH) (unsigned)"
-          sbomPackageVersion: $(Build.SourceVersion)
-        condition: and(succeededOrFailed(), ne(variables['CLIENT_PATH'], ''))
-        displayName: Publish client archive
+    - task: 1ES.PublishPipelineArtifact@1
+      inputs:
+        targetPath: $(CLIENT_PATH)
+        artifactName: $(ARTIFACT_PREFIX)vscode_client_linux_$(VSCODE_ARCH)_archive-unsigned
+        sbomBuildDropPath: $(Agent.BuildDirectory)/VSCode-linux-$(VSCODE_ARCH)
+        sbomPackageName: "VS Code Linux $(VSCODE_ARCH) (unsigned)"
+        sbomPackageVersion: $(Build.SourceVersion)
+      condition: and(succeededOrFailed(), ne(variables['CLIENT_PATH'], ''))
+      displayName: Publish client archive
 
-      - task: 1ES.PublishPipelineArtifact@1
-        inputs:
-          targetPath: $(SERVER_PATH)
-          artifactName: $(ARTIFACT_PREFIX)vscode_server_linux_$(VSCODE_ARCH)_archive-unsigned
-          sbomBuildDropPath: $(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)
-          sbomPackageName: "VS Code Linux $(VSCODE_ARCH) Server"
-          sbomPackageVersion: $(Build.SourceVersion)
-        condition: and(succeededOrFailed(), ne(variables['SERVER_PATH'], ''))
-        displayName: Publish server archive
+    - task: 1ES.PublishPipelineArtifact@1
+      inputs:
+        targetPath: $(SERVER_PATH)
+        artifactName: $(ARTIFACT_PREFIX)vscode_server_linux_$(VSCODE_ARCH)_archive-unsigned
+        sbomBuildDropPath: $(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)
+        sbomPackageName: "VS Code Linux $(VSCODE_ARCH) Server"
+        sbomPackageVersion: $(Build.SourceVersion)
+      condition: and(succeededOrFailed(), ne(variables['SERVER_PATH'], ''))
+      displayName: Publish server archive
 
-      - task: 1ES.PublishPipelineArtifact@1
-        inputs:
-          targetPath: $(WEB_PATH)
-          artifactName: $(ARTIFACT_PREFIX)vscode_web_linux_$(VSCODE_ARCH)_archive-unsigned
-          sbomBuildDropPath: $(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)-web
-          sbomPackageName: "VS Code Linux $(VSCODE_ARCH) Web"
-          sbomPackageVersion: $(Build.SourceVersion)
-        condition: and(succeededOrFailed(), ne(variables['WEB_PATH'], ''))
-        displayName: Publish web server archive
+    - task: 1ES.PublishPipelineArtifact@1
+      inputs:
+        targetPath: $(WEB_PATH)
+        artifactName: $(ARTIFACT_PREFIX)vscode_web_linux_$(VSCODE_ARCH)_archive-unsigned
+        sbomBuildDropPath: $(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)-web
+        sbomPackageName: "VS Code Linux $(VSCODE_ARCH) Web"
+        sbomPackageVersion: $(Build.SourceVersion)
+      condition: and(succeededOrFailed(), ne(variables['WEB_PATH'], ''))
+      displayName: Publish web server archive
 
-      - task: 1ES.PublishPipelineArtifact@1
-        inputs:
-          targetPath: $(DEB_PATH)
-          artifactName: $(ARTIFACT_PREFIX)vscode_client_linux_$(VSCODE_ARCH)_deb-package
-          sbomBuildDropPath: .build/linux/deb
-          sbomPackageName: "VS Code Linux $(VSCODE_ARCH) DEB"
-          sbomPackageVersion: $(Build.SourceVersion)
-        condition: and(succeededOrFailed(), ne(variables['DEB_PATH'], ''))
-        displayName: Publish deb package
+    - task: 1ES.PublishPipelineArtifact@1
+      inputs:
+        targetPath: $(DEB_PATH)
+        artifactName: $(ARTIFACT_PREFIX)vscode_client_linux_$(VSCODE_ARCH)_deb-package
+        sbomBuildDropPath: .build/linux/deb
+        sbomPackageName: "VS Code Linux $(VSCODE_ARCH) DEB"
+        sbomPackageVersion: $(Build.SourceVersion)
+      condition: and(succeededOrFailed(), ne(variables['DEB_PATH'], ''))
+      displayName: Publish deb package
 
-      - task: 1ES.PublishPipelineArtifact@1
-        inputs:
-          targetPath: $(RPM_PATH)
-          artifactName: $(ARTIFACT_PREFIX)vscode_client_linux_$(VSCODE_ARCH)_rpm-package
-          sbomBuildDropPath: .build/linux/rpm
-          sbomPackageName: "VS Code Linux $(VSCODE_ARCH) RPM"
-          sbomPackageVersion: $(Build.SourceVersion)
-        condition: and(succeededOrFailed(), ne(variables['RPM_PATH'], ''))
-        displayName: Publish rpm package
+    - task: 1ES.PublishPipelineArtifact@1
+      inputs:
+        targetPath: $(RPM_PATH)
+        artifactName: $(ARTIFACT_PREFIX)vscode_client_linux_$(VSCODE_ARCH)_rpm-package
+        sbomBuildDropPath: .build/linux/rpm
+        sbomPackageName: "VS Code Linux $(VSCODE_ARCH) RPM"
+        sbomPackageVersion: $(Build.SourceVersion)
+      condition: and(succeededOrFailed(), ne(variables['RPM_PATH'], ''))
+      displayName: Publish rpm package
 
-      - task: 1ES.PublishPipelineArtifact@1
-        inputs:
-          targetPath: $(SNAP_PATH)
-          artifactName: $(ARTIFACT_PREFIX)snap-$(VSCODE_ARCH)
-          sbomEnabled: false
-        condition: and(succeededOrFailed(), ne(variables['SNAP_PATH'], ''))
-        displayName: Publish snap pre-package
+    - task: 1ES.PublishPipelineArtifact@1
+      inputs:
+        targetPath: $(SNAP_PATH)
+        artifactName: $(ARTIFACT_PREFIX)snap-$(VSCODE_ARCH)
+        sbomEnabled: false
+      condition: and(succeededOrFailed(), ne(variables['SNAP_PATH'], ''))
+      displayName: Publish snap pre-package

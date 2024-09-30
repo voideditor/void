@@ -4,13 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as assert from 'assert';
-import { CancellationToken } from 'vs/base/common/cancellation';
-import { ensureNoDisposablesAreLeakedInTestSuite } from 'vs/base/test/common/utils';
-import { TestConfigurationService } from 'vs/platform/configuration/test/common/testConfigurationService';
-import { ContextKeyService } from 'vs/platform/contextkey/browser/contextKeyService';
-import { ContextKeyEqualsExpr, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
-import { TestExtensionService } from 'vs/workbench/test/common/workbenchTestServices';
-import { IToolData, IToolImpl, IToolInvocation, LanguageModelToolsService } from '../../common/languageModelToolsService';
+import { CancellationToken } from '../../../../../base/common/cancellation.js';
+import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
+import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
+import { ContextKeyService } from '../../../../../platform/contextkey/browser/contextKeyService.js';
+import { ContextKeyEqualsExpr, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
+import { TestExtensionService } from '../../../../test/common/workbenchTestServices.js';
+import { IToolData, IToolImpl, IToolInvocation, LanguageModelToolsService } from '../../common/languageModelToolsService.js';
+import { MockChatService } from '../common/mockChatService.js';
 
 suite('LanguageModelToolsService', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
@@ -21,13 +22,14 @@ suite('LanguageModelToolsService', () => {
 	setup(() => {
 		const extensionService = new TestExtensionService();
 		contextKeyService = store.add(new ContextKeyService(new TestConfigurationService()));
-		service = store.add(new LanguageModelToolsService(extensionService, contextKeyService));
+		service = store.add(new LanguageModelToolsService(extensionService, contextKeyService, new MockChatService()));
 	});
 
 	test('registerToolData', () => {
 		const toolData: IToolData = {
 			id: 'testTool',
-			modelDescription: 'Test Tool'
+			modelDescription: 'Test Tool',
+			supportedContentTypes: []
 		};
 
 		const disposable = service.registerToolData(toolData);
@@ -39,13 +41,16 @@ suite('LanguageModelToolsService', () => {
 	test('registerToolImplementation', () => {
 		const toolData: IToolData = {
 			id: 'testTool',
-			modelDescription: 'Test Tool'
+			modelDescription: 'Test Tool',
+			supportedContentTypes: []
 		};
 
 		store.add(service.registerToolData(toolData));
 
 		const toolImpl: IToolImpl = {
-			invoke: async () => ({ string: 'result' })
+			invoke: async () => ({ 'text/plain': 'result' }),
+			provideToolInvocationMessage: async () => 'test',
+			provideToolConfirmationMessages: async () => ({ title: 'test', message: 'test' }),
 		};
 
 		store.add(service.registerToolImplementation('testTool', toolImpl));
@@ -57,18 +62,21 @@ suite('LanguageModelToolsService', () => {
 		const toolData1: IToolData = {
 			id: 'testTool1',
 			modelDescription: 'Test Tool 1',
-			when: ContextKeyEqualsExpr.create('testKey', false)
+			when: ContextKeyEqualsExpr.create('testKey', false),
+			supportedContentTypes: []
 		};
 
 		const toolData2: IToolData = {
 			id: 'testTool2',
 			modelDescription: 'Test Tool 2',
-			when: ContextKeyEqualsExpr.create('testKey', true)
+			when: ContextKeyEqualsExpr.create('testKey', true),
+			supportedContentTypes: []
 		};
 
 		const toolData3: IToolData = {
 			id: 'testTool3',
-			modelDescription: 'Test Tool 3'
+			modelDescription: 'Test Tool 3',
+			supportedContentTypes: []
 		};
 
 		store.add(service.registerToolData(toolData1));
@@ -84,7 +92,8 @@ suite('LanguageModelToolsService', () => {
 	test('invokeTool', async () => {
 		const toolData: IToolData = {
 			id: 'testTool',
-			modelDescription: 'Test Tool'
+			modelDescription: 'Test Tool',
+			supportedContentTypes: []
 		};
 
 		store.add(service.registerToolData(toolData));
@@ -94,8 +103,10 @@ suite('LanguageModelToolsService', () => {
 				assert.strictEqual(invocation.callId, '1');
 				assert.strictEqual(invocation.toolId, 'testTool');
 				assert.deepStrictEqual(invocation.parameters, { a: 1 });
-				return { string: 'result' };
-			}
+				return { 'text/plain': 'result' };
+			},
+			provideToolInvocationMessage: async () => 'test',
+			provideToolConfirmationMessages: async () => ({ title: 'test', message: 'test' }),
 		};
 
 		store.add(service.registerToolImplementation('testTool', toolImpl));
@@ -106,10 +117,12 @@ suite('LanguageModelToolsService', () => {
 			tokenBudget: 100,
 			parameters: {
 				a: 1
-			}
+			},
+			context: undefined,
+			requestedContentTypes: ['text/plain']
 		};
 
 		const result = await service.invokeTool(dto, async () => 0, CancellationToken.None);
-		assert.strictEqual(result.string, 'result');
+		assert.strictEqual(result['text/plain'], 'result');
 	});
 });

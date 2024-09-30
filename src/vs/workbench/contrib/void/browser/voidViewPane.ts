@@ -1,7 +1,7 @@
 
 
 
-import { ViewPane } from 'vs/workbench/browser/parts/views/viewPane';
+import { ViewPane } from '../../../../workbench/browser/parts/views/viewPane.js';
 
 // import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 // import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';

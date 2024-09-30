@@ -2,28 +2,27 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { addDisposableListener, Dimension } from 'vs/base/browser/dom';
-import * as aria from 'vs/base/browser/ui/aria/aria';
-import { MutableDisposable, toDisposable } from 'vs/base/common/lifecycle';
-import { assertType } from 'vs/base/common/types';
-import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
-import { EditorLayoutInfo, EditorOption } from 'vs/editor/common/config/editorOptions';
-import { Position } from 'vs/editor/common/core/position';
-import { Range } from 'vs/editor/common/core/range';
-import { ZoneWidget } from 'vs/editor/contrib/zoneWidget/browser/zoneWidget';
-import { localize } from 'vs/nls';
-import { IContextKey, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
-import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
-import { ACTION_REGENERATE_RESPONSE, ACTION_REPORT_ISSUE, ACTION_TOGGLE_DIFF, CTX_INLINE_CHAT_OUTER_CURSOR_POSITION, EditMode, InlineChatConfigKeys, MENU_INLINE_CHAT_WIDGET_SECONDARY, MENU_INLINE_CHAT_WIDGET_STATUS } from 'vs/workbench/contrib/inlineChat/common/inlineChat';
-import { EditorBasedInlineChatWidget } from './inlineChatWidget';
-import { isEqual } from 'vs/base/common/resources';
-import { StableEditorBottomScrollState } from 'vs/editor/browser/stableEditorScroll';
-import { ScrollType } from 'vs/editor/common/editorCommon';
-import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
-import { ILogService } from 'vs/platform/log/common/log';
-import { IChatWidgetLocationOptions } from 'vs/workbench/contrib/chat/browser/chatWidget';
-import { MenuId } from 'vs/platform/actions/common/actions';
-import { isResponseVM } from 'vs/workbench/contrib/chat/common/chatViewModel';
+import { addDisposableListener, Dimension } from '../../../../base/browser/dom.js';
+import * as aria from '../../../../base/browser/ui/aria/aria.js';
+import { MutableDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
+import { isEqual } from '../../../../base/common/resources.js';
+import { assertType } from '../../../../base/common/types.js';
+import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
+import { StableEditorBottomScrollState } from '../../../../editor/browser/stableEditorScroll.js';
+import { EditorLayoutInfo, EditorOption } from '../../../../editor/common/config/editorOptions.js';
+import { Position } from '../../../../editor/common/core/position.js';
+import { Range } from '../../../../editor/common/core/range.js';
+import { ScrollType } from '../../../../editor/common/editorCommon.js';
+import { ZoneWidget } from '../../../../editor/contrib/zoneWidget/browser/zoneWidget.js';
+import { localize } from '../../../../nls.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
+import { ILogService } from '../../../../platform/log/common/log.js';
+import { IChatWidgetLocationOptions } from '../../chat/browser/chatWidget.js';
+import { isResponseVM } from '../../chat/common/chatViewModel.js';
+import { ACTION_REGENERATE_RESPONSE, ACTION_REPORT_ISSUE, ACTION_TOGGLE_DIFF, CTX_INLINE_CHAT_OUTER_CURSOR_POSITION, EditMode, InlineChatConfigKeys, MENU_INLINE_CHAT_WIDGET_SECONDARY, MENU_INLINE_CHAT_WIDGET_STATUS } from '../common/inlineChat.js';
+import { EditorBasedInlineChatWidget } from './inlineChatWidget.js';
 
 export class InlineChatZoneWidget extends ZoneWidget {
 
@@ -66,7 +65,6 @@ export class InlineChatZoneWidget extends ZoneWidget {
 			secondaryMenuId: MENU_INLINE_CHAT_WIDGET_SECONDARY,
 			chatWidgetViewOptions: {
 				menus: {
-					executeToolbar: MenuId.ChatExecute,
 					telemetrySource: 'interactiveEditorWidget-toolbar',
 				},
 				rendererOptions: {
@@ -169,6 +167,11 @@ export class InlineChatZoneWidget extends ZoneWidget {
 		this._scrollUp.enable();
 	}
 
+	reveal(position: Position) {
+		this._scrollUp.reset();
+		this.updatePositionAndHeight(position);
+	}
+
 	override updatePositionAndHeight(position: Position): void {
 		const revealZone = this._createZoneAndScrollRestoreFn(position);
 		super.updatePositionAndHeight(position, this._computeHeight().linesValue);
@@ -188,9 +191,9 @@ export class InlineChatZoneWidget extends ZoneWidget {
 			return isResponseVM(candidate) && candidate.response.value.length > 0;
 		});
 
-		if (hasResponse && zoneTop < scrollTop || this._scrollUp.didScrollUp) {
+		if (hasResponse && zoneTop < scrollTop || this._scrollUp.didScrollUpOrDown) {
 			// don't reveal the zone if it is already out of view (unless we are still getting ready)
-			// or if an outside scroll-up happened (e.g the user scrolled up to see the new content)
+			// or if an outside scroll-up happened (e.g the user scrolled up/down to see the new content)
 			return this._scrollUp.runIgnored(() => {
 				scrollState.restore(this.editor);
 			});
@@ -244,8 +247,7 @@ export class InlineChatZoneWidget extends ZoneWidget {
 
 class ScrollUpState {
 
-	private _lastScrollTop: number = this._editor.getScrollTop();
-	private _didScrollUp?: boolean;
+	private _didScrollUpOrDown?: boolean;
 	private _ignoreEvents = false;
 
 	private readonly _listener = new MutableDisposable();
@@ -256,24 +258,24 @@ class ScrollUpState {
 		this._listener.dispose();
 	}
 
+	reset(): void {
+		this._didScrollUpOrDown = undefined;
+	}
+
 	enable(): void {
-		this._didScrollUp = undefined;
+		this._didScrollUpOrDown = undefined;
 		this._listener.value = this._editor.onDidScrollChange(e => {
 			if (!e.scrollTopChanged || this._ignoreEvents) {
 				return;
 			}
-			const currentScrollTop = e.scrollTop;
-			if (currentScrollTop > this._lastScrollTop) {
-				this._listener.clear();
-				this._didScrollUp = true;
-			}
-			this._lastScrollTop = currentScrollTop;
+			this._listener.clear();
+			this._didScrollUpOrDown = true;
 		});
 	}
 
 	disable(): void {
 		this._listener.clear();
-		this._didScrollUp = undefined;
+		this._didScrollUpOrDown = undefined;
 	}
 
 	runIgnored(callback: () => void): () => void {
@@ -287,8 +289,8 @@ class ScrollUpState {
 		};
 	}
 
-	get didScrollUp(): boolean | undefined {
-		return this._didScrollUp;
+	get didScrollUpOrDown(): boolean | undefined {
+		return this._didScrollUpOrDown;
 	}
 
 }

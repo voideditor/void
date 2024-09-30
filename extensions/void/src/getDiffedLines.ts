@@ -1,5 +1,18 @@
 import { diffLines, Change } from 'diff';
-import { SuggestedEdit } from './ApprovalCodeLensProvider';
+
+export type SuggestedEdit = {
+	// start/end of current file
+	startLine: number;
+	endLine: number;
+
+	// start/end of original file
+	originalStartLine: number,
+	originalEndLine: number,
+
+	// original content (originalfile[originalStart...originalEnd])
+	originalContent: string;
+	newContent: string;
+}
 
 export function getDiffedLines(oldStr: string, newStr: string) {
 	// an ordered list of every original line, line added to the new file, and line removed from the old file (order is unambiguous, think about it)

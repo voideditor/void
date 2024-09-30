@@ -56,13 +56,16 @@ Make sure you're on the correct NodeJS version as per `.nvmrc`.
 
 1. Install all dependencies.
 
+At the root of the repo, run:
 ```
-yarn
+npm i
 ```
 
 2. In VS Code, press <kbd>Ctrl+Shift+B</kbd> to start the build process - this can take some time. If you're not using VS Code, run `npm run watch` instead.
 
-3. Run `./scripts/code.sh` in your terminal.
+3. chmod +x `./scripts/code.sh` in your terminal. to make the script executable
+
+4. run `./scripts/code.sh` in your terminal.
 
 This should open up the built IDE after loading for some time. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
 

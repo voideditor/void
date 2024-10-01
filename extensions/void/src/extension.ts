@@ -13,7 +13,11 @@ const readFileContentOfUri = async (uri: vscode.Uri) => {
 
 const getApiConfig = () => {
 	const apiConfig: ApiConfig = {
-		anthropic: { apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '' },
+		anthropic: {
+			apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void').get('anthropicModel') ?? '',
+			maxTokens: vscode.workspace.getConfiguration('void').get('anthropicMaxToken') ?? '',
+		},
 		openai: { apikey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
 		greptile: {
 			apikey: vscode.workspace.getConfiguration('void').get('greptileApiKey') ?? '',
@@ -80,6 +84,9 @@ export function activate(context: vscode.ExtensionContext) {
 		approvalCodeLensProvider.discardDiff(params)
 	}));
 
+	context.subscriptions.push(vscode.commands.registerCommand('void.openSettings', async () => {
+		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:void.void');
+	}));
 
 	// 5.
 	webviewProvider.webview.then(

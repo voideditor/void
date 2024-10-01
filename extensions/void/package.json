@@ -1,5 +1,6 @@
 {
   "name": "void",
+  "publisher": "void",
   "displayName": "Void",
   "description": "",
   "version": "0.0.1",
@@ -13,17 +14,31 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "API Keys",
+      "title": "Void",
       "properties": {
         "void.whichApi": {
           "type": "string",
           "default": "anthropic",
-          "description": "Choose a model to use (anthropic | openai | greptile | ollama)"
+          "description": "Choose an API provider",
+          "enum": [
+            "anthropic",
+            "openai",
+            "greptile",
+            "ollama"
+          ]
         },
         "void.anthropicApiKey": {
           "type": "string",
           "default": "",
           "description": "Anthropic API Key"
+        },
+        "void.anthropicModel": {
+          "type": "string",
+          "default": "claude-3-5-sonnet-20240620",
+          "description": "Anthropic Model to use",
+          "enum": [
+            "claude-3-5-sonnet-20240620"
+          ]
         },
         "void.openAIApiKey": {
           "type": "string",
@@ -68,6 +83,11 @@
       {
         "command": "void.discardDiff",
         "title": "Discard Diff"
+      },
+      {
+        "command": "void.openSettings",
+        "title": "Void settings",
+        "icon": "$(settings-gear)"
       }
     ],
     "viewsContainers": {
@@ -99,7 +119,16 @@
         "key": "ctrl+k",
         "mac": "cmd+k"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "void.openSettings",
+          "when": "view == 'void.viewnumberone'",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

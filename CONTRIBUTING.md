@@ -12,7 +12,7 @@ We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-f
 For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 ## 1. Building the Extension
-Here's how you can start contributing to the Void extension. This is where you should get started if you're new. 
+Here's how you can start contributing to the Void extension. This is where you should get started if you're new.
 
 1. Clone the repository:
 
@@ -50,7 +50,7 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 Beyond the extension, we very occasionally edit the IDE when we need to access more functionality. If you want to work on the full IDE, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
-Before starting, make sure you've built the extension (by running `cd .\extensions\void\` and `npm run build`). 
+Before starting, make sure you've built the extension (by running `cd .\extensions\void\` and `npm run build`).
 
 Make sure you're on the correct NodeJS version as per `.nvmrc`.
 
@@ -124,4 +124,34 @@ Please don't make big refactors without speaking with us first. We'd like to kee
 
 # Submitting a Pull Request
 
-When you've made changes and want to submit them, please submit a pull request.
+When you've made changes and want to submit them, please submit a pull request. Here are a few guidelines:
+
+- A PR should be about one *single* feature change. Break large changes into multiple PRs.
+- Your title should clearly describe the change you made.
+- Your description should cover the exact files and changes you made. Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed).
+- Add tags to help us stay organized!
+- Please don't open a new issue for your PR.
+
+
+
+# Relevant files
+
+We keep track of all the files we've changed with Void so it's easy to rebase:
+
+
+- README.md
+- CONTRIBUTING.md
+- VOID_USEFUL_LINKS.md
+- product.json
+
+- src/vs/workbench/api/common/{extHost.api.impl.ts | extHostApiCommands.ts}
+- src/vs/workbench/workbench.common.main.ts
+- src/vs/workbench/contrib/void
+- extensions/void
+
+- .github/
+- .vscode/settings
+- .eslintrc.json
+- build/hygiene.js
+- build/lib/i18n.resources.json
+- build/npm/dirs.js

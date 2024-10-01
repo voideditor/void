@@ -57,7 +57,7 @@ Make sure you're on the correct NodeJS version as per `.nvmrc`.
 1. Install all dependencies.
 
 ```
-yarn
+npm install
 ```
 
 2. In VS Code, press <kbd>Ctrl+Shift+B</kbd> to start the build process - this can take some time. If you're not using VS Code, run `npm run watch` instead.
@@ -66,7 +66,7 @@ yarn
 
 This should open up the built IDE after loading for some time. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
 
-To bundle the IDE, run `npm run gulp vscode-win32-x64`. Here are the full options: vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)
+To bundle the IDE, run `npm run gulp vscode-darwin-arm64`. Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
 
 If you're on Windows, we recommend running the project inside a dev container. VSCode should prompt you to do this automatically.
 
@@ -120,18 +120,11 @@ Eventually, we want to build a convenient API for creating AI tools. The API wil
 
 # Guidelines
 
-Please don't make big refactors without speaking with us first. We'd like to keep the codebase similar to vscode so we can periodically rebase, and if we have big changes this gets complicated.
+Please don't make big refactors without speaking with us first. We'd like to keep the codebase similar to vscode so we can periodically rebase, and if we have big changes that gets complicated.
 
 # Submitting a Pull Request
 
-When you've made changes and want to submit them, please submit a pull request. Here are a few guidelines:
-
-- A PR should be about one *single* feature change. Break large changes into multiple PRs.
-- Your title should clearly describe the change you made.
-- Your description should cover the exact files and changes you made. Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed).
-- Add tags to help us stay organized!
-- Please don't open a new issue for your PR.
-
+When you've made changes and want to submit them, please submit a pull request.
 
 
 # Relevant files

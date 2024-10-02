@@ -124,8 +124,12 @@ Please don't make big refactors without speaking with us first. We'd like to kee
 
 # Submitting a Pull Request
 
-When you've made changes and want to submit them, please submit a pull request.
-
+When you've made changes and want to submit them, please submit a pull request. Here are a few guidelines:
+- A PR should be about one *single* feature change. Break large changes into multiple PRs.
+- Your title should clearly describe the change you made.
+- Your description should cover the exact files and changes you made. Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed).
+- Add tags to help us stay organized!
+- Please don't open a new issue for your PR unless the issue will require multiple PRs to finish.  
 
 # Relevant files
 

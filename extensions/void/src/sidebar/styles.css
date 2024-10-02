@@ -33,9 +33,3 @@ html {
 .input {
     @apply bg-vscode-input-bg text-vscode-input-fg border-vscode-input-border;
 }
-
-.no-select {
-    user-select: none;
-	pointer-events: none;
-	filter: blur(3px)
-}

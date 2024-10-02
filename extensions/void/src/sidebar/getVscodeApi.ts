@@ -10,7 +10,6 @@ const awaiting: { [c in Command]: ((res: any) => void)[] } = {
 	"files": [],
 	"apiConfig": [],
 	"getApiConfig": [],
-	"displayError": []
 }
 
 // use this function to await responses

@@ -114,7 +114,8 @@ export function activate(context: vscode.ExtensionContext) {
 					// send contents to webview
 					webview.postMessage({ type: 'files', files, } satisfies WebviewMessage)
 
-				} else if (m.type === 'applyCode') {
+				}
+				else if (m.type === 'applyCode') {
 
 					const editor = vscode.window.activeTextEditor
 					if (!editor) {
@@ -124,19 +125,16 @@ export function activate(context: vscode.ExtensionContext) {
 					const oldContents = await readFileContentOfUri(editor.document.uri)
 					const suggestedEdits = getDiffedLines(oldContents, m.code)
 					await approvalCodeLensProvider.addNewApprovals(editor, suggestedEdits)
-				} else if (m.type === 'getApiConfig') {
+				}
+				else if (m.type === 'getApiConfig') {
 
 					const apiConfig = getApiConfig()
 					console.log('Api config:', apiConfig)
 
 					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
 
-				} else if (m.type === 'displayError') {
-
-					vscode.window.showErrorMessage(m.message, { modal: true });
 				}
 				else {
-
 					console.error('unrecognized command', m.type, m)
 				}
 			})

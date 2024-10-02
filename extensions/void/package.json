@@ -27,43 +27,54 @@
             "ollama"
           ]
         },
-        "void.anthropicApiKey": {
+        "void.anthropic.apiKey": {
           "type": "string",
           "default": "",
           "description": "Anthropic API Key"
         },
-        "void.anthropicModel": {
+        "void.anthropic.model": {
           "type": "string",
           "default": "claude-3-5-sonnet-20240620",
-          "description": "Anthropic Model to use",
+          "description": "Anthropic Model to use.",
           "enum": [
             "claude-3-5-sonnet-20240620"
           ]
         },
-        "void.openAIApiKey": {
+        "void.anthropic.maxTokens": {
           "type": "string",
-          "default": "",
-          "description": "OpenAI API Key"
+          "default": "1024",
+          "description": "Anthropic max number of tokens to output.",
+          "enum":[
+            "1024",
+            "2048",
+            "4096",
+            "8192"
+          ]
         },
-        "void.greptileApiKey": {
+        "void.openAI.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Greptile API Key"
+          "description": "OpenAI API Key."
         },
-        "void.githubPAT": {
+        "void.greptile.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Greptile - Github PAT (gives Greptile access to your repo)"
+          "description": "Greptile API Key."
         },
-        "void.ollamaSettings.endpoint": {
+        "void.greptile.githubPAT": {
           "type": "string",
           "default": "",
-          "description": "Ollama Endpoint - Local API server can be started with `OLLAMA_ORIGINS=\"vscode-webview://*\" ollama serve`"
+          "description": "Github PAT  given to Greptile to access your repository."
         },
-        "void.ollamaSettings.model": {
+        "void.ollama.endpoint": {
           "type": "string",
           "default": "",
-          "description": "Ollama model to use"
+          "description": "Ollama Endpoint. Start Ollama by running `OLLAMA_ORIGINS=\"vscode-webview://*\" ollama serve`"
+        },
+        "void.ollama.model": {
+          "type": "string",
+          "default": "",
+          "description": "Ollama model to use."
         }
       }
     },

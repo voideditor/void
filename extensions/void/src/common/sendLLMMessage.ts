@@ -4,6 +4,7 @@ import { Ollama } from 'ollama/browser'
 import { getVSCodeAPI } from '../sidebar/getVscodeApi';
 
 
+// always compare these against package.json to make sure every setting in this type can actually be provided by the user
 export type ApiConfig = {
 	anthropic: {
 		apikey: string,

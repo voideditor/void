@@ -126,17 +126,19 @@ Please don't make big refactors without speaking with us first. We'd like to kee
 
 Please submit a pull request once you've made a change. Here are a few guidelines:
 
-- A PR should be about one *single* feature change. 
+- A PR should be about one *single* feature change. The fewer items you change, the more likely the PR is to be accepted.
+
+- Your PR should contain a description that first explains at a high level what you did, and then describes the exact files/changes you made. Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed). 
 
 - Your title should clearly describe the change you made.
 
-- Your description should cover the exact files and changes you made. Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed).
-
 - Add tags to help us stay organized!
 
-- Please don't open a new issue for your PR unless the issue will require multiple PRs to finish.
+- Please don't open a new Issue for your PR. Just submit the PR.
 
-- Avoid refactoring! If you'd like to refactor, submit a separate pull request.
+- Avoid refactoring and making feature changes in the same PR. 
+
+- Write good code. For example, a common mistake when people edit Void's config is to hard-code a default value like `'claude-3.5'` in 2+ separate places. Please follow best practices or describe your thought process if you had to compromise.
 
 # Relevant files
 

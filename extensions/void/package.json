@@ -55,10 +55,15 @@
           "default": "",
           "description": "Greptile - Github PAT (gives Greptile access to your repo)"
         },
-        "void.ollamaSettings": {
+        "void.ollamaSettings.endpoint": {
           "type": "string",
           "default": "",
-          "description": "Ollama settings (coming soon...)"
+          "description": "Ollama Endpoint - Local API server can be started with `OLLAMA_ORIGINS=\"vscode-webview://*\" ollama serve`"
+        },
+        "void.ollamaSettings.model": {
+          "type": "string",
+          "default": "",
+          "description": "Ollama model to use"
         }
       }
     },
@@ -153,7 +158,6 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "globals": "^15.9.0",
     "marked": "^14.1.0",
-    "ollama": "^0.5.8",
     "postcss": "^8.4.41",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -165,6 +169,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
+    "ollama": "^0.5.9",
     "openai": "^4.57.0"
   }
 }

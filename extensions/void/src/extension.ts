@@ -29,12 +29,14 @@ const getApiConfig = () => {
 			}
 		},
 		ollama: {
-			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
+			endpoint: vscode.workspace.getConfiguration('void').get('ollamaSettings.endpoint') ?? '',
+			model: vscode.workspace.getConfiguration('void').get('ollamaSettings.model') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
 	return apiConfig
 }
+
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -112,7 +114,8 @@ export function activate(context: vscode.ExtensionContext) {
 					// send contents to webview
 					webview.postMessage({ type: 'files', files, } satisfies WebviewMessage)
 
-				} else if (m.type === 'applyCode') {
+				}
+				else if (m.type === 'applyCode') {
 
 					const editor = vscode.window.activeTextEditor
 					if (!editor) {
@@ -132,7 +135,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 				}
 				else {
-
 					console.error('unrecognized command', m.type, m)
 				}
 			})

@@ -128,7 +128,7 @@ Please submit a pull request once you've made a change. Here are a few guideline
 
 - A PR should be about one *single* feature change. The fewer items you change, the more likely the PR is to be accepted.
 
-- Your PR should contain a description that first explains at a high level what you did, and then describes the exact changes you made, and to which files. Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed). 
+- Your PR should contain a description that first explains at a high level what you did, and then describes the exact changes you made (and to which files). Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed). 
 
 - Your title should clearly describe the change you made.
 

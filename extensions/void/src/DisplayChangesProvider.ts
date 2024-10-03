@@ -17,7 +17,6 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 	private _diffAreasOfDocument: { [docUriStr: string]: DiffArea[] } = {}
 	private _diffsOfDocument: { [docUriStr: string]: Diff[] } = {}
 
-	private _computedLensesOfDocument: { [docUriStr: string]: vscode.CodeLens[] } = {} // computed from diffsOfDocument[docUriStr].lenses
 	private _diffidPool = 0
 	private _weAreEditing: boolean = false
 

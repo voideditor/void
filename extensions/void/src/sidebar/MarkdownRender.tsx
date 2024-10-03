@@ -8,7 +8,7 @@ export const BlockCode = ({ text, disableApplyButton = false }: { text: string, 
 	return <div className='py-1'>
 		{disableApplyButton ? null : <div className='text-sm'>
 			<button className='btn btn-secondary px-3 py-1 text-sm rounded-t-sm'
-				onClick={async () => { getVSCodeAPI().postMessage({ type: 'applyCode', code: text }) }}>Apply</button>
+				onClick={async () => { getVSCodeAPI().postMessage({ type: 'applyChanges', code: text }) }}>Apply</button>
 		</div>}
 		<div className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${disableApplyButton ? '' : 'rounded-tl-none'}`}>
 			<pre className='p-3'>

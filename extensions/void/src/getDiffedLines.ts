@@ -2,16 +2,16 @@ import { diffLines, Change } from 'diff';
 
 export type SuggestedEdit = {
 	// start/end of current file
-	startLine: number;
-	endLine: number;
+	startLine: number,
+	endLine: number,
 
 	// start/end of original file
 	originalStartLine: number,
 	originalEndLine: number,
 
 	// original content (originalfile[originalStart...originalEnd])
-	originalContent: string;
-	newContent: string;
+	beforeCode: string;
+	afterCode: string;
 }
 
 export function getDiffedLines(oldStr: string, newStr: string) {
@@ -46,7 +46,7 @@ export function getDiffedLines(oldStr: string, newStr: string) {
 				const originalEndLine = oldFileLineNum - 1 // don't include current line, the edit was up to this line but not including it
 				const originalContent = oldStrLines.slice(originalStartLine, originalEndLine + 1).join('\n')
 
-				const replacement: SuggestedEdit = { startLine, endLine, newContent, originalStartLine, originalEndLine, originalContent }
+				const replacement: SuggestedEdit = { beforeCode: originalContent, afterCode: newContent, startLine, endLine, originalStartLine, originalEndLine, }
 
 				replacements.push(replacement)
 				streakStartInNewFile = undefined

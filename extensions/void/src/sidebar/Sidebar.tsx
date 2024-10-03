@@ -186,10 +186,13 @@ const Sidebar = () => {
 
 
 	const formRef = useRef<HTMLFormElement | null>(null)
+
 	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
+		console.log(`11111`)
 		e.preventDefault()
 		if (isLoading) return
+		console.log(`2222222`)
 
 		setIsLoading(true)
 		setInstructions('');
@@ -197,9 +200,14 @@ const Sidebar = () => {
 		setSelection(null)
 		setFiles([])
 
+
+		console.log(`AAAAAA`)
+
 		// request file content from vscode and await response
 		getVSCodeAPI().postMessage({ type: 'requestFiles', filepaths: files })
+		console.log(`BBBBB`)
 		const relevantFiles = await awaitVSCodeResponse('files')
+		console.log(`CCCCCC`)
 
 		// add message to chat history
 		const content = userInstructionsStr(instructions, relevantFiles.files, selection)
@@ -207,7 +215,8 @@ const Sidebar = () => {
 		const newHistoryElt: ChatMessage = { role: 'user', content, displayContent: instructions, selection, files }
 		setChatHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
 
-		// send message to claude
+		// send message to LLM
+		console.log(`DDDDD`)
 		let { abort } = sendLLMMessage({
 			messages: [...chatMessageHistory.map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
 			onText: (newText, fullText) => setMessageStream(fullText),
@@ -223,7 +232,9 @@ const Sidebar = () => {
 			},
 			apiConfig: apiConfig
 		})
+		console.log(`EEEEE`)
 		abortFnRef.current = abort
+		console.log(`FFFF`)
 
 	}
 
@@ -266,7 +277,7 @@ const Sidebar = () => {
 					{!selection?.selectionStr ? null
 						: (
 							<div className="relative">
-								<button 
+								<button
 									onClick={clearSelection}
 									className="absolute top-2 right-2 text-white hover:text-gray-300 z-10"
 								>
@@ -274,7 +285,7 @@ const Sidebar = () => {
 								</button>
 								<BlockCode text={selection.selectionStr} disableApplyButton={true} />
 							</div>
-					)}
+						)}
 				</div>
 				<form
 					ref={formRef}

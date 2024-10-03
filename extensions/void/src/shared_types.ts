@@ -13,7 +13,7 @@ type WebviewMessage = (
 	| { type: 'ctrl+l', selection: Selection } // user presses ctrl+l in the editor
 
 	// sidebar -> editor
-	| { type: 'applyCode', code: string } // user clicks "apply" in the sidebar
+	| { type: 'applyChanges', code: string } // user clicks "apply" in the sidebar
 
 	// sidebar -> editor
 	| { type: 'requestFiles', filepaths: vscode.Uri[] }

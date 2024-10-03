@@ -15,17 +15,17 @@ const greenDecoration = vscode.window.createTextEditorDecorationType({
 	isWholeLine: false, // after: { contentText: '       [original]', color: 'rgba(0 255 60 / 0.5)' }  // hoverMessage: originalText // this applies to hovering over after:...
 })
 
-export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
+
+// responsible for displaying diffs and showing accept/reject buttons
+export class ApplyChangesProvider implements vscode.CodeLensProvider {
 
 	private _diffsOfDocument: { [docUriStr: string]: DiffType[] } = {};
 	private _computedLensesOfDocument: { [docUriStr: string]: vscode.CodeLens[] } = {} // computed from diffsOfDocument[docUriStr].lenses
 	private _diffidPool = 0
-
-	private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>(); // signals a UI refresh on .fire() events
-
 	private _weAreEditing: boolean = false
 
 	// used internally by vscode
+	private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>(); // signals a UI refresh on .fire() events
 	public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
 
 
@@ -40,16 +40,19 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		// this acts as a useEffect. Every time text changes, clear the diffs in this editor
 		vscode.workspace.onDidChangeTextDocument((e) => {
 			const editor = vscode.window.activeTextEditor
+
 			if (!editor)
 				return
 			if (this._weAreEditing)
 				return
+
 			const docUri = editor.document.uri
 			const docUriStr = docUri.toString()
 			this._diffsOfDocument[docUriStr].splice(0) // clear diffs
 			editor.setDecorations(greenDecoration, []) // clear decorations
-			this._computedLensesOfDocument[docUriStr] = this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses) // recompute
-			this._onDidChangeCodeLenses.fire() // refresh
+
+			this._computedLensesOfDocument[docUriStr] = this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses) // recompute codelenses
+			this._onDidChangeCodeLenses.fire() // rerender codelenses
 		})
 	}
 
@@ -61,13 +64,15 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 	// used by us only
-	public async addNewApprovals(editor: vscode.TextEditor, suggestedEdits: SuggestedEdit[]) {
+	public async addNewChanges(editor: vscode.TextEditor, suggestedEdits: SuggestedEdit[]) {
 
 		const docUri = editor.document.uri
 		const docUriStr = docUri.toString()
 
+		// if no diffs, set diffs to []
 		if (!this._diffsOfDocument[docUriStr])
 			this._diffsOfDocument[docUriStr] = []
+		// if no codelenses, set codelenses to []
 		if (!this._computedLensesOfDocument[docUriStr])
 			this._computedLensesOfDocument[docUriStr] = []
 
@@ -84,7 +89,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 			// INSERTIONS (e.g. {originalStartLine: 0, originalEndLine: -1})
 			if (suggestedEdit.originalStartLine > suggestedEdit.originalEndLine) {
 				const originalPosition = new vscode.Position(suggestedEdit.originalStartLine, 0)
-				workspaceEdit.insert(docUri, originalPosition, suggestedEdit.newContent + '\n') // add back in the line we deleted when we made the startline->endline range go negative
+				workspaceEdit.insert(docUri, originalPosition, suggestedEdit.afterCode + '\n') // add back in the line we deleted when we made the startline->endline range go negative
 				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.endLine + 1, 0)
 			}
 			// DELETIONS
@@ -92,22 +97,22 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 				const deleteRange = new vscode.Range(suggestedEdit.originalStartLine, 0, suggestedEdit.originalEndLine + 1, 0)
 				workspaceEdit.delete(docUri, deleteRange)
 				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.startLine, 0)
-				suggestedEdit.originalContent += '\n' // add back in the line we deleted when we made the startline->endline range go negative
+				suggestedEdit.beforeCode += '\n' // add back in the line we deleted when we made the startline->endline range go negative
 			}
 			// REPLACEMENTS
 			else {
 				const originalRange = new vscode.Range(suggestedEdit.originalStartLine, 0, suggestedEdit.originalEndLine, Number.MAX_SAFE_INTEGER)
-				workspaceEdit.replace(docUri, originalRange, suggestedEdit.newContent)
+				workspaceEdit.replace(docUri, originalRange, suggestedEdit.afterCode)
 				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.endLine, Number.MAX_SAFE_INTEGER)
 			}
 
 			this._diffsOfDocument[docUriStr].push({
 				diffid: this._diffidPool,
 				greenRange: greenRange,
-				originalCode: suggestedEdit.originalContent,
+				originalCode: suggestedEdit.beforeCode,
 				lenses: [
-					new vscode.CodeLens(greenRange, { title: 'Accept', command: 'void.approveDiff', arguments: [{ diffid: this._diffidPool }] }),
-					new vscode.CodeLens(greenRange, { title: 'Reject', command: 'void.discardDiff', arguments: [{ diffid: this._diffidPool }] })
+					new vscode.CodeLens(greenRange, { title: 'Accept', command: 'void.acceptDiff', arguments: [{ diffid: this._diffidPool }] }),
+					new vscode.CodeLens(greenRange, { title: 'Reject', command: 'void.rejectDiff', arguments: [{ diffid: this._diffidPool }] })
 				]
 			});
 			this._diffidPool += 1
@@ -124,12 +129,13 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		console.log('diffs after added:', this._diffsOfDocument[docUriStr])
 	}
 
-	// called on void.approveDiff
-	public async approveDiff({ diffid }: { diffid: number }) {
+	// called on void.acceptDiff
+	public async acceptDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
 			return
 
+		// get document uri
 		const docUri = editor.document.uri
 		const docUriStr = docUri.toString()
 
@@ -148,8 +154,8 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 
-	// called on void.discardDiff
-	public async discardDiff({ diffid }: { diffid: number }) {
+	// called on void.rejectDiff
+	public async rejectDiff({ diffid }: { diffid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
 			return
@@ -172,7 +178,7 @@ export class ApprovalCodeLensProvider implements vscode.CodeLensProvider {
 		// clear the decoration in this diffs range
 		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange))
 
-		// REVERT THE CHANGE (this is the only part that's different from approveDiff)
+		// REVERT THE CHANGE (this is the only part that's different from acceptDiff)
 		let workspaceEdit = new vscode.WorkspaceEdit();
 		workspaceEdit.replace(docUri, range, originalCode);
 		this._weAreEditing = true

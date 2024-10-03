@@ -72,11 +72,11 @@
         "title": "Show Selection Lens"
       },
       {
-        "command": "void.approveDiff",
+        "command": "void.acceptDiff",
         "title": "Approve Diff"
       },
       {
-        "command": "void.discardDiff",
+        "command": "void.rejectDiff",
         "title": "Discard Diff"
       },
       {

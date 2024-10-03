@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { WebviewMessage } from './shared_types';
 import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { getDiffedLines } from './getDiffedLines';
-import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
+import { ApplyChangesProvider as DisplayChangesProvider } from './DisplayChangesProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 
@@ -71,22 +71,23 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	// 3. Show an approve/reject codelens above each change
-	const approvalCodeLensProvider = new ApprovalCodeLensProvider();
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', approvalCodeLensProvider));
+	const displayChangesProvider = new DisplayChangesProvider();
+	console.log(`void: Creating DisplayChangesProvider`)
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', displayChangesProvider));
 
 	// 4. Add approve/reject commands
-	context.subscriptions.push(vscode.commands.registerCommand('void.approveDiff', async (params) => {
-		approvalCodeLensProvider.approveDiff(params)
+	context.subscriptions.push(vscode.commands.registerCommand('void.acceptDiff', async (params) => {
+		displayChangesProvider.acceptDiff(params)
 	}));
-	context.subscriptions.push(vscode.commands.registerCommand('void.discardDiff', async (params) => {
-		approvalCodeLensProvider.discardDiff(params)
+	context.subscriptions.push(vscode.commands.registerCommand('void.rejectDiff', async (params) => {
+		displayChangesProvider.rejectDiff(params)
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('void.openSettings', async () => {
 		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:void.void');
 	}));
 
-	// 5.
+	// 5. Receive messages from sidebar
 	webviewProvider.webview.then(
 		webview => {
 
@@ -112,16 +113,21 @@ export function activate(context: vscode.ExtensionContext) {
 					// send contents to webview
 					webview.postMessage({ type: 'files', files, } satisfies WebviewMessage)
 
-				} else if (m.type === 'applyCode') {
+				} else if (m.type === 'applyChanges') {
 
 					const editor = vscode.window.activeTextEditor
 					if (!editor) {
 						vscode.window.showInformationMessage('No active editor!')
 						return
 					}
-					const oldContents = await readFileContentOfUri(editor.document.uri)
-					const suggestedEdits = getDiffedLines(oldContents, m.code)
-					await approvalCodeLensProvider.addNewApprovals(editor, suggestedEdits)
+
+					const beforeCode = await readFileContentOfUri(editor.document.uri)
+
+					// TODO change this to be animated
+					const suggestedEdits = getDiffedLines(beforeCode, m.code)
+
+					// when changes have been created
+					await displayChangesProvider.addNewChanges(editor, suggestedEdits)
 				}
 				else if (m.type === 'getApiConfig') {
 

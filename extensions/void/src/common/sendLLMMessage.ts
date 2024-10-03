@@ -12,7 +12,8 @@ export type ApiConfig = {
 		maxTokens: string
 	},
 	openai: {
-		apikey: string
+		apikey: string,
+		model: string,
 	},
 	greptile: {
 		apikey: string,
@@ -117,7 +118,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 	const openai = new OpenAI({ apiKey: apiConfig.openai.apikey, dangerouslyAllowBrowser: true });
 
 	openai.chat.completions.create({
-		model: 'gpt-4o-2024-08-06',
+		model: apiConfig.openai.model,
 		messages: messages,
 		stream: true,
 	})

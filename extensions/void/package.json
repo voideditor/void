@@ -97,7 +97,7 @@
         "void.ollama.endpoint": {
           "type": "string",
           "default": "http://127.0.0.1:11434",
-          "description": "The Ollama endpoint. By default, use http://127.0.0.1:11434, and start Ollama by running `OLLAMA_ORIGINS=\"vscode-webview://*\" ollama serve`"
+          "description": "The Ollama endpoint. Start Ollama by running `OLLAMA_ORIGINS=\"vscode-webview://*\" ollama serve`"
         },
         "void.ollama.model": {
           "type": "string",

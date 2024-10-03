@@ -1,6 +1,6 @@
 import React, { useState, ChangeEvent, useEffect, useRef, useCallback, FormEvent } from "react"
 import { ApiConfig, LLMMessage, sendLLMMessage } from "../common/sendLLMMessage"
-import { Command, File, Selection, WebviewMessage } from "../shared_types"
+import { Command, File, CodeSelection, WebviewMessage } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, resolveAwaitingVSCodeResponse } from "./getVscodeApi"
 
 import { marked } from 'marked';
@@ -18,7 +18,7 @@ ${content}
 \`\`\``).join('\n')
 }
 
-const userInstructionsStr = (instructions: string, files: File[], selection: Selection | null) => {
+const userInstructionsStr = (instructions: string, files: File[], selection: CodeSelection | null) => {
 	return `
 ${filesStr(files)}
 
@@ -110,7 +110,7 @@ type ChatMessage = {
 	role: 'user'
 	content: string, // content sent to the llm
 	displayContent: string, // content displayed to user
-	selection: Selection | null, // the user's selection
+	selection: CodeSelection | null, // the user's selection
 	files: vscode.Uri[], // the files sent in the message
 } | {
 	role: 'assistant',
@@ -136,7 +136,7 @@ const useInstantState = <T,>(initVal: T) => {
 const Sidebar = () => {
 
 	// state of current message
-	const [selection, setSelection] = useState<Selection | null>(null) // the code the user is selecting
+	const [selection, setSelection] = useState<CodeSelection | null>(null) // the code the user is selecting
 	const [files, setFiles] = useState<vscode.Uri[]>([]) // the names of the files in the chat
 	const [instructions, setInstructions] = useState('') // the user's instructions
 

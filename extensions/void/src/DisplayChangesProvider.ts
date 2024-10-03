@@ -1,13 +1,8 @@
 import * as vscode from 'vscode';
 import { SuggestedEdit } from './getDiffedLines';
+import { Diff, DiffArea } from './shared_types';
 
-// each diff on the user's screen right now
-type DiffType = {
-	diffid: number,
-	lenses: vscode.CodeLens[],
-	greenRange: vscode.Range,
-	originalCode: string, // If a revert happens, we replace the greenRange with this content.
-}
+
 
 // TODO in theory this should be disposed
 const greenDecoration = vscode.window.createTextEditorDecorationType({
@@ -19,7 +14,9 @@ const greenDecoration = vscode.window.createTextEditorDecorationType({
 // responsible for displaying diffs and showing accept/reject buttons
 export class ApplyChangesProvider implements vscode.CodeLensProvider {
 
-	private _diffsOfDocument: { [docUriStr: string]: DiffType[] } = {};
+	private _diffAreasOfDocument: { [docUriStr: string]: DiffArea[] } = {}
+	private _diffsOfDocument: { [docUriStr: string]: Diff[] } = {}
+
 	private _computedLensesOfDocument: { [docUriStr: string]: vscode.CodeLens[] } = {} // computed from diffsOfDocument[docUriStr].lenses
 	private _diffidPool = 0
 	private _weAreEditing: boolean = false
@@ -32,7 +29,7 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 	// used internally by vscode
 	public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
 		const docUriStr = document.uri.toString()
-		return this._computedLensesOfDocument[docUriStr]
+		return this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses)
 	}
 
 	// declared by us, registered with vscode.languages.registerCodeLensProvider()
@@ -51,7 +48,6 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 			this._diffsOfDocument[docUriStr].splice(0) // clear diffs
 			editor.setDecorations(greenDecoration, []) // clear decorations
 
-			this._computedLensesOfDocument[docUriStr] = this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses) // recompute codelenses
 			this._onDidChangeCodeLenses.fire() // rerender codelenses
 		})
 	}
@@ -59,7 +55,7 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 	// used by us only
 	private refreshLenses = (editor: vscode.TextEditor, docUriStr: string) => {
 		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange)) // refresh highlighting
-		this._computedLensesOfDocument[docUriStr] = this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses) // recompute _computedLensesOfDocument (can optimize this later)
+
 		this._onDidChangeCodeLenses.fire() // fire event for vscode to refresh lenses
 	}
 
@@ -72,9 +68,6 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 		// if no diffs, set diffs to []
 		if (!this._diffsOfDocument[docUriStr])
 			this._diffsOfDocument[docUriStr] = []
-		// if no codelenses, set codelenses to []
-		if (!this._computedLensesOfDocument[docUriStr])
-			this._computedLensesOfDocument[docUriStr] = []
 
 
 		// 1. convert suggested edits (which are described using line numbers) into actual edits (described using vscode.Range, vscode.Uri)

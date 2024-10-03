@@ -14,17 +14,17 @@ const readFileContentOfUri = async (uri: vscode.Uri) => {
 const getApiConfig = () => {
 	const apiConfig: ApiConfig = {
 		anthropic: {
-			apikey: vscode.workspace.getConfiguration('void').get('anthropic.apiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void').get('anthropic.model') ?? '',
-			maxTokens: vscode.workspace.getConfiguration('void').get('anthropic.maxTokens') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.anthropic').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.anthropic').get('model') ?? '',
+			maxTokens: vscode.workspace.getConfiguration('void.anthropic').get('maxTokens') ?? '',
 		},
 		openai: {
-			apikey: vscode.workspace.getConfiguration('void').get('openAI.apiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void').get('anthropic.model') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openAI').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.openAI').get('model') ?? '',
 		},
 		greptile: {
-			apikey: vscode.workspace.getConfiguration('void').get('greptile.apiKey') ?? '',
-			githubPAT: vscode.workspace.getConfiguration('void').get('greptile.githubPAT') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.greptile').get('apiKey') ?? '',
+			githubPAT: vscode.workspace.getConfiguration('void.greptile').get('githubPAT') ?? '',
 			repoinfo: {
 				remote: 'github',
 				repository: 'TODO',
@@ -32,8 +32,8 @@ const getApiConfig = () => {
 			}
 		},
 		ollama: {
-			endpoint: vscode.workspace.getConfiguration('void').get('ollama.endpoint') ?? '',
-			model: vscode.workspace.getConfiguration('void').get('ollama.model') ?? '',
+			endpoint: vscode.workspace.getConfiguration('void.ollama').get('endpoint') ?? '',
+			model: vscode.workspace.getConfiguration('void.ollama').get('model') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}

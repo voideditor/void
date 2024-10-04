@@ -144,6 +144,11 @@ const Sidebar = () => {
 	const [chatMessageHistory, setChatMessageHistory] = useState<ChatMessage[]>([])
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
+	const [requestFailed, setRequestFailed] = useState(false)
+	const [requestFailedReason, setRequestFailedReason] = useState('')
+
+
+
 
 	const abortFnRef = useRef<(() => void) | null>(null)
 
@@ -191,6 +196,10 @@ const Sidebar = () => {
 		e.preventDefault()
 		if (isLoading) return
 
+		// Reset any error messages from previous submit
+		setRequestFailed(false)
+		setRequestFailedReason('')
+
 		setIsLoading(true)
 		setInstructions('');
 		formRef.current?.reset(); // reset the form's text
@@ -216,7 +225,7 @@ const Sidebar = () => {
 		const newHistoryElt: ChatMessage = { role: 'user', content, displayContent: instructions, selection, files }
 		setChatMessageHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
 
-		// send message to claude
+		// send message to LLM
 		let { abort } = sendLLMMessage({
 			messages: [...chatMessageHistory.map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
 			onText: (newText, fullText) => setMessageStream(fullText),
@@ -227,6 +236,7 @@ const Sidebar = () => {
 				setMessageStream('')
 				setIsLoading(false)
 			},
+			onError: (message) => { onStop(); setRequestFailed(true); setRequestFailedReason(message)},
 			apiConfig: apiConfig
 		})
 		abortFnRef.current = abort
@@ -282,6 +292,12 @@ const Sidebar = () => {
 							</div>
 						)}
 				</div>
+				{/* error message */}
+				{requestFailed && (
+					<div className="bg-gray-800 text-red-500 text-center p-4 mb-4 rounded-md shadow-md">
+						<div className="text-lg">{`${requestFailedReason}`}</div>
+					</div>
+					)}
 				<form
 					ref={formRef}
 					className="flex flex-row items-center rounded-md p-2 input"
@@ -292,8 +308,8 @@ const Sidebar = () => {
 						e.preventDefault();
 						onSubmit(e)
 					}}>
-					{/* input */}
 
+					{/* input */}
 					<textarea
 						onChange={(e) => { setInstructions(e.target.value) }}
 						className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"

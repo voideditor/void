@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { WebviewMessage } from './shared_types';
 import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { getDiffedLines } from './getDiffedLines';
-import { ApprovalCodeLensProvider, SuggestedEdit } from './ApprovalCodeLensProvider';
+import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 
@@ -13,11 +13,18 @@ const readFileContentOfUri = async (uri: vscode.Uri) => {
 
 const getApiConfig = () => {
 	const apiConfig: ApiConfig = {
-		anthropic: { apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '' },
-		openai: { apikey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
+		anthropic: {
+			apikey: vscode.workspace.getConfiguration('void.anthropic').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.anthropic').get('model') ?? '',
+			maxTokens: vscode.workspace.getConfiguration('void.anthropic').get('maxTokens') ?? '',
+		},
+		openai: {
+			apikey: vscode.workspace.getConfiguration('void.openAI').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.openAI').get('model') ?? '',
+		},
 		greptile: {
-			apikey: vscode.workspace.getConfiguration('void').get('greptileApiKey') ?? '',
-			githubPAT: vscode.workspace.getConfiguration('void').get('githubPAT') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.greptile').get('apiKey') ?? '',
+			githubPAT: vscode.workspace.getConfiguration('void.greptile').get('githubPAT') ?? '',
 			repoinfo: {
 				remote: 'github',
 				repository: 'TODO',
@@ -25,12 +32,14 @@ const getApiConfig = () => {
 			}
 		},
 		ollama: {
-			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
+			endpoint: vscode.workspace.getConfiguration('void.ollama').get('endpoint') ?? '',
+			model: vscode.workspace.getConfiguration('void.ollama').get('model') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
 	return apiConfig
 }
+
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -78,6 +87,9 @@ export function activate(context: vscode.ExtensionContext) {
 		approvalCodeLensProvider.discardDiff(params)
 	}));
 
+	context.subscriptions.push(vscode.commands.registerCommand('void.openSettings', async () => {
+		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:void.void');
+	}));
 
 	// 5.
 	webviewProvider.webview.then(
@@ -105,7 +117,8 @@ export function activate(context: vscode.ExtensionContext) {
 					// send contents to webview
 					webview.postMessage({ type: 'files', files, } satisfies WebviewMessage)
 
-				} else if (m.type === 'applyCode') {
+				}
+				else if (m.type === 'applyCode') {
 
 					const editor = vscode.window.activeTextEditor
 					if (!editor) {
@@ -125,7 +138,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 				}
 				else {
-
 					console.error('unrecognized command', m.type, m)
 				}
 			})

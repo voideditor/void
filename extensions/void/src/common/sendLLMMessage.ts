@@ -1,14 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import { Ollama } from 'ollama/browser'
+import { getVSCodeAPI } from '../sidebar/getVscodeApi';
 
-// import ollama from 'ollama'
 
+// always compare these against package.json to make sure every setting in this type can actually be provided by the user
 export type ApiConfig = {
 	anthropic: {
 		apikey: string,
+		model: string,
+		maxTokens: string
 	},
 	openai: {
-		apikey: string
+		apikey: string,
+		model: string,
 	},
 	greptile: {
 		apikey: string,
@@ -20,7 +25,8 @@ export type ApiConfig = {
 		}
 	},
 	ollama: {
-		// TODO
+		endpoint: string,
+		model: string
 	},
 	whichApi: string
 }
@@ -60,12 +66,11 @@ type SendLLMMessageFnTypeExternal = (params: {
 // Claude
 const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 
-
 	const anthropic = new Anthropic({ apiKey: apiConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
 	const stream = anthropic.messages.stream({
-		model: "claude-3-5-sonnet-20240620",
-		max_tokens: 1024,
+		model: apiConfig.anthropic.model,
+		max_tokens: parseInt(apiConfig.anthropic.maxTokens),
 		messages: messages,
 	});
 
@@ -102,28 +107,30 @@ const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 // OpenAI
 const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 
-	let did_abort = false
+	let didAbort = false
 	let fullText = ''
 
 	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	let abort: () => void = () => { did_abort = true }
+	let abort: () => void = () => {
+		didAbort = true;
+	};
 
 	const openai = new OpenAI({ apiKey: apiConfig.openai.apikey, dangerouslyAllowBrowser: true });
 
 	openai.chat.completions.create({
-		model: 'gpt-4o-2024-08-06',
+		model: apiConfig.openai.model,
 		messages: messages,
 		stream: true,
 	})
 		.then(async response => {
 			abort = () => {
-				// response.controller.abort() // this isn't needed now, to keep consistency with claude will leave it commented
-				did_abort = true;
+				// response.controller.abort()
+				didAbort = true;
 			}
 			// when receive text
 			try {
 				for await (const chunk of response) {
-					if (did_abort) return;
+					if (didAbort) return;
 					const newText = chunk.choices[0]?.delta?.content || '';
 					fullText += newText;
 					onText(newText, fullText);
@@ -135,8 +142,50 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 				console.error('Error in OpenAI stream:', error);
 				onFinalMessage(fullText);
 			}
-			// when we get the final message on this stream
-			onFinalMessage(fullText)
+		})
+	return { abort };
+};
+
+
+
+// Ollama
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
+
+	let didAbort = false
+	let fullText = ""
+
+	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
+	let abort = () => {
+		didAbort = true;
+	};
+
+	const ollama = new Ollama({ host: apiConfig.ollama.endpoint })
+
+	ollama.chat({
+		model: apiConfig.ollama.model,
+		messages: messages,
+		stream: true,
+	})
+		.then(async stream => {
+			abort = () => {
+				// ollama.abort()
+				didAbort = true
+			}
+			// iterate through the stream
+			try {
+				for await (const chunk of stream) {
+					if (didAbort) return;
+					const newText = chunk.message.content;
+					fullText += newText;
+					onText(newText, fullText);
+				}
+				onFinalMessage(fullText);
+			}
+			// when error/fail
+			catch (error) {
+				console.error('Error:', error);
+				onFinalMessage(fullText);
+			}
 		})
 	return { abort };
 };
@@ -149,11 +198,11 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 
 const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 
-	let did_abort = false
+	let didAbort = false
 	let fullText = ''
 
 	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	let abort: () => void = () => { did_abort = true }
+	let abort: () => void = () => { didAbort = true }
 
 
 	fetch('https://api.greptile.com/v2/query', {
@@ -177,7 +226,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 		})
 		// TODO make this actually stream, right now it just sends one message at the end
 		.then(async responseArr => {
-			if (did_abort)
+			if (didAbort)
 				return
 
 			for (let response of responseArr) {
@@ -212,74 +261,26 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 	return { abort }
 
-
-
 }
+
 
 
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 	if (!apiConfig) return { abort: () => { } }
 
-	const whichApi = apiConfig.whichApi
-
-	if (whichApi === 'anthropic') {
-		return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig })
+	switch (apiConfig.whichApi) {
+		case 'anthropic':
+			return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig });
+		case 'openai':
+			return sendOpenAIMsg({ messages, onText, onFinalMessage, apiConfig });
+		case 'greptile':
+			return sendGreptileMsg({ messages, onText, onFinalMessage, apiConfig });
+		case 'ollama':
+			return sendOllamaMsg({ messages, onText, onFinalMessage, apiConfig });
+		default:
+			console.error(`Error: whichApi was ${apiConfig.whichApi}, which is not recognized!`);
+			return { abort: () => { } }
+		//return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig }); // TODO
 	}
-	else if (whichApi === 'openai') {
-		return sendOpenAIMsg({ messages, onText, onFinalMessage, apiConfig })
-	}
-	else if (whichApi === 'greptile') {
-		return sendGreptileMsg({ messages, onText, onFinalMessage, apiConfig })
-	}
-	else if (whichApi === 'ollama') {
-		return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig }) // TODO
-	}
-	else {
-		console.error(`Error: whichApi was ${whichApi}, which is not recognized!`)
-		return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig }) // TODO
-	}
-
 }
-
-
-// Ollama
-// const sendOllamaMsg: sendMsgFnType = ({ messages, onText, onFinalMessage }) => {
-
-//     let did_abort = false
-//     let fullText = ''
-
-//     // if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-//     let abort: () => void = () => {
-//         did_abort = true
-//     }
-
-//     ollama.chat({ model: 'llama3.1', messages: messages, stream: true })
-//         .then(async response => {
-
-//             abort = () => {
-//                 // response.abort() // this isn't needed now, to keep consistency with claude will leave it commented for now
-//                 did_abort = true;
-//             }
-
-//             // when receive text
-//             try {
-//                 for await (const part of response) {
-//                     if (did_abort) return
-//                     let newText = part.message.content
-//                     fullText += newText
-//                     onText(newText, fullText)
-//                 }
-//             }
-//             // when error/fail
-//             catch (e) {
-//                 onFinalMessage(fullText)
-//                 return
-//             }
-
-//             // when we get the final message on this stream
-//             onFinalMessage(fullText)
-//         })
-
-//     return { abort };
-// };
 

@@ -4,7 +4,7 @@ Welcome! 👋 This is a guide on how to contribute to Void. We want to make it a
 
 There are two main ways to contribute:
 
-- Suggest New Features ([discord](https://discord.gg/4GAxHVAD))
+- Suggest New Features ([discord](https://discord.gg/RSNjgaugJs))
 - Build New Features ([project](https://github.com/orgs/voideditor/projects/2/views/3))
 
 We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality. Scroll down to see 1. How to build/contribute to the Extension, or 2. How to build/contribute to the full IDE (for more native changes).
@@ -50,7 +50,7 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 Beyond the extension, we very occasionally edit the IDE when we need to access more functionality. If you want to work on the full IDE, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
-Before starting, make sure you've built the extension (by running `cd .\extensions\void\` and `npm run build`).
+Before starting, make sure you've built the extension (by running `cd .\extensions\void\` and `npm run build`). Also make sure you have Python on your system.
 
 Make sure you're on the correct NodeJS version as per `.nvmrc`.
 

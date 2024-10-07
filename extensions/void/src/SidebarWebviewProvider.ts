@@ -31,7 +31,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 		this._res = temp_res
 
 		vscode.workspace.onDidChangeConfiguration(event => {
-			if (event.affectsConfiguration('void.ollamaSettings.endpoint')) {
+			if (event.affectsConfiguration('void.ollama.endpoint')) {
 				if (this._webviewView) {
 					this.updateWebviewHTML(this._webviewView.webview);
 				}
@@ -41,7 +41,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
 	private updateWebviewHTML(webview: vscode.Webview) {
 		const allowed_urls = ['https://api.anthropic.com', 'https://api.openai.com', 'https://api.greptile.com'];
-		const ollamaEndpoint: string | undefined = vscode.workspace.getConfiguration('void').get('ollamaSettings.endpoint');
+		const ollamaEndpoint: string | undefined = vscode.workspace.getConfiguration('void').get('ollama.endpoint');
 		if (ollamaEndpoint)
 			allowed_urls.push(ollamaEndpoint);
 

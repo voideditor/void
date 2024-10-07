@@ -13,7 +13,8 @@ export type ApiConfig = {
 	};
 	openai: {
 		apikey: string;
-	};
+		model: string;
+	},
 	greptile: {
 		apikey: string;
 		githubPAT: string;
@@ -124,13 +125,12 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 		dangerouslyAllowBrowser: true,
 	});
 
-	openai.chat.completions
-		.create({
-			model: "gpt-4o-2024-08-06",
-			messages: messages,
-			stream: true,
-		})
-		.then(async (response) => {
+  openai.chat.completions.create({
+		model: apiConfig.openai.model,
+		messages: messages,
+		stream: true,
+	})
+		.then(async response => {
 			abort = () => {
 				// response.controller.abort()
 				didAbort = true;

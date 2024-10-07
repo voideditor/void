@@ -11,7 +11,7 @@ type File = { filepath: vscode.Uri, content: string }
 type DiffArea = {
 	startLine: number,
 	endLine: number,
-	originalCode: string | undefined
+	originalCode: string
 }
 
 // each diff on the user's screen right now

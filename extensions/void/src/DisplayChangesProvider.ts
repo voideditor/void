@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SuggestedEdit } from './getDiffedLines';
+import { getDiffedLines, SuggestedDiff } from './getDiffedLines';
 import { Diff, DiffArea } from './shared_types';
 
 
@@ -24,7 +24,6 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 	private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>(); // signals a UI refresh on .fire() events
 	public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
 
-
 	// used internally by vscode
 	public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
 		const docUriStr = document.uri.toString()
@@ -33,6 +32,9 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 
 	// declared by us, registered with vscode.languages.registerCodeLensProvider()
 	constructor() {
+
+		console.log('Creating DisplayChangesProvider')
+
 		// this acts as a useEffect. Every time text changes, clear the diffs in this editor
 		vscode.workspace.onDidChangeTextDocument((e) => {
 			const editor = vscode.window.activeTextEditor
@@ -43,25 +45,82 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 				return
 
 			const docUri = editor.document.uri
-			const docUriStr = docUri.toString()
-			this._diffsOfDocument[docUriStr].splice(0) // clear diffs
-			editor.setDecorations(greenDecoration, []) // clear decorations
+			this.refreshDiffAreas(docUri)
 
-			this._onDidChangeCodeLenses.fire() // rerender codelenses
+			// const docUriStr = docUri.toString()
+			// this._diffAreasOfDocument[docUriStr].splice(0) // clear diff areas
+			// this._diffsOfDocument[docUriStr].splice(0) // clear diffs
+			// editor.setDecorations(greenDecoration, []) // clear decorations
+			// this._onDidChangeCodeLenses.fire() // rerender codelenses
+
+
 		})
 	}
 
-	// used by us only
-	private refreshLenses = (editor: vscode.TextEditor, docUriStr: string) => {
-		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange)) // refresh highlighting
 
-		this._onDidChangeCodeLenses.fire() // fire event for vscode to refresh lenses
+	// used by us only
+	public addDiffArea(uri: vscode.Uri, diffArea: DiffArea) {
+
+		const uriStr = uri.toString()
+
+		// make sure array is defined
+		if (!this._diffAreasOfDocument[uriStr])
+			this._diffAreasOfDocument[uriStr] = []
+
+		// TODO!!! replace all areas that it is overlapping with
+
+
+
+		// add diffArea to storage
+		this._diffAreasOfDocument[uriStr].push(diffArea)
+
+	}
+
+
+	// used by us only
+	public refreshDiffAreas(docUri: vscode.Uri) {
+
+		const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
+		if (!editor) {
+			console.log('Error: No active editor!')
+			return;
+		}
+
+		const docUriStr = docUri.toString()
+		const diffAreas = this._diffAreasOfDocument[docUriStr] || []
+
+		// reset all diffs (we update them below)
+		this._diffsOfDocument[docUriStr] = []
+
+		// for each diffArea
+		console.log('diffAreas.length:', diffAreas.length)
+		for (const diffArea of diffAreas) {
+
+			// get code inside of diffArea
+			const currentCode = editor.document.getText(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER))
+
+			// compute the diffs
+			const diffs = getDiffedLines(diffArea.originalCode, currentCode)
+
+			console.log('originalCode:', diffArea.originalCode)
+			console.log('currentCode:', currentCode)
+
+			// add the diffs to `this._diffsOfDocument[docUriStr]`
+			this.addDiffs(editor.document.uri, diffs)
+
+		}
+
+		// update highlighting
+		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange))
+
+		// update code lenses
+		this._onDidChangeCodeLenses.fire()
+
 	}
 
 	// used by us only
-	public async addNewChanges(editor: vscode.TextEditor, suggestedEdits: SuggestedEdit[]) {
+	public addDiffs(docUri: vscode.Uri, diffs: SuggestedDiff[]) {
 
-		const docUri = editor.document.uri
 		const docUriStr = docUri.toString()
 
 		// if no diffs, set diffs to []
@@ -69,39 +128,39 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 			this._diffsOfDocument[docUriStr] = []
 
 
-		// 1. convert suggested edits (which are described using line numbers) into actual edits (described using vscode.Range, vscode.Uri)
+		// 1. convert suggested diffs (which are described using line numbers) into actual diffs (described using vscode.Range, vscode.Uri)
 		// must do this before adding codelenses or highlighting so that codelens and highlights will apply to the fresh code and not the old code
 		// apply changes in reverse order so additions don't push down the line numbers of the next edit
 		let workspaceEdit = new vscode.WorkspaceEdit();
-		for (let i = suggestedEdits.length - 1; i > -1; i -= 1) {
-			let suggestedEdit = suggestedEdits[i]
+		for (let i = diffs.length - 1; i > -1; i -= 1) {
+			let suggestedDiff = diffs[i]
 
 			let greenRange: vscode.Range
 
 			// INSERTIONS (e.g. {originalStartLine: 0, originalEndLine: -1})
-			if (suggestedEdit.originalStartLine > suggestedEdit.originalEndLine) {
-				const originalPosition = new vscode.Position(suggestedEdit.originalStartLine, 0)
-				workspaceEdit.insert(docUri, originalPosition, suggestedEdit.afterCode + '\n') // add back in the line we deleted when we made the startline->endline range go negative
-				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.endLine + 1, 0)
+			if (suggestedDiff.originalStartLine > suggestedDiff.originalEndLine) {
+				const originalPosition = new vscode.Position(suggestedDiff.originalStartLine, 0)
+				workspaceEdit.insert(docUri, originalPosition, suggestedDiff.afterCode + '\n') // add back in the line we deleted when we made the startline->endline range go negative
+				greenRange = new vscode.Range(suggestedDiff.startLine, 0, suggestedDiff.endLine + 1, 0)
 			}
 			// DELETIONS
-			else if (suggestedEdit.startLine > suggestedEdit.endLine) {
-				const deleteRange = new vscode.Range(suggestedEdit.originalStartLine, 0, suggestedEdit.originalEndLine + 1, 0)
+			else if (suggestedDiff.startLine > suggestedDiff.endLine) {
+				const deleteRange = new vscode.Range(suggestedDiff.originalStartLine, 0, suggestedDiff.originalEndLine + 1, 0)
 				workspaceEdit.delete(docUri, deleteRange)
-				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.startLine, 0)
-				suggestedEdit.beforeCode += '\n' // add back in the line we deleted when we made the startline->endline range go negative
+				greenRange = new vscode.Range(suggestedDiff.startLine, 0, suggestedDiff.startLine, 0)
+				suggestedDiff.beforeCode += '\n' // add back in the line we deleted when we made the startline->endline range go negative
 			}
 			// REPLACEMENTS
 			else {
-				const originalRange = new vscode.Range(suggestedEdit.originalStartLine, 0, suggestedEdit.originalEndLine, Number.MAX_SAFE_INTEGER)
-				workspaceEdit.replace(docUri, originalRange, suggestedEdit.afterCode)
-				greenRange = new vscode.Range(suggestedEdit.startLine, 0, suggestedEdit.endLine, Number.MAX_SAFE_INTEGER)
+				const originalRange = new vscode.Range(suggestedDiff.originalStartLine, 0, suggestedDiff.originalEndLine, Number.MAX_SAFE_INTEGER)
+				workspaceEdit.replace(docUri, originalRange, suggestedDiff.afterCode)
+				greenRange = new vscode.Range(suggestedDiff.startLine, 0, suggestedDiff.endLine, Number.MAX_SAFE_INTEGER)
 			}
 
 			this._diffsOfDocument[docUriStr].push({
 				diffid: this._diffidPool,
 				greenRange: greenRange,
-				originalCode: suggestedEdit.beforeCode,
+				originalCode: suggestedDiff.beforeCode,
 				lenses: [
 					new vscode.CodeLens(greenRange, { title: 'Accept', command: 'void.acceptDiff', arguments: [{ diffid: this._diffidPool }] }),
 					new vscode.CodeLens(greenRange, { title: 'Reject', command: 'void.rejectDiff', arguments: [{ diffid: this._diffidPool }] })
@@ -110,15 +169,7 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 			this._diffidPool += 1
 		}
 
-		this._weAreEditing = true
-		await vscode.workspace.applyEdit(workspaceEdit)
-		await vscode.workspace.save(docUri)
-		this._weAreEditing = false
-
-		// refresh
-		this.refreshLenses(editor, docUriStr)
-
-		console.log('diffs after added:', this._diffsOfDocument[docUriStr])
+		console.log('diffs:', this._diffsOfDocument[docUriStr])
 	}
 
 	// called on void.acceptDiff
@@ -142,7 +193,7 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 		this._diffsOfDocument[docUriStr].splice(index, 1)
 
 		// refresh
-		this.refreshLenses(editor, docUriStr)
+		this.refreshDiffAreas(docUri)
 	}
 
 
@@ -179,6 +230,6 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 		this._weAreEditing = false
 
 		// refresh
-		this.refreshLenses(editor, docUriStr)
+		this.refreshDiffAreas(docUri)
 	}
 }

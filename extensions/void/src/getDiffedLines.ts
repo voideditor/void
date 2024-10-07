@@ -1,6 +1,6 @@
 import { diffLines, Change } from 'diff';
 
-export type SuggestedEdit = {
+export type SuggestedDiff = {
 	// start/end of current file
 	startLine: number,
 	endLine: number,
@@ -16,6 +16,11 @@ export type SuggestedEdit = {
 
 export function getDiffedLines(oldStr: string, newStr: string) {
 	// an ordered list of every original line, line added to the new file, and line removed from the old file (order is unambiguous, think about it)
+
+	// replace \r\n with \n
+	oldStr = oldStr.replace(/\r\n/g, '\n')
+	newStr = newStr.replace(/\r\n/g, '\n')
+
 	const lineByLineChanges: Change[] = diffLines(oldStr, newStr);
 	console.debug('Line by line changes', lineByLineChanges)
 
@@ -30,7 +35,7 @@ export function getDiffedLines(oldStr: string, newStr: string) {
 	let oldStrLines = oldStr.split('\n')
 	let newStrLines = newStr.split('\n')
 
-	const replacements: SuggestedEdit[] = []
+	const replacements: SuggestedDiff[] = []
 
 	for (let line of lineByLineChanges) {
 		// no change on this line
@@ -46,7 +51,7 @@ export function getDiffedLines(oldStr: string, newStr: string) {
 				const originalEndLine = oldFileLineNum - 1 // don't include current line, the edit was up to this line but not including it
 				const originalContent = oldStrLines.slice(originalStartLine, originalEndLine + 1).join('\n')
 
-				const replacement: SuggestedEdit = { beforeCode: originalContent, afterCode: newContent, startLine, endLine, originalStartLine, originalEndLine, }
+				const replacement: SuggestedDiff = { beforeCode: originalContent, afterCode: newContent, startLine, endLine, originalStartLine, originalEndLine, }
 
 				replacements.push(replacement)
 				streakStartInNewFile = undefined

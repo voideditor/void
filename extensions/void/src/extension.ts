@@ -115,35 +115,38 @@ export function activate(context: vscode.ExtensionContext) {
 
 				} else if (m.type === 'applyChanges') {
 
+					console.log('Applying changes')
+
 					const editor = vscode.window.activeTextEditor
 					if (!editor) {
 						vscode.window.showInformationMessage('No active editor!')
 						return
 					}
 
+					// create an area to show diffs
 					const diffArea: DiffArea = {
 						startLine: 0, // in ctrl+L the start and end lines are the full document
 						endLine: editor.document.lineCount,
-						originalCode: undefined,
+						originalCode: await readFileContentOfUri(editor.document.uri),
 					}
+					displayChangesProvider.addDiffArea(editor.document.uri, diffArea)
 
-					// save the original code
-					diffArea.originalCode = await readFileContentOfUri(editor.document.uri)
 
-					// write the new code `m.code` to the document
-					// TODO make this animated
-					editor.edit(editBuilder => {
+					// write new code `m.code` to the document
+					// TODO update like this:
+					// this._weAreEditing = true
+					// await vscode.workspace.applyEdit(workspaceEdit)
+					// await vscode.workspace.save(docUri)
+					// this._weAreEditing = false
+					await editor.edit(editBuilder => {
 						editBuilder.replace(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, 0), m.code);
 					});
 
 
-					// rediff the changes based on the diffArea (start, end, original code, current code)
 
+					// rediff the changes based on the diffArea (start, end, original code, [current code])
+					displayChangesProvider.refreshDiffAreas(editor.document.uri)
 
-
-					// TODO!!! put this logic in `displayChangesProvider.displayChanges(diffArea)` function
-					const suggestedEdits = getDiffedLines(diffArea.originalCode, m.code)
-					await displayChangesProvider.addNewChanges(editor, suggestedEdits)
 				}
 				else if (m.type === 'getApiConfig') {
 

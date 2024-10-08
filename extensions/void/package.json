@@ -28,6 +28,14 @@
             "ollama"
           ]
         },
+        "void.embeddingApi": {
+          "type": "string",
+          "default": "openai",
+          "description": "Choose an API provider for embeddings",
+          "enum": [
+            "openai"
+          ]
+        },
         "void.anthropic.apiKey": {
           "type": "string",
           "default": "",
@@ -82,6 +90,16 @@
             "gpt-3.5-turbo-0125",
             "gpt-3.5-turbo",
             "gpt-3.5-turbo-1106"
+          ]
+        },
+        "void.openAI.embedding": {
+          "type": "string",
+          "default": "text-embedding-3-small",
+          "description": "OpenAI embedding model.",
+          "enum": [
+            "text-embedding-3-small",
+            "text-embedding-3-large",
+            "text-embedding-ada-002"
           ]
         },
         "void.greptile.apiKey": {
@@ -295,6 +313,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
+    "@langchain/community": "^0.3.4",
+    "@langchain/core": "^0.3.7",
+    "@langchain/openai": "^0.3.5",
     "ollama": "^0.5.9",
     "openai": "^4.57.0"
   }

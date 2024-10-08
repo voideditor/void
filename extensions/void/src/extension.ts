@@ -5,6 +5,8 @@ import { getDiffedLines } from './getDiffedLines';
 import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
+import { embedWorkspaceFiles } from './ai/embed';
+
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
 	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8').replace(/\r\n/g, '\n'); // must remove windows \r or every line will appear different because of it
@@ -21,6 +23,7 @@ const getApiConfig = () => {
 		openai: {
 			apikey: vscode.workspace.getConfiguration('void.openAI').get('apiKey') ?? '',
 			model: vscode.workspace.getConfiguration('void.openAI').get('model') ?? '',
+			embedding: vscode.workspace.getConfiguration('void.openAI').get('embedding') ?? '',
 		},
 		greptile: {
 			apikey: vscode.workspace.getConfiguration('void.greptile').get('apiKey') ?? '',
@@ -145,6 +148,8 @@ export function activate(context: vscode.ExtensionContext) {
 	)
 
 
+	// run embed workspace files
+	embedWorkspaceFiles(getApiConfig())
 
 
 	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)

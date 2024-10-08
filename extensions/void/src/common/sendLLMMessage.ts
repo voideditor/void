@@ -14,6 +14,7 @@ export type ApiConfig = {
 	openai: {
 		apikey: string,
 		model: string,
+		embedding: string
 	},
 	greptile: {
 		apikey: string,

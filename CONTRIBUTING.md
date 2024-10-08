@@ -11,7 +11,10 @@ We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-f
 
 For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
-## 1. Building the Extension
+# PREREQUISTES
+
+## 1. Building the Extension (Windows)
+
 Here's how you can start contributing to the Void extension. This is where you should get started if you're new.
 
 1. Clone the repository:
@@ -20,7 +23,7 @@ Here's how you can start contributing to the Void extension. This is where you s
 git clone https://github.com/voideditor/void
 ```
 
-2. Open the folder `/extensions/void` in VS Code (open it in a new workspace, *don't* just cd into it):
+2. Open the folder `/extensions/void` in VS Code (open it in a new workspace, _don't_ just cd into it):
 
 ```
 open /extensions/void
@@ -126,9 +129,9 @@ Please don't make big refactors without speaking with us first. We'd like to kee
 
 Please submit a pull request once you've made a change. Here are a few guidelines:
 
-- A PR should be about one *single* feature change. The fewer items you change, the more likely the PR is to be accepted.
+- A PR should be about one _single_ feature change. The fewer items you change, the more likely the PR is to be accepted.
 
-- Your PR should contain a description that first explains at a high level what you did, and then describes the exact changes you made (and to which files). Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed). 
+- Your PR should contain a description that first explains at a high level what you did, and then describes the exact changes you made (and to which files). Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed).
 
 - Your title should clearly describe the change you made.
 
@@ -136,14 +139,13 @@ Please submit a pull request once you've made a change. Here are a few guideline
 
 - Please don't open a new Issue for your PR. Just submit the PR.
 
-- Avoid refactoring and making feature changes in the same PR. 
+- Avoid refactoring and making feature changes in the same PR.
 
 - Write good code. For example, a common mistake when people edit Void's config is to hard-code a default value like `'claude-3.5'` in 2+ separate places. Please follow best practices or describe your thought process if you had to compromise.
 
 # Relevant files
 
 We keep track of all the files we've changed with Void so it's easy to rebase:
-
 
 - README.md
 - CONTRIBUTING.md

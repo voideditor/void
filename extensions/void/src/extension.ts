@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { DiffArea, WebviewMessage } from './shared_types';
 import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { getDiffedLines } from './getDiffedLines';
-import { ApplyChangesProvider as DisplayChangesProvider } from './DisplayChangesProvider';
+import { DisplayChangesProvider } from './DisplayChangesProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 

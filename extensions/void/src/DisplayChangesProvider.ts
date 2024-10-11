@@ -12,7 +12,7 @@ const greenDecoration = vscode.window.createTextEditorDecorationType({
 
 
 // responsible for displaying diffs and showing accept/reject buttons
-export class ApplyChangesProvider implements vscode.CodeLensProvider {
+export class DisplayChangesProvider implements vscode.CodeLensProvider {
 
 	private _diffAreasOfDocument: { [docUriStr: string]: DiffArea[] } = {}
 	private _diffsOfDocument: { [docUriStr: string]: Diff[] } = {}
@@ -44,15 +44,56 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 			if (this._weAreEditing)
 				return
 
+			// console.log('e.contentChanges', e.contentChanges)
+			// console.log('e.contentChanges[0].text:', e.contentChanges?.[0])
+
 			const docUri = editor.document.uri
+			const docUriStr = docUri.toString()
+			const diffAreas = this._diffAreasOfDocument[docUriStr] || []
+
+			// loop through each change
+			for (const change of e.contentChanges) {
+
+				// here, `change.range` is the range of the original file that gets replaced with `change.text`
+
+
+				// compute net number of newlines lines that were added/removed
+				const numNewLines = (change.text.match(/\n/g) || []).length
+				const numLineDeletions = change.range.end.line - change.range.start.line
+				const deltaNewlines = numNewLines - numLineDeletions
+
+				// compute overlap with each diffArea and shrink/elongate the diffArea accordingly
+				for (const diffArea of diffAreas) {
+
+					// if the change is fully within the diffArea, elongate it by the delta amount of newlines
+					if (change.range.start.line >= diffArea.startLine && change.range.end.line <= diffArea.endLine) {
+						diffArea.endLine += deltaNewlines
+					}
+					// check if the `diffArea` was fully deleted and remove it if so
+					if (diffArea.startLine > diffArea.endLine) {
+						//remove it
+						const index = diffAreas.findIndex(da => da === diffArea)
+						diffAreas.splice(index, 1)
+					}
+
+					// TODO handle other cases where eg. the change overlaps many diffAreas
+				}
+
+
+				// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
+				for (const diffArea of diffAreas) {
+					if (diffArea.startLine > change.range.end.line) {
+						diffArea.startLine += deltaNewlines
+						diffArea.endLine += deltaNewlines
+					}
+				}
+
+				// TODO merge any diffAreas if they overlap with each other as a result from the shift
+
+			}
+
+			// refresh the diffAreas
 			this.refreshDiffAreas(docUri)
-
-			// const docUriStr = docUri.toString()
-			// this._diffAreasOfDocument[docUriStr].splice(0) // clear diff areas
-			// this._diffsOfDocument[docUriStr].splice(0) // clear diffs
-			// editor.setDecorations(greenDecoration, []) // clear decorations
-			// this._onDidChangeCodeLenses.fire() // rerender codelenses
-
 
 		})
 	}
@@ -67,11 +108,16 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 		if (!this._diffAreasOfDocument[uriStr])
 			this._diffAreasOfDocument[uriStr] = []
 
-		// TODO!!! replace all areas that it is overlapping with
+		// remove all diffAreas that the new `diffArea` is overlapping with
+		this._diffAreasOfDocument[uriStr] = this._diffAreasOfDocument[uriStr].filter(da => {
+			// condition for no overlap
+			const noOverlap = da.startLine > diffArea.endLine || da.endLine < diffArea.startLine
+			// if there is overlap (ie there is `not noOverlap`), remove `da`
+			if (!noOverlap) return false
+			return true
+		})
 
-
-
-		// add diffArea to storage
+		// add `diffArea` to storage
 		this._diffAreasOfDocument[uriStr].push(diffArea)
 
 	}
@@ -93,7 +139,6 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 		this._diffsOfDocument[docUriStr] = []
 
 		// for each diffArea
-		console.log('diffAreas.length:', diffAreas.length)
 		for (const diffArea of diffAreas) {
 
 			// get code inside of diffArea
@@ -101,9 +146,6 @@ export class ApplyChangesProvider implements vscode.CodeLensProvider {
 
 			// compute the diffs
 			const diffs = getDiffedLines(diffArea.originalCode, currentCode)
-
-			console.log('originalCode:', diffArea.originalCode)
-			console.log('currentCode:', currentCode)
 
 			// add the diffs to `this._diffsOfDocument[docUriStr]`
 			this.addDiffs(editor.document.uri, diffs)

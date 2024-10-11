@@ -25,7 +25,8 @@
             "anthropic",
             "azure",
             "greptile",
-            "ollama"
+            "ollama",
+            "openaicompatible"
           ]
         },
         "void.anthropic.apiKey": {
@@ -191,6 +192,21 @@
             "smollm:360m",
             "smollm:1.7b"
           ]
+        },
+        "void.openaiCompatible.endpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434/v1",
+          "description": "The openai compatible api provider's endpoint. default value is a example of the ollama openai-mode uri"
+        },
+        "void.openaiCompatible.model": {
+          "type": "string",
+          "default": "",
+          "description": "Your provider's model name to use."
+        },
+        "void.openaiCompatible.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your provider's API Key."
         }
       }
     },
@@ -272,13 +288,12 @@
     "@types/node": "^22.5.1",
     "@types/react": "^18.3.4",
     "@types/react-dom": "^18.3.0",
-    "@types/vscode": "1.92.0",
+    "@types/vscode": "1.89.0",
     "@typescript-eslint/eslint-plugin": "^8.3.0",
     "@typescript-eslint/parser": "^8.3.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "2.4.1",
     "autoprefixer": "^10.4.20",
-    "diff": "^6.0.0-beta",
     "esbuild": "^0.23.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.35.1",
@@ -297,6 +312,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
     "ollama": "^0.5.9",
-    "openai": "^4.57.0"
+    "openai": "^4.57.0",
+    "diff": "^7.0.0"
   }
 }

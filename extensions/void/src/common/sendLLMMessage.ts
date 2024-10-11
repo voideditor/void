@@ -30,7 +30,7 @@ export type ApiConfig = {
 		endpoint: string,
 		model: string,
 		apikey: string
-	}
+	},
 	whichApi: string;
 }
 

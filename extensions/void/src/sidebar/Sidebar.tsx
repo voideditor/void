@@ -4,7 +4,8 @@ import { Command, File, Selection, WebviewMessage } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, resolveAwaitingVSCodeResponse } from "./getVscodeApi"
 
 import { marked } from 'marked';
-import { MarkdownRender, BlockCode } from "./MarkdownRender";
+import MarkdownRender from "./markdown/MarkdownRender";
+import BlockCode from "./markdown/BlockCode";
 
 import * as vscode from 'vscode'
 
@@ -266,7 +267,7 @@ const Sidebar = () => {
 					{!selection?.selectionStr ? null
 						: (
 							<div className="relative">
-								<button 
+								<button
 									onClick={clearSelection}
 									className="absolute top-2 right-2 text-white hover:text-gray-300 z-10"
 								>
@@ -274,7 +275,7 @@ const Sidebar = () => {
 								</button>
 								<BlockCode text={selection.selectionStr} hideToolbar />
 							</div>
-					)}
+						)}
 				</div>
 				<form
 					ref={formRef}

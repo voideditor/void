@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ChatThread, WebviewMessage } from './shared_types';
+import { ChatThreads, WebviewMessage } from './shared_types';
 import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { getDiffedLines } from './getDiffedLines';
 import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
@@ -101,11 +101,11 @@ export function activate(context: vscode.ExtensionContext) {
 		webview => {
 
 			// top navigation bar commands
-			context.subscriptions.push(vscode.commands.registerCommand('void.newChat', async () => {
-				webview.postMessage({ type: 'startNewChat' } satisfies WebviewMessage)
+			context.subscriptions.push(vscode.commands.registerCommand('void.startNewThread', async () => {
+				webview.postMessage({ type: 'startNewThread' } satisfies WebviewMessage)
 			}))
-			context.subscriptions.push(vscode.commands.registerCommand('void.prevChats', async () => {
-				webview.postMessage({ type: 'showPreviousChats' } satisfies WebviewMessage)
+			context.subscriptions.push(vscode.commands.registerCommand('void.openThreadSelector', async () => {
+				webview.postMessage({ type: 'openThreadSelector' } satisfies WebviewMessage)
 			}))
 
 			// when config changes, send it to the sidebar
@@ -150,19 +150,14 @@ export function activate(context: vscode.ExtensionContext) {
 					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
 
 				}
-				else if (m.type === 'getThreadHistory') {
-
-					const threads: ChatThread[] = context.workspaceState.get('threadHistory') ?? []
-					webview.postMessage({ type: 'threadHistory', threads } satisfies WebviewMessage)
+				else if (m.type === 'getAllThreads') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					webview.postMessage({ type: 'allThreads', threads } satisfies WebviewMessage)
 				}
-				else if (m.type === 'updateThread') {
-
-					const threads: ChatThread[] = context.workspaceState.get('threadHistory') as [] ?? []
-					const updatedThreads = threads.find((t: ChatThread) => t.id === m.thread.id)
-						? threads.map((t: ChatThread) => t.id === m.thread.id ? m.thread : t)
-						: [...threads, m.thread]
-					context.workspaceState.update('threadHistory', updatedThreads)
-					webview.postMessage({ type: 'threadHistory', threads: updatedThreads } satisfies WebviewMessage)
+				else if (m.type === 'persistThread') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					const updatedThreads: ChatThreads = { ...threads, [m.thread.id]: m.thread }
+					context.workspaceState.update('allThreads', updatedThreads)
 				}
 				else {
 					console.error('unrecognized command', m.type, m)

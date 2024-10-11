@@ -10,11 +10,11 @@ const awaiting: { [c in Command]: ((res: any) => void)[] } = {
 	"files": [],
 	"apiConfig": [],
 	"getApiConfig": [],
-	"getThreadHistory": [],
-	"threadHistory": [],
-	"updateThread": [],
-	"startNewChat": [],
-	"showPreviousChats": [],
+	"startNewThread": [],
+	"getAllThreads": [],
+	"allThreads": [],
+	"persistThread": [],
+	"openThreadSelector": []
 }
 
 // use this function to await responses

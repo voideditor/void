@@ -228,13 +228,13 @@
         "title": "Discard Diff"
       },
       {
-        "command": "void.newChat",
-        "title": "New chat",
+        "command": "void.startNewThread",
+        "title": "Start a new chat",
         "icon": "$(add)"
       },
       {
-        "command": "void.prevChats",
-        "title": "Previous chats",
+        "command": "void.openThreadSelector",
+        "title": "View all your past chats",
         "icon": "$(history)"
       }, {
         "command": "void.openSettings",
@@ -275,12 +275,12 @@
     "menus": {
       "view/title": [
         {
-          "command": "void.newChat",
+          "command": "void.startNewThread",
           "when": "view == 'void.viewnumberone'",
           "group": "navigation"
         },
         {
-          "command": "void.prevChats",
+          "command": "void.openThreadSelector",
           "when": "view == 'void.viewnumberone'",
           "group": "navigation"
         },

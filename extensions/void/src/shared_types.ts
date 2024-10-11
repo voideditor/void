@@ -28,42 +28,44 @@ type WebviewMessage = (
 	| { type: 'apiConfig', apiConfig: ApiConfig }
 
 	// sidebar -> editor
-	| { type: 'getThreadHistory' }
+	| { type: 'getAllThreads' }
 
 	// editor -> sidebar
-	| { type: 'threadHistory', threads: ChatThread[] }
+	| { type: 'allThreads', threads: ChatThreads }
 
 	// sidebar -> editor
-	| { type: 'updateThread', thread: ChatThread }
+	| { type: 'persistThread', thread: ChatThreads[string] }
 
 	// editor -> sidebar
-	| { type: 'startNewChat' }
+	| { type: 'startNewThread' }
 
 	// editor -> sidebar
-	| { type: 'showPreviousChats' }
+	| { type: 'openThreadSelector' }
 
 )
 
 type Command = WebviewMessage['type']
 
-type ChatThread = {
-	id: string;
-	createdAt: string;
-	messages: ChatMessage[];
+type ChatThreads = {
+	[id: string]: {
+		id: string; // store the id here too
+		createdAt: string;
+		messages: ChatMessage[];
+	}
 }
 
 type ChatMessage =
 	| {
-			role: "user";
-			content: string; // content sent to the llm
-			displayContent: string; // content displayed to user
-			selection: Selection | null; // the user's selection
-			files: vscode.Uri[]; // the files sent in the message
+		role: "user";
+		content: string; // content sent to the llm
+		displayContent: string; // content displayed to user
+		selection: Selection | null; // the user's selection
+		files: vscode.Uri[]; // the files sent in the message
 	}
 	| {
-			role: "assistant";
-			content: string; // content received from LLM
-			displayContent: string; // content displayed to user (this is the same as content for now)
+		role: "assistant";
+		content: string; // content received from LLM
+		displayContent: string; // content displayed to user (this is the same as content for now)
 	}
 
 export {
@@ -71,6 +73,6 @@ export {
 	File,
 	WebviewMessage,
 	Command,
-	ChatThread,
+	ChatThreads,
 	ChatMessage,
 }

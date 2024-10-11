@@ -9,7 +9,6 @@ import { MarkdownRender, BlockCode } from "./MarkdownRender";
 import * as vscode from 'vscode'
 import { FilesSelector, IncludedFiles } from "./components/Files";
 import { useChat } from "./context";
-import ThreadHistory from "./components/ThreadHistory";
 
 
 const filesStr = (fullFiles: File[]) => {
@@ -83,12 +82,51 @@ const useInstantState = <T,>(initVal: T) => {
 
 
 
+const ThreadSelector = ({ onClose }: { onClose: () => void }) => {
+	const { allThreads, currentThread, switchToThread } = useChat()
+	return (
+		<div className="flex flex-col space-y-1">
+			<div className="text-right">
+				<button className="btn btn-sm" onClick={onClose}>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						className="size-4"
+					>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							d="M6 18 18 6M6 6l12 12"
+						/>
+					</svg>
+				</button>
+			</div>
+			{/* iterate through all past threads */}
+			{Object.keys(allThreads ?? {}).map((threadId) => {
+				const pastThread = (allThreads ?? {})[threadId];
+				return (
+					<button
+						key={pastThread.id}
+						className={`btn btn-sm btn-secondary ${pastThread.id === currentThread?.id ? "btn-primary" : ""}`}
+						onClick={() => switchToThread(pastThread.id)}
+					>
+						{new Date(pastThread.createdAt).toLocaleString()}
+					</button>
+				)
+			})}
+		</div>
+	)
+}
+
+
+
 const Sidebar = () => {
 	const {
-		thread,
+		currentThread,
 		addMessageToHistory,
-		setPreviousThreads,
-		startNewChat,
+		startNewThread,
 	} = useChat()
 
 	// state of current message
@@ -97,10 +135,9 @@ const Sidebar = () => {
 	const [instructions, setInstructions] = useState('') // the user's instructions
 
 	// state of chat
-	const [chatMessageHistory, setChatMessageHistory] = useState<ChatMessage[]>([])
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
-	const [showThreadsHistory, setShowThreadsHistory] = useState(false)
+	const [isThreadSelectorOpen, setIsThreadSelectorOpen] = useState(false)
 
 	const abortFnRef = useRef<(() => void) | null>(null)
 
@@ -122,13 +159,12 @@ const Sidebar = () => {
 
 			// if user pressed ctrl+l, add their selection to the sidebar
 			if (m.type === 'ctrl+l') {
-
 				setSelection(m.selection)
-
 				const filepath = m.selection.filePath
 
-				// add file if it's not a duplicate
-				if (!files.find(f => f.fsPath === filepath.fsPath)) setFiles(files => [...files, filepath])
+				// add current file to the context if it's not already in the files array
+				if (!files.find(f => f.fsPath === filepath.fsPath))
+					setFiles(files => [...files, filepath])
 
 			}
 			// when get apiConfig, set
@@ -136,26 +172,22 @@ const Sidebar = () => {
 				setApiConfig(m.apiConfig)
 			}
 
-			// incoming thread history
-			else if (m.type === 'threadHistory') {
-				setPreviousThreads(m.threads)
+
+			// top navigation bar command - new chat
+			else if (m.type === 'startNewThread') {
+				setIsThreadSelectorOpen(false)
+				startNewThread()
 			}
 
 			// top navigation bar command - new chat
-			else if (m.type === 'startNewChat') {
-				setShowThreadsHistory(false)
-				startNewChat()
-			}
-
-			// top navigation bar command - new chat
-			else if (m.type === 'showPreviousChats') {
-				setShowThreadsHistory(true)
+			else if (m.type === 'openThreadSelector') {
+				setIsThreadSelectorOpen(true)
 			}
 
 		}
 		window.addEventListener('message', listener);
 		return () => { window.removeEventListener('message', listener) }
-	}, [files, selection, setPreviousThreads, startNewChat])
+	}, [files, selection, startNewThread])
 
 
 	const formRef = useRef<HTMLFormElement | null>(null)
@@ -170,15 +202,6 @@ const Sidebar = () => {
 		setSelection(null)
 		setFiles([])
 
-
-		// TODO this is just a hack, turn this into a button instead, and track all histories somewhere
-		if (instructions === 'clear') {
-			setChatMessageHistory([])
-			setMessageStream('')
-			setIsLoading(false)
-			return
-		}
-
 		// request file content from vscode and await response
 		getVSCodeAPI().postMessage({ type: 'requestFiles', filepaths: files })
 		const relevantFiles = await awaitVSCodeResponse('files')
@@ -191,7 +214,7 @@ const Sidebar = () => {
 
 		// send message to claude
 		let { abort } = sendLLMMessage({
-			messages: [...thread.messages.map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
+			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
 				// add assistant's message to chat history, and clear selection
@@ -216,7 +239,6 @@ const Sidebar = () => {
 		const llmContent = messageStream || '(canceled)'
 		const newHistoryElt: ChatMessage = { role: 'assistant', displayContent: messageStream, content: llmContent }
 		addMessageToHistory(newHistoryElt)
-		setChatMessageHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
 
 		setMessageStream('')
 		setIsLoading(false)
@@ -230,14 +252,14 @@ const Sidebar = () => {
 
 	return <>
 		<div className="flex flex-col h-screen w-full">
-			{showThreadsHistory && (
+			{isThreadSelectorOpen && (
 				<div className="mb-2 max-h-[30vh] overflow-y-auto">
-					<ThreadHistory onClose={() => setShowThreadsHistory(false)} />
+					<ThreadSelector onClose={() => setIsThreadSelectorOpen(false)} />
 				</div>
 			)}
 			<div className="overflow-y-auto overflow-x-hidden space-y-4">
 				{/* previous messages */}
-				{thread.messages.map((message, i) =>
+				{currentThread !== null && currentThread.messages.map((message, i) =>
 					<ChatBubble key={i} chatMessage={message} />
 				)}
 				{/* message stream */}
@@ -253,62 +275,64 @@ const Sidebar = () => {
 					{!selection?.selectionStr ? null
 						: (
 							<div className="relative">
-								<button
-				<div className="input">
-					{/* selection */}
-					{(files.length || selection?.selectionStr) && <div className="p-2 pb-0 space-y-2">
-						{/* selected files */}
-						<FilesSelector files={files} setFiles={setFiles} />
-						{/* selected code */}
-						{!!selection?.selectionStr && (
-							<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
-								<button
-									onClick={clearSelection}
-									className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-								>
-									Remove
-								</button>
-							)} />
+								<div className="input">
+									{/* selection */}
+									{(files.length || selection?.selectionStr) && <div className="p-2 pb-0 space-y-2">
+										{/* selected files */}
+										<FilesSelector files={files} setFiles={setFiles} />
+										{/* selected code */}
+										{!!selection?.selectionStr && (
+											<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
+												<button
+													onClick={clearSelection}
+													className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+												>
+													Remove
+												</button>
+											)} />
+										)}
+									</div>}
+									<form
+										ref={formRef}
+										className="flex flex-row items-center rounded-md p-2"
+										onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
+
+										onSubmit={(e) => {
+											console.log('submit!')
+											e.preventDefault();
+											onSubmit(e)
+										}}>
+										{/* input */}
+
+										<textarea
+											onChange={(e) => { setInstructions(e.target.value) }}
+											className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
+											placeholder="Ctrl+L to select"
+											rows={1}
+											onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
+										/>
+										{/* submit button */}
+										{isLoading ?
+											<button
+												onClick={onStop}
+												className="btn btn-primary rounded-r-lg max-h-10 p-2"
+												type='button'
+											>Stop</button>
+											: <button
+												className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+												disabled={!instructions}
+												type='submit'
+											>
+												<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+													<line x1="12" y1="19" x2="12" y2="5"></line>
+													<polyline points="5 12 12 5 19 12"></polyline>
+												</svg>
+											</button>
+										}
+									</form>
+								</div>
+							</div>
 						)}
-					</div>}
-					<form
-						ref={formRef}
-						className="flex flex-row items-center rounded-md p-2"
-						onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
-
-						onSubmit={(e) => {
-							console.log('submit!')
-							e.preventDefault();
-							onSubmit(e)
-						}}>
-						{/* input */}
-
-						<textarea
-							onChange={(e) => { setInstructions(e.target.value) }}
-							className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
-							placeholder="Ctrl+L to select"
-							rows={1}
-							onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
-						/>
-						{/* submit button */}
-						{isLoading ?
-							<button
-								onClick={onStop}
-								className="btn btn-primary rounded-r-lg max-h-10 p-2"
-								type='button'
-							>Stop</button>
-							: <button
-								className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
-								disabled={!instructions}
-								type='submit'
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-									<line x1="12" y1="19" x2="12" y2="5"></line>
-									<polyline points="5 12 12 5 19 12"></polyline>
-								</svg>
-							</button>
-						}
-					</form>
 				</div>
 			</div>
 		</div>

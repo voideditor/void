@@ -11,7 +11,7 @@ export type ApiConfig = {
 		model: string,
 		maxTokens: string
 	},
-	openai: {
+	openAI: {
 		apikey: string,
 		model: string,
 	},
@@ -28,7 +28,7 @@ export type ApiConfig = {
 		endpoint: string,
 		model: string
 	},
-	openaicompatible: {
+	openAICompatible: {
 		endpoint: string,
 		model: string,
 		apikey: string
@@ -109,7 +109,7 @@ const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 
 
 
-// OpenAI
+// OpenAI and OpenAICompatible
 const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 
 	let didAbort = false
@@ -120,55 +120,22 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 		didAbort = true;
 	};
 
-	const openai = new OpenAI({ apiKey: apiConfig.openai.apikey, dangerouslyAllowBrowser: true });
+	const openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
 
-	openai.chat.completions.create({
-		model: apiConfig.openai.model,
-		messages: messages,
-		stream: true,
-	})
-		.then(async response => {
-			abort = () => {
-				// response.controller.abort()
-				didAbort = true;
-			}
-			// when receive text
-			try {
-				for await (const chunk of response) {
-					if (didAbort) return;
-					const newText = chunk.choices[0]?.delta?.content || '';
-					fullText += newText;
-					onText(newText, fullText);
-				}
-				onFinalMessage(fullText);
-			}
-			// when error/fail
-			catch (error) {
-				console.error('Error in OpenAI stream:', error);
-				onFinalMessage(fullText);
-			}
-		})
-	return { abort };
-};
+	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
+	if (apiConfig.whichApi === 'openAI') {
+		options = { model: apiConfig.openAI.model, messages: messages, stream: true, }
+	}
+	else if (apiConfig.whichApi === 'openAICompatible') {
+		options = { model: apiConfig.openAICompatible.model, messages: messages, stream: true, }
+	}
+	else {
+		console.error(`sendOpenAIMsg: invalid whichApi: ${apiConfig.whichApi}`)
+		throw new Error(`apiConfig.whichAPI was invalid: ${apiConfig.whichApi}`)
+	}
 
-// OpenAI Compatible
-const sendOpenAICompatibleMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
-
-	let didAbort = false
-	let fullText = ''
-
-	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	let abort: () => void = () => {
-		didAbort = true;
-	};
-
-	const openai = new OpenAI({ apiKey: apiConfig.openaicompatible.apikey, baseURL: apiConfig.openaicompatible.endpoint, dangerouslyAllowBrowser: true });
-
-	openai.chat.completions.create({
-		model: apiConfig.openaicompatible.model,
-		messages: messages,
-		stream: true,
-	})
+	openai.chat.completions
+		.create(options)
 		.then(async response => {
 			abort = () => {
 				// response.controller.abort()
@@ -317,14 +284,13 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 	switch (apiConfig.whichApi) {
 		case 'anthropic':
 			return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig });
-		case 'openai':
+		case 'openAI':
+		case 'openAICompatible':
 			return sendOpenAIMsg({ messages, onText, onFinalMessage, apiConfig });
 		case 'greptile':
 			return sendGreptileMsg({ messages, onText, onFinalMessage, apiConfig });
 		case 'ollama':
 			return sendOllamaMsg({ messages, onText, onFinalMessage, apiConfig });
-		case 'openaicompatible':
-			return sendOpenAICompatibleMsg({ messages, onText, onFinalMessage, apiConfig });
 		default:
 			console.error(`Error: whichApi was ${apiConfig.whichApi}, which is not recognized!`);
 			return { abort: () => { } }

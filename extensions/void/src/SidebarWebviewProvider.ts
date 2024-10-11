@@ -41,12 +41,12 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
 	private updateWebviewHTML(webview: vscode.Webview) {
 		const allowed_urls = ['https://api.anthropic.com', 'https://api.openai.com', 'https://api.greptile.com'];
-		const ollamaEndpoint: string | undefined = vscode.workspace.getConfiguration('void').get('ollama.endpoint');
+		const ollamaEndpoint: string | undefined = vscode.workspace.getConfiguration('void.ollama').get('endpoint');
 		if (ollamaEndpoint)
 			allowed_urls.push(ollamaEndpoint);
-		const openaiCompatibleEndpoint: string | undefined = vscode.workspace.getConfiguration('void').get('openaiCompatible.endpoint');
-		if (openaiCompatibleEndpoint)
-			allowed_urls.push(openaiCompatibleEndpoint);
+		const openAICompatibleEndpoint: string | undefined = vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint');
+		if (openAICompatibleEndpoint)
+			allowed_urls.push(openAICompatibleEndpoint);
 
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'dist/sidebar/index.js'));
 		const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'dist/sidebar/styles.css'));

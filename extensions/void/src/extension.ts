@@ -18,7 +18,7 @@ const getApiConfig = () => {
 			model: vscode.workspace.getConfiguration('void.anthropic').get('model') ?? '',
 			maxTokens: vscode.workspace.getConfiguration('void.anthropic').get('maxTokens') ?? '',
 		},
-		openai: {
+		openAI: {
 			apikey: vscode.workspace.getConfiguration('void.openAI').get('apiKey') ?? '',
 			model: vscode.workspace.getConfiguration('void.openAI').get('model') ?? '',
 		},
@@ -35,10 +35,10 @@ const getApiConfig = () => {
 			endpoint: vscode.workspace.getConfiguration('void.ollama').get('endpoint') ?? '',
 			model: vscode.workspace.getConfiguration('void.ollama').get('model') ?? '',
 		},
-		openaicompatible: {
-			endpoint: vscode.workspace.getConfiguration('void.openaiCompatible').get('endpoint') ?? '',
-			apikey: vscode.workspace.getConfiguration('void.openaiCompatible').get('apiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void.openaiCompatible').get('model') ?? '',
+		openAICompatible: {
+			endpoint: vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.openAICompatible').get('model') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}

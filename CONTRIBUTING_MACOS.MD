@@ -6,30 +6,25 @@
 - Code command installed and working on your mac : https://code.visualstudio.com/docs/setup/mac
 - A Working API Key form the AI provider you want to use (OpenAI, Anthropic, Groq, Mistral, Gemini, ...)
 
-
 # 1.Extention build process
-## 1.1 Clone the repository and setup the PR-BRANCH
+
+## 1.1 Clone the repository
 
 Using macOS terminal
 
 ```
 git clone https://github.com/voideditor/void
 cd void
-git config --add remote.origin.fetch "+refs/pull/_/head:refs/remotes/origin/pr/_"
-git fetch --all
-git checkout pr/92
-cd void
 npm install
 ```
 
 ## 1.2 Build extension :
 
-``
-code extensions/void
-``
+``code extensions/void``
 Visual Studio Code will open, then install the dependencies and build the extension
 
 In VSCode Terminal
+
 ```
 npm install
 npm run build
@@ -43,6 +38,7 @@ SET YOUR API KEY IN SETTINGS to activate AI features
 Close the extention
 
 # 2. IDE build process
+
 Follow the steps Extention build process, then follow thses steps to build the IDE
 
 ## 2.1 Build Editor (watch mode) :
@@ -50,9 +46,11 @@ Follow the steps Extention build process, then follow thses steps to build the I
 In MacOS Terminal (in the void root folder)
 
 The terminal should remain in the void root folder
+
 ```
 npm run watch
 ```
+
 Wait until the last lines are
 
 ```
@@ -72,8 +70,6 @@ scripts/code.sh
 ```
 
 - Check the watched compilation in bundle mode,
-- Test this is working,
-- Clode void IDE
 
 Then in MacOS Terminal (in the void root folder)
 
@@ -81,10 +77,4 @@ Then in MacOS Terminal (in the void root folder)
 npm run gulp vscode-darwin-arm64 (on an Apple Sillicon computer)
 ````
 
-You now have a Void IDE in the parent void folder
-
-# 3. Test the IDE
-In MacOS Terminal (in the void root folder)
-```
-npm run gulp vscode-darwin-arm64 (on an Apple Sillicon computer)
-```
+You now have a Void IDE bundled in the parent void folder !

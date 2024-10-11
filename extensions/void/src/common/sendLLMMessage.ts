@@ -8,11 +8,11 @@ export type ApiConfig = {
 		apikey: string;
 		model: string;
 		maxTokens: string;
-	};
+	},
 	openai: {
 		apikey: string;
 		model: string;
-	};
+	},
 	greptile: {
 		apikey: string;
 		githubPAT: string;
@@ -20,14 +20,19 @@ export type ApiConfig = {
 			remote: string; // e.g. 'github'
 			repository: string; // e.g. 'voideditor/void'
 			branch: string; // e.g. 'main'
-		};
-	};
+		}
+	},
 	ollama: {
 		endpoint: string;
 		model: string;
-	};
+	},
+	openaicompatible: {
+		endpoint: string,
+		model: string,
+		apikey: string
+	}
 	whichApi: string;
-};
+}
 
 type OnText = (newText: string, fullText: string) => void;
 
@@ -196,6 +201,56 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 			}
 		});
 
+	return { abort };
+};
+
+// OpenAI Compatible
+const sendOpenAICompatibleMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, apiConfig }) => {
+
+	let didAbort = false
+	let fullText = ''
+
+	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
+	let abort: () => void = () => {
+		didAbort = true;
+	};
+
+	const openai = new OpenAI({ apiKey: apiConfig.openaicompatible.apikey, baseURL: apiConfig.openaicompatible.endpoint, dangerouslyAllowBrowser: true });
+
+	openai.chat.completions.create({
+		model: apiConfig.openaicompatible.model,
+		messages: messages,
+		stream: true,
+	})
+		.then(async response => {
+			abort = () => {
+				response.controller.abort()
+				didAbort = true;
+			}
+			// when receive text
+			try {
+				for await (const chunk of response) {
+					if (didAbort) return;
+					const newText = chunk.choices[0]?.delta?.content || '';
+					fullText += newText;
+					onText(newText, fullText);
+				}
+				onFinalMessage(fullText);
+			}
+			// when error/fail
+			catch (error) {
+				onError(`Error in OpenAI stream:, ${error}`)
+				console.error('Error in OpenAI stream:', error);
+				onFinalMessage(fullText);
+			}
+		})
+		.catch((responseError) => {
+			if (responseError.status === 401) {
+				onError('Unauthorized: Invalid API key');
+			} else {
+				onError(responseError.message);
+			}
+		});
 	return { abort };
 };
 
@@ -401,6 +456,14 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 				onError,
 				apiConfig,
 			});
+			case 'openaicompatible':
+				return sendOpenAICompatibleMsg({
+					messages,
+					onText,
+					onFinalMessage,
+					onError,
+					apiConfig,
+				});
 		default:
 			onError(`Error: whichApi was '${apiConfig.whichApi}', which is not recognized!`);
 			return { abort: () => {} };

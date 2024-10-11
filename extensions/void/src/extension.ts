@@ -35,6 +35,11 @@ const getApiConfig = () => {
 			endpoint: vscode.workspace.getConfiguration('void.ollama').get('endpoint') ?? '',
 			model: vscode.workspace.getConfiguration('void.ollama').get('model') ?? '',
 		},
+		openaicompatible: {
+			endpoint: vscode.workspace.getConfiguration('void.openaiCompatible').get('endpoint') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openaiCompatible').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.openaiCompatible').get('model') ?? '',
+		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
 	return apiConfig

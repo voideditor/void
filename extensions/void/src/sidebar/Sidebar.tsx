@@ -30,7 +30,7 @@ I am currently selecting this code:
 \`\`\`${selection.selectionStr}\`\`\`
 `}
 
-Please edit the code following these instructions:
+Please edit the code following these instructions (or, if appropriate, answer my question instead):
 ${instructions}
 
 If you make a change, rewrite the entire file.
@@ -97,6 +97,7 @@ const Sidebar = () => {
 	const [instructions, setInstructions] = useState('') // the user's instructions
 
 	// state of chat
+	const [chatMessageHistory, setChatMessageHistory] = useState<ChatMessage[]>([])
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [showThreadsHistory, setShowThreadsHistory] = useState(false)
@@ -169,6 +170,15 @@ const Sidebar = () => {
 		setSelection(null)
 		setFiles([])
 
+
+		// TODO this is just a hack, turn this into a button instead, and track all histories somewhere
+		if (instructions === 'clear') {
+			setChatMessageHistory([])
+			setMessageStream('')
+			setIsLoading(false)
+			return
+		}
+
 		// request file content from vscode and await response
 		getVSCodeAPI().postMessage({ type: 'requestFiles', filepaths: files })
 		const relevantFiles = await awaitVSCodeResponse('files')
@@ -184,8 +194,7 @@ const Sidebar = () => {
 			messages: [...thread.messages.map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
-
-				// add assistant's message to chat history
+				// add assistant's message to chat history, and clear selection
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
 				addMessageToHistory(newHistoryElt)
 
@@ -207,6 +216,7 @@ const Sidebar = () => {
 		const llmContent = messageStream || '(canceled)'
 		const newHistoryElt: ChatMessage = { role: 'assistant', displayContent: messageStream, content: llmContent }
 		addMessageToHistory(newHistoryElt)
+		setChatMessageHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
 
 		setMessageStream('')
 		setIsLoading(false)
@@ -235,6 +245,15 @@ const Sidebar = () => {
 			</div>
 			{/* chatbar */}
 			<div className="shrink-0 py-4">
+				{/* selection */}
+				<div className="text-left">
+					{/* selected files */}
+					<FilesSelector files={files} setFiles={setFiles} />
+					{/* selected code */}
+					{!selection?.selectionStr ? null
+						: (
+							<div className="relative">
+								<button
 				<div className="input">
 					{/* selection */}
 					{(files.length || selection?.selectionStr) && <div className="p-2 pb-0 space-y-2">
@@ -243,7 +262,7 @@ const Sidebar = () => {
 						{/* selected code */}
 						{!!selection?.selectionStr && (
 							<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
-								<button 
+								<button
 									onClick={clearSelection}
 									className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 								>

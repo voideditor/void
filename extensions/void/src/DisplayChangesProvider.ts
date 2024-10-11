@@ -44,9 +44,6 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 			if (this._weAreEditing)
 				return
 
-			// console.log('e.contentChanges', e.contentChanges)
-			// console.log('e.contentChanges[0].text:', e.contentChanges?.[0])
-
 			const docUri = editor.document.uri
 			const docUriStr = docUri.toString()
 			const diffAreas = this._diffAreasOfDocument[docUriStr] || []
@@ -142,13 +139,23 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 		for (const diffArea of diffAreas) {
 
 			// get code inside of diffArea
-			const currentCode = editor.document.getText(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER))
+			const currentCode = editor.document.getText(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)).replace(/\r\n/g, '\n')
 
 			// compute the diffs
 			const diffs = getDiffedLines(diffArea.originalCode, currentCode)
 
+			// print diffs
+			console.log('!CODEBefore:', JSON.stringify(diffArea.originalCode))
+			console.log('!CODEAfter:', JSON.stringify(currentCode))
+
 			// add the diffs to `this._diffsOfDocument[docUriStr]`
 			this.addDiffs(editor.document.uri, diffs)
+
+			for (const diff of this._diffsOfDocument[docUriStr]) {
+				console.log('originalCodeDiff:', JSON.stringify(diff.originalCode))
+				console.log('greenCodeDiff:', JSON.stringify(editor.document.getText(diff.greenRange).replace(/\r\n/g, '\n')))
+			}
+
 
 		}
 
@@ -211,7 +218,6 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 			this._diffidPool += 1
 		}
 
-		console.log('diffs:', this._diffsOfDocument[docUriStr])
 	}
 
 	// called on void.acceptDiff

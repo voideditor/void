@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import { DiffArea, WebviewMessage } from './shared_types';
 import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
-import { getDiffedLines } from './getDiffedLines';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
-	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8').replace(/\r\n/g, '\n'); // must remove windows \r or every line will appear different because of it
+	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
+		.replace(/\r\n/g, '\n') // must remove windows \r or every line will appear different because of it
 }
 
 

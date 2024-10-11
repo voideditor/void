@@ -22,7 +22,6 @@ export function getDiffedLines(oldStr: string, newStr: string) {
 	newStr = newStr.replace(/\r\n/g, '\n')
 
 	const lineByLineChanges: Change[] = diffLines(oldStr, newStr);
-	console.debug('Line by line changes', lineByLineChanges)
 
 	lineByLineChanges.push({ value: '' }) // add a dummy so we flush any streaks we haven't yet at the very end (!line.added && !line.removed)
 
@@ -88,8 +87,6 @@ export function getDiffedLines(oldStr: string, newStr: string) {
 		}
 
 	} // end for
-
-	console.debug('Replacements', replacements)
 
 	return replacements
 

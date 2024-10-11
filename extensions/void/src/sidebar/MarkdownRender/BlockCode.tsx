@@ -9,7 +9,7 @@ enum CopyButtonState {
 
 const COPY_FEEDBACK_TIMEOUT = 1000
 
-// code block with Apply button at top
+// code block with toolbar (Apply, Copy, etc) at top
 const BlockCode = ({
 	text,
 	hideToolbar = false,
@@ -61,9 +61,7 @@ const BlockCode = ({
 				</div>
 			)}
 			<div
-				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${
-					hideToolbar ? "" : "rounded-tl-none"
-				}`}
+				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${hideToolbar ? "" : "rounded-tl-none"}`}
 			>
 				<pre className="p-4">{text}</pre>
 			</div>

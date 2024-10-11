@@ -19,24 +19,25 @@
         "void.whichApi": {
           "type": "string",
           "default": "anthropic",
-          "description": "Choose an API provider",
+          "description": "Choose an API provider.",
           "enum": [
-            "openai",
+            "openAI",
+            "openAICompatible",
             "anthropic",
             "azure",
-            "greptile",
-            "ollama"
+            "ollama",
+            "greptile"
           ]
         },
         "void.anthropic.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Anthropic API Key"
+          "description": "Anthropic API key."
         },
         "void.anthropic.model": {
           "type": "string",
           "default": "claude-3-5-sonnet-20240620",
-          "description": "Anthropic Model to use.",
+          "description": "Anthropic model to use.",
           "enum": [
             "claude-3-5-sonnet-20240620",
             "claude-3-opus-20240229",
@@ -46,7 +47,7 @@
         },
         "void.anthropic.maxTokens": {
           "type": "string",
-          "default": "1024",
+          "default": "8192",
           "description": "Anthropic max number of tokens to output.",
           "enum": [
             "1024",
@@ -58,12 +59,12 @@
         "void.openAI.apiKey": {
           "type": "string",
           "default": "",
-          "description": "OpenAI API Key."
+          "description": "OpenAI API key."
         },
         "void.openAI.model": {
           "type": "string",
           "default": "gpt-4o",
-          "description": "OpenAI model.",
+          "description": "OpenAI model to use.",
           "enum": [
             "o1-preview",
             "o1-mini",
@@ -87,12 +88,12 @@
         "void.greptile.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Greptile API Key."
+          "description": "Greptile API key."
         },
         "void.greptile.githubPAT": {
           "type": "string",
           "default": "",
-          "description": "Github PAT  given to Greptile to access your repository."
+          "description": "Github PAT given to Greptile to access your repository."
         },
         "void.ollama.endpoint": {
           "type": "string",
@@ -191,6 +192,21 @@
             "smollm:360m",
             "smollm:1.7b"
           ]
+        },
+        "void.openAICompatible.endpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434/v1",
+          "description": "The endpoint."
+        },
+        "void.openAICompatible.model": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "The name of the model to use."
+        },
+        "void.openAICompatible.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your API key."
         }
       }
     },
@@ -272,13 +288,12 @@
     "@types/node": "^22.5.1",
     "@types/react": "^18.3.4",
     "@types/react-dom": "^18.3.0",
-    "@types/vscode": "1.92.0",
+    "@types/vscode": "1.89.0",
     "@typescript-eslint/eslint-plugin": "^8.3.0",
     "@typescript-eslint/parser": "^8.3.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "2.4.1",
     "autoprefixer": "^10.4.20",
-    "diff": "^6.0.0-beta",
     "esbuild": "^0.23.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.35.1",
@@ -297,6 +312,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
     "ollama": "^0.5.9",
-    "openai": "^4.57.0"
+    "openai": "^4.57.0",
+    "diff": "^7.0.0"
   }
 }

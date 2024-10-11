@@ -11,7 +11,7 @@ export type ApiConfig = {
 		model: string,
 		maxTokens: string
 	},
-	openai: {
+	openAI: {
 		apikey: string,
 		model: string,
 	},
@@ -28,6 +28,11 @@ export type ApiConfig = {
 		endpoint: string,
 		model: string
 	},
+	openAICompatible: {
+		endpoint: string,
+		model: string,
+		apikey: string
+	}
 	whichApi: string
 }
 
@@ -104,7 +109,7 @@ const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 
 
 
-// OpenAI
+// OpenAI and OpenAICompatible
 const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 
 	let didAbort = false
@@ -115,13 +120,22 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 		didAbort = true;
 	};
 
-	const openai = new OpenAI({ apiKey: apiConfig.openai.apikey, dangerouslyAllowBrowser: true });
+	const openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
 
-	openai.chat.completions.create({
-		model: apiConfig.openai.model,
-		messages: messages,
-		stream: true,
-	})
+	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
+	if (apiConfig.whichApi === 'openAI') {
+		options = { model: apiConfig.openAI.model, messages: messages, stream: true, }
+	}
+	else if (apiConfig.whichApi === 'openAICompatible') {
+		options = { model: apiConfig.openAICompatible.model, messages: messages, stream: true, }
+	}
+	else {
+		console.error(`sendOpenAIMsg: invalid whichApi: ${apiConfig.whichApi}`)
+		throw new Error(`apiConfig.whichAPI was invalid: ${apiConfig.whichApi}`)
+	}
+
+	openai.chat.completions
+		.create(options)
 		.then(async response => {
 			abort = () => {
 				// response.controller.abort()
@@ -145,7 +159,6 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 		})
 	return { abort };
 };
-
 
 
 // Ollama
@@ -271,7 +284,8 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 	switch (apiConfig.whichApi) {
 		case 'anthropic':
 			return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig });
-		case 'openai':
+		case 'openAI':
+		case 'openAICompatible':
 			return sendOpenAIMsg({ messages, onText, onFinalMessage, apiConfig });
 		case 'greptile':
 			return sendGreptileMsg({ messages, onText, onFinalMessage, apiConfig });

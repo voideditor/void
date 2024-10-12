@@ -109,11 +109,7 @@ const ThreadSelector = ({ onClose }: { onClose: () => void }) => {
 
 
 const Sidebar = () => {
-	const {
-		currentThread,
-		addMessageToHistory,
-		startNewThread,
-	} = useChat()
+	const { allThreads, currentThread, addMessageToHistory, startNewThread, } = useChat()
 
 	// state of current message
 	const [selection, setSelection] = useState<Selection | null>(null) // the code the user is selecting

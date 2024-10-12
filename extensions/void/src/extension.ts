@@ -143,6 +143,7 @@ export function activate(context: vscode.ExtensionContext) {
 					await approvalCodeLensProvider.addNewApprovals(editor, suggestedEdits)
 				}
 				else if (m.type === 'getApiConfig') {
+					context.workspaceState.update('allThreads', {})
 
 					const apiConfig = getApiConfig()
 					console.log('Api config:', apiConfig)

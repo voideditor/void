@@ -157,7 +157,8 @@ const Sidebar = () => {
 			// if they pressed the + to add a new chat
 			else if (m.type === 'startNewThread') {
 				setIsThreadSelectorOpen(false)
-				startNewThread()
+				if (currentThread?.messages.length !== 0)
+					startNewThread()
 			}
 
 			// if they opened thread selector
@@ -168,7 +169,7 @@ const Sidebar = () => {
 		}
 		window.addEventListener('message', listener);
 		return () => { window.removeEventListener('message', listener) }
-	}, [files, selection, startNewThread])
+	}, [files, selection, startNewThread, currentThread])
 
 
 	const formRef = useRef<HTMLFormElement | null>(null)

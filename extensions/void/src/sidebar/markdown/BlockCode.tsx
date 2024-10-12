@@ -9,7 +9,7 @@ enum CopyButtonState {
 
 const COPY_FEEDBACK_TIMEOUT = 1000
 
-// code block with Apply button at top
+// code block with toolbar (Apply, Copy, etc) at top
 const BlockCode = ({
 	text,
 	toolbar,

@@ -4,7 +4,8 @@ import { ChatMessage, File, Selection, WebviewMessage } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, resolveAwaitingVSCodeResponse } from "./getVscodeApi"
 
 import { marked } from 'marked';
-import { MarkdownRender, BlockCode } from "./MarkdownRender";
+import MarkdownRender from "./markdown/MarkdownRender";
+import BlockCode from "./markdown/BlockCode";
 
 import * as vscode from 'vscode'
 import { FilesSelector, IncludedFiles } from "./components/Files";

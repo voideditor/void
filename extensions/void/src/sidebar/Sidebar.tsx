@@ -4,7 +4,8 @@ import { File, Selection, WebviewMessage } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, resolveAwaitingVSCodeResponse } from "./getVscodeApi"
 
 import { marked } from 'marked';
-import { MarkdownRender, BlockCode } from "./MarkdownRender";
+import MarkdownRender from "./markdown/MarkdownRender";
+import BlockCode from "./markdown/BlockCode";
 
 import * as vscode from 'vscode'
 import { FilesSelector, IncludedFiles } from "./components/Files";
@@ -232,7 +233,7 @@ const Sidebar = () => {
 						{/* selected code */}
 						{!!selection?.selectionStr && (
 							<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
-								<button 
+								<button
 									onClick={clearSelection}
 									className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 								>

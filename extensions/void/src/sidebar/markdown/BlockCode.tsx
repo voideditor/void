@@ -1,6 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useState } from "react"
 import { getVSCodeAPI } from "../getVscodeApi"
-import { classNames } from "../utils"
 
 enum CopyButtonState {
 	Copy = "Copy",
@@ -70,11 +69,7 @@ const BlockCode = ({
 				</div>
 			)}
 			<div
-				className={classNames(
-					"overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg",
-					!hideToolbar && "rounded-tl-none",
-					className
-				)}
+				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${!hideToolbar ? "rounded-tl-none" : ""} ${className}`}
 			>
 				<pre className="p-2">{text}</pre>
 			</div>

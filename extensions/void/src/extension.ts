@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { WebviewMessage } from './shared_types';
+import { ChatThreads, WebviewMessage } from './shared_types';
 import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { getDiffedLines } from './getDiffedLines';
 import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
@@ -100,6 +100,14 @@ export function activate(context: vscode.ExtensionContext) {
 	webviewProvider.webview.then(
 		webview => {
 
+			// top navigation bar commands
+			context.subscriptions.push(vscode.commands.registerCommand('void.startNewThread', async () => {
+				webview.postMessage({ type: 'startNewThread' } satisfies WebviewMessage)
+			}))
+			context.subscriptions.push(vscode.commands.registerCommand('void.toggleThreadSelector', async () => {
+				webview.postMessage({ type: 'toggleThreadSelector' } satisfies WebviewMessage)
+			}))
+
 			// when config changes, send it to the sidebar
 			vscode.workspace.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration('void')) {
@@ -135,12 +143,22 @@ export function activate(context: vscode.ExtensionContext) {
 					await approvalCodeLensProvider.addNewApprovals(editor, suggestedEdits)
 				}
 				else if (m.type === 'getApiConfig') {
+					context.workspaceState.update('allThreads', {})
 
 					const apiConfig = getApiConfig()
 					console.log('Api config:', apiConfig)
 
 					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
 
+				}
+				else if (m.type === 'getAllThreads') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					webview.postMessage({ type: 'allThreads', threads } satisfies WebviewMessage)
+				}
+				else if (m.type === 'persistThread') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					const updatedThreads: ChatThreads = { ...threads, [m.thread.id]: m.thread }
+					context.workspaceState.update('allThreads', updatedThreads)
 				}
 				else {
 					console.error('unrecognized command', m.type, m)

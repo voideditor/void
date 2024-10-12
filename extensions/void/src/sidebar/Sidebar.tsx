@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
 import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage"
-import { File, Selection, WebviewMessage } from "../shared_types"
+import { ChatMessage, File, Selection, WebviewMessage } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, resolveAwaitingVSCodeResponse } from "./getVscodeApi"
 
 import { marked } from 'marked';
@@ -8,7 +8,8 @@ import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
 
 import * as vscode from 'vscode'
-import { FilesSelector, IncludedFiles } from "./components/Files";
+import { FilesSelector, SelectedFiles } from "./components/SelectedFiles";
+import { useChat } from "./chatContext";
 
 
 const filesStr = (fullFiles: File[]) => {
@@ -49,7 +50,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 	if (role === 'user') {
 		chatbubbleContents = <>
-			<IncludedFiles files={chatMessage.files} />
+			<SelectedFiles files={chatMessage.files} />
 			{chatMessage.selection?.selectionStr && <BlockCode text={chatMessage.selection.selectionStr} hideToolbar />}
 			{children}
 		</>
@@ -67,34 +68,48 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 	</div>
 }
 
-type ChatMessage = {
-	role: 'user'
-	content: string, // content sent to the llm
-	displayContent: string, // content displayed to user
-	selection: Selection | null, // the user's selection
-	files: vscode.Uri[], // the files sent in the message
-} | {
-	role: 'assistant',
-	content: string, // content received from LLM
-	displayContent: string // content displayed to user (this is the same as content for now)
-}
-
-
-// const [stateRef, setState] = useInstantState(initVal)
-// setState instantly changes the value of stateRef instead of having to wait until the next render
-const useInstantState = <T,>(initVal: T) => {
-	const stateRef = useRef<T>(initVal)
-	const [_, setS] = useState<T>(initVal)
-	const setState = useCallback((newVal: T) => {
-		setS(newVal);
-		stateRef.current = newVal;
-	}, [])
-	return [stateRef as React.RefObject<T>, setState] as const // make s.current readonly - setState handles all changes
+const ThreadSelector = ({ onClose }: { onClose: () => void }) => {
+	const { allThreads, currentThread, switchToThread } = useChat()
+	return (
+		<div className="flex flex-col space-y-1">
+			<div className="text-right">
+				<button className="btn btn-sm" onClick={onClose}>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						className="size-4"
+					>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							d="M6 18 18 6M6 6l12 12"
+						/>
+					</svg>
+				</button>
+			</div>
+			{/* iterate through all past threads */}
+			{Object.keys(allThreads ?? {}).map((threadId) => {
+				const pastThread = (allThreads ?? {})[threadId];
+				return (
+					<button
+						key={pastThread.id}
+						className={`btn btn-sm btn-secondary ${pastThread.id === currentThread?.id ? "btn-primary" : ""}`}
+						onClick={() => switchToThread(pastThread.id)}
+					>
+						{new Date(pastThread.createdAt).toLocaleString()}
+					</button>
+				)
+			})}
+		</div>
+	)
 }
 
 
 
 const Sidebar = () => {
+	const { allThreads, currentThread, addMessageToHistory, startNewThread, } = useChat()
 
 	// state of current message
 	const [selection, setSelection] = useState<Selection | null>(null) // the code the user is selecting
@@ -102,9 +117,9 @@ const Sidebar = () => {
 	const [instructions, setInstructions] = useState('') // the user's instructions
 
 	// state of chat
-	const [chatMessageHistory, setChatMessageHistory] = useState<ChatMessage[]>([])
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
+	const [isThreadSelectorOpen, setIsThreadSelectorOpen] = useState(false)
 
 	const abortFnRef = useRef<(() => void) | null>(null)
 
@@ -126,13 +141,12 @@ const Sidebar = () => {
 
 			// if user pressed ctrl+l, add their selection to the sidebar
 			if (m.type === 'ctrl+l') {
-
 				setSelection(m.selection)
-
 				const filepath = m.selection.filePath
 
-				// add file if it's not a duplicate
-				if (!files.find(f => f.fsPath === filepath.fsPath)) setFiles(files => [...files, filepath])
+				// add current file to the context if it's not already in the files array
+				if (!files.find(f => f.fsPath === filepath.fsPath))
+					setFiles(files => [...files, filepath])
 
 			}
 			// when get apiConfig, set
@@ -140,10 +154,21 @@ const Sidebar = () => {
 				setApiConfig(m.apiConfig)
 			}
 
+			// if they pressed the + to add a new chat
+			else if (m.type === 'startNewThread') {
+				setIsThreadSelectorOpen(false)
+				startNewThread()
+			}
+
+			// if they opened thread selector
+			else if (m.type === 'toggleThreadSelector') {
+				setIsThreadSelectorOpen(v => !v)
+			}
+
 		}
 		window.addEventListener('message', listener);
 		return () => { window.removeEventListener('message', listener) }
-	}, [files, selection])
+	}, [files, selection, startNewThread])
 
 
 	const formRef = useRef<HTMLFormElement | null>(null)
@@ -158,15 +183,6 @@ const Sidebar = () => {
 		setSelection(null)
 		setFiles([])
 
-
-		// TODO this is just a hack, turn this into a button instead, and track all histories somewhere
-		if (instructions === 'clear') {
-			setChatMessageHistory([])
-			setMessageStream('')
-			setIsLoading(false)
-			return
-		}
-
 		// request file content from vscode and await response
 		getVSCodeAPI().postMessage({ type: 'requestFiles', filepaths: files })
 		const relevantFiles = await awaitVSCodeResponse('files')
@@ -175,16 +191,18 @@ const Sidebar = () => {
 		const content = userInstructionsStr(instructions, relevantFiles.files, selection)
 		// console.log('prompt:\n', content)
 		const newHistoryElt: ChatMessage = { role: 'user', content, displayContent: instructions, selection, files }
-		setChatMessageHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
+		addMessageToHistory(newHistoryElt)
 
 		// send message to claude
 		let { abort } = sendLLMMessage({
-			messages: [...chatMessageHistory.map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
+			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
 				// add assistant's message to chat history, and clear selection
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
-				setChatMessageHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
+				addMessageToHistory(newHistoryElt)
+
+				// clear selection
 				setMessageStream('')
 				setIsLoading(false)
 			},
@@ -201,12 +219,12 @@ const Sidebar = () => {
 		// if messageStream was not empty, add it to the history
 		const llmContent = messageStream || '(canceled)'
 		const newHistoryElt: ChatMessage = { role: 'assistant', displayContent: messageStream, content: llmContent }
-		setChatMessageHistory(chatMessageHistory => [...chatMessageHistory, newHistoryElt])
+		addMessageToHistory(newHistoryElt)
 
 		setMessageStream('')
 		setIsLoading(false)
 
-	}, [messageStream])
+	}, [addMessageToHistory, messageStream])
 
 	//Clear code selection
 	const clearSelection = () => {
@@ -215,9 +233,14 @@ const Sidebar = () => {
 
 	return <>
 		<div className="flex flex-col h-screen w-full">
+			{isThreadSelectorOpen && (
+				<div className="mb-2 max-h-[30vh] overflow-y-auto">
+					<ThreadSelector onClose={() => setIsThreadSelectorOpen(false)} />
+				</div>
+			)}
 			<div className="overflow-y-auto overflow-x-hidden space-y-4">
 				{/* previous messages */}
-				{chatMessageHistory.map((message, i) =>
+				{currentThread !== null && currentThread.messages.map((message, i) =>
 					<ChatBubble key={i} chatMessage={message} />
 				)}
 				{/* message stream */}
@@ -225,61 +248,71 @@ const Sidebar = () => {
 			</div>
 			{/* chatbar */}
 			<div className="shrink-0 py-4">
-				<div className="input">
-					{/* selection */}
-					{(files.length || selection?.selectionStr) && <div className="p-2 pb-0 space-y-2">
-						{/* selected files */}
-						<FilesSelector files={files} setFiles={setFiles} />
-						{/* selected code */}
-						{!!selection?.selectionStr && (
-							<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
-								<button
-									onClick={clearSelection}
-									className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-								>
-									Remove
-								</button>
-							)} />
-						)}
-					</div>}
-					<form
-						ref={formRef}
-						className="flex flex-row items-center rounded-md p-2"
-						onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
+				{/* selection */}
+				<div className="text-left">
+					{/* selected files */}
+					<FilesSelector files={files} setFiles={setFiles} />
+					{/* selected code */}
 
-						onSubmit={(e) => {
-							console.log('submit!')
-							e.preventDefault();
-							onSubmit(e)
-						}}>
-						{/* input */}
 
-						<textarea
-							onChange={(e) => { setInstructions(e.target.value) }}
-							className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
-							placeholder="Ctrl+L to select"
-							rows={1}
-							onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
-						/>
-						{/* submit button */}
-						{isLoading ?
-							<button
-								onClick={onStop}
-								className="btn btn-primary rounded-r-lg max-h-10 p-2"
-								type='button'
-							>Stop</button>
-							: <button
-								className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
-								disabled={!instructions}
-								type='submit'
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-									<line x1="12" y1="19" x2="12" y2="5"></line>
-									<polyline points="5 12 12 5 19 12"></polyline>
-								</svg>
-							</button>
-						}
-					</form>
+					<div className="relative">
+						<div className="input">
+							{/* selection */}
+							{(files.length || selection?.selectionStr) && <div className="p-2 pb-0 space-y-2">
+								{/* selected files */}
+								<FilesSelector files={files} setFiles={setFiles} />
+								{/* selected code */}
+								{!!selection?.selectionStr && (
+									<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
+										<button
+											onClick={clearSelection}
+											className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+										>
+											Remove
+										</button>
+									)} />
+								)}
+							</div>}
+							<form
+								ref={formRef}
+								className="flex flex-row items-center rounded-md p-2"
+								onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
+
+								onSubmit={(e) => {
+									console.log('submit!')
+									e.preventDefault();
+									onSubmit(e)
+								}}>
+								{/* input */}
+
+								<textarea
+									onChange={(e) => { setInstructions(e.target.value) }}
+									className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
+									placeholder="Ctrl+L to select"
+									rows={1}
+									onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
+								/>
+								{/* submit button */}
+								{isLoading ?
+									<button
+										onClick={onStop}
+										className="btn btn-primary rounded-r-lg max-h-10 p-2"
+										type='button'
+									>Stop</button>
+									: <button
+										className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+										disabled={!instructions}
+										type='submit'
+									>
+										<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+											<line x1="12" y1="19" x2="12" y2="5"></line>
+											<polyline points="5 12 12 5 19 12"></polyline>
+										</svg>
+									</button>
+								}
+							</form>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>

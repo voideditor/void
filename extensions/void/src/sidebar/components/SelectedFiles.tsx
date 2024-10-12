@@ -51,7 +51,7 @@ export const FilesSelector = ({
 	)
 }
 
-export const IncludedFiles = ({ files }: { files: vscode.Uri[] }) => {
+export const SelectedFiles = ({ files }: { files: vscode.Uri[] }) => {
 	return (
 		files.length !== 0 && (
 			<div className="text-xs my-2">

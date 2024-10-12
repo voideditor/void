@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
-import { getVSCodeAPI } from '../sidebar/getVscodeApi';
 
 
 // always compare these against package.json to make sure every setting in this type can actually be provided by the user

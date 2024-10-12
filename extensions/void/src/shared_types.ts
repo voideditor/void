@@ -40,7 +40,7 @@ type WebviewMessage = (
 	| { type: 'startNewThread' }
 
 	// editor -> sidebar
-	| { type: 'openThreadSelector' }
+	| { type: 'toggleThreadSelector' }
 
 )
 

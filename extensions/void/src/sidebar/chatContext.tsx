@@ -32,22 +32,23 @@ function ChatProvider({ children }: { children: ReactNode }) {
 	}, [])
 
 
-	const addMessageToHistory = (message: ChatMessage) => {
-		let currentThread = !currentThreadId ? createNewThread() : allThreads[currentThreadId]
-		setAllThreads((threads) => ({
-			...threads,
-			[currentThread.id]: {
-				...currentThread,
-				messages: [...currentThread.messages, message],
-			}
-		}))
-	}
+
 
 	return (
 		<ChatContext.Provider
 			value={{
 				allThreads,
-				addMessageToHistory,
+				addMessageToHistory: (message: ChatMessage) => {
+					let currentThread = currentThreadId === null ? createNewThread() : allThreads[currentThreadId]
+					setAllThreads((threads) => ({
+						...threads,
+						[currentThread.id]: {
+							...currentThread,
+							messages: [...currentThread.messages, message],
+						}
+					}))
+					getVSCodeAPI().postMessage({ type: "persistThread", thread: currentThread })
+				},
 				currentThread: currentThreadId !== null ? allThreads[currentThreadId] : null,
 				switchToThread: (threadId: string) => { setCurrentThreadId(threadId); },
 				startNewThread: () => {

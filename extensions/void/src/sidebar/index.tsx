@@ -1,7 +1,7 @@
 import * as React from "react"
 import * as ReactDOM from "react-dom/client"
 import Sidebar from "./Sidebar"
-import { ChatProvider } from "./context"
+import { ChatProvider } from "./chatContext"
 
 // mount the sidebar on the id="root" element
 if (typeof document === "undefined") {

@@ -233,8 +233,8 @@
         "icon": "$(add)"
       },
       {
-        "command": "void.openThreadSelector",
-        "title": "View all your past chats",
+        "command": "void.toggleThreadSelector",
+        "title": "View past chats",
         "icon": "$(history)"
       }, {
         "command": "void.openSettings",
@@ -280,7 +280,7 @@
           "group": "navigation"
         },
         {
-          "command": "void.openThreadSelector",
+          "command": "void.toggleThreadSelector",
           "when": "view == 'void.viewnumberone'",
           "group": "navigation"
         },

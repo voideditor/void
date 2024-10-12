@@ -14,7 +14,7 @@ const awaiting: { [c in Command]: ((res: any) => void)[] } = {
 	"getAllThreads": [],
 	"allThreads": [],
 	"persistThread": [],
-	"openThreadSelector": []
+	"toggleThreadSelector": []
 }
 
 // use this function to await responses

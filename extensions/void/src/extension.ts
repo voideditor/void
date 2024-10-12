@@ -104,8 +104,8 @@ export function activate(context: vscode.ExtensionContext) {
 			context.subscriptions.push(vscode.commands.registerCommand('void.startNewThread', async () => {
 				webview.postMessage({ type: 'startNewThread' } satisfies WebviewMessage)
 			}))
-			context.subscriptions.push(vscode.commands.registerCommand('void.openThreadSelector', async () => {
-				webview.postMessage({ type: 'openThreadSelector' } satisfies WebviewMessage)
+			context.subscriptions.push(vscode.commands.registerCommand('void.toggleThreadSelector', async () => {
+				webview.postMessage({ type: 'toggleThreadSelector' } satisfies WebviewMessage)
 			}))
 
 			// when config changes, send it to the sidebar

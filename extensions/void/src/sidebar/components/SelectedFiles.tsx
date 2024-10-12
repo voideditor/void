@@ -8,28 +8,22 @@ const getBasename = (pathStr: string) => {
 	return parts[parts.length - 1]
 }
 
-export const FilesSelector = ({
-	files,
-	setFiles,
-}: {
-	files: vscode.Uri[]
-	setFiles: (files: vscode.Uri[]) => void
-}) => {
-	const onRemove = (index: number) => () =>
-		setFiles([...files.slice(0, index), ...files.slice(index + 1, Infinity)])
-
+export const SelectedFiles = ({ files, setFiles, }: { files: vscode.Uri[], setFiles: null | ((files: vscode.Uri[]) => void) }) => {
 	return (
 		files.length !== 0 && (
 			<div className="flex flex-wrap -mx-1 -mb-1">
 				{files.map((filename, i) => (
 					<button
 						key={filename.path}
-						className="btn btn-secondary btn-sm border border-vscode-input-border rounded flex items-center space-x-2 mx-1 mb-1"
+						disabled={!setFiles}
+						className={`btn btn-secondary btn-sm border border-vscode-input-border rounded flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default`}
 						type="button"
-						onClick={onRemove(i)}
+						onClick={() => setFiles?.([...files.slice(0, i), ...files.slice(i + 1, Infinity)])}
 					>
 						<span>{getBasename(filename.fsPath)}</span>
-						<span className="">
+
+						{/* X button */}
+						{!!setFiles && <span className="">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
@@ -43,7 +37,7 @@ export const FilesSelector = ({
 									d="M6 18 18 6M6 6l12 12"
 								/>
 							</svg>
-						</span>
+						</span>}
 					</button>
 				))}
 			</div>
@@ -51,27 +45,4 @@ export const FilesSelector = ({
 	)
 }
 
-export const SelectedFiles = ({ files }: { files: vscode.Uri[] }) => {
-	return (
-		files.length !== 0 && (
-			<div className="text-xs my-2">
-				{files.map((filename, i) => (
-					<div key={i} className="flex">
-						<button
-							type="button"
-							className="btn btn-secondary pointer-events-none"
-							onClick={() => {
-								// TODO redirect to the document filename.fsPath, when add this remove pointer-events-none
-							}}
-						>
-							-{" "}
-							<span className="text-gray-100">
-								{getBasename(filename.fsPath)}
-							</span>
-						</button>
-					</div>
-				))}
-			</div>
-		)
-	)
-}
+

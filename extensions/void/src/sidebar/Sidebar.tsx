@@ -8,7 +8,7 @@ import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
 
 import * as vscode from 'vscode'
-import { FilesSelector, SelectedFiles } from "./components/SelectedFiles";
+import { SelectedFiles } from "./components/SelectedFiles";
 import { useChat } from "./chatContext";
 
 
@@ -50,7 +50,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 	if (role === 'user') {
 		chatbubbleContents = <>
-			<SelectedFiles files={chatMessage.files} />
+			<SelectedFiles files={chatMessage.files} setFiles={null} />
 			{chatMessage.selection?.selectionStr && <BlockCode text={chatMessage.selection.selectionStr} hideToolbar />}
 			{children}
 		</>
@@ -251,17 +251,13 @@ const Sidebar = () => {
 			<div className="shrink-0 py-4">
 				{/* selection */}
 				<div className="text-left">
-					{/* selected files */}
-					<FilesSelector files={files} setFiles={setFiles} />
-					{/* selected code */}
-
 
 					<div className="relative">
 						<div className="input">
 							{/* selection */}
 							{(files.length || selection?.selectionStr) && <div className="p-2 pb-0 space-y-2">
 								{/* selected files */}
-								<FilesSelector files={files} setFiles={setFiles} />
+								<SelectedFiles files={files} setFiles={setFiles} />
 								{/* selected code */}
 								{!!selection?.selectionStr && (
 									<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(

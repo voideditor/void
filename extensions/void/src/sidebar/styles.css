@@ -3,33 +3,37 @@
 @tailwind utilities;
 
 html {
-    font-size: var(--vscode-font-size);
+	font-size: var(--vscode-font-size);
 }
 
 .btn {
-    @apply cursor-pointer transition-colors;
+	@apply cursor-pointer transition-colors;
 
-    &.btn-primary {
-        @apply bg-vscode-button-bg text-vscode-button-fg;
+	&.btn-primary {
+		@apply bg-vscode-button-bg text-vscode-button-fg;
 
-        &:not(:disabled) {
-            @apply hover:bg-vscode-button-hoverBg;
-        }
-    }
+		&:not(:disabled) {
+			@apply hover:bg-vscode-button-hoverBg;
+		}
+	}
 
-    &.btn-secondary {
-        @apply bg-vscode-button-secondary-bg text-vscode-button-secondary-fg;
+	&.btn-sm {
+		@apply px-3 py-1 text-sm;
+	}
 
-        &:not(:disabled) {
-            @apply hover:bg-vscode-button-secondary-hoverBg;
-        }
-    }
+	&.btn-secondary {
+		@apply bg-vscode-button-secondary-bg text-vscode-button-secondary-fg;
 
-    &:disabled {
-        @apply opacity-75 cursor-not-allowed;
-    }
+		&:not(:disabled) {
+			@apply hover:bg-vscode-button-secondary-hoverBg;
+		}
+	}
+
+	&:disabled {
+		@apply opacity-75 cursor-not-allowed;
+	}
 }
 
 .input {
-    @apply bg-vscode-input-bg text-vscode-input-fg border-vscode-input-border;
+	@apply bg-vscode-input-bg text-vscode-input-fg border-vscode-input-border;
 }

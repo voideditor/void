@@ -10,6 +10,11 @@ const awaiting: { [c in Command]: ((res: any) => void)[] } = {
 	"files": [],
 	"apiConfig": [],
 	"getApiConfig": [],
+	"startNewThread": [],
+	"getAllThreads": [],
+	"allThreads": [],
+	"persistThread": [],
+	"toggleThreadSelector": []
 }
 
 // use this function to await responses

@@ -2,6 +2,8 @@
 import * as vscode from 'vscode';
 import { ApiConfig } from './common/sendLLMMessage';
 
+
+
 // a selection is a frozen snapshot
 type CodeSelection = { selectionStr: string, selectionRange: vscode.Range, filePath: vscode.Uri }
 
@@ -14,13 +16,20 @@ type DiffArea = {
 	originalCode: string
 }
 
-// each diff on the user's screen right now
+// the return type of diff creator
+type DiffBlock = {
+	code: string;
+	deletedRange: vscode.Range;
+	deletedCode: string;
+	insertedRange: vscode.Range;
+	insertedCode: string;
+}
+
+// each diff on the user's screen
 type Diff = {
 	diffid: number,
 	lenses: vscode.CodeLens[],
-	greenRange: vscode.Range,
-	originalCode: string, // If a revert happens, we replace the greenRange with this content.
-}
+} & DiffBlock
 
 type WebviewMessage = (
 
@@ -44,9 +53,11 @@ type WebviewMessage = (
 
 )
 
+
 type Command = WebviewMessage['type']
 
 export {
+	DiffBlock,
 	CodeSelection,
 	File,
 	WebviewMessage,

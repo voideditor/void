@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { getDiffedLines, SuggestedDiff } from './getDiffedLines';
-import { Diff, DiffArea } from './shared_types';
+import { findDiffs } from './findDiffs';
+import { Diff, DiffArea, DiffBlock } from './shared_types';
 
 
 
@@ -142,7 +142,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 			const currentCode = editor.document.getText(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)).replace(/\r\n/g, '\n')
 
 			// compute the diffs
-			const diffs = getDiffedLines(diffArea.originalCode, currentCode)
+			const diffs = findDiffs(diffArea.originalCode, currentCode)
 
 			// print diffs
 			console.log('!CODEBefore:', JSON.stringify(diffArea.originalCode))
@@ -152,15 +152,27 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 			this.addDiffs(editor.document.uri, diffs)
 
 			for (const diff of this._diffsOfDocument[docUriStr]) {
-				console.log('originalCodeDiff:', JSON.stringify(diff.originalCode))
-				console.log('greenCodeDiff:', JSON.stringify(editor.document.getText(diff.greenRange).replace(/\r\n/g, '\n')))
+				console.log('------------')
+				console.log('deletedCode:', JSON.stringify(diff.deletedCode))
+				console.log('insertedCode:', JSON.stringify(diff.insertedCode))
+				console.log('deletedRange:', diff.deletedRange.start.line, diff.deletedRange.end.line,)
+				console.log('insertedRange:', diff.insertedRange.start.line, diff.insertedRange.end.line,)
 			}
 
 
 		}
 
-		// update highlighting
-		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange))
+		// update green highlighting
+		editor.setDecorations(
+			greenDecoration,
+			(this._diffsOfDocument[docUriStr]
+				.filter(diff => diff.insertedRange !== undefined)
+				.map(diff => diff.insertedRange)
+			)
+		);
+
+		// TODO update red highlighting
+		// this._diffsOfDocument[docUriStr].map(diff => diff.deletedCode)
 
 		// update code lenses
 		this._onDidChangeCodeLenses.fire()
@@ -168,7 +180,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 	}
 
 	// used by us only
-	public addDiffs(docUri: vscode.Uri, diffs: SuggestedDiff[]) {
+	public addDiffs(docUri: vscode.Uri, diffs: DiffBlock[]) {
 
 		const docUriStr = docUri.toString()
 
@@ -176,43 +188,17 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 		if (!this._diffsOfDocument[docUriStr])
 			this._diffsOfDocument[docUriStr] = []
 
-
-		// 1. convert suggested diffs (which are described using line numbers) into actual diffs (described using vscode.Range, vscode.Uri)
-		// must do this before adding codelenses or highlighting so that codelens and highlights will apply to the fresh code and not the old code
-		// apply changes in reverse order so additions don't push down the line numbers of the next edit
-		let workspaceEdit = new vscode.WorkspaceEdit();
+		// add each diff and its codelens to the document
 		for (let i = diffs.length - 1; i > -1; i -= 1) {
 			let suggestedDiff = diffs[i]
 
-			let greenRange: vscode.Range
-
-			// INSERTIONS (e.g. {originalStartLine: 0, originalEndLine: -1})
-			if (suggestedDiff.originalStartLine > suggestedDiff.originalEndLine) {
-				const originalPosition = new vscode.Position(suggestedDiff.originalStartLine, 0)
-				workspaceEdit.insert(docUri, originalPosition, suggestedDiff.afterCode + '\n') // add back in the line we deleted when we made the startline->endline range go negative
-				greenRange = new vscode.Range(suggestedDiff.startLine, 0, suggestedDiff.endLine + 1, 0)
-			}
-			// DELETIONS
-			else if (suggestedDiff.startLine > suggestedDiff.endLine) {
-				const deleteRange = new vscode.Range(suggestedDiff.originalStartLine, 0, suggestedDiff.originalEndLine + 1, 0)
-				workspaceEdit.delete(docUri, deleteRange)
-				greenRange = new vscode.Range(suggestedDiff.startLine, 0, suggestedDiff.startLine, 0)
-				suggestedDiff.beforeCode += '\n' // add back in the line we deleted when we made the startline->endline range go negative
-			}
-			// REPLACEMENTS
-			else {
-				const originalRange = new vscode.Range(suggestedDiff.originalStartLine, 0, suggestedDiff.originalEndLine, Number.MAX_SAFE_INTEGER)
-				workspaceEdit.replace(docUri, originalRange, suggestedDiff.afterCode)
-				greenRange = new vscode.Range(suggestedDiff.startLine, 0, suggestedDiff.endLine, Number.MAX_SAFE_INTEGER)
-			}
-
 			this._diffsOfDocument[docUriStr].push({
+				...suggestedDiff,
 				diffid: this._diffidPool,
-				greenRange: greenRange,
-				originalCode: suggestedDiff.beforeCode,
+				// originalCode: suggestedDiff.deletedText,
 				lenses: [
-					new vscode.CodeLens(greenRange, { title: 'Accept', command: 'void.acceptDiff', arguments: [{ diffid: this._diffidPool }] }),
-					new vscode.CodeLens(greenRange, { title: 'Reject', command: 'void.rejectDiff', arguments: [{ diffid: this._diffidPool }] })
+					new vscode.CodeLens(suggestedDiff.insertedRange, { title: 'Accept', command: 'void.acceptDiff', arguments: [{ diffid: this._diffidPool }] }),
+					new vscode.CodeLens(suggestedDiff.insertedRange, { title: 'Reject', command: 'void.rejectDiff', arguments: [{ diffid: this._diffidPool }] })
 				]
 			});
 			this._diffidPool += 1
@@ -261,17 +247,17 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 			return
 		}
 
-		const { greenRange: range, lenses, originalCode } = this._diffsOfDocument[docUriStr][index] // do this before we splice and mess up index
+		const { insertedRange: range, lenses, deletedCode } = this._diffsOfDocument[docUriStr][index] // do this before we splice and mess up index
 
 		// remove this diff from the diffsOfDocument[docStr] (can change this behavior in future if add something like history)
 		this._diffsOfDocument[docUriStr].splice(index, 1)
 
 		// clear the decoration in this diffs range
-		editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.greenRange))
+		// editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.insertionRange))
 
 		// REVERT THE CHANGE (this is the only part that's different from acceptDiff)
 		let workspaceEdit = new vscode.WorkspaceEdit();
-		workspaceEdit.replace(docUri, range, originalCode);
+		// workspaceEdit.replace(docUri, range, deletedCode);
 		this._weAreEditing = true
 		await vscode.workspace.applyEdit(workspaceEdit)
 		await vscode.workspace.save(docUri)

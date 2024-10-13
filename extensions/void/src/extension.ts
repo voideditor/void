@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
 			// vscode.commands.executeCommand('vscode.moveViewToPanel', CustomViewProvider.viewId); // move to aux bar
 
 			// get the text the user is selecting
-			const selectionStr = editor.document.getText(editor.selection);
+			const selectionStr = editor.document.getText(editor.selection);5
 
 			// get the range of the selection
 			const selectionRange = editor.selection;

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DiffArea, WebviewMessage } from './shared_types';
+import { BaseDiffArea, WebviewMessage } from './shared_types';
 import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
 			// vscode.commands.executeCommand('vscode.moveViewToPanel', CustomViewProvider.viewId); // move to aux bar
 
 			// get the text the user is selecting
-			const selectionStr = editor.document.getText(editor.selection);5
+			const selectionStr = editor.document.getText(editor.selection); 5
 
 			// get the range of the selection
 			const selectionRange = editor.selection;
@@ -124,9 +124,11 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 
 					// create an area to show diffs
-					const diffArea: DiffArea = {
+					const diffArea: BaseDiffArea = {
 						startLine: 0, // in ctrl+L the start and end lines are the full document
 						endLine: editor.document.lineCount,
+						originalStartLine: 0,
+						originalEndLine: editor.document.lineCount,
 						originalCode: await readFileContentOfUri(editor.document.uri),
 					}
 					displayChangesProvider.addDiffArea(editor.document.uri, diffArea)
@@ -139,12 +141,10 @@ export function activate(context: vscode.ExtensionContext) {
 					// await vscode.workspace.save(docUri)
 					// this._weAreEditing = false
 					await editor.edit(editBuilder => {
-						editBuilder.replace(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, 0), m.code);
+						editBuilder.replace(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER), m.code);
 					});
 
-
-
-					// rediff the changes based on the diffArea (start, end, original code, [current code])
+					// rediff the changes based on the diffAreas
 					displayChangesProvider.refreshDiffAreas(editor.document.uri)
 
 				}

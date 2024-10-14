@@ -1,7 +1,7 @@
 
 import * as vscode from 'vscode';
 // import { diffLines, Change } from 'diff';
-import { DiffBlock } from './shared_types';
+import { BaseDiff } from './shared_types';
 
 import { diff_match_patch } from 'diff-match-patch';
 
@@ -20,11 +20,11 @@ const diffLines = (text1: string, text2: string) => {
 
 
 // TODO use a better diff algorithm
-export const findDiffs = (oldText: string, newText: string): DiffBlock[] => {
+export const findDiffs = (oldText: string, newText: string): BaseDiff[] => {
 
 	const diffs = diffLines(oldText, newText);
 
-	const blocks: DiffBlock[] = [];
+	const blocks: BaseDiff[] = [];
 	let reprBlock: string[] = [];
 	let deletedBlock: string[] = [];
 	let insertedBlock: string[] = [];

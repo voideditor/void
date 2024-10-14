@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { findDiffs } from './findDiffs';
-import { Diff, DiffArea, DiffBlock } from './shared_types';
+import { Diff, BaseDiffArea, BaseDiff, DiffArea } from './shared_types';
 
 
 
@@ -17,6 +17,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 	private _diffAreasOfDocument: { [docUriStr: string]: DiffArea[] } = {}
 	private _diffsOfDocument: { [docUriStr: string]: Diff[] } = {}
 
+	private _diffareaidPool = 0
 	private _diffidPool = 0
 	private _weAreEditing: boolean = false
 
@@ -37,6 +38,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 
 		// this acts as a useEffect. Every time text changes, clear the diffs in this editor
 		vscode.workspace.onDidChangeTextDocument((e) => {
+
 			const editor = vscode.window.activeTextEditor
 
 			if (!editor)
@@ -97,7 +99,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 
 
 	// used by us only
-	public addDiffArea(uri: vscode.Uri, diffArea: DiffArea) {
+	public addDiffArea(uri: vscode.Uri, diffArea: BaseDiffArea) {
 
 		const uriStr = uri.toString()
 
@@ -107,16 +109,20 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 
 		// remove all diffAreas that the new `diffArea` is overlapping with
 		this._diffAreasOfDocument[uriStr] = this._diffAreasOfDocument[uriStr].filter(da => {
-			// condition for no overlap
+
 			const noOverlap = da.startLine > diffArea.endLine || da.endLine < diffArea.startLine
-			// if there is overlap (ie there is `not noOverlap`), remove `da`
+
 			if (!noOverlap) return false
+
 			return true
 		})
 
 		// add `diffArea` to storage
-		this._diffAreasOfDocument[uriStr].push(diffArea)
-
+		this._diffAreasOfDocument[uriStr].push({
+			...diffArea,
+			diffareaid: this._diffareaidPool
+		})
+		this._diffareaidPool += 1
 	}
 
 
@@ -149,7 +155,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 			console.log('!CODEAfter:', JSON.stringify(currentCode))
 
 			// add the diffs to `this._diffsOfDocument[docUriStr]`
-			this.addDiffs(editor.document.uri, diffs)
+			this.addDiffs(editor.document.uri, diffs, diffArea)
 
 			for (const diff of this._diffsOfDocument[docUriStr]) {
 				console.log('------------')
@@ -180,7 +186,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 	}
 
 	// used by us only
-	public addDiffs(docUri: vscode.Uri, diffs: DiffBlock[]) {
+	public addDiffs(docUri: vscode.Uri, diffs: BaseDiff[], diffArea: DiffArea) {
 
 		const docUriStr = docUri.toString()
 
@@ -197,8 +203,8 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 				diffid: this._diffidPool,
 				// originalCode: suggestedDiff.deletedText,
 				lenses: [
-					new vscode.CodeLens(suggestedDiff.insertedRange, { title: 'Accept', command: 'void.acceptDiff', arguments: [{ diffid: this._diffidPool }] }),
-					new vscode.CodeLens(suggestedDiff.insertedRange, { title: 'Reject', command: 'void.rejectDiff', arguments: [{ diffid: this._diffidPool }] })
+					new vscode.CodeLens(suggestedDiff.insertedRange, { title: 'Accept', command: 'void.acceptDiff', arguments: [{ diffid: this._diffidPool, diffareaid: diffArea.diffareaid }] }),
+					new vscode.CodeLens(suggestedDiff.insertedRange, { title: 'Reject', command: 'void.rejectDiff', arguments: [{ diffid: this._diffidPool, diffareaid: diffArea.diffareaid }] })
 				]
 			});
 			this._diffidPool += 1
@@ -207,7 +213,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 	}
 
 	// called on void.acceptDiff
-	public async acceptDiff({ diffid }: { diffid: number }) {
+	public async acceptDiff({ diffid, diffareaid }: { diffid: number, diffareaid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
 			return
@@ -216,54 +222,94 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 		const docUri = editor.document.uri
 		const docUriStr = docUri.toString()
 
-		// get index of this diff in diffsOfDocument
-		const index = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
-		if (index === -1) {
-			console.error('Error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr])
-			return
+		// get relevant diff
+		// TODO speed up with hashmap
+		const diffIdx = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
+		if (diffIdx === -1) {
+			console.error('Error: DiffID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return;
 		}
 
-		// remove this diff from the diffsOfDocument[docStr] (can change this behavior in future if add something like history)
-		this._diffsOfDocument[docUriStr].splice(index, 1)
+		// get relevant diffArea
+		const diffareaIdx = this._diffAreasOfDocument[docUriStr].findIndex(diff => diff.diffareaid === diffareaid);
+		if (diffareaIdx === -1) {
+			console.error('Error: DiffAreaID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return;
+		}
 
-		// refresh
+		const diff = this._diffsOfDocument[docUriStr][diffIdx]
+		const diffArea = this._diffAreasOfDocument[docUriStr][diffareaIdx]
+
+		// replace `originalCode[diff.deletedRange]` with diff.insertedCode
+		// TODO add a history event to undo this change
+		const originalLines = diffArea.originalCode.split('\n');
+		const relativeStart = diff.deletedRange.start.line - diffArea.originalStartLine
+		const relativeEnd = diff.deletedRange.end.line - diffArea.originalStartLine
+		diffArea.originalCode = [
+			...originalLines.slice(0, relativeStart),	// lines before the deleted range
+			...diff.insertedCode.split('\n'),			// inserted lines
+			...originalLines.slice(relativeEnd + 1)		// lines after the deleted range
+		].join('\n')
+
+		// if the diffArea has no changes, remove it
+		const currentDiffAreaCode = editor.document.getText()
+			.replace(/\r\n/g, '\n')
+			.split('\n')
+			.slice(diffArea.startLine, diffArea.endLine + 1)
+			.join('\n')
+		if (diffArea.originalCode === currentDiffAreaCode) { // if the currentDiffAreaCode === diffArea.originalCode, remove the diffArea
+			const index = this._diffAreasOfDocument[docUriStr].findIndex(da => da.diffareaid === diffArea.diffareaid)
+			this._diffAreasOfDocument[docUriStr].splice(index, 1)
+		}
+
+		// refresh the diff area
 		this.refreshDiffAreas(docUri)
 	}
 
 
 	// called on void.rejectDiff
-	public async rejectDiff({ diffid }: { diffid: number }) {
+	public async rejectDiff({ diffid, diffareaid }: { diffid: number, diffareaid: number }) {
 		const editor = vscode.window.activeTextEditor
 		if (!editor)
 			return
 
+		// get document uri
 		const docUri = editor.document.uri
 		const docUriStr = docUri.toString()
 
-		// get index of this diff in diffsOfDocument
-		const index = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
-		if (index === -1) {
-			console.error('Void error: DiffID could not be found: ', diffid, this._diffsOfDocument[docUriStr])
-			return
+		// get relevant diff
+		// TODO speed up with hashmap
+		const diffIdx = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
+		if (diffIdx === -1) {
+			console.error('Error: DiffID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return;
 		}
 
-		const { insertedRange: range, lenses, deletedCode } = this._diffsOfDocument[docUriStr][index] // do this before we splice and mess up index
+		// get relevant diffArea
+		const diffareaIdx = this._diffAreasOfDocument[docUriStr].findIndex(diff => diff.diffareaid === diffareaid);
+		if (diffareaIdx === -1) {
+			console.error('Error: DiffAreaID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return;
+		}
 
-		// remove this diff from the diffsOfDocument[docStr] (can change this behavior in future if add something like history)
-		this._diffsOfDocument[docUriStr].splice(index, 1)
+		const diff = this._diffsOfDocument[docUriStr][diffIdx]
+		const diffArea = this._diffAreasOfDocument[docUriStr][diffareaIdx]
 
-		// clear the decoration in this diffs range
-		// editor.setDecorations(greenDecoration, this._diffsOfDocument[docUriStr].map(diff => diff.insertionRange))
-
-		// REVERT THE CHANGE (this is the only part that's different from acceptDiff)
-		let workspaceEdit = new vscode.WorkspaceEdit();
-		// workspaceEdit.replace(docUri, range, deletedCode);
+		// replace `editorCode[diff.insertedRange]` with diff.deletedCode
+		const workspaceEdit = new vscode.WorkspaceEdit();
+		workspaceEdit.replace(docUri, diff.insertedRange, diff.deletedCode)
 		this._weAreEditing = true
 		await vscode.workspace.applyEdit(workspaceEdit)
-		await vscode.workspace.save(docUri)
 		this._weAreEditing = false
 
-		// refresh
+		// if the diffArea has no changes, remove it
+		const currentDiffAreaCode = editor.document.getText()
+			.replace(/\r\n/g, '\n')
+			.split('\n')
+			.slice(diffArea.startLine, diffArea.endLine + 1)
+			.join('\n')
+		if (diffArea.originalCode === currentDiffAreaCode) { // if the currentDiffAreaCode === diffArea.originalCode, remove the diffArea
+			const index = this._diffAreasOfDocument[docUriStr].findIndex(da => da.diffareaid === diffArea.diffareaid)
+			this._diffAreasOfDocument[docUriStr].splice(index, 1)
+		}
+
+		// refresh the diff area
 		this.refreshDiffAreas(docUri)
 	}
 }

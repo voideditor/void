@@ -86,9 +86,9 @@ export const findDiffs = (oldText: string, newText: string): BaseDiff[] => {
 	// Add any remaining blocks after the loop ends
 	if (insertedBlock.length > 0 || deletedBlock.length > 0) {
 		blocks.push({
-			code: reprBlock.join('\n'),
-			deletedCode: deletedBlock.join('\n'),
-			insertedCode: insertedBlock.join('\n'),
+			code: reprBlock.join(''),
+			deletedCode: deletedBlock.join(''),
+			insertedCode: insertedBlock.join(''),
 			deletedRange: new vscode.Range(deletedStart, 0, deletedLine, Number.MAX_SAFE_INTEGER),
 			insertedRange: new vscode.Range(insertedStart, 0, insertedLine, Number.MAX_SAFE_INTEGER),
 		});

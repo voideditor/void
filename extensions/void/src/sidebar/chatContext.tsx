@@ -60,9 +60,6 @@ function ChatProvider({ children }: { children: ReactNode }) {
 						setCurrentThreadId(currentThread.id)
 					}
 
-					console.log('adding message: ', currentThreadId, currentThread.id, message.displayContent)
-					console.log('allThreads', allThreads)
-
 					setAllThreads({
 						...allThreads.current,
 						[currentThread.id]: {

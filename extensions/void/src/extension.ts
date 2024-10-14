@@ -43,7 +43,8 @@ const getApiConfig = () => {
 			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
 			model: vscode.workspace.getConfiguration('void.openAICompatible').get('model') ?? '',
 		},
-		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
+		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? '',
+		embeddingApi: vscode.workspace.getConfiguration('void').get('embeddingApi') ?? ''
 	}
 	return apiConfig
 }
@@ -170,10 +171,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	)
 
-
-	// run embed workspace files
 	embedWorkspaceFiles(getApiConfig())
-
 
 	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)
 	// TODO need to build this

@@ -3,6 +3,15 @@ import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
 
 
+export enum ApiProvider {
+	ANTHROPIC = 'anthropic',
+	OPENAI = 'openai',
+	GREPTILE = 'greptile',
+	OLLAMA = 'ollama',
+	OPENAI_COMPATIBLE = 'openAICompatible'
+}
+
+
 // always compare these against package.json to make sure every setting in this type can actually be provided by the user
 export type ApiConfig = {
 	anthropic: {
@@ -34,6 +43,7 @@ export type ApiConfig = {
 		apikey: string
 	}
 	whichApi: string
+	embeddingApi: string
 }
 
 

@@ -56,8 +56,8 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 		</>
 	}
 	else if (role === 'assistant') {
-		const tokens = marked.lexer(children); // https://marked.js.org/using_pro#renderer
-		chatbubbleContents = <MarkdownRender tokens={tokens} /> // sectionsHTML
+
+		chatbubbleContents = <MarkdownRender string={children} /> // sectionsHTML
 	}
 
 

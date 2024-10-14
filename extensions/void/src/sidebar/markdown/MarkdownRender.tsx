@@ -1,9 +1,9 @@
-import React, { JSX, useState } from "react"
-import { MarkedToken, Token, TokensList } from "marked"
-import { awaitVSCodeResponse, getVSCodeAPI } from "../getVscodeApi"
+import React, { JSX } from "react"
+import { marked, MarkedToken, Token, TokensList } from "marked"
 import BlockCode from "./BlockCode"
 
-const Render = ({ token }: { token: Token }) => {
+const RenderToken = ({ token, nested = false }: { token: Token | string, nested?: boolean }): JSX.Element => {
+
 	// deal with built-in tokens first (assume marked token)
 	const t = token as MarkedToken
 
@@ -62,7 +62,7 @@ const Render = ({ token }: { token: Token }) => {
 		const ListTag = t.ordered ? "ol" : "ul"
 		return (
 			<ListTag
-				start={t.start !== "" ? t.start : undefined}
+				start={t.start ? t.start : undefined}
 				className={`list-inside ${t.ordered ? "list-decimal" : "list-disc"}`}
 			>
 				{t.items.map((item, index) => (
@@ -70,7 +70,7 @@ const Render = ({ token }: { token: Token }) => {
 						{item.task && (
 							<input type="checkbox" checked={item.checked} readOnly />
 						)}
-						{item.text}
+						<MarkdownRender string={item.text} nested={true} />
 					</li>
 				))}
 			</ListTag>
@@ -78,15 +78,17 @@ const Render = ({ token }: { token: Token }) => {
 	}
 
 	if (t.type === "paragraph") {
-		return (
-			<p>
-				{t.tokens.map((token, index) => (
-					<Render key={index} token={token} />
-				))}
-			</p>
-		)
+		const contents = <>
+			{t.tokens.map((token, index) => (
+				<RenderToken key={index} token={token} />
+			))}
+		</>
+		if (nested)
+			return contents
+		return <p>{contents}</p>
 	}
 
+	// don't actually render <html> tags, just render strings of them
 	if (t.type === "html") {
 		return (
 			<pre>
@@ -102,7 +104,7 @@ const Render = ({ token }: { token: Token }) => {
 	}
 
 	if (t.type === "def") {
-		return null // Definitions are typically not rendered
+		return <></> // Definitions are typically not rendered
 	}
 
 	if (t.type === "link") {
@@ -138,6 +140,7 @@ const Render = ({ token }: { token: Token }) => {
 		return <br />
 	}
 
+	// strikethrough
 	if (t.type === "del") {
 		return <del>{t.text}</del>
 	}
@@ -151,11 +154,12 @@ const Render = ({ token }: { token: Token }) => {
 	)
 }
 
-const MarkdownRender = ({ tokens }: { tokens: TokensList }) => {
+const MarkdownRender = ({ string, nested = false }: { string: string, nested?: boolean }) => {
+	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
-				<Render key={index} token={token} />
+				<RenderToken key={index} token={token} nested={nested} />
 			))}
 		</>
 	)

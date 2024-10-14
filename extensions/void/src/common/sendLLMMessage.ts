@@ -119,7 +119,8 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 		didAbort = true;
 	};
 
-	const openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
+	//const openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
+	const openai = apiConfig.whichApi === 'openAICompatible' ? new OpenAI({ baseURL: apiConfig.openAICompatible.endpoint, apiKey: apiConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true }) : new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
 
 	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
 	if (apiConfig.whichApi === 'openAI') {

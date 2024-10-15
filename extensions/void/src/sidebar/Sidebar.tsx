@@ -119,10 +119,9 @@ const Sidebar = () => {
 	// state of chat
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
+	const [isThreadSelectorOpen, setIsThreadSelectorOpen] = useState(false)
 	const [requestFailed, setRequestFailed] = useState(false)
 	const [requestFailedReason, setRequestFailedReason] = useState('')
-  const [isThreadSelectorOpen, setIsThreadSelectorOpen] = useState(false)
-
 
 	const abortFnRef = useRef<(() => void) | null>(null)
 
@@ -201,7 +200,7 @@ const Sidebar = () => {
 		const newHistoryElt: ChatMessage = { role: 'user', content, displayContent: instructions, selection, files }
 		addMessageToHistory(newHistoryElt)
 
-		// send message to LLM
+		// send message to claude
 		let { abort } = sendLLMMessage({
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
 			onText: (newText, fullText) => setMessageStream(fullText),
@@ -278,6 +277,12 @@ const Sidebar = () => {
 									)} />
 								)}
 							</div>}
+							{/* error message */}
+							{requestFailed && (
+								<div className="bg-gray-800 text-red-500 text-center p-4 mb-4 rounded-md shadow-md">
+									<div className="text-lg">{`${requestFailedReason}`}</div>
+								</div>
+								)}
 							<form
 								ref={formRef}
 								className="flex flex-row items-center rounded-md p-2"
@@ -319,50 +324,6 @@ const Sidebar = () => {
 						</div>
 					</div>
 				</div>
-				{/* error message */}
-				{requestFailed && (
-					<div className="bg-gray-800 text-red-500 text-center p-4 mb-4 rounded-md shadow-md">
-						<div className="text-lg">{`${requestFailedReason}`}</div>
-					</div>
-					)}
-				<form
-					ref={formRef}
-					className="flex flex-row items-center rounded-md p-2 input"
-					onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
-
-					onSubmit={(e) => {
-						console.log('submit!')
-						e.preventDefault();
-						onSubmit(e)
-					}}>
-
-					{/* input */}
-					<textarea
-						onChange={(e) => { setInstructions(e.target.value) }}
-						className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
-						placeholder="Ctrl+L to select"
-						rows={1}
-						onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
-					/>
-					{/* submit button */}
-					{isLoading ?
-						<button
-							onClick={onStop}
-							className="btn btn-primary rounded-r-lg max-h-10 p-2"
-							type='button'
-						>Stop</button>
-						: <button
-							className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
-							disabled={!instructions}
-							type='submit'
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-								<line x1="12" y1="19" x2="12" y2="5"></line>
-								<polyline points="5 12 12 5 19 12"></polyline>
-							</svg>
-						</button>
-					}
-				</form>
 			</div>
 		</div>
 

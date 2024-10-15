@@ -151,9 +151,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 }) => {
 	const { apikey, model } = apiConfig.openAI;
 
-	if (!apikey) {
-		return handleMissingApiKey('OpenAI', onError);
-	}
+
 
 	let didAbort = false;
 	let fullText = '';
@@ -167,6 +165,9 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 
 
 	if (apiConfig.whichApi === 'openAI') {
+		if (!apikey) {
+			return handleMissingApiKey('OpenAI', onError);
+		}
 		openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
 		options = { model: apiConfig.openAI.model, messages: messages, stream: true, }
 	}
@@ -185,7 +186,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 		options = { model: apiConfig.openAICompatible.model, messages: messages, stream: true, }
 	}
 	else {
-		console.error(`sendOpenAIMsg: invalid whichApi: ${apiConfig.whichApi}`)
+		onError(`Invalid API: ${apiConfig.whichApi}`)
 		throw new Error(`apiConfig.whichAPI was invalid: ${apiConfig.whichApi}`)
 	}
 
@@ -207,7 +208,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 					onFinalMessage(fullText);
 				}
 			} catch (error) {
-				onError(`Error in OpenAI stream: ${error}`);
+				onError(`Error in stream: ${error}`);
 				console.error('Error in OpenAI stream:', error);
 				if (!didAbort) {
 					onFinalMessage(fullText);
@@ -216,9 +217,9 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 		})
 		.catch((responseError) => {
 			if (responseError.status === 401) {
-				onError('Unauthorized: Invalid OpenAI API key');
+				onError('Unauthorized: Invalid API key');
 			} else if (responseError.status === 400 && responseError.param === 'stream') {
-				onError(`The OpenAI model '${model}' does not support streamed responses.`);
+				onError(`The model '${model}' does not support streamed responses.`);
 			} else {
 				onError(responseError.message);
 			}

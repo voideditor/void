@@ -11,7 +11,7 @@ export interface VectorStoreAdapter {
 	getStoredMtime: (path: string) => Promise<number | null>;
 }
 
-const getVectorStoreClient = (embeddingApi: Embeddings) => {
+export const getVectorStoreClient = (embeddingApi: Embeddings) => {
 	const apiConfig = getApiConfig();
 
 	switch (apiConfig.vectorStore) {
@@ -21,5 +21,3 @@ const getVectorStoreClient = (embeddingApi: Embeddings) => {
 			return null;
 	}
 };
-
-export default getVectorStoreClient;

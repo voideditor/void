@@ -9,8 +9,8 @@ import {
 import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { TextLoader } from "langchain/document_loaders/fs/text";
 import { ApiProvider, getApiConfig } from "../config";
-import getVectorStoreClient from "./vectorStore";
 import { Embeddings } from "@langchain/core/embeddings";
+import { getVectorStoreClient } from "./vectorStore/index";
 
 enum FileType {
 	UNKNOWN = "unknown",
@@ -25,6 +25,8 @@ const detectFileType = (
 	switch (path.extname(file.fsPath)) {
 		case ".js":
 		case ".ts":
+		case ".jsx":
+		case ".tsx":
 			return { type: FileType.CODE, language: "js" };
 		case ".py":
 			return { type: FileType.CODE, language: "python" };
@@ -116,6 +118,8 @@ export const embedWorkspaceFiles = async () => {
 		);
 
 		files?.forEach(async (file) => {
+			console.debug(`Embedding file: ${file.fsPath}`);
+
 			// check if file has been modified since last embedding
 			const stat = fs.statSync(file.fsPath);
 			const mtime = stat.mtime.getTime();
@@ -129,7 +133,10 @@ export const embedWorkspaceFiles = async () => {
 
 				// for already embedded files, delete the old embeddings so they don't show up in search results
 				if (storedMtime) {
+					console.debug(`File ${file.fsPath} modified since last embedding`);
 					await vectorStore.deleteDocuments(file.fsPath);
+				} else {
+					console.debug(`File ${file.fsPath} is new`);
 				}
 
 				// if we handle this file type, embed it and save to vector store
@@ -147,8 +154,19 @@ export const embedWorkspaceFiles = async () => {
 					const chunks = await textSplitter.splitDocuments(docsWithMetadata);
 
 					await vectorStore.uploadDocuments(chunks);
+
+					console.debug(`File ${file.fsPath} embedded`);
+				} else {
+					console.debug(`File ${file.fsPath} is of an unsupported type`);
 				}
+			} else {
+				console.debug(`File ${file.fsPath} is up to date, skipping embedding`);
 			}
+		});
+	} else {
+		console.error("Embedding client or vector store client not configured", {
+			embeddingClient,
+			vectorStore,
 		});
 	}
 };

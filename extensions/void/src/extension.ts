@@ -134,6 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	)
 
+	// 6. Background jobs
 	embedWorkspaceFiles()
 
 	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)

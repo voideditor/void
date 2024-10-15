@@ -8,8 +8,9 @@ import {
 } from "@langchain/textsplitters";
 import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { TextLoader } from "langchain/document_loaders/fs/text";
-import getVectorStore from "./vectorStore";
-import { ApiConfig, ApiProvider, getApiConfig } from "../config";
+import { ApiProvider, getApiConfig } from "../config";
+import getVectorStoreClient from "./vectorStore";
+import { Embeddings } from "@langchain/core/embeddings";
 
 enum FileType {
 	UNKNOWN = "unknown",
@@ -85,7 +86,9 @@ const getLoader = (type: FileType, file: vscode.Uri) => {
 	}
 };
 
-const getEmbeddingClient = (apiConfig: ApiConfig) => {
+const getEmbeddingClient = (): Embeddings | null => {
+	const apiConfig = getApiConfig();
+
 	switch (apiConfig.embeddingApi) {
 		case ApiProvider.OPENAI:
 			return new OpenAIEmbeddings({
@@ -98,9 +101,8 @@ const getEmbeddingClient = (apiConfig: ApiConfig) => {
 };
 
 export const embedWorkspaceFiles = async () => {
-	const apiConfig = getApiConfig();
-	const embeddingClient = getEmbeddingClient(apiConfig);
-	const vectorStore = await getVectorStore(embeddingClient);
+	const embeddingClient = getEmbeddingClient();
+	const vectorStore = embeddingClient && getVectorStoreClient(embeddingClient);
 
 	// if embedding and vector store keys are configured, proceed
 	if (embeddingClient && vectorStore) {
@@ -113,7 +115,7 @@ export const embedWorkspaceFiles = async () => {
 			`{${excludePatterns}}`
 		);
 
-		files?.map(async (file) => {
+		files?.forEach(async (file) => {
 			// check if file has been modified since last embedding
 			const stat = fs.statSync(file.fsPath);
 			const mtime = stat.mtime.getTime();

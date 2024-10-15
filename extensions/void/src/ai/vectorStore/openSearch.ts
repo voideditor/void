@@ -1,21 +1,9 @@
 import { Client as OpenSearchClient } from "@opensearch-project/opensearch";
 import { Document } from "@langchain/core/documents";
 import { OpenSearchVectorStore } from "@langchain/community/vectorstores/opensearch";
-import { EmbeddingsInterface } from "@langchain/core/embeddings";
-import { ApiConfig, getApiConfig, VectorStore } from "../config";
-
-const INDEX_NAME = "void";
-
-const getVectorStoreClient = async (apiConfig: ApiConfig) => {
-	switch (apiConfig.vectorStore) {
-		case VectorStore.OPENSEARCH:
-			return new OpenSearchClient({
-				nodes: [apiConfig.openSearch.endpoint],
-			});
-		default:
-			return null;
-	}
-};
+import { Embeddings, EmbeddingsInterface } from "@langchain/core/embeddings";
+import { getApiConfig } from "../../config";
+import { INDEX_NAME, VectorStoreAdapter } from ".";
 
 const uploadDocuments = async (
 	client: OpenSearchClient,
@@ -68,19 +56,17 @@ const getStoredMtime = async (
 	}
 };
 
-export default async (embeddingApi: any) => {
+export default (embeddingApi: Embeddings): VectorStoreAdapter => {
 	const apiConfig = getApiConfig();
-	const client = await getVectorStoreClient(apiConfig);
+	const client = new OpenSearchClient({
+		nodes: [apiConfig.openSearch.endpoint],
+	});
 
-	if (client) {
-		return {
-			uploadDocuments: (documents: Document[]) =>
-				uploadDocuments(client, embeddingApi, documents),
-			deleteDocuments: (path: string) => deleteDocuments(client, path),
-			getStoredMtime: (path: string) =>
-				getStoredMtime(client, embeddingApi, path),
-		};
-	} else {
-		return null;
-	}
+	return {
+		uploadDocuments: (documents: Document[]) =>
+			uploadDocuments(client, embeddingApi, documents),
+		deleteDocuments: (path: string) => deleteDocuments(client, path),
+		getStoredMtime: (path: string) =>
+			getStoredMtime(client, embeddingApi, path),
+	};
 };

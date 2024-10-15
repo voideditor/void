@@ -53,7 +53,7 @@ const BlockCode = ({
 			<button
 				className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 				onClick={async () => {
-					getVSCodeAPI().postMessage({ type: "applyCode", code: text })
+					getVSCodeAPI().postMessage({ type: "applyChanges", code: text })
 				}}
 			>
 				Apply

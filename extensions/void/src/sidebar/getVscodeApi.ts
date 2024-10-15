@@ -5,7 +5,7 @@ import { Command, WebviewMessage } from "../shared_types";
 // message -> res[]
 const awaiting: { [c in Command]: ((res: any) => void)[] } = {
 	"ctrl+l": [],
-	"applyCode": [],
+	"applyChanges": [],
 	"requestFiles": [],
 	"files": [],
 	"apiConfig": [],

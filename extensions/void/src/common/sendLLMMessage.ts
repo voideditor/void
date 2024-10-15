@@ -1,30 +1,30 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { Ollama } from 'ollama/browser';
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk'
+import { Ollama } from 'ollama/browser'
+import OpenAI from 'openai'
 
 // always compare these against package.json to make sure every setting in this type can actually be provided by the user
 export type ApiConfig = {
 	anthropic: {
-		apikey: string;
-		model: string;
-		maxTokens: string;
+		apikey: string,
+		model: string,
+		maxTokens: string
 	},
 	openAI: {
 		apikey: string,
-		model: string,
+		model: string
 	},
 	greptile: {
-		apikey: string;
-		githubPAT: string;
+		apikey: string,
+		githubPAT: string,
 		repoinfo: {
-			remote: string; // e.g. 'github'
-			repository: string; // e.g. 'voideditor/void'
-			branch: string; // e.g. 'main'
+			remote: string, // e.g. 'github'
+			repository: string, // e.g. 'voideditor/void'
+			branch: string // e.g. 'main'
 		}
 	},
 	ollama: {
-		endpoint: string;
-		model: string;
+		endpoint: string,
+		model: string
 	},
 	openAICompatible: {
 		endpoint: string,
@@ -41,42 +41,42 @@ export type ApiConfig = {
 type OnText = (newText: string, fullText: string) => void;
 
 export type LLMMessage = {
-	role: 'user' | 'assistant';
-	content: string;
+	role: 'user' | 'assistant',
+	content: string
 };
 
 type SendLLMMessageFnTypeInternal = (params: {
-	messages: LLMMessage[];
-	onText: OnText;
-	onFinalMessage: (input: string) => void;
-	onError: (message: string) => void;
-	apiConfig: ApiConfig;
+	messages: LLMMessage[],
+	onText: OnText,
+	onFinalMessage: (input: string) => void,
+	onError: (message: string) => void,
+	apiConfig: ApiConfig
 }) => {
-	abort: () => void;
+	abort: () => void
 };
 
 type SendLLMMessageFnTypeExternal = (params: {
-	messages: LLMMessage[];
-	onText: OnText;
-	onFinalMessage: (input: string) => void;
-	onError: (message: string) => void;
-	apiConfig: ApiConfig | null;
+	messages: LLMMessage[],
+	onText: OnText,
+	onFinalMessage: (input: string) => void,
+	onError: (message: string) => void,
+	apiConfig: ApiConfig | null
 }) => {
-	abort: () => void;
+	abort: () => void
 };
 
 type AnthropicErrorResponse = {
-	type: string;
+	type: string,
 	error: {
-		type: string;
-		message: string;
+		type: string,
+		message: string
 	};
 };
 
 // Helper function to handle missing API keys
 const handleMissingApiKey = (serviceName: string, onError: (message: string) => void) => {
 	onError(`${serviceName} API key not set`);
-	return { abort: () => {} };
+	return { abort: () => {} }
 };
 
 // Claude
@@ -85,7 +85,7 @@ const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({
 	onText,
 	onFinalMessage,
 	onError,
-	apiConfig,
+	apiConfig
 }) => {
 	const { apikey, model, maxTokens } = apiConfig.anthropic;
 
@@ -98,14 +98,14 @@ const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({
 	const anthropic = new Anthropic({
 		apiKey: apikey,
 		dangerouslyAllowBrowser: true,
-	});
+	})
 
 	const stream = anthropic.messages
 		.stream({
 			model: model,
 			max_tokens: parseInt(maxTokens),
 			messages: messages,
-			stream: true,
+			stream: true
 		})
 		.on('error', (err) => {
 			if (err instanceof Anthropic.APIError) {
@@ -147,7 +147,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 	onText,
 	onFinalMessage,
 	onError,
-	apiConfig,
+	apiConfig
 }) => {
 	const { apikey, model } = apiConfig.openAI;
 
@@ -160,8 +160,8 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 		didAbort = true;
 	};
 
-	let openai: OpenAI
-	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
+	let openai: OpenAI;
+	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming;
 
 
 	if (apiConfig.whichApi === 'openAI') {
@@ -169,7 +169,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 			return handleMissingApiKey('OpenAI', onError);
 		}
 		openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
-		options = { model: apiConfig.openAI.model, messages: messages, stream: true, }
+		options = { model: apiConfig.openAI.model, messages: messages, stream: true, };
 	}
 	else if (apiConfig.whichApi === 'openRouter') {
 		openai = new OpenAI({
@@ -182,12 +182,12 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
 		options = { model: apiConfig.openRouter.model, messages: messages, stream: true, }
 	}
 	else if (apiConfig.whichApi === 'openAICompatible') {
-		openai = new OpenAI({ baseURL: apiConfig.openAICompatible.endpoint, apiKey: apiConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true })
-		options = { model: apiConfig.openAICompatible.model, messages: messages, stream: true, }
+		openai = new OpenAI({ baseURL: apiConfig.openAICompatible.endpoint, apiKey: apiConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true });
+		options = { model: apiConfig.openAICompatible.model, messages: messages, stream: true, };
 	}
 	else {
-		onError(`Invalid API: ${apiConfig.whichApi}`)
-		throw new Error(`apiConfig.whichAPI was invalid: ${apiConfig.whichApi}`)
+		onError(`Invalid API: ${apiConfig.whichApi}`);
+		throw new Error(`apiConfig.whichAPI was invalid: ${apiConfig.whichApi}`);
 	}
 
 	openai.chat.completions
@@ -234,7 +234,7 @@ const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({
 	onText,
 	onFinalMessage,
 	onError,
-	apiConfig,
+	apiConfig
 }) => {
 	const { endpoint, model } = apiConfig.ollama;
 
@@ -256,7 +256,7 @@ const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({
 		.chat({
 			model: model,
 			messages: messages,
-			stream: true,
+			stream: true
 		})
 		.then(async (stream) => {
 			abort = () => {
@@ -321,14 +321,14 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({
 		headers: {
 			Authorization: `Bearer ${apikey}`,
 			'X-Github-Token': `${githubPAT}`,
-			'Content-Type': `application/json`,
+			'Content-Type': `application/json`
 		},
 		body: JSON.stringify({
 			messages,
 			stream: true,
-			repositories: [repoinfo],
+			repositories: [repoinfo]
 		}),
-		signal: controller.signal,
+		signal: controller.signal
 	})
 		.then((response) => {
 			if (response.status === 401) {
@@ -417,7 +417,7 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 				onText,
 				onFinalMessage,
 				onError,
-				apiConfig,
+				apiConfig
 			});
 		case 'ollama':
 
@@ -426,7 +426,7 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 				onText,
 				onFinalMessage,
 				onError,
-				apiConfig,
+				apiConfig
 			});
 
 		default:

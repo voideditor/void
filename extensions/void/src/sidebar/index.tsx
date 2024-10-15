@@ -1,7 +1,7 @@
 import * as React from "react"
 import * as ReactDOM from "react-dom/client"
 import Sidebar from "./Sidebar"
-import { ChatProvider } from "./chatContext"
+import { ThreadsProvider } from "./threadsContext"
 
 // mount the sidebar on the id="root" element
 if (typeof document === "undefined") {
@@ -9,12 +9,12 @@ if (typeof document === "undefined") {
 }
 
 const rootElement = document.getElementById("root")!
-console.log("root Element", rootElement)
+console.log("Void root Element:", rootElement)
 
 const extension = (
-	<ChatProvider>
+	<ThreadsProvider>
 		<Sidebar />
-	</ChatProvider>
+	</ThreadsProvider>
 )
 const root = ReactDOM.createRoot(rootElement)
 root.render(extension)

@@ -9,7 +9,7 @@ import BlockCode from "./markdown/BlockCode";
 
 import * as vscode from 'vscode'
 import { SelectedFiles } from "./components/SelectedFiles";
-import { useChat } from "./chatContext";
+import { useThreads } from "./threadsContext";
 
 
 const filesStr = (fullFiles: File[]) => {
@@ -69,7 +69,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 }
 
 const ThreadSelector = ({ onClose }: { onClose: () => void }) => {
-	const { allThreads, currentThread, switchToThread } = useChat()
+	const { allThreads, currentThread, switchToThread } = useThreads()
 	return (
 		<div className="flex flex-col space-y-1">
 			<div className="text-right">
@@ -109,7 +109,7 @@ const ThreadSelector = ({ onClose }: { onClose: () => void }) => {
 
 
 const Sidebar = () => {
-	const { allThreads, currentThread, addMessageToHistory, startNewThread, } = useChat()
+	const { allThreads, currentThread, addMessageToHistory, startNewThread, } = useThreads()
 
 	// state of current message
 	const [selection, setSelection] = useState<Selection | null>(null) // the code the user is selecting

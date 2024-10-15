@@ -3,7 +3,7 @@ import { ChatMessage, ChatThreads } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI } from "./getVscodeApi"
 
 
-type ChatContextValue = {
+type ThreadsContextValue = {
 	readonly allThreads: ChatThreads | null,
 	readonly currentThread: ChatThreads[string] | null;
 	addMessageToHistory: (message: ChatMessage) => void;
@@ -11,7 +11,7 @@ type ChatContextValue = {
 	startNewThread: () => void;
 }
 
-const ChatContext = createContext<ChatContextValue>({} as ChatContextValue)
+const ThreadsContext = createContext<ThreadsContextValue>(undefined as unknown as ThreadsContextValue)
 
 const createNewThread = () => ({
 	id: new Date().getTime().toString(),
@@ -33,7 +33,7 @@ const useInstantState = <T,>(initVal: T) => {
 }
 
 
-function ChatProvider({ children }: { children: ReactNode }) {
+export function ThreadsProvider({ children }: { children: ReactNode }) {
 	const [allThreads, setAllThreads] = useInstantState<ChatThreads>({})
 	const [currentThreadId, setCurrentThreadId] = useInstantState<string | null>(null)
 
@@ -41,12 +41,14 @@ function ChatProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		getVSCodeAPI().postMessage({ type: "getAllThreads" })
 		awaitVSCodeResponse('allThreads')
-			.then(response => { setAllThreads(response.threads) })
+			.then(response => {
+				setAllThreads(response.threads)
+			})
 	}, [setAllThreads])
 
 
 	return (
-		<ChatContext.Provider
+		<ThreadsContext.Provider
 			value={{
 				allThreads: allThreads.current,
 				currentThread: currentThreadId.current === null || allThreads.current === null ? null : allThreads.current[currentThreadId.current],
@@ -84,16 +86,15 @@ function ChatProvider({ children }: { children: ReactNode }) {
 			}}
 		>
 			{children}
-		</ChatContext.Provider>
+		</ThreadsContext.Provider>
 	)
 }
 
-function useChat(): ChatContextValue {
-	const context = useContext<ChatContextValue>(ChatContext)
+export function useThreads(): ThreadsContextValue {
+	const context = useContext<ThreadsContextValue>(ThreadsContext)
 	if (context === undefined) {
-		throw new Error("useChat must be used within a ChatProvider")
+		throw new Error("useThreads must be used within a ThreadsProvider")
 	}
 	return context
 }
 
-export { ChatProvider, useChat }

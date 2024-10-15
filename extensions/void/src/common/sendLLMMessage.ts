@@ -75,7 +75,7 @@ const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 
 
 
-// OpenAI and OpenAICompatible
+// OpenAI, OpenRouter, OpenAICompatible
 const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 
 	let didAbort = false
@@ -86,13 +86,25 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 		didAbort = true;
 	};
 
-	const openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
-
+	let openai: OpenAI
 	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
+
 	if (apiConfig.whichApi === 'openAI') {
+		openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
 		options = { model: apiConfig.openAI.model, messages: messages, stream: true, }
 	}
+	else if (apiConfig.whichApi === 'openRouter') {
+		openai = new OpenAI({
+			baseURL: "https://openrouter.ai/api/v1", apiKey: apiConfig.openRouter.apikey, dangerouslyAllowBrowser: true,
+			defaultHeaders: {
+				"HTTP-Referer": 'https://voideditor.com', // Optional, for including your app on openrouter.ai rankings.
+				"X-Title": 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
+			},
+		});
+		options = { model: apiConfig.openRouter.model, messages: messages, stream: true, }
+	}
 	else if (apiConfig.whichApi === 'openAICompatible') {
+		openai = new OpenAI({ baseURL: apiConfig.openAICompatible.endpoint, apiKey: apiConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true })
 		options = { model: apiConfig.openAICompatible.model, messages: messages, stream: true, }
 	}
 	else {
@@ -251,6 +263,7 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 		case 'anthropic':
 			return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig });
 		case 'openAI':
+		case 'openRouter':
 		case 'openAICompatible':
 			return sendOpenAIMsg({ messages, onText, onFinalMessage, apiConfig });
 		case 'greptile':
@@ -263,4 +276,3 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 		//return sendClaudeMsg({ messages, onText, onFinalMessage, apiConfig }); // TODO
 	}
 }
-

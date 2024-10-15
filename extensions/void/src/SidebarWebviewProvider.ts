@@ -20,6 +20,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 	private readonly _extensionUri: vscode.Uri
 
 	private _webviewView?: vscode.WebviewView; // only used inside onDidChangeConfiguration
+	private _webviewDeps: string[] = [];
 
 	constructor(context: vscode.ExtensionContext) {
 		// const extensionPath = context.extensionPath // the directory where the extension is installed, might be useful later... was included in webviewProvider code
@@ -30,8 +31,10 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 		if (!temp_res) throw new Error("sidebar provider: resolver was undefined")
 		this._res = temp_res
 
+		// if it affects one of the config items webview depends on, update the webview
+		// TODO should be able to move this entirely to React - make updateWebviewHTML mount once, and then send updates via postMessage from then on
 		vscode.workspace.onDidChangeConfiguration(event => {
-			if (event.affectsConfiguration('void.ollama.endpoint')) {
+			if (this._webviewDeps.map(dep => event.affectsConfiguration(dep)).some(v => !!v)) {
 				if (this._webviewView) {
 					this.updateWebviewHTML(this._webviewView.webview);
 				}
@@ -39,12 +42,18 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 		});
 	}
 
+	// this is updated
 	private updateWebviewHTML(webview: vscode.Webview) {
 		const allowed_urls = ['https://api.anthropic.com', 'https://api.openai.com', 'https://api.greptile.com'];
+		this._webviewDeps = []
+
 		const ollamaEndpoint: string | undefined = vscode.workspace.getConfiguration('void.ollama').get('endpoint');
+		this._webviewDeps.push('void.ollama.endpoint');
 		if (ollamaEndpoint)
 			allowed_urls.push(ollamaEndpoint);
+
 		const openAICompatibleEndpoint: string | undefined = vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint');
+		this._webviewDeps.push('void.openAICompatible.endpoint');
 		if (openAICompatibleEndpoint)
 			allowed_urls.push(openAICompatibleEndpoint);
 

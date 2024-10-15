@@ -42,6 +42,10 @@ export type ApiConfig = {
 		model: string,
 		apikey: string
 	}
+	openRouter: {
+		model: string,
+		apikey: string
+	}
 	openSearch: {
 		endpoint: string
 	}
@@ -79,6 +83,10 @@ export const getApiConfig = () => {
 			endpoint: vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint') ?? '',
 			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
 			model: vscode.workspace.getConfiguration('void.openAICompatible').get('model') ?? '',
+		},
+		openRouter: {
+			model: vscode.workspace.getConfiguration('void.openRouter').get('model') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openRouter').get('apiKey') ?? '',
 		},
 		openSearch: {
 			endpoint: vscode.workspace.getConfiguration('void.openSearch').get('endpoint') ?? '',

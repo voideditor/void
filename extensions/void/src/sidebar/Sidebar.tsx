@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
-import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage"
+import { sendLLMMessage } from "../common/sendLLMMessage"
 import { ChatMessage, File, Selection, WebviewMessage } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, resolveAwaitingVSCodeResponse } from "./getVscodeApi"
 
@@ -10,6 +10,7 @@ import BlockCode from "./markdown/BlockCode";
 import * as vscode from 'vscode'
 import { SelectedFiles } from "./components/SelectedFiles";
 import { useChat } from "./chatContext";
+import { ApiConfig } from "../config";
 
 
 const filesStr = (fullFiles: File[]) => {

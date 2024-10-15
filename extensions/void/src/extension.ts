@@ -4,49 +4,12 @@ import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { getDiffedLines } from './getDiffedLines';
 import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
-import { ApiConfig } from './common/sendLLMMessage';
 import { embedWorkspaceFiles } from './ai/embed';
+import { getApiConfig } from './config';
 
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
 	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8').replace(/\r\n/g, '\n'); // must remove windows \r or every line will appear different because of it
-}
-
-
-const getApiConfig = () => {
-	const apiConfig: ApiConfig = {
-		anthropic: {
-			apikey: vscode.workspace.getConfiguration('void.anthropic').get('apiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void.anthropic').get('model') ?? '',
-			maxTokens: vscode.workspace.getConfiguration('void.anthropic').get('maxTokens') ?? '',
-		},
-		openAI: {
-			apikey: vscode.workspace.getConfiguration('void.openAI').get('apiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void.openAI').get('model') ?? '',
-			embedding: vscode.workspace.getConfiguration('void.openAI').get('embedding') ?? '',
-		},
-		greptile: {
-			apikey: vscode.workspace.getConfiguration('void.greptile').get('apiKey') ?? '',
-			githubPAT: vscode.workspace.getConfiguration('void.greptile').get('githubPAT') ?? '',
-			repoinfo: {
-				remote: 'github',
-				repository: 'TODO',
-				branch: 'main'
-			}
-		},
-		ollama: {
-			endpoint: vscode.workspace.getConfiguration('void.ollama').get('endpoint') ?? '',
-			model: vscode.workspace.getConfiguration('void.ollama').get('model') ?? '',
-		},
-		openAICompatible: {
-			endpoint: vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint') ?? '',
-			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void.openAICompatible').get('model') ?? '',
-		},
-		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? '',
-		embeddingApi: vscode.workspace.getConfiguration('void').get('embeddingApi') ?? ''
-	}
-	return apiConfig
 }
 
 
@@ -171,7 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	)
 
-	embedWorkspaceFiles(getApiConfig())
+	embedWorkspaceFiles()
 
 	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)
 	// TODO need to build this

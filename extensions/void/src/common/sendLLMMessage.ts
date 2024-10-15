@@ -1,51 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
-
-
-export enum ApiProvider {
-	ANTHROPIC = 'anthropic',
-	OPENAI = 'openai',
-	GREPTILE = 'greptile',
-	OLLAMA = 'ollama',
-	OPENAI_COMPATIBLE = 'openAICompatible'
-}
-
-
-// always compare these against package.json to make sure every setting in this type can actually be provided by the user
-export type ApiConfig = {
-	anthropic: {
-		apikey: string,
-		model: string,
-		maxTokens: string
-	},
-	openAI: {
-		apikey: string,
-		model: string,
-		embedding: string
-	},
-	greptile: {
-		apikey: string,
-		githubPAT: string,
-		repoinfo: {
-			remote: string, // e.g. 'github'
-			repository: string, // e.g. 'voideditor/void'
-			branch: string // e.g. 'main'
-		}
-	},
-	ollama: {
-		endpoint: string,
-		model: string
-	},
-	openAICompatible: {
-		endpoint: string,
-		model: string,
-		apikey: string
-	}
-	whichApi: string
-	embeddingApi: string
-}
-
+import { ApiConfig } from '../config';
 
 
 type OnText = (newText: string, fullText: string) => void

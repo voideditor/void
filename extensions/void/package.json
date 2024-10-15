@@ -37,6 +37,13 @@
             "openai"
           ]
         },
+        "void.vectorStore": {
+          "type": "string",
+          "description": "Choose a vector store.",
+          "enum": [
+            "opensearch"
+          ]
+        },
         "void.anthropic.apiKey": {
           "type": "string",
           "default": "",
@@ -225,6 +232,11 @@
           "type": "string",
           "default": "",
           "description": "Your API key."
+        },
+        "void.openSearch.endpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:9200",
+          "description": "The OpenSearch endpoint."
         }
       }
     },

@@ -8,8 +8,8 @@ import {
 } from "@langchain/textsplitters";
 import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { TextLoader } from "langchain/document_loaders/fs/text";
-import { ApiConfig, ApiProvider } from "../common/sendLLMMessage";
 import getVectorStore from "./vectorStore";
+import { ApiConfig, ApiProvider, getApiConfig } from "../config";
 
 enum FileType {
 	UNKNOWN = "unknown",
@@ -97,12 +97,13 @@ const getEmbeddingClient = (apiConfig: ApiConfig) => {
 	}
 };
 
-export const embedWorkspaceFiles = async (apiConfig: ApiConfig) => {
+export const embedWorkspaceFiles = async () => {
+	const apiConfig = getApiConfig();
 	const embeddingClient = getEmbeddingClient(apiConfig);
 	const vectorStore = await getVectorStore(embeddingClient);
 
-	// if embedding keys are configured, proceed
-	if (embeddingClient) {
+	// if embedding and vector store keys are configured, proceed
+	if (embeddingClient && vectorStore) {
 		const excludePatterns = Object.keys(
 			vscode.workspace.getConfiguration("files").get("exclude") || {}
 		).join(",");

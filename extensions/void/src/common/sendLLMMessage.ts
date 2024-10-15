@@ -64,14 +64,9 @@ const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 
 	const anthropic = new Anthropic({ apiKey: apiConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
-	console.log('max_tokens:' + apiConfig.anthropic.maxTokens)
-
-	let max_tokens = parseInt(apiConfig.anthropic.maxTokens)
-	if (isNaN(max_tokens)) { max_tokens = 4000 } // TODO make a default max_tokens
-
 	const stream = anthropic.messages.stream({
 		model: apiConfig.anthropic.model,
-		max_tokens: max_tokens,
+		max_tokens: parseInt(apiConfig.anthropic.maxTokens),
 		messages: messages,
 	});
 
@@ -225,8 +220,6 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, apiConfig }) => {
 	if (!apiConfig) return { abort: () => { } }
-
-	console.log(`void: sending LLMMessage to ${apiConfig.whichApi}`)
 
 	const whichApi = apiConfig.whichApi
 

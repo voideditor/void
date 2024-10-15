@@ -7,7 +7,7 @@ import { ApiConfig } from './common/sendLLMMessage';
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
 	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
-		.replace(/\r\n/g, '\n') // must remove windows \r or every line will appear different because of it
+		.replace(/\r\n/g, '\n') // replace windows \r\n with \n
 }
 
 
@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
 			// vscode.commands.executeCommand('vscode.moveViewToPanel', CustomViewProvider.viewId); // move to aux bar
 
 			// get the text the user is selecting
-			const selectionStr = editor.document.getText(editor.selection); 5
+			const selectionStr = editor.document.getText(editor.selection);
 
 			// get the range of the selection
 			const selectionRange = editor.selection;
@@ -72,7 +72,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// 3. Show an approve/reject codelens above each change
 	const displayChangesProvider = new DisplayChangesProvider();
-	console.log(`void: Creating DisplayChangesProvider`)
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', displayChangesProvider));
 
 	// 4. Add approve/reject commands

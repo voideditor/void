@@ -3,26 +3,26 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Codicon } from 'vs/base/common/codicons';
-import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
-import { marked } from 'vs/base/common/marked/marked';
-import { ServicesAccessor } from 'vs/editor/browser/editorExtensions';
-import { IBulkEditService } from 'vs/editor/browser/services/bulkEditService';
-import { localize2 } from 'vs/nls';
-import { Action2, MenuId, registerAction2 } from 'vs/platform/actions/common/actions';
-import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
-import { KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
-import { ResourceNotebookCellEdit } from 'vs/workbench/contrib/bulkEdit/browser/bulkCellEdits';
-import { CHAT_CATEGORY } from 'vs/workbench/contrib/chat/browser/actions/chatActions';
-import { IChatWidgetService } from 'vs/workbench/contrib/chat/browser/chat';
-import { CONTEXT_CHAT_RESPONSE_SUPPORT_ISSUE_REPORTING, CONTEXT_IN_CHAT_INPUT, CONTEXT_IN_CHAT_SESSION, CONTEXT_REQUEST, CONTEXT_RESPONSE, CONTEXT_RESPONSE_ERROR, CONTEXT_RESPONSE_FILTERED, CONTEXT_RESPONSE_VOTE, CONTEXT_VOTE_UP_ENABLED } from 'vs/workbench/contrib/chat/common/chatContextKeys';
-import { IChatService, ChatAgentVoteDirection, ChatAgentVoteDownReason } from 'vs/workbench/contrib/chat/common/chatService';
-import { isRequestVM, isResponseVM } from 'vs/workbench/contrib/chat/common/chatViewModel';
-import { MENU_INLINE_CHAT_WIDGET_SECONDARY } from 'vs/workbench/contrib/inlineChat/common/inlineChat';
-import { INotebookEditor } from 'vs/workbench/contrib/notebook/browser/notebookBrowser';
-import { CellEditType, CellKind, NOTEBOOK_EDITOR_ID } from 'vs/workbench/contrib/notebook/common/notebookCommon';
-import { NOTEBOOK_IS_ACTIVE_EDITOR } from 'vs/workbench/contrib/notebook/common/notebookContextKeys';
-import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
+import { Codicon } from '../../../../../base/common/codicons.js';
+import { KeyCode, KeyMod } from '../../../../../base/common/keyCodes.js';
+import { marked } from '../../../../../base/common/marked/marked.js';
+import { ServicesAccessor } from '../../../../../editor/browser/editorExtensions.js';
+import { IBulkEditService } from '../../../../../editor/browser/services/bulkEditService.js';
+import { localize2 } from '../../../../../nls.js';
+import { Action2, MenuId, registerAction2 } from '../../../../../platform/actions/common/actions.js';
+import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contextkey.js';
+import { KeybindingWeight } from '../../../../../platform/keybinding/common/keybindingsRegistry.js';
+import { IEditorService } from '../../../../services/editor/common/editorService.js';
+import { ResourceNotebookCellEdit } from '../../../bulkEdit/browser/bulkCellEdits.js';
+import { MENU_INLINE_CHAT_WIDGET_SECONDARY } from '../../../inlineChat/common/inlineChat.js';
+import { INotebookEditor } from '../../../notebook/browser/notebookBrowser.js';
+import { CellEditType, CellKind, NOTEBOOK_EDITOR_ID } from '../../../notebook/common/notebookCommon.js';
+import { NOTEBOOK_IS_ACTIVE_EDITOR } from '../../../notebook/common/notebookContextKeys.js';
+import { CONTEXT_CHAT_RESPONSE_SUPPORT_ISSUE_REPORTING, CONTEXT_IN_CHAT_INPUT, CONTEXT_IN_CHAT_SESSION, CONTEXT_ITEM_ID, CONTEXT_LAST_ITEM_ID, CONTEXT_REQUEST, CONTEXT_RESPONSE, CONTEXT_RESPONSE_ERROR, CONTEXT_RESPONSE_FILTERED, CONTEXT_RESPONSE_VOTE } from '../../common/chatContextKeys.js';
+import { ChatAgentVoteDirection, ChatAgentVoteDownReason, IChatService } from '../../common/chatService.js';
+import { isRequestVM, isResponseVM } from '../../common/chatViewModel.js';
+import { IChatWidgetService } from '../chat.js';
+import { CHAT_CATEGORY } from './chatActions.js';
 
 export const MarkUnhelpfulActionId = 'workbench.action.chat.markUnhelpful';
 
@@ -37,15 +37,15 @@ export function registerChatTitleActions() {
 				icon: Codicon.thumbsup,
 				toggled: CONTEXT_RESPONSE_VOTE.isEqualTo('up'),
 				menu: [{
-					id: MenuId.ChatMessageTitle,
+					id: MenuId.ChatMessageFooter,
 					group: 'navigation',
 					order: 1,
-					when: ContextKeyExpr.and(CONTEXT_RESPONSE, CONTEXT_VOTE_UP_ENABLED, CONTEXT_RESPONSE_ERROR.negate())
+					when: ContextKeyExpr.and(CONTEXT_RESPONSE, CONTEXT_RESPONSE_ERROR.negate())
 				}, {
 					id: MENU_INLINE_CHAT_WIDGET_SECONDARY,
 					group: 'navigation',
 					order: 1,
-					when: ContextKeyExpr.and(CONTEXT_RESPONSE, CONTEXT_VOTE_UP_ENABLED, CONTEXT_RESPONSE_ERROR.negate())
+					when: ContextKeyExpr.and(CONTEXT_RESPONSE, CONTEXT_RESPONSE_ERROR.negate())
 				}]
 			});
 		}
@@ -84,10 +84,10 @@ export function registerChatTitleActions() {
 				icon: Codicon.thumbsdown,
 				toggled: CONTEXT_RESPONSE_VOTE.isEqualTo('down'),
 				menu: [{
-					id: MenuId.ChatMessageTitle,
+					id: MenuId.ChatMessageFooter,
 					group: 'navigation',
 					order: 2,
-					when: ContextKeyExpr.and(CONTEXT_RESPONSE, CONTEXT_RESPONSE_ERROR.negate())
+					when: ContextKeyExpr.and(CONTEXT_RESPONSE)
 				}, {
 					id: MENU_INLINE_CHAT_WIDGET_SECONDARY,
 					group: 'navigation',
@@ -136,7 +136,7 @@ export function registerChatTitleActions() {
 				category: CHAT_CATEGORY,
 				icon: Codicon.report,
 				menu: [{
-					id: MenuId.ChatMessageTitle,
+					id: MenuId.ChatMessageFooter,
 					group: 'navigation',
 					order: 3,
 					when: ContextKeyExpr.and(CONTEXT_CHAT_RESPONSE_SUPPORT_ISSUE_REPORTING, CONTEXT_RESPONSE)
@@ -169,6 +169,36 @@ export function registerChatTitleActions() {
 		}
 	});
 
+	registerAction2(class RetryChatAction extends Action2 {
+		constructor() {
+			super({
+				id: 'workbench.action.chat.retry',
+				title: localize2('chat.retry.label', "Retry"),
+				f1: false,
+				category: CHAT_CATEGORY,
+				icon: Codicon.refresh,
+				menu: [{
+					id: MenuId.ChatMessageFooter,
+					group: 'navigation',
+					when: ContextKeyExpr.and(
+						CONTEXT_RESPONSE,
+						ContextKeyExpr.in(CONTEXT_ITEM_ID.key, CONTEXT_LAST_ITEM_ID.key))
+				}]
+			});
+		}
+
+		run(accessor: ServicesAccessor, ...args: any[]) {
+			const item = args[0];
+			if (!isResponseVM(item)) {
+				return;
+			}
+
+			const chatService = accessor.get(IChatService);
+			const request = chatService.getSession(item.sessionId)?.getRequests().find(candidate => candidate.id === item.requestId);
+			chatService.resendRequest(request!);
+		}
+	});
+
 	registerAction2(class InsertToNotebookAction extends Action2 {
 		constructor() {
 			super({
@@ -178,7 +208,7 @@ export function registerChatTitleActions() {
 				category: CHAT_CATEGORY,
 				icon: Codicon.insert,
 				menu: {
-					id: MenuId.ChatMessageTitle,
+					id: MenuId.ChatMessageFooter,
 					group: 'navigation',
 					isHiddenByDefault: true,
 					when: ContextKeyExpr.and(NOTEBOOK_IS_ACTIVE_EDITOR, CONTEXT_RESPONSE, CONTEXT_RESPONSE_FILTERED.negate())

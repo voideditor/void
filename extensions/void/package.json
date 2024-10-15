@@ -16,7 +16,7 @@
     "configuration": {
       "title": "Void",
       "properties": {
-        "void.provider": {
+        "void.whichApi": {
           "type": "string",
           "default": "anthropic",
           "description": "Choose an API provider.",
@@ -84,6 +84,59 @@
             "gpt-3.5-turbo",
             "gpt-3.5-turbo-1106"
           ]
+        },
+        "void.greptile.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Greptile API key."
+        },
+        "void.greptile.githubPAT": {
+          "type": "string",
+          "default": "",
+          "description": "Github PAT given to Greptile to access your repository."
+        },
+        "void.greptile.remote": {
+          "type": "string",
+          "description": "remote provider",
+          "enum": [
+            "github",
+            "gitlab"
+          ]
+        },
+        "void.greptile.repository": {
+          "type": "string",
+          "description": "Repository identifier in \"owner/repository\" format."
+        },
+        "void.greptile.branch": {
+          "type": "string",
+          "default": "main",
+          "description": "Name of the git branch."
+        },
+        "void.azure.apiKey": {
+          "type": "string",
+          "description": "Azure API key."
+        },
+        "void.azure.deploymentId": {
+          "type": "string",
+          "description": "Azure API deployment ID."
+        },
+        "void.azure.resourceName": {
+          "type": "string",
+          "description": "Name of the Azure OpenAI resource. Either this or `baseURL` can be used. \nThe resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`"
+        },
+        "void.azure.providerSettings": {
+          "type": "object",
+          "properties": {
+            "baseURL": {
+              "type": "string",
+              "default": "https://${resourceName}.openai.azure.com/openai/deployments",
+              "description": "Azure API base URL."
+            },
+            "headers": {
+              "type": "object",
+              "description": "Custom headers to include in the requests."
+            }
+          }
         },
         "void.ollama.endpoint": {
           "type": "string",
@@ -197,59 +250,6 @@
           "type": "string",
           "default": "",
           "description": "Your API key."
-        },
-        "void.greptile.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Greptile API key."
-        },
-        "void.greptile.githubPAT": {
-          "type": "string",
-          "default": "",
-          "description": "Github PAT given to Greptile to access your repository."
-        },
-        "void.greptile.remote": {
-          "type": "string",
-          "description": "remote provider",
-          "enum": [
-            "github",
-            "gitlab"
-          ]
-        },
-        "void.greptile.repository": {
-          "type": "string",
-          "description": "Repository identifier in \"owner/repository\" format."
-        },
-        "void.greptile.branch": {
-          "type": "string",
-          "default": "main",
-          "description": "Name of the git branch."
-        },
-        "void.azure.apiKey": {
-          "type": "string",
-          "description": "Azure API key."
-        },
-        "void.azure.deploymentId": {
-          "type": "string",
-          "description": "Azure API deployment ID."
-        },
-        "void.azure.resourceName": {
-          "type": "string",
-          "description": "Name of the Azure OpenAI resource. Either this or `baseURL` can be used. \nThe resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`"
-        },
-        "void.azure.providerSettings": {
-          "type": "object",
-          "properties": {
-            "baseURL": {
-              "type": "string",
-              "default": "https://${resourceName}.openai.azure.com/openai/deployments",
-              "description": "Azure API base URL."
-            },
-            "headers": {
-              "type": "object",
-              "description": "Custom headers to include in the requests."
-            }
-          }
         }
       }
     },
@@ -279,8 +279,7 @@
         "command": "void.toggleThreadSelector",
         "title": "View past chats",
         "icon": "$(history)"
-      },
-      {
+      }, {
         "command": "void.openSettings",
         "title": "Void settings",
         "icon": "$(settings-gear)"
@@ -373,9 +372,6 @@
     "typescript-eslint": "^8.3.0"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^0.0.50",
-    "@ai-sdk/azure": "^0.0.39",
-    "@ai-sdk/openai": "^0.0.60",
     "@anthropic-ai/sdk": "^0.27.1",
     "ollama": "^0.5.9",
     "openai": "^4.57.0",

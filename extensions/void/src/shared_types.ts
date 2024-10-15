@@ -58,16 +58,55 @@ type WebviewMessage = (
 	// editor -> sidebar
 	| { type: 'apiConfig', apiConfig: ApiConfig }
 
+	// sidebar -> editor
+	| { type: 'getAllThreads' }
+
+	// editor -> sidebar
+	| { type: 'allThreads', threads: ChatThreads }
+
+	// sidebar -> editor
+	| { type: 'persistThread', thread: ChatThreads[string] }
+
+	// editor -> sidebar
+	| { type: 'startNewThread' }
+
+	// editor -> sidebar
+	| { type: 'toggleThreadSelector' }
+
 )
 
 
 type Command = WebviewMessage['type']
 
+type ChatThreads = {
+	[id: string]: {
+		id: string; // store the id here too
+		createdAt: string;
+		messages: ChatMessage[];
+	}
+}
+
+type ChatMessage =
+	| {
+		role: "user";
+		content: string; // content sent to the llm
+		displayContent: string; // content displayed to user
+		selection: CodeSelection | null; // the user's selection
+		files: vscode.Uri[]; // the files sent in the message
+	}
+	| {
+		role: "assistant";
+		content: string; // content received from LLM
+		displayContent: string; // content displayed to user (this is the same as content for now)
+	}
+
 export {
 	BaseDiff, BaseDiffArea,
+	Diff, DiffArea,
 	CodeSelection,
 	File,
 	WebviewMessage,
 	Command,
-	Diff, DiffArea,
+	ChatThreads,
+	ChatMessage,
 }

@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import { BaseDiffArea, WebviewMessage } from './shared_types';
-import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
+import { BaseDiffArea, ChatThreads, WebviewMessage } from './shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 
@@ -14,14 +13,17 @@ const readFileContentOfUri = async (uri: vscode.Uri) => {
 const getApiConfig = () => {
 	const apiConfig: ApiConfig = {
 		anthropic: {
-			apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void').get('anthropicModel') ?? '',
-			maxTokens: vscode.workspace.getConfiguration('void').get('anthropicMaxToken') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.anthropic').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.anthropic').get('model') ?? '',
+			maxTokens: vscode.workspace.getConfiguration('void.anthropic').get('maxTokens') ?? '',
 		},
-		openai: { apikey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
+		openAI: {
+			apikey: vscode.workspace.getConfiguration('void.openAI').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.openAI').get('model') ?? '',
+		},
 		greptile: {
-			apikey: vscode.workspace.getConfiguration('void').get('greptileApiKey') ?? '',
-			githubPAT: vscode.workspace.getConfiguration('void').get('githubPAT') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.greptile').get('apiKey') ?? '',
+			githubPAT: vscode.workspace.getConfiguration('void.greptile').get('githubPAT') ?? '',
 			repoinfo: {
 				remote: 'github',
 				repository: 'TODO',
@@ -29,12 +31,19 @@ const getApiConfig = () => {
 			}
 		},
 		ollama: {
-			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
+			endpoint: vscode.workspace.getConfiguration('void.ollama').get('endpoint') ?? '',
+			model: vscode.workspace.getConfiguration('void.ollama').get('model') ?? '',
+		},
+		openAICompatible: {
+			endpoint: vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.openAICompatible').get('model') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
 	return apiConfig
 }
+
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -90,6 +99,14 @@ export function activate(context: vscode.ExtensionContext) {
 	webviewProvider.webview.then(
 		webview => {
 
+			// top navigation bar commands
+			context.subscriptions.push(vscode.commands.registerCommand('void.startNewThread', async () => {
+				webview.postMessage({ type: 'startNewThread' } satisfies WebviewMessage)
+			}))
+			context.subscriptions.push(vscode.commands.registerCommand('void.toggleThreadSelector', async () => {
+				webview.postMessage({ type: 'toggleThreadSelector' } satisfies WebviewMessage)
+			}))
+
 			// when config changes, send it to the sidebar
 			vscode.workspace.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration('void')) {
@@ -113,8 +130,6 @@ export function activate(context: vscode.ExtensionContext) {
 					webview.postMessage({ type: 'files', files, } satisfies WebviewMessage)
 
 				} else if (m.type === 'applyChanges') {
-
-					console.log('Applying changes')
 
 					const editor = vscode.window.activeTextEditor
 					if (!editor) {
@@ -148,15 +163,19 @@ export function activate(context: vscode.ExtensionContext) {
 
 				}
 				else if (m.type === 'getApiConfig') {
-
 					const apiConfig = getApiConfig()
-					console.log('Api config:', apiConfig)
-
 					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
-
+				}
+				else if (m.type === 'getAllThreads') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					webview.postMessage({ type: 'allThreads', threads } satisfies WebviewMessage)
+				}
+				else if (m.type === 'persistThread') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					const updatedThreads: ChatThreads = { ...threads, [m.thread.id]: m.thread }
+					context.workspaceState.update('allThreads', updatedThreads)
 				}
 				else {
-
 					console.error('unrecognized command', m.type, m)
 				}
 			})

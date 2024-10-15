@@ -95,6 +95,49 @@
           "default": "",
           "description": "Github PAT given to Greptile to access your repository."
         },
+        "void.greptile.remote": {
+          "type": "string",
+          "description": "remote provider",
+          "enum": [
+            "github",
+            "gitlab"
+          ]
+        },
+        "void.greptile.repository": {
+          "type": "string",
+          "description": "Repository identifier in \"owner/repository\" format."
+        },
+        "void.greptile.branch": {
+          "type": "string",
+          "default": "main",
+          "description": "Name of the git branch."
+        },
+        "void.azure.apiKey": {
+          "type": "string",
+          "description": "Azure API key."
+        },
+        "void.azure.deploymentId": {
+          "type": "string",
+          "description": "Azure API deployment ID."
+        },
+        "void.azure.resourceName": {
+          "type": "string",
+          "description": "Name of the Azure OpenAI resource. Either this or `baseURL` can be used. \nThe resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`"
+        },
+        "void.azure.providerSettings": {
+          "type": "object",
+          "properties": {
+            "baseURL": {
+              "type": "string",
+              "default": "https://${resourceName}.openai.azure.com/openai/deployments",
+              "description": "Azure API base URL."
+            },
+            "headers": {
+              "type": "object",
+              "description": "Custom headers to include in the requests."
+            }
+          }
+        },
         "void.ollama.endpoint": {
           "type": "string",
           "default": "http://127.0.0.1:11434",

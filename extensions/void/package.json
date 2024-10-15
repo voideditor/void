@@ -22,6 +22,7 @@
           "description": "Choose an API provider.",
           "enum": [
             "openAI",
+            "openRouter",
             "openAICompatible",
             "anthropic",
             "azure",
@@ -236,6 +237,16 @@
             "smollm:1.7b"
           ]
         },
+        "void.openRouter.model": {
+          "type": "string",
+          "default": "openai/gpt-4o",
+          "description": "OpenRouter model to use."
+        },
+        "void.openRouter.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenRouter API key."
+        },
         "void.openAICompatible.endpoint": {
           "type": "string",
           "default": "http://127.0.0.1:11434/v1",
@@ -279,7 +290,8 @@
         "command": "void.toggleThreadSelector",
         "title": "View past chats",
         "icon": "$(history)"
-      }, {
+      },
+      {
         "command": "void.openSettings",
         "title": "Void settings",
         "icon": "$(settings-gear)"

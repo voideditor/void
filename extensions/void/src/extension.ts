@@ -36,8 +36,12 @@ const getApiConfig = () => {
 		},
 		openAICompatible: {
 			endpoint: vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint') ?? '',
-			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
 			model: vscode.workspace.getConfiguration('void.openAICompatible').get('model') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
+		},
+		openRouter: {
+			model: vscode.workspace.getConfiguration('void.openRouter').get('model') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openRouter').get('apiKey') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}

@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import { WebviewMessage } from './shared_types';
-import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
+import { ChatThreads, WebviewMessage } from './shared_types';
 import { getDiffedLines } from './getDiffedLines';
 import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
@@ -18,7 +17,7 @@ const getApiConfig = () => {
 			model: vscode.workspace.getConfiguration('void.anthropic').get('model') ?? '',
 			maxTokens: vscode.workspace.getConfiguration('void.anthropic').get('maxTokens') ?? '',
 		},
-		openai: {
+		openAI: {
 			apikey: vscode.workspace.getConfiguration('void.openAI').get('apiKey') ?? '',
 			model: vscode.workspace.getConfiguration('void.openAI').get('model') ?? '',
 		},
@@ -35,10 +34,14 @@ const getApiConfig = () => {
 			endpoint: vscode.workspace.getConfiguration('void.ollama').get('endpoint') ?? '',
 			model: vscode.workspace.getConfiguration('void.ollama').get('model') ?? '',
 		},
-		openaicompatible: {
-			endpoint: vscode.workspace.getConfiguration('void.openaiCompatible').get('endpoint') ?? '',
-			apikey: vscode.workspace.getConfiguration('void.openaiCompatible').get('apiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void.openaiCompatible').get('model') ?? '',
+		openAICompatible: {
+			endpoint: vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint') ?? '',
+			model: vscode.workspace.getConfiguration('void.openAICompatible').get('model') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
+		},
+		openRouter: {
+			model: vscode.workspace.getConfiguration('void.openRouter').get('model') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openRouter').get('apiKey') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
@@ -100,6 +103,14 @@ export function activate(context: vscode.ExtensionContext) {
 	webviewProvider.webview.then(
 		webview => {
 
+			// top navigation bar commands
+			context.subscriptions.push(vscode.commands.registerCommand('void.startNewThread', async () => {
+				webview.postMessage({ type: 'startNewThread' } satisfies WebviewMessage)
+			}))
+			context.subscriptions.push(vscode.commands.registerCommand('void.toggleThreadSelector', async () => {
+				webview.postMessage({ type: 'toggleThreadSelector' } satisfies WebviewMessage)
+			}))
+
 			// when config changes, send it to the sidebar
 			vscode.workspace.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration('void')) {
@@ -135,12 +146,17 @@ export function activate(context: vscode.ExtensionContext) {
 					await approvalCodeLensProvider.addNewApprovals(editor, suggestedEdits)
 				}
 				else if (m.type === 'getApiConfig') {
-
 					const apiConfig = getApiConfig()
-					console.log('Api config:', apiConfig)
-
 					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
-
+				}
+				else if (m.type === 'getAllThreads') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					webview.postMessage({ type: 'allThreads', threads } satisfies WebviewMessage)
+				}
+				else if (m.type === 'persistThread') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					const updatedThreads: ChatThreads = { ...threads, [m.thread.id]: m.thread }
+					context.workspaceState.update('allThreads', updatedThreads)
 				}
 				else {
 					console.error('unrecognized command', m.type, m)

@@ -149,6 +149,7 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 - CONTRIBUTING.md
 - VOID_USEFUL_LINKS.md
 - product.json
+- package.json
 
 - src/vs/workbench/api/common/{extHost.api.impl.ts | extHostApiCommands.ts}
 - src/vs/workbench/workbench.common.main.ts

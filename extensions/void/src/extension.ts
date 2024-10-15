@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { WebviewMessage } from './shared_types';
+import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
 import { getDiffedLines } from './getDiffedLines';
-import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
+import { ApprovalCodeLensProvider, SuggestedEdit } from './ApprovalCodeLensProvider';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 
@@ -12,43 +13,22 @@ const readFileContentOfUri = async (uri: vscode.Uri) => {
 
 const getApiConfig = () => {
 	const apiConfig: ApiConfig = {
-		provider: vscode.workspace.getConfiguration('void').get('provider') ?? 'anthropic',
-		anthropic: {
-			model: vscode.workspace.getConfiguration('void').get('anthropic.model') ?? 'claude-3-5-sonnet-20240620',
-			apiKey: vscode.workspace.getConfiguration('void').get('anthropic.apiKey') ?? '',
-			providerSettings: {
-				...vscode.workspace.getConfiguration('void').get('anthropic.providerSettings') ?? {},
-			},
-		},
-		openai: {
-			model: vscode.workspace.getConfiguration('void').get('openai.model') ?? 'gpt-4o',
-			apiKey: vscode.workspace.getConfiguration('void').get('openai.apiKey') ?? '',
-			providerSettings: {
-				...vscode.workspace.getConfiguration('void').get('openai.providerSettings') ?? {},
-			},
-		},
-		azure: {
-			deploymentId: vscode.workspace.getConfiguration('void').get('azure.deploymentId') ?? '',
-			resourceName: vscode.workspace.getConfiguration('void').get('azure.resourceName') ?? '',
-			apiKey: vscode.workspace.getConfiguration('void').get('azure.apiKey') ?? '',
-			providerSettings: {
-				...vscode.workspace.getConfiguration('void').get('azure.providerSettings') ?? {},
-			},
-		},
-		ollama: {
-			model: vscode.workspace.getConfiguration('void').get('ollama.model') ?? 'llama3.1',
-			providerSettings: {
-				...vscode.workspace.getConfiguration('void').get('ollama.providerSettings') ?? {},
-			},
-		},
+		anthropic: { apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '' },
+		openai: { apikey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
 		greptile: {
-			apiKey: vscode.workspace.getConfiguration('void').get('greptile.apiKey') ?? '',
-			providerSettings: {
-				...vscode.workspace.getConfiguration('void').get('greptile.providerSettings') ?? {},
+			apikey: vscode.workspace.getConfiguration('void').get('greptileApiKey') ?? '',
+			githubPAT: vscode.workspace.getConfiguration('void').get('githubPAT') ?? '',
+			repoinfo: {
+				remote: 'github',
+				repository: 'TODO',
+				branch: 'main'
 			}
 		},
+		ollama: {
+			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
+		},
+		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
-
 	return apiConfig
 }
 
@@ -115,22 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
 			webview.onDidReceiveMessage(async (m: WebviewMessage) => {
 
-				if (m.type === 'getRules') {
-					const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-					if (workspaceFolder) {
-						const rulesFilePath = vscode.Uri.joinPath(workspaceFolder.uri, '.voidrules');
-						try {
-							const rulesContent = await readFileContentOfUri(rulesFilePath);
-							webview.postMessage({ type: 'getRules', rules: rulesContent } satisfies WebviewMessage);
-						} catch (error) {
-							console.error('Error reading .voidrules file:', error);
-							webview.postMessage({ type: 'getRules', rules: null } satisfies WebviewMessage);
-						}
-					} else {
-						webview.postMessage({ type: 'getRules', rules: null } satisfies WebviewMessage);
-					}
-				}
-				else if (m.type === 'requestFiles') {
+				if (m.type === 'requestFiles') {
 
 					// get contents of all file paths
 					const files = await Promise.all(

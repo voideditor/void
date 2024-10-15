@@ -27,9 +27,6 @@ type WebviewMessage = (
 	// editor -> sidebar
 	| { type: 'apiConfig', apiConfig: ApiConfig }
 
-	// sidebar -> editor
-	| { type: 'getRules', rules: string | null }
-
 )
 
 type Command = WebviewMessage['type']

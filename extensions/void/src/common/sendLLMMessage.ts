@@ -123,11 +123,11 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
 
 	if (apiConfig.whichApi === 'openAI') {
-		openai = new OpenAI({ baseURL: apiConfig.openAICompatible.endpoint, apiKey: apiConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true })
+		openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
 		options = { model: apiConfig.openAI.model, messages: messages, stream: true, }
 	}
 	else if (apiConfig.whichApi === 'openAICompatible') {
-		openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
+		openai = new OpenAI({ baseURL: apiConfig.openAICompatible.endpoint, apiKey: apiConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true })
 		options = { model: apiConfig.openAICompatible.model, messages: messages, stream: true, }
 	}
 	else {

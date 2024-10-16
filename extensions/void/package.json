@@ -16,11 +16,6 @@
     "configuration": {
       "title": "Void",
       "properties": {
-        "void.initialInstructions": {
-          "type": "string",
-          "default": "",
-          "description": "[Optional] Provide initial instructions to the LLM"
-        },
         "void.whichApi": {
           "type": "string",
           "default": "anthropic",

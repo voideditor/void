@@ -36,7 +36,8 @@ export type ApiConfig = {
 		model: string,
 		apikey: string
 	}
-	whichApi: string
+	whichApi: string,
+	initialInstructions: string
 }
 
 

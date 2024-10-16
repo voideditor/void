@@ -274,11 +274,11 @@
         "title": "Show Selection Lens"
       },
       {
-        "command": "void.approveDiff",
+        "command": "void.acceptDiff",
         "title": "Approve Diff"
       },
       {
-        "command": "void.discardDiff",
+        "command": "void.rejectDiff",
         "title": "Discard Diff"
       },
       {
@@ -357,6 +357,7 @@
   "devDependencies": {
     "@eslint/js": "^9.9.1",
     "@types/diff": "^5.2.2",
+    "@types/diff-match-patch": "^1.0.36",
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.8",
     "@types/node": "^22.5.1",
@@ -385,6 +386,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
+    "diff-match-patch": "^1.0.5",
     "ollama": "^0.5.9",
     "openai": "^4.57.0",
     "diff": "^7.0.0"

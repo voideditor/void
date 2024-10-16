@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
-import { ChatThreads, WebviewMessage } from './shared_types';
-import { getDiffedLines } from './getDiffedLines';
-import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
+import { DisplayChangesProvider } from './DisplayChangesProvider';
+import { BaseDiffArea, ChatThreads, WebviewMessage } from './shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
-	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8').replace(/\r\n/g, '\n'); // must remove windows \r or every line will appear different because of it
+	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
+		.replace(/\r\n/g, '\n') // replace windows \r\n with \n
 }
 
 
@@ -84,22 +84,22 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	// 3. Show an approve/reject codelens above each change
-	const approvalCodeLensProvider = new ApprovalCodeLensProvider();
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', approvalCodeLensProvider));
+	const displayChangesProvider = new DisplayChangesProvider();
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', displayChangesProvider));
 
 	// 4. Add approve/reject commands
-	context.subscriptions.push(vscode.commands.registerCommand('void.approveDiff', async (params) => {
-		approvalCodeLensProvider.approveDiff(params)
+	context.subscriptions.push(vscode.commands.registerCommand('void.acceptDiff', async (params) => {
+		displayChangesProvider.acceptDiff(params)
 	}));
-	context.subscriptions.push(vscode.commands.registerCommand('void.discardDiff', async (params) => {
-		approvalCodeLensProvider.discardDiff(params)
+	context.subscriptions.push(vscode.commands.registerCommand('void.rejectDiff', async (params) => {
+		displayChangesProvider.rejectDiff(params)
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('void.openSettings', async () => {
 		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:void.void');
 	}));
 
-	// 5.
+	// 5. Receive messages from sidebar
 	webviewProvider.webview.then(
 		webview => {
 
@@ -133,17 +133,38 @@ export function activate(context: vscode.ExtensionContext) {
 					// send contents to webview
 					webview.postMessage({ type: 'files', files, } satisfies WebviewMessage)
 
-				}
-				else if (m.type === 'applyCode') {
+				} else if (m.type === 'applyChanges') {
 
 					const editor = vscode.window.activeTextEditor
 					if (!editor) {
 						vscode.window.showInformationMessage('No active editor!')
 						return
 					}
-					const oldContents = await readFileContentOfUri(editor.document.uri)
-					const suggestedEdits = getDiffedLines(oldContents, m.code)
-					await approvalCodeLensProvider.addNewApprovals(editor, suggestedEdits)
+
+					// create an area to show diffs
+					const diffArea: BaseDiffArea = {
+						startLine: 0, // in ctrl+L the start and end lines are the full document
+						endLine: editor.document.lineCount,
+						originalStartLine: 0,
+						originalEndLine: editor.document.lineCount,
+						originalCode: await readFileContentOfUri(editor.document.uri),
+					}
+					displayChangesProvider.addDiffArea(editor.document.uri, diffArea)
+
+
+					// write new code `m.code` to the document
+					// TODO update like this:
+					// this._weAreEditing = true
+					// await vscode.workspace.applyEdit(workspaceEdit)
+					// await vscode.workspace.save(docUri)
+					// this._weAreEditing = false
+					await editor.edit(editBuilder => {
+						editBuilder.replace(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER), m.code);
+					});
+
+					// rediff the changes based on the diffAreas
+					displayChangesProvider.refreshDiffAreas(editor.document.uri)
+
 				}
 				else if (m.type === 'getApiConfig') {
 					const apiConfig = getApiConfig()

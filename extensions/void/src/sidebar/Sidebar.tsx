@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
 import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage"
-import { ChatMessage, File, Selection, WebviewMessage } from "../shared_types"
+import { File, CodeSelection, WebviewMessage, ChatMessage } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, resolveAwaitingVSCodeResponse } from "./getVscodeApi"
 
 import { marked } from 'marked';
@@ -21,7 +21,7 @@ ${content}
 \`\`\``).join('\n')
 }
 
-const userInstructionsStr = (instructions: string, files: File[], selection: Selection | null) => {
+const userInstructionsStr = (instructions: string, files: File[], selection: CodeSelection | null) => {
 	return `
 ${filesStr(files)}
 
@@ -112,7 +112,7 @@ const Sidebar = () => {
 	const { allThreads, currentThread, addMessageToHistory, startNewThread, } = useThreads()
 
 	// state of current message
-	const [selection, setSelection] = useState<Selection | null>(null) // the code the user is selecting
+	const [selection, setSelection] = useState<CodeSelection | null>(null) // the code the user is selecting
 	const [files, setFiles] = useState<vscode.Uri[]>([]) // the names of the files in the chat
 	const [instructions, setInstructions] = useState('') // the user's instructions
 
@@ -200,7 +200,7 @@ const Sidebar = () => {
 		const newHistoryElt: ChatMessage = { role: 'user', content, displayContent: instructions, selection, files }
 		addMessageToHistory(newHistoryElt)
 
-		// send message to claude
+		// send message to LLM
 		let { abort } = sendLLMMessage({
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
 			onText: (newText, fullText) => setMessageStream(fullText),

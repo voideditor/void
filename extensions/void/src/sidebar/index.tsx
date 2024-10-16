@@ -1,7 +1,8 @@
 import * as React from "react"
 import * as ReactDOM from "react-dom/client"
 import Sidebar from "./Sidebar"
-import { ThreadsProvider } from "./threadsContext"
+import { ThreadsProvider } from "./contextForThreads"
+import { ConfigProvider } from "./contextForConfig"
 
 // mount the sidebar on the id="root" element
 if (typeof document === "undefined") {
@@ -13,7 +14,9 @@ console.log("Void root Element:", rootElement)
 
 const extension = (
 	<ThreadsProvider>
-		<Sidebar />
+		<ConfigProvider>
+			<Sidebar />
+		</ConfigProvider>
 	</ThreadsProvider>
 )
 const root = ReactDOM.createRoot(rootElement)

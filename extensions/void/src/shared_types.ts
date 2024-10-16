@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { ApiConfig } from './common/sendLLMMessage';
+import { PartialVoidConfig } from './sidebar/contextForConfig';
 
 
 
@@ -42,7 +42,7 @@ type Diff = {
 type MessageToSidebar = (
 	| { type: 'ctrl+l', selection: CodeSelection } // user presses ctrl+l in the editor
 	| { type: 'files', files: { filepath: vscode.Uri, content: string }[] }
-	| { type: 'apiConfig', apiConfig: ApiConfig }
+	| { type: 'partialVoidConfig', partialVoidConfig: PartialVoidConfig }
 	| { type: 'allThreads', threads: ChatThreads }
 	| { type: 'startNewThread' }
 	| { type: 'toggleThreadSelector' }
@@ -52,7 +52,8 @@ type MessageToSidebar = (
 type MessageFromSidebar = (
 	| { type: 'applyChanges', code: string } // user clicks "apply" in the sidebar
 	| { type: 'requestFiles', filepaths: vscode.Uri[] }
-	| { type: 'getApiConfig' }
+	| { type: 'getPartialVoidConfig' }
+	| { type: 'persistPartialVoidConfig', partialVoidConfig: PartialVoidConfig }
 	| { type: 'getAllThreads' }
 	| { type: 'persistThread', thread: ChatThreads[string] }
 )

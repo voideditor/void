@@ -1,5 +1,5 @@
 import React from "react";
-import { ThreadsProvider, useThreads } from "./threadsContext";
+import { ThreadsProvider, useThreads } from "./contextForThreads";
 
 export const SidebarThreadSelector = ({ onClose }: { onClose: () => void }) => {
 	const { allThreads, currentThread, switchToThread } = useThreads()

@@ -8,8 +8,9 @@ import { SelectedFiles } from "./components/SelectedFiles";
 import { File, ChatMessage, CodeSelection } from "../shared_types";
 import * as vscode from 'vscode'
 import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi";
-import { useThreads } from "./threadsContext";
-import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage";
+import { useThreads } from "./contextForThreads";
+import { sendLLMMessage } from "../common/sendLLMMessage";
+import { useVoidConfig } from "./contextForConfig";
 
 
 
@@ -70,7 +71,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 }
 
 
-export const SidebarChat = ({ setIsThreadSelectorOpen }: { setIsThreadSelectorOpen: (v: boolean | ((v: boolean) => boolean)) => void }) => {
+export const SidebarChat = () => {
 
 
 	// state of current message
@@ -85,8 +86,13 @@ export const SidebarChat = ({ setIsThreadSelectorOpen }: { setIsThreadSelectorOp
 
 	// higher level state
 	const { allThreads, currentThread, addMessageToHistory, startNewThread, } = useThreads()
-	const [apiConfig, setApiConfig] = useState<ApiConfig | null>(null)
+	const { voidConfig } = useVoidConfig()
 
+	// if they pressed the + to add a new chat
+	useOnVSCodeMessage('startNewThread', (m) => {
+		if (currentThread?.messages.length !== 0)
+			startNewThread()
+	})
 
 	// if user pressed ctrl+l, add their selection to the sidebar
 	useOnVSCodeMessage('ctrl+l', (m) => {
@@ -96,24 +102,6 @@ export const SidebarChat = ({ setIsThreadSelectorOpen }: { setIsThreadSelectorOp
 		// add current file to the context if it's not already in the files array
 		if (!files.find(f => f.fsPath === filepath.fsPath))
 			setFiles(files => [...files, filepath])
-	})
-
-	// when get apiConfig, set
-	useOnVSCodeMessage('apiConfig', (m) => {
-		setApiConfig(m.apiConfig)
-	})
-
-	// if they pressed the + to add a new chat
-	useOnVSCodeMessage('startNewThread', (m) => {
-		setIsThreadSelectorOpen(false)
-		if (currentThread?.messages.length !== 0)
-			startNewThread()
-
-	})
-
-	// if they opened thread selector
-	useOnVSCodeMessage('toggleThreadSelector', (m) => {
-		setIsThreadSelectorOpen(v => !v)
 	})
 
 
@@ -152,7 +140,7 @@ export const SidebarChat = ({ setIsThreadSelectorOpen }: { setIsThreadSelectorOp
 				setMessageStream('')
 				setIsLoading(false)
 			},
-			apiConfig: apiConfig
+			voidConfig: voidConfig
 		})
 		abortFnRef.current = abort
 

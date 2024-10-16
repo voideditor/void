@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
-import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage"
 import { CodeSelection, ChatMessage, MessageToSidebar } from "../shared_types"
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode } from "./getVscodeApi"
+import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi"
 
 import { SidebarThreadSelector } from "./SidebarThreadSelector";
-import { useThreads } from "./threadsContext";
+import { useThreads } from "./contextForThreads";
 import { SidebarChat } from "./SidebarChat";
 
 
@@ -12,10 +11,16 @@ import { SidebarChat } from "./SidebarChat";
 const Sidebar = () => {
 	const [isThreadSelectorOpen, setIsThreadSelectorOpen] = useState(false)
 
-	// get Api Config on mount
-	useEffect(() => {
-		getVSCodeAPI().postMessage({ type: 'getApiConfig' })
-	}, [])
+		// if they pressed the + to add a new chat
+		useOnVSCodeMessage('startNewThread', (m) => {
+			setIsThreadSelectorOpen(false)
+		})
+
+		// if they toggled thread selector
+		useOnVSCodeMessage('toggleThreadSelector', (m) => {
+			setIsThreadSelectorOpen(v => !v)
+		})
+
 
 	// Receive messages from the VSCode extension
 	useEffect(() => {
@@ -36,7 +41,7 @@ const Sidebar = () => {
 				</div>
 			)}
 
-			<SidebarChat setIsThreadSelectorOpen={setIsThreadSelectorOpen} />
+			<SidebarChat />
 		</div>
 
 	</>

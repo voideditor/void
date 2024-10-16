@@ -9,7 +9,7 @@ type Command = MessageToSidebar['type']
 const onetimeCallbacks: { [C in Command]: ((res: any) => void)[] } = {
 	"ctrl+l": [],
 	"files": [],
-	"apiConfig": [],
+	"partialVoidConfig": [],
 	"startNewThread": [],
 	"allThreads": [],
 	"toggleThreadSelector": []
@@ -19,7 +19,7 @@ const onetimeCallbacks: { [C in Command]: ((res: any) => void)[] } = {
 const callbacks: { [C in Command]: { [id: string]: ((res: any) => void) } } = {
 	"ctrl+l": {},
 	"files": {},
-	"apiConfig": {},
+	"partialVoidConfig": {},
 	"startNewThread": {},
 	"allThreads": {},
 	"toggleThreadSelector": {}

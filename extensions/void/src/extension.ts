@@ -43,7 +43,8 @@ const getApiConfig = () => {
 			model: vscode.workspace.getConfiguration('void.openRouter').get('model') ?? '',
 			apikey: vscode.workspace.getConfiguration('void.openRouter').get('apiKey') ?? '',
 		},
-		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
+		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? '',
+		initialInstructions: vscode.workspace.getConfiguration('void').get('initialInstructions') ?? ''
 	}
 	return apiConfig
 }

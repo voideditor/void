@@ -1,6 +1,9 @@
 import React, { ReactNode, useCallback, useEffect, useState } from "react"
 import { getVSCodeAPI } from "../getVscodeApi"
 
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { atomOneDarkReasonable } from "react-syntax-highlighter/dist/esm/styles/hljs";
+
 enum CopyButtonState {
 	Copy = "Copy",
 	Copied = "Copied!",
@@ -12,16 +15,26 @@ const COPY_FEEDBACK_TIMEOUT = 1000
 // code block with toolbar (Apply, Copy, etc) at top
 const BlockCode = ({
 	text,
+	language,
 	toolbar,
 	hideToolbar = false,
 	className,
 }: {
 	text: string
+	language?: string
 	toolbar?: ReactNode
 	hideToolbar?: boolean
 	className?: string
 }) => {
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
+
+	const customStyle = {
+		...atomOneDarkReasonable,
+		'code[class*="language-"]': {
+			...atomOneDarkReasonable['code[class*="language-"]'],
+			background: "none",
+		},
+	}
 
 	useEffect(() => {
 		if (copyButtonState !== CopyButtonState.Copy) {
@@ -71,7 +84,14 @@ const BlockCode = ({
 			<div
 				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg ${!hideToolbar ? "rounded-tl-none" : ""} ${className}`}
 			>
-				<pre className="p-2">{text}</pre>
+				<SyntaxHighlighter
+					language={language}
+					style={customStyle}
+					className={"rounded-sm"}
+				>
+					{text}
+				</SyntaxHighlighter>
+
 			</div>
 		</div>
 	)

@@ -5,21 +5,25 @@ import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMess
 import { SidebarThreadSelector } from "./SidebarThreadSelector";
 import { useThreads } from "./contextForThreads";
 import { SidebarChat } from "./SidebarChat";
+import { SidebarSettings } from './SidebarSettings';
 
 
 
 const Sidebar = () => {
-	const [isThreadSelectorOpen, setIsThreadSelectorOpen] = useState(false)
+	const [tab, setTab] = useState<'threadSelector' | 'chat' | 'settings'>('chat')
 
-		// if they pressed the + to add a new chat
-		useOnVSCodeMessage('startNewThread', (m) => {
-			setIsThreadSelectorOpen(false)
-		})
+	// if they pressed the + to add a new chat
+	useOnVSCodeMessage('startNewThread', (m) => {
+		setTab('chat')
+	})
 
-		// if they toggled thread selector
-		useOnVSCodeMessage('toggleThreadSelector', (m) => {
-			setIsThreadSelectorOpen(v => !v)
-		})
+	// if they toggled thread selector
+	useOnVSCodeMessage('toggleThreadSelector', (m) => {
+		if (tab === 'threadSelector')
+			setTab('chat')
+		else
+			setTab('threadSelector')
+	})
 
 
 	// Receive messages from the VSCode extension
@@ -33,15 +37,24 @@ const Sidebar = () => {
 	}, [])
 
 
-	return <>
-		<div className="flex flex-col h-screen w-full">
-			{isThreadSelectorOpen && (
-				<div className="mb-2 max-h-[30vh] overflow-y-auto">
-					<SidebarThreadSelector onClose={() => setIsThreadSelectorOpen(false)} />
-				</div>
-			)}
 
-			<SidebarChat />
+	return <>
+		<div className={`flex flex-col h-screen w-full ${tab !== 'threadSelector' ? 'hidden' : ''}`}>
+
+			<div className="mb-2 max-h-[30vh] overflow-y-auto">
+				<SidebarThreadSelector onClose={() => setTab('chat')} />
+			</div>
+
+			<div className={`${tab !== 'chat' ? 'hidden' : ''}`}>
+				<SidebarChat />
+			</div>
+
+			<div className={`${tab !== 'settings' ? 'hidden' : ''}`}>
+				<SidebarSettings />
+			</div>
+
+
+
 		</div>
 
 	</>

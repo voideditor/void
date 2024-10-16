@@ -18,8 +18,6 @@ const configString = (description: string, defaultVal: string) => {
 }
 
 
-
-
 const configFields = [
 	'anthropic',
 	'openAI',

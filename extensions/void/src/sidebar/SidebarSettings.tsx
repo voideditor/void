@@ -9,7 +9,10 @@ export const SidebarSettings = () => {
 
 	// only show the settings relevant to the current field
 
-	voidConfig.default.whichApi
+	// voidConfig.default.whichApi
+
+
+	return null
 
 }
 

@@ -1,15 +1,15 @@
-import React, { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import React, { FormEvent, useCallback, useRef, useState } from "react";
 
 
-import { marked } from 'marked';
 import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
 import { SelectedFiles } from "./components/SelectedFiles";
 import { File, ChatMessage, CodeSelection } from "../shared_types";
 import * as vscode from 'vscode'
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi";
+import { awaitVSCodeResponse, getVSCodeAPI, useOnVSCodeMessage } from "./getVscodeApi";
 import { useThreads } from "./threadsContext";
-import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage";
+import { sendLLMMessage } from "../common/sendLLMMessage";
+import { ApiConfig } from "../config";
 
 
 

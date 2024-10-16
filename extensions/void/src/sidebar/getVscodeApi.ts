@@ -1,47 +1,76 @@
-import { Command, WebviewMessage } from "../shared_types";
+import { useEffect } from "react";
+import { MessageFromSidebar, MessageToSidebar, } from "../shared_types";
+import { v4 as uuidv4 } from 'uuid';
 
 
+type Command = MessageToSidebar['type']
 
-// message -> res[]
-const awaiting: { [c in Command]: ((res: any) => void)[] } = {
+// messageType -> res[]
+const onetimeCallbacks: { [C in Command]: ((res: any) => void)[] } = {
 	"ctrl+l": [],
-	"applyChanges": [],
-	"requestFiles": [],
 	"files": [],
 	"apiConfig": [],
-	"getApiConfig": [],
 	"startNewThread": [],
-	"getAllThreads": [],
 	"allThreads": [],
-	"persistThread": [],
 	"toggleThreadSelector": []
 }
 
+// messageType -> id -> res
+const callbacks: { [C in Command]: { [id: string]: ((res: any) => void) } } = {
+	"ctrl+l": {},
+	"files": {},
+	"apiConfig": {},
+	"startNewThread": {},
+	"allThreads": {},
+	"toggleThreadSelector": {}
+}
+
+
 // use this function to await responses
 export const awaitVSCodeResponse = <C extends Command>(c: C) => {
-	let result: Promise<WebviewMessage & { type: C }> = new Promise((res, rej) => {
-		awaiting[c].push(res)
+	let result: Promise<MessageToSidebar & { type: C }> = new Promise((res, rej) => {
+		onetimeCallbacks[c].push(res)
 	})
 	return result
 }
 
-export const resolveAwaitingVSCodeResponse = (m: WebviewMessage) => {
-	// resolve all promises for this message
-	for (let res of awaiting[m.type]) {
+
+// use this function to add a listener to a certain type of message
+export const useOnVSCodeMessage = <C extends Command>(messageType: C, fn: (e: MessageToSidebar & { type: C }) => void) => {
+	useEffect(() => {
+		const mType = messageType
+		const callbackId: string = uuidv4();
+		// @ts-ignore
+		callbacks[mType][callbackId] = fn;
+		return () => { delete callbacks[mType][callbackId] }
+	}, [messageType, fn])
+}
+
+
+
+// this function gets called whenever sidebar receives a message - it should only mount once
+export const onMessageFromVSCode = (m: MessageToSidebar) => {
+	// resolve all promises for this message type
+	for (let res of onetimeCallbacks[m.type]) {
 		res(m)
-		awaiting[m.type].splice(0) // clear the array
+		onetimeCallbacks[m.type].splice(0) // clear the array
+	}
+	// call the listener for this message type
+	for (let res of Object.values(callbacks[m.type])) {
+		res(m)
 	}
 }
 
 
-// VS Code exposes the function acquireVsCodeApi() to us, it should only get called once
-let vsCodeApi: ReturnType<AcquireVsCodeApiType> | undefined;
 
 type AcquireVsCodeApiType = () => {
-	postMessage(message: WebviewMessage): void;
+	postMessage(message: MessageFromSidebar): void;
 	// setState(state: any): void; // getState and setState are made obsolete by us using { retainContextWhenHidden: true }
 	// getState(): any;
 };
+
+// VS Code exposes the function acquireVsCodeApi() to us, this variable makes sure it only gets called once
+let vsCodeApi: ReturnType<AcquireVsCodeApiType> | undefined;
 
 export function getVSCodeAPI(): ReturnType<AcquireVsCodeApiType> {
 	if (vsCodeApi)

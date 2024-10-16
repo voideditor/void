@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
-import { BaseDiffArea, ChatThreads, WebviewMessage } from './shared_types';
+import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 
@@ -79,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const filePath = editor.document.uri;
 
 			// send message to the webview (Sidebar.tsx)
-			webviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, selectionRange, filePath } } satisfies WebviewMessage));
+			webviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
 		})
 	);
 
@@ -105,23 +105,23 @@ export function activate(context: vscode.ExtensionContext) {
 
 			// top navigation bar commands
 			context.subscriptions.push(vscode.commands.registerCommand('void.startNewThread', async () => {
-				webview.postMessage({ type: 'startNewThread' } satisfies WebviewMessage)
+				webview.postMessage({ type: 'startNewThread' } satisfies MessageToSidebar)
 			}))
 			context.subscriptions.push(vscode.commands.registerCommand('void.toggleThreadSelector', async () => {
-				webview.postMessage({ type: 'toggleThreadSelector' } satisfies WebviewMessage)
+				webview.postMessage({ type: 'toggleThreadSelector' } satisfies MessageToSidebar)
 			}))
 
 			// when config changes, send it to the sidebar
 			vscode.workspace.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration('void')) {
 					const apiConfig = getApiConfig()
-					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
+					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies MessageToSidebar)
 				}
 			})
 
 
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
-			webview.onDidReceiveMessage(async (m: WebviewMessage) => {
+			webview.onDidReceiveMessage(async (m: MessageFromSidebar) => {
 
 				if (m.type === 'requestFiles') {
 
@@ -131,7 +131,7 @@ export function activate(context: vscode.ExtensionContext) {
 					)
 
 					// send contents to webview
-					webview.postMessage({ type: 'files', files, } satisfies WebviewMessage)
+					webview.postMessage({ type: 'files', files, } satisfies MessageToSidebar)
 
 				} else if (m.type === 'applyChanges') {
 
@@ -168,11 +168,11 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 				else if (m.type === 'getApiConfig') {
 					const apiConfig = getApiConfig()
-					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
+					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies MessageToSidebar)
 				}
 				else if (m.type === 'getAllThreads') {
 					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
-					webview.postMessage({ type: 'allThreads', threads } satisfies WebviewMessage)
+					webview.postMessage({ type: 'allThreads', threads } satisfies MessageToSidebar)
 				}
 				else if (m.type === 'persistThread') {
 					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
@@ -180,7 +180,7 @@ export function activate(context: vscode.ExtensionContext) {
 					context.workspaceState.update('allThreads', updatedThreads)
 				}
 				else {
-					console.error('unrecognized command', m.type, m)
+					console.error('unrecognized command', m)
 				}
 			})
 		}

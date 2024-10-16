@@ -38,45 +38,25 @@ type Diff = {
 	lenses: vscode.CodeLens[],
 } & BaseDiff
 
-type WebviewMessage = (
-
-	// editor -> sidebar
+// editor -> sidebar
+type MessageToSidebar = (
 	| { type: 'ctrl+l', selection: CodeSelection } // user presses ctrl+l in the editor
-
-	// sidebar -> editor
-	| { type: 'applyChanges', code: string } // user clicks "apply" in the sidebar
-
-	// sidebar -> editor
-	| { type: 'requestFiles', filepaths: vscode.Uri[] }
-
-	// editor -> sidebar
 	| { type: 'files', files: { filepath: vscode.Uri, content: string }[] }
-
-	// sidebar -> editor
-	| { type: 'getApiConfig' }
-
-	// editor -> sidebar
 	| { type: 'apiConfig', apiConfig: ApiConfig }
-
-	// sidebar -> editor
-	| { type: 'getAllThreads' }
-
-	// editor -> sidebar
 	| { type: 'allThreads', threads: ChatThreads }
-
-	// sidebar -> editor
-	| { type: 'persistThread', thread: ChatThreads[string] }
-
-	// editor -> sidebar
 	| { type: 'startNewThread' }
-
-	// editor -> sidebar
 	| { type: 'toggleThreadSelector' }
-
 )
 
+// sidebar -> editor
+type MessageFromSidebar = (
+	| { type: 'applyChanges', code: string } // user clicks "apply" in the sidebar
+	| { type: 'requestFiles', filepaths: vscode.Uri[] }
+	| { type: 'getApiConfig' }
+	| { type: 'getAllThreads' }
+	| { type: 'persistThread', thread: ChatThreads[string] }
+)
 
-type Command = WebviewMessage['type']
 
 type ChatThreads = {
 	[id: string]: {
@@ -105,8 +85,8 @@ export {
 	Diff, DiffArea,
 	CodeSelection,
 	File,
-	WebviewMessage,
-	Command,
+	MessageFromSidebar,
+	MessageToSidebar,
 	ChatThreads,
 	ChatMessage,
 }

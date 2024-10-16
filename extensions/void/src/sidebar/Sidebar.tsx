@@ -39,13 +39,13 @@ const Sidebar = () => {
 
 
 	return <>
-		<div className={`flex flex-col h-screen w-full ${tab !== 'threadSelector' ? 'hidden' : ''}`}>
+		<div className={`flex flex-col h-screen w-full`}>
 
-			<div className="mb-2 max-h-[30vh] overflow-y-auto">
+			<div className={`mb-2 max-h-[30vh] overflow-y-auto ${tab !== 'threadSelector' ? 'hidden' : ''}`}>
 				<SidebarThreadSelector onClose={() => setTab('chat')} />
 			</div>
 
-			<div className={`${tab !== 'chat' ? 'hidden' : ''}`}>
+			<div className={`${tab !== 'chat' && tab !== 'threadSelector' ? 'hidden' : ''}`}>
 				<SidebarChat />
 			</div>
 

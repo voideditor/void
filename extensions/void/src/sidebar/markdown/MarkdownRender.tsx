@@ -12,7 +12,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	}
 
 	if (t.type === "code") {
-		return <BlockCode text={t.text} />
+		return <BlockCode text={t.text} language={t.lang} />
 	}
 
 	if (t.type === "heading") {

@@ -22,7 +22,7 @@ ${content}
 \`\`\``).join('\n')
 }
 
-const userInstructionsStr = (instructions: string, files: File[], selection: Selection | null): string => {
+const userInstructionsStr = (instructions: string, files: File[], selection: CodeSelection | null) => {
 	let str = '';
 
 	if (files.length > 0) {

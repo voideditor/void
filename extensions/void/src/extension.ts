@@ -1,23 +1,29 @@
 import * as vscode from 'vscode';
-import { WebviewMessage } from './shared_types';
-import { CtrlKCodeLensProvider } from './CtrlKCodeLensProvider';
-import { getDiffedLines } from './getDiffedLines';
-import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
+import { DisplayChangesProvider } from './DisplayChangesProvider';
+import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { ApiConfig } from './common/sendLLMMessage';
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
-	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8').replace(/\r\n/g, '\n'); // must remove windows \r or every line will appear different because of it
+	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
+		.replace(/\r\n/g, '\n') // replace windows \r\n with \n
 }
 
 
 const getApiConfig = () => {
 	const apiConfig: ApiConfig = {
-		anthropic: { apikey: vscode.workspace.getConfiguration('void').get('anthropicApiKey') ?? '' },
-		openai: { apikey: vscode.workspace.getConfiguration('void').get('openAIApiKey') ?? '' },
+		anthropic: {
+			apikey: vscode.workspace.getConfiguration('void.anthropic').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.anthropic').get('model') ?? '',
+			maxTokens: vscode.workspace.getConfiguration('void.anthropic').get('maxTokens') ?? '',
+		},
+		openAI: {
+			apikey: vscode.workspace.getConfiguration('void.openAI').get('apiKey') ?? '',
+			model: vscode.workspace.getConfiguration('void.openAI').get('model') ?? '',
+		},
 		greptile: {
-			apikey: vscode.workspace.getConfiguration('void').get('greptileApiKey') ?? '',
-			githubPAT: vscode.workspace.getConfiguration('void').get('githubPAT') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.greptile').get('apiKey') ?? '',
+			githubPAT: vscode.workspace.getConfiguration('void.greptile').get('githubPAT') ?? '',
 			repoinfo: {
 				remote: 'github',
 				repository: 'TODO',
@@ -25,12 +31,23 @@ const getApiConfig = () => {
 			}
 		},
 		ollama: {
-			// apikey: vscode.workspace.getConfiguration('void').get('ollamaSettings') ?? '',
+			endpoint: vscode.workspace.getConfiguration('void.ollama').get('endpoint') ?? '',
+			model: vscode.workspace.getConfiguration('void.ollama').get('model') ?? '',
+		},
+		openAICompatible: {
+			endpoint: vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint') ?? '',
+			model: vscode.workspace.getConfiguration('void.openAICompatible').get('model') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
+		},
+		openRouter: {
+			model: vscode.workspace.getConfiguration('void.openRouter').get('model') ?? '',
+			apikey: vscode.workspace.getConfiguration('void.openRouter').get('apiKey') ?? '',
 		},
 		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
 	}
 	return apiConfig
 }
+
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -62,38 +79,49 @@ export function activate(context: vscode.ExtensionContext) {
 			const filePath = editor.document.uri;
 
 			// send message to the webview (Sidebar.tsx)
-			webviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, selectionRange, filePath } } satisfies WebviewMessage));
+			webviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
 		})
 	);
 
 	// 3. Show an approve/reject codelens above each change
-	const approvalCodeLensProvider = new ApprovalCodeLensProvider();
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', approvalCodeLensProvider));
+	const displayChangesProvider = new DisplayChangesProvider();
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', displayChangesProvider));
 
 	// 4. Add approve/reject commands
-	context.subscriptions.push(vscode.commands.registerCommand('void.approveDiff', async (params) => {
-		approvalCodeLensProvider.approveDiff(params)
+	context.subscriptions.push(vscode.commands.registerCommand('void.acceptDiff', async (params) => {
+		displayChangesProvider.acceptDiff(params)
 	}));
-	context.subscriptions.push(vscode.commands.registerCommand('void.discardDiff', async (params) => {
-		approvalCodeLensProvider.discardDiff(params)
+	context.subscriptions.push(vscode.commands.registerCommand('void.rejectDiff', async (params) => {
+		displayChangesProvider.rejectDiff(params)
 	}));
 
+	context.subscriptions.push(vscode.commands.registerCommand('void.openSettings', async () => {
+		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:void.void');
+	}));
 
-	// 5.
+	// 5. Receive messages from sidebar
 	webviewProvider.webview.then(
 		webview => {
+
+			// top navigation bar commands
+			context.subscriptions.push(vscode.commands.registerCommand('void.startNewThread', async () => {
+				webview.postMessage({ type: 'startNewThread' } satisfies MessageToSidebar)
+			}))
+			context.subscriptions.push(vscode.commands.registerCommand('void.toggleThreadSelector', async () => {
+				webview.postMessage({ type: 'toggleThreadSelector' } satisfies MessageToSidebar)
+			}))
 
 			// when config changes, send it to the sidebar
 			vscode.workspace.onDidChangeConfiguration(e => {
 				if (e.affectsConfiguration('void')) {
 					const apiConfig = getApiConfig()
-					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
+					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies MessageToSidebar)
 				}
 			})
 
 
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
-			webview.onDidReceiveMessage(async (m: WebviewMessage) => {
+			webview.onDidReceiveMessage(async (m: MessageFromSidebar) => {
 
 				if (m.type === 'requestFiles') {
 
@@ -103,30 +131,56 @@ export function activate(context: vscode.ExtensionContext) {
 					)
 
 					// send contents to webview
-					webview.postMessage({ type: 'files', files, } satisfies WebviewMessage)
+					webview.postMessage({ type: 'files', files, } satisfies MessageToSidebar)
 
-				} else if (m.type === 'applyCode') {
+				} else if (m.type === 'applyChanges') {
 
 					const editor = vscode.window.activeTextEditor
 					if (!editor) {
 						vscode.window.showInformationMessage('No active editor!')
 						return
 					}
-					const oldContents = await readFileContentOfUri(editor.document.uri)
-					const suggestedEdits = getDiffedLines(oldContents, m.code)
-					await approvalCodeLensProvider.addNewApprovals(editor, suggestedEdits)
+
+					// create an area to show diffs
+					const diffArea: BaseDiffArea = {
+						startLine: 0, // in ctrl+L the start and end lines are the full document
+						endLine: editor.document.lineCount,
+						originalStartLine: 0,
+						originalEndLine: editor.document.lineCount,
+						originalCode: await readFileContentOfUri(editor.document.uri),
+					}
+					displayChangesProvider.addDiffArea(editor.document.uri, diffArea)
+
+
+					// write new code `m.code` to the document
+					// TODO update like this:
+					// this._weAreEditing = true
+					// await vscode.workspace.applyEdit(workspaceEdit)
+					// await vscode.workspace.save(docUri)
+					// this._weAreEditing = false
+					await editor.edit(editBuilder => {
+						editBuilder.replace(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER), m.code);
+					});
+
+					// rediff the changes based on the diffAreas
+					displayChangesProvider.refreshDiffAreas(editor.document.uri)
+
 				}
 				else if (m.type === 'getApiConfig') {
-
 					const apiConfig = getApiConfig()
-					console.log('Api config:', apiConfig)
-
-					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies WebviewMessage)
-
+					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies MessageToSidebar)
+				}
+				else if (m.type === 'getAllThreads') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					webview.postMessage({ type: 'allThreads', threads } satisfies MessageToSidebar)
+				}
+				else if (m.type === 'persistThread') {
+					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
+					const updatedThreads: ChatThreads = { ...threads, [m.thread.id]: m.thread }
+					context.workspaceState.update('allThreads', updatedThreads)
 				}
 				else {
-
-					console.error('unrecognized command', m.type, m)
+					console.error('unrecognized command', m)
 				}
 			})
 		}

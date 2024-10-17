@@ -1,5 +1,6 @@
 {
   "name": "void",
+  "publisher": "void",
   "displayName": "Void",
   "description": "",
   "version": "0.0.1",
@@ -13,37 +14,253 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "API Keys",
+      "title": "Void",
       "properties": {
         "void.whichApi": {
           "type": "string",
           "default": "anthropic",
-          "description": "Choose a model to use (anthropic | openai | greptile | ollama)"
+          "description": "Choose an API provider.",
+          "enum": [
+            "openAI",
+            "openRouter",
+            "openAICompatible",
+            "anthropic",
+            "azure",
+            "ollama",
+            "greptile"
+          ]
         },
-        "void.anthropicApiKey": {
+        "void.anthropic.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Anthropic API Key"
+          "description": "Anthropic API key."
         },
-        "void.openAIApiKey": {
+        "void.anthropic.model": {
+          "type": "string",
+          "default": "claude-3-5-sonnet-20240620",
+          "description": "Anthropic model to use.",
+          "enum": [
+            "claude-3-5-sonnet-20240620",
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240307"
+          ]
+        },
+        "void.anthropic.maxTokens": {
+          "type": "string",
+          "default": "8192",
+          "description": "Anthropic max number of tokens to output.",
+          "enum": [
+            "1024",
+            "2048",
+            "4096",
+            "8192"
+          ]
+        },
+        "void.openAI.apiKey": {
           "type": "string",
           "default": "",
-          "description": "OpenAI API Key"
+          "description": "OpenAI API key."
         },
-        "void.greptileApiKey": {
+        "void.openAI.model": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "OpenAI model to use.",
+          "enum": [
+            "o1-preview",
+            "o1-mini",
+            "gpt-4o",
+            "gpt-4o-2024-05-13",
+            "gpt-4o-2024-08-06",
+            "gpt-4o-mini",
+            "gpt-4o-mini-2024-07-18",
+            "gpt-4-turbo",
+            "gpt-4-turbo-2024-04-09",
+            "gpt-4-turbo-preview",
+            "gpt-4-0125-preview",
+            "gpt-4-1106-preview",
+            "gpt-4",
+            "gpt-4-0613",
+            "gpt-3.5-turbo-0125",
+            "gpt-3.5-turbo",
+            "gpt-3.5-turbo-1106"
+          ]
+        },
+        "void.greptile.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Greptile API Key"
+          "description": "Greptile API key."
         },
-        "void.githubPAT": {
+        "void.greptile.githubPAT": {
           "type": "string",
           "default": "",
-          "description": "Greptile - Github PAT (gives Greptile access to your repo)"
+          "description": "Github PAT given to Greptile to access your repository."
         },
-        "void.ollamaSettings": {
+        "void.greptile.remote": {
+          "type": "string",
+          "description": "remote provider",
+          "enum": [
+            "github",
+            "gitlab"
+          ]
+        },
+        "void.greptile.repository": {
+          "type": "string",
+          "description": "Repository identifier in \"owner/repository\" format."
+        },
+        "void.greptile.branch": {
+          "type": "string",
+          "default": "main",
+          "description": "Name of the git branch."
+        },
+        "void.azure.apiKey": {
+          "type": "string",
+          "description": "Azure API key."
+        },
+        "void.azure.deploymentId": {
+          "type": "string",
+          "description": "Azure API deployment ID."
+        },
+        "void.azure.resourceName": {
+          "type": "string",
+          "description": "Name of the Azure OpenAI resource. Either this or `baseURL` can be used. \nThe resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/deployments/{modelId}{path}`"
+        },
+        "void.azure.providerSettings": {
+          "type": "object",
+          "properties": {
+            "baseURL": {
+              "type": "string",
+              "default": "https://${resourceName}.openai.azure.com/openai/deployments",
+              "description": "Azure API base URL."
+            },
+            "headers": {
+              "type": "object",
+              "description": "Custom headers to include in the requests."
+            }
+          }
+        },
+        "void.ollama.endpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434",
+          "description": "The Ollama endpoint. Start Ollama by running `OLLAMA_ORIGINS=\"vscode-webview://*\" ollama serve`"
+        },
+        "void.ollama.model": {
+          "type": "string",
+          "default": "llama3.1",
+          "description": "Ollama model to use.",
+          "enum": [
+            "codegemma",
+            "codegemma:2b",
+            "codegemma:7b",
+            "codellama",
+            "codellama:7b",
+            "codellama:13b",
+            "codellama:34b",
+            "codellama:70b",
+            "codellama:code",
+            "codellama:python",
+            "command-r",
+            "command-r:35b",
+            "command-r-plus",
+            "command-r-plus:104b",
+            "deepseek-coder-v2",
+            "deepseek-coder-v2:16b",
+            "deepseek-coder-v2:236b",
+            "falcon2",
+            "falcon2:11b",
+            "firefunction-v2",
+            "firefunction-v2:70b",
+            "gemma",
+            "gemma:2b",
+            "gemma:7b",
+            "gemma2",
+            "gemma2:2b",
+            "gemma2:9b",
+            "gemma2:27b",
+            "llama2",
+            "llama2:7b",
+            "llama2:13b",
+            "llama2:70b",
+            "llama3",
+            "llama3:8b",
+            "llama3:70b",
+            "llama3-chatqa",
+            "llama3-chatqa:8b",
+            "llama3-chatqa:70b",
+            "llama3-gradient",
+            "llama3-gradient:8b",
+            "llama3-gradient:70b",
+            "llama3.1",
+            "llama3.1:8b",
+            "llama3.1:70b",
+            "llama3.1:405b",
+            "llava",
+            "llava:7b",
+            "llava:13b",
+            "llava:34b",
+            "llava-llama3",
+            "llava-llama3:8b",
+            "llava-phi3",
+            "llava-phi3:3.8b",
+            "mistral",
+            "mistral:7b",
+            "mistral-large",
+            "mistral-large:123b",
+            "mistral-nemo",
+            "mistral-nemo:12b",
+            "mixtral",
+            "mixtral:8x7b",
+            "mixtral:8x22b",
+            "moondream",
+            "moondream:1.8b",
+            "openhermes",
+            "openhermes:v2.5",
+            "phi3",
+            "phi3:3.8b",
+            "phi3:14b",
+            "phi3.5",
+            "phi3.5:3.8b",
+            "qwen",
+            "qwen:7b",
+            "qwen:14b",
+            "qwen:32b",
+            "qwen:72b",
+            "qwen:110b",
+            "qwen2",
+            "qwen2:0.5b",
+            "qwen2:1.5b",
+            "qwen2:7b",
+            "qwen2:72b",
+            "smollm",
+            "smollm:135m",
+            "smollm:360m",
+            "smollm:1.7b"
+          ]
+        },
+        "void.openRouter.model": {
+          "type": "string",
+          "default": "openai/gpt-4o",
+          "description": "OpenRouter model to use."
+        },
+        "void.openRouter.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Ollama settings (coming soon...)"
+          "description": "OpenRouter API key."
+        },
+        "void.openAICompatible.endpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434/v1",
+          "description": "The endpoint."
+        },
+        "void.openAICompatible.model": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "The name of the model to use."
+        },
+        "void.openAICompatible.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your API key."
         }
       }
     },
@@ -57,12 +274,27 @@
         "title": "Show Selection Lens"
       },
       {
-        "command": "void.approveDiff",
+        "command": "void.acceptDiff",
         "title": "Approve Diff"
       },
       {
-        "command": "void.discardDiff",
+        "command": "void.rejectDiff",
         "title": "Discard Diff"
+      },
+      {
+        "command": "void.startNewThread",
+        "title": "Start a new chat",
+        "icon": "$(add)"
+      },
+      {
+        "command": "void.toggleThreadSelector",
+        "title": "View past chats",
+        "icon": "$(history)"
+      },
+      {
+        "command": "void.openSettings",
+        "title": "Void settings",
+        "icon": "$(settings-gear)"
       }
     ],
     "viewsContainers": {
@@ -94,7 +326,26 @@
         "key": "ctrl+k",
         "mac": "cmd+k"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "void.startNewThread",
+          "when": "view == 'void.viewnumberone'",
+          "group": "navigation"
+        },
+        {
+          "command": "void.toggleThreadSelector",
+          "when": "view == 'void.viewnumberone'",
+          "group": "navigation"
+        },
+        {
+          "command": "void.openSettings",
+          "when": "view == 'void.viewnumberone'",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -106,26 +357,24 @@
   "devDependencies": {
     "@eslint/js": "^9.9.1",
     "@types/diff": "^5.2.2",
+    "@types/diff-match-patch": "^1.0.36",
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.8",
     "@types/node": "^22.5.1",
     "@types/react": "^18.3.4",
     "@types/react-dom": "^18.3.0",
-    "@types/react-syntax-highlighter": "^15.5.13",
     "@types/vscode": "1.92.0",
     "@typescript-eslint/eslint-plugin": "^8.3.0",
     "@typescript-eslint/parser": "^8.3.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "2.4.1",
     "autoprefixer": "^10.4.20",
-    "diff": "^6.0.0-beta",
     "esbuild": "^0.23.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.35.1",
     "eslint-plugin-react-hooks": "^4.6.2",
     "globals": "^15.9.0",
     "marked": "^14.1.0",
-    "ollama": "^0.5.8",
     "postcss": "^8.4.41",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -133,11 +382,11 @@
     "rimraf": "^6.0.1",
     "tailwindcss": "^3.4.10",
     "typescript": "5.5.4",
-    "typescript-eslint": "^8.3.0"
+    "typescript-eslint": "^8.3.0",
+    "uuid": "^10.0.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
-    "openai": "^4.57.0",
-    "react-syntax-highlighter": "^15.5.0"
+    "openai": "^4.57.0"
   }
 }

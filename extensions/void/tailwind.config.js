@@ -22,6 +22,7 @@ module.exports = {
 					"dropdown-bg": "var(--vscode-settings-dropdownBackground)",
 					"dropdown-foreground": "var(--vscode-settings-dropdownForeground)",
 					"dropdown-border": "var(--vscode-settings-dropdownBorder)",
+					"focus-border": "var(--vscode-focusBorder)",
 				},
 			},
 		},

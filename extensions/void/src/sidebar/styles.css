@@ -35,9 +35,9 @@ html {
 }
 
 .input {
-	@apply bg-vscode-input-bg text-vscode-input-fg border-vscode-input-border;
+	@apply bg-vscode-input-bg text-vscode-input-fg border-vscode-input-border focus:outline-vscode-focus-border;
 }
 
 .dropdown {
-	@apply bg-vscode-dropdown-bg text-vscode-dropdown-foreground border-vscode-dropdown-border;
+	@apply bg-vscode-dropdown-bg text-vscode-dropdown-foreground border-vscode-dropdown-border focus:outline-vscode-focus-border;
 }

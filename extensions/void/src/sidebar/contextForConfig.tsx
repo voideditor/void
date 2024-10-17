@@ -41,7 +41,7 @@ const voidConfigInfo: Record<
 > = {
 	default: {
 		whichApi: configEnum(
-			"Choose an API provider.",
+			"API Provider.",
 			'anthropic',
 			configFields,
 		),

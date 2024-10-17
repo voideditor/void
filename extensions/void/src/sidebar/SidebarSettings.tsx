@@ -19,6 +19,7 @@ const SettingOfFieldAndParam = ({ field, param }: { field: VoidConfigField, para
 			<div>
 				<label>{param}</label>
 				<input
+					className='input'
 					type="text"
 					value={val}
 					onChange={updateState}
@@ -33,6 +34,7 @@ const SettingOfFieldAndParam = ({ field, param }: { field: VoidConfigField, para
 			<div>
 				<label>{param}</label>
 				<select
+				className='dropdown'
 					value={val}
 					onChange={updateState}
 					onBlur={commitConfigParam}

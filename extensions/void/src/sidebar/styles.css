@@ -37,3 +37,7 @@ html {
 .input {
 	@apply bg-vscode-input-bg text-vscode-input-fg border-vscode-input-border;
 }
+
+.dropdown {
+	@apply bg-vscode-dropdown-bg text-vscode-dropdown-foreground border-vscode-dropdown-border;
+}

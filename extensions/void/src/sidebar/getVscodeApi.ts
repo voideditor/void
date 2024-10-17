@@ -12,7 +12,8 @@ const onetimeCallbacks: { [C in Command]: ((res: any) => void)[] } = {
 	"partialVoidConfig": [],
 	"startNewThread": [],
 	"allThreads": [],
-	"toggleThreadSelector": []
+	"toggleThreadSelector": [],
+	"toggleSettings": [],
 }
 
 // messageType -> id -> res
@@ -22,7 +23,8 @@ const callbacks: { [C in Command]: { [id: string]: ((res: any) => void) } } = {
 	"partialVoidConfig": {},
 	"startNewThread": {},
 	"allThreads": {},
-	"toggleThreadSelector": {}
+	"toggleThreadSelector": {},
+	"toggleSettings": {},
 }
 
 

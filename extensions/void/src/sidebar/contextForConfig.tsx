@@ -17,8 +17,8 @@ const configString = (description: string, defaultVal: string) => {
 	}
 }
 
-
-const configFields = [
+// fields you can customize (don't forget 'default' - it isn't included here!)
+export const configFields = [
 	'anthropic',
 	'openAI',
 	'greptile',
@@ -253,17 +253,18 @@ const voidConfigInfo: Record<
 
 // this is the type that comes with metadata like desc, default val, etc
 type VoidConfigInfo = typeof voidConfigInfo
+export type VoidConfigField = keyof typeof voidConfigInfo // typeof configFields[number]
 
 // this is the type that specifies the user's actual config
 export type PartialVoidConfig = {
 	[K in keyof typeof voidConfigInfo]?: {
-		[P in keyof typeof voidConfigInfo[K]]?: string
+		[P in keyof typeof voidConfigInfo[K]]?: typeof voidConfigInfo[K][P]['defaultVal']
 	}
 }
 
 export type VoidConfig = {
 	[K in keyof typeof voidConfigInfo]: {
-		[P in keyof typeof voidConfigInfo[K]]: string
+		[P in keyof typeof voidConfigInfo[K]]: typeof voidConfigInfo[K][P]['defaultVal']
 	}
 }
 
@@ -271,7 +272,7 @@ export type VoidConfig = {
 
 const getVoidConfig = (currentConfig: PartialVoidConfig): VoidConfig => {
 	const config = {} as PartialVoidConfig
-	for (let field of configFields) {
+	for (let field of [...configFields, 'default'] as const) {
 		config[field] = {}
 		for (let prop in voidConfigInfo[field]) {
 			config[field][prop] = currentConfig[field]?.[prop] || voidConfigInfo[field][prop].defaultVal
@@ -296,16 +297,20 @@ const useInstantState = <T,>(initVal: T) => {
 
 
 
+type SetConfigParamType = <K extends VoidConfigField>(field: K, param: keyof VoidConfigInfo[K], newVal: string) => void
+
 type ConfigValueType = {
 	voidConfig: VoidConfig,
-	setConfigParam: <K extends typeof configFields[number]>(field: K, param: keyof VoidConfigInfo[K], newVal: string) => void
+	voidConfigInfo: VoidConfigInfo,
+	partialVoidConfig: PartialVoidConfig,
+	setConfigParam: SetConfigParamType
 }
 
 
 const ConfigContext = createContext<ConfigValueType>(undefined as unknown as ConfigValueType)
 
 export function ConfigProvider({ children }: { children: ReactNode }) {
-	const [partialVoidConfig, setPartialVoidConfig] = useInstantState<PartialVoidConfig>({}) // only used internally here, and to communicate with the extension
+	const [partialVoidConfig, setPartialVoidConfig] = useInstantState<PartialVoidConfig>({}) // the user's selections
 	const [voidConfig, setVoidConfig] = useState<VoidConfig>(defaultVoidConfig)
 
 
@@ -323,6 +328,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 	return (<ConfigContext.Provider
 		value={{
 			voidConfig,
+			voidConfigInfo,
+			partialVoidConfig: partialVoidConfig.current ?? {},
 			setConfigParam: (field, param, newVal) => {
 				const newPartialConfig: PartialVoidConfig = {
 					...partialVoidConfig.current,

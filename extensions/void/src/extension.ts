@@ -54,10 +54,6 @@ export function activate(context: vscode.ExtensionContext) {
 		displayChangesProvider.rejectDiff(params)
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('void.openSettings', async () => {
-		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:void.void');
-	}));
-
 	// 5. Receive messages from sidebar
 	webviewProvider.webview.then(
 		webview => {
@@ -69,6 +65,9 @@ export function activate(context: vscode.ExtensionContext) {
 			context.subscriptions.push(vscode.commands.registerCommand('void.toggleThreadSelector', async () => {
 				webview.postMessage({ type: 'toggleThreadSelector' } satisfies MessageToSidebar)
 			}))
+			context.subscriptions.push(vscode.commands.registerCommand('void.toggleSettings', async () => {
+				webview.postMessage({ type: 'toggleSettings' } satisfies MessageToSidebar)
+			}));
 
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
 			webview.onDidReceiveMessage(async (m: MessageFromSidebar) => {

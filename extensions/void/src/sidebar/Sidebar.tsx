@@ -25,6 +25,14 @@ const Sidebar = () => {
 			setTab('threadSelector')
 	})
 
+	// if they toggled settings
+	useOnVSCodeMessage('toggleSettings', (m) => {
+		if (tab === 'settings')
+			setTab('chat')
+		else
+			setTab('settings')
+	})
+
 
 	// Receive messages from the VSCode extension
 	useEffect(() => {

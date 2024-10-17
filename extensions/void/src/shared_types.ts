@@ -46,6 +46,7 @@ type MessageToSidebar = (
 	| { type: 'allThreads', threads: ChatThreads }
 	| { type: 'startNewThread' }
 	| { type: 'toggleThreadSelector' }
+	| { type: 'toggleSettings' }
 )
 
 // sidebar -> editor

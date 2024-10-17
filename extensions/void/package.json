@@ -47,7 +47,7 @@
         "icon": "$(history)"
       },
       {
-        "command": "void.openSettings",
+        "command": "void.toggleSettings",
         "title": "Void settings",
         "icon": "$(settings-gear)"
       }
@@ -95,7 +95,7 @@
           "group": "navigation"
         },
         {
-          "command": "void.openSettings",
+          "command": "void.toggleSettings",
           "when": "view == 'void.viewnumberone'",
           "group": "navigation"
         }

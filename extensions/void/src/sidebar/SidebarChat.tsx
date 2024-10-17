@@ -85,13 +85,20 @@ export const SidebarChat = () => {
 	const abortFnRef = useRef<(() => void) | null>(null)
 
 	// higher level state
-	const { allThreads, currentThread, addMessageToHistory, startNewThread, } = useThreads()
+	const { allThreads, currentThread, addMessageToHistory, startNewThread, switchToThread } = useThreads()
 	const { voidConfig } = useVoidConfig()
 
 	// if they pressed the + to add a new chat
 	useOnVSCodeMessage('startNewThread', (m) => {
-		if (currentThread?.messages.length !== 0)
-			startNewThread()
+		// find a thread with 0 messages and switch to it
+		for (let threadId in allThreads) {
+			if (allThreads[threadId].messages.length === 0) {
+				switchToThread(threadId)
+				return
+			}
+		}
+		// start a new thread
+		startNewThread()
 	})
 
 	// if user pressed ctrl+l, add their selection to the sidebar

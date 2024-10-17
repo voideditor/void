@@ -55,7 +55,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 		const openAICompatibleEndpoint: string | undefined = vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint');
 		this._webviewDeps.push('void.openAICompatible.endpoint');
 		if (openAICompatibleEndpoint)
-			allowed_urls.push(openAICompatibleEndpoint);
+			allowed_urls.push(openAICompatibleEndpoint+'/chat/completions');
 
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'dist/sidebar/index.js'));
 		const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'dist/sidebar/styles.css'));

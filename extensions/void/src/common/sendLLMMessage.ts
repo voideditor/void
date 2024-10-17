@@ -17,6 +17,7 @@ type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[],
 	onText: OnText,
 	onFinalMessage: (input: string) => void,
+	onError: (error: string) => void,
 	voidConfig: VoidConfig,
 })
 	=> {
@@ -27,6 +28,7 @@ type SendLLMMessageFnTypeExternal = (params: {
 	messages: LLMMessage[],
 	onText: OnText,
 	onFinalMessage: (input: string) => void,
+	onError: (error: string) => void,
 	voidConfig: VoidConfig | null,
 })
 	=> {
@@ -36,8 +38,8 @@ type SendLLMMessageFnTypeExternal = (params: {
 
 
 
-// Claude
-const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, voidConfig }) => {
+// Anthropic
+const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
 
 	const anthropic = new Anthropic({ apiKey: voidConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
@@ -63,10 +65,19 @@ const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 		onFinalMessage(content)
 	})
 
+	stream.on('error', (error) => {
+		// the most common error will be invalid API key (401), so we handle this with a nice message
+		if (error instanceof Anthropic.APIError && error.status === 401) {
+			onError('Invalid API key.')
+		}
+		else {
+			onError(error.message)
+		}
+	})
 
 	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
 	const abort = () => {
-		// stream.abort() // this doesnt appear to do anything, but it should try to stop claude from generating anymore
+		// stream.controller.abort() // TODO need to test this to make sure it works, it might throw an error
 		did_abort = true
 	}
 
@@ -78,7 +89,7 @@ const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, voidConfig }) => {
+const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
 
 	let didAbort = false
 	let fullText = ''
@@ -122,27 +133,35 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 				didAbort = true;
 			}
 			// when receive text
-			try {
-				for await (const chunk of response) {
-					if (didAbort) return;
-					const newText = chunk.choices[0]?.delta?.content || '';
-					fullText += newText;
-					onText(newText, fullText);
-				}
-				onFinalMessage(fullText);
+			for await (const chunk of response) {
+				if (didAbort) return;
+				const newText = chunk.choices[0]?.delta?.content || '';
+				fullText += newText;
+				onText(newText, fullText);
 			}
-			// when error/fail
-			catch (error) {
-				console.error('Error in OpenAI stream:', error);
-				onFinalMessage(fullText);
+			onFinalMessage(fullText);
+		})
+		// when error/fail - this catches errors of both .create() and .then(for await)
+		.catch(error => {
+			if (error instanceof OpenAI.APIError) {
+				if (error.status === 401) {
+					onError('Invalid API key.');
+				}
+				else {
+					onError(error.message);
+				}
+			}
+			else {
+				onError(error);
 			}
 		})
+
 	return { abort };
 };
 
 
 // Ollama
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, voidConfig }) => {
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
 
 	let didAbort = false
 	let fullText = ""
@@ -165,21 +184,20 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 				didAbort = true
 			}
 			// iterate through the stream
-			try {
-				for await (const chunk of stream) {
-					if (didAbort) return;
-					const newText = chunk.message.content;
-					fullText += newText;
-					onText(newText, fullText);
-				}
-				onFinalMessage(fullText);
+			for await (const chunk of stream) {
+				if (didAbort) return;
+				const newText = chunk.message.content;
+				fullText += newText;
+				onText(newText, fullText);
 			}
-			// when error/fail
-			catch (error) {
-				console.error('Error:', error);
-				onFinalMessage(fullText);
-			}
+			onFinalMessage(fullText);
+
 		})
+		// when error/fail
+		.catch(error => {
+			onError(error)
+		})
+
 	return { abort };
 };
 
@@ -189,7 +207,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 // https://docs.greptile.com/api-reference/query
 // https://docs.greptile.com/quickstart#sample-response-streamed
 
-const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, voidConfig }) => {
+const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
 
 	let didAbort = false
 	let fullText = ''
@@ -247,9 +265,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 		})
 		.catch(e => {
-			console.error('Error in Greptile stream:', e);
-			onFinalMessage(fullText);
-
+			onError(e)
 		});
 
 	return { abort }
@@ -258,23 +274,22 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 
 
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, voidConfig }) => {
+export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
 	if (!voidConfig) return { abort: () => { } }
 
 	switch (voidConfig.default.whichApi) {
 		case 'anthropic':
-			return sendClaudeMsg({ messages, onText, onFinalMessage, voidConfig });
+			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig });
 		case 'openAI':
 		case 'openRouter':
 		case 'openAICompatible':
-			return sendOpenAIMsg({ messages, onText, onFinalMessage, voidConfig });
-		case 'greptile':
-			return sendGreptileMsg({ messages, onText, onFinalMessage, voidConfig });
+			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig });
 		case 'ollama':
-			return sendOllamaMsg({ messages, onText, onFinalMessage, voidConfig });
+			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig });
+		case 'greptile':
+			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig });
 		default:
-			console.error(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`);
+			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
 			return { abort: () => { } }
-		//return sendClaudeMsg({ messages, onText, onFinalMessage, voidConfig }); // TODO
 	}
 }

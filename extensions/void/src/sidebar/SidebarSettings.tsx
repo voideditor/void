@@ -4,18 +4,10 @@ import { configFields, useVoidConfig, VoidConfigField } from "./contextForConfig
 
 const SettingOfFieldAndParam = ({ field, param }: { field: VoidConfigField, param: string }) => {
 	const { voidConfig, partialVoidConfig, voidConfigInfo, setConfigParam } = useVoidConfig()
+	const { enumArr, defaultVal, description } = voidConfigInfo[field][param]
+	const val = partialVoidConfig[field]?.[param] ?? defaultVal // current value of this item
 
-	const { defaultVal, description } = voidConfigInfo[field][param]
-	const [val, setVal] = useState<string | undefined>(partialVoidConfig[field]?.[param] ?? defaultVal)
-
-	const { enumArr } = voidConfigInfo[field][param]
-
-	const updateState = (newValue: string | undefined) => {
-		setVal(newValue)
-		if (newValue)
-			setConfigParam(field, param, newValue)
-	}
-
+	const updateState = (newValue: string) => { setConfigParam(field, param, newValue) }
 
 	const resetButton = <button className='btn btn-sm' onClick={() => updateState(defaultVal)}>
 		<svg

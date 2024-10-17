@@ -121,7 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 				else if (m.type === 'persistPartialVoidConfig') {
 					const partialVoidConfig = m.partialVoidConfig
-					context.workspaceState.update('partialVoidConfig', partialVoidConfig)
+					context.globalState.update('partialVoidConfig', partialVoidConfig)
 				}
 				else if (m.type === 'getAllThreads') {
 					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}

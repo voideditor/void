@@ -19,7 +19,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
 	private readonly _extensionUri: vscode.Uri
 
-	private _webviewView?: vscode.WebviewView; // only used inside onDidChangeConfiguration
+	// private _webviewView?: vscode.WebviewView;
 	private _webviewDeps: string[] = [];
 
 	constructor(context: vscode.ExtensionContext) {
@@ -28,34 +28,13 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
 		let temp_res: typeof this._res | undefined = undefined
 		this.webview = new Promise((res, rej) => { temp_res = res })
-		if (!temp_res) throw new Error("sidebar provider: resolver was undefined")
+		if (!temp_res) throw new Error("Void sidebar provider: resolver was undefined")
 		this._res = temp_res
-
-		// if it affects one of the config items webview depends on, update the webview
-		// TODO should be able to move this entirely to React - make updateWebviewHTML mount once, and then send updates via postMessage from then on
-		vscode.workspace.onDidChangeConfiguration(event => {
-			if (this._webviewDeps.map(dep => event.affectsConfiguration(dep)).some(v => !!v)) {
-				if (this._webviewView) {
-					this.updateWebviewHTML(this._webviewView.webview);
-				}
-			}
-		});
 	}
 
-	// this is updated
-	private updateWebviewHTML(webview: vscode.Webview) {
-		const allowed_urls = ['https://api.anthropic.com', 'https://api.openai.com', 'https://api.greptile.com'];
+	// called by us
+	updateWebviewHTML(webview: vscode.Webview) {
 		this._webviewDeps = []
-
-		const ollamaEndpoint: string | undefined = vscode.workspace.getConfiguration('void.ollama').get('endpoint');
-		this._webviewDeps.push('void.ollama.endpoint');
-		if (ollamaEndpoint)
-			allowed_urls.push(ollamaEndpoint);
-
-		const openAICompatibleEndpoint: string | undefined = vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint');
-		this._webviewDeps.push('void.openAICompatible.endpoint');
-		if (openAICompatibleEndpoint)
-			allowed_urls.push(openAICompatibleEndpoint+'/chat/completions');
 
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'dist/sidebar/index.js'));
 		const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'dist/sidebar/styles.css'));
@@ -68,7 +47,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Custom View</title>
-            <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src ${allowed_urls.join(' ')}; img-src vscode-resource: https:; script-src 'nonce-${nonce}'; style-src vscode-resource: 'unsafe-inline' http: https: data:;">
+            <meta http-equiv="Content-Security-Policy" content="img-src vscode-resource: https:; script-src 'nonce-${nonce}'; style-src vscode-resource: 'unsafe-inline' http: https: data:;">
             <base href="${rootUri}/">
             <link href="${stylesUri}" rel="stylesheet">
           </head>
@@ -100,6 +79,6 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 
 		// resolve webview and _webviewView
 		this._res(webview);
-		this._webviewView = webviewView;
+		// this._webviewView = webviewView;
 	}
 }

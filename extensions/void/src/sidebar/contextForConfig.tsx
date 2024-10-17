@@ -341,6 +341,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 				setPartialVoidConfig(newPartialConfig)
 				const newFullConfig = getVoidConfig(newPartialConfig)
 				setVoidConfig(newFullConfig)
+				getVSCodeAPI().postMessage({ type: 'persistPartialVoidConfig', partialVoidConfig: newPartialConfig })
 			}
 		}}
 	>

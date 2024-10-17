@@ -352,10 +352,12 @@
     "watch": "tsc -watch -p ./",
     "build": "rimraf dist && node build-tsx.js && node build-css.js",
     "pretest": "tsc -p ./ && eslint src --ext ts",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@types/diff": "^5.2.2",
     "@types/diff-match-patch": "^1.0.36",
     "@types/jest": "^29.5.12",
@@ -376,6 +378,8 @@
     "globals": "^15.9.0",
     "marked": "^14.1.0",
     "postcss": "^8.4.41",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^9.0.1",
@@ -388,5 +392,13 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
     "openai": "^4.57.0"
+  },
+  "lint-staged": {
+    "(src)/**/*.{js,ts,jsx,tsx}": [
+      "prettier --write"
+    ],
+    "*.json": [
+      "prettier --write"
+    ]
   }
 }

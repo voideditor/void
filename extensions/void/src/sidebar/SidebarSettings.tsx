@@ -6,7 +6,7 @@ const SettingOfFieldAndParam = ({ field, param }: { field: VoidConfigField, para
 	const { voidConfig, partialVoidConfig, voidConfigInfo, setConfigParam } = useVoidConfig()
 
 	const { defaultVal, description } = voidConfigInfo[field][param]
-	const [val, setVal] = useState<string | undefined>(partialVoidConfig[field]?.[param])
+	const [val, setVal] = useState<string | undefined>(partialVoidConfig[field]?.[param] ?? defaultVal)
 
 	const { enumArr } = voidConfigInfo[field][param]
 

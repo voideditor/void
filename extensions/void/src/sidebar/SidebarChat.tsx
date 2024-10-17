@@ -50,7 +50,7 @@ Please edit the file following these instructions:
 Please edit the selected code following these instructions:
 `;
 	}
-	
+
 	str += `
 \t${instructions}
 `;
@@ -106,6 +106,8 @@ export const SidebarChat = () => {
 	const [isLoading, setIsLoading] = useState(false)
 	const abortFnRef = useRef<(() => void) | null>(null)
 
+	const [latestError, setLatestError] = useState('')
+
 	// higher level state
 	const { allThreads, currentThread, addMessageToHistory, startNewThread, switchToThread } = useThreads()
 	const { voidConfig } = useVoidConfig()
@@ -142,32 +144,41 @@ export const SidebarChat = () => {
 
 		setIsLoading(true)
 		setInstructions('');
-		formRef.current?.reset(); // reset the form's text
+		formRef.current?.reset(); // reset the form's text when clear instructions or unexpected behavior happens
 		setSelection(null)
 		setFiles([])
+		setLatestError('')
 
 		// request file content from vscode and await response
 		getVSCodeAPI().postMessage({ type: 'requestFiles', filepaths: files })
 		const relevantFiles = await awaitVSCodeResponse('files')
 
 		// add message to chat history
-		const content = userInstructionsStr(instructions, relevantFiles.files, selection)
+		const userContent = userInstructionsStr(instructions, relevantFiles.files, selection)
 		// console.log('prompt:\n', content)
-		const newHistoryElt: ChatMessage = { role: 'user', content, displayContent: instructions, selection, files }
+		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selection, files }
 		addMessageToHistory(newHistoryElt)
 
 		// send message to LLM
 		let { abort } = sendLLMMessage({
-			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
+			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userContent }],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
 				// add assistant's message to chat history, and clear selection
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
 				addMessageToHistory(newHistoryElt)
-
-				// clear selection
 				setMessageStream('')
 				setIsLoading(false)
+			},
+			onError: (error) => {
+				// add assistant's message to chat history, and clear selection
+				let content = messageStream; // just use the current content
+				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
+				addMessageToHistory(newHistoryElt)
+				setMessageStream('')
+				setIsLoading(false)
+
+				setLatestError(error)
 			},
 			voidConfig: voidConfig
 		})
@@ -268,6 +279,8 @@ export const SidebarChat = () => {
 					</div>
 				</div>
 			</div>
+
+			{latestError}
 		</div>
 	</>
 }

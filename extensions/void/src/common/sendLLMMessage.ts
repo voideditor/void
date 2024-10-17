@@ -68,7 +68,7 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 	stream.on('error', (error) => {
 		// the most common error will be invalid API key (401), so we handle this with a nice message
 		if (error instanceof Anthropic.APIError && error.status === 401) {
-			onError('Invalid API key.')
+			onError('Unauthorized: Invalid API key.')
 		}
 		else {
 			onError(error.message)
@@ -145,7 +145,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 		.catch(error => {
 			if (error instanceof OpenAI.APIError) {
 				if (error.status === 401) {
-					onError('Invalid API key.');
+					onError('Unauthorized: Invalid API key.');
 				}
 				else {
 					onError(error.message);

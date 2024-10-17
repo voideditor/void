@@ -84,7 +84,12 @@ export const SidebarSettings = () => {
 				</div>
 			})}
 
-
+			{/* Remove this after 10/21/24, this is just to give developers a heads up about the recent change  */}
+			<div className='pt-20'>
+				{`We recently updated Settings. To copy your old Void settings over, press Ctrl+Shift+P, `}
+				{`type 'Open User Settings (JSON)',`}
+				{` and look for 'void.'. `}
+			</div>
 		</div>
 	)
 }

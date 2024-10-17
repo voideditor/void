@@ -15,9 +15,7 @@
   "contributes": {
     "configuration": {
       "title": "Void",
-      "properties": {
-
-      }
+      "properties": {}
     },
     "commands": [
       {

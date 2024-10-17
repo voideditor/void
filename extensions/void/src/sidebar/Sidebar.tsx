@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
-import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage"
-import { CodeSelection, ChatMessage, MessageToSidebar } from "../shared_types"
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode } from "./getVscodeApi"
+import React, { useState, useEffect } from "react"
+import { MessageToSidebar } from "../shared_types"
+import { getVSCodeAPI, onMessageFromVSCode } from "./getVscodeApi"
 
 import { SidebarThreadSelector } from "./SidebarThreadSelector";
-import { useThreads } from "./threadsContext";
 import { SidebarChat } from "./SidebarChat";
 
 

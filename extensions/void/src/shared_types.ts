@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { ApiConfig } from './common/sendLLMMessage';
+import { ApiConfig } from './config';
 
 
 

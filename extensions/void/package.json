@@ -30,6 +30,21 @@
             "greptile"
           ]
         },
+        "void.embeddingApi": {
+          "type": "string",
+          "default": "openai",
+          "description": "Choose an API provider for embeddings",
+          "enum": [
+            "openai"
+          ]
+        },
+        "void.vectorStore": {
+          "type": "string",
+          "description": "Choose a vector store.",
+          "enum": [
+            "opensearch"
+          ]
+        },
         "void.anthropic.apiKey": {
           "type": "string",
           "default": "",
@@ -84,6 +99,16 @@
             "gpt-3.5-turbo-0125",
             "gpt-3.5-turbo",
             "gpt-3.5-turbo-1106"
+          ]
+        },
+        "void.openAI.embedding": {
+          "type": "string",
+          "default": "text-embedding-3-small",
+          "description": "OpenAI embedding model.",
+          "enum": [
+            "text-embedding-3-small",
+            "text-embedding-3-large",
+            "text-embedding-ada-002"
           ]
         },
         "void.greptile.apiKey": {
@@ -261,6 +286,11 @@
           "type": "string",
           "default": "",
           "description": "Your API key."
+        },
+        "void.openSearch.endpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:9200",
+          "description": "The OpenSearch endpoint."
         }
       }
     },
@@ -387,6 +417,14 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
+    "@langchain/community": "^0.3.4",
+    "@langchain/core": "^0.3.8",
+    "@langchain/openai": "^0.3.5",
+    "@opensearch-project/opensearch": "^2.12.0",
+    "langchain": "^0.3.2",
     "openai": "^4.57.0"
+  },
+  "overrides": {
+    "@langchain/core": "^0.3.8"
   }
 }

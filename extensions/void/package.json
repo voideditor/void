@@ -146,6 +146,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
+    "@monaco-editor/react": "^4.6.0",
     "openai": "^4.57.0"
   }
 }

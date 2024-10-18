@@ -10,7 +10,9 @@ enum CopyButtonState {
 	Error = "Could not copy",
 }
 
-const COPY_FEEDBACK_TIMEOUT = 1000
+const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
+
+
 
 // code block with toolbar (Apply, Copy, etc) at top
 const BlockCode = ({
@@ -74,8 +76,73 @@ const BlockCode = ({
 		</>
 	)
 
-	return (
+	return (<>
+
+		{/* <MonacoEditor
+			onMount={(editor, monaco) => {
+
+
+				const model = editor.getModel()
+				model?.setEOL(monaco.editor.EndOfLineSequence.LF)
+				if (modelRef)
+					modelRef.current = model
+
+				// model?.updateOptions({ tabSize: 4 }) // apparently this should get set on the model, not the editor ()
+
+				monaco?.editor.setTheme('whatever')
+
+
+			}}
+			loading=''
+			defaultValue={initValue}
+			defaultLanguage={'python'}
+
+			onChange={() => { onChangeText?.() }}
+			height={'100%'} // 100% or the exact pixel height
+			theme={'whatever'}
+
+
+			options={{
+				matchBrackets: 'always',
+				detectIndentation: false, // we always want a tab size of 4
+				tabSize: 4,
+				insertSpaces: true,
+
+				// glyphMargin: false,
+				// renderIndentGuides: false,
+
+
+
+				// fontSize: 15,
+				wordWrapColumn: 10000, // we want this to be infinity
+				// automaticLayout: true,
+				wordWrap: 'bounded', // 'off'
+				// wordBreak: 'keepAll',
+				// automaticLayout: true,
+				// lineDecorationsWidth: 0,
+				lineNumbersMinChars: 4,
+				lineNumbers: isPseudocode ? 'off' : 'on',
+				renderLineHighlight: 'none',
+				minimap: { enabled: false },
+				scrollBeyondLastColumn: 0,
+				scrollBeyondLastLine: false,
+				scrollbar: {
+					alwaysConsumeMouseWheel: false, //height !== undefined
+					// vertical: 'hidden',
+					// horizontal: 'hidden'
+				},
+
+				overviewRulerLanes: 0,
+				readOnly: !onChangeText,
+				quickSuggestions: false,
+
+				...options
+			}}
+		/> */}
+
+
 		<div className="relative group">
+
 			{!hideToolbar && (
 				<div className="absolute top-0 right-0 invisible group-hover:visible">
 					<div className="flex space-x-2 p-2">{toolbar || defaultToolbar}</div>
@@ -94,6 +161,7 @@ const BlockCode = ({
 
 			</div>
 		</div>
+	</>
 	)
 }
 

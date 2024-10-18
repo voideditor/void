@@ -4,6 +4,7 @@ import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from 
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
 import { embedWorkspaceFiles } from './ai/embed';
+import { getVoidConfig } from './sidebar/contextForConfig';
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
 	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
@@ -150,7 +151,9 @@ export function activate(context: vscode.ExtensionContext) {
 	)
 
 	// 6. Background jobs
-	embedWorkspaceFiles()
+	const partialVoidConfig = context.globalState.get('partialVoidConfig') ?? {}
+	const voidConfig = getVoidConfig(partialVoidConfig)	
+	embedWorkspaceFiles(voidConfig)
 
 	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)
 	// TODO need to build this

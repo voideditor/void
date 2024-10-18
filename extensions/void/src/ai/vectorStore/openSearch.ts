@@ -2,8 +2,8 @@ import { Client as OpenSearchClient } from "@opensearch-project/opensearch";
 import { Document } from "@langchain/core/documents";
 import { OpenSearchVectorStore } from "@langchain/community/vectorstores/opensearch";
 import { Embeddings, EmbeddingsInterface } from "@langchain/core/embeddings";
-import { getApiConfig } from "../../config";
 import { INDEX_NAME, VectorStoreAdapter } from ".";
+import { VoidConfig } from "../../sidebar/contextForConfig";
 
 const uploadDocuments = async (
 	client: OpenSearchClient,
@@ -56,10 +56,12 @@ const getStoredMtime = async (
 	}
 };
 
-export default (embeddingApi: Embeddings): VectorStoreAdapter => {
-	const apiConfig = getApiConfig();
+export default (
+	voidConfig: VoidConfig,
+	embeddingApi: Embeddings
+): VectorStoreAdapter => {
 	const client = new OpenSearchClient({
-		nodes: [apiConfig.openSearch.endpoint],
+		nodes: [voidConfig.openSearch.endpoint],
 	});
 
 	return {

@@ -8,9 +8,9 @@ import {
 } from "@langchain/textsplitters";
 import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { TextLoader } from "langchain/document_loaders/fs/text";
-import { ApiProvider, getApiConfig } from "../config";
 import { Embeddings } from "@langchain/core/embeddings";
 import { getVectorStoreClient } from "./vectorStore/index";
+import { ApiProvider, VoidConfig } from "../sidebar/contextForConfig";
 
 enum FileType {
 	UNKNOWN = "unknown",
@@ -88,23 +88,22 @@ const getLoader = (type: FileType, file: vscode.Uri) => {
 	}
 };
 
-const getEmbeddingClient = (): Embeddings | null => {
-	const apiConfig = getApiConfig();
-
-	switch (apiConfig.embeddingApi) {
+const getEmbeddingClient = (voidConfig: VoidConfig): Embeddings | null => {
+	switch (voidConfig.default.embeddingApi) {
 		case ApiProvider.OPENAI:
 			return new OpenAIEmbeddings({
-				model: apiConfig.openAI.embedding,
-				apiKey: apiConfig.openAI.apikey,
+				model: voidConfig.openAI.embedding,
+				apiKey: voidConfig.openAI.apikey,
 			});
 		default:
 			return null;
 	}
 };
 
-export const embedWorkspaceFiles = async () => {
-	const embeddingClient = getEmbeddingClient();
-	const vectorStore = embeddingClient && getVectorStoreClient(embeddingClient);
+export const embedWorkspaceFiles = async (voidConfig: VoidConfig) => {
+	const embeddingClient = getEmbeddingClient(voidConfig);
+	const vectorStore =
+		embeddingClient && getVectorStoreClient(voidConfig, embeddingClient);
 
 	// if embedding and vector store keys are configured, proceed
 	if (embeddingClient && vectorStore) {

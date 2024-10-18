@@ -1,6 +1,18 @@
 import React, { ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState, } from "react"
 import { awaitVSCodeResponse, getVSCodeAPI, useOnVSCodeMessage } from "./getVscodeApi"
 
+export enum ApiProvider {
+	ANTHROPIC = 'anthropic',
+	OPENAI = 'openai',
+	GREPTILE = 'greptile',
+	OLLAMA = 'ollama',
+	OPENAI_COMPATIBLE = 'openAICompatible'
+}
+
+export enum VectorStore {
+	OPENSEARCH = 'opensearch'
+}
+
 const configEnum = <EnumArr extends readonly string[]>(description: string, defaultVal: EnumArr[number], enumArr: EnumArr) => {
 	return {
 		description,
@@ -17,7 +29,6 @@ const configString = (description: string, defaultVal: string) => {
 	}
 }
 
-// fields you can customize (don't forget 'default' - it isn't included here!)
 export const apiConfigFields = [
 	'anthropic',
 	'openAI',
@@ -32,6 +43,7 @@ export const vectorStoreConfigFields = [
 	'opensearch',
 ]
 
+// fields you can customize (don't forget 'default' - it isn't included here!)
 export const configFields = [
 	...apiConfigFields,
 	...vectorStoreConfigFields,
@@ -296,7 +308,7 @@ export type VoidConfig = {
 
 
 
-const getVoidConfig = (currentConfig: PartialVoidConfig): VoidConfig => {
+export const getVoidConfig = (currentConfig: PartialVoidConfig): VoidConfig => {
 	const config = {} as PartialVoidConfig
 	for (let field of [...configFields, 'default'] as const) {
 		config[field] = {}

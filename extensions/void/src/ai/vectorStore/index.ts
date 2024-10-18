@@ -1,7 +1,7 @@
 import { Document } from "@langchain/core/documents";
-import { getApiConfig, VectorStore } from "../../config";
 import openSearchInstance from "./openSearch";
 import { Embeddings } from "@langchain/core/embeddings";
+import { VectorStore, VoidConfig } from "../../sidebar/contextForConfig";
 
 export const INDEX_NAME = "void";
 
@@ -11,12 +11,13 @@ export interface VectorStoreAdapter {
 	getStoredMtime: (path: string) => Promise<number | null>;
 }
 
-export const getVectorStoreClient = (embeddingApi: Embeddings) => {
-	const apiConfig = getApiConfig();
-
-	switch (apiConfig.vectorStore) {
+export const getVectorStoreClient = (
+	voidConfig: VoidConfig,
+	embeddingApi: Embeddings
+) => {
+	switch (voidConfig.default.vectorStore) {
 		case VectorStore.OPENSEARCH:
-			return openSearchInstance(embeddingApi);
+			return openSearchInstance(voidConfig, embeddingApi);
 		default:
 			return null;
 	}

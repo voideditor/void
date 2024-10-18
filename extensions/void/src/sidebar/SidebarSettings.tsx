@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { configFields, useVoidConfig, VoidConfigField } from "./contextForConfig";
+import { useVoidConfig, VoidConfigField } from "./contextForConfig";
 
 
 const SettingOfFieldAndParam = ({ field, param }: { field: VoidConfigField, param: string }) => {
@@ -52,45 +52,39 @@ export const SidebarSettings = () => {
 
 	const { voidConfig, voidConfigInfo } = useVoidConfig()
 
-	const current_field = voidConfig.default['whichApi'] as VoidConfigField
-
-
 	return (
-		<div className='space-y-4 py-2 overflow-y-auto'>
+		<div className="space-y-8 py-2 overflow-y-auto">
+			{Object.keys(voidConfig.default).map((setting) => (
+				<section key={setting} className="space-y-2">
+					{/* choose the field */}
+					<div className="outline-vscode-input-bg">
+						<SettingOfFieldAndParam field="default" param={setting} />
+					</div>
 
-			{/* choose the field */}
-			<div className='outline-vscode-input-bg'>
-				<SettingOfFieldAndParam
-					field='default'
-					param='whichApi'
-				/>
-			</div>
+					<hr />
 
-			<hr />
-
-			{/* render all fields, but hide the ones not visible for fast tab switching */}
-			{configFields.map(field => {
-				return <div
-					key={field}
-					className={`flex flex-col gap-y-2 ${field !== current_field ? 'hidden' : ''}`}
-				>
-					{Object.keys(voidConfigInfo[field]).map((param) => (
-						<SettingOfFieldAndParam
-							key={param}
-							field={field}
-							param={param}
-						/>
-					))}
-				</div>
-			})}
+					{/* render all fields */}
+					{voidConfigInfo[voidConfig.default[setting]] &&
+						Object.keys(voidConfigInfo[voidConfig.default[setting]])?.map(
+							(param) => (
+								<div key={param} className="flex flex-col gap-y-2">
+									<SettingOfFieldAndParam
+										field={voidConfig.default[setting]}
+										param={param}
+									/>
+								</div>
+							)
+						)}
+				</section>
+			))}
 
 			{/* Remove this after 10/21/24, this is just to give developers a heads up about the recent change  */}
-			<div className='pt-20'>
+			<div className="pt-20">
 				{`We recently updated Settings. To copy your old Void settings over, press Ctrl+Shift+P, `}
 				{`type 'Open User Settings (JSON)',`}
 				{` and look for 'void.'. `}
 			</div>
 		</div>
-	)
+	);
 }
 

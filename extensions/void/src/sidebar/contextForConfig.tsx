@@ -28,7 +28,8 @@ export const apiConfigFields = [
 ] as const
 
 export const vectorStoreConfigFields = [
-	'opensearch',
+	'none',
+	'openSearch',
 ]
 
 // fields you can customize (don't forget 'default' - it isn't included here!)
@@ -53,14 +54,9 @@ const voidConfigInfo: Record<
 			'anthropic',
 			apiConfigFields,
 		),
-		embeddingApi: configEnum(
-			"Embedding API Provider.",
-			'anthropic',
-			apiConfigFields,
-		),
 		vectorStore: configEnum(
 			"Vector store.",
-			'opensearch',
+			'none',
 			vectorStoreConfigFields,
 		),
 	},
@@ -271,7 +267,7 @@ const voidConfigInfo: Record<
 		// 	}
 		// },
 	},
-	opensearch: {
+	openSearch: {
 		endpoint: configString('The endpoint.', 'http://127.0.0.1:9200'),
 	}
 }

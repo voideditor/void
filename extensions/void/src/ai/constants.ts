@@ -7,5 +7,5 @@ export enum ApiProvider {
 }
 
 export enum VectorStore {
-	OPENSEARCH = 'opensearch'
+	OPENSEARCH = 'openSearch'
 }

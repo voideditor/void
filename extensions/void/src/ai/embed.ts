@@ -90,7 +90,7 @@ const getLoader = (type: FileType, file: vscode.Uri) => {
 };
 
 const getEmbeddingClient = (voidConfig: VoidConfig): Embeddings | null => {
-	switch (voidConfig.default.embeddingApi) {
+	switch (voidConfig.default.whichApi) {
 		case ApiProvider.OPENAI:
 			return new OpenAIEmbeddings({
 				model: voidConfig.openAI.embedding,

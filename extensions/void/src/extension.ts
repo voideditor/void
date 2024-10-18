@@ -2,15 +2,13 @@ import * as vscode from 'vscode';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
 import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
+import { v4 as uuidv4 } from 'uuid'
 import { embedWorkspaceFiles } from './ai/embed';
-import { getApiConfig } from './config';
-
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
 	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
 		.replace(/\r\n/g, '\n') // replace windows \r\n with \n
 }
-
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -58,10 +56,6 @@ export function activate(context: vscode.ExtensionContext) {
 		displayChangesProvider.rejectDiff(params)
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('void.openSettings', async () => {
-		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:void.void');
-	}));
-
 	// 5. Receive messages from sidebar
 	webviewProvider.webview.then(
 		webview => {
@@ -73,15 +67,9 @@ export function activate(context: vscode.ExtensionContext) {
 			context.subscriptions.push(vscode.commands.registerCommand('void.toggleThreadSelector', async () => {
 				webview.postMessage({ type: 'toggleThreadSelector' } satisfies MessageToSidebar)
 			}))
-
-			// when config changes, send it to the sidebar
-			vscode.workspace.onDidChangeConfiguration(e => {
-				if (e.affectsConfiguration('void')) {
-					const apiConfig = getApiConfig()
-					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies MessageToSidebar)
-				}
-			})
-
+			context.subscriptions.push(vscode.commands.registerCommand('void.toggleSettings', async () => {
+				webview.postMessage({ type: 'toggleSettings' } satisfies MessageToSidebar)
+			}));
 
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
 			webview.onDidReceiveMessage(async (m: MessageFromSidebar) => {
@@ -129,9 +117,13 @@ export function activate(context: vscode.ExtensionContext) {
 					displayChangesProvider.refreshDiffAreas(editor.document.uri)
 
 				}
-				else if (m.type === 'getApiConfig') {
-					const apiConfig = getApiConfig()
-					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies MessageToSidebar)
+				else if (m.type === 'getPartialVoidConfig') {
+					const partialVoidConfig = context.globalState.get('partialVoidConfig') ?? {}
+					webview.postMessage({ type: 'partialVoidConfig', partialVoidConfig } satisfies MessageToSidebar)
+				}
+				else if (m.type === 'persistPartialVoidConfig') {
+					const partialVoidConfig = m.partialVoidConfig
+					context.globalState.update('partialVoidConfig', partialVoidConfig)
 				}
 				else if (m.type === 'getAllThreads') {
 					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
@@ -141,6 +133,14 @@ export function activate(context: vscode.ExtensionContext) {
 					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
 					const updatedThreads: ChatThreads = { ...threads, [m.thread.id]: m.thread }
 					context.workspaceState.update('allThreads', updatedThreads)
+				}
+				else if (m.type === 'getDeviceId') {
+					let deviceId = context.globalState.get('void_deviceid')
+					if (!deviceId || typeof deviceId !== 'string') {
+						deviceId = uuidv4()
+						context.globalState.update('void_deviceid', deviceId)
+					}
+					webview.postMessage({ type: 'deviceId', deviceId: deviceId as string } satisfies MessageToSidebar)
 				}
 				else {
 					console.error('unrecognized command', m)

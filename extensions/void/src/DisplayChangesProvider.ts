@@ -28,7 +28,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 	// used internally by vscode
 	public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
 		const docUriStr = document.uri.toString()
-		return this._diffsOfDocument[docUriStr].flatMap(diff => diff.lenses)
+		return this._diffsOfDocument[docUriStr]?.flatMap(diff => diff.lenses) ?? []
 	}
 
 	// declared by us, registered with vscode.languages.registerCodeLensProvider()

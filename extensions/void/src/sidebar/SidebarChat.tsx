@@ -136,10 +136,13 @@ export const SidebarChat = () => {
 	})
 
 
+	const isDisabled = !instructions
+
 	const formRef = useRef<HTMLFormElement | null>(null)
 	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
 		e.preventDefault()
+		if (isDisabled) return
 		if (isLoading) return
 
 		setIsLoading(true)
@@ -238,6 +241,7 @@ export const SidebarChat = () => {
 								)} />
 							)}
 						</div>}
+
 						<form
 							ref={formRef}
 							className="flex flex-row items-center rounded-md p-2"
@@ -245,7 +249,6 @@ export const SidebarChat = () => {
 
 							onSubmit={(e) => {
 								console.log('submit!')
-								e.preventDefault();
 								onSubmit(e)
 							}}>
 							{/* input */}
@@ -257,16 +260,18 @@ export const SidebarChat = () => {
 								rows={1}
 								onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
 							/>
-							{/* submit button */}
 							{isLoading ?
+								// stop button
 								<button
 									onClick={onStop}
 									className="btn btn-primary rounded-r-lg max-h-10 p-2"
 									type='button'
 								>Stop</button>
-								: <button
+								:
+								// submit button (up arrow)
+								<button
 									className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
-									disabled={!instructions}
+									disabled={isDisabled}
 									type='submit'
 								>
 									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

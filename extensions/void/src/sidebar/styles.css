@@ -29,6 +29,7 @@ html {
 		}
 	}
 
+	/* add transparency when disabled */
 	&:disabled {
 		@apply opacity-75 cursor-not-allowed;
 	}

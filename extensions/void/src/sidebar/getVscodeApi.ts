@@ -14,6 +14,7 @@ const onetimeCallbacks: { [C in Command]: ((res: any) => void)[] } = {
 	"allThreads": [],
 	"toggleThreadSelector": [],
 	"toggleSettings": [],
+	"deviceId": [],
 }
 
 // messageType -> id -> res
@@ -25,6 +26,7 @@ const callbacks: { [C in Command]: { [id: string]: ((res: any) => void) } } = {
 	"allThreads": {},
 	"toggleThreadSelector": {},
 	"toggleSettings": {},
+	"deviceId": {}
 }
 
 

@@ -47,6 +47,7 @@ type MessageToSidebar = (
 	| { type: 'startNewThread' }
 	| { type: 'toggleThreadSelector' }
 	| { type: 'toggleSettings' }
+	| { type: 'deviceId', deviceId: string }
 )
 
 // sidebar -> editor
@@ -57,6 +58,7 @@ type MessageFromSidebar = (
 	| { type: 'persistPartialVoidConfig', partialVoidConfig: PartialVoidConfig }
 	| { type: 'getAllThreads' }
 	| { type: 'persistThread', thread: ChatThreads[string] }
+	| { type: 'getDeviceId' }
 )
 
 

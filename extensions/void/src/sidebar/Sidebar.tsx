@@ -3,13 +3,24 @@ import { CodeSelection, ChatMessage, MessageToSidebar } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi"
 
 import { SidebarThreadSelector } from "./SidebarThreadSelector";
-import { useThreads } from "./contextForThreads";
 import { SidebarChat } from "./SidebarChat";
 import { SidebarSettings } from './SidebarSettings';
-
+import { identifyUser, useMetrics } from "../metrics/posthog";
 
 
 const Sidebar = () => {
+
+	useMetrics()
+
+	// when we get the deviceid, identify the user
+	useEffect(() => {
+		getVSCodeAPI().postMessage({ type: 'getDeviceId' });
+		awaitVSCodeResponse('deviceId').then((m => {
+			identifyUser(m.deviceId)
+		}))
+	}, [])
+
+
 	const [tab, setTab] = useState<'threadSelector' | 'chat' | 'settings'>('chat')
 
 	// if they pressed the + to add a new chat
@@ -32,7 +43,6 @@ const Sidebar = () => {
 		else
 			setTab('settings')
 	})
-
 
 	// Receive messages from the VSCode extension
 	useEffect(() => {
@@ -60,8 +70,6 @@ const Sidebar = () => {
 			<div className={`${tab !== 'settings' ? 'hidden' : ''}`}>
 				<SidebarSettings />
 			</div>
-
-
 
 		</div>
 

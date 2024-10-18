@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
 import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
+import { v4 as uuidv4 } from 'uuid'
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
 	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
@@ -131,6 +132,14 @@ export function activate(context: vscode.ExtensionContext) {
 					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}
 					const updatedThreads: ChatThreads = { ...threads, [m.thread.id]: m.thread }
 					context.workspaceState.update('allThreads', updatedThreads)
+				}
+				else if (m.type === 'getDeviceId') {
+					let deviceId = context.globalState.get('void_deviceid')
+					if (!deviceId || typeof deviceId !== 'string') {
+						deviceId = uuidv4()
+						context.globalState.update('void_deviceid', deviceId)
+					}
+					webview.postMessage({ type: 'deviceId', deviceId: deviceId as string } satisfies MessageToSidebar)
 				}
 				else {
 					console.error('unrecognized command', m)

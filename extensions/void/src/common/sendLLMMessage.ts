@@ -35,7 +35,8 @@ export type ApiConfig = {
 		model: string,
 		apikey: string
 	}
-	whichApi: string
+	whichApi: string,
+	initialInstructions: string
 }
 
 type OnText = (newText: string, fullText: string) => void;

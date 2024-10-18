@@ -1,7 +1,8 @@
 import { Document } from "@langchain/core/documents";
 import openSearchInstance from "./openSearch";
 import { Embeddings } from "@langchain/core/embeddings";
-import { VectorStore, VoidConfig } from "../../sidebar/contextForConfig";
+import { VoidConfig } from "../../sidebar/contextForConfig";
+import { VectorStore } from "../constants";
 
 export const INDEX_NAME = "void";
 

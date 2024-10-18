@@ -1,18 +1,6 @@
 import React, { ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState, } from "react"
 import { awaitVSCodeResponse, getVSCodeAPI, useOnVSCodeMessage } from "./getVscodeApi"
 
-export enum ApiProvider {
-	ANTHROPIC = 'anthropic',
-	OPENAI = 'openai',
-	GREPTILE = 'greptile',
-	OLLAMA = 'ollama',
-	OPENAI_COMPATIBLE = 'openAICompatible'
-}
-
-export enum VectorStore {
-	OPENSEARCH = 'opensearch'
-}
-
 const configEnum = <EnumArr extends readonly string[]>(description: string, defaultVal: EnumArr[number], enumArr: EnumArr) => {
 	return {
 		description,

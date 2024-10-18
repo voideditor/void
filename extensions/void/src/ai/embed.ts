@@ -10,7 +10,8 @@ import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { TextLoader } from "langchain/document_loaders/fs/text";
 import { Embeddings } from "@langchain/core/embeddings";
 import { getVectorStoreClient } from "./vectorStore/index";
-import { ApiProvider, VoidConfig } from "../sidebar/contextForConfig";
+import { VoidConfig } from "../sidebar/contextForConfig";
+import { ApiProvider } from "./constants";
 
 enum FileType {
 	UNKNOWN = "unknown",

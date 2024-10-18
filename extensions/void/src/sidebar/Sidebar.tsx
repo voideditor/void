@@ -11,6 +11,8 @@ import { SidebarChat } from "./SidebarChat";
 
 const Sidebar = () => {
 	const [isThreadSelectorOpen, setIsThreadSelectorOpen] = useState(false)
+	const [requestFailed, setRequestFailed] = useState(false)
+	const [requestFailedReason, setRequestFailedReason] = useState('')
 
 	// get Api Config on mount
 	useEffect(() => {

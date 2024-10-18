@@ -1,10 +1,26 @@
 import React from "react";
-import { ThreadsProvider, useThreads } from "./threadsContext";
+import { ThreadsProvider, useThreads } from "./contextForThreads";
+
+
+const truncate = (s: string) => {
+	let len = s.length
+	const TRUNC_AFTER = 16
+	if (len >= TRUNC_AFTER)
+		s = s.substring(0, TRUNC_AFTER) + '...'
+	return s
+}
+
 
 export const SidebarThreadSelector = ({ onClose }: { onClose: () => void }) => {
 	const { allThreads, currentThread, switchToThread } = useThreads()
+
+	// sorted by most recent to least recent
+	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].createdAt > allThreads![threadId2].createdAt ? -1 : 1)
+
 	return (
-		<div className="flex flex-col space-y-1">
+		<div className="flex flex-col gap-y-1">
+
+			{/* X button at top right */}
 			<div className="text-right">
 				<button className="btn btn-sm" onClick={onClose}>
 					<svg
@@ -22,19 +38,40 @@ export const SidebarThreadSelector = ({ onClose }: { onClose: () => void }) => {
 					</svg>
 				</button>
 			</div>
-			{/* iterate through all past threads */}
-			{Object.keys(allThreads ?? {}).map((threadId) => {
-				const pastThread = (allThreads ?? {})[threadId];
-				return (
-					<button
-						key={pastThread.id}
-						className={`btn btn-sm btn-secondary ${pastThread.id === currentThread?.id ? "btn-primary" : ""}`}
-						onClick={() => switchToThread(pastThread.id)}
-					>
-						{new Date(pastThread.createdAt).toLocaleString()}
-					</button>
-				)
-			})}
+
+			{/* a list of all the past threads */}
+			<div className='flex flex-col gap-y-1 max-h-80 overflow-y-auto'>
+				{sortedThreadIds.map((threadId) => {
+					if (!allThreads)
+						return <>Error: Threads not found.</>
+					const pastThread = allThreads[threadId]
+
+					let btnStringArr = []
+
+					let msg1 = truncate(allThreads[threadId].messages[0]?.displayContent ?? '(empty)')
+					btnStringArr.push(msg1)
+
+					let msg2 = truncate(allThreads[threadId].messages[1]?.displayContent ?? '')
+					if (msg2)
+						btnStringArr.push(msg2)
+
+					btnStringArr.push(allThreads[threadId].messages.length)
+
+					const btnString = btnStringArr.join(' / ')
+
+					return (
+						<button
+							key={pastThread.id}
+							className={`btn btn-sm rounded-sm ${pastThread.id === currentThread?.id ? "btn-primary" : "btn-secondary"}`}
+							onClick={() => switchToThread(pastThread.id)}
+							title={new Date(pastThread.createdAt).toLocaleString()}
+						>
+							{btnString}
+						</button>
+					)
+				})}
+			</div>
+
 		</div>
 	)
 }

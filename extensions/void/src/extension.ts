@@ -2,52 +2,11 @@ import * as vscode from 'vscode';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
 import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
-import { ApiConfig } from './common/sendLLMMessage';
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
 	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
 		.replace(/\r\n/g, '\n') // replace windows \r\n with \n
 }
-
-
-const getApiConfig = () => {
-	const apiConfig: ApiConfig = {
-		anthropic: {
-			apikey: vscode.workspace.getConfiguration('void.anthropic').get('apiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void.anthropic').get('model') ?? '',
-			maxTokens: vscode.workspace.getConfiguration('void.anthropic').get('maxTokens') ?? '',
-		},
-		openAI: {
-			apikey: vscode.workspace.getConfiguration('void.openAI').get('apiKey') ?? '',
-			model: vscode.workspace.getConfiguration('void.openAI').get('model') ?? '',
-		},
-		greptile: {
-			apikey: vscode.workspace.getConfiguration('void.greptile').get('apiKey') ?? '',
-			githubPAT: vscode.workspace.getConfiguration('void.greptile').get('githubPAT') ?? '',
-			repoinfo: {
-				remote: 'github',
-				repository: 'TODO',
-				branch: 'main'
-			}
-		},
-		ollama: {
-			endpoint: vscode.workspace.getConfiguration('void.ollama').get('endpoint') ?? '',
-			model: vscode.workspace.getConfiguration('void.ollama').get('model') ?? '',
-		},
-		openAICompatible: {
-			endpoint: vscode.workspace.getConfiguration('void.openAICompatible').get('endpoint') ?? '',
-			model: vscode.workspace.getConfiguration('void.openAICompatible').get('model') ?? '',
-			apikey: vscode.workspace.getConfiguration('void.openAICompatible').get('apiKey') ?? '',
-		},
-		openRouter: {
-			model: vscode.workspace.getConfiguration('void.openRouter').get('model') ?? '',
-			apikey: vscode.workspace.getConfiguration('void.openRouter').get('apiKey') ?? '',
-		},
-		whichApi: vscode.workspace.getConfiguration('void').get('whichApi') ?? ''
-	}
-	return apiConfig
-}
-
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -95,10 +54,6 @@ export function activate(context: vscode.ExtensionContext) {
 		displayChangesProvider.rejectDiff(params)
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('void.openSettings', async () => {
-		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:void.void');
-	}));
-
 	// 5. Receive messages from sidebar
 	webviewProvider.webview.then(
 		webview => {
@@ -110,15 +65,9 @@ export function activate(context: vscode.ExtensionContext) {
 			context.subscriptions.push(vscode.commands.registerCommand('void.toggleThreadSelector', async () => {
 				webview.postMessage({ type: 'toggleThreadSelector' } satisfies MessageToSidebar)
 			}))
-
-			// when config changes, send it to the sidebar
-			vscode.workspace.onDidChangeConfiguration(e => {
-				if (e.affectsConfiguration('void')) {
-					const apiConfig = getApiConfig()
-					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies MessageToSidebar)
-				}
-			})
-
+			context.subscriptions.push(vscode.commands.registerCommand('void.toggleSettings', async () => {
+				webview.postMessage({ type: 'toggleSettings' } satisfies MessageToSidebar)
+			}));
 
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
 			webview.onDidReceiveMessage(async (m: MessageFromSidebar) => {
@@ -166,9 +115,13 @@ export function activate(context: vscode.ExtensionContext) {
 					displayChangesProvider.refreshDiffAreas(editor.document.uri)
 
 				}
-				else if (m.type === 'getApiConfig') {
-					const apiConfig = getApiConfig()
-					webview.postMessage({ type: 'apiConfig', apiConfig } satisfies MessageToSidebar)
+				else if (m.type === 'getPartialVoidConfig') {
+					const partialVoidConfig = context.globalState.get('partialVoidConfig') ?? {}
+					webview.postMessage({ type: 'partialVoidConfig', partialVoidConfig } satisfies MessageToSidebar)
+				}
+				else if (m.type === 'persistPartialVoidConfig') {
+					const partialVoidConfig = m.partialVoidConfig
+					context.globalState.update('partialVoidConfig', partialVoidConfig)
 				}
 				else if (m.type === 'getAllThreads') {
 					const threads: ChatThreads = context.workspaceState.get('allThreads') ?? {}

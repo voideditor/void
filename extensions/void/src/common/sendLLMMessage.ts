@@ -1,436 +1,295 @@
-import Anthropic from '@anthropic-ai/sdk'
+import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
-import OpenAI from 'openai'
+import { VoidConfig } from '../sidebar/contextForConfig';
 
-// always compare these against package.json to make sure every setting in this type can actually be provided by the user
-export type ApiConfig = {
-	anthropic: {
-		apikey: string,
-		model: string,
-		maxTokens: string
-	},
-	openAI: {
-		apikey: string,
-		model: string
-	},
-	greptile: {
-		apikey: string,
-		githubPAT: string,
-		repoinfo: {
-			remote: string, // e.g. 'github'
-			repository: string, // e.g. 'voideditor/void'
-			branch: string // e.g. 'main'
-		}
-	},
-	ollama: {
-		endpoint: string,
-		model: string
-	},
-	openAICompatible: {
-		endpoint: string,
-		model: string,
-		apikey: string
-	},
-	openRouter: {
-		model: string,
-		apikey: string
-	}
-	whichApi: string
-}
 
-type OnText = (newText: string, fullText: string) => void;
+
+
+type OnText = (newText: string, fullText: string) => void
 
 export type LLMMessage = {
 	role: 'user' | 'assistant',
 	content: string
-};
+}
 
 type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[],
 	onText: OnText,
 	onFinalMessage: (input: string) => void,
-	onError: (message: string) => void,
-	apiConfig: ApiConfig
-}) => {
-	abort: () => void
-};
+	onError: (error: string) => void,
+	voidConfig: VoidConfig,
+})
+	=> {
+		abort: () => void
+	}
 
 type SendLLMMessageFnTypeExternal = (params: {
 	messages: LLMMessage[],
 	onText: OnText,
 	onFinalMessage: (input: string) => void,
-	onError: (message: string) => void,
-	apiConfig: ApiConfig | null
-}) => {
-	abort: () => void
-};
-
-type AnthropicErrorResponse = {
-	type: string,
-	error: {
-		type: string,
-		message: string
-	};
-};
-
-// Helper function to handle missing API keys
-const handleMissingApiKey = (serviceName: string, onError: (message: string) => void) => {
-	onError(`${serviceName} API key not set`);
-	return { abort: () => {} }
-};
-
-// Claude
-const sendClaudeMsg: SendLLMMessageFnTypeInternal = ({
-	messages,
-	onText,
-	onFinalMessage,
-	onError,
-	apiConfig
-}) => {
-	const { apikey, model, maxTokens } = apiConfig.anthropic;
-
-	if (!apikey) {
-		return handleMissingApiKey('Anthropic', onError);
+	onError: (error: string) => void,
+	voidConfig: VoidConfig | null,
+})
+	=> {
+		abort: () => void
 	}
 
-	let didAbort = false;
 
-	const anthropic = new Anthropic({
-		apiKey: apikey,
-		dangerouslyAllowBrowser: true,
+
+
+// Anthropic
+const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
+
+	const anthropic = new Anthropic({ apiKey: voidConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
+
+	const stream = anthropic.messages.stream({
+		model: voidConfig.anthropic.model,
+		max_tokens: parseInt(voidConfig.anthropic.maxTokens),
+		messages: messages,
+	});
+
+	let did_abort = false
+
+	// when receive text
+	stream.on('text', (newText, fullText) => {
+		if (did_abort) return
+		onText(newText, fullText)
 	})
 
-	const stream = anthropic.messages
-		.stream({
-			model: model,
-			max_tokens: parseInt(maxTokens),
-			messages: messages,
-			stream: true
-		})
-		.on('error', (err) => {
-			if (err instanceof Anthropic.APIError) {
-				if (err.status === 401) {
-					onError('Unauthorized: Invalid Anthropic API key');
-				} else {
-					onError((err.error as AnthropicErrorResponse).error.message);
-				}
-			} else {
-				console.error(err);
-				onError(err.message);
-			}
-		})
-		.on('text', (newText, fullText) => {
-			if (didAbort) return;
-			onText(newText, fullText);
-		})
-		.on('finalMessage', (claudeResponse) => {
-			if (didAbort) return;
-			const content = claudeResponse.content
-				.filter((c) => c.type === 'text')
-				.map((c) => c.text)
-				.join('\n');
-			onFinalMessage(content);
-		});
+	// when we get the final message on this stream (or when error/fail)
+	stream.on('finalMessage', (claude_response) => {
+		if (did_abort) return
+		// stringify the response's content
+		let content = claude_response.content.map(c => { if (c.type === 'text') { return c.text } }).join('\n');
+		onFinalMessage(content)
+	})
 
+	stream.on('error', (error) => {
+		// the most common error will be invalid API key (401), so we handle this with a nice message
+		if (error instanceof Anthropic.APIError && error.status === 401) {
+			onError('Invalid API key.')
+		}
+		else {
+			onError(error.message)
+		}
+	})
+
+	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
 	const abort = () => {
-		stream.controller.abort();
-		didAbort = true;
-	};
+		// stream.controller.abort() // TODO need to test this to make sure it works, it might throw an error
+		did_abort = true
+	}
 
-	return { abort };
+	return { abort }
+
 };
+
+
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({
-	messages,
-	onText,
-	onFinalMessage,
-	onError,
-	apiConfig
-}) => {
-	const { apikey, model } = apiConfig.openAI;
+const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
 
+	let didAbort = false
+	let fullText = ''
 
-
-	let didAbort = false;
-	let fullText = '';
-
-	let abort = () => {
+	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
+	let abort: () => void = () => {
 		didAbort = true;
 	};
 
-	let openai: OpenAI;
-	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming;
+	let openai: OpenAI
+	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
 
-
-	if (apiConfig.whichApi === 'openAI') {
-		if (!apikey) {
-			return handleMissingApiKey('OpenAI', onError);
-		}
-		openai = new OpenAI({ apiKey: apiConfig.openAI.apikey, dangerouslyAllowBrowser: true });
-		options = { model: apiConfig.openAI.model, messages: messages, stream: true, };
+	if (voidConfig.default.whichApi === 'openAI') {
+		openai = new OpenAI({ apiKey: voidConfig.openAI.apikey, dangerouslyAllowBrowser: true });
+		options = { model: voidConfig.openAI.model, messages: messages, stream: true, }
 	}
-	else if (apiConfig.whichApi === 'openRouter') {
+	else if (voidConfig.default.whichApi === 'openRouter') {
 		openai = new OpenAI({
-			baseURL: "https://openrouter.ai/api/v1", apiKey: apiConfig.openRouter.apikey, dangerouslyAllowBrowser: true,
+			baseURL: "https://openrouter.ai/api/v1", apiKey: voidConfig.openRouter.apikey, dangerouslyAllowBrowser: true,
 			defaultHeaders: {
 				"HTTP-Referer": 'https://voideditor.com', // Optional, for including your app on openrouter.ai rankings.
 				"X-Title": 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
 			},
 		});
-		options = { model: apiConfig.openRouter.model, messages: messages, stream: true, }
+		options = { model: voidConfig.openRouter.model, messages: messages, stream: true, }
 	}
-	else if (apiConfig.whichApi === 'openAICompatible') {
-		openai = new OpenAI({ baseURL: apiConfig.openAICompatible.endpoint, apiKey: apiConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true });
-		options = { model: apiConfig.openAICompatible.model, messages: messages, stream: true, };
+	else if (voidConfig.default.whichApi === 'openAICompatible') {
+		openai = new OpenAI({ baseURL: voidConfig.openAICompatible.endpoint, apiKey: voidConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true })
+		options = { model: voidConfig.openAICompatible.model, messages: messages, stream: true, }
 	}
 	else {
-		onError(`Invalid API: ${apiConfig.whichApi}`);
-		throw new Error(`apiConfig.whichAPI was invalid: ${apiConfig.whichApi}`);
+		console.error(`sendOpenAIMsg: invalid whichApi: ${voidConfig.default.whichApi}`)
+		throw new Error(`voidConfig.whichAPI was invalid: ${voidConfig.default.whichApi}`)
 	}
 
 	openai.chat.completions
 		.create(options)
-		.then(async (response) => {
+		.then(async response => {
 			abort = () => {
-				response.controller.abort();
+				// response.controller.abort()
 				didAbort = true;
-			};
-			try {
-				for await (const chunk of response) {
-					if (didAbort) return;
-					const newText = chunk.choices[0]?.delta?.content || '';
-					fullText += newText;
-					onText(newText, fullText);
+			}
+			// when receive text
+			for await (const chunk of response) {
+				if (didAbort) return;
+				const newText = chunk.choices[0]?.delta?.content || '';
+				fullText += newText;
+				onText(newText, fullText);
+			}
+			onFinalMessage(fullText);
+		})
+		// when error/fail - this catches errors of both .create() and .then(for await)
+		.catch(error => {
+			if (error instanceof OpenAI.APIError) {
+				if (error.status === 401) {
+					onError('Invalid API key.');
 				}
-				if (!didAbort) {
-					onFinalMessage(fullText);
+				else {
+					onError(error.message);
 				}
-			} catch (error) {
-				onError(`Error in stream: ${error}`);
-				console.error('Error in OpenAI stream:', error);
-				if (!didAbort) {
-					onFinalMessage(fullText);
-				}
+			}
+			else {
+				onError(error);
 			}
 		})
-		.catch((responseError) => {
-			if (responseError.status === 401) {
-				onError('Unauthorized: Invalid API key');
-			} else if (responseError.status === 400 && responseError.param === 'stream') {
-				onError(`The model '${model}' does not support streamed responses.`);
-			} else {
-				onError(responseError.message);
-			}
-		});
 
 	return { abort };
 };
 
+
 // Ollama
-const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({
-	messages,
-	onText,
-	onFinalMessage,
-	onError,
-	apiConfig
-}) => {
-	const { endpoint, model } = apiConfig.ollama;
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
 
-	if (!endpoint) {
-		onError('Ollama endpoint not set');
-		return { abort: () => {} };
-	}
+	let didAbort = false
+	let fullText = ""
 
-	let didAbort = false;
-	let fullText = '';
-
-	const ollama = new Ollama({ host: endpoint });
-
+	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
 	let abort = () => {
 		didAbort = true;
 	};
 
-	ollama
-		.chat({
-			model: model,
-			messages: messages,
-			stream: true
-		})
-		.then(async (stream) => {
+	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
+
+	ollama.chat({
+		model: voidConfig.ollama.model,
+		messages: messages,
+		stream: true,
+	})
+		.then(async stream => {
 			abort = () => {
-				ollama.abort();
-				didAbort = true;
-			};
-			try {
-				for await (const chunk of stream) {
-					if (didAbort) return;
-					const newText = chunk.message.content;
-					fullText += newText;
-					onText(newText, fullText);
-				}
-				if (!didAbort) {
-					onFinalMessage(fullText);
-				}
-			} catch (error) {
-				onError(`Error while streaming response: ${error}`);
-				console.error('Error while streaming response:', error);
-				if (!didAbort) {
-					onFinalMessage(fullText);
-				}
+				// ollama.abort()
+				didAbort = true
 			}
+			// iterate through the stream
+			for await (const chunk of stream) {
+				if (didAbort) return;
+				const newText = chunk.message.content;
+				fullText += newText;
+				onText(newText, fullText);
+			}
+			onFinalMessage(fullText);
+
 		})
-		.catch((responseError) => {
-			if (responseError.error) {
-				onError(responseError.error.charAt(0).toUpperCase() + responseError.error.slice(1));
-			} else {
-				onError(responseError.message);
-			}
-			console.error(responseError);
-		});
+		// when error/fail
+		.catch(error => {
+			onError(error)
+		})
 
 	return { abort };
 };
 
+
+
 // Greptile
-const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({
-	messages,
-	onText,
-	onFinalMessage,
-	onError,
-	apiConfig,
-}) => {
-	const { apikey, githubPAT, repoinfo } = apiConfig.greptile;
+// https://docs.greptile.com/api-reference/query
+// https://docs.greptile.com/quickstart#sample-response-streamed
 
-	if (!apikey) {
-		return handleMissingApiKey('Greptile', onError);
-	}
-	if (!githubPAT) {
-		onError('GitHub token not set');
-		return { abort: () => {} };
-	}
+const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
 
-	let didAbort = false;
-	let fullText = '';
+	let didAbort = false
+	let fullText = ''
 
-	const controller = new AbortController();
+	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
+	let abort: () => void = () => { didAbort = true }
+
 
 	fetch('https://api.greptile.com/v2/query', {
 		method: 'POST',
 		headers: {
-			Authorization: `Bearer ${apikey}`,
-			'X-Github-Token': `${githubPAT}`,
-			'Content-Type': `application/json`
+			"Authorization": `Bearer ${voidConfig.greptile.apikey}`,
+			"X-Github-Token": `${voidConfig.greptile.githubPAT}`,
+			"Content-Type": `application/json`,
 		},
 		body: JSON.stringify({
 			messages,
 			stream: true,
-			repositories: [repoinfo]
+			repositories: [voidConfig.greptile.repoinfo]
 		}),
-		signal: controller.signal
 	})
-		.then((response) => {
-			if (response.status === 401) {
-				onError('Unauthorized: Invalid Greptile API key');
-				return null;
-			} else if (response.status !== 200) {
-				onError(`Error: ${response.status} ${response.statusText}`);
-				return null;
-			}
-			return response.body;
+		// this is {message}\n{message}\n{message}...\n
+		.then(async response => {
+			const text = await response.text()
+			console.log('got greptile', text)
+			return JSON.parse(`[${text.trim().split('\n').join(',')}]`)
 		})
-		.then(async (body) => {
-			if (!body || didAbort) return;
-			const reader = body.getReader();
-			const decoder = new TextDecoder('utf-8');
-			while (!didAbort) {
-				const { done, value } = await reader.read();
-				if (done || didAbort) break;
-				const chunk = decoder.decode(value, { stream: true });
-				const messages = chunk.trim().split('\n').filter(Boolean);
-				for (const msg of messages) {
-					try {
-						const parsed = JSON.parse(msg);
-						const { type, message } = parsed;
-						if (type === 'message' || type === 'sources') {
-							fullText += message;
-							onText(message, fullText);
-						} else if (type === 'status' && !message) {
-							if (!didAbort) {
-								onFinalMessage(fullText);
-							}
-						}
-					} catch (e) {
-						console.error('Error parsing Greptile response:', e);
-						onError(`Error parsing Greptile response: ${e}`);
+		// TODO make this actually stream, right now it just sends one message at the end
+		.then(async responseArr => {
+			if (didAbort)
+				return
+
+			for (let response of responseArr) {
+
+				const type: string = response['type']
+				const message = response['message']
+
+				// when receive text
+				if (type === 'message') {
+					fullText += message
+					onText(message, fullText)
+				}
+				else if (type === 'sources') {
+					const { filepath, linestart, lineend } = message as { filepath: string, linestart: number | null, lineend: number | null }
+					fullText += filepath
+					onText(filepath, fullText)
+				}
+				// type: 'status' with an empty 'message' means last message
+				else if (type === 'status') {
+					if (!message) {
+						onFinalMessage(fullText)
 					}
 				}
 			}
+
 		})
-		.catch((e) => {
-			if (didAbort) return;
-			console.error('Error in Greptile stream:', e);
-			onError(`Error in Greptile stream: ${e}`);
-			if (!didAbort) {
-				onFinalMessage(fullText);
-			}
+		.catch(e => {
+			onError(e)
 		});
 
-	const abort = () => {
-		controller.abort();
-		didAbort = true;
-	};
+	return { abort }
 
-	return { abort };
-};
+}
 
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
-	messages,
-	onText,
-	onFinalMessage,
-	onError,
-	apiConfig,
-}) => {
-	if (!apiConfig) {
-		onError('API configuration is missing');
-		return { abort: () => {} };
-	}
 
-	switch (apiConfig.whichApi) {
+
+export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
+	if (!voidConfig) return { abort: () => { } }
+
+	switch (voidConfig.default.whichApi) {
 		case 'anthropic':
-
-			return sendClaudeMsg({
-				messages,
-				onText,
-				onFinalMessage,
-				onError,
-				apiConfig,
-			});
+			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig });
 		case 'openAI':
 		case 'openRouter':
 		case 'openAICompatible':
-			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, apiConfig });
-		case 'greptile':
-			return sendGreptileMsg({
-				messages,
-				onText,
-				onFinalMessage,
-				onError,
-				apiConfig
-			});
+			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig });
 		case 'ollama':
-
-			return sendOllamaMsg({
-				messages,
-				onText,
-				onFinalMessage,
-				onError,
-				apiConfig
-			});
-
+			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig });
+		case 'greptile':
+			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig });
 		default:
-			onError(`Error: whichApi was '${apiConfig.whichApi}', which is not recognized!`);
-			return { abort: () => {} };
+			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
+			return { abort: () => { } }
 	}
 }

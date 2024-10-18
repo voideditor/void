@@ -3,7 +3,8 @@ import { ChatMessage, ChatThreads } from "../shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI } from "./getVscodeApi"
 
 
-type ThreadsContextValue = {
+// a "thread" means a chat message history
+type ConfigForThreadsValueType = {
 	readonly allThreads: ChatThreads | null,
 	readonly currentThread: ChatThreads[string] | null;
 	addMessageToHistory: (message: ChatMessage) => void;
@@ -11,7 +12,7 @@ type ThreadsContextValue = {
 	startNewThread: () => void;
 }
 
-const ThreadsContext = createContext<ThreadsContextValue>(undefined as unknown as ThreadsContextValue)
+const ThreadsContext = createContext<ConfigForThreadsValueType>(undefined as unknown as ConfigForThreadsValueType)
 
 const createNewThread = () => ({
 	id: new Date().getTime().toString(),
@@ -39,7 +40,7 @@ export function ThreadsProvider({ children }: { children: ReactNode }) {
 
 	// this loads allThreads in on mount
 	useEffect(() => {
-		getVSCodeAPI().postMessage({ type: "getAllThreads" })
+		getVSCodeAPI().postMessage({ type: 'getAllThreads' })
 		awaitVSCodeResponse('allThreads')
 			.then(response => {
 				setAllThreads(response.threads)
@@ -90,10 +91,10 @@ export function ThreadsProvider({ children }: { children: ReactNode }) {
 	)
 }
 
-export function useThreads(): ThreadsContextValue {
-	const context = useContext<ThreadsContextValue>(ThreadsContext)
+export function useThreads(): ConfigForThreadsValueType {
+	const context = useContext<ConfigForThreadsValueType>(ThreadsContext)
 	if (context === undefined) {
-		throw new Error("useThreads must be used within a ThreadsProvider")
+		throw new Error("useThreads missing Provider")
 	}
 	return context
 }

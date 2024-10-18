@@ -18,8 +18,11 @@ module.exports = {
 					"button-hoverBg": "var(--vscode-button-hoverBackground)",
 					"button-secondary-fg": "var(--vscode-button-secondaryForeground)",
 					"button-secondary-bg": "var(--vscode-button-secondaryBackground)",
-					"button-secondary-hoverBg":
-						"var(--vscode-button-secondaryHoverBackground)",
+					"button-secondary-hoverBg": "var(--vscode-button-secondaryHoverBackground)",
+					"dropdown-bg": "var(--vscode-settings-dropdownBackground)",
+					"dropdown-foreground": "var(--vscode-settings-dropdownForeground)",
+					"dropdown-border": "var(--vscode-settings-dropdownBorder)",
+					"focus-border": "var(--vscode-focusBorder)",
 				},
 			},
 		},

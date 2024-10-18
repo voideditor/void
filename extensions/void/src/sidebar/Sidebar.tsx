@@ -1,23 +1,38 @@
 import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
-import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage"
 import { CodeSelection, ChatMessage, MessageToSidebar } from "../shared_types"
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode } from "./getVscodeApi"
+import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi"
 
 import { SidebarThreadSelector } from "./SidebarThreadSelector";
-import { useThreads } from "./threadsContext";
+import { useThreads } from "./contextForThreads";
 import { SidebarChat } from "./SidebarChat";
+import { SidebarSettings } from './SidebarSettings';
 
 
 
 const Sidebar = () => {
-	const [isThreadSelectorOpen, setIsThreadSelectorOpen] = useState(false)
-	const [requestFailed, setRequestFailed] = useState(false)
-	const [requestFailedReason, setRequestFailedReason] = useState('')
+	const [tab, setTab] = useState<'threadSelector' | 'chat' | 'settings'>('chat')
 
-	// get Api Config on mount
-	useEffect(() => {
-		getVSCodeAPI().postMessage({ type: 'getApiConfig' })
-	}, [])
+	// if they pressed the + to add a new chat
+	useOnVSCodeMessage('startNewThread', (m) => {
+		setTab('chat')
+	})
+
+	// if they toggled thread selector
+	useOnVSCodeMessage('toggleThreadSelector', (m) => {
+		if (tab === 'threadSelector')
+			setTab('chat')
+		else
+			setTab('threadSelector')
+	})
+
+	// if they toggled settings
+	useOnVSCodeMessage('toggleSettings', (m) => {
+		if (tab === 'settings')
+			setTab('chat')
+		else
+			setTab('settings')
+	})
+
 
 	// Receive messages from the VSCode extension
 	useEffect(() => {
@@ -30,15 +45,24 @@ const Sidebar = () => {
 	}, [])
 
 
-	return <>
-		<div className="flex flex-col h-screen w-full">
-			{isThreadSelectorOpen && (
-				<div className="mb-2 max-h-[30vh] overflow-y-auto">
-					<SidebarThreadSelector onClose={() => setIsThreadSelectorOpen(false)} />
-				</div>
-			)}
 
-			<SidebarChat setIsThreadSelectorOpen={setIsThreadSelectorOpen} />
+	return <>
+		<div className={`flex flex-col h-screen w-full`}>
+
+			<div className={`mb-2 max-h-[30vh] overflow-y-auto ${tab !== 'threadSelector' ? 'hidden' : ''}`}>
+				<SidebarThreadSelector onClose={() => setTab('chat')} />
+			</div>
+
+			<div className={`${tab !== 'chat' && tab !== 'threadSelector' ? 'hidden' : ''}`}>
+				<SidebarChat />
+			</div>
+
+			<div className={`${tab !== 'settings' ? 'hidden' : ''}`}>
+				<SidebarSettings />
+			</div>
+
+
+
 		</div>
 
 	</>

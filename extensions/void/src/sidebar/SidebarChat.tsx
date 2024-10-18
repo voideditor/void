@@ -8,8 +8,9 @@ import { SelectedFiles } from "./components/SelectedFiles";
 import { File, ChatMessage, CodeSelection } from "../shared_types";
 import * as vscode from 'vscode'
 import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi";
-import { useThreads } from "./threadsContext";
-import { ApiConfig, sendLLMMessage } from "../common/sendLLMMessage";
+import { useThreads } from "./contextForThreads";
+import { sendLLMMessage } from "../common/sendLLMMessage";
+import { useVoidConfig } from "./contextForConfig";
 
 
 
@@ -49,7 +50,7 @@ Please edit the file following these instructions:
 Please edit the selected code following these instructions:
 `;
 	}
-	
+
 	str += `
 \t${instructions}
 `;
@@ -92,7 +93,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 }
 
 
-export const SidebarChat = ({ setIsThreadSelectorOpen }: { setIsThreadSelectorOpen: (v: boolean | ((v: boolean) => boolean)) => void }) => {
+export const SidebarChat = () => {
 
 
 	// state of current message
@@ -105,10 +106,24 @@ export const SidebarChat = ({ setIsThreadSelectorOpen }: { setIsThreadSelectorOp
 	const [isLoading, setIsLoading] = useState(false)
 	const abortFnRef = useRef<(() => void) | null>(null)
 
-	// higher level state
-	const { allThreads, currentThread, addMessageToHistory, startNewThread, } = useThreads()
-	const [apiConfig, setApiConfig] = useState<ApiConfig | null>(null)
+	const [latestError, setLatestError] = useState('')
 
+	// higher level state
+	const { allThreads, currentThread, addMessageToHistory, startNewThread, switchToThread } = useThreads()
+	const { voidConfig } = useVoidConfig()
+
+	// if they pressed the + to add a new chat
+	useOnVSCodeMessage('startNewThread', (m) => {
+		// find a thread with 0 messages and switch to it
+		for (let threadId in allThreads) {
+			if (allThreads[threadId].messages.length === 0) {
+				switchToThread(threadId)
+				return
+			}
+		}
+		// start a new thread
+		startNewThread()
+	})
 
 	// if user pressed ctrl+l, add their selection to the sidebar
 	useOnVSCodeMessage('ctrl+l', (m) => {
@@ -120,24 +135,6 @@ export const SidebarChat = ({ setIsThreadSelectorOpen }: { setIsThreadSelectorOp
 			setFiles(files => [...files, filepath])
 	})
 
-	// when get apiConfig, set
-	useOnVSCodeMessage('apiConfig', (m) => {
-		setApiConfig(m.apiConfig)
-	})
-
-	// if they pressed the + to add a new chat
-	useOnVSCodeMessage('startNewThread', (m) => {
-		setIsThreadSelectorOpen(false)
-		if (currentThread?.messages.length !== 0)
-			startNewThread()
-
-	})
-
-	// if they opened thread selector
-	useOnVSCodeMessage('toggleThreadSelector', (m) => {
-		setIsThreadSelectorOpen(v => !v)
-	})
-
 
 	const formRef = useRef<HTMLFormElement | null>(null)
 	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -147,34 +144,43 @@ export const SidebarChat = ({ setIsThreadSelectorOpen }: { setIsThreadSelectorOp
 
 		setIsLoading(true)
 		setInstructions('');
-		formRef.current?.reset(); // reset the form's text
+		formRef.current?.reset(); // reset the form's text when clear instructions or unexpected behavior happens
 		setSelection(null)
 		setFiles([])
+		setLatestError('')
 
 		// request file content from vscode and await response
 		getVSCodeAPI().postMessage({ type: 'requestFiles', filepaths: files })
 		const relevantFiles = await awaitVSCodeResponse('files')
 
 		// add message to chat history
-		const content = userInstructionsStr(instructions, relevantFiles.files, selection)
+		const userContent = userInstructionsStr(instructions, relevantFiles.files, selection)
 		// console.log('prompt:\n', content)
-		const newHistoryElt: ChatMessage = { role: 'user', content, displayContent: instructions, selection, files }
+		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selection, files }
 		addMessageToHistory(newHistoryElt)
 
 		// send message to LLM
 		let { abort } = sendLLMMessage({
-			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
+			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userContent }],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
 				// add assistant's message to chat history, and clear selection
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
 				addMessageToHistory(newHistoryElt)
-
-				// clear selection
 				setMessageStream('')
 				setIsLoading(false)
 			},
-			apiConfig: apiConfig
+			onError: (error) => {
+				// add assistant's message to chat history, and clear selection
+				let content = messageStream; // just use the current content
+				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
+				addMessageToHistory(newHistoryElt)
+				setMessageStream('')
+				setIsLoading(false)
+
+				setLatestError(error)
+			},
+			voidConfig: voidConfig
 		})
 		abortFnRef.current = abort
 
@@ -273,6 +279,8 @@ export const SidebarChat = ({ setIsThreadSelectorOpen }: { setIsThreadSelectorOp
 					</div>
 				</div>
 			</div>
+
+			{latestError}
 		</div>
 	</>
 }

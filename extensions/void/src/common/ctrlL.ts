@@ -549,7 +549,7 @@ ${newFileStr}
 		voidConfig: {
 			...voidConfig,
 			default: {
-				// set `max_tokens` = (number of expected tokens) + (number of extra tokens)
+				// set `maxTokens` = (number of expected tokens) + (number of extra tokens)
 				maxTokens: Math.round((diff.split('\n').filter(l => !l.startsWith('-')).length) + EXTRA_TOKENS) + ''
 			}
 		},
@@ -561,9 +561,11 @@ ${newFileStr}
 
 }
 
-const shouldApplyDiffToLine = async ({ diff, fileStr, lineStr, voidConfig, setAbort }: { diff: string, fileStr: string, lineStr: string, voidConfig: VoidConfig, setAbort: SetAbort }) => {
+const shouldApplyDiffFn = async ({ diff, fileStr, speculationStr, type, voidConfig, setAbort }: { diff: string, fileStr: string, speculationStr: string, type: 'line' | 'chunk', voidConfig: VoidConfig, setAbort: SetAbort }) => {
 
-	const promptContent = `DIFF
+	const promptContent = (
+		// the speculation is a line
+		type === 'line' ? `DIFF
 \`\`\`
 ${diff}
 \`\`\`
@@ -574,21 +576,46 @@ ${fileStr}
 \`\`\`
 
 SELECTION
-\`\`\`${lineStr}\`\`\`
+\`\`\`${speculationStr}\`\`\`
 
 Return \`true\` if this line should be modified, and \`false\` if it should not be modified.
 `
+			// the speculation is a chunk
+			: `DIFF
+\`\`\`
+${diff}
+\`\`\`
+
+FILES
+\`\`\`
+${fileStr}
+\`\`\`
+
+SELECTION
+\`\`\`
+${speculationStr}
+\`\`\`
+
+Return \`true\` if this any part of the chunk should be modified, and \`false\` if it should not be modified.
+`)
 
 	// create new promise
 	let res: Res<boolean> = () => { }
 	const promise = new Promise<boolean>((resolve, reject) => { res = resolve })
 
 	sendLLMMessage({
-		messages: [{ role: 'assistant', content: searchDiffLineInstructions, }, { role: 'assistant', content: promptContent, }],
+		messages: [
+			{
+				role: 'assistant',
+				content: type === 'line' ? searchDiffLineInstructions : searchDiffChunkInstructions,
+			}, {
+				role: 'assistant',
+				content: promptContent,
+			}],
 		onText: () => { },
 		onFinalMessage: (finalMessage) => {
 			const containsTrue = finalMessage
-				.slice(-10)
+				.slice(-10) // check for `true` in last 10 characters
 				.toLowerCase()
 				.includes('true')
 			res(containsTrue)
@@ -598,7 +625,7 @@ Return \`true\` if this line should be modified, and \`false\` if it should not 
 			console.error('Error applying diff to line')
 		},
 		voidConfig,
-		setAbort
+		setAbort,
 	})
 
 	return promise
@@ -627,7 +654,7 @@ const applyDiffLazily = async ({ fileUri, fileStr, diff, voidConfig, setAbort }:
 		const chunkStr = chunkLines.join('\n');
 
 		// ask LLM if we should apply the diff to the chunk
-		let shouldApplyDiff = await shouldApplyDiffToChunk({ chunkStr, diff, fileUri, setAbort })
+		let shouldApplyDiff = await shouldApplyDiffFn({ speculationStr: chunkStr, type: 'chunk', diff, fileStr, voidConfig, setAbort })
 		if (!shouldApplyDiff) { // should not change the chunk
 			completedLines.push(chunkStr);
 			// TODO update highlighting here
@@ -638,7 +665,7 @@ const applyDiffLazily = async ({ fileUri, fileStr, diff, voidConfig, setAbort }:
 		for (const lineStr of chunkLines) {
 
 			// ask LLM if we should apply the diff to the line
-			let shouldApplyDiff = await shouldApplyDiffToLine({ diff, fileStr, lineStr, voidConfig, setAbort })
+			let shouldApplyDiff = await shouldApplyDiffFn({ speculationStr: lineStr, type: 'line', diff, fileStr, voidConfig, setAbort })
 			if (!shouldApplyDiff) { // should not change the line
 				completedLines.push(lineStr);
 				// TODO update highlighting here

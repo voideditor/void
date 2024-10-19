@@ -133,7 +133,7 @@
     "marked": "^14.1.0",
     "ollama": "^0.5.9",
     "postcss": "^8.4.41",
-    "posthog-js": "^1.174.0",
+    "posthog-js": "^1.174.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^9.0.1",

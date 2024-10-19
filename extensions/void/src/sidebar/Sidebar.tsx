@@ -24,9 +24,10 @@ const Sidebar = () => {
 	const [tab, setTab] = useState<'threadSelector' | 'chat' | 'settings'>('chat')
 
 	// if they pressed the + to add a new chat
-	useOnVSCodeMessage('startNewThread', (m) => {
-		setTab('chat')
-	})
+	useOnVSCodeMessage('startNewThread', (m) => { setTab('chat') })
+
+	// ctrl+l should switch back to chat
+	useOnVSCodeMessage('ctrl+l', (m) => { setTab('chat') })
 
 	// if they toggled thread selector
 	useOnVSCodeMessage('toggleThreadSelector', (m) => {

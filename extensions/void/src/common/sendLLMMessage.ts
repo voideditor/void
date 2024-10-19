@@ -6,7 +6,11 @@ import { VoidConfig } from '../sidebar/contextForConfig';
 
 
 
-type OnText = (newText: string, fullText: string) => void
+export type OnText = (newText: string, fullText: string) => void
+
+export type OnFinalMessage = (input: string) => void
+
+export type SetAbort = (abort: () => void) => void
 
 export type LLMMessage = {
 	role: 'user' | 'assistant',
@@ -16,13 +20,11 @@ export type LLMMessage = {
 type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[],
 	onText: OnText,
-	onFinalMessage: (input: string) => void,
+	onFinalMessage: OnFinalMessage,
 	onError: (error: string) => void,
 	voidConfig: VoidConfig,
-})
-	=> {
-		abort: () => void
-	}
+	setAbort: SetAbort,
+}) => void
 
 type SendLLMMessageFnTypeExternal = (params: {
 	messages: LLMMessage[],
@@ -30,22 +32,22 @@ type SendLLMMessageFnTypeExternal = (params: {
 	onFinalMessage: (input: string) => void,
 	onError: (error: string) => void,
 	voidConfig: VoidConfig | null,
+	setAbort: SetAbort,
+
 })
-	=> {
-		abort: () => void
-	}
+	=> void
 
 
 
 
 // Anthropic
-const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
+const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
 
 	const anthropic = new Anthropic({ apiKey: voidConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
 	const stream = anthropic.messages.stream({
 		model: voidConfig.anthropic.model,
-		max_tokens: parseInt(voidConfig.anthropic.maxTokens),
+		max_tokens: parseInt(voidConfig.default.maxTokens),
 		messages: messages,
 	});
 
@@ -80,8 +82,7 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 		// stream.controller.abort() // TODO need to test this to make sure it works, it might throw an error
 		did_abort = true
 	}
-
-	return { abort }
+	setAbort(abort)
 
 };
 
@@ -89,7 +90,7 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
+const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
 
 	let didAbort = false
 	let fullText = ''
@@ -104,7 +105,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 
 	if (voidConfig.default.whichApi === 'openAI') {
 		openai = new OpenAI({ apiKey: voidConfig.openAI.apikey, dangerouslyAllowBrowser: true });
-		options = { model: voidConfig.openAI.model, messages: messages, stream: true, }
+		options = { model: voidConfig.openAI.model, messages: messages, stream: true, max_completion_tokens: parseInt(voidConfig.default.maxTokens) }
 	}
 	else if (voidConfig.default.whichApi === 'openRouter') {
 		openai = new OpenAI({
@@ -114,11 +115,11 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 				"X-Title": 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
 			},
 		});
-		options = { model: voidConfig.openRouter.model, messages: messages, stream: true, }
+		options = { model: voidConfig.openRouter.model, messages: messages, stream: true, max_completion_tokens: parseInt(voidConfig.default.maxTokens) }
 	}
 	else if (voidConfig.default.whichApi === 'openAICompatible') {
 		openai = new OpenAI({ baseURL: voidConfig.openAICompatible.endpoint, apiKey: voidConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true })
-		options = { model: voidConfig.openAICompatible.model, messages: messages, stream: true, }
+		options = { model: voidConfig.openAICompatible.model, messages: messages, stream: true, max_completion_tokens: parseInt(voidConfig.default.maxTokens) }
 	}
 	else {
 		console.error(`sendOpenAIMsg: invalid whichApi: ${voidConfig.default.whichApi}`)
@@ -156,12 +157,12 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 			}
 		})
 
-	return { abort };
+	setAbort(abort)
 };
 
 
 // Ollama
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
 
 	let didAbort = false
 	let fullText = ""
@@ -177,6 +178,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		model: voidConfig.ollama.model,
 		messages: messages,
 		stream: true,
+		options: { num_predict: parseInt(voidConfig.default.maxTokens) } // this is max_tokens
 	})
 		.then(async stream => {
 			abort = () => {
@@ -198,7 +200,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 			onError(error)
 		})
 
-	return { abort };
+	setAbort(abort);
 };
 
 
@@ -207,7 +209,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 // https://docs.greptile.com/api-reference/query
 // https://docs.greptile.com/quickstart#sample-response-streamed
 
-const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
+const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
 
 	let didAbort = false
 	let fullText = ''
@@ -226,7 +228,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 		body: JSON.stringify({
 			messages,
 			stream: true,
-			repositories: [voidConfig.greptile.repoinfo]
+			repositories: [voidConfig.greptile.repoinfo],
 		}),
 	})
 		// this is {message}\n{message}\n{message}...\n
@@ -268,28 +270,26 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 			onError(e)
 		});
 
-	return { abort }
-
+	setAbort(abort)
 }
 
 
 
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
-	if (!voidConfig) return { abort: () => { } }
+export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
+	if (!voidConfig) return;
 
 	switch (voidConfig.default.whichApi) {
 		case 'anthropic':
-			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig });
+			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, setAbort });
 		case 'openAI':
 		case 'openRouter':
 		case 'openAICompatible':
-			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig });
+			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, setAbort });
 		case 'ollama':
-			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig });
+			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, setAbort });
 		case 'greptile':
-			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig });
+			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, setAbort });
 		default:
 			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
-			return { abort: () => { } }
 	}
 }

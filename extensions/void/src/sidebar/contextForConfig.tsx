@@ -45,6 +45,18 @@ const voidConfigInfo: Record<
 			'anthropic',
 			configFields,
 		),
+
+		maxTokens: configEnum(
+			"Max number of tokens to output.",
+			'1024',
+			[
+				"1024",
+				"2048",
+				"4096",
+				"8192"
+			] as const,
+		),
+
 	},
 	anthropic: {
 		apikey: configString('Anthropic API key.', ''),
@@ -56,17 +68,6 @@ const voidConfigInfo: Record<
 				"claude-3-opus-20240229",
 				"claude-3-sonnet-20240229",
 				"claude-3-haiku-20240307"
-			] as const,
-		),
-
-		maxTokens: configEnum(
-			"Anthropic max number of tokens to output.",
-			'8192',
-			[
-				"1024",
-				"2048",
-				"4096",
-				"8192"
 			] as const,
 		),
 	},
@@ -270,7 +271,7 @@ export type VoidConfig = {
 
 
 
-const getVoidConfig = (currentConfig: PartialVoidConfig): VoidConfig => {
+export const getVoidConfig = (currentConfig: PartialVoidConfig): VoidConfig => {
 	const config = {} as PartialVoidConfig
 	for (let field of [...configFields, 'default'] as const) {
 		config[field] = {}

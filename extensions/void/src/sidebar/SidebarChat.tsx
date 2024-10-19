@@ -163,7 +163,7 @@ export const SidebarChat = () => {
 		addMessageToHistory(newHistoryElt)
 
 		// send message to LLM
-		let { abort } = sendLLMMessage({
+		sendLLMMessage({
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userContent }],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
@@ -183,9 +183,12 @@ export const SidebarChat = () => {
 
 				setLatestError(error)
 			},
-			voidConfig: voidConfig
+			setAbort: (abort) => {
+				abortFnRef.current = abort
+			},
+			voidConfig,
 		})
-		abortFnRef.current = abort
+
 
 	}
 

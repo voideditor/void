@@ -64,6 +64,10 @@ export const SidebarSettings = () => {
 					field='default'
 					param='whichApi'
 				/>
+				<SettingOfFieldAndParam
+					field='default'
+					param='maxTokens'
+				/>
 			</div>
 
 			<hr />

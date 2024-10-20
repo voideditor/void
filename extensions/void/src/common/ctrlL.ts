@@ -545,7 +545,7 @@ ${newFileStr}
 		messages: [{ role: 'assistant', content: rewriteFileWithDiffInstructions, }, { role: 'assistant', content: promptContent, }],
 		onText,
 		onFinalMessage: (finalMessage) => { res(finalMessage) },
-		onError: () => { res(''); console.error('Error rewriting file with diff') },
+		onError: (e) => { res(''); console.error('Error rewriting file with diff', e) },
 		voidConfig: {
 			...voidConfig,
 			default: {
@@ -561,7 +561,7 @@ ${newFileStr}
 
 }
 
-const shouldApplyDiffFn = async ({ diff, fileStr, speculationStr, type, voidConfig, setAbort }: { diff: string, fileStr: string, speculationStr: string, type: 'line' | 'chunk', voidConfig: VoidConfig, setAbort: SetAbort }) => {
+const shouldApplyDiffFn = ({ diff, fileStr, speculationStr, type, voidConfig, setAbort }: { diff: string, fileStr: string, speculationStr: string, type: 'line' | 'chunk', voidConfig: VoidConfig, setAbort: SetAbort }) => {
 
 	const promptContent = (
 		// the speculation is a line
@@ -620,9 +620,9 @@ Return \`true\` if this any part of the chunk should be modified, and \`false\` 
 				.includes('true')
 			res(containsTrue)
 		},
-		onError: () => {
+		onError: (e) => {
 			res(false);
-			console.error('Error applying diff to line')
+			console.error('Error applying diff to line: ', e)
 		},
 		voidConfig,
 		setAbort,
@@ -679,7 +679,7 @@ const applyDiffLazily = async ({ fileUri, fileStr, diff, voidConfig, setAbort }:
 				diff,
 				fileUri,
 				voidConfig,
-				onText: async (text) => {
+				onText: async (newText, fullText) => {
 					// TODO! update highlighting here
 					// also make edits here
 
@@ -687,10 +687,6 @@ const applyDiffLazily = async ({ fileUri, fileStr, diff, voidConfig, setAbort }:
 				setAbort,
 			})
 			completedLines.push(changeStr)
-
-
-			// if there's matchup with the file, we stop rewriting
-			// TODO! otherwise keep rewriting until there is matchup
 
 		}
 

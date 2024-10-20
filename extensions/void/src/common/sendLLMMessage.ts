@@ -278,6 +278,9 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
 	if (!voidConfig) return;
 
+	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
+	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
+
 	switch (voidConfig.default.whichApi) {
 		case 'anthropic':
 			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, setAbort });

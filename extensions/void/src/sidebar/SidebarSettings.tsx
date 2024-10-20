@@ -9,10 +9,15 @@ const SettingOfFieldAndParam = ({ field, param }: { field: VoidConfigField, para
 
 	const updateState = (newValue: string) => { setConfigParam(field, param, newValue) }
 
-	const resetButton = <button className='btn btn-sm' onClick={() => updateState(defaultVal)}>
+	const resetButton = <button
+		disabled={val === defaultVal}
+		title={val === defaultVal ? 'This is already the default value.' : `Revert value to '${defaultVal}'?`}
+		className='group btn btn-sm disabled:opacity-75 disabled:cursor-default'
+		onClick={() => updateState(defaultVal)}
+	>
 		<svg
-			className='size-5'
-			stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 16 16" height="200px" width="200px" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" clipRule="evenodd" d="M3.5 2v3.5L4 6h3.5V5H4.979l.941-.941a3.552 3.552 0 1 1 5.023 5.023L5.746 14.28l.72.72 5.198-5.198A4.57 4.57 0 0 0 5.2 3.339l-.7.7V2h-1z"></path>
+			className='size-5 group-disabled:stroke-current group-disabled:fill-current group-hover:stroke-red-600 group-hover:fill-red-600 duration-200'
+			fill="currentColor" strokeWidth="0" viewBox="0 0 16 16" height="200px" width="200px" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" clipRule="evenodd" d="M3.5 2v3.5L4 6h3.5V5H4.979l.941-.941a3.552 3.552 0 1 1 5.023 5.023L5.746 14.28l.72.72 5.198-5.198A4.57 4.57 0 0 0 5.2 3.339l-.7.7V2h-1z"></path>
 		</svg>
 	</button>
 

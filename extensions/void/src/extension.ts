@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
-import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './shared_types';
+import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './common/shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
 

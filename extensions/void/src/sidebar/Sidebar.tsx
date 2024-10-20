@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
-import { CodeSelection, ChatMessage, MessageToSidebar } from "../shared_types"
+import { CodeSelection, ChatMessage, MessageToSidebar } from "../common/shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi"
 
 import { SidebarThreadSelector } from "./SidebarThreadSelector";
 import { SidebarChat } from "./SidebarChat";
 import { SidebarSettings } from './SidebarSettings';
-import { identifyUser, useMetrics } from "../metrics/posthog";
+import { identifyUser, useMetrics } from "./metrics/posthog";
 
 
 const Sidebar = () => {
@@ -60,7 +60,7 @@ const Sidebar = () => {
 	return <>
 		<div className={`flex flex-col h-screen w-full`}>
 
-			<div className={`mb-2 max-h-[30vh] overflow-y-auto ${tab !== 'threadSelector' ? 'hidden' : ''}`}>
+			<div className={`mb-2 h-[30vh] ${tab !== 'threadSelector' ? 'hidden' : ''}`}>
 				<SidebarThreadSelector onClose={() => setTab('chat')} />
 			</div>
 

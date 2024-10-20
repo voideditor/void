@@ -1,5 +1,5 @@
 import React, { ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState, } from "react"
-import { ChatMessage, ChatThreads } from "../shared_types"
+import { ChatMessage, ChatThreads } from "../common/shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI } from "./getVscodeApi"
 
 

@@ -3,6 +3,9 @@ import { getVSCodeAPI } from "../getVscodeApi"
 
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { atomOneDarkReasonable } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import MonacoEditor from '@monaco-editor/react'
+import { editor } from 'monaco-editor'
+
 
 enum CopyButtonState {
 	Copy = "Copy",
@@ -78,28 +81,27 @@ const BlockCode = ({
 
 	return (<>
 
-		{/* <MonacoEditor
+		<MonacoEditor
 			onMount={(editor, monaco) => {
-
 
 				const model = editor.getModel()
 				model?.setEOL(monaco.editor.EndOfLineSequence.LF)
-				if (modelRef)
-					modelRef.current = model
 
 				// model?.updateOptions({ tabSize: 4 }) // apparently this should get set on the model, not the editor ()
 
-				monaco?.editor.setTheme('whatever')
+				monaco?.editor.setTheme('dark')
 
 
 			}}
 			loading=''
-			defaultValue={initValue}
-			defaultLanguage={'python'}
+			value={text}
+			defaultValue={text}
+			language={language}
+			defaultLanguage={language}
 
-			onChange={() => { onChangeText?.() }}
+			// onChange={() => { onChangeText?.() }}
 			height={'100%'} // 100% or the exact pixel height
-			theme={'whatever'}
+			theme={'dark'}
 
 
 			options={{
@@ -107,11 +109,6 @@ const BlockCode = ({
 				detectIndentation: false, // we always want a tab size of 4
 				tabSize: 4,
 				insertSpaces: true,
-
-				// glyphMargin: false,
-				// renderIndentGuides: false,
-
-
 
 				// fontSize: 15,
 				wordWrapColumn: 10000, // we want this to be infinity
@@ -121,7 +118,7 @@ const BlockCode = ({
 				// automaticLayout: true,
 				// lineDecorationsWidth: 0,
 				lineNumbersMinChars: 4,
-				lineNumbers: isPseudocode ? 'off' : 'on',
+				lineNumbers: 'off',
 				renderLineHighlight: 'none',
 				minimap: { enabled: false },
 				scrollBeyondLastColumn: 0,
@@ -133,18 +130,18 @@ const BlockCode = ({
 				},
 
 				overviewRulerLanes: 0,
-				readOnly: !onChangeText,
+				readOnly: true,
+				readOnlyMessage: undefined,
 				quickSuggestions: false,
 
-				...options
 			}}
-		/> */}
+		/>
 
 
 		<div className="relative group">
 
 			{!hideToolbar && (
-				<div className="absolute top-0 right-0 invisible group-hover:visible">
+				<div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-500">
 					<div className="flex space-x-2 p-2">{toolbar || defaultToolbar}</div>
 				</div>
 			)}

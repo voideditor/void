@@ -285,7 +285,10 @@ export const SidebarChat = () => {
 				</div>
 			</div>
 
-			{latestError}
+			{/* error message */}
+			{!latestError ? null : <div>
+				{latestError}
+			</div>}
 		</div>
 	</>
 }

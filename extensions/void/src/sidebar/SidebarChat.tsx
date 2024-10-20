@@ -4,7 +4,6 @@ import React, { FormEvent, useCallback, useEffect, useRef, useState } from "reac
 import { marked } from 'marked';
 import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
-import { SelectedFiles } from "./components/SelectedFiles";
 import { File, ChatMessage, CodeSelection } from "../common/shared_types";
 import * as vscode from 'vscode'
 import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi";
@@ -63,6 +62,55 @@ Please edit the selected code following these instructions:
 	return str;
 };
 
+
+
+
+
+const getBasename = (pathStr: string) => {
+	// "unixify" path
+	pathStr = pathStr.replace(/[/\\]+/g, "/") // replace any / or \ or \\ with /
+	const parts = pathStr.split("/") // split on /
+	return parts[parts.length - 1]
+}
+
+export const SelectedFiles = ({ files, setFiles, }: { files: vscode.Uri[], setFiles: null | ((files: vscode.Uri[]) => void) }) => {
+	return (
+		files.length !== 0 && (
+			<div className="flex flex-wrap -mx-1 -mb-1">
+				{files.map((filename, i) => (
+					<button
+						key={filename.path}
+						disabled={!setFiles}
+						className={`btn btn-secondary btn-sm border border-vscode-input-border rounded flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default`}
+						type="button"
+						onClick={() => setFiles?.([...files.slice(0, i), ...files.slice(i + 1, Infinity)])}
+					>
+						<span>{getBasename(filename.fsPath)}</span>
+
+						{/* X button */}
+						{!!setFiles && <span className="">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								className="size-4"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M6 18 18 6M6 6l12 12"
+								/>
+							</svg>
+						</span>}
+					</button>
+				))}
+			</div>
+		)
+	)
+}
+
+
 const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 	const role = chatMessage.role
@@ -76,15 +124,16 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 	if (role === 'user') {
 		chatbubbleContents = <>
 			<SelectedFiles files={chatMessage.files} setFiles={null} />
-			{chatMessage.selection?.selectionStr && <BlockCode text={chatMessage.selection.selectionStr} hideToolbar />}
+			{chatMessage.selection?.selectionStr && <BlockCode
+				text={chatMessage.selection.selectionStr}
+				buttonsOnHover={null}
+			/>}
 			{children}
 		</>
 	}
 	else if (role === 'assistant') {
-
 		chatbubbleContents = <MarkdownRender string={children} /> // sectionsHTML
 	}
-
 
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
 		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full`}>
@@ -224,8 +273,8 @@ export const SidebarChat = () => {
 		abortFnRef.current?.()
 
 		// if messageStream was not empty, add it to the history
-		const llmContent = messageStream || '(canceled)'
-		const newHistoryElt: ChatMessage = { role: 'assistant', displayContent: messageStream, content: llmContent }
+		const llmContent = messageStream || '(null)'
+		const newHistoryElt: ChatMessage = { role: 'assistant', content: llmContent, displayContent: messageStream, }
 		addMessageToHistory(newHistoryElt)
 
 		setMessageStream('')
@@ -233,14 +282,9 @@ export const SidebarChat = () => {
 
 	}, [captureChatEvent, messageStream, addMessageToHistory])
 
-	//Clear code selection
-	const clearSelection = () => {
-		setSelection(null);
-	};
-
 
 	return <>
-		<div className="overflow-y-auto overflow-x-hidden space-y-4">
+		<div className="overflow-x-hidden space-y-4">
 			{/* previous messages */}
 			{currentThread !== null && currentThread.messages.map((message, i) =>
 				<ChatBubble key={i} chatMessage={message} />
@@ -261,14 +305,15 @@ export const SidebarChat = () => {
 							<SelectedFiles files={files} setFiles={setFiles} />
 							{/* selected code */}
 							{!!selection?.selectionStr && (
-								<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
-									<button
-										onClick={clearSelection}
-										className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-									>
-										Remove
-									</button>
-								)} />
+								<BlockCode text={selection.selectionStr}
+									buttonsOnHover={(
+										<button
+											onClick={() => setSelection(null)}
+											className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+										>
+											Remove
+										</button>
+									)} />
 							)}
 						</div>}
 

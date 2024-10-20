@@ -65,7 +65,8 @@ type MessageFromSidebar = (
 type ChatThreads = {
 	[id: string]: {
 		id: string; // store the id here too
-		createdAt: string;
+		createdAt: string; // ISO string
+		lastModified: string; // ISO string
 		messages: ChatMessage[];
 	}
 }

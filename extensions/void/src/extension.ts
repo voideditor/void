@@ -83,7 +83,8 @@ export function activate(context: vscode.ExtensionContext) {
 					// send contents to webview
 					webview.postMessage({ type: 'files', files, } satisfies MessageToSidebar)
 
-				} else if (m.type === 'applyChanges') {
+				}
+				else if (m.type === 'applyChanges') {
 
 					const editor = vscode.window.activeTextEditor
 					if (!editor) {

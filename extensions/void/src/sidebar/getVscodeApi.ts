@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { MessageFromSidebar, MessageToSidebar, } from "../shared_types";
+import { MessageFromSidebar, MessageToSidebar, } from "../common/shared_types";
 import { v4 as uuidv4 } from 'uuid';
 
 

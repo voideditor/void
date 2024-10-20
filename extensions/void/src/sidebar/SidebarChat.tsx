@@ -5,12 +5,13 @@ import { marked } from 'marked';
 import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
 import { SelectedFiles } from "./components/SelectedFiles";
-import { File, ChatMessage, CodeSelection } from "../shared_types";
+import { File, ChatMessage, CodeSelection } from "../common/shared_types";
 import * as vscode from 'vscode'
 import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi";
 import { useThreads } from "./contextForThreads";
 import { sendLLMMessage } from "../common/sendLLMMessage";
 import { useVoidConfig } from "./contextForConfig";
+import { captureEvent } from "./metrics/posthog";
 
 
 
@@ -93,6 +94,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 }
 
 
+
 export const SidebarChat = () => {
 
 
@@ -111,6 +113,23 @@ export const SidebarChat = () => {
 	// higher level state
 	const { allThreads, currentThread, addMessageToHistory, startNewThread, switchToThread } = useThreads()
 	const { voidConfig } = useVoidConfig()
+
+
+
+	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
+	const captureChatEvent = useCallback((eventId: string, extras?: object) => {
+		const whichApi = voidConfig.default['whichApi']
+		const messages = currentThread?.messages
+
+		captureEvent(eventId, {
+			whichApi: whichApi,
+			numMessages: messages?.length,
+			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.displayContent.length })),
+			version: '2024-10-19',
+			...extras,
+		})
+	}, [currentThread?.messages, voidConfig.default])
+
 
 	// if they pressed the + to add a new chat
 	useOnVSCodeMessage('startNewThread', (m) => {
@@ -163,17 +182,25 @@ export const SidebarChat = () => {
 		addMessageToHistory(newHistoryElt)
 
 		// send message to LLM
+
+		captureChatEvent('Chat - Sending Message', { messageLength: instructions.length })
+		const submit_time = new Date()
+
 		let { abort } = sendLLMMessage({
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userContent }],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
+				captureChatEvent('Chat - Received Full Message', { messageLength: content.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+
 				// add assistant's message to chat history, and clear selection
-				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
+				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content }
 				addMessageToHistory(newHistoryElt)
 				setMessageStream('')
 				setIsLoading(false)
 			},
 			onError: (error) => {
+				captureChatEvent('Chat - Error', { error })
+
 				// add assistant's message to chat history, and clear selection
 				let content = messageStream; // just use the current content
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
@@ -189,7 +216,10 @@ export const SidebarChat = () => {
 
 	}
 
-	const onStop = useCallback(() => {
+	const onAbort = useCallback(() => {
+
+		captureChatEvent('Chat - Abort', { messageLengthSoFar: messageStream.length })
+
 		// abort claude
 		abortFnRef.current?.()
 
@@ -201,7 +231,7 @@ export const SidebarChat = () => {
 		setMessageStream('')
 		setIsLoading(false)
 
-	}, [addMessageToHistory, messageStream])
+	}, [captureChatEvent, messageStream, addMessageToHistory])
 
 	//Clear code selection
 	const clearSelection = () => {
@@ -263,10 +293,16 @@ export const SidebarChat = () => {
 							{isLoading ?
 								// stop button
 								<button
-									onClick={onStop}
-									className="btn btn-primary rounded-r-lg max-h-10 p-2"
+									onClick={onAbort}
 									type='button'
-								>Stop</button>
+									className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+								>
+									<svg
+										className='scale-50'
+										stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 24 24" height="24" width="24" xmlns="http://www.w3.org/2000/svg">
+										<path d="M24 24H0V0h24v24z"></path>
+									</svg>
+								</button>
 								:
 								// submit button (up arrow)
 								<button
@@ -285,7 +321,11 @@ export const SidebarChat = () => {
 				</div>
 			</div>
 
-			{latestError}
+			<div>
+				{latestError}
+
+				{}
+			</div>
 		</div>
 	</>
 }

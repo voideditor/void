@@ -28,17 +28,19 @@ const Sidebar = () => {
 
 	// if they toggled thread selector
 	useOnVSCodeMessage('toggleThreadSelector', (m) => {
-		if (tab === 'threadSelector')
+		if (tab === 'threadSelector') {
 			setTab('chat')
-		else
+			chatInputRef.current?.blur();
+		} else
 			setTab('threadSelector')
 	})
 
 	// if they toggled settings
 	useOnVSCodeMessage('toggleSettings', (m) => {
-		if (tab === 'settings')
+		if (tab === 'settings') {
 			setTab('chat')
-		else
+			chatInputRef.current?.blur();
+		} else
 			setTab('settings')
 	})
 

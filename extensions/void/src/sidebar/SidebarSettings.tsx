@@ -89,6 +89,15 @@ export const SidebarSettings = () => {
 				</div>
 			})}
 
+			<hr />
+
+			<div className='outline-vscode-input-bg'>
+				<SettingOfFieldAndParam
+					field='default'
+					param='initialLLMInstuctions'
+				/>
+			</div>
+
 			{/* Remove this after 10/21/24, this is just to give developers a heads up about the recent change  */}
 			<div className='pt-20'>
 				{`We recently updated Settings. To copy your old Void settings over, press Ctrl+Shift+P, `}

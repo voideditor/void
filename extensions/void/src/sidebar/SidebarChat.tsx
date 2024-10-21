@@ -176,7 +176,13 @@ export const SidebarChat = () => {
 		const relevantFiles = await awaitVSCodeResponse('files')
 
 		// add message to chat history
-		const userContent = userInstructionsStr(instructions, relevantFiles.files, selection)
+		let userContent = userInstructionsStr(instructions, relevantFiles.files, selection)
+
+		// check if the intial instructions have been send to the LLM
+		if (voidConfig.default.initialLLMInstuctions && !currentThread?.messages.some((message) => message.content.includes(voidConfig.default.initialLLMInstuctions))) {
+			userContent = voidConfig.default.initialLLMInstuctions + '\n\n' + userContent;
+		}
+		
 		// console.log('prompt:\n', content)
 		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selection, files }
 		addMessageToHistory(newHistoryElt)

@@ -11,7 +11,7 @@ const SettingOfFieldAndParam = ({ field, param }: { field: VoidConfigField, para
 
 	const resetButton = <button
 		disabled={val === defaultVal}
-		title={val === defaultVal ? 'This is already the default value.' : `Revert value to '${defaultVal}'?`}
+		title={val === defaultVal ? 'This is the default value.' : `Revert value to '${defaultVal}'?`}
 		className='group btn btn-sm disabled:opacity-75 disabled:cursor-default'
 		onClick={() => updateState(defaultVal)}
 	>

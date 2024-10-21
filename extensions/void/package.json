@@ -24,7 +24,7 @@
       },
       {
         "command": "void.ctrl+k",
-        "title": "Show Selection Lens"
+        "title": "Make Inline Edit"
       },
       {
         "command": "void.acceptDiff",
@@ -101,14 +101,16 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "echo \"running prepublish\"",
     "watch": "tsc -watch -p ./",
     "build": "rimraf dist && node build-tsx.js && node build-css.js",
     "pretest": "tsc -p ./ && eslint src --ext ts",
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.29.2",
     "@eslint/js": "^9.9.1",
+    "@monaco-editor/react": "^4.6.0",
     "@types/diff": "^5.2.2",
     "@types/diff-match-patch": "^1.0.36",
     "@types/jest": "^29.5.12",
@@ -132,6 +134,7 @@
     "globals": "^15.9.0",
     "marked": "^14.1.0",
     "ollama": "^0.5.9",
+    "openai": "^4.68.1",
     "postcss": "^8.4.41",
     "posthog-js": "^1.174.0",
     "react": "^18.3.1",
@@ -143,9 +146,5 @@
     "typescript": "5.5.4",
     "typescript-eslint": "^8.3.0",
     "uuid": "^10.0.0"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.27.1",
-    "openai": "^4.57.0"
   }
 }

@@ -1,6 +1,57 @@
-import React, { JSX } from "react"
+import React, { JSX, useCallback, useEffect, useState } from "react"
 import { marked, MarkedToken, Token, TokensList } from "marked"
 import BlockCode from "./BlockCode"
+import { getVSCodeAPI } from "../getVscodeApi"
+
+
+enum CopyButtonState {
+	Copy = "Copy",
+	Copied = "Copied!",
+	Error = "Could not copy",
+}
+
+const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
+
+const CodeButtonsOnHover = ({ text }: { text: string }) => {
+	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
+
+	useEffect(() => {
+		if (copyButtonState !== CopyButtonState.Copy) {
+			setTimeout(() => {
+				setCopyButtonState(CopyButtonState.Copy)
+			}, COPY_FEEDBACK_TIMEOUT)
+		}
+	}, [copyButtonState])
+
+	const onCopy = useCallback(() => {
+		navigator.clipboard.writeText(text).then(
+			() => {
+				setCopyButtonState(CopyButtonState.Copied)
+			},
+			() => {
+				setCopyButtonState(CopyButtonState.Error)
+			}
+		)
+	}, [text])
+
+	return <>
+		<button
+			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+			onClick={onCopy}
+		>
+			{copyButtonState}
+		</button>
+		<button
+			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+			onClick={async () => {
+				getVSCodeAPI().postMessage({ type: "applyChanges", code: text })
+			}}
+		>
+			Apply
+		</button>
+	</>
+}
+
 
 const RenderToken = ({ token, nested = false }: { token: Token | string, nested?: boolean }): JSX.Element => {
 
@@ -12,7 +63,11 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	}
 
 	if (t.type === "code") {
-		return <BlockCode text={t.text} language={t.lang} />
+		return <BlockCode
+			text={t.text}
+			language={t.lang}
+			buttonsOnHover={<CodeButtonsOnHover text={t.text} />}
+		/>
 	}
 
 	if (t.type === "heading") {

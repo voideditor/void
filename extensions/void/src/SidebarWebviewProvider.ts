@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 
-function getNonce() {
+function generateNonce() {
 	let text = "";
 	const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 	for (let i = 0; i < 32; i++) {
@@ -39,7 +39,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'dist/sidebar/index.js'));
 		const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'dist/sidebar/styles.css'));
 		const rootUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri));
-		const nonce = getNonce();
+		const nonce = generateNonce();
 
 		const webviewHTML = `<!DOCTYPE html>
           <html lang="en">
@@ -53,6 +53,7 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
           </head>
           <body>
             <div id="root"></div>
+            <div id="ctrlkroot"></div>
             <script nonce="${nonce}" src="${scriptUri}"></script>
           </body>
           </html>`;

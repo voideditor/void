@@ -41,6 +41,7 @@ type Diff = {
 // editor -> sidebar
 type MessageToSidebar = (
 	| { type: 'ctrl+l', selection: CodeSelection } // user presses ctrl+l in the editor
+	| { type: 'ctrl+k', selection: CodeSelection }
 	| { type: 'files', files: { filepath: vscode.Uri, content: string }[] }
 	| { type: 'partialVoidConfig', partialVoidConfig: PartialVoidConfig }
 	| { type: 'allThreads', threads: ChatThreads }
@@ -65,7 +66,8 @@ type MessageFromSidebar = (
 type ChatThreads = {
 	[id: string]: {
 		id: string; // store the id here too
-		createdAt: string;
+		createdAt: string; // ISO string
+		lastModified: string; // ISO string
 		messages: ChatMessage[];
 	}
 }

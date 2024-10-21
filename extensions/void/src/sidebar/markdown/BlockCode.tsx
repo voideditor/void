@@ -1,15 +1,17 @@
 import React, { ReactNode, useCallback, useEffect, useState } from "react"
-import MonacoEditor from '@monaco-editor/react'
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { atomOneDarkReasonable } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
-import * as monaco from 'monaco-editor';
-import { loader } from '@monaco-editor/react';
 
-loader.config({ monaco });
+const BlockCode = ({ text, buttonsOnHover, language }: { text: string, buttonsOnHover?: ReactNode, language?: string }) => {
 
-// code block with toolbar (Apply, Copy, etc) at top
-const BlockCode = ({ text, buttonsOnHover, }: { text: string, buttonsOnHover?: ReactNode, }) => {
-
-	const [editorHeight, setEditorHeight] = useState(0)
+	const customStyle = {
+		...atomOneDarkReasonable,
+		'code[class*="language-"]': {
+			...atomOneDarkReasonable['code[class*="language-"]'],
+			background: "none",
+		},
+	}
 
 	return (<>
 		<div className={`relative group w-full bg-vscode-sidebar-bg overflow-hidden isolate`}>
@@ -20,42 +22,18 @@ const BlockCode = ({ text, buttonsOnHover, }: { text: string, buttonsOnHover?: R
 				</div>
 			)}
 
-			<MonacoEditor
-				className="w-full"
-				onMount={(editor, monaco) => {
-					// const model = editor.getModel()
-					const fn = () => setEditorHeight!(editor.getContentHeight())
-					editor.onDidContentSizeChange(fn)
-					fn()
-				}}
-				loading='loading'
-				value={text}
-				language={'python'}
+			<div
+				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg`}
+			>
+				<SyntaxHighlighter
+					language={language ?? 'plaintext'} // TODO must auto detect language
+					style={customStyle}
+					className={"rounded-sm"}
+				>
+					{text}
+				</SyntaxHighlighter>
 
-				// onChange={() => { onChangeText?.() }}
-				height={editorHeight}
-				theme={'vs-dark'}
-
-				options={{
-					// fontSize: 15,
-					wordWrapColumn: 10000, // we want this to be infinity
-					wordWrap: 'bounded', // 'off'
-					lineNumbers: 'off',
-					renderLineHighlight: 'none',
-					minimap: { enabled: false },
-					scrollBeyondLastColumn: 0,
-					scrollBeyondLastLine: false,
-					scrollbar: {
-						alwaysConsumeMouseWheel: true, // height !== undefined
-					},
-
-					overviewRulerLanes: 0,
-					readOnly: true,
-					readOnlyMessage: { value: "" },
-					quickSuggestions: false,
-
-				}}
-			/>
+			</div>
 		</div>
 	</>
 	)

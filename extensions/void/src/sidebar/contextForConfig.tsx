@@ -216,7 +216,7 @@ const voidConfigInfo: Record<
 		apikey: configString('OpenRouter API key.', ''),
 	},
 	openAICompatible: {
-		endpoint: configString('The endpoint.', 'http://127.0.0.1:11434/v1'),
+		endpoint: configString('The baseUrl (exluding /chat/completions).', 'http://127.0.0.1:11434/v1'),
 		model: configString('The name of the model to use.', 'gpt-4o'),
 		apikey: configString('Your API key.', ''),
 	},

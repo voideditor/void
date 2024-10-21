@@ -144,7 +144,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 
 
-export const SidebarChat = () => {
+export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HTMLTextAreaElement> }) => {
 
 
 	// state of current message
@@ -329,6 +329,7 @@ export const SidebarChat = () => {
 							{/* input */}
 
 							<textarea
+								ref={chatInputRef}
 								onChange={(e) => { setInstructions(e.target.value) }}
 								className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
 								placeholder="Ctrl+L to select"

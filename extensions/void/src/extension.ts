@@ -9,37 +9,60 @@ const readFileContentOfUri = async (uri: vscode.Uri) => {
 		.replace(/\r\n/g, '\n') // replace windows \r\n with \n
 }
 
+const roundRangeToLines = (selection: vscode.Selection) => {
+	return new vscode.Range(selection.start.line, 0, selection.end.line, Number.MAX_SAFE_INTEGER)
+}
+
 export function activate(context: vscode.ExtensionContext) {
 
 	// 1. Mount the chat sidebar
-	const webviewProvider = new SidebarWebviewProvider(context);
+	const sidebarWebviewProvider = new SidebarWebviewProvider(context);
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(SidebarWebviewProvider.viewId, webviewProvider, { webviewOptions: { retainContextWhenHidden: true } })
+		vscode.window.registerWebviewViewProvider(SidebarWebviewProvider.viewId, sidebarWebviewProvider, { webviewOptions: { retainContextWhenHidden: true } })
 	);
 
-	// 2. Activate the sidebar on ctrl+l
+	// 2. ctrl+l
 	context.subscriptions.push(
 		vscode.commands.registerCommand('void.ctrl+l', () => {
-
 			const editor = vscode.window.activeTextEditor
-			if (!editor)
-				return
+			if (!editor) return
 
 			// show the sidebar
 			vscode.commands.executeCommand('workbench.view.extension.voidViewContainer');
 			// vscode.commands.executeCommand('vscode.moveViewToPanel', CustomViewProvider.viewId); // move to aux bar
 
-			// get the text the user is selecting
-			const selectionStr = editor.document.getText(editor.selection);
-
 			// get the range of the selection
-			const selectionRange = editor.selection;
+			const selectionRange = roundRangeToLines(editor.selection);
+
+			// get the text the user is selecting
+			const selectionStr = editor.document.getText(selectionRange);
 
 			// get the file the user is in
 			const filePath = editor.document.uri;
 
 			// send message to the webview (Sidebar.tsx)
-			webviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
+			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
+		})
+	);
+
+	// 2.5: ctrl+k
+	context.subscriptions.push(
+		vscode.commands.registerCommand('void.ctrl+k', () => {
+			console.log('CTRLK PRESSED')
+			const editor = vscode.window.activeTextEditor
+			if (!editor) return
+
+			// get the range of the selection
+			const selectionRange = roundRangeToLines(editor.selection);
+
+			// get the text the user is selecting
+			const selectionStr = editor.document.getText(selectionRange);
+
+			// get the file the user is in
+			const filePath = editor.document.uri;
+
+			// send message to the webview (Sidebar.tsx)
+			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+k', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
 		})
 	);
 
@@ -56,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	// 5. Receive messages from sidebar
-	webviewProvider.webview.then(
+	sidebarWebviewProvider.webview.then(
 		webview => {
 
 			// top navigation bar commands

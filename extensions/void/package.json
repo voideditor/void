@@ -24,7 +24,7 @@
       },
       {
         "command": "void.ctrl+k",
-        "title": "Show Selection Lens"
+        "title": "Make Inline Edit"
       },
       {
         "command": "void.acceptDiff",

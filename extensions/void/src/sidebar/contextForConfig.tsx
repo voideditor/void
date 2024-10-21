@@ -45,6 +45,7 @@ const voidConfigInfo: Record<
 			'anthropic',
 			configFields,
 		),
+		initialLLMInstuctions: configString('Your initial instructions for your LLM.', ''),
 	},
 	anthropic: {
 		apikey: configString('Anthropic API key.', ''),

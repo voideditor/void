@@ -6,12 +6,13 @@ import { loader } from '@monaco-editor/react';
 
 loader.config({ monaco });
 
-
 // code block with toolbar (Apply, Copy, etc) at top
-const BlockCode = ({ text, language, buttonsOnHover, }: { text: string, language?: string, buttonsOnHover?: ReactNode, }) => {
+const BlockCode = ({ text, buttonsOnHover, }: { text: string, buttonsOnHover?: ReactNode, }) => {
+
+	const [editorHeight, setEditorHeight] = useState(0)
 
 	return (<>
-		<div className={`relative group w-full bg-vscode-sidebar-bg overflow-hidden`}>
+		<div className={`relative group w-full bg-vscode-sidebar-bg overflow-hidden isolate`}>
 
 			{!toolbar ? null : (
 				<div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200">
@@ -20,33 +21,25 @@ const BlockCode = ({ text, language, buttonsOnHover, }: { text: string, language
 			)}
 
 			<MonacoEditor
+				className="w-full"
 				onMount={(editor, monaco) => {
-					const model = editor.getModel()
-					model?.setEOL(monaco.editor.EndOfLineSequence.LF)
-					monaco?.editor.setTheme('vs-dark')
+					// const model = editor.getModel()
+					const fn = () => setEditorHeight!(editor.getContentHeight())
+					editor.onDidContentSizeChange(fn)
+					fn()
 				}}
 				loading='loading'
 				value={text}
-				language={language}
+				language={'python'}
 
 				// onChange={() => { onChangeText?.() }}
-				height={'100%'} // 100% or the exact pixel height
+				height={editorHeight}
 				theme={'vs-dark'}
 
 				options={{
-					matchBrackets: 'always',
-					detectIndentation: false, // we always want a tab size of 4
-					tabSize: 4,
-					insertSpaces: true,
-
 					// fontSize: 15,
 					wordWrapColumn: 10000, // we want this to be infinity
-					// automaticLayout: true,
 					wordWrap: 'bounded', // 'off'
-					// wordBreak: 'keepAll',
-					// automaticLayout: true,
-					// lineDecorationsWidth: 0,
-					lineNumbersMinChars: 4,
 					lineNumbers: 'off',
 					renderLineHighlight: 'none',
 					minimap: { enabled: false },
@@ -54,13 +47,11 @@ const BlockCode = ({ text, language, buttonsOnHover, }: { text: string, language
 					scrollBeyondLastLine: false,
 					scrollbar: {
 						alwaysConsumeMouseWheel: true, // height !== undefined
-						// vertical: 'hidden',
-						// horizontal: 'hidden'
 					},
 
 					overviewRulerLanes: 0,
 					readOnly: true,
-					readOnlyMessage: undefined,
+					readOnlyMessage: { value: "" },
 					quickSuggestions: false,
 
 				}}

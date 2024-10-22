@@ -138,8 +138,6 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 		const docUriStr = docUri.toString()
 		const diffAreas = this._diffAreasOfDocument[docUriStr] || []
 
-		console.log('DIFF AREAS', diffAreas)
-
 		// reset all diffs (we update them below)
 		this._diffsOfDocument[docUriStr] = []
 

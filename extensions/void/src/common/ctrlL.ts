@@ -8,8 +8,6 @@ type Res<T> = ((value: T) => void)
 
 const writeFileWithDiffUntilMatchup = ({ fileUri, originalFileStr, unfinishedFileStr, diffStr, voidConfig, setAbort }: { fileUri: vscode.Uri, originalFileStr: string, unfinishedFileStr: string, diffStr: string, voidConfig: VoidConfig, setAbort: SetAbort }) => {
 
-	console.log('WRITE FILE')
-
 	const NUM_MATCHUP_TOKENS = 20
 
 	const promptContent = `ORIGINAL_FILE
@@ -71,6 +69,8 @@ ${unfinishedFileStr}
 			// return if no matchup found
 			const matchupIdx = oldFileAfterLastDiff.indexOf(targetStr)
 			if (matchupIdx === -1) return;
+
+			console.log('MATCHUP')
 
 			// resolve the promise with the delta, up to first matchup
 			res({
@@ -177,26 +177,28 @@ const applyDiffLazily = async ({ fileUri, fileStr, diffStr, voidConfig, setAbort
 	let chunkStart: number | undefined = 0
 	while (chunkStart !== undefined && chunkStart < fileLines.length) {
 
-		console.log('chunkStart', chunkStart)
+		console.log('chunkStartLine: ', chunkStart)
 
 		// get the chunk
 		const chunkLines = fileLines.slice(chunkStart, chunkStart + LINES_PER_CHUNK)
 		const chunkStr = chunkLines.join('\n');
 
-		console.log('AAAAAA')
 
 		// ask LLM if we should apply the diff to the chunk
+		const __start = new Date().getTime()
 		let shouldApplyDiff = await shouldApplyDiffFn({ fileStr, speculationStr: chunkStr, diffStr, voidConfig, setAbort })
+		const __end = new Date().getTime()
 		if (!shouldApplyDiff) { // should not change the chunk
+			console.log('KEEP CHUNK time: ', __end - __start)
 			completedLines.push(chunkStr);
 			chunkStart += chunkLines.length
 			// TODO update highlighting here
 			continue;
 		}
 
-		console.log('BBBBBB')
 
 		// ask LLM to rewrite file with diff (if there is significant matchup with the original file, we stop rewriting)
+		const ___start = new Date().getTime()
 		const { deltaStr, matchupLine } = await writeFileWithDiffUntilMatchup({
 			originalFileStr: fileStr,
 			unfinishedFileStr: completedLines.join('\n'),
@@ -206,8 +208,9 @@ const applyDiffLazily = async ({ fileUri, fileStr, diffStr, voidConfig, setAbort
 			// TODO! update highlighting here
 			setAbort,
 		})
+		const ___end = new Date().getTime()
+		console.log('EDIT CHUNK time: ', ___end - ___start)
 
-		console.log('CCCCCC')
 
 		completedLines.push(deltaStr)
 		chunkStart = matchupLine

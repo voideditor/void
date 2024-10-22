@@ -1,6 +1,6 @@
 export enum ApiProvider {
 	ANTHROPIC = 'anthropic',
-	OPENAI = 'openai',
+	OPENAI = 'openAI',
 	GREPTILE = 'greptile',
 	OLLAMA = 'ollama',
 	OPENAI_COMPATIBLE = 'openAICompatible'

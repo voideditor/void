@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { MessageFromSidebar, MessageToSidebar, } from "../shared_types";
+import { MessageFromSidebar, MessageToSidebar, } from "../common/shared_types";
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -8,6 +8,7 @@ type Command = MessageToSidebar['type']
 // messageType -> res[]
 const onetimeCallbacks: { [C in Command]: ((res: any) => void)[] } = {
 	"ctrl+l": [],
+	"ctrl+k": [],
 	"files": [],
 	"partialVoidConfig": [],
 	"startNewThread": [],
@@ -20,6 +21,7 @@ const onetimeCallbacks: { [C in Command]: ((res: any) => void)[] } = {
 // messageType -> id -> res
 const callbacks: { [C in Command]: { [id: string]: ((res: any) => void) } } = {
 	"ctrl+l": {},
+	"ctrl+k": {},
 	"files": {},
 	"partialVoidConfig": {},
 	"startNewThread": {},

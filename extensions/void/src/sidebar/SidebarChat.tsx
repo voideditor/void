@@ -3,13 +3,13 @@ import React, { FormEvent, useCallback, useRef, useState } from "react";
 
 import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
-import { SelectedFiles } from "./components/SelectedFiles";
-import { File, ChatMessage, CodeSelection } from "../shared_types";
+import { File, ChatMessage, CodeSelection } from "../common/shared_types";
 import * as vscode from 'vscode'
 import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi";
 import { useThreads } from "./contextForThreads";
 import { sendLLMMessage } from "../common/sendLLMMessage";
 import { useVoidConfig } from "./contextForConfig";
+import { captureEvent } from "./metrics/posthog";
 
 
 
@@ -61,6 +61,55 @@ Please edit the selected code following these instructions:
 	return str;
 };
 
+
+
+
+
+const getBasename = (pathStr: string) => {
+	// "unixify" path
+	pathStr = pathStr.replace(/[/\\]+/g, "/") // replace any / or \ or \\ with /
+	const parts = pathStr.split("/") // split on /
+	return parts[parts.length - 1]
+}
+
+export const SelectedFiles = ({ files, setFiles, }: { files: vscode.Uri[], setFiles: null | ((files: vscode.Uri[]) => void) }) => {
+	return (
+		files.length !== 0 && (
+			<div className="flex flex-wrap -mx-1 -mb-1">
+				{files.map((filename, i) => (
+					<button
+						key={filename.path}
+						disabled={!setFiles}
+						className={`btn btn-secondary btn-sm border border-vscode-input-border rounded flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default`}
+						type="button"
+						onClick={() => setFiles?.([...files.slice(0, i), ...files.slice(i + 1, Infinity)])}
+					>
+						<span>{getBasename(filename.fsPath)}</span>
+
+						{/* X button */}
+						{!!setFiles && <span className="">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								className="size-4"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M6 18 18 6M6 6l12 12"
+								/>
+							</svg>
+						</span>}
+					</button>
+				))}
+			</div>
+		)
+	)
+}
+
+
 const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 	const role = chatMessage.role
@@ -74,15 +123,16 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 	if (role === 'user') {
 		chatbubbleContents = <>
 			<SelectedFiles files={chatMessage.files} setFiles={null} />
-			{chatMessage.selection?.selectionStr && <BlockCode text={chatMessage.selection.selectionStr} hideToolbar />}
+			{chatMessage.selection?.selectionStr && <BlockCode
+				text={chatMessage.selection.selectionStr}
+				buttonsOnHover={null}
+			/>}
 			{children}
 		</>
 	}
 	else if (role === 'assistant') {
-
 		chatbubbleContents = <MarkdownRender string={children} /> // sectionsHTML
 	}
-
 
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
 		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full`}>
@@ -92,7 +142,8 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 }
 
 
-export const SidebarChat = () => {
+
+export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HTMLTextAreaElement> }) => {
 
 
 	// state of current message
@@ -110,6 +161,23 @@ export const SidebarChat = () => {
 	// higher level state
 	const { allThreads, currentThread, addMessageToHistory, startNewThread, switchToThread } = useThreads()
 	const { voidConfig } = useVoidConfig()
+
+
+
+	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
+	const captureChatEvent = useCallback((eventId: string, extras?: object) => {
+		const whichApi = voidConfig.default['whichApi']
+		const messages = currentThread?.messages
+
+		captureEvent(eventId, {
+			whichApi: whichApi,
+			numMessages: messages?.length,
+			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.displayContent.length })),
+			version: '2024-10-19',
+			...extras,
+		})
+	}, [currentThread?.messages, voidConfig.default])
+
 
 	// if they pressed the + to add a new chat
 	useOnVSCodeMessage('startNewThread', (m) => {
@@ -162,17 +230,25 @@ export const SidebarChat = () => {
 		addMessageToHistory(newHistoryElt)
 
 		// send message to LLM
+
+		captureChatEvent('Chat - Sending Message', { messageLength: instructions.length })
+		const submit_time = new Date()
+
 		let { abort } = sendLLMMessage({
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userContent }],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
+				captureChatEvent('Chat - Received Full Message', { messageLength: content.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+
 				// add assistant's message to chat history, and clear selection
-				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
+				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content }
 				addMessageToHistory(newHistoryElt)
 				setMessageStream('')
 				setIsLoading(false)
 			},
 			onError: (error) => {
+				captureChatEvent('Chat - Error', { error })
+
 				// add assistant's message to chat history, and clear selection
 				let content = messageStream; // just use the current content
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
@@ -188,28 +264,26 @@ export const SidebarChat = () => {
 
 	}
 
-	const onStop = useCallback(() => {
+	const onAbort = useCallback(() => {
+
+		captureChatEvent('Chat - Abort', { messageLengthSoFar: messageStream.length })
+
 		// abort claude
 		abortFnRef.current?.()
 
 		// if messageStream was not empty, add it to the history
-		const llmContent = messageStream || '(canceled)'
-		const newHistoryElt: ChatMessage = { role: 'assistant', displayContent: messageStream, content: llmContent }
+		const llmContent = messageStream || '(null)'
+		const newHistoryElt: ChatMessage = { role: 'assistant', content: llmContent, displayContent: messageStream, }
 		addMessageToHistory(newHistoryElt)
 
 		setMessageStream('')
 		setIsLoading(false)
 
-	}, [addMessageToHistory, messageStream])
-
-	//Clear code selection
-	const clearSelection = () => {
-		setSelection(null);
-	};
+	}, [captureChatEvent, messageStream, addMessageToHistory])
 
 
 	return <>
-		<div className="overflow-y-auto overflow-x-hidden space-y-4">
+		<div className="overflow-x-hidden space-y-4">
 			{/* previous messages */}
 			{currentThread !== null && currentThread.messages.map((message, i) =>
 				<ChatBubble key={i} chatMessage={message} />
@@ -230,14 +304,15 @@ export const SidebarChat = () => {
 							<SelectedFiles files={files} setFiles={setFiles} />
 							{/* selected code */}
 							{!!selection?.selectionStr && (
-								<BlockCode className="rounded bg-vscode-sidebar-bg" text={selection.selectionStr} toolbar={(
-									<button
-										onClick={clearSelection}
-										className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-									>
-										Remove
-									</button>
-								)} />
+								<BlockCode text={selection.selectionStr}
+									buttonsOnHover={(
+										<button
+											onClick={() => setSelection(null)}
+											className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+										>
+											Remove
+										</button>
+									)} />
 							)}
 						</div>}
 
@@ -253,6 +328,7 @@ export const SidebarChat = () => {
 							{/* input */}
 
 							<textarea
+								ref={chatInputRef}
 								onChange={(e) => { setInstructions(e.target.value) }}
 								className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
 								placeholder="Ctrl+L to select"
@@ -262,10 +338,16 @@ export const SidebarChat = () => {
 							{isLoading ?
 								// stop button
 								<button
-									onClick={onStop}
-									className="btn btn-primary rounded-r-lg max-h-10 p-2"
+									onClick={onAbort}
 									type='button'
-								>Stop</button>
+									className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+								>
+									<svg
+										className='scale-50'
+										stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 24 24" height="24" width="24" xmlns="http://www.w3.org/2000/svg">
+										<path d="M24 24H0V0h24v24z"></path>
+									</svg>
+								</button>
 								:
 								// submit button (up arrow)
 								<button
@@ -284,7 +366,10 @@ export const SidebarChat = () => {
 				</div>
 			</div>
 
-			{latestError}
+			{/* error message */}
+			{!latestError ? null : <div>
+				{latestError}
+			</div>}
 		</div>
 	</>
 }

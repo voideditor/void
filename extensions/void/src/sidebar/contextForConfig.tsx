@@ -17,8 +17,7 @@ const configString = (description: string, defaultVal: string) => {
 	}
 }
 
-// fields you can customize (don't forget 'default' - it isn't included here!)
-export const configFields = [
+export const apiConfigFields = [
 	'anthropic',
 	'openAI',
 	'greptile',
@@ -28,6 +27,16 @@ export const configFields = [
 	'azure'
 ] as const
 
+export const vectorStoreConfigFields = [
+	'none',
+	'openSearch',
+]
+
+// fields you can customize (don't forget 'default' - it isn't included here!)
+export const configFields = [
+	...apiConfigFields,
+	...vectorStoreConfigFields,
+]
 
 
 const voidConfigInfo: Record<
@@ -43,7 +52,12 @@ const voidConfigInfo: Record<
 		whichApi: configEnum(
 			"API Provider.",
 			'anthropic',
-			configFields,
+			apiConfigFields,
+		),
+		vectorStore: configEnum(
+			"Vector store.",
+			'none',
+			vectorStoreConfigFields,
 		),
 	},
 	anthropic: {
@@ -95,6 +109,11 @@ const voidConfigInfo: Record<
 				"gpt-3.5-turbo-1106"
 			] as const
 		),
+		embedding: configEnum("OpenAI embedding model.", "text-embedding-3-small", [
+            "text-embedding-3-small",
+            "text-embedding-3-large",
+            "text-embedding-ada-002"
+          ])
 	},
 	greptile: {
 		apikey: configString('Greptile API key.', ''),
@@ -162,6 +181,9 @@ const voidConfigInfo: Record<
 		// 	}
 		// },
 	},
+	openSearch: {
+		endpoint: configString('The endpoint.', 'http://127.0.0.1:9200'),
+	}
 }
 
 
@@ -184,7 +206,7 @@ export type VoidConfig = {
 
 
 
-const getVoidConfig = (currentConfig: PartialVoidConfig): VoidConfig => {
+export const getVoidConfig = (currentConfig: PartialVoidConfig): VoidConfig => {
 	const config = {} as PartialVoidConfig
 	for (let field of [...configFields, 'default'] as const) {
 		config[field] = {}

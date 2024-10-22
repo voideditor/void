@@ -1,7 +1,6 @@
-import React, { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import React, { FormEvent, useCallback, useRef, useState } from "react";
 
 
-import { marked } from 'marked';
 import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
 import { File, ChatMessage, CodeSelection } from "../common/shared_types";

@@ -11,6 +11,7 @@ import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMess
 import { useThreads } from "./contextForThreads";
 import { sendLLMMessage } from "../common/sendLLMMessage";
 import { useVoidConfig } from "./contextForConfig";
+import { generateDiffInstructions } from "../common/systemPrompts";
 
 
 
@@ -109,11 +110,13 @@ export const SidebarChat = () => {
 	const [latestError, setLatestError] = useState('')
 
 	// higher level state
-	const { allThreads, currentThread, addMessageToHistory, startNewThread, switchToThread } = useThreads()
+	const { getAllThreads, getCurrentThread, addMessageToHistory, startNewThread, switchToThread } = useThreads()
+
 	const { voidConfig } = useVoidConfig()
 
 	// if they pressed the + to add a new chat
 	useOnVSCodeMessage('startNewThread', (m) => {
+		const allThreads = getAllThreads()
 		// find a thread with 0 messages and switch to it
 		for (let threadId in allThreads) {
 			if (allThreads[threadId].messages.length === 0) {
@@ -156,15 +159,17 @@ export const SidebarChat = () => {
 		getVSCodeAPI().postMessage({ type: 'requestFiles', filepaths: files })
 		const relevantFiles = await awaitVSCodeResponse('files')
 
-		// add message to chat history
+		// add system message to chat history
+		const systemPromptElt: ChatMessage = { role: 'system', content: generateDiffInstructions }
+		addMessageToHistory(systemPromptElt)
+
 		const userContent = userInstructionsStr(instructions, relevantFiles.files, selection)
-		// console.log('prompt:\n', content)
 		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selection, files }
 		addMessageToHistory(newHistoryElt)
 
 		// send message to LLM
 		sendLLMMessage({
-			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userContent }],
+			messages: [...(getCurrentThread()?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
 				// add assistant's message to chat history, and clear selection
@@ -215,7 +220,7 @@ export const SidebarChat = () => {
 	return <>
 		<div className="overflow-y-auto overflow-x-hidden space-y-4">
 			{/* previous messages */}
-			{currentThread !== null && currentThread.messages.map((message, i) =>
+			{getCurrentThread() !== null && getCurrentThread()?.messages.map((message, i) =>
 				<ChatBubble key={i} chatMessage={message} />
 			)}
 			{/* message stream */}
@@ -225,7 +230,6 @@ export const SidebarChat = () => {
 		<div className="shrink-0 py-4">
 			{/* selection */}
 			<div className="text-left">
-
 				<div className="relative">
 					<div className="input">
 						{/* selection */}

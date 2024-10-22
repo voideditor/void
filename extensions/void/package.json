@@ -133,7 +133,6 @@
     "marked": "^14.1.0",
     "ollama": "^0.5.9",
     "postcss": "^8.4.41",
-    "posthog-js": "^1.174.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^9.0.1",
@@ -146,6 +145,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.1",
-    "openai": "^4.57.0"
+    "@rrweb/types": "^2.0.0-alpha.17",
+    "openai": "^4.57.0",
+    "posthog-js": "^1.174.2",
+    "rrweb-snapshot": "^2.0.0-alpha.4"
   }
 }

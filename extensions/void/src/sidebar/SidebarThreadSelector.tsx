@@ -12,7 +12,9 @@ const truncate = (s: string) => {
 
 
 export const SidebarThreadSelector = ({ onClose }: { onClose: () => void }) => {
-	const { allThreads, currentThread, switchToThread } = useThreads()
+	const { getAllThreads, getCurrentThread, switchToThread } = useThreads()
+
+	const allThreads = getAllThreads()
 
 	// sorted by most recent to least recent
 	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].createdAt > allThreads![threadId2].createdAt ? -1 : 1)
@@ -62,7 +64,7 @@ export const SidebarThreadSelector = ({ onClose }: { onClose: () => void }) => {
 					return (
 						<button
 							key={pastThread.id}
-							className={`btn btn-sm rounded-sm ${pastThread.id === currentThread?.id ? "btn-primary" : "btn-secondary"}`}
+							className={`btn btn-sm rounded-sm ${pastThread.id === getCurrentThread()?.id ? "btn-primary" : "btn-secondary"}`}
 							onClick={() => switchToThread(pastThread.id)}
 							title={new Date(pastThread.createdAt).toLocaleString()}
 						>

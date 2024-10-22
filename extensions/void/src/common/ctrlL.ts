@@ -1,521 +1,16 @@
 import * as vscode from 'vscode';
 import { OnFinalMessage, OnText, sendLLMMessage, SetAbort } from "./sendLLMMessage"
 import { VoidConfig } from '../sidebar/contextForConfig';
-
-const generateDiffInstructions = `
-You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.
-
-Please edit the selected file following the user's instructions (or, if appropriate, answer their question instead).
-
-All changes made to files must be outputted in unified diff format.
-Unified diff format instructions:
-1. Each diff must begin with \`\`\`@@ ... @@\`\`\`.
-2. Each line must start with a \`+\` or \`-\` or \` \` symbol.
-3. Make diffs more than a few lines.
-4. Make high-level diffs rather than many one-line diffs.
-
-Here's an example of unified diff format:
-
-\`\`\`
-@@ ... @@
--def factorial(n):
--    if n == 0:
--        return 1
--    else:
--        return n * factorial(n-1)
-+def factorial(number):
-+    if number == 0:
-+        return 1
-+    else:
-+        return number * factorial(number-1)
-\`\`\`
-
-Please create high-level diffs where you group edits together if they are near each other, like in the above example. Another way to represent the above example is to make many small line edits. However, this is less preferred, because the edits are not high-level. The edits are close together and should be grouped:
-
-\`\`\`
-@@ ... @@ # This is less preferred because edits are close together and should be grouped:
--def factorial(n):
-+def factorial(number):
--    if n == 0:
-+    if number == 0:
-         return 1
-     else:
--        return n * factorial(n-1)
-+        return number * factorial(number-1)
-\`\`\`
-
-# Example 1:
-
-FILES
-selected file \`test.ts\`:
-\`\`\`
-x = 1
-
-{{selection}}
-
-z = 3
-\`\`\`
-
-SELECTION
-\`\`\`const y = 2\`\`\`
-
-INSTRUCTIONS
-\`\`\`y = 3\`\`\`
-
-EXPECTED RESULT
-Following the instructions, we should change the selection from \`\`\`y = 2\`\`\` to \`\`\`y = 3\`\`\`. Here is the expected output diff:
-\`\`\`
-@@ ... @@
--x = 1
--
--y = 2
-+x = 1
-+
-+y = 3
-\`\`\`
-
-# Example 2:
-
-FILES
-selected file \`Sidebar.tsx\`:
-\`\`\`
-import React from 'react';
-import styles from './Sidebar.module.css';
-
-interface SidebarProps {
-  items: { label: string; href: string }[];
-  onItemSelect?: (label: string) => void;
-  onExtraButtonClick?: () => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonClick }) => {
-  return (
-    <div className={styles.sidebar}>
-      <ul>
-        {items.map((item, index) => (
-          <li key={index}>
-             {{selection}}
-              className={styles.sidebarButton}
-              onClick={() => onItemSelect?.(item.label)}
-            >
-              {item.label}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button className={styles.extraButton} onClick={onExtraButtonClick}>
-        Extra Action
-      </button>
-    </div>
-  );
-};
-
-export default Sidebar;
-\`\`\`
-
-SELECTION
-\`\`\`             <button\`\`\`
-
-INSTRUCTIONS
-\`\`\`make all the buttons like this into divs\`\`\`
-
-EXPECTED OUTPUT
-
-Following the instructions, we should change all the buttons like the one selected into a div component. Here is the result:
-\`\`\`
-@@ ... @@
--<div className={styles.sidebar}>
--<ul>
--  {items.map((item, index) => (
--	<li key={index}>
--	  <button
--		className={styles.sidebarButton}
--		onClick={() => onItemSelect?.(item.label)}
--	  >
--		{item.label}
--	  </button>
--	</li>
--  ))}
--</ul>
--<button className={styles.extraButton} onClick={onExtraButtonClick}>
--  Extra Action
--</button>
--</div>
-+<div className={styles.sidebar}>
-+<ul>
-+  {items.map((item, index) => (
-+	<li key={index}>
-+	  <div
-+		className={styles.sidebarButton}
-+		onClick={() => onItemSelect?.(item.label)}
-+	  >
-+		{item.label}
-+	  </div>
-+	</li>
-+  ))}
-+</ul>
-+<div className={styles.extraButton} onClick={onExtraButtonClick}>
-+  Extra Action
-+</div>
-+</div>
-\`\`\`
-`;
-
-
-const searchDiffChunkInstructions = `
-You are a coding assistant that applies a diff to a file. You are given a diff \`diff\`, a list of files \`files\` to apply the diff to, and a selection \`selection\` that you are currently considering in the file.
-
-Determine whether you should modify ANY PART of the selection \`selection\` following the \`diff\`. Return \`true\` if you should modify any part of the selection, and \`false\` if you should not modify any part of it.
-
-# Example 1:
-
-FILES
-selected file \`Sidebar.tsx\`:
-\`\`\`
-import React from 'react';
-import styles from './Sidebar.module.css';
-
-interface SidebarProps {
-  items: { label: string; href: string }[];
-  onItemSelect?: (label: string) => void;
-  onExtraButtonClick?: () => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonClick }) => {
-  return (
-    <div className={styles.sidebar}>
-      <ul>
-        {items.map((item, index) => (
-          <li key={index}>
-            <button
-              className={styles.sidebarButton}
-              onClick={() => onItemSelect?.(item.label)}
-            >
-              {item.label}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button className={styles.extraButton} onClick={onExtraButtonClick}>
-        Extra Action
-      </button>
-    </div>
-  );
-};
-
-export default Sidebar;
-\`\`\`
-
-DIFF
-\`\`\`
-@@ ... @@
--<div className={styles.sidebar}>
--<ul>
--  {items.map((item, index) => (
--	<li key={index}>
--	  <button
--		className={styles.sidebarButton}
--		onClick={() => onItemSelect?.(item.label)}
--	  >
--		{item.label}
--	  </button>
--	</li>
--  ))}
--</ul>
--<button className={styles.extraButton} onClick={onExtraButtonClick}>
--  Extra Action
--</button>
--</div>
-+<div className={styles.sidebar}>
-+<ul>
-+  {items.map((item, index) => (
-+	<li key={index}>
-+	  <div
-+		className={styles.sidebarButton}
-+		onClick={() => onItemSelect?.(item.label)}
-+	  >
-+		{item.label}
-+	  </div>
-+	</li>
-+  ))}
-+</ul>
-+<div className={styles.extraButton} onClick={onExtraButtonClick}>
-+  Extra Action
-+</div>
-+</div>
-\`\`\`
-
-SELECTION
-\`\`\`
-import React from 'react';
-import styles from './Sidebar.module.css';
-
-interface SidebarProps {
-  items: { label: string; href: string }[];
-  onItemSelect?: (label: string) => void;
-  onExtraButtonClick?: () => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonClick }) => {
-  return (
-    <div className={styles.sidebar}>
-      <ul>
-        {items.map((item, index) => (
-\`\`\`
-
-EXPECTED RESULT
-The expected output is \`true\`, because the diff begins on the line with \`<div className={styles.sidebar}>\` and this line is present in the selection.
-
-\`true\`
-`
-
-
-const searchDiffLineInstructions = `
-You are a coding assistant that applies a diff to a file. You are given a diff \`diff\`, a list of files \`files\` to apply the diff to, and a selection \`selection\` that you are currently considering in the file.
-
-Determine whether you should modify ANY PART of the selection \`selection\` following the \`diff\`. Return \`true\` if you should modify any part of the selection, and \`false\` if you should not modify any part of it.
-
-# Example 1:
-
-FILES
-selected file \`Sidebar.tsx\`:
-\`\`\`
-import React from 'react';
-import styles from './Sidebar.module.css';
-
-interface SidebarProps {
-  items: { label: string; href: string }[];
-  onItemSelect?: (label: string) => void;
-  onExtraButtonClick?: () => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonClick }) => {
-  return (
-    <div className={styles.sidebar}>
-      <ul>
-        {items.map((item, index) => (
-          <li key={index}>
-            <button
-              className={styles.sidebarButton}
-              onClick={() => onItemSelect?.(item.label)}
-            >
-              {item.label}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button className={styles.extraButton} onClick={onExtraButtonClick}>
-        Extra Action
-      </button>
-    </div>
-  );
-};
-
-export default Sidebar;
-\`\`\`
-
-DIFF
-\`\`\`
-@@ ... @@
--<div className={styles.sidebar}>
--<ul>
--  {items.map((item, index) => (
--	<li key={index}>
--	  <button
--		className={styles.sidebarButton}
--		onClick={() => onItemSelect?.(item.label)}
--	  >
--		{item.label}
--	  </button>
--	</li>
--  ))}
--</ul>
--<button className={styles.extraButton} onClick={onExtraButtonClick}>
--  Extra Action
--</button>
--</div>
-+<div className={styles.sidebar}>
-+<ul>
-+  {items.map((item, index) => (
-+	<li key={index}>
-+	  <div
-+		className={styles.sidebarButton}
-+		onClick={() => onItemSelect?.(item.label)}
-+	  >
-+		{item.label}
-+	  </div>
-+	</li>
-+  ))}
-+</ul>
-+<div className={styles.extraButton} onClick={onExtraButtonClick}>
-+  Extra Action
-+</div>
-+</div>
-\`\`\`
-
-SELECTION
-\`\`\`
-import React from 'react';
-import styles from './Sidebar.module.css';
-
-interface SidebarProps {
-  items: { label: string; href: string }[];
-  onItemSelect?: (label: string) => void;
-  onExtraButtonClick?: () => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonClick }) => {
-  return (
-    <div className={styles.sidebar}>
-      <ul>
-        {items.map((item, index) => (
-\`\`\`
-
-EXPECTED RESULT
-The expected output is \`true\`, because the diff begins on the line with \`<div className={styles.sidebar}>\` and this line is present in the selection.
-
-\`true\`
-`
-
-
-
-const rewriteFileWithDiffInstructions = `
-You are a coding assistant that applies a diff to a file. You are given the original file \`original_file\`, a diff \`diff\`, and a new file that you are applying the diff to \`new_file\`.
-
-Please finish writing the new file \`new_file\`, according to the diff \`diff\`.
-
-Directions:
-1. Continue exactly where the new file \`new_file\` left off.
-2. Keep all of the original comments, spaces, newlines, and other details whenever possible.
-3. Note that in the diff \`diff\`, \`+\` lines represent additions, \`-\` lines represent removals, and space lines \` \` represent no change.
-
-# Example 1:
-
-ORIGINAL_FILE
-\`Sidebar.tsx\`:
-\`\`\`
-import React from 'react';
-import styles from './Sidebar.module.css';
-
-interface SidebarProps {
-  items: { label: string; href: string }[];
-  onItemSelect?: (label: string) => void;
-  onExtraButtonClick?: () => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonClick }) => {
-  return (
-    <div className={styles.sidebar}>
-      <ul>
-        {items.map((item, index) => (
-          <li key={index}>
-            <button
-              className={styles.sidebarButton}
-              onClick={() => onItemSelect?.(item.label)}
-            >
-              {item.label}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button className={styles.extraButton} onClick={onExtraButtonClick}>
-        Extra Action
-      </button>
-    </div>
-  );
-};
-
-export default Sidebar;
-\`\`\`
-
-DIFF
-\`\`\`
-@@ ... @@
--<div className={styles.sidebar}>
--<ul>
--  {items.map((item, index) => (
--	<li key={index}>
--	  <button
--		className={styles.sidebarButton}
--		onClick={() => onItemSelect?.(item.label)}
--	  >
--		{item.label}
--	  </button>
--	</li>
--  ))}
--</ul>
--<button className={styles.extraButton} onClick={onExtraButtonClick}>
--  Extra Action
--</button>
--</div>
-+<div className={styles.sidebar}>
-+<ul>
-+  {items.map((item, index) => (
-+	<li key={index}>
-+	  <div
-+		className={styles.sidebarButton}
-+		onClick={() => onItemSelect?.(item.label)}
-+	  >
-+		{item.label}
-+	  </div>
-+	</li>
-+  ))}
-+</ul>
-+<div className={styles.extraButton} onClick={onExtraButtonClick}>
-+  Extra Action
-+</div>
-+</div>
-\`\`\`
-
-NEW_FILE
-\`\`\`
-import React from 'react';
-import styles from './Sidebar.module.css';
-
-interface SidebarProps {
-  items: { label: string; href: string }[];
-  onItemSelect?: (label: string) => void;
-  onExtraButtonClick?: () => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonClick }) => {
-  return (
-\`\`\`
-
-EXPECTED RESULT
-The expected output should complete the new file \`new_file\`, following the diff \`diff\`. Here is the expected output:
-\`\`\`
-    <div className={styles.sidebar}>
-      <ul>
-        {items.map((item, index) => (
-          <li key={index}>
-            <div
-              className={styles.sidebarButton}
-              onClick={() => onItemSelect?.(item.label)}
-            >
-              {item.label}
-            </div>
-          </li>
-        ))}
-      </ul>
-      <div className={styles.extraButton} onClick={onExtraButtonClick}>
-        Extra Action
-      </div>
-    </div>
-  );
-};
-
-export default Sidebar;
-\`\`\`
-`
-
+import { findDiffs } from '../findDiffs';
+import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from './systemPrompts';
 
 type Res<T> = ((value: T) => void)
 
+const writeFileWithDiffUntilMatchup = ({ fileUri, originalFileStr, unfinishedFileStr, diffStr, voidConfig, setAbort }: { fileUri: vscode.Uri, originalFileStr: string, unfinishedFileStr: string, diffStr: string, voidConfig: VoidConfig, setAbort: SetAbort }) => {
 
-const rewriteFileWithDiff = ({ fileUri, originalFileStr, newFileStr, diff, voidConfig, onText, setAbort }: { fileUri: vscode.Uri, originalFileStr: string, newFileStr: string, diff: string, voidConfig: VoidConfig, onText: OnText, setAbort: SetAbort }) => {
+	console.log('WRITE FILE')
 
-	const EXTRA_TOKENS = 20
+	const NUM_MATCHUP_TOKENS = 20
 
 	const promptContent = `ORIGINAL_FILE
 \`\`\`
@@ -524,66 +19,101 @@ ${originalFileStr}
 
 DIFF
 \`\`\`
-${diff}
+${diffStr}
 \`\`\`
 
 INSTRUCTIONS
-Please finish writing the new file \`NEW_FILE\`. When
+Please finish writing the new file \`NEW_FILE\`. Return ONLY the completion of the file, without any explanation.
 
 NEW_FILE
 \`\`\`
-${newFileStr}
+${unfinishedFileStr}
 \`\`\`
 `
 	// create a promise that can be awaited
-	let res: Res<string> = () => { }
-	const promise = new Promise<string>((resolve, reject) => { res = resolve })
+	let res: Res<{ deltaStr: string, matchupLine: number | undefined }> = () => { }
+	const promise = new Promise<{ deltaStr: string, matchupLine: number | undefined }>((resolve, reject) => { res = resolve })
 
+	// get the abort method
+	let _abort = () => { }
 
-	// make LLM rewrite file to include the diff
+	// make LLM complete the file to include the diff
 	sendLLMMessage({
-		messages: [{ role: 'assistant', content: rewriteFileWithDiffInstructions, }, { role: 'assistant', content: promptContent, }],
-		onText,
-		onFinalMessage: (finalMessage) => { res(finalMessage) },
-		onError: (e) => { res(''); console.error('Error rewriting file with diff', e) },
-		voidConfig: {
-			...voidConfig,
-			default: {
-				// set `maxTokens` = (number of expected tokens) + (number of extra tokens)
-				maxTokens: Math.round((diff.split('\n').filter(l => !l.startsWith('-')).length) + EXTRA_TOKENS) + ''
-			}
-		},
-		setAbort,
-	})
+		messages: [{ role: 'system', content: writeFileWithDiffInstructions, }, { role: 'user', content: promptContent, }],
+		onText: (tokenStr, deltaStr) => {
 
+			const newFileStr = unfinishedFileStr + deltaStr
+
+			// 1. Apply the edit and modify highlighting
+
+			console.log('EDIT START')
+
+			const workspaceEdit = new vscode.WorkspaceEdit()
+			workspaceEdit.replace(fileUri, new vscode.Range(0, 0, Number.MAX_SAFE_INTEGER, 0), newFileStr)
+			vscode.workspace.applyEdit(workspaceEdit)
+
+			// 2. Check for matchup with original file
+
+			// diff `originalFileStr` and `newFileStr`
+			const diffs = findDiffs(originalFileStr, newFileStr)
+			const lastDiff = diffs[diffs.length - 1]
+			const oldLineAfterLastDiff = lastDiff.deletedRange.end.line + 1
+			const newLineAfterLastDiff = lastDiff.insertedRange.end.line + 1
+			// create a representation of both files with all spaces removed from each line
+			const oldFileAfterLastDiff = originalFileStr.split('\n').slice(oldLineAfterLastDiff).map(line => line.replace(/\s/g, '')).join('\n')
+			const newFileAfterLastDiff = newFileStr.split('\n').slice(newLineAfterLastDiff).map(line => line.replace(/\s/g, '')).join('\n')
+
+			// find where the matchup starts in `oldLinesAfterLastDiff`
+			const targetStr = newFileAfterLastDiff.slice(-NUM_MATCHUP_TOKENS)
+
+			// return if not enough tokens to match
+			if (targetStr.length < NUM_MATCHUP_TOKENS) return;
+			// return if no matchup found
+			const matchupIdx = oldFileAfterLastDiff.indexOf(targetStr)
+			if (matchupIdx === -1) return;
+
+			// resolve the promise with the delta, up to first matchup
+			res({
+				matchupLine: oldLineAfterLastDiff,
+				deltaStr: newFileStr.split('\n').splice(0, newLineAfterLastDiff).join('\n'),
+			});
+
+			// abort the LLM call
+			_abort()
+
+		},
+		onFinalMessage: (finalMessage) => {
+
+			const newFileStr = unfinishedFileStr + finalMessage
+
+			const workspaceEdit = new vscode.WorkspaceEdit()
+			workspaceEdit.replace(fileUri, new vscode.Range(0, 0, Number.MAX_SAFE_INTEGER, 0), newFileStr)
+			vscode.workspace.applyEdit(workspaceEdit)
+
+
+			console.log('FINAL MESSAGE', finalMessage)
+
+
+			res({ deltaStr: finalMessage, matchupLine: undefined });
+		},
+		onError: (e) => {
+			res({ deltaStr: '', matchupLine: undefined });
+			console.error('Error rewriting file with diff', e);
+		},
+		voidConfig,
+		setAbort: (a) => { setAbort(a); _abort = a },
+	})
 
 	return promise
 
 }
 
-const shouldApplyDiffFn = ({ diff, fileStr, speculationStr, type, voidConfig, setAbort }: { diff: string, fileStr: string, speculationStr: string, type: 'line' | 'chunk', voidConfig: VoidConfig, setAbort: SetAbort }) => {
 
-	const promptContent = (
-		// the speculation is a line
-		type === 'line' ? `DIFF
-\`\`\`
-${diff}
-\`\`\`
+const shouldApplyDiffFn = ({ diffStr, fileStr, speculationStr, voidConfig, setAbort }: { diffStr: string, fileStr: string, speculationStr: string, voidConfig: VoidConfig, setAbort: SetAbort }) => {
 
-FILES
+	const promptContent = `DIFF
 \`\`\`
-${fileStr}
-\`\`\`
-
-SELECTION
-\`\`\`${speculationStr}\`\`\`
-
-Return \`true\` if this line should be modified, and \`false\` if it should not be modified.
-`
-			// the speculation is a chunk
-			: `DIFF
-\`\`\`
-${diff}
+${diffStr}
 \`\`\`
 
 FILES
@@ -596,38 +126,35 @@ SELECTION
 ${speculationStr}
 \`\`\`
 
-Return \`true\` if this any part of the chunk should be modified, and \`false\` if it should not be modified.
-`)
+Return \`true\` if ANY part of the chunk should be modified, and \`false\` if it should not be modified. You should respond only with \`true\` or \`false\` and nothing else.
+`
 
 	// create new promise
 	let res: Res<boolean> = () => { }
 	const promise = new Promise<boolean>((resolve, reject) => { res = resolve })
 
+	// send message to LLM
 	sendLLMMessage({
-		messages: [
-			{
-				role: 'assistant',
-				content: type === 'line' ? searchDiffLineInstructions : searchDiffChunkInstructions,
-			}, {
-				role: 'assistant',
-				content: promptContent,
-			}],
-		onText: () => { },
+		messages: [{ role: 'system', content: searchDiffChunkInstructions, }, { role: 'user', content: promptContent, }],
 		onFinalMessage: (finalMessage) => {
+
 			const containsTrue = finalMessage
 				.slice(-10) // check for `true` in last 10 characters
 				.toLowerCase()
 				.includes('true')
+
 			res(containsTrue)
 		},
 		onError: (e) => {
 			res(false);
-			console.error('Error applying diff to line: ', e)
+			console.error('Error in shouldApplyDiff: ', e)
 		},
+		onText: () => { },
 		voidConfig,
 		setAbort,
 	})
 
+	// return the promise
 	return promise
 
 }
@@ -636,61 +163,56 @@ Return \`true\` if this any part of the chunk should be modified, and \`false\` 
 
 // lazily applies the diff to the file
 // we chunk the text in the file, and ask an LLM whether it should edit each chunk
-const applyDiffLazily = async ({ fileUri, fileStr, diff, voidConfig, setAbort }: { fileUri: vscode.Uri, fileStr: string, diff: string, voidConfig: VoidConfig, setAbort: SetAbort }) => {
+const applyDiffLazily = async ({ fileUri, fileStr, diffStr, voidConfig, setAbort }: { fileUri: vscode.Uri, fileStr: string, diffStr: string, voidConfig: VoidConfig, setAbort: SetAbort }) => {
 
-	const CHUNK_SIZE = 20 // number of lines to search at a time
+	console.log('apply diff lazily')
+
+	const LINES_PER_CHUNK = 20 // number of lines to search at a time
 
 	// read file content
 	const fileLines = fileStr.split('\n')
 	const completedLines = []
 
 	// search the file chunk-by-chunk
-	for (let chunkIdx = 0; chunkIdx * CHUNK_SIZE < fileLines.length; chunkIdx++) {
+	let chunkStart: number | undefined = 0
+	while (chunkStart !== undefined && chunkStart < fileLines.length) {
+
+		console.log('chunkStart', chunkStart)
 
 		// get the chunk
-		const chunkStart = chunkIdx * CHUNK_SIZE
-		const chunkEnd = (chunkIdx + 1) * CHUNK_SIZE
-		const chunkLines = fileLines.slice(chunkStart, chunkEnd)
+		const chunkLines = fileLines.slice(chunkStart, chunkStart + LINES_PER_CHUNK)
 		const chunkStr = chunkLines.join('\n');
 
+		console.log('AAAAAA')
+
 		// ask LLM if we should apply the diff to the chunk
-		let shouldApplyDiff = await shouldApplyDiffFn({ speculationStr: chunkStr, type: 'chunk', diff, fileStr, voidConfig, setAbort })
+		let shouldApplyDiff = await shouldApplyDiffFn({ fileStr, speculationStr: chunkStr, diffStr, voidConfig, setAbort })
 		if (!shouldApplyDiff) { // should not change the chunk
 			completedLines.push(chunkStr);
+			chunkStart += chunkLines.length
 			// TODO update highlighting here
 			continue;
 		}
 
-		// search the chunk line-by-line
-		for (const lineStr of chunkLines) {
+		console.log('BBBBBB')
 
-			// ask LLM if we should apply the diff to the line
-			let shouldApplyDiff = await shouldApplyDiffFn({ speculationStr: lineStr, type: 'line', diff, fileStr, voidConfig, setAbort })
-			if (!shouldApplyDiff) { // should not change the line
-				completedLines.push(lineStr);
-				// TODO update highlighting here
-				continue;
-			}
+		// ask LLM to rewrite file with diff (if there is significant matchup with the original file, we stop rewriting)
+		const { deltaStr, matchupLine } = await writeFileWithDiffUntilMatchup({
+			originalFileStr: fileStr,
+			unfinishedFileStr: completedLines.join('\n'),
+			diffStr,
+			fileUri,
+			voidConfig,
+			// TODO! update highlighting here
+			setAbort,
+		})
 
-			// ask LLM to apply the diff
-			const changeStr = await rewriteFileWithDiff({ // rewrite file with diff (if there is significant matchup with the original file, we stop rewriting)
-				originalFileStr: fileStr,
-				newFileStr: completedLines.join('\n'),
-				diff,
-				fileUri,
-				voidConfig,
-				onText: async (newText, fullText) => {
-					// TODO! update highlighting here
-					// also make edits here
+		console.log('CCCCCC')
 
-				},
-				setAbort,
-			})
-			completedLines.push(changeStr)
-
-		}
-
+		completedLines.push(deltaStr)
+		chunkStart = matchupLine
 	}
+
 
 }
 

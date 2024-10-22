@@ -12,9 +12,14 @@ export type OnFinalMessage = (input: string) => void
 
 export type SetAbort = (abort: () => void) => void
 
-export type LLMMessage = {
+export type LLMMessageAnthropic = {
 	role: 'user' | 'assistant',
-	content: string
+	content: string,
+}
+
+export type LLMMessage = {
+	role: 'system' | 'user' | 'assistant',
+	content: string,
 }
 
 type SendLLMMessageFnTypeInternal = (params: {
@@ -45,10 +50,20 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 
 	const anthropic = new Anthropic({ apiKey: voidConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
+	// find system messages and concatenate them
+	const systemMessage = messages
+		.filter(msg => msg.role === 'system')
+		.map(msg => msg.content)
+		.join('\n');
+
+	// remove system messages for Anthropic
+	const anthropicMessages = messages.filter(msg => msg.role !== 'system') as LLMMessageAnthropic[]
+
 	const stream = anthropic.messages.stream({
+		system: systemMessage,
+		messages: anthropicMessages,
 		model: voidConfig.anthropic.model,
 		max_tokens: parseInt(voidConfig.default.maxTokens),
-		messages: messages,
 	});
 
 	let did_abort = false
@@ -79,8 +94,8 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 
 	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
 	const abort = () => {
-		// stream.controller.abort() // TODO need to test this to make sure it works, it might throw an error
 		did_abort = true
+		stream.controller.abort() // TODO need to test this to make sure it works, it might throw an error
 	}
 	setAbort(abort)
 

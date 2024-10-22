@@ -5,8 +5,8 @@ import { awaitVSCodeResponse, getVSCodeAPI } from "./getVscodeApi"
 
 // a "thread" means a chat message history
 type ConfigForThreadsValueType = {
-	readonly allThreads: ChatThreads | null,
-	readonly currentThread: ChatThreads[string] | null;
+	readonly getAllThreads: () => ChatThreads;
+	readonly getCurrentThread: () => ChatThreads[string] | null;
 	addMessageToHistory: (message: ChatMessage) => void;
 	switchToThread: (threadId: string) => void;
 	startNewThread: () => void;
@@ -35,8 +35,8 @@ const useInstantState = <T,>(initVal: T) => {
 
 
 export function ThreadsProvider({ children }: { children: ReactNode }) {
-	const [allThreads, setAllThreads] = useInstantState<ChatThreads>({})
-	const [currentThreadId, setCurrentThreadId] = useInstantState<string | null>(null)
+	const [allThreadsRef, setAllThreads] = useInstantState<ChatThreads>({})
+	const [currentThreadIdRef, setCurrentThreadId] = useInstantState<string | null>(null)
 
 	// this loads allThreads in on mount
 	useEffect(() => {
@@ -51,12 +51,12 @@ export function ThreadsProvider({ children }: { children: ReactNode }) {
 	return (
 		<ThreadsContext.Provider
 			value={{
-				allThreads: allThreads.current,
-				currentThread: currentThreadId.current === null || allThreads.current === null ? null : allThreads.current[currentThreadId.current],
+				getAllThreads: () => allThreadsRef.current ?? {},
+				getCurrentThread: () => currentThreadIdRef.current ? allThreadsRef.current?.[currentThreadIdRef.current] ?? null : null,
 				addMessageToHistory: (message: ChatMessage) => {
 					let currentThread: ChatThreads[string]
-					if (!(currentThreadId.current === null || allThreads.current === null)) {
-						currentThread = allThreads.current[currentThreadId.current]
+					if (!(currentThreadIdRef.current === null || allThreadsRef.current === null)) {
+						currentThread = allThreadsRef.current[currentThreadIdRef.current]
 					}
 					else {
 						currentThread = createNewThread()
@@ -64,7 +64,7 @@ export function ThreadsProvider({ children }: { children: ReactNode }) {
 					}
 
 					setAllThreads({
-						...allThreads.current,
+						...allThreadsRef.current,
 						[currentThread.id]: {
 							...currentThread,
 							messages: [...currentThread.messages, message],
@@ -79,7 +79,7 @@ export function ThreadsProvider({ children }: { children: ReactNode }) {
 				startNewThread: () => {
 					const newThread = createNewThread()
 					setAllThreads({
-						...allThreads.current,
+						...allThreadsRef.current,
 						[newThread.id]: newThread
 					})
 					setCurrentThreadId(newThread.id)

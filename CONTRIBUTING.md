@@ -20,10 +20,10 @@ Here's how you can start contributing to the Void extension. This is where you s
 git clone https://github.com/voideditor/void
 ```
 
-2. Open the folder `/extensions/void` in VS Code (open it in a new workspace, *don't* just cd into it):
+2. Open the folder `/extensions/void` in VSCode (open it in a new workspace, *don't* just cd into it):
 
 ```
-open /extensions/void
+open /extensions/void in vscode
 ```
 
 3. Install dependencies:
@@ -40,19 +40,19 @@ npm run build
 
 5. Run the project by pressing <kbd>F5</kbd>.
 
-This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>Ctrl+Shift+P</kbd>, select "Debug: Start Debugging", and select "VS Code Extension Development".
+This will start a new instance of VSCode with the extension enabled. If this doesn't work, you can press <kbd>Ctrl+Shift+P</kbd>, select "Debug: Start Debugging", and select "VSCode Extension Development".
 
-If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (Ctrl+,) typing in "void", and adding the API key you want to use (eg. the `"Anthropic Api Key"` environment variable). The "Which API" environment variable controls the provider and defaults to "anthropic".
-
-Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page!
 
 ## 2. Building the full IDE
 
-Beyond the extension, we very occasionally edit the IDE when we need to access more functionality. If you want to work on the full IDE, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+If you want to work on the full IDE, please follow the steps below. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page, which is where the steps below come from. Also feel free to submit an issue or get in touch with any build errors.
 
-Before starting, make sure you've built the extension (by running `cd .\extensions\void\` and `npm run build`). Also make sure you have Python on your system.
 
-Make sure you're on the correct NodeJS version as per `.nvmrc`.
+
+### a. Building on a Mac
+
+To build on a Mac, first make sure you've built the extension by following the steps in the section above. Then, close out of `void/extensions/void` and open `void/` in VSCode. Also make sure you have Python and XCode installed on your system (you probably do by default).
+
 
 1. Install all dependencies.
 
@@ -60,63 +60,64 @@ Make sure you're on the correct NodeJS version as per `.nvmrc`.
 npm install
 ```
 
-2. In VS Code, press <kbd>Ctrl+Shift+B</kbd> to start the build process - this can take some time. If you're not using VS Code, run `npm run watch` instead.
+2. Run `npm run watch`.
 
-3. Run `./scripts/code.sh` in your terminal.
+This can take ~5 min. It's done when you see something like:
+
+```
+[watch-extensions] [00:37:39] Finished compilation extensions with 0 errors after 19303 ms
+[watch-client    ] [00:38:06] Finished compilation with 0 errors after 46248 ms
+[watch-client    ] [00:38:07] Starting compilation...
+[watch-client    ] [00:38:07] Finished compilation with 0 errors after 5 ms
+```
+
+<!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
+
+3. Run `./scripts/code.sh` in a new terminal.
 
 This should open up the built IDE after loading for some time. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
 
 To bundle the IDE, run `npm run gulp vscode-darwin-arm64`. Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
 
-If you're on Windows, we recommend running the project inside a dev container. VSCode should prompt you to do this automatically.
-
 Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page!
+
+
+**Common Fixes:**
+
+- Make sure you have the same NodeJS version as `.nvmrc`.
+
+- Make sure when building the extension in the above section, you pressed `F5`.
+
+
+
+### b. Building on Windows
+
+To build on Windows, please refer to [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute). We recommend building on Mac; we're Windows users who switch to Mac to build right now.
+If you're on Windows, we recommend running the project inside a dev container. VSCode should prompt you to do this automatically.
 
 ## Roadmap
 
 Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
-## ⭐⭐⭐ Improve diffs.
-
-We define a "diff" as a single green/red pair that denotes a change. Here are improvements to make:
-
-1. Show deletion (-) diffs. Right now we're only showing insertion (+) diffs. Diffs currently work by highlighting all of the new code in green with a simple text decoration. Instead, we would like to use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code to indicate a deletion diff (-).
-
-2. Fix bugginess when the user presses "Accept" or "Reject" on a diff. One issue is that when a diff is accepted/rejected all of the diffs below should be updated (because they are now on different line numbers). There are other miscellaneous issues too.
-
-3. Make diff highlighting dynamic. Right now when the user edits text, all of the diffs and their highlights are cleared. Instead, we should update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting.
-
-## ⭐⭐⭐ Build Cursor-style quick edits (ctrl+k).
-
-When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
+These sometimes get outdated - please refer to our Issues page for the latest issues.
 
 ## ⭐⭐⭐ Make History work well.
 
 When the user submits a response or presses the apply/accept/reject button, we should add these events to the history, allowing the user to undo/redo them. Right now there is unexpected behavior if the user tries to undo or redo their changes.
 
-## ⭐⭐⭐ Improve Ctrl+L backend.
+## ⭐⭐⭐ Build Cursor-style quick edits (ctrl+k).
 
-Right now, the model outputs entire files. Instead, we should change the prompt so that the model outputs partial changes like `// ... rest of file`. When the user clicks the "Apply" button, the model should rewrite the file and apply the partial changes in the correct locations.
-
-## ⭐⭐ Integrate with Ollama.
-
-We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate Void's extension so that it runs natively into the VS Code editor so that we can access Node.js.
+When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
 
 ## ⭐⭐⭐ Creative.
 
-Feel free to build AI features beyond the standard Cursor ones. For example, creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
+Examples: creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
 
 Eventually, we want to build a convenient API for creating AI tools. The API will provide methods for creating the UI (showing an autocomplete suggestion, or creating a new diff), detecting event changes (like `onKeystroke` or `onFileOpen`), and modifying the user's file-system (storing indexes associated with each file), making it much easier to make your own AI plugin. We plan on building these features further along in timeline, but we wanted to list them for completeness.
 
 ## ⭐ One-stars.
 
-⭐ When user presses ctrl+L it should clear the sidebar's state.
-
 ⭐ Let the user accept / reject all Diffs in an entire file via the sidebar.
-
-⭐ Allow the user to make multiple selections of code or files at once.
-
-⭐ Allow user to X out of their current selection.
 
 # Guidelines
 
@@ -128,22 +129,13 @@ Please submit a pull request once you've made a change. Here are a few guideline
 
 - A PR should be about one *single* feature change. The fewer items you change, the more likely the PR is to be accepted.
 
-- Your PR should contain a description that first explains at a high level what you did, and then describes the exact changes you made (and to which files). Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed). 
+- Your PR should contain a description that first explains at a high level what you did, and then describes the exact changes you made (and to which files). Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed).
 
-- Your title should clearly describe the change you made.
-
-- Add tags to help us stay organized!
-
-- Please don't open a new Issue for your PR. Just submit the PR.
-
-- Avoid refactoring and making feature changes in the same PR. 
-
-- Write good code. For example, a common mistake when people edit Void's config is to hard-code a default value like `'claude-3.5'` in 2+ separate places. Please follow best practices or describe your thought process if you had to compromise.
+- Try to avoid refactoring and making feature changes in the same PR.
 
 # Relevant files
 
 We keep track of all the files we've changed with Void so it's easy to rebase:
-
 
 - README.md
 - CONTRIBUTING.md

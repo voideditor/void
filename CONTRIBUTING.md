@@ -21,7 +21,7 @@ Here's how you can start contributing to the Void extension. This is where you s
 git clone https://github.com/voideditor/void
 ```
 
-2. Open the folder `/extensions/void` in VSCode (open it in a new workspace, _don't_ just cd into it):
+2. Open the folder `/extensions/void` in VSCode (open it in a new workspace, _don't_ just cd into it).
 
 3. Install dependencies:
 

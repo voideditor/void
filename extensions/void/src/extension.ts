@@ -4,6 +4,23 @@ import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from 
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
 
+// this comes from vscode.proposed.editorInsets.d.ts
+declare module 'vscode' {
+	export interface WebviewEditorInset {
+		readonly editor: vscode.TextEditor;
+		readonly line: number;
+		readonly height: number;
+		readonly webview: vscode.Webview;
+		readonly onDidDispose: Event<void>;
+		dispose(): void;
+	}
+	export namespace window {
+		export function createWebviewTextEditorInset(editor: vscode.TextEditor, line: number, height: number, options?: vscode.WebviewOptions): WebviewEditorInset;
+	}
+}
+
+
+
 const readFileContentOfUri = async (uri: vscode.Uri) => {
 	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
 		.replace(/\r\n/g, '\n') // replace windows \r\n with \n
@@ -21,11 +38,22 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.registerWebviewViewProvider(SidebarWebviewProvider.viewId, sidebarWebviewProvider, { webviewOptions: { retainContextWhenHidden: true } })
 	);
 
+
+
 	// 2. ctrl+l
 	context.subscriptions.push(
 		vscode.commands.registerCommand('void.ctrl+l', () => {
 			const editor = vscode.window.activeTextEditor
 			if (!editor) return
+
+
+			const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 200, {})
+			inset.webview.html = `
+			<html>
+				<body>Hello World!</body>
+			</html>
+			`;
+
 
 			// show the sidebar
 			vscode.commands.executeCommand('workbench.view.extension.voidViewContainer');
@@ -114,6 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
 						vscode.window.showInformationMessage('No active editor!')
 						return
 					}
+
 
 					// create an area to show diffs
 					const diffArea: BaseDiffArea = {

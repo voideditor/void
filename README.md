@@ -1,7 +1,7 @@
 # Welcome to Void.
 
 
-Void is the open-source Cursor alternative. 
+Void is the open-source Cursor alternative.
 
 If you're new, welcome! Feel free to check out our [Project board](https://github.com/orgs/voideditor/projects/2/views/3) for the most pressing Issues to work on, and see [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md) for instructions on building and running Void.
 
@@ -19,4 +19,4 @@ For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github
 
 
 ## Support
-Feel free to reach out in our [Discord](https://discord.gg/PspNkKG5wt) or contact us via email.
+Feel free to reach out in our [Discord](https://discord.gg/RSNjgaugJs) or contact us via email.

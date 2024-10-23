@@ -51,7 +51,7 @@ If you want to work on the full IDE, please follow the steps below. If you have 
 
 ### a. Building on a Mac
 
-To build on a Mac, open `void/` in VSCode. Make sure you've built the extension (`cd ./extensions/void && npm run build && npm run compile && cd ../..`). Also make sure you have Python and XCode installed on your system (you probably do by default).
+To build on a Mac, open `void/` in VSCode. Make sure you've built the extension by following the steps above (or just run `cd ./extensions/void && npm run build && npm run compile && cd ../..`). Also make sure you have Python and XCode installed on your system (you probably do by default).
 
 
 1. Install all dependencies.

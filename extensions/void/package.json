@@ -101,7 +101,8 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "echo \"running prepublish\"",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "build": "rimraf dist && node build-tsx.js && node build-css.js",
     "pretest": "tsc -p ./ && eslint src --ext ts",

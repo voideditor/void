@@ -47,12 +47,12 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!editor) return
 
 
-			const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 200, {})
-			inset.webview.html = `
-			<html>
-				<body>Hello World!</body>
-			</html>
-			`;
+			// const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 200, {})
+			// inset.webview.html = `
+			// <html>
+			// 	<body>Hello World!</body>
+			// </html>
+			// `;
 
 
 			// show the sidebar

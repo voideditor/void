@@ -86,9 +86,6 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 - Make sure you have the same NodeJS version as `.nvmrc`.
 
-- Make sure when building the extension in the above section, you pressed `F5`.
-
-
 
 ### b. Building on Windows
 
@@ -145,12 +142,14 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 
 - src/vs/workbench/api/common/{extHost.api.impl.ts | extHostApiCommands.ts}
 - src/vs/workbench/workbench.common.main.ts
-- src/vs/workbench/contrib/void
-- extensions/void
+- src/vs/workbench/contrib/void/*
+- extensions/void/*
 
-- .github/
-- .vscode/settings
+- .github/*
+- .vscode/settings/*
 - .eslintrc.json
 - build/hygiene.js
 - build/lib/i18n.resources.json
 - build/npm/dirs.js
+
+- vscode.proposed.editorInsets.d.ts - not modified, but code copied

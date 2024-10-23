@@ -9479,7 +9479,6 @@ declare module 'vscode' {
 		 */
 		readonly extensionHostPort: number;
 	}
-
 	/**
 	 * Content settings for a webview.
 	 */

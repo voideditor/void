@@ -5,7 +5,7 @@
   "description": "",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.89.0"
+    "vscode": "^1.92.0"
   },
   "categories": [
     "Other"
@@ -101,7 +101,8 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "echo \"running prepublish\"",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "build": "rimraf dist && node build-tsx.js && node build-css.js",
     "pretest": "tsc -p ./ && eslint src --ext ts",
@@ -111,6 +112,7 @@
     "@anthropic-ai/sdk": "^0.29.2",
     "@eslint/js": "^9.9.1",
     "@monaco-editor/react": "^4.6.0",
+    "@rrweb/types": "^2.0.0-alpha.17",
     "@types/diff": "^5.2.2",
     "@types/diff-match-patch": "^1.0.36",
     "@types/jest": "^29.5.12",
@@ -142,6 +144,7 @@
     "react-markdown": "^9.0.1",
     "react-syntax-highlighter": "^15.6.1",
     "rimraf": "^6.0.1",
+    "rrweb-snapshot": "^2.0.0-alpha.4",
     "tailwindcss": "^3.4.10",
     "typescript": "5.5.4",
     "typescript-eslint": "^8.3.0",

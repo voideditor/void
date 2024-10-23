@@ -45,13 +45,13 @@ This will start a new instance of VSCode with the extension enabled. If this doe
 
 ## 2. Building the full IDE
 
-If you want to work on the full IDE, please follow the steps below. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page, which is where the steps below come from. Also feel free to submit an issue or get in touch with any build errors.
+If you want to work on the full IDE, please follow the steps below. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page, which is where the steps below come from. Also feel free to submit an issue or get in touch with us with any build errors.
 
 
 
 ### a. Building on a Mac
 
-To build on a Mac, first make sure you've built the extension (follow the steps in the above section on Building the Extension). Then, close out of `void/extensions/void` and open `void/` in VSCode. Also make sure you have Python and XCode installed on your system (you probably do by default).
+To build on a Mac, open `void/` in VSCode. Make sure you've built the extension (`cd ./extensions/void && npm run build && npm run compile && cd ../..`). Also make sure you have Python and XCode installed on your system (you probably do by default).
 
 
 1. Install all dependencies.
@@ -73,7 +73,7 @@ This can take ~5 min. It's done when you see something like:
 
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
-3. Run `./scripts/code.sh` in a new terminal.
+3. In a new terminal, run `./scripts/code.sh`.
 
 This should open up the built IDE after loading for some time. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
 

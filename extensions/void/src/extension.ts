@@ -47,10 +47,10 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!editor) return
 
 
-			// const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 200, {})
+			// const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 10, {})
 			// inset.webview.html = `
 			// <html>
-			// 	<body>Hello World!</body>
+			// 	<body style="pointer-events:none;">Hello World!</body>
 			// </html>
 			// `;
 

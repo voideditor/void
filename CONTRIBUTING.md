@@ -12,6 +12,7 @@ We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-f
 For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 ## 1. Building the Extension
+
 Here's how you can start contributing to the Void extension. This is where you should get started if you're new.
 
 1. Clone the repository:
@@ -20,11 +21,7 @@ Here's how you can start contributing to the Void extension. This is where you s
 git clone https://github.com/voideditor/void
 ```
 
-2. Open the folder `/extensions/void` in VSCode (open it in a new workspace, *don't* just cd into it):
-
-```
-open /extensions/void in vscode
-```
+2. Open the folder `/extensions/void` in VSCode (open it in a new workspace, _don't_ just cd into it):
 
 3. Install dependencies:
 
@@ -42,17 +39,13 @@ npm run build
 
 This will start a new instance of VSCode with the extension enabled. If this doesn't work, you can press <kbd>Ctrl+Shift+P</kbd>, select "Debug: Start Debugging", and select "VSCode Extension Development".
 
-
 ## 2. Building the full IDE
 
 If you want to work on the full IDE, please follow the steps below. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page, which is where the steps below come from. Also feel free to submit an issue or get in touch with us with any build errors.
 
-
-
 ### a. Building on a Mac
 
-To build on a Mac, open `void/` in VSCode. Make sure you've built the extension by following the steps above (or just run `cd ./extensions/void && npm run build && npm run compile && cd ../..`). Also make sure you have Python and XCode installed on your system (you probably do by default).
-
+To build on a Mac, open `void/` in VSCode. Make sure you've built the extension by following the steps above (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`). Also make sure you have Python and XCode installed on your system (you probably do by default).
 
 1. Install all dependencies.
 
@@ -73,7 +66,7 @@ This can take ~5 min. It's done when you see something like:
 
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
-3. In a new terminal, run `./scripts/code.sh`.
+3. In a new terminal, run `scripts/code.sh`.
 
 This should open up the built IDE after loading for some time. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
 
@@ -81,11 +74,9 @@ To bundle the IDE, run `npm run gulp vscode-darwin-arm64`. Here are the full opt
 
 Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page!
 
-
 **Common Fixes:**
 
 - Make sure you have the same NodeJS version as `.nvmrc`.
-
 
 ### b. Building on Windows
 
@@ -124,7 +115,7 @@ Please don't make big refactors without speaking with us first. We'd like to kee
 
 Please submit a pull request once you've made a change. Here are a few guidelines:
 
-- A PR should be about one *single* feature change. The fewer items you change, the more likely the PR is to be accepted.
+- A PR should be about one _single_ feature change. The fewer items you change, the more likely the PR is to be accepted.
 
 - Your PR should contain a description that first explains at a high level what you did, and then describes the exact changes you made (and to which files). Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed).
 
@@ -142,11 +133,11 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 
 - src/vs/workbench/api/common/{extHost.api.impl.ts | extHostApiCommands.ts}
 - src/vs/workbench/workbench.common.main.ts
-- src/vs/workbench/contrib/void/*
-- extensions/void/*
+- src/vs/workbench/contrib/void/\*
+- extensions/void/\*
 
-- .github/*
-- .vscode/settings/*
+- .github/\*
+- .vscode/settings/\*
 - .eslintrc.json
 - build/hygiene.js
 - build/lib/i18n.resources.json

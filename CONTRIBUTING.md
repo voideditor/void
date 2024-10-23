@@ -66,7 +66,7 @@ This can take ~5 min. It's done when you see something like:
 
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
-3. In a new terminal, run `scripts/code.sh`.
+3. In a new terminal, run `./scripts/code.sh`.
 
 This should open up the built IDE after loading for some time. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
 

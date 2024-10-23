@@ -51,7 +51,7 @@ If you want to work on the full IDE, please follow the steps below. If you have 
 
 ### a. Building on a Mac
 
-To build on a Mac, first make sure you've built the extension by following the steps in the section above. Then, close out of `void/extensions/void` and open `void/` in VSCode. Also make sure you have Python and XCode installed on your system (you probably do by default).
+To build on a Mac, first make sure you've built the extension (follow the steps in the above section on Building the Extension). Then, close out of `void/extensions/void` and open `void/` in VSCode. Also make sure you have Python and XCode installed on your system (you probably do by default).
 
 
 1. Install all dependencies.

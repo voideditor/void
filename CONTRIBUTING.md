@@ -78,6 +78,8 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 - Make sure you have the same NodeJS version as `.nvmrc`.
 
+- If you see `X [ERROR] Cannot start service: Host version "0.23.1" does not match binary version "0.23.0"`, run `npm i -D esbuild@0.23.0`
+
 ### b. Building on Windows
 
 To build on Windows, please refer to [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute). We recommend building on Mac; we're Windows users who switch to Mac to build right now.

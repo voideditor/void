@@ -29,7 +29,7 @@ git clone https://github.com/voideditor/void
 npm install
 ```
 
-4. Build the project. We created this build command so that we could run React in vscode - it converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.
+4. Compile the React by running `npm run build`. We created this build command to convert `sidebar/index.tsx` into `dist/`.
 
 ```
 npm run build

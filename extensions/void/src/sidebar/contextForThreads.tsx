@@ -1,5 +1,5 @@
 import React, { ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState, } from "react"
-import { ChatMessage, ChatThreads } from "../shared_types"
+import { ChatMessage, ChatThreads } from "../common/shared_types"
 import { awaitVSCodeResponse, getVSCodeAPI } from "./getVscodeApi"
 
 
@@ -14,11 +14,15 @@ type ConfigForThreadsValueType = {
 
 const ThreadsContext = createContext<ConfigForThreadsValueType>(undefined as unknown as ConfigForThreadsValueType)
 
-const createNewThread = () => ({
-	id: new Date().getTime().toString(),
-	createdAt: new Date().toISOString(),
-	messages: [],
-})
+const createNewThread = () => {
+	const now = new Date().toISOString()
+	return {
+		id: new Date().getTime().toString(),
+		createdAt: now,
+		lastModified: now,
+		messages: [],
+	}
+}
 
 
 // const [stateRef, setState] = useInstantState(initVal)
@@ -67,6 +71,7 @@ export function ThreadsProvider({ children }: { children: ReactNode }) {
 						...allThreadsRef.current,
 						[currentThread.id]: {
 							...currentThread,
+							lastModified: new Date().toISOString(),
 							messages: [...currentThread.messages, message],
 						}
 					})

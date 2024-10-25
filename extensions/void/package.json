@@ -5,7 +5,7 @@
   "description": "",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.89.0"
+    "vscode": "^1.92.0"
   },
   "categories": [
     "Other"
@@ -24,7 +24,7 @@
       },
       {
         "command": "void.ctrl+k",
-        "title": "Show Selection Lens"
+        "title": "Make Inline Edit"
       },
       {
         "command": "void.acceptDiff",
@@ -102,13 +102,17 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "build": "rimraf dist && node build-tsx.js && node build-css.js",
     "pretest": "tsc -p ./ && eslint src --ext ts",
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.29.2",
     "@eslint/js": "^9.9.1",
+    "@monaco-editor/react": "^4.6.0",
+    "@rrweb/types": "^2.0.0-alpha.17",
     "@types/diff": "^5.2.2",
     "@types/diff-match-patch": "^1.0.36",
     "@types/jest": "^29.5.12",
@@ -134,22 +138,18 @@
     "lodash": "^4.17.21",
     "marked": "^14.1.0",
     "ollama": "^0.5.9",
+    "openai": "^4.68.4",
     "postcss": "^8.4.41",
+    "posthog-js": "^1.176.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^9.0.1",
     "react-syntax-highlighter": "^15.6.1",
     "rimraf": "^6.0.1",
+    "rrweb-snapshot": "^2.0.0-alpha.4",
     "tailwindcss": "^3.4.10",
     "typescript": "5.5.4",
     "typescript-eslint": "^8.3.0",
     "uuid": "^10.0.0"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.27.1",
-    "@rrweb/types": "^2.0.0-alpha.17",
-    "openai": "^4.57.0",
-    "posthog-js": "^1.174.2",
-    "rrweb-snapshot": "^2.0.0-alpha.4"
   }
 }

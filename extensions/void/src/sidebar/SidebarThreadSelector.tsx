@@ -17,7 +17,7 @@ export const SidebarThreadSelector = ({ onClose }: { onClose: () => void }) => {
 	const allThreads = getAllThreads()
 
 	// sorted by most recent to least recent
-	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].createdAt > allThreads![threadId2].createdAt ? -1 : 1)
+	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? 1 : -1)
 
 	return (
 		<div className="flex flex-col gap-y-1">

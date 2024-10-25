@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
-import { DisplayChangesProvider } from './DisplayChangesProvider';
-import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './common/shared_types';
+import { ApprovalCodeLensProvider } from './ApprovalCodeLensProvider';
+import { ChatThreads, MessageFromSidebar, MessageToSidebar } from './common/shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
 import { applyDiffLazily } from './common/ctrlL';
 import { getVoidConfig } from './sidebar/contextForConfig';
+import { DiffProvider } from './DiffProvider';
+// import { getVoidConfig } from './sidebar/contextForConfig';
 
 // this comes from vscode.proposed.editorInsets.d.ts
 declare module 'vscode' {
@@ -88,7 +90,8 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	// 3. Show an approve/reject
-	const displayChangesProvider = new DisplayChangesProvider();
+	const displayChangesProvider = new DiffProvider();
+	// context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', displayChangesProvider));
 
 	// 4. Add approve/reject commands
 	context.subscriptions.push(vscode.commands.registerCommand('void.acceptDiff', async (params) => {
@@ -135,16 +138,15 @@ export function activate(context: vscode.ExtensionContext) {
 						return
 					}
 
-
-					// create an area to show diffs
-					const diffArea: BaseDiffArea = {
-						startLine: 0, // in ctrl+L the start and end lines are the full document
-						endLine: editor.document.lineCount,
-						originalStartLine: 0,
-						originalEndLine: editor.document.lineCount,
-						originalCode: await readFileContentOfUri(editor.document.uri),
-					}
-					displayChangesProvider.addDiffArea(editor.document.uri, diffArea)
+					// // create an area to show diffs
+					// const diffArea = {
+					// 	startLine: 0, // in ctrl+L the start and end lines are the full document
+					// 	endLine: editor.document.lineCount,
+					// 	originalStartLine: 0,
+					// 	originalEndLine: editor.document.lineCount,
+					// 	originalCode: await readFileContentOfUri(editor.document.uri),
+					// }
+					// displayChangesProvider.addDiffArea(editor.document.uri, diffArea)
 
 
 					// write new code `m.code` to the document
@@ -168,7 +170,7 @@ export function activate(context: vscode.ExtensionContext) {
 					// });
 
 					// rediff the changes based on the diffAreas
-					displayChangesProvider.refreshDiffAreas(editor.document.uri)
+					displayChangesProvider.refreshLenses(editor, editor.document.uri.toString())
 
 				}
 				else if (m.type === 'getPartialVoidConfig') {

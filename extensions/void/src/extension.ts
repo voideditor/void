@@ -117,7 +117,7 @@ export function activate(context: vscode.ExtensionContext) {
 					let abort = () => { } // TODO this is unused
 
 					// apply the change
-					applyDiffLazily({ fileUri, fileStr, diffStr: m.code, voidConfig, setAbort: (a) => { abort = a } })
+					applyDiffLazily({ fileUri, oldFileStr: fileStr, diffStr: m.code, voidConfig, setAbort: (a) => { abort = a } })
 
 					// set the file equal to the change
 					// await editor.edit(editBuilder => {

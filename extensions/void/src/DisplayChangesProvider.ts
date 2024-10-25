@@ -12,7 +12,7 @@ const greenDecoration = vscode.window.createTextEditorDecorationType({
 
 
 // responsible for displaying diffs and showing accept/reject buttons
-export class DisplayChangesProvider implements vscode.CodeLensProvider {
+export class DisplayChangesProvider {
 
 	private _diffAreasOfDocument: { [docUriStr: string]: DiffArea[] } = {}
 	private _diffsOfDocument: { [docUriStr: string]: Diff[] } = {}
@@ -21,22 +21,23 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 	private _diffidPool = 0
 	private _weAreEditing: boolean = false
 
-	// used internally by vscode
-	private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>(); // signals a UI refresh on .fire() events
-	public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
-
-	// used internally by vscode
-	public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
-		const docUriStr = document.uri.toString()
-		return this._diffsOfDocument[docUriStr]?.flatMap(diff => diff.lenses) ?? []
-	}
+	private _onDidChangeDiffsEvent: vscode.EventEmitter<void> = new vscode.EventEmitter<void>(); // signals a UI refresh on .fire() events
 
 	// declared by us, registered with vscode.languages.registerCodeLensProvider()
 	constructor() {
-
 		console.log('Creating DisplayChangesProvider')
 
-		// this acts as a useEffect. Every time text changes, clear the diffs in this editor
+		// update diffs whenever the event fires
+		this._onDidChangeDiffsEvent.event(() => {
+			const editor = vscode.window.activeTextEditor
+			if (!editor) return
+
+			let document = editor.document
+			const docUriStr = document.uri.toString()
+			return this._diffsOfDocument[docUriStr]?.flatMap(diff => diff.lenses) ?? []
+		})
+
+		// this acts as a useEffect. Every time text changes, run this
 		vscode.workspace.onDidChangeTextDocument((e) => {
 
 			const editor = vscode.window.activeTextEditor
@@ -181,7 +182,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 		// this._diffsOfDocument[docUriStr].map(diff => diff.deletedCode)
 
 		// update code lenses
-		this._onDidChangeCodeLenses.fire()
+		this._onDidChangeDiffsEvent.fire()
 
 	}
 

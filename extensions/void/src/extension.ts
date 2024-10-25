@@ -46,15 +46,6 @@ export function activate(context: vscode.ExtensionContext) {
 			const editor = vscode.window.activeTextEditor
 			if (!editor) return
 
-
-			// const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 10, {})
-			// inset.webview.html = `
-			// <html>
-			// 	<body style="pointer-events:none;">Hello World!</body>
-			// </html>
-			// `;
-
-
 			// show the sidebar
 			vscode.commands.executeCommand('workbench.view.extension.voidViewContainer');
 			// vscode.commands.executeCommand('vscode.moveViewToPanel', CustomViewProvider.viewId); // move to aux bar
@@ -94,9 +85,8 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
-	// 3. Show an approve/reject codelens above each change
+	// 3. Show an approve/reject
 	const displayChangesProvider = new DisplayChangesProvider();
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', displayChangesProvider));
 
 	// 4. Add approve/reject commands
 	context.subscriptions.push(vscode.commands.registerCommand('void.acceptDiff', async (params) => {

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
-import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './common/shared_types';
+import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from '../common/shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
 
@@ -45,15 +45,6 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('void.ctrl+l', () => {
 			const editor = vscode.window.activeTextEditor
 			if (!editor) return
-
-
-			// const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 10, {})
-			// inset.webview.html = `
-			// <html>
-			// 	<body style="pointer-events:none;">Hello World!</body>
-			// </html>
-			// `;
-
 
 			// show the sidebar
 			vscode.commands.executeCommand('workbench.view.extension.voidViewContainer');

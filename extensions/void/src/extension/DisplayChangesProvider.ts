@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { findDiffs } from './findDiffs';
-import { Diff, BaseDiffArea, BaseDiff, DiffArea } from './common/shared_types';
+import { Diff, BaseDiffArea, BaseDiff, DiffArea } from '../common/shared_types';
 
 
 

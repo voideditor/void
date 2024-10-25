@@ -1,7 +1,7 @@
 
 import * as vscode from 'vscode';
 // import { diffLines, Change } from 'diff';
-import { BaseDiff } from './common/shared_types';
+import { BaseDiff } from '../common/shared_types';
 
 import { diff_match_patch } from 'diff-match-patch';
 

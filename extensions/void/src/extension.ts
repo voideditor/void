@@ -3,6 +3,8 @@ import { DisplayChangesProvider } from './DisplayChangesProvider';
 import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './common/shared_types';
 import { SidebarWebviewProvider } from './SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
+import { applyDiffLazily } from './common/ctrlL';
+import { getVoidConfig } from './sidebar/contextForConfig';
 
 // this comes from vscode.proposed.editorInsets.d.ts
 declare module 'vscode' {
@@ -151,9 +153,19 @@ export function activate(context: vscode.ExtensionContext) {
 					// await vscode.workspace.applyEdit(workspaceEdit)
 					// await vscode.workspace.save(docUri)
 					// this._weAreEditing = false
-					await editor.edit(editBuilder => {
-						editBuilder.replace(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER), m.code);
-					});
+					const fileUri = editor.document.uri
+					const fileStr = await readFileContentOfUri(fileUri)
+					const voidConfig = getVoidConfig(context.globalState.get('partialVoidConfig') ?? {})
+
+					let abort = () => { } // TODO this is unused
+
+					// apply the change
+					applyDiffLazily({ fileUri, oldFileStr: fileStr, diffStr: m.code, voidConfig, setAbort: (a) => { abort = a } })
+
+					// set the file equal to the change
+					// await editor.edit(editBuilder => {
+					// 	editBuilder.replace(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER), m.code);
+					// });
 
 					// rediff the changes based on the diffAreas
 					displayChangesProvider.refreshDiffAreas(editor.document.uri)
@@ -209,4 +221,3 @@ export function activate(context: vscode.ExtensionContext) {
 	// )
 
 }
-

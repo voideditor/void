@@ -26,9 +26,9 @@ type DiffArea = BaseDiffArea & { diffareaid: number }
 // the return type of diff creator
 type BaseDiff = {
 	code: string; // representation of the diff in text
-	deletedRange: vscode.Range; // relative to the file, inclusive
+	deletedRange: vscode.Range; // relative to the original file, inclusive
 	insertedRange: vscode.Range;
-	deletedCode: string;
+	deletedCode: string; // relative to the new file, inclusive
 	insertedCode: string;
 }
 
@@ -83,7 +83,12 @@ type ChatMessage =
 	| {
 		role: "assistant";
 		content: string; // content received from LLM
-		displayContent: string; // content displayed to user (this is the same as content for now)
+		displayContent: string | undefined; // content displayed to user (this is the same as content for now)
+	}
+	| {
+		role: "system";
+		content: string;
+		displayContent?: undefined;
 	}
 
 export {

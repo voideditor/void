@@ -1,9 +1,9 @@
 
 import * as vscode from 'vscode';
 // import { diffLines, Change } from 'diff';
-import { BaseDiff } from './shared_types';
 import { diff_match_patch } from 'diff-match-patch';
 import { diffLines } from 'diff';
+import { BaseDiff } from './common/shared_types';
 
 
 // const diffLinesOld = (text1: string, text2: string) => {

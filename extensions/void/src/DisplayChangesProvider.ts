@@ -36,7 +36,7 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 
 		console.log('Creating DisplayChangesProvider')
 
-		// this acts as a useEffect. Every time text changes, clear the diffs in this editor
+		// this acts as a useEffect. Every time text changes, run this
 		vscode.workspace.onDidChangeTextDocument((e) => {
 
 			const editor = vscode.window.activeTextEditor

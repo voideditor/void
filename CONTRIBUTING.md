@@ -83,7 +83,16 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 ### b. Building on Windows
 
 To build on Windows, please refer to [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute). We recommend building on Mac; we're Windows users who switch to Mac to build right now.
-If you're on Windows, we recommend running the project inside a dev container. VSCode should prompt you to do this automatically.
+
+Get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community). Also find the boxes for "Desktop development with C++" and "Node.js development" and get those, too.
+
+If you get a node-gyp error in the next few steps, you should also get [Visual Studio Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools), find the Visual Studio Build Tools box, click Install (or Modify), then in Individual Components:
+check every item under `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)`, `C++ ATL for latest build tools with Spectre Mitigations`, and `C++ MFC for latest build tools with Spectre Mitigations`.
+
+
+```
+npm config set msvs_version 2022
+```
 
 ## Roadmap
 

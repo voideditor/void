@@ -10,26 +10,19 @@ type CodeSelection = { selectionStr: string, selectionRange: vscode.Range, fileP
 type File = { filepath: vscode.Uri, content: string }
 
 // an area that is currently being diffed
-type BaseDiffArea = {
-	// use `startLine` and `endLine` instead of `range` for mutibility
-	// bounds are relative to the file, inclusive
-	startLine: number;
-	endLine: number;
-	originalStartLine: number,
-	originalEndLine: number,
-	originalCode: string, // the original chunk of code (not necessarily the whole file)
-	// `newCode: string,` is not included because it is the code in the actual file, `document.text()[startline: endLine + 1]`
+type DiffArea = {
+	diffareaid: number,
+	startLine: number, endLine: number,
+	originalStartLine: number, originalEndLine: number,
 }
-
-type DiffArea = BaseDiffArea & { diffareaid: number }
 
 // the return type of diff creator
 type BaseDiff = {
-	code: string; // representation of the diff in text
-	deletedRange: vscode.Range; // relative to the original file, inclusive
-	insertedRange: vscode.Range;
-	deletedCode: string; // relative to the new file, inclusive
-	insertedCode: string;
+	repr: string; // representation of the diff in text
+	originalRange: vscode.Range;
+	range: vscode.Range;
+	originalCode: string;
+	code: string;
 }
 
 // each diff on the user's screen
@@ -92,8 +85,8 @@ type ChatMessage =
 	}
 
 export {
-	BaseDiff, BaseDiffArea,
-	Diff, DiffArea,
+	BaseDiff, Diff,
+	DiffArea,
 	CodeSelection,
 	File,
 	MessageFromSidebar,

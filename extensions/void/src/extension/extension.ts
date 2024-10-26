@@ -3,23 +3,7 @@ import { DisplayChangesProvider } from './DisplayChangesProvider';
 import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from '../common/shared_types';
 import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
-
-// this comes from vscode.proposed.editorInsets.d.ts
-declare module 'vscode' {
-	export interface WebviewEditorInset {
-		readonly editor: vscode.TextEditor;
-		readonly line: number;
-		readonly height: number;
-		readonly webview: vscode.Webview;
-		readonly onDidDispose: Event<void>;
-		dispose(): void;
-	}
-	export namespace window {
-		export function createWebviewTextEditorInset(editor: vscode.TextEditor, line: number, height: number, options?: vscode.WebviewOptions): WebviewEditorInset;
-	}
-}
-
-
+import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 
 const readFileContentOfUri = async (uri: vscode.Uri) => {
 	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
@@ -38,6 +22,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.registerWebviewViewProvider(SidebarWebviewProvider.viewId, sidebarWebviewProvider, { webviewOptions: { retainContextWhenHidden: true } })
 	);
 
+	// 1.5
+	const ctrlKWebviewProvider = new CtrlKWebviewProvider(context)
 
 
 	// 2. ctrl+l
@@ -81,7 +67,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const filePath = editor.document.uri;
 
 			// send message to the webview (Sidebar.tsx)
-			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+k', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
+			ctrlKWebviewProvider.onPressCtrlK()
 		})
 	);
 

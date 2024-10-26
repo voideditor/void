@@ -11,7 +11,7 @@ function generateNonce() {
 
 
 // call this when you have access to the webview to set its html
-export const updateWebviewHTML = (webview: vscode.Webview, extensionUri: vscode.Uri, { jsOutLocation, cssOutLocation }: { jsOutLocation: string, cssOutLocation: string }) => {
+export const updateWebviewHTML = (webview: vscode.Webview, extensionUri: vscode.Uri, { jsOutLocation, cssOutLocation }: { jsOutLocation: string, cssOutLocation: string }, props?: object) => {
 
 	// 'dist/sidebar/index.js'
 	// 'dist/sidebar/styles.css'
@@ -32,8 +32,7 @@ export const updateWebviewHTML = (webview: vscode.Webview, extensionUri: vscode.
 	<link href="${stylesUri}" rel="stylesheet">
   </head>
   <body>
-	<div id="root"></div>
-	<div id="ctrlkroot"></div>
+	<div id="root" ${props ? `data-void-props="${encodeURIComponent(JSON.stringify(props))}"` : ''}></div>
 	<script nonce="${nonce}" src="${scriptUri}"></script>
   </body>
   </html>`;

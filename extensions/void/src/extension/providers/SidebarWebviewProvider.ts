@@ -21,15 +21,10 @@ export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 		this._res = temp_res
 	}
 
-	// called by us
-	updateWebviewHTML(webview: vscode.Webview) {
-		_updateWebviewHTML(webview, this._extensionUri, { jsOutLocation: 'dist/webviews/sidebar/index.js', cssOutLocation: 'dist/webviews/styles.css' })
-	}
-
 	// called internally by vscode
 	resolveWebviewView(webviewView: vscode.WebviewView, context: vscode.WebviewViewResolveContext, token: vscode.CancellationToken,) {
 		const webview = webviewView.webview;
-		this.updateWebviewHTML(webview);
+		_updateWebviewHTML(webview, this._extensionUri, { jsOutLocation: 'dist/webviews/sidebar/index.js', cssOutLocation: 'dist/webviews/styles.css' })
 		this._res(webview); // resolve webview and _webviewView
 	}
 }

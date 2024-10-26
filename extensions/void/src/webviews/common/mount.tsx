@@ -5,6 +5,7 @@ import { getVSCodeAPI, awaitVSCodeResponse, onMessageFromVSCode } from "./getVsc
 import { initPosthog, identifyUser } from "./posthog";
 import { ThreadsProvider } from "./contextForThreads";
 import { ConfigProvider } from "./contextForConfig";
+import { PropsProvider } from "./contextForProps";
 
 const ListenersAndTracking = () => {
 	// initialize posthog
@@ -47,14 +48,22 @@ export const mount = (children: React.ReactNode) => {
 	const rootElement = document.getElementById("root")!
 	console.log("Void root Element:", rootElement)
 
+	let props = rootElement.getAttribute("data-void-props")
+	let propsObj: object | null = null
+	if (props !== null) {
+		propsObj = JSON.parse(decodeURIComponent(props))
+	}
+
 	const content = (<>
 		<ListenersAndTracking />
 
-		<ThreadsProvider>
-			<ConfigProvider>
-				{children}
-			</ConfigProvider>
-		</ThreadsProvider>
+		<PropsProvider props={propsObj}>
+			<ThreadsProvider>
+				<ConfigProvider>
+					{children}
+				</ConfigProvider>
+			</ThreadsProvider>
+		</PropsProvider>
 	</>)
 
 	const root = ReactDOM.createRoot(rootElement)

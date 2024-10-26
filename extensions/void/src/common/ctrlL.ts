@@ -63,78 +63,77 @@ ${completedStr}
 \`\`\`
 `
 	// create a promise that can be awaited
-	const promise = new Promise<CompetedReturn>((resolve, reject) => {
+	let res: Res<CompetedReturn> = () => { }
+	const promise = new Promise<CompetedReturn>((resolve, reject) => { res = resolve })
 
-		// get the abort method
-		let _abort = () => { }
-		let did_abort = false
+	// get the abort method
+	let _abort = () => { }
+	let did_abort = false
+
+	// make LLM complete the file to include the diff
+	sendLLMMessage({
+		messages: [{ role: 'system', content: writeFileWithDiffInstructions, }, { role: 'user', content: promptContent, }],
+		onText: (tokenStr, deltaStr) => {
+
+			if (did_abort) return;
+
+			const fullCompletedStr = completedStr + deltaStr
+
+			// diff `originalFileStr` and `newFileStr`
+			const diffs = findDiffs(oldFileStr, fullCompletedStr)
+			const lastDiff = diffs[diffs.length - 1]
+			const oldLineAfterLastDiff = lastDiff.originalRange.end.line + 1
+			const newLineAfterLastDiff = lastDiff.range.end.line + 1
+
+			// check if we've generated a diff
+			const didGenerateDiff = newLineAfterLastDiff > next
+
+			// get the line we are currently generating `newCurrentLine`; make sure it never goes past the last diff we've generated
+			// - if `deltaStr` contains a diff, then _next = newLineAfterLastDiff - 1
+			// - if it does not contain a diff, then _next = next + deltaStr.split('\n').length - 1
+			const newCurrentLine = didGenerateDiff ? newLineAfterLastDiff - 1 : next + deltaStr.split('\n').length - 1
+			const oldCurrentLine = didGenerateDiff ? oldLineAfterLastDiff - 1 : oldNext + (newCurrentLine - next)
+
+			// 1. Apply the changes and modify highlighting
+
+			applyCtrlLChangesToFile({ fileUri, newCurrentLine, oldCurrentLine, fullCompletedStr, oldFileStr })
+
+			// 2. Check for early stopping
+			// the conditions for early stopping are:
+			// - we have generated a diff
+			// - there is matchup with the original file after the diff
+			const isMatchupAfterDiff = fullCompletedStr.split('\n').slice(newLineAfterLastDiff).join('\n').length > NUM_MATCHUP_TOKENS
+			if (didGenerateDiff && isMatchupAfterDiff) {
+
+				// resolve the promise
+				res({ next: newCurrentLine + 1, oldNext: oldCurrentLine + 1, });
+
+				// abort the LLM call
+				_abort()
+				did_abort = true
+
+			} else {
+
+			}
 
 
-		sendLLMMessage({
-			messages: [{ role: 'system', content: writeFileWithDiffInstructions, }, { role: 'user', content: promptContent, }],
-			onText: (tokenStr, deltaStr) => {
 
-				if (did_abort) return;
+		},
+		onFinalMessage: (deltaStr) => {
 
-				// diff `originalFileStr` and `newFileStr`
-				const diffs = findDiffs(oldFileStr, fullCompletedStr)
-				const lastDiff = diffs[diffs.length - 1]
-				const oldLineAfterLastDiff = lastDiff.originalEndLine + 1
-				const newLineAfterLastDiff = lastDiff.endLine + 1
+			const newCompletedStr = completedStr + deltaStr
 
-				// check if we've generated a diff
-				const didGenerateDiff = newLineAfterLastDiff > next
+			applyCtrlLChangesToFile({ fileUri, newCurrentLine: Number.MAX_SAFE_INTEGER, oldCurrentLine: Number.MAX_SAFE_INTEGER, fullCompletedStr: newCompletedStr, oldFileStr, debug: 'FINAL' })
 
-				// get the line we are currently generating `newCurrentLine`; make sure it never goes past the last diff we've generated
-				// - if `deltaStr` contains a diff, then _next = newLineAfterLastDiff - 1
-				// - if it does not contain a diff, then _next = next + deltaStr.split('\n').length - 1
-				const newCurrentLine = didGenerateDiff ? newLineAfterLastDiff - 1 : next + deltaStr.split('\n').length - 1
-				const oldCurrentLine = didGenerateDiff ? oldLineAfterLastDiff - 1 : oldNext + (newCurrentLine - next)
-
-				// 1. Apply the changes and modify highlighting
-
-				applyCtrlLChangesToFile({ fileUri, newCurrentLine, oldCurrentLine, fullCompletedStr, oldFileStr })
-
-				// 2. Check for early stopping
-				// the conditions for early stopping are:
-				// - we have generated a diff
-				// - there is matchup with the original file after the diff
-				const isMatchupAfterDiff = fullCompletedStr.split('\n').slice(newLineAfterLastDiff).join('\n').length > NUM_MATCHUP_TOKENS
-				if (didGenerateDiff && isMatchupAfterDiff) {
-
-					// resolve the promise
-					resolve({ next: newCurrentLine + 1, oldNext: oldCurrentLine + 1, });
-
-					// abort the LLM call
-					_abort()
-					did_abort = true
-
-				} else {
-
-				}
-
-
-
-			},
-			onFinalMessage: (deltaStr) => {
-
-				const newCompletedStr = completedStr + deltaStr
-
-				applyCtrlLChangesToFile({ fileUri, newCurrentLine: Number.MAX_SAFE_INTEGER, oldCurrentLine: Number.MAX_SAFE_INTEGER, fullCompletedStr: newCompletedStr, oldFileStr, debug: 'FINAL' })
-
-				resolve({ isFinished: true });
-			},
-			onError: (e) => {
-				resolve({ isFinished: true });
-				console.error('Error rewriting file with diff', e);
-			},
-			voidConfig,
-			setAbort: (a) => { setAbort(a); _abort = a; },
-		})
+			res({ isFinished: true });
+		},
+		onError: (e) => {
+			res({ isFinished: true });
+			console.error('Error rewriting file with diff', e);
+		},
+		voidConfig,
+		setAbort: (a) => { setAbort(a); _abort = a; },
 	})
-
-
-
 
 	return promise
 
@@ -162,27 +161,28 @@ Return \`true\` if ANY part of the chunk should be modified, and \`false\` if it
 `
 
 	// create new promise
-	const promise = new Promise<boolean>((resolve, reject) => {
-		// send message to LLM
-		sendLLMMessage({
-			messages: [{ role: 'system', content: searchDiffChunkInstructions, }, { role: 'user', content: promptContent, }],
-			onFinalMessage: (finalMessage) => {
+	let res: Res<boolean> = () => { }
+	const promise = new Promise<boolean>((resolve, reject) => { res = resolve })
 
-				const containsTrue = finalMessage
-					.slice(-10) // check for `true` in last 10 characters
-					.toLowerCase()
-					.includes('true')
+	// send message to LLM
+	sendLLMMessage({
+		messages: [{ role: 'system', content: searchDiffChunkInstructions, }, { role: 'user', content: promptContent, }],
+		onFinalMessage: (finalMessage) => {
 
-				resolve(containsTrue)
-			},
-			onError: (e) => {
-				resolve(false);
-				console.error('Error in shouldApplyDiff: ', e)
-			},
-			onText: () => { },
-			voidConfig,
-			setAbort,
-		})
+			const containsTrue = finalMessage
+				.slice(-10) // check for `true` in last 10 characters
+				.toLowerCase()
+				.includes('true')
+
+			res(containsTrue)
+		},
+		onError: (e) => {
+			res(false);
+			console.error('Error in shouldApplyDiff: ', e)
+		},
+		onText: () => { },
+		voidConfig,
+		setAbort,
 	})
 
 	// return the promise

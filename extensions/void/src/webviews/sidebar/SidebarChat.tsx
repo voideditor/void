@@ -4,13 +4,13 @@ import React, { FormEvent, useCallback, useEffect, useRef, useState } from "reac
 import { marked } from 'marked';
 import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
-import { File, ChatMessage, CodeSelection } from "../common/shared_types";
+import { File, ChatMessage, CodeSelection } from "../../common/shared_types";
 import * as vscode from 'vscode'
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi";
-import { useThreads } from "./contextForThreads";
-import { sendLLMMessage } from "../common/sendLLMMessage";
-import { useVoidConfig } from "./contextForConfig";
-import { captureEvent } from "./metrics/posthog";
+import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "../common/getVscodeApi";
+import { useThreads } from "../common/contextForThreads";
+import { sendLLMMessage } from "../../common/sendLLMMessage";
+import { useVoidConfig } from "../common/contextForConfig";
+import { captureEvent } from "../common/posthog";
 
 
 

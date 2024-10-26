@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { DisplayChangesProvider } from './DisplayChangesProvider';
 import { BaseDiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from '../common/shared_types';
-import { SidebarWebviewProvider } from './SidebarWebviewProvider';
+import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
 
 // this comes from vscode.proposed.editorInsets.d.ts

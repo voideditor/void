@@ -2,7 +2,7 @@
 
 // inject user's vscode theme colors: https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content
 module.exports = {
-	content: ["./src/sidebar/**/*.{html,js,ts,jsx,tsx}"],
+	content: ["./src/webviews/**/*.{html,js,ts,jsx,tsx}"],
 	theme: {
 		extend: {
 			colors: {

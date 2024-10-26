@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useOnVSCodeMessage } from './getVscodeApi';
+import { useOnVSCodeMessage } from '../common/getVscodeApi';
 
 
 export const CtrlK = () => {

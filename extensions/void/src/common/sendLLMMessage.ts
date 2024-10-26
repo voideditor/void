@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
-import { VoidConfig } from '../sidebar/contextForConfig';
+import { VoidConfig } from '../webviews/common/contextForConfig'
 
 
 

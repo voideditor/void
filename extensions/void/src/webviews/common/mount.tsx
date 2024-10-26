@@ -1,20 +1,12 @@
-import * as React from "react"
-import { useEffect } from "react"
+import React, { useEffect } from "react";
 import * as ReactDOM from "react-dom/client"
-import Sidebar from "./Sidebar"
-import { CtrlK } from "./CtrlK"
-import { ThreadsProvider } from "./contextForThreads"
-import { ConfigProvider } from "./contextForConfig"
-import { MessageToSidebar } from "../common/shared_types"
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode } from "./getVscodeApi"
-import { identifyUser, initPosthog } from "./metrics/posthog"
+import { MessageToSidebar } from "../../common/shared_types";
+import { getVSCodeAPI, awaitVSCodeResponse, onMessageFromVSCode } from "./getVscodeApi";
+import { initPosthog, identifyUser } from "./posthog";
+import { ThreadsProvider } from "./contextForThreads";
+import { ConfigProvider } from "./contextForConfig";
 
-if (typeof document === "undefined") {
-	console.log("index.tsx error: document was undefined")
-}
-
-
-const CommonEffects = () => {
+const ListenersAndTracking = () => {
 	// initialize posthog
 	useEffect(() => {
 		initPosthog()
@@ -41,26 +33,31 @@ const CommonEffects = () => {
 	return null
 }
 
-(() => {
+
+
+
+export const mount = (children: React.ReactNode) => {
+
+	if (typeof document === "undefined") {
+		console.error("index.tsx error: document was undefined")
+		return
+	}
+
 	// mount the sidebar on the id="root" element
 	const rootElement = document.getElementById("root")!
 	console.log("Void root Element:", rootElement)
 
-	const sidebar = (<>
-		<CommonEffects />
+	const content = (<>
+		<ListenersAndTracking />
 
 		<ThreadsProvider>
 			<ConfigProvider>
-				<Sidebar />
+				{children}
 			</ConfigProvider>
 		</ThreadsProvider>
-
-		<ConfigProvider>
-			<CtrlK />
-		</ConfigProvider>
-
 	</>)
-	const root = ReactDOM.createRoot(rootElement)
-	root.render(sidebar)
-})();
 
+	const root = ReactDOM.createRoot(rootElement)
+	root.render(content);
+
+}

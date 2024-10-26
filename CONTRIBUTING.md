@@ -7,7 +7,7 @@ There are two main ways to contribute:
 - Suggest New Features ([discord](https://discord.gg/RSNjgaugJs))
 - Build New Features ([project](https://github.com/orgs/voideditor/projects/2/views/3))
 
-We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality. Scroll down to see 1. How to build/contribute to the Extension, or 2. How to build/contribute to the full IDE (for more native changes).
+Void's functionality is primarily implemented using a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension). Continue reading to learn how to 1. build/contribute to the Extension, or 2. build/contribute to the full IDE (for more extensive changes).
 
 For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 

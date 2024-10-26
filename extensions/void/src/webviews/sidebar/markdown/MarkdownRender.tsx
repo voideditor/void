@@ -1,7 +1,7 @@
 import React, { JSX, useCallback, useEffect, useState } from "react"
 import { marked, MarkedToken, Token, TokensList } from "marked"
 import BlockCode from "./BlockCode"
-import { getVSCodeAPI } from "../getVscodeApi"
+import { getVSCodeAPI } from "../../common/getVscodeApi"
 
 
 enum CopyButtonState {

@@ -104,7 +104,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "build": "rimraf dist && node build-tsx.js && node build-css.js",
+    "build": "rimraf dist && node build/build.js",
     "pretest": "tsc -p ./ && eslint src --ext ts",
     "test": "vscode-test"
   },

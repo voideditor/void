@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { PartialVoidConfig } from '../sidebar/contextForConfig';
+import { PartialVoidConfig } from '../webviews/common/contextForConfig'
 
 
 

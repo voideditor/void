@@ -150,13 +150,13 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 			// compute the diffs
 			const diffs = findDiffs(diffArea.originalCode, currentCode)
 
-			// print diffs
-			console.log('!CODEBefore:', JSON.stringify(diffArea.originalCode))
-			console.log('!CODEAfter:', JSON.stringify(currentCode))
-
 			// add the diffs to `this._diffsOfDocument[docUriStr]`
 			this.addDiffs(editor.document.uri, diffs, diffArea)
 
+			// // print diffs
+			console.log('!CodeBefore:', JSON.stringify(diffArea.originalCode))
+			console.log('!CodeAfter:', JSON.stringify(currentCode))
+			console.log('DiffRepr: ', diffs.map(diff => diff.code).join('\n'))
 			for (const diff of this._diffsOfDocument[docUriStr]) {
 				console.log('------------')
 				console.log('deletedCode:', JSON.stringify(diff.deletedCode))
@@ -164,7 +164,6 @@ export class DisplayChangesProvider implements vscode.CodeLensProvider {
 				console.log('deletedRange:', diff.deletedRange.start.line, diff.deletedRange.end.line,)
 				console.log('insertedRange:', diff.insertedRange.start.line, diff.insertedRange.end.line,)
 			}
-
 
 		}
 

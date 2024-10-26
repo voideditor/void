@@ -11,13 +11,13 @@ function generateNonce() {
 
 
 // call this when you have access to the webview to set its html
-export const updateWebviewHTML = (webview: vscode.Webview, extensionUri: vscode.Uri, { jsLocation, cssLocation }: { jsLocation: string, cssLocation: string }) => {
+export const updateWebviewHTML = (webview: vscode.Webview, extensionUri: vscode.Uri, { jsOutLocation, cssOutLocation }: { jsOutLocation: string, cssOutLocation: string }) => {
 
 	// 'dist/sidebar/index.js'
 	// 'dist/sidebar/styles.css'
 
-	const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, jsLocation));
-	const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, cssLocation));
+	const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, jsOutLocation));
+	const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, cssOutLocation));
 	const rootUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri));
 	const nonce = generateNonce();
 

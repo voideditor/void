@@ -10,12 +10,10 @@ export class CtrlKWebviewProvider {
 	constructor(context: vscode.ExtensionContext) {
 		this._extensionUri = context.extensionUri
 
-
-
 	}
 
 	// called by us
 	updateWebviewHTML(webview: vscode.Webview) {
-		_updateWebviewHTML(webview, this._extensionUri, { jsLocation: 'dist/webviews/ctrlk/index.js', cssLocation: 'dist/webviews/styles.css' })
+		_updateWebviewHTML(webview, this._extensionUri, { jsOutLocation: 'dist/webviews/ctrlk/index.js', cssOutLocation: 'dist/webviews/styles.css' })
 	}
 }

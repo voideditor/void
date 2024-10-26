@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { findDiffs } from './findDiffs';
 import { Diff, DiffArea, BaseDiff, } from '../common/shared_types';
-import { readFileContentOfUri } from '../common/readFileContentOfUri';
+import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 
 
 

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { applyDiffLazily } from '../common/ctrlL';
-import { readFileContentOfUri } from '../common/readFileContentOfUri';
+import { applyDiffLazily } from './ctrlL';
+import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { MessageToSidebar, MessageFromSidebar, DiffArea, ChatThreads } from '../common/shared_types';
 import { DiffProvider } from './DiffProvider';
 import { getVoidConfig } from '../webviews/common/contextForConfig';

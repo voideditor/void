@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { OnFinalMessage, OnText, sendLLMMessage, SetAbort } from "./sendLLMMessage"
-import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from './systemPrompts';
+import { OnFinalMessage, OnText, sendLLMMessage, SetAbort } from "../common/sendLLMMessage"
+import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from '../common/systemPrompts';
 import { throttle } from 'lodash';
 import { VoidConfig } from '../webviews/common/contextForConfig';
-import { findDiffs } from '../extension/findDiffs';
-import { readFileContentOfUri } from './readFileContentOfUri';
+import { findDiffs } from './findDiffs';
+import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 
 type Res<T> = ((value: T) => void)
 

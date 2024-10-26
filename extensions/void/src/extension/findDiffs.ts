@@ -147,11 +147,11 @@ export const findDiffs = (oldText: string, newText: string): BaseDiff[] => {
 				// add pending block to the blocks array
 				if (insertedBlock.length > 0 || deletedBlock.length > 0) {
 					blocks.push({
-						code: reprBlock.join(''),
-						deletedCode: deletedBlock.join(''),
-						insertedCode: insertedBlock.join(''),
-						deletedRange: new vscode.Range(deletedStart, 0, oldFileLine, Number.MAX_SAFE_INTEGER),
-						insertedRange: new vscode.Range(insertedStart, 0, newFileLine, Number.MAX_SAFE_INTEGER),
+						repr: reprBlock.join(''),
+						originalCode: deletedBlock.join(''),
+						code: insertedBlock.join(''),
+						originalRange: new vscode.Range(deletedStart, 0, oldFileLine, Number.MAX_SAFE_INTEGER),
+						range: new vscode.Range(insertedStart, 0, newFileLine, Number.MAX_SAFE_INTEGER),
 					});
 				}
 
@@ -171,11 +171,11 @@ export const findDiffs = (oldText: string, newText: string): BaseDiff[] => {
 	// Add any remaining blocks after the loop ends
 	if (insertedBlock.length > 0 || deletedBlock.length > 0) {
 		blocks.push({
-			code: reprBlock.join(''),
-			deletedCode: deletedBlock.join(''),
-			insertedCode: insertedBlock.join(''),
-			deletedRange: new vscode.Range(deletedStart, 0, oldFileLine, Number.MAX_SAFE_INTEGER),
-			insertedRange: new vscode.Range(insertedStart, 0, newFileLine, Number.MAX_SAFE_INTEGER),
+			repr: reprBlock.join(''),
+			originalCode: deletedBlock.join(''),
+			code: insertedBlock.join(''),
+			originalRange: new vscode.Range(deletedStart, 0, oldFileLine, Number.MAX_SAFE_INTEGER),
+			range: new vscode.Range(insertedStart, 0, newFileLine, Number.MAX_SAFE_INTEGER),
 		});
 	}
 

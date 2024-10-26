@@ -4,11 +4,8 @@ import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from './sy
 import { throttle } from 'lodash';
 import { VoidConfig } from '../webviews/common/contextForConfig';
 import { findDiffs } from '../extension/findDiffs';
+import { readFileContentOfUri } from './readFileContentOfUri';
 
-const readFileContentOfUri = async (uri: vscode.Uri) => {
-	return Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8')
-		.replace(/\r\n/g, '\n') // replace windows \r\n with \n
-}
 type Res<T> = ((value: T) => void)
 
 const THRTOTLE_TIME = 100 // minimum time between edits
@@ -85,8 +82,8 @@ ${completedStr}
 			// diff `originalFileStr` and `newFileStr`
 			const diffs = findDiffs(oldFileStr, fullCompletedStr)
 			const lastDiff = diffs[diffs.length - 1]
-			const oldLineAfterLastDiff = lastDiff.deletedRange.end.line + 1
-			const newLineAfterLastDiff = lastDiff.insertedRange.end.line + 1
+			const oldLineAfterLastDiff = lastDiff.originalRange.end.line + 1
+			const newLineAfterLastDiff = lastDiff.range.end.line + 1
 
 			// check if we've generated a diff
 			const didGenerateDiff = newLineAfterLastDiff > next

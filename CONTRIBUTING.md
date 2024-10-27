@@ -121,7 +121,7 @@ Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin
 
 Here are the most important topics on our Roadmap. More ⭐'s = more important.
 
-These sometimes get outdated - please refer to our Issues page for the latest issues.
+These sometimes get outdated - please refer to our [Issues](https://github.com/voideditor/void/issues) page for the latest issues.
 
 ## ⭐⭐⭐ Make History work well.
 

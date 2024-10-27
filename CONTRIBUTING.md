@@ -1,15 +1,13 @@
 # Contributing to Void
 
-Welcome! 👋 This is a guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
+Welcome! 👋 This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
-There are two main ways to contribute:
+There are a few ways to contribute:
 
-- Suggest New Features ([discord](https://discord.gg/RSNjgaugJs))
-- Build New Features ([project](https://github.com/orgs/voideditor/projects/2/views/3))
+- Suggest New Features ([Discord](https://discord.gg/RSNjgaugJs))
+- Build New Features ([Project](https://github.com/orgs/voideditor/projects/2/views/3))
+- Submit Issues/Docs/Bugs ([Issues](https://github.com/voideditor/void/issues))
 
-We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of Void's functionality. Scroll down to see 1. How to build/contribute to the Extension, or 2. How to build/contribute to the full IDE (for more native changes).
-
-For some useful links we've compiled see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 ## 1. Building the Extension
 
@@ -29,23 +27,51 @@ git clone https://github.com/voideditor/void
 npm install
 ```
 
-4. Compile the React by running `npm run build`. We created this build command to convert `sidebar/index.tsx` into `dist/`.
+1. Compile the React files by running `npm run build`. This build command converts all the Tailwind/React entrypoint files into raw .css and .js files in `dist/`.
 
 ```
 npm run build
 ```
 
-5. Run the project by pressing <kbd>F5</kbd>.
+5. Run the extension in a new window by pressing <kbd>F5</kbd>.
 
 This will start a new instance of VSCode with the extension enabled. If this doesn't work, you can press <kbd>Ctrl+Shift+P</kbd>, select "Debug: Start Debugging", and select "VSCode Extension Development".
 
 ## 2. Building the full IDE
 
-If you want to work on the full IDE, please follow the steps below. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page, which is where the steps below come from. Also feel free to submit an issue or get in touch with us with any build errors.
+If you want to work on the full IDE, please follow the steps below. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page. Also feel free to submit an issue or get in touch with us with any build errors.
 
-### a. Building on a Mac
+<!-- TODO say whether you can build each distribution on any Operating System, or if you need to build Windows on Windows, etc -->
 
-To build on a Mac, open `void/` in VSCode. Make sure you've built the extension by following the steps above (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`). Also make sure you have Python and XCode installed on your system (you probably do by default).
+### a. Build Prerequisites - Mac
+
+If you're using a Mac, make sure you have Python and XCode installed (you probably do by default).
+
+### b. Build Prerequisites - Windows
+
+If you're using a Windows computer, first get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community) (recommended) or [VS Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools) (not recommended). If you already have both, you might need to run the next few steps on both of them.
+
+Find the box for Visual Studio 2022 (or VS Build Tools) and click Install/Modify.
+
+Under Workloads, select "Desktop development with C++" and "Node.js build tools".
+
+Under Individual components, select every item under:
+
+- `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)`,
+- `C++ ATL for latest build tools with Spectre Mitigations`,
+- `C++ MFC for latest build tools with Spectre Mitigations`.
+
+Finally, click Install/Modify.
+
+### c. Build Prerequisites - Linux
+
+We haven't created prerequisite steps for building on Linux yet, but you can follow [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
+
+### Build instructions
+
+Before building Void, please follow the prerequisite steps above for your operating system. Also make sure you've already built the Void extension (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`).
+
+First, open `void/` in VSCode. Then:
 
 1. Install all dependencies.
 
@@ -53,9 +79,13 @@ To build on a Mac, open `void/` in VSCode. Make sure you've built the extension 
 npm install
 ```
 
-2. Run `npm run watch`.
+2. Press <kbd>Ctrl+Shift+B</kbd>, or if you prefer using the terminal run `npm run watch`.
 
-This can take ~5 min. It's done when you see something like:
+This can take ~5 min.
+
+If you ran <kbd>Ctrl+Shift+B</kbd>, the build is done when you see two check marks.
+
+If you ran `npm run watch`, the build is done when you see something like this:
 
 ```
 [watch-extensions] [00:37:39] Finished compilation extensions with 0 errors after 19303 ms
@@ -66,34 +96,26 @@ This can take ~5 min. It's done when you see something like:
 
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
-3. In a new terminal, run `./scripts/code.sh`.
+1. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `/.scripts/code.bat` (Windows). This should open up the built IDE!
 
-This should open up the built IDE after loading for some time. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
-
-To bundle the IDE, run `npm run gulp vscode-darwin-arm64`. Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
+To see new changes without restarting the build, press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window.
 
 Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page!
 
-**Common Fixes:**
+
+### Common Fixes
 
 - Make sure you have the same NodeJS version as `.nvmrc`.
 
-- If you see `X [ERROR] Cannot start service: Host version "0.23.1" does not match binary version "0.23.0"`, run `npm i -D esbuild@0.23.0`
-
-### b. Building on Windows
-
-To build on Windows, please refer to [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute). We recommend building on Mac; we're Windows users who switch to Mac to build right now.
-
-<!-- Get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community). Also find the boxes for "Desktop development with C++" and "Node.js development" and get those, too.
-
-If you get a node-gyp error in the next few steps, you should also get [Visual Studio Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools), find the Visual Studio Build Tools box, click Install (or Modify), then in Individual Components:
-check every item under `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)`, `C++ ATL for latest build tools with Spectre Mitigations`, and `C++ MFC for latest build tools with Spectre Mitigations`.
+- If you see `[ERROR] Cannot start service: Host version "0.23.1" does not match binary version "0.23.0"`, run `npm i -D esbuild@0.23.0` or do a clean install of your npm dependencies.
 
 
-```
-npm config set msvs_version 2022
-```
- -->
+## Bundling
+
+To bundle the IDE into an executable, run `npm run gulp vscode-darwin-arm64`.
+
+Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
+
 
 ## Roadmap
 
@@ -105,9 +127,9 @@ These sometimes get outdated - please refer to our Issues page for the latest is
 
 When the user submits a response or presses the apply/accept/reject button, we should add these events to the history, allowing the user to undo/redo them. Right now there is unexpected behavior if the user tries to undo or redo their changes.
 
-## ⭐⭐⭐ Build Cursor-style quick edits (ctrl+k).
+## ⭐⭐⭐ Build Cursor-style quick edits (Ctrl+K).
 
-When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
+When the user presses Ctrl+K, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
 
 ## ⭐⭐⭐ Creative.
 
@@ -117,21 +139,18 @@ Eventually, we want to build a convenient API for creating AI tools. The API wil
 
 ## ⭐ One-stars.
 
-⭐ Let the user accept / reject all Diffs in an entire file via the sidebar.
+⭐ Let the user Accept / Reject all Diffs in an entire file via the sidebar.
 
 # Guidelines
 
-Please don't make big refactors without speaking with us first. We'd like to keep the codebase similar to vscode so we can periodically rebase, and if we have big changes that gets complicated.
+We're always glad to talk about new ideas, help you get set up, and make sure your changes align with our vision for the project :). Feel free to shoot us a message in the #general channel of the [Discord](https://discord.gg/RSNjgaugJs)).
 
-# Submitting a Pull Request
+If you want to make a lot of changes or build a big new feature, we're happy to help you out! Just check in with us in in #general first so we can make sure our visions align!
 
-Please submit a pull request once you've made a change. Here are a few guidelines:
 
-- A PR should be about one _single_ feature change. The fewer items you change, the more likely the PR is to be accepted.
+## Submitting a Pull Request
 
-- Your PR should contain a description that first explains at a high level what you did, and then describes the exact changes you made (and to which files). Please don't use vague statements like "refactored code" or "improved types" (instead, describe what code you refactored, or what types you changed).
-
-- Try to avoid refactoring and making feature changes in the same PR.
+Please submit a pull request once you've made a change. You don't need to submit both an issue and a PR - just submit a PR and we'll take it from there!
 
 # Relevant files
 
@@ -156,3 +175,8 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 - build/npm/dirs.js
 
 - vscode.proposed.editorInsets.d.ts - not modified, but code copied
+
+
+## References
+
+For some useful links we've compiled on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).

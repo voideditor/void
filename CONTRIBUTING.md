@@ -143,7 +143,7 @@ Eventually, we want to build a convenient API for creating AI tools. The API wil
 
 # Guidelines
 
-We're always glad to talk about new ideas, help you get set up, and make sure your changes align with our vision for the project :). Feel free to shoot us a message in the #general channel of the [Discord](https://discord.gg/RSNjgaugJs)).
+We're always glad to talk about new ideas, help you get set up, and make sure your changes align with our vision for the project :). Feel free to shoot us a message in the #general channel of the [Discord](https://discord.gg/RSNjgaugJs).
 
 If you want to make a lot of changes or build a big new feature, we're happy to help you out! Just check in with us in in #general first so we can make sure our visions align!
 

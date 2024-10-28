@@ -46,8 +46,16 @@ const voidConfigInfo: Record<
 			configFields,
 		),
 
-		maxTokens: configString(
-			"Max number of tokens to output. Must be a number.", ''
+		maxTokens: configEnum(
+			"Max number of tokens to output.",
+			'1024',
+			[
+				"default", // this will be parseInt'd into NaN and ignored by the API. Anything that's not a number has this behavior.
+				"1024",
+				"2048",
+				"4096",
+				"8192"
+			] as const,
 		),
 
 	},

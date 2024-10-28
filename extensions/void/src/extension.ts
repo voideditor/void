@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { AbortRef } from './common/sendLLMMessage';
 import { DiffProvider } from './extension/DiffProvider';
 import { SidebarWebviewProvider } from './extension/providers/SidebarWebviewProvider';
-import { getVoidConfig } from './webviews/common/contextForConfig';
+import { getVoidConfigFromPartial } from './webviews/common/contextForConfig';
 import { applyDiffLazily } from './extension/ctrlL';
 import { readFileContentOfUri } from './extension/extensionLib/readFileContentOfUri';
 
@@ -154,7 +154,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 					const docUri = editor.document.uri
 					const fileStr = await readFileContentOfUri(docUri)
-					const voidConfig = getVoidConfig(context.globalState.get('partialVoidConfig') ?? {})
+					const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
 
 					await applyDiffLazily({ docUri, oldFileStr: fileStr, diffRepr: m.diffRepr, voidConfig, diffProvider, diffArea, abortRef: abortApplyRef })
 				}

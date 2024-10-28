@@ -46,15 +46,8 @@ const voidConfigInfo: Record<
 			configFields,
 		),
 
-		maxTokens: configEnum(
-			"Max number of tokens to output.",
-			'1024',
-			[
-				"1024",
-				"2048",
-				"4096",
-				"8192"
-			] as const,
+		maxTokens: configString(
+			"Max number of tokens to output. Must be a number.", ''
 		),
 
 	},
@@ -185,18 +178,18 @@ export type VoidConfig = {
 
 
 
-export const getVoidConfig = (currentConfig: PartialVoidConfig): VoidConfig => {
+export const getVoidConfigFromPartial = (partialVoidConfig: PartialVoidConfig): VoidConfig => {
 	const config = {} as PartialVoidConfig
 	for (let field of [...configFields, 'default'] as const) {
 		config[field] = {}
 		for (let prop in voidConfigInfo[field]) {
-			config[field][prop] = currentConfig[field]?.[prop] || voidConfigInfo[field][prop].defaultVal
+			config[field][prop] = partialVoidConfig[field]?.[prop]?.trim() || voidConfigInfo[field][prop].defaultVal
 		}
 	}
 	return config as VoidConfig
 }
 
-const defaultVoidConfig: VoidConfig = getVoidConfig({})
+const defaultVoidConfig: VoidConfig = getVoidConfigFromPartial({})
 
 // const [stateRef, setState] = useInstantState(initVal)
 // setState instantly changes the value of stateRef instead of having to wait until the next render
@@ -234,7 +227,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 		getVSCodeAPI().postMessage({ type: 'getPartialVoidConfig' })
 		awaitVSCodeResponse('partialVoidConfig').then((m) => {
 			setPartialVoidConfig(m.partialVoidConfig)
-			const newFullConfig = getVoidConfig(m.partialVoidConfig)
+			const newFullConfig = getVoidConfigFromPartial(m.partialVoidConfig)
 			setVoidConfig(newFullConfig)
 		})
 	}, [setPartialVoidConfig])
@@ -254,7 +247,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 					}
 				}
 				setPartialVoidConfig(newPartialConfig)
-				const newFullConfig = getVoidConfig(newPartialConfig)
+				const newFullConfig = getVoidConfigFromPartial(newPartialConfig)
 				setVoidConfig(newFullConfig)
 				getVSCodeAPI().postMessage({ type: 'persistPartialVoidConfig', partialVoidConfig: newPartialConfig })
 			}

@@ -3,14 +3,11 @@ import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
 import { VoidConfig } from '../sidebar/contextForConfig';
 
-
-
+export type AbortRef = { current: (() => void) | null }
 
 export type OnText = (newText: string, fullText: string) => void
 
 export type OnFinalMessage = (input: string) => void
-
-export type SetAbort = (abort: () => void) => void
 
 export type LLMMessageAnthropic = {
 	role: 'user' | 'assistant',
@@ -28,25 +25,23 @@ type SendLLMMessageFnTypeInternal = (params: {
 	onFinalMessage: OnFinalMessage,
 	onError: (error: string) => void,
 	voidConfig: VoidConfig,
-	setAbort: SetAbort,
+	abortRef: AbortRef,
 }) => void
 
 type SendLLMMessageFnTypeExternal = (params: {
 	messages: LLMMessage[],
 	onText: OnText,
-	onFinalMessage: (input: string) => void,
+	onFinalMessage: (fullText: string) => void,
 	onError: (error: string) => void,
 	voidConfig: VoidConfig | null,
-	setAbort: SetAbort,
-
-})
-	=> void
+	abortRef: AbortRef,
+}) => void
 
 
 
 
 // Anthropic
-const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
+const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
 
 	const anthropic = new Anthropic({ apiKey: voidConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
@@ -97,21 +92,21 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 		did_abort = true
 		stream.controller.abort() // TODO need to test this to make sure it works, it might throw an error
 	}
-	setAbort(abort)
 
+	return { abort }
 };
 
 
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
+const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 
 	let didAbort = false
 	let fullText = ''
 
 	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	let abort: () => void = () => {
+	abortRef.current = () => {
 		didAbort = true;
 	};
 
@@ -144,7 +139,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 	openai.chat.completions
 		.create(options)
 		.then(async response => {
-			abort = () => {
+			abortRef.current = () => {
 				// response.controller.abort()
 				didAbort = true;
 			}
@@ -172,18 +167,17 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 			}
 		})
 
-	setAbort(abort)
 };
 
 
 // Ollama
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 
 	let didAbort = false
 	let fullText = ""
 
 	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	let abort = () => {
+	abortRef.current = () => {
 		didAbort = true;
 	};
 
@@ -196,8 +190,8 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		options: { num_predict: parseInt(voidConfig.default.maxTokens) } // this is max_tokens
 	})
 		.then(async stream => {
-			abort = () => {
-				// ollama.abort()
+			abortRef.current = () => {
+				// stream.abort()
 				didAbort = true
 			}
 			// iterate through the stream
@@ -215,7 +209,6 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 			onError(error)
 		})
 
-	setAbort(abort);
 };
 
 
@@ -224,13 +217,15 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 // https://docs.greptile.com/api-reference/query
 // https://docs.greptile.com/quickstart#sample-response-streamed
 
-const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
+const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 
 	let didAbort = false
 	let fullText = ''
 
 	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	let abort: () => void = () => { didAbort = true }
+	abortRef.current = () => {
+		didAbort = true
+	}
 
 
 	fetch('https://api.greptile.com/v2/query', {
@@ -285,12 +280,11 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 			onError(e)
 		});
 
-	setAbort(abort)
 }
 
 
 
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, setAbort }) => {
+export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 	if (!voidConfig) return;
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
@@ -298,15 +292,15 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 
 	switch (voidConfig.default.whichApi) {
 		case 'anthropic':
-			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, setAbort });
+			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'openAI':
 		case 'openRouter':
 		case 'openAICompatible':
-			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, setAbort });
+			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'ollama':
-			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, setAbort });
+			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'greptile':
-			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, setAbort });
+			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		default:
 			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
 	}

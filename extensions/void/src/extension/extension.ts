@@ -3,7 +3,7 @@ import { applyDiffLazily } from './ctrlL';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { MessageToSidebar, MessageFromSidebar, DiffArea, ChatThreads } from '../common/shared_types';
 import { DiffProvider } from './DiffProvider';
-import { getVoidConfig } from '../webviews/common/contextForConfig';
+import { getVoidConfigFromPartial } from '../webviews/common/contextForConfig';
 import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
@@ -147,7 +147,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 					const docUri = editor.document.uri
 					const fileStr = await readFileContentOfUri(docUri)
-					const voidConfig = getVoidConfig(context.globalState.get('partialVoidConfig') ?? {})
+					const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
 
 					await applyDiffLazily({ docUri, oldFileStr: fileStr, diffRepr: m.diffRepr, voidConfig, diffProvider, diffArea, abortRef: abortApplyRef })
 				}

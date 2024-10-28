@@ -39,6 +39,13 @@ type SendLLMMessageFnTypeExternal = (params: {
 
 
 
+const parseMaxTokensStr = (maxTokensStr: string) => {
+	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
+	let int = isNaN(Number(maxTokensStr)) ? undefined : parseInt(maxTokensStr)
+	if (Number.isNaN(int))
+		return undefined
+	return int
+}
 
 // Anthropic
 const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
@@ -113,9 +120,11 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 	let openai: OpenAI
 	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
 
+	let maxTokens = parseMaxTokensStr(voidConfig.default.maxTokens)
+
 	if (voidConfig.default.whichApi === 'openAI') {
 		openai = new OpenAI({ apiKey: voidConfig.openAI.apikey, dangerouslyAllowBrowser: true });
-		options = { model: voidConfig.openAI.model, messages: messages, stream: true, max_completion_tokens: parseInt(voidConfig.default.maxTokens) }
+		options = { model: voidConfig.openAI.model, messages: messages, stream: true, max_completion_tokens: maxTokens }
 	}
 	else if (voidConfig.default.whichApi === 'openRouter') {
 		openai = new OpenAI({
@@ -125,11 +134,11 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 				"X-Title": 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
 			},
 		});
-		options = { model: voidConfig.openRouter.model, messages: messages, stream: true, max_completion_tokens: parseInt(voidConfig.default.maxTokens) }
+		options = { model: voidConfig.openRouter.model, messages: messages, stream: true, max_completion_tokens: maxTokens }
 	}
 	else if (voidConfig.default.whichApi === 'openAICompatible') {
 		openai = new OpenAI({ baseURL: voidConfig.openAICompatible.endpoint, apiKey: voidConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true })
-		options = { model: voidConfig.openAICompatible.model, messages: messages, stream: true, max_completion_tokens: parseInt(voidConfig.default.maxTokens) }
+		options = { model: voidConfig.openAICompatible.model, messages: messages, stream: true, max_completion_tokens: maxTokens }
 	}
 	else {
 		console.error(`sendOpenAIMsg: invalid whichApi: ${voidConfig.default.whichApi}`)

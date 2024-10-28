@@ -129,7 +129,10 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 	}
 	else if (voidConfig.default.whichApi === 'openAICompatible') {
 		openai = new OpenAI({ baseURL: voidConfig.openAICompatible.endpoint, apiKey: voidConfig.openAICompatible.apikey, dangerouslyAllowBrowser: true })
-		options = { model: voidConfig.openAICompatible.model, messages: messages, stream: true, max_completion_tokens: parseInt(voidConfig.default.maxTokens) }
+		options = { model: voidConfig.openAICompatible.model, messages: messages, stream: true }
+		if (voidConfig.default.maxTokens !== 'disabled') {
+			options.max_completion_tokens = parseInt(voidConfig.default.maxTokens);
+		}
 	}
 	else {
 		console.error(`sendOpenAIMsg: invalid whichApi: ${voidConfig.default.whichApi}`)

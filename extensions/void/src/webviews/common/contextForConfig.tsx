@@ -53,7 +53,8 @@ const voidConfigInfo: Record<
 				"1024",
 				"2048",
 				"4096",
-				"8192"
+				"8192",
+				"disabled" // Some OpenAICompatible configurations don't allow sending the additional parameters
 			] as const,
 		),
 

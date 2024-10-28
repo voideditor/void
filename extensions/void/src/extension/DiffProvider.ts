@@ -10,6 +10,14 @@ const greenDecoration = vscode.window.createTextEditorDecorationType({
 	backgroundColor: 'rgba(0 255 51 / 0.2)',
 	isWholeLine: false, // after: { contentText: '       [original]', color: 'rgba(0 255 60 / 0.5)' }  // hoverMessage: originalText // this applies to hovering over after:...
 })
+const lightGrayDecoration = vscode.window.createTextEditorDecorationType({
+	backgroundColor: 'rgba(218 218 218 / .2)',
+	isWholeLine: true,
+})
+const darkGrayDecoration = vscode.window.createTextEditorDecorationType({
+	backgroundColor: 'rgb(148 148 148 / .2)',
+	isWholeLine: true,
+})
 
 // responsible for displaying diffs and showing accept/reject buttons
 export class DiffProvider implements vscode.CodeLensProvider {
@@ -20,7 +28,6 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 	private _diffareaidPool = 0
 	private _diffidPool = 0
-	private _weAreEditing: boolean = false
 
 	// used internally by vscode
 	private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>(); // signals a UI refresh on .fire() events
@@ -43,23 +50,21 @@ export class DiffProvider implements vscode.CodeLensProvider {
 			const editor = vscode.window.activeTextEditor
 
 			if (!editor) return
-			if (this._weAreEditing) return
 
 			const docUriStr = editor.document.uri.toString()
 			const changes = e.contentChanges.map(c => ({ startLine: c.range.start.line, endLine: c.range.end.line, text: c.text, }))
 
 			// on user change, grow/shrink/merge/delete diff areas
-			this.updateDiffAreasBasedOnChanges(docUriStr, changes, 'currentFile')
+			this.refreshDiffAreasModel(docUriStr, changes, 'currentFile')
 
 			// refresh the diffAreas
-			this.refreshStyles(docUriStr)
+			this.refreshStylesAndDiffs(docUriStr)
 
 		})
 	}
 
-
 	// used by us only
-	public createDiffArea(uri: vscode.Uri, diffArea: Omit<DiffArea, 'diffareaid'>, originalFile: string) {
+	public createDiffArea(uri: vscode.Uri, partialDiffArea: Omit<DiffArea, 'diffareaid'>, originalFile: string) {
 
 		const uriStr = uri.toString()
 
@@ -70,21 +75,26 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 		// remove all diffAreas that the new `diffArea` is overlapping with
 		this._diffAreasOfDocument[uriStr] = this._diffAreasOfDocument[uriStr].filter(da => {
-			const noOverlap = da.startLine > diffArea.endLine || da.endLine < diffArea.startLine
+			const noOverlap = da.startLine > partialDiffArea.endLine || da.endLine < partialDiffArea.startLine
 			if (!noOverlap) return false
 			return true
 		})
 
 		// add `diffArea` to storage
-		this._diffAreasOfDocument[uriStr].push({
-			...diffArea,
+		const diffArea = {
+			...partialDiffArea,
 			diffareaid: this._diffareaidPool
-		})
+		}
+		this._diffAreasOfDocument[uriStr].push(diffArea)
 		this._diffareaidPool += 1
+
+		return diffArea
 	}
 
 	// used by us only
-	public updateDiffAreasBasedOnChanges(docUriStr: string, changes: { text: string, startLine: number, endLine: number }[], changesTo: 'originalFile' | 'currentFile') {
+	// changes the start/line locations based on the changes that were recently made. does not change any of the diffs in the diff areas
+	// changes tells us how many lines were inserted/deleted so we can grow/shrink the diffAreas accordingly
+	public refreshDiffAreasModel(docUriStr: string, changes: { text: string, startLine: number, endLine: number }[], changesTo: 'originalFile' | 'currentFile') {
 
 		const diffAreas = this._diffAreasOfDocument[docUriStr] || []
 
@@ -141,7 +151,8 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 
 	// used by us only
-	public refreshStyles(docUriStr: string) {
+	// refreshes all the diffs inside each diff area, and refreshes the styles
+	public refreshStylesAndDiffs(docUriStr: string) {
 
 		const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
 		if (!editor) {
@@ -172,19 +183,19 @@ export class DiffProvider implements vscode.CodeLensProvider {
 			// add the diffs to `this._diffsOfDocument[docUriStr]`
 			this.createDiffs(editor.document.uri, diffs, diffArea)
 
-			// print diffs
-			console.log('!ORIGINAL FILE:', JSON.stringify(originalFile))
-			console.log('!NEW FILE     :', JSON.stringify(editor.document.getText().replace(/\r\n/g, '\n')))
-			console.log('!AREA originalCode:', JSON.stringify(originalCode))
-			console.log('!AREA currentCode :', JSON.stringify(currentCode))
-			for (const diff of this._diffsOfDocument[docUriStr]) {
-				console.log('------------')
-				console.log('originalCode:', JSON.stringify(diff.originalCode))
-				console.log('currentCode:', JSON.stringify(diff.code))
-				console.log('originalRange:', diff.originalRange.start.line, diff.originalRange.end.line,)
-				console.log('currentRange:', diff.range.start.line, diff.range.end.line,)
-			}
-			console.log('DiffRepr: ', diffs.map(diff => diff.repr).join('\n'))
+
+			// // print diffs
+			// console.log('!ORIGINAL FILE:', JSON.stringify(originalFile))
+			// console.log('!NEW FILE     :', JSON.stringify(editor.document.getText().replace(/\r\n/g, '\n')))
+			// console.log('!AREA originalCode:', JSON.stringify(originalCode))
+			// console.log('!AREA currentCode :', JSON.stringify(currentCode))
+			// for (const diff of this._diffsOfDocument[docUriStr]) {
+			// 	console.log('------------')
+			// 	console.log('originalCode:', JSON.stringify(diff.originalCode))
+			// 	console.log('currentCode:', JSON.stringify(diff.code))
+			// 	console.log('originalRange:', diff.originalRange.start.line, diff.originalRange.end.line,)
+			// 	console.log('currentRange:', diff.range.start.line, diff.range.end.line,)
+			// }
 
 		}
 
@@ -196,6 +207,30 @@ export class DiffProvider implements vscode.CodeLensProvider {
 				.map(diff => diff.range)
 			)
 		);
+
+
+		// for each diffArea, highlight its sweepIndex in dark gray
+		editor.setDecorations(
+			darkGrayDecoration,
+			(this._diffAreasOfDocument[docUriStr]
+				.filter(diffArea => diffArea.sweepIndex !== null)
+				.map(diffArea => {
+					let s = diffArea.sweepIndex!
+					return new vscode.Range(s, 0, s, 0)
+				})
+			)
+		)
+
+		// for each diffArea, highlight sweepIndex+1...end in light gray
+		editor.setDecorations(
+			lightGrayDecoration,
+			(this._diffAreasOfDocument[docUriStr]
+				.filter(diffArea => diffArea.sweepIndex !== null)
+				.map(diffArea => {
+					return new vscode.Range(diffArea.sweepIndex! + 1, 0, diffArea.endLine, 0)
+				})
+			)
+		)
 
 		// TODO update red highlighting
 		// this._diffsOfDocument[docUriStr].map(diff => diff.deletedCode)
@@ -267,7 +302,7 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		this._originalFileOfDocument[docUriStr] = newOriginalLines.join('\n');
 
 		// Update diff areas based on the change
-		this.updateDiffAreasBasedOnChanges(docUriStr, [{
+		this.refreshDiffAreasModel(docUriStr, [{
 			text: changedLines.join('\n'),
 			startLine: diff.originalRange.start.line,
 			endLine: diff.originalRange.end.line
@@ -290,7 +325,7 @@ export class DiffProvider implements vscode.CodeLensProvider {
 			this._diffAreasOfDocument[docUriStr].splice(index, 1)
 		}
 
-		this.refreshStyles(docUriStr)
+		this.refreshStylesAndDiffs(docUriStr)
 	}
 
 	// called on void.rejectDiff
@@ -310,11 +345,10 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		const diff = this._diffsOfDocument[docUriStr][diffIdx]
 
 		// Apply the rejection by replacing with original code
+		// we don't have to edit the original or final file; just do a workspace edit so the code equals the original code
 		const workspaceEdit = new vscode.WorkspaceEdit();
 		workspaceEdit.replace(editor.document.uri, diff.range, diff.originalCode)
-		this._weAreEditing = true
 		await vscode.workspace.applyEdit(workspaceEdit)
-		this._weAreEditing = false
 
 		// Check if diffArea should be removed
 		const originalFile = this._originalFileOfDocument[docUriStr]
@@ -336,8 +370,70 @@ export class DiffProvider implements vscode.CodeLensProvider {
 			this._diffAreasOfDocument[docUriStr].splice(index, 1)
 		}
 
-		this.refreshStyles(docUriStr)
+		this.refreshStylesAndDiffs(docUriStr)
 	}
+
+
+
+
+	// used by us only
+	public async updateStream(docUriStr: string, diffArea: DiffArea, newDiffAreaCode: string) {
+
+		const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
+		if (!editor) {
+			console.log('Error: No active editor!')
+			return;
+		}
+
+		// original code all diffs are based on in the code
+		const originalDiffAreaCode = (this._originalFileOfDocument[docUriStr] || '').split('\n').slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
+
+		// figure out where to highlight based on where the AI is in the stream right now, use the last diff in findDiffs to figure that out
+		const diffs = findDiffs(originalDiffAreaCode, newDiffAreaCode)
+		const lastDiff = diffs[diffs.length - 1] ?? null
+
+		// these are two different coordinate systems - new and old line number
+		let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
+		let oldFileStartLine: number // get original[oldStartingPoint...]
+
+		if (!lastDiff) {
+			// if the writing is identical so far, display no changes
+			newFileEndLine = 0
+			oldFileStartLine = 0
+		}
+		else {
+			if (lastDiff.type === 'insertion') {
+				newFileEndLine = lastDiff.range.end.line
+				oldFileStartLine = lastDiff.originalRange.start.line
+			}
+			else if (lastDiff.type === 'deletion') {
+				newFileEndLine = lastDiff.range.start.line
+				oldFileStartLine = lastDiff.originalRange.start.line
+			}
+			else if (lastDiff.type === 'edit') {
+				newFileEndLine = lastDiff.range.end.line
+				oldFileStartLine = lastDiff.originalRange.start.line
+			}
+			else {
+				throw new Error(`updateStream: diff.type not recognized: ${lastDiff.type}`)
+			}
+		}
+
+		// display
+		const newFileTop = newDiffAreaCode.split('\n').slice(0, newFileEndLine + 1).join('\n')
+		const oldFileBottom = originalDiffAreaCode.split('\n').slice(oldFileStartLine + 1, Infinity).join('\n')
+
+		let newCode = `${newFileTop}\n${oldFileBottom}`
+		diffArea.sweepIndex = newFileEndLine
+		// replace oldDACode with newDACode with a vscode edit
+
+		const workspaceEdit = new vscode.WorkspaceEdit();
+
+		const diffareaRange = new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)
+		workspaceEdit.replace(editor.document.uri, diffareaRange, newCode)
+		await vscode.workspace.applyEdit(workspaceEdit)
+	}
+
 }
 
 

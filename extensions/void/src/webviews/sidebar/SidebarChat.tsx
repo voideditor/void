@@ -263,10 +263,8 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 
 				setLatestError(error)
 			},
-			setAbort: (abort) => {
-				abortFnRef.current = abort
-			},
 			voidConfig,
+			abortRef: abortFnRef,
 		})
 
 

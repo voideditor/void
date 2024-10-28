@@ -12,7 +12,7 @@ enum CopyButtonState {
 
 const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
-const CodeButtonsOnHover = ({ text }: { text: string }) => {
+const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
 
 	useEffect(() => {
@@ -44,7 +44,7 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 		<button
 			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 			onClick={async () => {
-				getVSCodeAPI().postMessage({ type: "applyChanges", code: text })
+				getVSCodeAPI().postMessage({ type: "applyChanges", diffRepr: text })
 			}}
 		>
 			Apply
@@ -66,7 +66,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 		return <BlockCode
 			text={t.text}
 			language={t.lang}
-			buttonsOnHover={<CodeButtonsOnHover text={t.text} />}
+			buttonsOnHover={<CodeButtonsOnHover diffRepr={t.text} />}
 		/>
 	}
 

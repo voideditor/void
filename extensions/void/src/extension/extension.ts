@@ -7,6 +7,7 @@ import { getVoidConfig } from '../webviews/common/contextForConfig';
 import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
+import { AbortRef } from '../common/sendLLMMessage';
 
 // this comes from vscode.proposed.editorInsets.d.ts
 declare module 'vscode' {
@@ -85,15 +86,15 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	// 3. Show an approve/reject codelens above each change
-	const displayChangesProvider = new DiffProvider();
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', displayChangesProvider));
+	const diffProvider = new DiffProvider();
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', diffProvider));
 
 	// 4. Add approve/reject commands
 	context.subscriptions.push(vscode.commands.registerCommand('void.acceptDiff', async (params) => {
-		displayChangesProvider.acceptDiff(params)
+		diffProvider.acceptDiff(params)
 	}));
 	context.subscriptions.push(vscode.commands.registerCommand('void.rejectDiff', async (params) => {
-		displayChangesProvider.rejectDiff(params)
+		diffProvider.rejectDiff(params)
 	}));
 
 	// 5. Receive messages from sidebar
@@ -114,6 +115,8 @@ export function activate(context: vscode.ExtensionContext) {
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
 			webview.onDidReceiveMessage(async (m: MessageFromSidebar) => {
 
+				const abortApplyRef: AbortRef = { current: null }
+
 				if (m.type === 'requestFiles') {
 
 					// get contents of all file paths
@@ -132,41 +135,21 @@ export function activate(context: vscode.ExtensionContext) {
 						vscode.window.showInformationMessage('No active editor!')
 						return
 					}
-
-
 					// create an area to show diffs
-					const diffArea: Omit<DiffArea, 'diffareaid'> = {
+					const partialDiffArea: Omit<DiffArea, 'diffareaid'> = {
 						startLine: 0, // in ctrl+L the start and end lines are the full document
 						endLine: editor.document.lineCount,
 						originalStartLine: 0,
 						originalEndLine: editor.document.lineCount,
+						sweepIndex: null,
 					}
-					displayChangesProvider.createDiffArea(editor.document.uri, diffArea, await readFileContentOfUri(editor.document.uri))
+					const diffArea = diffProvider.createDiffArea(editor.document.uri, partialDiffArea, await readFileContentOfUri(editor.document.uri))
 
-
-					// write new code `m.code` to the document
-					// TODO update like this:
-					// this._weAreEditing = true
-					// await vscode.workspace.applyEdit(workspaceEdit)
-					// await vscode.workspace.save(docUri)
-					// this._weAreEditing = false
-					const fileUri = editor.document.uri
-					const fileStr = await readFileContentOfUri(fileUri)
+					const docUri = editor.document.uri
+					const fileStr = await readFileContentOfUri(docUri)
 					const voidConfig = getVoidConfig(context.globalState.get('partialVoidConfig') ?? {})
 
-					let abort = () => { } // TODO this is unused
-
-					// apply the change
-					applyDiffLazily({ fileUri, oldFileStr: fileStr, diffStr: m.code, voidConfig, setAbort: (a) => { abort = a } })
-
-					// set the file equal to the change
-					// await editor.edit(editBuilder => {
-					// 	editBuilder.replace(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER), m.code);
-					// });
-
-					// rediff the changes based on the diffAreas
-					displayChangesProvider.refreshStyles(editor.document.uri.toString())
-
+					await applyDiffLazily({ docUri, oldFileStr: fileStr, diffRepr: m.diffRepr, voidConfig, diffProvider, diffArea, abortRef: abortApplyRef })
 				}
 				else if (m.type === 'getPartialVoidConfig') {
 					const partialVoidConfig = context.globalState.get('partialVoidConfig') ?? {}

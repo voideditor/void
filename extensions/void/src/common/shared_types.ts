@@ -12,16 +12,20 @@ type File = { filepath: vscode.Uri, content: string }
 // an area that is currently being diffed
 type DiffArea = {
 	diffareaid: number,
-	startLine: number, endLine: number,
-	originalStartLine: number, originalEndLine: number,
+	startLine: number,
+	endLine: number,
+	originalStartLine: number,
+	originalEndLine: number,
+	sweepIndex: number | null // null iff not sweeping
 }
 
 // the return type of diff creator
 type BaseDiff = {
-	repr: string; // representation of the diff in text
+	type: 'edit' | 'insertion' | 'deletion';
+	// repr: string; // representation of the diff in text
 	originalRange: vscode.Range;
-	range: vscode.Range;
 	originalCode: string;
+	range: vscode.Range;
 	code: string;
 }
 
@@ -46,7 +50,7 @@ type MessageToSidebar = (
 
 // sidebar -> editor
 type MessageFromSidebar = (
-	| { type: 'applyChanges', code: string } // user clicks "apply" in the sidebar
+	| { type: 'applyChanges', diffRepr: string } // user clicks "apply" in the sidebar
 	| { type: 'requestFiles', filepaths: vscode.Uri[] }
 	| { type: 'getPartialVoidConfig' }
 	| { type: 'persistPartialVoidConfig', partialVoidConfig: PartialVoidConfig }

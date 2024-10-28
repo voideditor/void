@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { AbortRef, OnFinalMessage, OnText, sendLLMMessage } from "./sendLLMMessage"
-import { VoidConfig } from '../sidebar/contextForConfig';
+import { VoidConfig } from '../webviews/common/contextForConfig';
 import { findDiffs } from '../findDiffs';
 import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from './systemPrompts';
 import { throttle } from 'lodash';

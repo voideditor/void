@@ -25,7 +25,8 @@ declare module 'vscode' {
 }
 
 const roundRangeToLines = (selection: vscode.Selection) => {
-	return new vscode.Range(selection.start.line, 0, selection.end.line, Number.MAX_SAFE_INTEGER)
+	let endLine = selection.end.character === 0 ? selection.end.line - 1 : selection.end.line // triple clicking selects column=0, line=line through column=0, line=line+1
+	return new vscode.Range(selection.start.line, 0, endLine, Number.MAX_SAFE_INTEGER)
 }
 
 export function activate(context: vscode.ExtensionContext) {

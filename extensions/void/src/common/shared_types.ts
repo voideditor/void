@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { PartialVoidConfig } from '../sidebar/contextForConfig';
+import { PartialVoidConfig } from '../webviews/common/contextForConfig'
 
 
 
@@ -10,26 +10,23 @@ type CodeSelection = { selectionStr: string, selectionRange: vscode.Range, fileP
 type File = { filepath: vscode.Uri, content: string }
 
 // an area that is currently being diffed
-type BaseDiffArea = {
-	// use `startLine` and `endLine` instead of `range` for mutibility
-	// bounds are relative to the file, inclusive
-	startLine: number;
-	endLine: number;
+type DiffArea = {
+	diffareaid: number,
+	startLine: number,
+	endLine: number,
 	originalStartLine: number,
 	originalEndLine: number,
-	originalCode: string, // the original chunk of code (not necessarily the whole file)
-	// `newCode: string,` is not included because it is the code in the actual file, `document.text()[startline: endLine + 1]`
+	sweepIndex: number | null // null iff not sweeping
 }
-
-type DiffArea = BaseDiffArea & { diffareaid: number }
 
 // the return type of diff creator
 type BaseDiff = {
-	code: string; // representation of the diff in text
-	deletedRange: vscode.Range; // relative to the file, inclusive
-	insertedRange: vscode.Range;
-	deletedCode: string;
-	insertedCode: string;
+	type: 'edit' | 'insertion' | 'deletion';
+	// repr: string; // representation of the diff in text
+	originalRange: vscode.Range;
+	originalCode: string;
+	range: vscode.Range;
+	code: string;
 }
 
 // each diff on the user's screen
@@ -53,7 +50,7 @@ type MessageToSidebar = (
 
 // sidebar -> editor
 type MessageFromSidebar = (
-	| { type: 'applyChanges', code: string } // user clicks "apply" in the sidebar
+	| { type: 'applyChanges', diffRepr: string } // user clicks "apply" in the sidebar
 	| { type: 'requestFiles', filepaths: vscode.Uri[] }
 	| { type: 'getPartialVoidConfig' }
 	| { type: 'persistPartialVoidConfig', partialVoidConfig: PartialVoidConfig }
@@ -83,12 +80,17 @@ type ChatMessage =
 	| {
 		role: "assistant";
 		content: string; // content received from LLM
-		displayContent: string; // content displayed to user (this is the same as content for now)
+		displayContent: string | undefined; // content displayed to user (this is the same as content for now)
+	}
+	| {
+		role: "system";
+		content: string;
+		displayContent?: undefined;
 	}
 
 export {
-	BaseDiff, BaseDiffArea,
-	Diff, DiffArea,
+	BaseDiff, Diff,
+	DiffArea,
 	CodeSelection,
 	File,
 	MessageFromSidebar,

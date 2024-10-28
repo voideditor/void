@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
-import { CodeSelection, ChatMessage, MessageToSidebar } from "../common/shared_types"
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi"
+import { CodeSelection, ChatMessage, MessageToSidebar } from "../../common/shared_types"
+import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "../common/getVscodeApi"
 
 import { SidebarThreadSelector } from "./SidebarThreadSelector";
 import { SidebarChat } from "./SidebarChat";
-import { SidebarSettings } from './SidebarSettings';
-import { identifyUser } from "./metrics/posthog";
+import { SidebarSettings } from "./SidebarSettings";
+import { identifyUser } from "../common/posthog";
 
 
 const Sidebar = () => {
@@ -60,7 +60,6 @@ const Sidebar = () => {
 			</div>
 
 		</div>
-
 	</>
 
 }

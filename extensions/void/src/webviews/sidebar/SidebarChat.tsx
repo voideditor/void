@@ -4,13 +4,14 @@ import React, { FormEvent, useCallback, useEffect, useRef, useState } from "reac
 import { marked } from 'marked';
 import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
-import { File, ChatMessage, CodeSelection } from "../common/shared_types";
+import { File, ChatMessage, CodeSelection } from "../../common/shared_types";
 import * as vscode from 'vscode'
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "./getVscodeApi";
-import { useThreads } from "./contextForThreads";
-import { sendLLMMessage } from "../common/sendLLMMessage";
-import { useVoidConfig } from "./contextForConfig";
-import { captureEvent } from "./metrics/posthog";
+import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "../common/getVscodeApi";
+import { useThreads } from "../common/contextForThreads";
+import { sendLLMMessage } from "../../common/sendLLMMessage";
+import { useVoidConfig } from "../common/contextForConfig";
+import { captureEvent } from "../common/posthog";
+import { generateDiffInstructions } from "../../common/systemPrompts";
 
 
 
@@ -160,7 +161,8 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 	const [latestError, setLatestError] = useState('')
 
 	// higher level state
-	const { allThreads, currentThread, addMessageToHistory, startNewThread, switchToThread } = useThreads()
+	const { getAllThreads, getCurrentThread, addMessageToHistory, startNewThread, switchToThread } = useThreads()
+
 	const { voidConfig } = useVoidConfig()
 
 
@@ -168,20 +170,21 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureChatEvent = useCallback((eventId: string, extras?: object) => {
 		const whichApi = voidConfig.default['whichApi']
-		const messages = currentThread?.messages
+		const messages = getCurrentThread()?.messages
 
 		captureEvent(eventId, {
 			whichApi: whichApi,
 			numMessages: messages?.length,
-			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.displayContent.length })),
+			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.displayContent?.length })),
 			version: '2024-10-19',
 			...extras,
 		})
-	}, [currentThread?.messages, voidConfig.default])
+	}, [getCurrentThread, voidConfig.default])
 
 
 	// if they pressed the + to add a new chat
 	useOnVSCodeMessage('startNewThread', (m) => {
+		const allThreads = getAllThreads()
 		// find a thread with 0 messages and switch to it
 		for (let threadId in allThreads) {
 			if (allThreads[threadId].messages.length === 0) {
@@ -224,19 +227,20 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 		getVSCodeAPI().postMessage({ type: 'requestFiles', filepaths: files })
 		const relevantFiles = await awaitVSCodeResponse('files')
 
-		// add message to chat history
+		// add system message to chat history
+		const systemPromptElt: ChatMessage = { role: 'system', content: generateDiffInstructions }
+		addMessageToHistory(systemPromptElt)
+
 		const userContent = userInstructionsStr(instructions, relevantFiles.files, selection)
-		// console.log('prompt:\n', content)
 		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selection, files }
 		addMessageToHistory(newHistoryElt)
-
-		// send message to LLM
 
 		captureChatEvent('Chat - Sending Message', { messageLength: instructions.length })
 		const submit_time = new Date()
 
-		let { abort } = sendLLMMessage({
-			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userContent }],
+		// send message to LLM
+		sendLLMMessage({
+			messages: [...(getCurrentThread()?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
 				captureChatEvent('Chat - Received Full Message', { messageLength: content.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
@@ -259,9 +263,10 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 
 				setLatestError(error)
 			},
-			voidConfig: voidConfig
+			voidConfig,
+			abortRef: abortFnRef,
 		})
-		abortFnRef.current = abort
+
 
 	}
 
@@ -286,7 +291,7 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 	return <>
 		<div className="overflow-x-hidden space-y-4">
 			{/* previous messages */}
-			{currentThread !== null && currentThread.messages.map((message, i) =>
+			{getCurrentThread() !== null && getCurrentThread()?.messages.map((message, i) =>
 				<ChatBubble key={i} chatMessage={message} />
 			)}
 			{/* message stream */}
@@ -296,7 +301,6 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 		<div className="shrink-0 py-4">
 			{/* selection */}
 			<div className="text-left">
-
 				<div className="relative">
 					<div className="input">
 						{/* selection */}

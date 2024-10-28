@@ -1,3 +1,5 @@
+/* all the styles are shared right now between all webviews */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

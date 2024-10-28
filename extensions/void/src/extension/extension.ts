@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-
-import { DiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './common/shared_types';
+import { applyDiffLazily } from './ctrlL';
+import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
+import { MessageToSidebar, MessageFromSidebar, DiffArea, ChatThreads } from '../common/shared_types';
+import { DiffProvider } from './DiffProvider';
+import { getVoidConfig } from '../webviews/common/contextForConfig';
+import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
+import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { v4 as uuidv4 } from 'uuid'
-import { AbortRef } from './common/sendLLMMessage';
-import { DiffProvider } from './extension/DiffProvider';
-import { SidebarWebviewProvider } from './extension/providers/SidebarWebviewProvider';
-import { getVoidConfig } from './webviews/common/contextForConfig';
-import { applyDiffLazily } from './extension/ctrlL';
-import { readFileContentOfUri } from './extension/extensionLib/readFileContentOfUri';
+import { AbortRef } from '../common/sendLLMMessage';
 
 // this comes from vscode.proposed.editorInsets.d.ts
 declare module 'vscode' {
@@ -36,6 +36,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.registerWebviewViewProvider(SidebarWebviewProvider.viewId, sidebarWebviewProvider, { webviewOptions: { retainContextWhenHidden: true } })
 	);
 
+	// 1.5
+	const ctrlKWebviewProvider = new CtrlKWebviewProvider(context)
 
 
 	// 2. ctrl+l
@@ -43,15 +45,6 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('void.ctrl+l', () => {
 			const editor = vscode.window.activeTextEditor
 			if (!editor) return
-
-
-			// const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 10, {})
-			// inset.webview.html = `
-			// <html>
-			// 	<body style="pointer-events:none;">Hello World!</body>
-			// </html>
-			// `;
-
 
 			// show the sidebar
 			vscode.commands.executeCommand('workbench.view.extension.voidViewContainer');
@@ -88,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const filePath = editor.document.uri;
 
 			// send message to the webview (Sidebar.tsx)
-			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+k', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
+			ctrlKWebviewProvider.onPressCtrlK()
 		})
 	);
 

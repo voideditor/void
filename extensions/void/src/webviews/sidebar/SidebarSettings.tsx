@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { configFields, useVoidConfig, VoidConfigField } from "./contextForConfig";
+import { configFields, useVoidConfig, VoidConfigField } from "../common/contextForConfig";
 
 
 const SettingOfFieldAndParam = ({ field, param }: { field: VoidConfigField, param: string }) => {
@@ -68,6 +68,10 @@ export const SidebarSettings = () => {
 				<SettingOfFieldAndParam
 					field='default'
 					param='whichApi'
+				/>
+				<SettingOfFieldAndParam
+					field='default'
+					param='maxTokens'
 				/>
 			</div>
 

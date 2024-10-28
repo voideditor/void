@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { OnFinalMessage, OnText, sendLLMMessage, SetAbort } from "./sendLLMMessage"
+import { AbortRef, OnFinalMessage, OnText, sendLLMMessage } from "./sendLLMMessage"
 import { VoidConfig } from '../sidebar/contextForConfig';
 import { findDiffs } from '../findDiffs';
 import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from './systemPrompts';
@@ -31,7 +31,7 @@ const applyCtrlLChangesToFile = throttle(
 )
 
 
-const applyCtrlK = async ({ fileUri, startLine, endLine, instructions, voidConfig, setAbort }: { fileUri: vscode.Uri, startLine: number, endLine: number, instructions: string, voidConfig: VoidConfig, setAbort: SetAbort }) => {
+const applyCtrlK = async ({ fileUri, startLine, endLine, instructions, voidConfig, abortRef }: { fileUri: vscode.Uri, startLine: number, endLine: number, instructions: string, voidConfig: VoidConfig, abortRef: AbortRef }) => {
 
 	const fileStr = await readFileContentOfUri(fileUri)
 	const fileLines = fileStr.split('\n')
@@ -91,7 +91,7 @@ Complete the following:
 			console.error('Error rewriting file with diff', e);
 		},
 		voidConfig,
-		setAbort,
+		abortRef,
 	})
 
 }

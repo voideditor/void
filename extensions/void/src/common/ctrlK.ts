@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import { AbortRef, OnFinalMessage, OnText, sendLLMMessage } from "./sendLLMMessage"
 import { VoidConfig } from '../webviews/common/contextForConfig';
-import { findDiffs } from '../findDiffs';
 import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from './systemPrompts';
 import { throttle } from 'lodash';
-import { readFileContentOfUri } from './readFileContentOfUri';
+import { readFileContentOfUri } from '../extension/extensionLib/readFileContentOfUri';
 
 type Res<T> = ((value: T) => void)
 

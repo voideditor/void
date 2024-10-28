@@ -2,12 +2,12 @@ import * as vscode from 'vscode';
 
 import { DiffArea, ChatThreads, MessageFromSidebar, MessageToSidebar } from './common/shared_types';
 import { v4 as uuidv4 } from 'uuid'
-import { applyDiffLazily } from './common/ctrlL';
-import { readFileContentOfUri } from './common/readFileContentOfUri';
 import { AbortRef } from './common/sendLLMMessage';
 import { DiffProvider } from './extension/DiffProvider';
 import { SidebarWebviewProvider } from './extension/providers/SidebarWebviewProvider';
 import { getVoidConfig } from './webviews/common/contextForConfig';
+import { applyDiffLazily } from './extension/ctrlL';
+import { readFileContentOfUri } from './extension/extensionLib/readFileContentOfUri';
 
 // this comes from vscode.proposed.editorInsets.d.ts
 declare module 'vscode' {

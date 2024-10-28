@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { findDiffs } from './findDiffs';
 import { Diff, DiffArea, BaseDiff, } from '../common/shared_types';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
-
+const THRTOTLE_TIME = 100 // minimum time between edits
 
 
 // TODO in theory this should be disposed

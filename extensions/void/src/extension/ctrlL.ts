@@ -8,10 +8,6 @@ import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 
 const LINES_PER_CHUNK = 20 // number of lines to search at a time
 
-// const THRTOTLE_TIME = 100 // minimum time between edits
-// 	throttle(
-// 	THRTOTLE_TIME, { trailing: true }
-// )
 
 type CompetedReturn = { isFinished: true, } | { isFinished?: undefined, }
 const streamChunk = ({ diffProvider, docUri, oldFileStr, completedStr, diffRepr, diffArea, voidConfig, abortRef }: { diffProvider: DiffProvider, docUri: vscode.Uri, oldFileStr: string, completedStr: string, diffRepr: string, voidConfig: VoidConfig, diffArea: DiffArea, abortRef: AbortRef }) => {

@@ -97,8 +97,7 @@ If you ran `npm run watch`, the build is done when you see something like this:
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
 1. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `/.scripts/code.bat` (Windows). This should open up the built IDE!
-
-To see new changes without restarting the build, press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window.
+You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building.
 
 Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page!
 
@@ -119,9 +118,7 @@ Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin
 
 ## Roadmap
 
-Here are the most important topics on our Roadmap. More ⭐'s = more important.
-
-These sometimes get outdated - please refer to our [Issues](https://github.com/voideditor/void/issues) page for the latest issues.
+Here are the most important topics on our Roadmap. More ⭐'s = more important. Please refer to our [Issues](https://github.com/voideditor/void/issues) page for the latest issues.
 
 ## ⭐⭐⭐ Make History work well.
 

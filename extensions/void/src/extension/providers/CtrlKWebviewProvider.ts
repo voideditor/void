@@ -34,18 +34,18 @@ export class CtrlKWebviewProvider {
 
 	onPressCtrlK() {
 
-		// TODO if currently selecting a ctrl k element, just focus it and do nothing
+		// // TODO if currently selecting a ctrl k element, just focus it and do nothing
 
 
-		const inset = vscode.window.createWebviewTextEditorInset(editor, line, height);
+		// const inset = vscode.window.createWebviewTextEditorInset(editor, line, height);
 
 
-		const newCtrlKId = this._idPool++
-		updateWebviewHTML(inset.webview, this._extensionUri, { jsOutLocation: 'dist/webviews/ctrlk/index.js', cssOutLocation: 'dist/webviews/styles.css' },
-			{ id: newCtrlKId }
-		)
+		// const newCtrlKId = this._idPool++
+		// updateWebviewHTML(inset.webview, this._extensionUri, { jsOutLocation: 'dist/webviews/ctrlk/index.js', cssOutLocation: 'dist/webviews/styles.css' },
+		// 	{ id: newCtrlKId }
+		// )
 
-		ctrlKWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+k', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
+		// ctrlKWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+k', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
 
 
 	}

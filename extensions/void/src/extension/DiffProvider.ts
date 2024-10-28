@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import { findDiffs } from './findDiffs';
-import { Diff, DiffArea, BaseDiff, } from '../common/shared_types';
+import { throttle } from 'lodash';
+import { DiffArea, BaseDiff, Diff } from '../common/shared_types';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
-const THRTOTLE_TIME = 100 // minimum time between edits
 
+
+const THROTTLE_TIME = 100
 
 // TODO in theory this should be disposed
 const greenDecoration = vscode.window.createTextEditorDecorationType({
@@ -377,7 +379,7 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 
 	// used by us only
-	public async updateStream(docUriStr: string, diffArea: DiffArea, newDiffAreaCode: string) {
+	public updateStream = throttle(async (docUriStr: string, diffArea: DiffArea, newDiffAreaCode: string) => {
 
 		const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
 		if (!editor) {
@@ -432,9 +434,10 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		const diffareaRange = new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)
 		workspaceEdit.replace(editor.document.uri, diffareaRange, newCode)
 		await vscode.workspace.applyEdit(workspaceEdit)
-	}
+	}, THROTTLE_TIME)
 
 }
+
 
 
 

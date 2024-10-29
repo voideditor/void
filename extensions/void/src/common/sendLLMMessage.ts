@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { VoidConfig } from '../webviews/common/contextForConfig'
 
 export type AbortRef = { current: (() => void) | null }
@@ -36,8 +37,6 @@ type SendLLMMessageFnTypeExternal = (params: {
 	voidConfig: VoidConfig | null,
 	abortRef: AbortRef,
 }) => void
-
-
 
 const parseMaxTokensStr = (maxTokensStr: string) => {
 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
@@ -103,8 +102,72 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 	return { abort }
 };
 
+// Gemini
+const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+	let didAbort = false
+	let fullText = ''
 
+	abortRef.current = () => {
+		didAbort = true
+	}
 
+	try {
+		const genAI = new GoogleGenerativeAI(voidConfig.gemini.apikey);
+		// Force the model to be exactly what's configured
+		const modelName = voidConfig.gemini.model;
+		const model = genAI.getGenerativeModel({ model: modelName });
+
+		// Combine system messages with the first user message
+		let systemContent = messages
+			.filter(msg => msg.role === 'system')
+			.map(msg => msg.content)
+			.join('\n');
+		
+		// Filter out system messages and modify first user message if needed
+		let geminiMessages = messages.filter(msg => msg.role !== 'system');
+		if (systemContent && geminiMessages.length > 0 && geminiMessages[0].role === 'user') {
+			geminiMessages[0] = {
+				...geminiMessages[0],
+				content: `${systemContent}\n\n${geminiMessages[0].content}`
+			};
+		}
+
+		// Convert remaining messages to Gemini format
+		const history = geminiMessages.map(msg => ({
+			role: msg.role === 'assistant' ? 'model' : msg.role,
+			parts: [{ text: msg.content }]
+		}));
+
+		const chat = model.startChat({
+			history: history.slice(0, -1), // Exclude last message
+			generationConfig: {
+				maxOutputTokens: parseInt(voidConfig.default.maxTokens)
+				// Removed model from generationConfig since it's not a valid property
+				// Model is already set when creating the model instance above
+			}
+		});
+
+		const lastMessage = messages[messages.length - 1].content;
+		const result = await chat.sendMessageStream(lastMessage);
+
+		for await (const chunk of result.stream) {
+			if (didAbort) return;
+			const newText = chunk.text();
+			fullText += newText;
+			onText(newText, fullText);
+		}
+
+		onFinalMessage(fullText);
+	} catch (error: unknown) {
+		if (error instanceof Error && error.message?.includes('API key')) {
+			onError('Invalid API key.');
+		} else if (error instanceof Error) {
+			onError(error.message || 'Error connecting to Gemini');
+		} else {
+			onError('Error connecting to Gemini');
+		}
+	}
+};
 
 // OpenAI, OpenRouter, OpenAICompatible
 const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
@@ -178,7 +241,6 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 
 };
 
-
 // Ollama
 export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 
@@ -220,8 +282,6 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 
 };
 
-
-
 // Greptile
 // https://docs.greptile.com/api-reference/query
 // https://docs.greptile.com/quickstart#sample-response-streamed
@@ -235,7 +295,6 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 	abortRef.current = () => {
 		didAbort = true
 	}
-
 
 	fetch('https://api.greptile.com/v2/query', {
 		method: 'POST',
@@ -291,8 +350,6 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
-
-
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 	if (!voidConfig) return;
 
@@ -310,6 +367,8 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'greptile':
 			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+		case 'gemini':
+			return sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		default:
 			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
 	}

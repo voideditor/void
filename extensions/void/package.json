@@ -151,5 +151,8 @@
     "typescript": "5.5.4",
     "typescript-eslint": "^8.3.0",
     "uuid": "^10.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
   }
 }

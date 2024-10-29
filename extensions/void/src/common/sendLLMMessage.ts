@@ -215,7 +215,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		})
 		// when error/fail
 		.catch(error => {
-			onError(error)
+			onError(error.message)
 		})
 
 };

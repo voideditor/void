@@ -60,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const filePath = editor.document.uri;
 
 			// send message to the webview (Sidebar.tsx)
-			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
+			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, filePath } } satisfies MessageToSidebar));
 		})
 	);
 

@@ -11,6 +11,13 @@ export const CtrlK = () => {
 		sx('Pressed ctrl+k')
 	})
 
+	// const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 10, {})
+	// inset.webview.html = `
+	// <html>
+	// 	<body style="pointer-events:none;">Hello World!</body>
+	// </html>
+	// `;
+
 	return <>
 		<div>
 			{x}

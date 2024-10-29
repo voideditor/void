@@ -2,10 +2,7 @@
 import * as vscode from 'vscode';
 import { PartialVoidConfig } from '../webviews/common/contextForConfig'
 
-
-
-// a selection is a frozen snapshot
-type CodeSelection = { selectionStr: string, selectionRange: vscode.Range, filePath: vscode.Uri }
+type CodeSelection = { selectionStr: string, filePath: vscode.Uri }
 
 type File = { filepath: vscode.Uri, content: string }
 
@@ -37,7 +34,7 @@ type Diff = {
 
 // editor -> sidebar
 type MessageToSidebar = (
-	| { type: 'ctrl+l', selection: CodeSelection } // user presses ctrl+l in the editor
+	| { type: 'ctrl+l', selection: CodeSelection } // user presses ctrl+l in the editor. selection and path are frozen snapshots
 	| { type: 'ctrl+k', selection: CodeSelection }
 	| { type: 'files', files: { filepath: vscode.Uri, content: string }[] }
 	| { type: 'partialVoidConfig', partialVoidConfig: PartialVoidConfig }

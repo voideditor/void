@@ -25,8 +25,16 @@ declare module 'vscode' {
 }
 
 const roundRangeToLines = (selection: vscode.Selection) => {
-	let endLine = selection.end.character === 0 ? selection.end.line - 1 : selection.end.line // triple clicking selects column=0, line=line through column=0, line=line+1
+	let endLine = selection.end.character === 0 ? selection.end.line - 1 : selection.end.line // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
 	return new vscode.Range(selection.start.line, 0, endLine, Number.MAX_SAFE_INTEGER)
+}
+
+const getSelection = (editor: vscode.TextEditor) => {
+	// get the range of the selection and the file the user is in
+	const selectionRange = roundRangeToLines(editor.selection);
+	const selectionStr = editor.document.getText(selectionRange).trim();
+	const filePath = editor.document.uri;
+	return { selectionStr, filePath }
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -45,30 +53,14 @@ export function activate(context: vscode.ExtensionContext) {
 			const editor = vscode.window.activeTextEditor
 			if (!editor) return
 
-
-			// const inset = vscode.window.createWebviewTextEditorInset(editor, 10, 10, {})
-			// inset.webview.html = `
-			// <html>
-			// 	<body style="pointer-events:none;">Hello World!</body>
-			// </html>
-			// `;
-
-
 			// show the sidebar
 			vscode.commands.executeCommand('workbench.view.extension.voidViewContainer');
 			// vscode.commands.executeCommand('vscode.moveViewToPanel', CustomViewProvider.viewId); // move to aux bar
 
-			// get the range of the selection
-			const selectionRange = roundRangeToLines(editor.selection);
-
-			// get the text the user is selecting
-			const selectionStr = editor.document.getText(selectionRange);
-
-			// get the file the user is in
-			const filePath = editor.document.uri;
+			const { selectionStr, filePath } = getSelection(editor)
 
 			// send message to the webview (Sidebar.tsx)
-			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
+			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, filePath } } satisfies MessageToSidebar));
 		})
 	);
 
@@ -79,17 +71,10 @@ export function activate(context: vscode.ExtensionContext) {
 			const editor = vscode.window.activeTextEditor
 			if (!editor) return
 
-			// get the range of the selection
-			const selectionRange = roundRangeToLines(editor.selection);
-
-			// get the text the user is selecting
-			const selectionStr = editor.document.getText(selectionRange);
-
-			// get the file the user is in
-			const filePath = editor.document.uri;
+			const { selectionStr, filePath } = getSelection(editor)
 
 			// send message to the webview (Sidebar.tsx)
-			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+k', selection: { selectionStr, selectionRange, filePath } } satisfies MessageToSidebar));
+			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+k', selection: { selectionStr, filePath } } satisfies MessageToSidebar));
 		})
 	);
 

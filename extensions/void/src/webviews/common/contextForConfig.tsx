@@ -26,7 +26,7 @@ export const configFields = [
 	'openRouter',
 	'openAICompatible',
 	'azure',
-	'gemini'
+	'Gemini'
 ] as const
 
 
@@ -165,7 +165,7 @@ const voidConfigInfo: Record<
 		// 	}
 		// },
 	},
-	gemini: {
+	Gemini: {
 		apikey: configString('Google API key.', ''),
 		model: configEnum(
 			'Gemini model to use.',

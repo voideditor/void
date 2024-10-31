@@ -112,9 +112,9 @@ const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, o
 	}
 
 	try {
-		const genAI = new GoogleGenerativeAI(voidConfig.gemini.apikey);
+		const genAI = new GoogleGenerativeAI(voidConfig.Gemini.apikey);
 		// Force the model to be exactly what's configured
-		const modelName = voidConfig.gemini.model;
+		const modelName = voidConfig.Gemini.model;
 		const model = genAI.getGenerativeModel({ model: modelName });
 
 		// Combine system messages with the first user message

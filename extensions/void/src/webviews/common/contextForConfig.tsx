@@ -21,11 +21,12 @@ const configString = (description: string, defaultVal: string) => {
 export const configFields = [
 	'anthropic',
 	'openAI',
+	'gemini',
 	'greptile',
 	'ollama',
 	'openRouter',
 	'openAICompatible',
-	'azure'
+	'azure',
 ] as const
 
 
@@ -164,6 +165,19 @@ const voidConfigInfo: Record<
 		// 	}
 		// },
 	},
+	gemini: {
+		apikey: configString('Google API key.', ''),
+		model: configEnum(
+			'Gemini model to use.',
+			'gemini-1.5-flash',
+			[
+				"gemini-1.5-flash",
+				"gemini-1.5-pro",
+				"gemini-1.5-flash-8b",
+				"gemini-1.0-pro"
+			] as const
+		),
+	},
 }
 
 
@@ -273,4 +287,3 @@ export function useVoidConfig(): ConfigValueType {
 	}
 	return context
 }
-

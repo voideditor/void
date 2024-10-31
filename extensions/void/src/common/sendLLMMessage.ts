@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
+import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { VoidConfig } from '../webviews/common/contextForConfig'
 
 export type AbortRef = { current: (() => void) | null }
@@ -37,8 +38,6 @@ type SendLLMMessageFnTypeExternal = (params: {
 	abortRef: AbortRef,
 }) => void
 
-
-
 const parseMaxTokensStr = (maxTokensStr: string) => {
 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
 	let int = isNaN(Number(maxTokensStr)) ? undefined : parseInt(maxTokensStr)
@@ -65,7 +64,7 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 		system: systemMessage,
 		messages: anthropicMessages,
 		model: voidConfig.anthropic.model,
-		max_tokens: parseInt(voidConfig.default.maxTokens),
+		max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens)!, // this might be undefined, but it will just throw an error for the user
 	});
 
 	let did_abort = false
@@ -103,8 +102,62 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 	return { abort }
 };
 
+// Gemini
+const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 
+	let didAbort = false
+	let fullText = ''
 
+	abortRef.current = () => {
+		didAbort = true
+	}
+
+	const genAI = new GoogleGenerativeAI(voidConfig.gemini.apikey);
+	const model = genAI.getGenerativeModel({ model: voidConfig.gemini.model });
+
+	// remove system messages that get sent to Gemini
+	// str of all system messages
+	let systemMessage = messages
+		.filter(msg => msg.role === 'system')
+		.map(msg => msg.content)
+		.join('\n');
+
+	// Convert messages to Gemini format
+	const geminiMessages: Content[] = messages
+		.filter(msg => msg.role !== 'system')
+		.map((msg, i) => ({
+			parts: [{ text: msg.content }],
+			role: msg.role === 'assistant' ? 'model' : 'user'
+		}))
+
+	model.generateContentStream({ contents: geminiMessages, systemInstruction: systemMessage, })
+		.then(async response => {
+			abortRef.current = () => {
+				// response.stream.return(fullText)
+				didAbort = true;
+			}
+			for await (const chunk of response.stream) {
+				if (didAbort) return;
+				const newText = chunk.text();
+				fullText += newText;
+				onText(newText, fullText);
+			}
+			onFinalMessage(fullText);
+		})
+		.catch((error) => {
+			if (error instanceof GoogleGenerativeAIFetchError) {
+				if (error.status === 400) {
+					onError('Invalid API key.');
+				}
+				else {
+					onError(`${error.name}:\n${error.message}`);
+				}
+			}
+			else {
+				onError(error);
+			}
+		})
+}
 
 // OpenAI, OpenRouter, OpenAICompatible
 const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
@@ -168,7 +221,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 					onError('Invalid API key.');
 				}
 				else {
-					onError(error.message);
+					onError(`${error.name}:\n${error.message}`);
 				}
 			}
 			else {
@@ -177,7 +230,6 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 		})
 
 };
-
 
 // Ollama
 export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
@@ -196,7 +248,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		model: voidConfig.ollama.model,
 		messages: messages,
 		stream: true,
-		options: { num_predict: parseInt(voidConfig.default.maxTokens) } // this is max_tokens
+		options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) } // this is max_tokens
 	})
 		.then(async stream => {
 			abortRef.current = () => {
@@ -220,8 +272,6 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 
 };
 
-
-
 // Greptile
 // https://docs.greptile.com/api-reference/query
 // https://docs.greptile.com/quickstart#sample-response-streamed
@@ -235,7 +285,6 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 	abortRef.current = () => {
 		didAbort = true
 	}
-
 
 	fetch('https://api.greptile.com/v2/query', {
 		method: 'POST',
@@ -291,8 +340,6 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
-
-
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 	if (!voidConfig) return;
 
@@ -306,6 +353,8 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 		case 'openRouter':
 		case 'openAICompatible':
 			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+		case 'gemini':
+			return sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'ollama':
 			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'greptile':

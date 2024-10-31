@@ -6,7 +6,7 @@ If you're new, welcome!
 
 ## Contributing
 
-To build and run Void (or to contribute), follow the steps in [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
+To build and run Void, follow the steps in [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
 
 ## Reference
 

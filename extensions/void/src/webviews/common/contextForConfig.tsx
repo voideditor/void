@@ -21,12 +21,12 @@ const configString = (description: string, defaultVal: string) => {
 export const configFields = [
 	'anthropic',
 	'openAI',
+	'gemini',
 	'greptile',
 	'ollama',
 	'openRouter',
 	'openAICompatible',
 	'azure',
-	'Gemini'
 ] as const
 
 
@@ -165,7 +165,7 @@ const voidConfigInfo: Record<
 		// 	}
 		// },
 	},
-	Gemini: {
+	gemini: {
 		apikey: configString('Google API key.', ''),
 		model: configEnum(
 			'Gemini model to use.',

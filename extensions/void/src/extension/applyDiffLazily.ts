@@ -134,7 +134,7 @@ Return \`true\` if ANY part of the chunk should be modified, and \`false\` if it
 
 // lazily applies the diff to the file
 // we chunk the text in the file, and ask an LLM whether it should edit each chunk
-const applyDiffLazily = async ({ docUri, oldFileStr, voidConfig, abortRef, diffRepr, diffProvider, diffArea }: { docUri: vscode.Uri, oldFileStr: string, diffRepr: string, voidConfig: VoidConfig, diffProvider: DiffProvider, diffArea: DiffArea, abortRef: AbortRef }) => {
+export const applyDiffLazily = async ({ docUri, oldFileStr, voidConfig, abortRef, diffRepr, diffProvider, diffArea }: { docUri: vscode.Uri, oldFileStr: string, diffRepr: string, voidConfig: VoidConfig, diffProvider: DiffProvider, diffArea: DiffArea, abortRef: AbortRef }) => {
 
 
 	// stateful variables
@@ -179,7 +179,3 @@ const applyDiffLazily = async ({ docUri, oldFileStr, voidConfig, abortRef, diffR
 
 
 }
-
-
-
-export { applyDiffLazily }

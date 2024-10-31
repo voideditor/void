@@ -146,7 +146,9 @@ We're always glad to talk about new ideas, help you get set up, and make sure yo
 
 ## Submitting a Pull Request
 
-Please submit a pull request once you've made a change. You don't need to submit an issue.
+Please submit a pull request once you've made a change. You don't need to submit an issue. 
+
+Please don't use AI to write your PR 🙂.
 
 # Relevant files
 

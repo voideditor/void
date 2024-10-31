@@ -71,7 +71,7 @@ We haven't created prerequisite steps for building on Linux yet, but you can fol
 
 Before building Void, please follow the prerequisite steps above for your operating system. Also make sure you've already built the Void extension (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`).
 
-First, open `void/` in VSCode. Then:
+To build Void, first open `void/` in VSCode. Then:
 
 1. Install all dependencies.
 

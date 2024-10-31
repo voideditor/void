@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { AbortRef, OnFinalMessage, OnText, sendLLMMessage } from "./sendLLMMessage"
+import { AbortRef, OnFinalMessage, OnText, sendLLMMessage } from "../common/sendLLMMessage"
 import { VoidConfig } from '../webviews/common/contextForConfig';
-import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from './systemPrompts';
+import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from '../common/systemPrompts';
 import { throttle } from 'lodash';
-import { readFileContentOfUri } from '../extension/extensionLib/readFileContentOfUri';
+import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 
 type Res<T> = ((value: T) => void)
 

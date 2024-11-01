@@ -5,7 +5,7 @@ import { getVSCodeAPI, awaitVSCodeResponse, onMessageFromVSCode } from "./getVsc
 import { initPosthog, identifyUser } from "./posthog";
 import { ThreadsProvider } from "./contextForThreads";
 import { ConfigProvider } from "./contextForConfig";
-import { PropsProvider } from "./contextForProps";
+import { getPropsObj, PropsProvider } from "./contextForProps";
 
 const ListenersAndTracking = () => {
 	// initialize posthog
@@ -51,7 +51,7 @@ export const mount = (children: React.ReactNode) => {
 	const content = (<>
 		<ListenersAndTracking />
 
-		<PropsProvider rootElement={rootElement}>
+		<PropsProvider props={getPropsObj(rootElement)}>
 			<ThreadsProvider>
 				<ConfigProvider>
 					{children}

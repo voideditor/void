@@ -2,21 +2,17 @@ import React, { ReactNode, createContext, useCallback, useContext, useEffect, us
 
 const PropsContext = createContext<any>(undefined as unknown as any)
 
+export const getPropsObj = (rootElement: HTMLElement) => {
+	let props = rootElement.getAttribute("data-void-props")
+	let propsObj: object | null = null
+	if (props !== null) {
+		propsObj = JSON.parse(decodeURIComponent(props))
+	}
+	return propsObj
+}
+
 // provider for whatever came in data-void-props
-export function PropsProvider({ children, rootElement }: { children: ReactNode, rootElement: HTMLElement }) {
-
-	const [props, setProps] = useState<object | null>(null)
-
-	// update props when rootElement changes
-	useEffect(() => {
-		let props = rootElement.getAttribute("data-void-props")
-		let propsObj: object | null = null
-		if (props !== null) {
-			propsObj = JSON.parse(decodeURIComponent(props))
-		}
-		setProps(propsObj)
-	}, [rootElement])
-
+export function PropsProvider({ children, props }: { children: ReactNode, props: object | null }) {
 	return (
 		<PropsContext.Provider value={props}>
 			{children}
@@ -24,13 +20,20 @@ export function PropsProvider({ children, rootElement }: { children: ReactNode, 
 	)
 }
 
-export function useVoidProps<T extends {}>(): T | null {
+export function useVoidProps<T extends {}>(): T {
 	// context is the "value" from above
 	const context: T | null | undefined = useContext<T>(PropsContext)
 	// only undefined if has no provider
 	if (context === undefined) {
 		throw new Error("useVoidProps missing Provider")
 	}
+	if (context === null) {
+		throw new Error("useVoidProps had null props")
+	}
+	if (!(context instanceof Object)) {
+		throw new Error("useVoidProps props was not an object")
+	}
+
 	return context
 }
 

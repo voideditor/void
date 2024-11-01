@@ -1,24 +1,25 @@
 import * as vscode from 'vscode';
 import { findDiffs } from './findDiffs';
 import { throttle } from 'lodash';
-import { DiffArea, BaseDiff, Diff } from '../common/shared_types';
+import { DiffArea, BaseDiff, Diff, Inset } from '../common/shared_types';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { updateWebviewHTML } from './extensionLib/updateWebviewHTML';
+import { compareArrays, getCompareString } from '../common/compareArrays';
 
 
 const THROTTLE_TIME = 100
 
 // TODO in theory this should be disposed
 const greenDecoration = vscode.window.createTextEditorDecorationType({
-	backgroundColor: 'rgba(0 255 51 / 0.2)',
-	isWholeLine: false, // after: { contentText: '       [original]', color: 'rgba(0 255 60 / 0.5)' }  // hoverMessage: originalText // this applies to hovering over after:...
+	backgroundColor: 'rgba(0, 255, 51, 0.2)',
+	isWholeLine: true, // after: { contentText: '       [original]', color: 'rgba(0 255 60 / 0.5)' }  // hoverMessage: originalText // this applies to hovering over after:...
 })
 const lightGrayDecoration = vscode.window.createTextEditorDecorationType({
-	backgroundColor: 'rgba(218 218 218 / .2)',
+	backgroundColor: 'rgba(218, 218, 218, 0.2)',
 	isWholeLine: true,
 })
 const darkGrayDecoration = vscode.window.createTextEditorDecorationType({
-	backgroundColor: 'rgb(148 148 148 / .2)',
+	backgroundColor: 'rgb(148, 148, 148, 0.2)',
 	isWholeLine: true,
 })
 
@@ -28,7 +29,7 @@ export class DiffProvider implements vscode.CodeLensProvider {
 	private _originalFileOfDocument: { [docUriStr: string]: string } = {}
 	private _diffAreasOfDocument: { [docUriStr: string]: DiffArea[] } = {}
 	private _diffsOfDocument: { [docUriStr: string]: Diff[] } = {}
-	private _insetsOfDocument: { [docUriStr: string]: vscode.WebviewEditorInset[] } = {}
+	private _insetsOfDocument: { [docUriStr: string]: Inset[] } = {}
 
 
 	private _diffareaidPool = 0
@@ -178,10 +179,6 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		// reset all diffs (we update them below)
 		this._diffsOfDocument[docUriStr] = []
 
-		// reset all insets (we update them below)
-		this._insetsOfDocument[docUriStr]?.forEach(inset => inset.dispose())
-		this._insetsOfDocument[docUriStr] = []
-
 		// for each diffArea
 		for (const diffArea of diffAreas) {
 
@@ -192,22 +189,14 @@ export class DiffProvider implements vscode.CodeLensProvider {
 			// compute the diffs
 			const diffs = findDiffs(originalCode, currentCode)
 
+			// console.log('____________')
+			// diffs.forEach(diff => {
+			// 	console.log('__DELETED: ', diff.originalCode)
+			// 	console.log('__INSERTED: ', diff.code)
+			// })
+
 			// add the diffs to `this._diffsOfDocument[docUriStr]`
 			this.createDiffs(editor.document.uri, diffs, diffArea)
-
-
-			// // print diffs
-			// console.log('!ORIGINAL FILE:', JSON.stringify(originalFile))
-			// console.log('!NEW FILE     :', JSON.stringify(editor.document.getText().replace(/\r\n/g, '\n')))
-			// console.log('!AREA originalCode:', JSON.stringify(originalCode))
-			// console.log('!AREA currentCode :', JSON.stringify(currentCode))
-			// for (const diff of this._diffsOfDocument[docUriStr]) {
-			// 	console.log('------------')
-			// 	console.log('originalCode:', JSON.stringify(diff.originalCode))
-			// 	console.log('currentCode:', JSON.stringify(diff.code))
-			// 	console.log('originalRange:', diff.originalRange.start.line, diff.originalRange.end.line,)
-			// 	console.log('currentRange:', diff.range.start.line, diff.range.end.line,)
-			// }
 
 		}
 
@@ -221,33 +210,88 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		);
 
 		// update red highlighting
+		/* NAIVE APPROACH */
+		if (!this._insetsOfDocument[docUriStr])
+			this._insetsOfDocument[docUriStr] = []
+		for (const inset of this._insetsOfDocument[docUriStr]) {
+			inset.insetObj.dispose()
+		}
 		this._insetsOfDocument[docUriStr] = this._diffsOfDocument[docUriStr]
 			.filter(diff => diff.originalCode !== '')
 			.map(diff => {
-
-				// create new inset
-				const text = originalFile.split('\n').slice(diff.originalRange.start.line, diff.originalRange.end.line + 1).join('\n')
-				const height = text.split('\n').length
+				const text = diff.originalCode
+				const height = diff.originalCode.split('\n').length
 				const line = diff.range.start.line - 1
-
-				const inset = vscode.window.createWebviewTextEditorInset(editor, line, height);
-				updateWebviewHTML(inset.webview, this._extensionUri, { jsOutLocation: 'dist/webviews/diffline/index.js', cssOutLocation: 'dist/webviews/styles.css' },
+				const insetObj = vscode.window.createWebviewTextEditorInset(editor, line, height);
+				updateWebviewHTML(insetObj.webview, this._extensionUri, { jsOutLocation: 'dist/webviews/diffline/index.js', cssOutLocation: 'dist/webviews/styles.css', isCode: true },
 					{ text }
 				)
-				return inset
+				return { text, line, height, insetObj }
 			})
+		/* CACHING APPROACH */
+		// function getCompareString<T extends { [key: string]: any; }>(obj: T, compareKeys: string[]): string {
+		// 	return compareKeys.map(key => `${key}:${JSON.stringify(obj?.[key])}`).join('|');
+		// }
 
-		// for each diffArea, highlight its sweepIndex in dark gray
-		editor.setDecorations(
-			darkGrayDecoration,
-			(this._diffAreasOfDocument[docUriStr]
-				.filter(diffArea => diffArea.sweepIndex !== null)
-				.map(diffArea => {
-					let s = diffArea.sweepIndex!
-					return new vscode.Range(s, 0, s, 0)
-				})
-			)
-		)
+		// function compareArrays<T extends { [key: string]: any }>(arr1: T[], arr2: T[], compareKeys: string[]) {
+
+		// 	const getKey = (obj: T) => getCompareString(obj, compareKeys);
+
+		// 	const set1 = new Set(arr1.map(getKey));
+		// 	const set2 = new Set(arr2.map(getKey));
+
+		// 	const common = arr1.filter(obj => set2.has(getKey(obj)))
+		// 	const uniqueToFirst = arr1.filter(obj => !set2.has(getKey(obj)))
+		// 	const uniqueToSecond = arr2.filter(obj => !set1.has(getKey(obj)))
+		// 	const uniqueToFirstKeys = new Set(uniqueToFirst.map(getKey))
+		// 	const uniqueToSecondKeys = new Set(uniqueToSecond.map(getKey))
+
+
+		// 	return {
+		// 		common,
+		// 		uniqueToFirst,
+		// 		uniqueToSecond,
+		// 		uniqueToFirstKeys,
+		// 		uniqueToSecondKeys,
+		// 		getKey,
+		// 	};
+		// }
+		// compare the current and old insets and update the ones that have changed
+		// if (!this._insetsOfDocument[docUriStr])
+		// 	this._insetsOfDocument[docUriStr] = []
+		// const oldInsets: Inset[] = this._insetsOfDocument[docUriStr]
+		// const currInsets: Inset[] = this._diffsOfDocument[docUriStr]
+		// 	.map(diff => ({ text: diff.originalCode, height: diff.originalCode.split('\n').length, line: diff.range.start.line - 1, insetObj: undefined! }))
+		// const {
+		// 	common: commonInsets,
+		// 	uniqueToFirst: deletedInsets,
+		// 	uniqueToSecond: addedInsets,
+		// } = compareArrays(oldInsets, currInsets, ['text', 'height', 'line'])
+		// console.log('DELETED INSETS', deletedInsets)
+		// console.log('ADDED INSETS', addedInsets)
+		// for (const deletedInset of deletedInsets) { // delete insets in the deleted set
+		// 	deletedInset.insetObj.dispose()
+		// }
+		// for (const addedInset of addedInsets) { // add insets in the added set
+		// 	const insetObj = vscode.window.createWebviewTextEditorInset(editor, addedInset.line, addedInset.height);
+		// 	updateWebviewHTML(insetObj.webview, this._extensionUri, { jsOutLocation: 'dist/webviews/diffline/index.js', cssOutLocation: 'dist/webviews/styles.css', isCode: true },
+		// 		{ text: addedInset.text }
+		// 	)
+		// 	addedInset.insetObj = insetObj
+		// }
+		// this._insetsOfDocument[docUriStr] = commonInsets.concat(addedInsets)
+
+		// // for each diffArea, highlight its sweepIndex in dark gray
+		// editor.setDecorations(
+		// 	darkGrayDecoration,
+		// 	(this._diffAreasOfDocument[docUriStr]
+		// 		.filter(diffArea => diffArea.sweepIndex !== null)
+		// 		.map(diffArea => {
+		// 			let s = diffArea.sweepIndex!
+		// 			return new vscode.Range(s, 0, s, 0)
+		// 		})
+		// 	)
+		// )
 
 		// for each diffArea, highlight sweepIndex+1...end in light gray
 		editor.setDecorations(
@@ -403,7 +447,8 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 
 	// used by us only
-	public updateStream = throttle(async (docUriStr: string, diffArea: DiffArea, newDiffAreaCode: string) => {
+	public updateStream = throttle(async (docUriStr: string, diffArea: DiffArea, newDiffAreaCode: string, options?: { endStream?: boolean }) => {
+		const { endStream, } = options || {}
 
 		const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
 		if (!editor) {
@@ -411,12 +456,12 @@ export class DiffProvider implements vscode.CodeLensProvider {
 			return;
 		}
 
-		// original code all diffs are based on in the code
+		// original code all diffs are based on
 		const originalDiffAreaCode = (this._originalFileOfDocument[docUriStr] || '').split('\n').slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
 
 		// figure out where to highlight based on where the AI is in the stream right now, use the last diff in findDiffs to figure that out
 		const diffs = findDiffs(originalDiffAreaCode, newDiffAreaCode)
-		const lastDiff = diffs?.[diffs.length - 1] ?? null
+		const lastDiff = diffs?.[diffs.length - 1]
 
 		// these are two different coordinate systems - new and old line number
 		let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
@@ -450,14 +495,14 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		const oldFileBottom = originalDiffAreaCode.split('\n').slice(oldFileStartLine + 1, Infinity).join('\n')
 
 		let newCode = `${newFileTop}\n${oldFileBottom}`
-		diffArea.sweepIndex = newFileEndLine
-		// replace oldDACode with newDACode with a vscode edit
+		diffArea.sweepIndex = endStream ? null : newFileEndLine
 
+		// replace oldCode with newCode using a vscode edit
 		const workspaceEdit = new vscode.WorkspaceEdit();
-
 		const diffareaRange = new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)
 		workspaceEdit.replace(editor.document.uri, diffareaRange, newCode)
 		await vscode.workspace.applyEdit(workspaceEdit)
+
 	}, THROTTLE_TIME)
 
 }

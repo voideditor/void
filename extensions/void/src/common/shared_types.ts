@@ -32,6 +32,13 @@ type Diff = {
 	lenses: vscode.CodeLens[],
 } & BaseDiff
 
+type Inset = {
+	text: string,
+	height: number,
+	line: number,
+	insetObj: vscode.WebviewEditorInset,
+}
+
 // editor -> sidebar
 type MessageToSidebar = (
 	| { type: 'ctrl+l', selection: CodeSelection } // user presses ctrl+l in the editor. selection and path are frozen snapshots
@@ -88,6 +95,7 @@ type ChatMessage =
 export {
 	BaseDiff, Diff,
 	DiffArea,
+	Inset,
 	CodeSelection,
 	File,
 	MessageFromSidebar,

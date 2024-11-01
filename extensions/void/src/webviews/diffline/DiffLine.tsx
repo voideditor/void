@@ -11,19 +11,18 @@ export const DiffLine = () => {
 
 	const props = useVoidProps<props>()
 
-	console.log('props!', props)
-
-	if (!props) {
-		return null
-	}
-
 	// eslint-disable-next-line react/prop-types
-	const text = props.text
+	let text = props?.text ?? ''
 
 	return <>
-		<pre>
-			{text}
-		</pre>
+		<div className="view-line relative pointer-events-none">
+			<div className={`absolute w-[100%] h-[100%] bg-[rgba(255,0,51,0.2)] z-10`}></div>
+			<span>
+				<span className='whitespace-pre text-[14px]'>
+					{text}
+				</span>
+			</span>
+		</div>
 	</>
 };
 

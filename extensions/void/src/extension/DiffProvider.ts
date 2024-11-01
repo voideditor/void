@@ -28,6 +28,8 @@ export class DiffProvider implements vscode.CodeLensProvider {
 	private _originalFileOfDocument: { [docUriStr: string]: string } = {}
 	private _diffAreasOfDocument: { [docUriStr: string]: DiffArea[] } = {}
 	private _diffsOfDocument: { [docUriStr: string]: Diff[] } = {}
+	private _insetsOfDocument: { [docUriStr: string]: vscode.WebviewEditorInset[] } = {}
+
 
 	private _diffareaidPool = 0
 	private _diffidPool = 0
@@ -176,6 +178,10 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		// reset all diffs (we update them below)
 		this._diffsOfDocument[docUriStr] = []
 
+		// reset all insets (we update them below)
+		this._insetsOfDocument[docUriStr]?.forEach(inset => inset.dispose())
+		this._insetsOfDocument[docUriStr] = []
+
 		// for each diffArea
 		for (const diffArea of diffAreas) {
 
@@ -215,20 +221,21 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		);
 
 		// update red highlighting
-		// this._diffsOfDocument[docUriStr]
-		// 	.filter(diff => diff.originalCode !== '')
-		// 	.forEach(diff => {
-		// 		const text = originalFile.split('\n').slice(diff.originalRange.start.line, diff.originalRange.start.line + 1).join('\n')
-		// 		const height = text.split('\n').length
-		// 		const line = diff.range.start.line - 1
+		this._insetsOfDocument[docUriStr] = this._diffsOfDocument[docUriStr]
+			.filter(diff => diff.originalCode !== '')
+			.map(diff => {
 
-		// 		const inset = vscode.window.createWebviewTextEditorInset(editor, line, height);
-		// 		updateWebviewHTML(inset.webview, this._extensionUri, { jsOutLocation: 'dist/webviews/diffline/index.js', cssOutLocation: 'dist/webviews/styles.css' },
-		// 			{ text }
-		// 		)
+				// create new inset
+				const text = originalFile.split('\n').slice(diff.originalRange.start.line, diff.originalRange.end.line + 1).join('\n')
+				const height = text.split('\n').length
+				const line = diff.range.start.line - 1
 
-
-		// 	})
+				const inset = vscode.window.createWebviewTextEditorInset(editor, line, height);
+				updateWebviewHTML(inset.webview, this._extensionUri, { jsOutLocation: 'dist/webviews/diffline/index.js', cssOutLocation: 'dist/webviews/styles.css' },
+					{ text }
+				)
+				return inset
+			})
 
 		// for each diffArea, highlight its sweepIndex in dark gray
 		editor.setDecorations(

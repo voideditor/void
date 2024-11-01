@@ -21,9 +21,9 @@ export const DiffLine = () => {
 	const text = props.text
 
 	return <>
-		<div>
+		<pre>
 			{text}
-		</div>
+		</pre>
 	</>
 };
 

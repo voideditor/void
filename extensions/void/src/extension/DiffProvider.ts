@@ -234,6 +234,12 @@ export class DiffProvider implements vscode.CodeLensProvider {
 				updateWebviewHTML(inset.webview, this._extensionUri, { jsOutLocation: 'dist/webviews/diffline/index.js', cssOutLocation: 'dist/webviews/styles.css' },
 					{ text }
 				)
+
+
+				setTimeout(() => {
+					console.log('updating!')
+					vscode.window.updateWebviewTextEditorInset(inset.handle, line + 2, height)
+				}, 2000)
 				return inset
 			})
 

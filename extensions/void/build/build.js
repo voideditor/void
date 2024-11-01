@@ -49,6 +49,11 @@ const convertTSXtoJS = async ({ from, to }) => {
 		to: 'dist/webviews/ctrlk/index.js',
 	})
 
+	await convertTSXtoJS({
+		from: 'src/webviews/diffline/index.tsx',
+		to: 'dist/webviews/diffline/index.js',
+	})
+
 	// convert tailwind to css
 	await convertTailwindToCSS({
 		from: 'src/webviews/styles.css',

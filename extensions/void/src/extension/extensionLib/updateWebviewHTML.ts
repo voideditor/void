@@ -32,7 +32,7 @@ export const updateWebviewHTML = (webview: vscode.Webview, extensionUri: vscode.
 	<link href="${stylesUri}" rel="stylesheet">
   </head>
   <body>
-	<div id="root" ${props ? `data-void-props="${encodeURIComponent(JSON.stringify(props))}"` : ''}></div>
+	<div id="root"${props ? ` data-void-props="${encodeURIComponent(JSON.stringify(props))}"` : ''}></div>
 	<script nonce="${nonce}" src="${scriptUri}"></script>
   </body>
   </html>`;

@@ -3,6 +3,7 @@ import { findDiffs } from './findDiffs';
 import { throttle } from 'lodash';
 import { DiffArea, BaseDiff, Diff } from '../common/shared_types';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
+import { updateWebviewHTML } from './extensionLib/updateWebviewHTML';
 
 
 const THROTTLE_TIME = 100
@@ -31,6 +32,8 @@ export class DiffProvider implements vscode.CodeLensProvider {
 	private _diffareaidPool = 0
 	private _diffidPool = 0
 
+	private _extensionUri: vscode.Uri
+
 	// used internally by vscode
 	private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>(); // signals a UI refresh on .fire() events
 	public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
@@ -42,7 +45,8 @@ export class DiffProvider implements vscode.CodeLensProvider {
 	}
 
 	// declared by us, registered with vscode.languages.registerCodeLensProvider()
-	constructor() {
+	constructor(context: vscode.ExtensionContext) {
+		this._extensionUri = context.extensionUri
 
 		console.log('Creating DisplayChangesProvider')
 
@@ -210,6 +214,21 @@ export class DiffProvider implements vscode.CodeLensProvider {
 			)
 		);
 
+		// update red highlighting
+		// this._diffsOfDocument[docUriStr]
+		// 	.filter(diff => diff.originalCode !== '')
+		// 	.forEach(diff => {
+		// 		const text = originalFile.split('\n').slice(diff.originalRange.start.line, diff.originalRange.start.line + 1).join('\n')
+		// 		const height = text.split('\n').length
+		// 		const line = diff.range.start.line - 1
+
+		// 		const inset = vscode.window.createWebviewTextEditorInset(editor, line, height);
+		// 		updateWebviewHTML(inset.webview, this._extensionUri, { jsOutLocation: 'dist/webviews/diffline/index.js', cssOutLocation: 'dist/webviews/styles.css' },
+		// 			{ text }
+		// 		)
+
+
+		// 	})
 
 		// for each diffArea, highlight its sweepIndex in dark gray
 		editor.setDecorations(
@@ -234,8 +253,6 @@ export class DiffProvider implements vscode.CodeLensProvider {
 			)
 		)
 
-		// TODO update red highlighting
-		// this._diffsOfDocument[docUriStr].map(diff => diff.deletedCode)
 
 		// update code lenses
 		this._onDidChangeCodeLenses.fire()
@@ -392,7 +409,7 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 		// figure out where to highlight based on where the AI is in the stream right now, use the last diff in findDiffs to figure that out
 		const diffs = findDiffs(originalDiffAreaCode, newDiffAreaCode)
-		const lastDiff = diffs[diffs.length - 1] ?? null
+		const lastDiff = diffs?.[diffs.length - 1] ?? null
 
 		// these are two different coordinate systems - new and old line number
 		let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted

@@ -83,7 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	// 3. Show an approve/reject codelens above each change
-	const diffProvider = new DiffProvider();
+	const diffProvider = new DiffProvider(context);
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider('*', diffProvider));
 
 	// 4. Add approve/reject commands

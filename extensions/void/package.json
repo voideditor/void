@@ -10,6 +10,9 @@
   "categories": [
     "Other"
   ],
+  "enabledApiProposals": [
+    "editorInsets"
+  ],
   "activationEvents": [],
   "main": "./out/extension/extension.js",
   "contributes": {

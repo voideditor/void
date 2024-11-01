@@ -46,18 +46,12 @@ export const mount = (children: React.ReactNode) => {
 
 	// mount the sidebar on the id="root" element
 	const rootElement = document.getElementById("root")!
-	console.log("Void root Element:", rootElement)
-
-	let props = rootElement.getAttribute("data-void-props")
-	let propsObj: object | null = null
-	if (props !== null) {
-		propsObj = JSON.parse(decodeURIComponent(props))
-	}
+	// console.log("Void root Element:", rootElement)
 
 	const content = (<>
 		<ListenersAndTracking />
 
-		<PropsProvider props={propsObj}>
+		<PropsProvider rootElement={rootElement}>
 			<ThreadsProvider>
 				<ConfigProvider>
 					{children}

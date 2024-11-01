@@ -69,7 +69,7 @@ We haven't created prerequisite steps for building on Linux yet, but you can fol
 
 ### Build instructions
 
-Before building Void, please follow the prerequisite steps above for your operating system. Also make sure you've already built the Void extension (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`).
+Before building Void, please follow the prerequisite steps above for your operating system. Also make sure you've already built and compiled the Void extension (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`).
 
 To build Void, first open `void/` in VSCode. Then:
 
@@ -146,7 +146,7 @@ We're always glad to talk about new ideas, help you get set up, and make sure yo
 
 ## Submitting a Pull Request
 
-Please submit a pull request once you've made a change. You don't need to submit an issue. 
+Please submit a pull request once you've made a change. You don't need to submit an issue.
 
 Please don't use AI to write your PR 🙂.
 

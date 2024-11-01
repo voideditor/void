@@ -826,6 +826,10 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				// checkProposedApiEnabled(extension, 'editorInsets'); // Void commented this out
 				return extHostEditorInsets.createWebviewEditorInset(editor, line, height, options, extension);
 			},
+			// Void created this function:
+			updateWebviewTextEditorInset(handle: number, line: number, height: number): vscode.WebviewEditorInset {
+				return extHostEditorInsets.updateEditorInset(handle, line, height);
+			},
 			createTerminal(nameOrOptions?: vscode.TerminalOptions | vscode.ExtensionTerminalOptions | string, shellPath?: string, shellArgs?: readonly string[] | string): vscode.Terminal {
 				if (typeof nameOrOptions === 'object') {
 					if ('pty' in nameOrOptions) {

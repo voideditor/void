@@ -12,18 +12,24 @@ import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 
 // this comes from vscode.proposed.editorInsets.d.ts
 declare module 'vscode' {
+
 	export interface WebviewEditorInset {
 		readonly editor: vscode.TextEditor;
 		readonly line: number;
 		readonly height: number;
 		readonly webview: vscode.Webview;
+		readonly handle: number;
 		readonly onDidDispose: Event<void>;
 		dispose(): void;
 	}
+
 	export namespace window {
 		export function createWebviewTextEditorInset(editor: vscode.TextEditor, line: number, height: number, options?: vscode.WebviewOptions): WebviewEditorInset;
+		export function updateWebviewTextEditorInset(handle: number, line: number, height: number): WebviewEditorInset;
 	}
 }
+
+
 
 const roundRangeToLines = (selection: vscode.Selection) => {
 	let endLine = selection.end.character === 0 ? selection.end.line - 1 : selection.end.line // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1

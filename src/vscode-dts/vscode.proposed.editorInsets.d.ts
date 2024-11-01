@@ -12,11 +12,13 @@ declare module 'vscode' {
 		readonly line: number;
 		readonly height: number;
 		readonly webview: Webview;
+		readonly handle: number;
 		readonly onDidDispose: Event<void>;
 		dispose(): void;
 	}
 
 	export namespace window {
 		export function createWebviewTextEditorInset(editor: TextEditor, line: number, height: number, options?: WebviewOptions): WebviewEditorInset;
+		export function updateWebviewTextEditorInset(handle: number, line: number, height: number): WebviewEditorInset;
 	}
 }

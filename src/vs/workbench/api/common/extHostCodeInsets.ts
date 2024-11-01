@@ -99,11 +99,11 @@ export class ExtHostEditorInsets implements ExtHostEditorInsetsShape {
 		};
 
 		const inset = new class implements vscode.WebviewEditorInset {
-
 			readonly editor: vscode.TextEditor = editor;
 			readonly line: number = line;
 			readonly height: number = height;
 			readonly webview: vscode.Webview = webview;
+			readonly handle: number = handle;
 			readonly onDidDispose: vscode.Event<void> = onDidDispose.event;
 
 			dispose(): void {
@@ -124,6 +124,34 @@ export class ExtHostEditorInsets implements ExtHostEditorInsetsShape {
 
 		return inset;
 	}
+
+
+	updateEditorInset(handle: number, line: number, height: number): vscode.WebviewEditorInset {
+		const _inset = this._insets.get(handle);
+
+		if (!_inset) {
+			throw new Error(`Inset with handle ${handle} not found`);
+		}
+
+		const { editor, onDidReceiveMessage, inset: { webview, onDidDispose, dispose } } = _inset
+
+		const inset = new class implements vscode.WebviewEditorInset {
+			readonly editor: vscode.TextEditor = editor;
+			readonly line: number = line;
+			readonly height: number = height;
+			readonly webview: vscode.Webview = webview;
+			readonly handle: number = handle;
+			readonly onDidDispose: vscode.Event<void> = onDidDispose;
+			dispose = dispose
+		};
+
+		this._insets.set(handle, { editor, inset: inset, onDidReceiveMessage });
+		// _inset?.onDidReceiveMessage.fire({});
+
+		return inset
+	}
+
+
 
 	$onDidDispose(handle: number): void {
 		const value = this._insets.get(handle);

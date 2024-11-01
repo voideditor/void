@@ -4,7 +4,6 @@ import { throttle } from 'lodash';
 import { DiffArea, BaseDiff, Diff, Inset } from '../common/shared_types';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { updateWebviewHTML } from './extensionLib/updateWebviewHTML';
-import { compareArrays, getCompareString } from '../common/compareArrays';
 
 
 const THROTTLE_TIME = 100

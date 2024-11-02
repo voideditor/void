@@ -25,6 +25,13 @@ declare module 'vscode' {
 	}
 }
 
+// this comes from vscode.d.ts
+declare module 'vscode' {
+	export namespace languages {
+		export function addInlineDiff(editor: vscode.TextEditor, originalText: string, modifiedRange: Range): void;
+	}
+}
+
 const roundRangeToLines = (selection: vscode.Selection) => {
 	let endLine = selection.end.character === 0 ? selection.end.line - 1 : selection.end.line // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
 	return new vscode.Range(selection.start.line, 0, endLine, Number.MAX_SAFE_INTEGER)
@@ -61,6 +68,9 @@ export function activate(context: vscode.ExtensionContext) {
 			// vscode.commands.executeCommand('vscode.moveViewToPanel', CustomViewProvider.viewId); // move to aux bar
 
 			const { selectionStr, filePath } = getSelection(editor)
+
+			vscode.languages.addInlineDiff(editor, 'oldText', editor.selection)
+
 
 			// send message to the webview (Sidebar.tsx)
 			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, filePath } } satisfies MessageToSidebar));

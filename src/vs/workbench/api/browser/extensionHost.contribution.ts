@@ -90,6 +90,9 @@ import './mainThreadProfileContentHandlers.js';
 import './mainThreadAiRelatedInformation.js';
 import './mainThreadAiEmbeddingVector.js';
 
+// Void added this:
+import './mainThreadInlineDiff.js';
+
 export class ExtensionPoints implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.extensionPoints';

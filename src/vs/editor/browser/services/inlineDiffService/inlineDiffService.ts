@@ -1,10 +1,11 @@
-import { Disposable } from '../../../base/common/lifecycle.js';
-import { registerSingleton, InstantiationType } from '../../../platform/instantiation/common/extensions.js';
-import { createDecorator } from '../../../platform/instantiation/common/instantiation.js';
-import { IModelDeltaDecoration } from '../../common/model.js';
-import { ICodeEditor, IViewZone } from '../editorBrowser.js';
-import { IRange } from '../../common/core/range.js';
-import { EditorOption } from '../../common/config/editorOptions.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
+import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+import { IModelDeltaDecoration } from '../../../common/model.js';
+import { ICodeEditor, IViewZone } from '../../editorBrowser.js';
+import { IRange } from '../../../common/core/range.js';
+import { EditorOption } from '../../../common/config/editorOptions.js';
+// import { sendLLMMessage } from './sendLLMMessage.js';
 
 export interface IInlineDiffService {
 	readonly _serviceBrand: undefined;
@@ -22,6 +23,17 @@ class InlineDiffService extends Disposable implements IInlineDiffService {
 	constructor() {
 		super();
 	}
+
+	initStream() {
+
+
+
+
+		// start streaming
+		// const streamChunk = ({ diffProvider, docUri, oldFileStr, completedStr, diffRepr, diffArea, voidConfig, abortRef }: { diffProvider: DiffProvider, docUri: vscode.Uri, oldFileStr: string, completedStr: string, diffRepr: string, voidConfig: VoidConfig, diffArea: DiffArea, abortRef: AbortRef }) => {
+		// }
+	}
+
 
 	public addDiff: IInlineDiffService['addDiff'] = (editor, originalText, modifiedRange) => {
 		// Clear existing diffs

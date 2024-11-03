@@ -12,8 +12,6 @@ const LINES_PER_CHUNK = 20 // number of lines to search at a time
 type CompetedReturn = { isFinished: true, } | { isFinished?: undefined, }
 const streamChunk = ({ diffProvider, docUri, oldFileStr, completedStr, diffRepr, diffArea, voidConfig, abortRef }: { diffProvider: DiffProvider, docUri: vscode.Uri, oldFileStr: string, completedStr: string, diffRepr: string, voidConfig: VoidConfig, diffArea: DiffArea, abortRef: AbortRef }) => {
 
-	const NUM_MATCHUP_TOKENS = 20
-
 	const promptContent = `ORIGINAL_FILE
 \`\`\`
 ${oldFileStr}
@@ -83,52 +81,52 @@ ${completedStr}
 }
 
 
-const shouldApplyDiff = ({ diffRepr, oldFileStr: fileStr, speculationStr, voidConfig, abortRef }: { diffRepr: string, oldFileStr: string, speculationStr: string, voidConfig: VoidConfig, abortRef: AbortRef }) => {
+// const shouldApplyDiff = ({ diffRepr, oldFileStr: fileStr, speculationStr, voidConfig, abortRef }: { diffRepr: string, oldFileStr: string, speculationStr: string, voidConfig: VoidConfig, abortRef: AbortRef }) => {
 
-	const promptContent = `DIFF
-\`\`\`
-${diffRepr}
-\`\`\`
+// 	const promptContent = `DIFF
+// \`\`\`
+// ${diffRepr}
+// \`\`\`
 
-FILES
-\`\`\`
-${fileStr}
-\`\`\`
+// FILES
+// \`\`\`
+// ${fileStr}
+// \`\`\`
 
-SELECTION
-\`\`\`
-${speculationStr}
-\`\`\`
+// SELECTION
+// \`\`\`
+// ${speculationStr}
+// \`\`\`
 
-Return \`true\` if ANY part of the chunk should be modified, and \`false\` if it should not be modified. You should respond only with \`true\` or \`false\` and nothing else.
-`
+// Return \`true\` if ANY part of the chunk should be modified, and \`false\` if it should not be modified. You should respond only with \`true\` or \`false\` and nothing else.
+// `
 
-	// create new promise
-	return new Promise<boolean>((resolve, reject) => {
-		// send message to LLM
-		sendLLMMessage({
-			messages: [{ role: 'system', content: searchDiffChunkInstructions, }, { role: 'user', content: promptContent, }],
-			onFinalMessage: (finalMessage) => {
+// 	// create new promise
+// 	return new Promise<boolean>((resolve, reject) => {
+// 		// send message to LLM
+// 		sendLLMMessage({
+// 			messages: [{ role: 'system', content: searchDiffChunkInstructions, }, { role: 'user', content: promptContent, }],
+// 			onFinalMessage: (finalMessage) => {
 
-				const containsTrue = finalMessage
-					.slice(-10) // check for `true` in last 10 characters
-					.toLowerCase()
-					.includes('true')
+// 				const containsTrue = finalMessage
+// 					.slice(-10) // check for `true` in last 10 characters
+// 					.toLowerCase()
+// 					.includes('true')
 
-				resolve(containsTrue)
-			},
-			onError: (e) => {
-				resolve(false);
-				console.error('Error in shouldApplyDiff: ', e)
-			},
-			onText: () => { },
-			voidConfig,
-			abortRef,
-		})
+// 				resolve(containsTrue)
+// 			},
+// 			onError: (e) => {
+// 				resolve(false);
+// 				console.error('Error in shouldApplyDiff: ', e)
+// 			},
+// 			onText: () => { },
+// 			voidConfig,
+// 			abortRef,
+// 		})
 
-	})
+// 	})
 
-}
+// }
 
 
 
@@ -147,7 +145,7 @@ export const applyDiffLazily = async ({ docUri, oldFileStr, voidConfig, abortRef
 
 		// ask LLM if we should apply the diff to the chunk
 		const START = new Date().getTime()
-		let shouldApplyDiff_ = await shouldApplyDiff({ oldFileStr, speculationStr: chunkStr, diffRepr, voidConfig, abortRef })
+		let shouldApplyDiff_ = true; //await shouldApplyDiff({ oldFileStr, speculationStr: chunkStr, diffRepr, voidConfig, abortRef })
 		const END = new Date().getTime()
 
 		// if should not change the chunk
@@ -155,7 +153,7 @@ export const applyDiffLazily = async ({ docUri, oldFileStr, voidConfig, abortRef
 			console.log('KEEP CHUNK time: ', END - START)
 			speculativeIndex += LINES_PER_CHUNK
 			writtenTextSoFar.push(chunkStr)
-			diffProvider.updateStream(docUri.toString(), diffArea, writtenTextSoFar.join('\n'))
+			// diffProvider.updateStream(docUri.toString(), diffArea, writtenTextSoFar.join('\n'))
 			continue;
 		}
 

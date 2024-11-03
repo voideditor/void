@@ -66,6 +66,7 @@ Complete the following:
 
 	// update stream
 	sendLLMMessage({
+		logging: { loggingName: 'Ctrl+K' },
 		messages: [{ role: 'user', content: promptContent, }],
 		onText: async (tokenStr, completionStr) => {
 			// TODO update stream

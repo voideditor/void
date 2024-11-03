@@ -167,21 +167,6 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 
 
 
-	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
-	const captureChatEvent = useCallback((eventId: string, extras?: object) => {
-		const whichApi = voidConfig.default['whichApi']
-		const messages = getCurrentThread()?.messages
-
-		captureEvent(eventId, {
-			whichApi: whichApi,
-			numMessages: messages?.length,
-			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.displayContent?.length })),
-			version: '2024-10-19',
-			...extras,
-		})
-	}, [getCurrentThread, voidConfig.default])
-
-
 	// if they pressed the + to add a new chat
 	useOnVSCodeMessage('startNewThread', (m) => {
 		const allThreads = getAllThreads()
@@ -235,15 +220,12 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selection, files }
 		addMessageToHistory(newHistoryElt)
 
-		captureChatEvent('Chat - Sending Message', { messageLength: instructions.length })
-		const submit_time = new Date()
-
 		// send message to LLM
 		sendLLMMessage({
+			logging: { loggingName: 'Chat' },
 			messages: [...(getCurrentThread()?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
-				captureChatEvent('Chat - Received Full Message', { messageLength: content.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
 
 				// add assistant's message to chat history, and clear selection
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content }
@@ -252,8 +234,6 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 				setIsLoading(false)
 			},
 			onError: (error) => {
-				captureChatEvent('Chat - Error', { error })
-
 				// add assistant's message to chat history, and clear selection
 				let content = messageStream; // just use the current content
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
@@ -271,9 +251,6 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 	}
 
 	const onAbort = useCallback(() => {
-
-		captureChatEvent('Chat - Abort', { messageLengthSoFar: messageStream.length })
-
 		// abort claude
 		abortFnRef.current?.()
 
@@ -285,7 +262,7 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 		setMessageStream('')
 		setIsLoading(false)
 
-	}, [captureChatEvent, messageStream, addMessageToHistory])
+	}, [messageStream, addMessageToHistory])
 
 
 	return <>

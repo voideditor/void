@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { AbortRef } from '../common/sendLLMMessage';
 import { MessageToSidebar, MessageFromSidebar, DiffArea, ChatThreads } from '../common/shared_types';
 import { getVoidConfigFromPartial } from '../webviews/common/contextForConfig';
-import { applyDiffLazily } from './applyDiffLazily';
 import { DiffProvider } from './DiffProvider';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
@@ -131,7 +130,7 @@ export function activate(context: vscode.ExtensionContext) {
 					const fileStr = await readFileContentOfUri(docUri)
 					const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
 
-					await applyDiffLazily({ docUri, oldFileStr: fileStr, diffRepr: m.diffRepr, voidConfig, diffProvider, diffArea, abortRef: abortApplyRef })
+					await diffProvider.startStreamingInDiffArea({ docUri, oldFileStr: fileStr, diffRepr: m.diffRepr, voidConfig, diffArea, abortRef: abortApplyRef })
 				}
 				else if (m.type === 'getPartialVoidConfig') {
 					const partialVoidConfig = context.globalState.get('partialVoidConfig') ?? {}

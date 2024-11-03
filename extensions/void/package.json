@@ -112,7 +112,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.29.2",
+    "@anthropic-ai/sdk": "^0.31.0",
     "@eslint/js": "^9.9.1",
     "@google/generative-ai": "^0.21.0",
     "@monaco-editor/react": "^4.6.0",
@@ -141,7 +141,7 @@
     "lodash": "^4.17.21",
     "marked": "^14.1.0",
     "ollama": "^0.5.9",
-    "openai": "^4.68.4",
+    "openai": "^4.70.2",
     "postcss": "^8.4.41",
     "posthog-js": "^1.176.0",
     "react": "^18.3.1",

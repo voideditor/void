@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 import { Ollama } from 'ollama'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { VoidConfig } from '../webviews/common/contextForConfig'
+import { captureEvent } from '../webviews/common/posthog';
+import { ChatMessage } from './shared_types';
 
 export type AbortRef = { current: (() => void) | null }
 
@@ -26,7 +28,8 @@ type SendLLMMessageFnTypeInternal = (params: {
 	onFinalMessage: OnFinalMessage;
 	onError: (error: string) => void;
 	voidConfig: VoidConfig;
-	abortRef: AbortRef;
+
+	_setAborter: (aborter: () => void) => void;
 }) => void
 
 type SendLLMMessageFnTypeExternal = (params: {
@@ -36,6 +39,10 @@ type SendLLMMessageFnTypeExternal = (params: {
 	onError: (error: string) => void;
 	voidConfig: VoidConfig | null;
 	abortRef: AbortRef;
+
+	logging: {
+		loggingName: string,
+	};
 }) => void
 
 const parseMaxTokensStr = (maxTokensStr: string) => {
@@ -47,7 +54,7 @@ const parseMaxTokensStr = (maxTokensStr: string) => {
 }
 
 // Anthropic
-const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig }) => {
+const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
 	const anthropic = new Anthropic({ apiKey: voidConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
@@ -67,17 +74,14 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 		max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens)!, // this might be undefined, but it will just throw an error for the user
 	});
 
-	let did_abort = false
 
 	// when receive text
 	stream.on('text', (newText, fullText) => {
-		if (did_abort) return
 		onText(newText, fullText)
 	})
 
 	// when we get the final message on this stream (or when error/fail)
 	stream.on('finalMessage', (claude_response) => {
-		if (did_abort) return
 		// stringify the response's content
 		const content = claude_response.content.map(c => c.type === 'text' ? c.text : c.type).join('\n');
 		onFinalMessage(content)
@@ -93,24 +97,15 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 		}
 	})
 
-	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	const abort = () => {
-		did_abort = true
-		stream.controller.abort() // TODO need to test this to make sure it works, it might throw an error
-	}
+	// TODO need to test this to make sure it works, it might throw an error
+	_setAborter(() => stream.controller.abort())
 
-	return { abort }
 };
 
 // Gemini
-const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
-	let didAbort = false
 	let fullText = ''
-
-	abortRef.current = () => {
-		didAbort = true
-	}
 
 	const genAI = new GoogleGenerativeAI(voidConfig.gemini.apikey);
 	const model = genAI.getGenerativeModel({ model: voidConfig.gemini.model });
@@ -132,12 +127,9 @@ const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, o
 
 	model.generateContentStream({ contents: geminiMessages, systemInstruction: systemMessage, })
 		.then(async response => {
-			abortRef.current = () => {
-				// response.stream.return(fullText)
-				didAbort = true;
-			}
+			_setAborter(() => response.stream.return(fullText))
+
 			for await (const chunk of response.stream) {
-				if (didAbort) return;
 				const newText = chunk.text();
 				fullText += newText;
 				onText(newText, fullText);
@@ -160,15 +152,9 @@ const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, o
 }
 
 // OpenAI, OpenRouter, OpenAICompatible
-const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
-	let didAbort = false
 	let fullText = ''
-
-	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	abortRef.current = () => {
-		didAbort = true;
-	};
 
 	let openai: OpenAI
 	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
@@ -201,13 +187,9 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 	openai.chat.completions
 		.create(options)
 		.then(async response => {
-			abortRef.current = () => {
-				// response.controller.abort()
-				didAbort = true;
-			}
+			_setAborter(() => response.controller.abort())
 			// when receive text
 			for await (const chunk of response) {
-				if (didAbort) return;
 				const newText = chunk.choices[0]?.delta?.content || '';
 				fullText += newText;
 				onText(newText, fullText);
@@ -232,15 +214,9 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 };
 
 // Ollama
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
-	let didAbort = false
 	let fullText = ''
-
-	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	abortRef.current = () => {
-		didAbort = true;
-	};
 
 	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
 
@@ -251,13 +227,9 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) } // this is max_tokens
 	})
 		.then(async stream => {
-			abortRef.current = () => {
-				// stream.abort()
-				didAbort = true
-			}
+			_setAborter(() => stream.abort())
 			// iterate through the stream
 			for await (const chunk of stream) {
-				if (didAbort) return;
 				const newText = chunk.message.content;
 				fullText += newText;
 				onText(newText, fullText);
@@ -276,15 +248,9 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 // https://docs.greptile.com/api-reference/query
 // https://docs.greptile.com/quickstart#sample-response-streamed
 
-const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
-	let didAbort = false
 	let fullText = ''
-
-	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
-	abortRef.current = () => {
-		didAbort = true
-	}
 
 	fetch('https://api.greptile.com/v2/query', {
 		method: 'POST',
@@ -306,12 +272,10 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 			return JSON.parse(`[${text.trim().split('\n').join(',')}]`)
 		})
 		// TODO make this actually stream, right now it just sends one message at the end
+		// TODO add _setAborter() when add streaming
 		.then(async responseArr => {
-			if (didAbort)
-				return
 
 			for (const response of responseArr) {
-
 				const type: string = response['type']
 				const message = response['message']
 
@@ -340,26 +304,90 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+
+
+
+
+export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
+	messages,
+	onText: onText_,
+	onFinalMessage: onFinalMessage_,
+	onError: onError_,
+	abortRef: abortRef_,
+	voidConfig,
+	logging: { loggingName }
+}) => {
 	if (!voidConfig) return;
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
 
+	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
+	const captureChatEvent = (eventId: string, extras?: object) => {
+		captureEvent(eventId, {
+			whichApi: voidConfig.default['whichApi'],
+			numMessages: messages?.length,
+			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
+			version: '2024-11-02',
+			...extras,
+		})
+	}
+	const submit_time = new Date()
+
+	let _fullTextSoFar = ''
+	let _aborter: (() => void) | null = null
+	let _setAborter = (fn: () => void) => { _aborter = fn }
+	let _didAbort = false
+
+	const onText = (newText: string, fullText: string) => {
+		if (_didAbort) return
+		onText_(newText, fullText)
+		_fullTextSoFar = fullText
+	}
+
+	const onFinalMessage = (fullText: string) => {
+		if (_didAbort) return
+		captureChatEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+		onFinalMessage_(fullText)
+	}
+
+	const onError = (error: string) => {
+		if (_didAbort) return
+		captureChatEvent(`${loggingName} - Error`, { error })
+		onError_(error)
+	}
+
+	const onAbort = () => {
+		captureChatEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
+		_aborter?.()
+		_didAbort = true
+	}
+	abortRef_.current = onAbort
+
+	captureChatEvent(`${loggingName} - Sending Message`, { messageLength: messages[messages.length - 1]?.content.length })
+
 	switch (voidConfig.default.whichApi) {
 		case 'anthropic':
-			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+			break;
 		case 'openAI':
 		case 'openRouter':
 		case 'openAICompatible':
-			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+			break;
 		case 'gemini':
-			return sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+			break;
 		case 'ollama':
-			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+			break;
 		case 'greptile':
-			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+			break;
 		default:
 			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
+			break;
 	}
+
+
 }

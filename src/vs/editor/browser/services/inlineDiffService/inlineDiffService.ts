@@ -27,11 +27,6 @@ class InlineDiffService extends Disposable implements IInlineDiffService {
 	initStream() {
 
 
-
-
-		// start streaming
-		// const streamChunk = ({ diffProvider, docUri, oldFileStr, completedStr, diffRepr, diffArea, voidConfig, abortRef }: { diffProvider: DiffProvider, docUri: vscode.Uri, oldFileStr: string, completedStr: string, diffRepr: string, voidConfig: VoidConfig, diffArea: DiffArea, abortRef: AbortRef }) => {
-		// }
 	}
 
 

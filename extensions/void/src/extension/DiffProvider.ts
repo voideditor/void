@@ -3,7 +3,9 @@ import { findDiffs } from './findDiffs';
 import { throttle } from 'lodash';
 import { DiffArea, BaseDiff, Diff } from '../common/shared_types';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
-import { updateWebviewHTML } from './extensionLib/updateWebviewHTML';
+import { AbortRef, sendLLMMessage } from '../common/sendLLMMessage';
+import { writeFileWithDiffInstructions } from '../common/systemPrompts';
+import { VoidConfig } from '../webviews/common/contextForConfig';
 
 
 const THROTTLE_TIME = 100
@@ -397,8 +399,66 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 
 
+
+
+
+
+
+
+	async startStreamingInDiffArea({ docUri, oldFileStr, diffRepr, diffArea, voidConfig, abortRef }: { docUri: vscode.Uri, oldFileStr: string, diffRepr: string, voidConfig: VoidConfig, diffArea: DiffArea, abortRef: AbortRef }) {
+
+
+		const promptContent = `\
+ORIGINAL_FILE
+\`\`\`
+${oldFileStr}
+\`\`\`
+
+DIFF
+\`\`\`
+${diffRepr}
+\`\`\`
+
+INSTRUCTIONS
+Please finish writing the new file by applying the diff to the original file. Return ONLY the completion of the file, without any explanation.
+
+`
+		// ask LLM to rewrite file with diff (if there is significant matchup with the original file, we stop rewriting)
+		const START = new Date().getTime()
+
+		// make LLM complete the file to include the diff
+		await new Promise<void>((resolve, reject) => {
+			sendLLMMessage({
+				logging: { loggingName: 'streamChunk' },
+				messages: [
+					{ role: 'system', content: writeFileWithDiffInstructions, },
+					// TODO include more context too
+					{ role: 'user', content: promptContent, }
+				],
+				onText: (newText, fullText) => {
+					this._updateStream(docUri.toString(), diffArea, fullText)
+				},
+				onFinalMessage: (fullText) => {
+					this._updateStream(docUri.toString(), diffArea, fullText)
+					resolve();
+				},
+				onError: (e) => {
+					console.error('Error rewriting file with diff', e);
+					resolve();
+				},
+				voidConfig,
+				abortRef,
+			})
+		})
+
+		const END = new Date().getTime()
+		console.log('EDIT CHUNK time: ', END - START);
+
+	}
+
+
 	// used by us only
-	public updateStream = throttle(async (docUriStr: string, diffArea: DiffArea, newDiffAreaCode: string) => {
+	private _updateStream = throttle(async (docUriStr: string, diffArea: DiffArea, newDiffAreaCode: string) => {
 
 		const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
 		if (!editor) {

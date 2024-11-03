@@ -51,17 +51,18 @@ If you're using a Mac, make sure you have Python and XCode installed (you probab
 
 If you're using a Windows computer, first get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community) (recommended) or [VS Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools) (not recommended). If you already have both, you might need to run the next few steps on both of them.
 
-Find the box for Visual Studio 2022 (or VS Build Tools) and click Install/Modify.
+Open the installer for Visual Studio 2022 (or VS Build Tools). This is often automatic.
 
-Under Workloads, select "Desktop development with C++" and "Node.js build tools".
+Go to the "Workloads" tab and select:
+- `Desktop development with C++`
+- `Node.js build tools`
 
-Under Individual components, select every item under:
-
+Go to the "Individual Components" tab and select:
 - `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)`,
 - `C++ ATL for latest build tools with Spectre Mitigations`,
 - `C++ MFC for latest build tools with Spectre Mitigations`.
 
-Finally, click Install/Modify.
+Finally, click Install.
 
 ### c. Build Prerequisites - Linux
 
@@ -69,7 +70,7 @@ We haven't created prerequisite steps for building on Linux yet, but you can fol
 
 ### Build instructions
 
-Before building Void, please follow the prerequisite steps above for your operating system. Also make sure you've already built the Void extension (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`).
+Before building Void, please follow the prerequisite steps above for your operating system. Also, make sure you've already built and compiled the Void extension (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`).
 
 To build Void, first open `void/` in VSCode. Then:
 

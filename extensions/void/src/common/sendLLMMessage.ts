@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
-import { Ollama } from 'ollama'
+import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { VoidConfig } from '../webviews/common/contextForConfig'
 import { captureEvent } from '../webviews/common/posthog';

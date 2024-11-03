@@ -1,4 +1,5 @@
-import * as vscode from 'vscode';
+import type * as vscode from 'vscode';
+
 import { AbortRef, sendLLMMessage } from '../common/sendLLMMessage';
 import { DiffArea } from '../common/shared_types';
 import { writeFileWithDiffInstructions, searchDiffChunkInstructions } from '../common/systemPrompts';

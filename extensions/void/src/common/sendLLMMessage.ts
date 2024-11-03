@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
-import { Ollama } from 'ollama/browser'
+import { Ollama } from 'ollama'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { VoidConfig } from '../webviews/common/contextForConfig'
 
@@ -11,36 +11,36 @@ export type OnText = (newText: string, fullText: string) => void
 export type OnFinalMessage = (input: string) => void
 
 export type LLMMessageAnthropic = {
-	role: 'user' | 'assistant',
-	content: string,
+	role: 'user' | 'assistant';
+	content: string;
 }
 
 export type LLMMessage = {
-	role: 'system' | 'user' | 'assistant',
-	content: string,
+	role: 'system' | 'user' | 'assistant';
+	content: string;
 }
 
 type SendLLMMessageFnTypeInternal = (params: {
-	messages: LLMMessage[],
-	onText: OnText,
-	onFinalMessage: OnFinalMessage,
-	onError: (error: string) => void,
-	voidConfig: VoidConfig,
-	abortRef: AbortRef,
+	messages: LLMMessage[];
+	onText: OnText;
+	onFinalMessage: OnFinalMessage;
+	onError: (error: string) => void;
+	voidConfig: VoidConfig;
+	abortRef: AbortRef;
 }) => void
 
 type SendLLMMessageFnTypeExternal = (params: {
-	messages: LLMMessage[],
-	onText: OnText,
-	onFinalMessage: (fullText: string) => void,
-	onError: (error: string) => void,
-	voidConfig: VoidConfig | null,
-	abortRef: AbortRef,
+	messages: LLMMessage[];
+	onText: OnText;
+	onFinalMessage: (fullText: string) => void;
+	onError: (error: string) => void;
+	voidConfig: VoidConfig | null;
+	abortRef: AbortRef;
 }) => void
 
 const parseMaxTokensStr = (maxTokensStr: string) => {
 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
-	let int = isNaN(Number(maxTokensStr)) ? undefined : parseInt(maxTokensStr)
+	const int = isNaN(Number(maxTokensStr)) ? undefined : parseInt(maxTokensStr)
 	if (Number.isNaN(int))
 		return undefined
 	return int
@@ -79,7 +79,7 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 	stream.on('finalMessage', (claude_response) => {
 		if (did_abort) return
 		// stringify the response's content
-		let content = claude_response.content.map(c => { if (c.type === 'text') { return c.text } }).join('\n');
+		const content = claude_response.content.map(c => c.type === 'text' ? c.text : c.type).join('\n');
 		onFinalMessage(content)
 	})
 
@@ -117,7 +117,7 @@ const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, o
 
 	// remove system messages that get sent to Gemini
 	// str of all system messages
-	let systemMessage = messages
+	const systemMessage = messages
 		.filter(msg => msg.role === 'system')
 		.map(msg => msg.content)
 		.join('\n');
@@ -173,7 +173,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 	let openai: OpenAI
 	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
 
-	let maxTokens = parseMaxTokensStr(voidConfig.default.maxTokens)
+	const maxTokens = parseMaxTokensStr(voidConfig.default.maxTokens)
 
 	if (voidConfig.default.whichApi === 'openAI') {
 		openai = new OpenAI({ apiKey: voidConfig.openAI.apikey, dangerouslyAllowBrowser: true });
@@ -181,10 +181,10 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 	}
 	else if (voidConfig.default.whichApi === 'openRouter') {
 		openai = new OpenAI({
-			baseURL: "https://openrouter.ai/api/v1", apiKey: voidConfig.openRouter.apikey, dangerouslyAllowBrowser: true,
+			baseURL: 'https://openrouter.ai/api/v1', apiKey: voidConfig.openRouter.apikey, dangerouslyAllowBrowser: true,
 			defaultHeaders: {
-				"HTTP-Referer": 'https://voideditor.com', // Optional, for including your app on openrouter.ai rankings.
-				"X-Title": 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
+				'HTTP-Referer': 'https://voideditor.com', // Optional, for including your app on openrouter.ai rankings.
+				'X-Title': 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
 			},
 		});
 		options = { model: voidConfig.openRouter.model, messages: messages, stream: true, max_completion_tokens: maxTokens }
@@ -235,7 +235,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 
 	let didAbort = false
-	let fullText = ""
+	let fullText = ''
 
 	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
 	abortRef.current = () => {
@@ -289,9 +289,9 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 	fetch('https://api.greptile.com/v2/query', {
 		method: 'POST',
 		headers: {
-			"Authorization": `Bearer ${voidConfig.greptile.apikey}`,
-			"X-Github-Token": `${voidConfig.greptile.githubPAT}`,
-			"Content-Type": `application/json`,
+			'Authorization': `Bearer ${voidConfig.greptile.apikey}`,
+			'X-Github-Token': `${voidConfig.greptile.githubPAT}`,
+			'Content-Type': `application/json`,
 		},
 		body: JSON.stringify({
 			messages,
@@ -310,7 +310,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 			if (didAbort)
 				return
 
-			for (let response of responseArr) {
+			for (const response of responseArr) {
 
 				const type: string = response['type']
 				const message = response['message']
@@ -321,7 +321,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 					onText(message, fullText)
 				}
 				else if (type === 'sources') {
-					const { filepath, linestart, lineend } = message as { filepath: string, linestart: number | null, lineend: number | null }
+					const { filepath, linestart: _, lineend: _2 } = message as { filepath: string; linestart: number | null; lineend: number | null }
 					fullText += filepath
 					onText(filepath, fullText)
 				}

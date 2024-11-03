@@ -3,22 +3,6 @@
 import * as vscode from 'vscode';
 import { updateWebviewHTML as _updateWebviewHTML, updateWebviewHTML } from '../extensionLib/updateWebviewHTML';
 
-// this comes from vscode.proposed.editorInsets.d.ts
-declare module 'vscode' {
-	export interface WebviewEditorInset {
-		readonly editor: vscode.TextEditor;
-		readonly line: number;
-		readonly height: number;
-		readonly webview: vscode.Webview;
-		readonly onDidDispose: Event<void>;
-		dispose(): void;
-	}
-	export namespace window {
-		export function createWebviewTextEditorInset(editor: vscode.TextEditor, line: number, height: number, options?: vscode.WebviewOptions): WebviewEditorInset;
-	}
-}
-
-
 
 export class CtrlKWebviewProvider {
 

@@ -8,6 +8,7 @@ import { IInlineDiffService } from '../../../editor/browser/services/inlineDiffS
 import { ICodeEditor } from '../../../editor/browser/editorBrowser.js';
 import { IRange } from '../../../editor/common/core/range.js';
 import { extHostNamedCustomer, IExtHostContext } from '../../services/extensions/common/extHostCustomers.js';
+// import { IHistoryService } from '../../services/history/common/history.js';
 
 
 @extHostNamedCustomer(MainContext.MainThreadInlineDiff)
@@ -20,14 +21,18 @@ export class MainThreadInlineDiff extends Disposable implements MainThreadInline
 		context: IExtHostContext,
 		@IInlineDiffService private readonly _inlineDiff: IInlineDiffService,
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
+		// @IHistoryService private readonly _historyService: IHistoryService,
 	) {
 		super();
+		// this._proxy = context.getProxy(ExtHostContext.ExtHostEditorInsets);
+		// this._wcHistoryService.addEntry()
 	}
-	// this._proxy = context.getProxy(ExtHostContext.ExtHostEditorInsets);
 
-	// dispose(): void {
-	// 	this._disposables.dispose();
-	// }
+	initStream() {
+
+	}
+
+
 
 	$addDiff(editorId: string, originalText: string, range: IRange): void {
 
@@ -50,33 +55,6 @@ export class MainThreadInlineDiff extends Disposable implements MainThreadInline
 
 		this._inlineDiff.addDiff(editor, originalText, range)
 
-
-		// return editor
-
-		// const disposables = new DisposableStore();
-
-		// const remove = () => {
-		// 	disposables.dispose();
-		// 	this._proxy.$onDidDispose(handle);
-		// 	this._insets.delete(handle);
-		// };
-
-		// disposables.add(editor.onDidChangeModel(remove));
-		// disposables.add(editor.onDidDispose(remove));
-
 	}
 
-	// $disposeEditorInset(handle: number): void {
-	// 	const inset = this.getInset(handle);
-	// 	this._insets.delete(handle);
-	// 	inset.dispose();
-	// }
-
-	// private getInset(handle: number): EditorWebviewZone {
-	// 	const inset = this._insets.get(handle);
-	// 	if (!inset) {
-	// 		throw new Error('Unknown inset');
-	// 	}
-	// 	return inset;
-	// }
 }

@@ -23,12 +23,11 @@ class InlineDiffService extends Disposable implements IInlineDiffService {
 		super();
 	}
 
-
 	public addDiff: IInlineDiffService['addDiff'] = (editor, originalText, modifiedRange) => {
 		// Clear existing diffs
 		this.removeDiffs(editor);
 
-		// green decoration
+		// green decoration and gutter decoration
 		const greenDecoration: IModelDeltaDecoration[] = [{
 			range: modifiedRange,
 			options: {
@@ -36,11 +35,11 @@ class InlineDiffService extends Disposable implements IInlineDiffService {
 				description: 'line-insert',
 				isWholeLine: true,
 				minimap: {
-					color: { id: 'inlineDiff.minimapGutter.addedBackground' },
+					color: { id: 'minimapGutter.addedBackground' },
 					position: 2
 				},
 				overviewRuler: {
-					color: { id: 'inlineDiff.editorOverviewRuler.addedForeground' },
+					color: { id: 'editorOverviewRuler.addedForeground' },
 					position: 7
 				}
 			}
@@ -57,7 +56,7 @@ class InlineDiffService extends Disposable implements IInlineDiffService {
 			domNode.className = 'monaco-editor view-zones line-delete monaco-mouse-cursor-text';
 			domNode.style.fontSize = `${fontInfo.fontSize}px`;
 			domNode.style.fontFamily = fontInfo.fontFamily;
-			domNode.style.lineHeight = `100%`;
+			domNode.style.lineHeight = `${fontInfo.lineHeight}px`;
 
 			// div
 			const lineContent = document.createElement('div');
@@ -78,7 +77,7 @@ class InlineDiffService extends Disposable implements IInlineDiffService {
 
 			const viewZone: IViewZone = {
 				afterLineNumber: modifiedRange.startLineNumber - 1,
-				heightInLines: 1,
+				heightInLines: originalText.split('\n').length + 1,
 				domNode: domNode,
 				suppressMouseDown: true,
 				marginDomNode: this.createGutterElement()
@@ -90,13 +89,14 @@ class InlineDiffService extends Disposable implements IInlineDiffService {
 		});
 	}
 
+	//  gutter is the thing to the left
 	private createGutterElement(): HTMLElement {
 		const gutterDiv = document.createElement('div');
 		gutterDiv.className = 'inline-diff-gutter';
 
 		const minusDiv = document.createElement('div');
 		minusDiv.className = 'inline-diff-deleted-gutter';
-		minusDiv.textContent = '-';
+		// minusDiv.textContent = '-';
 
 		gutterDiv.appendChild(minusDiv);
 		return gutterDiv;

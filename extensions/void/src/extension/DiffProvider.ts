@@ -205,6 +205,8 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 		}
 
+
+
 		// update green highlighting
 		editor.setDecorations(
 			greenDecoration,

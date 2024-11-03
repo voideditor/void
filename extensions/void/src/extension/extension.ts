@@ -69,9 +69,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 			const { selectionStr, filePath } = getSelection(editor)
 
-			vscode.languages.addInlineDiff(editor, 'oldText', editor.selection)
-
-
 			// send message to the webview (Sidebar.tsx)
 			sidebarWebviewProvider.webview.then(webview => webview.postMessage({ type: 'ctrl+l', selection: { selectionStr, filePath } } satisfies MessageToSidebar));
 		})

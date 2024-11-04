@@ -3,16 +3,16 @@ import {
 	Extensions as ViewContainerExtensions, IViewContainersRegistry,
 	ViewContainerLocation, IViewsRegistry, Extensions as ViewExtensions,
 	IViewDescriptor
-} from '../../../../workbench/common/views.js';
+} from '../../../common/views.js';
 
 import * as nls from '../../../../nls.js';
 
-import { VoidViewPane } from '../../../../workbench/contrib/void/browser/voidViewPane.js';
+import { VoidViewPane } from './voidViewPane.js';
 
 import { Codicon } from '../../../../base/common/codicons.js';
 import { localize } from '../../../../nls.js';
 import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
-import { ViewPaneContainer } from '../../../../workbench/browser/parts/views/viewPaneContainer.js';
+import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
 
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';

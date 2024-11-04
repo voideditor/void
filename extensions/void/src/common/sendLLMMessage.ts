@@ -237,6 +237,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 	let didAbort = false
 	let fullText = ""
 
+
 	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
 	abortRef.current = () => {
 		didAbort = true;
@@ -244,15 +245,31 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 
 	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
 
-	ollama.chat({
-		model: voidConfig.ollama.model,
-		messages: messages,
-		stream: true,
-		options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) } // this is max_tokens
-	})
+	// First check if model exists
+	ollama.list()
+		.then(async models => {
+			const modelExists = models.models.some(m => m.name.startsWith(voidConfig.ollama.model));
+			const installedModels = models.models.map(m => m.name.replace(/:latest$/, ''))
+			if (!modelExists) {
+				// Send the error message as part of the chat response
+				const errorMessage = `The model "${voidConfig.ollama.model}" is not available locally. Please run 'ollama pull ${voidConfig.ollama.model}' to download it first.
+				Try selecting one from the Installed models: ${installedModels.join(', ')}`;
+				onText(errorMessage, errorMessage);
+				onFinalMessage(errorMessage);
+				return Promise.reject(); // Skip the chat attempt
+			}
+
+			return ollama.chat({
+				model: voidConfig.ollama.model,
+				messages: messages,
+				stream: true,
+				options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) }
+			});
+		})
 		.then(async stream => {
+			if (!stream) return; // Skip if model check failed
+
 			abortRef.current = () => {
-				// stream.abort()
 				didAbort = true
 			}
 			// iterate through the stream
@@ -263,13 +280,12 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 				onText(newText, fullText);
 			}
 			onFinalMessage(fullText);
-
 		})
-		// when error/fail
 		.catch(error => {
-			onError(error)
-		})
-
+			if (error) { // Only show other errors if they exist
+				onError(error);
+			}
+		});
 };
 
 // Greptile

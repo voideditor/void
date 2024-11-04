@@ -1,3 +1,5 @@
+// import * as dom from '../../../../base/browser/dom.js';
+
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
@@ -5,6 +7,11 @@ import { IModelDeltaDecoration } from '../../../common/model.js';
 import { ICodeEditor, IViewZone } from '../../editorBrowser.js';
 import { IRange } from '../../../common/core/range.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
+// // ------ eslint-disable-next-line local/code-import-patterns
+// import openai from 'openai'
+
+// console.log(openai.apply);
+
 // import { sendLLMMessage } from './sendLLMMessage.js';
 
 export interface IInlineDiffService {

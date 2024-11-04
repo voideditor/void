@@ -11,6 +11,7 @@ import { extHostNamedCustomer, IExtHostContext } from '../../services/extensions
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType, UndoRedoGroup } from '../../../platform/undoRedo/common/undoRedo.js';
 import { IBulkEditService } from '../../../editor/browser/services/bulkEditService.js';
 import { WorkspaceEdit } from '../../../editor/common/languages.js';
+import { IEnvironmentService } from '../../../platform/environment/common/environment.js';
 // import { IHistoryService } from '../../services/history/common/history.js';
 
 
@@ -28,9 +29,11 @@ export class MainThreadInlineDiff extends Disposable implements MainThreadInline
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 		@IBulkEditService private readonly _bulkEditService: IBulkEditService,
+		@IEnvironmentService private readonly _envService: IEnvironmentService,
 
 	) {
 		super();
+		console.log('is DEV', this._envService.isExtensionDevelopment)
 
 		// this._proxy = context.getProxy(ExtHostContext.ExtHostEditorInsets);
 		// this._wcHistoryService.addEntry()

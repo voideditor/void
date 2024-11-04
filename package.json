@@ -1,9 +1,8 @@
 {
-  "name": "code-oss-dev",
-  "version": "1.94.0",
-  "distro": "ffcc24343ac46468a625666e5b9e673971dd1a1f",
+  "name": "void",
+  "version": "0.1",
   "author": {
-    "name": "Microsoft Corporation"
+    "name": "Glass Devtools, Inc."
   },
   "license": "MIT",
   "main": "./out/main",
@@ -72,6 +71,7 @@
     "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json"
   },
   "dependencies": {
+    "@electron/asar": "^3.2.15",
     "@microsoft/1ds-core-js": "^3.2.13",
     "@microsoft/1ds-post-js": "^3.2.13",
     "@parcel/watcher": "2.1.0",
@@ -147,8 +147,10 @@
     "@vscode/v8-heap-parser": "^0.1.0",
     "@vscode/vscode-perf": "^0.0.14",
     "@webgpu/types": "^0.1.44",
+    "ajv": "^8.17.1",
+    "ajv-keywords": "^5.1.0",
     "ansi-colors": "^3.2.3",
-    "asar": "^3.0.3",
+    "asar": "^3.2.0",
     "chromium-pickle-js": "^0.2.0",
     "cookie": "^0.4.0",
     "copy-webpack-plugin": "^11.0.0",
@@ -156,7 +158,7 @@
     "cssnano": "^6.0.3",
     "debounce": "^1.0.0",
     "deemon": "^1.8.0",
-    "electron": "30.5.1",
+    "electron": "^30.5.1",
     "eslint": "8.36.0",
     "eslint-plugin-header": "3.1.1",
     "eslint-plugin-jsdoc": "^46.5.0",

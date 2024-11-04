@@ -237,8 +237,6 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 	let didAbort = false
 	let fullText = ""
 
-
-	// if abort is called, onFinalMessage is NOT called, and no later onTexts are called either
 	abortRef.current = () => {
 		didAbort = true;
 	};
@@ -248,15 +246,14 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 	// First check if model exists
 	ollama.list()
 		.then(async models => {
-			const modelExists = models.models.some(m => m.name.startsWith(voidConfig.ollama.model));
 			const installedModels = models.models.map(m => m.name.replace(/:latest$/, ''))
+			const modelExists = installedModels.some(m => m.startsWith(voidConfig.ollama.model));
 			if (!modelExists) {
-				// Send the error message as part of the chat response
-				const errorMessage = `The model "${voidConfig.ollama.model}" is not available locally. Please run 'ollama pull ${voidConfig.ollama.model}' to download it first.
-				Try selecting one from the Installed models: ${installedModels.join(', ')}`;
+				const errorMessage = `The model "${voidConfig.ollama.model}" is not available locally. Please run 'ollama pull ${voidConfig.ollama.model}' to download it first or
+				try selecting one from the Installed models: ${installedModels.join(', ')}`;
 				onText(errorMessage, errorMessage);
 				onFinalMessage(errorMessage);
-				return Promise.reject(); // Skip the chat attempt
+				return Promise.reject();
 			}
 
 			return ollama.chat({
@@ -267,12 +264,11 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 			});
 		})
 		.then(async stream => {
-			if (!stream) return; // Skip if model check failed
+			if (!stream) return;
 
 			abortRef.current = () => {
 				didAbort = true
 			}
-			// iterate through the stream
 			for await (const chunk of stream) {
 				if (didAbort) return;
 				const newText = chunk.message.content;
@@ -282,7 +278,12 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 			onFinalMessage(fullText);
 		})
 		.catch(error => {
-			if (error) { // Only show other errors if they exist
+			// Check if the error is a connection error
+			if (error instanceof Error && error.message.includes('Failed to fetch')) {
+				const errorMessage = 'Ollama service is not running. Please start the Ollama service and try again.';
+				onText(errorMessage, errorMessage);
+				onFinalMessage(errorMessage);
+			} else if (error) {
 				onError(error);
 			}
 		});

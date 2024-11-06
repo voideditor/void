@@ -1,20 +1,48 @@
 import tsup from 'tsup'
+import * as fs from 'fs'
+import * as path from 'path'
 
-tsup.build({
-	entry: [`void-imports.js`],
-	format: ['esm'],
-	sourcemap: false,
-	bundle: true,
-	clean: true,
-	// minify: true, // no need to minify since it all gets bundled later
-	outDir: '../src/vs/workbench/contrib/void/browser/out',
-	dts: false,
-	name: 'void-imports',
-	noExternal: [/.*/],  // This bundles everything
-	platform: 'browser', // Important for browser compatibility
-	target: 'es2020',
-	// banner: {
-	// 	js: '/* eslint-disable */'
-	// }
-})
+const buildFiles = (imports, to_be_built_folder) => {
+	// create a file with name importName that imports importName and immediately re-exports it
+	for (const importName of imports) {
+		const content = `\
+export { default } from '${importName}'
+export * from '${importName}'
+`
+		const dir = path.dirname(importName);
+		const file = path.basename(importName);
+
+		const fullPath = path.join(to_be_built_folder, dir, `${file}.ts`);
+
+		// Create all necessary directories before writing the file
+		fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+		fs.writeFileSync(fullPath, content, 'utf8');
+	}
+}
+
+const compileFiles = async (imports, to_be_built_folder, outDir) => {
+	const fileEntries = imports.map((importName) => path.join(to_be_built_folder, `${importName}.ts`))
+	await tsup.build({
+		entry: fileEntries,
+		format: ['esm'],
+		sourcemap: false,
+		bundle: true,
+		clean: true,
+		// minify: true, // no need to minify since it all gets bundled later
+		outDir: path.join(outDir),
+		dts: false,
+		noExternal: [/.*/],  // This bundles everything
+		platform: 'browser', // Important for browser compatibility
+		target: 'es2020',
+	})
+}
+
+const to_be_built_folder = 'to_be_built'
+fs.rmSync(to_be_built_folder, { recursive: true, force: true });
+
+const imports = ['openai', '@anthropic-ai/sdk', 'react', 'react-dom']
+buildFiles(imports, to_be_built_folder)
+
+const OUT_DIR = '../src/vs/workbench/contrib/void/browser/dist'
+compileFiles(imports, to_be_built_folder, OUT_DIR)
 

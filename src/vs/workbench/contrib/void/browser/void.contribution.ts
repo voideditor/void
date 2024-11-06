@@ -17,6 +17,8 @@ import { ViewPaneContainer } from '../../../../workbench/browser/parts/views/vie
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 
+import * as React from './dist/openai.js'
+console.log('React', React)
 
 const voidViewIcon = registerIcon('void-view-icon', Codicon.search, localize('voidViewIcon', 'View icon of the Void chat view.'));
 

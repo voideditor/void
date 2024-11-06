@@ -355,7 +355,7 @@ const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onF
 	});
 
 	try {
-		const completion = await groq.chat.completions.create({
+		const stream = await groq.chat.completions.create({
 			messages: messages,
 			model: voidConfig.groq.model,
 			stream: true,
@@ -363,8 +363,10 @@ const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onF
 			max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens),
 		});
 
-		for await (const chunk of completion) {
-			if (didAbort) return;
+		for await (const chunk of stream) {
+			if (didAbort) {
+				break;
+			}
 			
 			const newText = chunk.choices[0]?.delta?.content || '';
 			if (newText) {
@@ -373,9 +375,10 @@ const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onF
 			}
 		}
 		
-		onFinalMessage(fullText);
+		if (!didAbort) {
+			onFinalMessage(fullText);
+		}
 	} catch (error: any) {
-		console.error('Groq error:', error);
 		if (error?.status === 401) {
 			onError('Invalid API key.');
 		} else {

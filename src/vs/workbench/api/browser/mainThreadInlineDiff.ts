@@ -9,11 +9,9 @@ import { ICodeEditor } from '../../../editor/browser/editorBrowser.js';
 import { IRange } from '../../../editor/common/core/range.js';
 import { extHostNamedCustomer, IExtHostContext } from '../../services/extensions/common/extHostCustomers.js';
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType, UndoRedoGroup } from '../../../platform/undoRedo/common/undoRedo.js';
-import { URI } from '../../../base/common/uri.js';
+import { IBulkEditService } from '../../../editor/browser/services/bulkEditService.js';
+import { WorkspaceEdit } from '../../../editor/common/languages.js';
 // import { IHistoryService } from '../../services/history/common/history.js';
-// import { openai } from '../../contrib/void/browser/out/void-imports.js'
-
-// console.log('openai', openai)
 
 
 @extHostNamedCustomer(MainContext.MainThreadInlineDiff)
@@ -28,6 +26,7 @@ export class MainThreadInlineDiff extends Disposable implements MainThreadInline
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
+		@IBulkEditService private readonly _bulkEditService: IBulkEditService,
 
 	) {
 		super();
@@ -36,72 +35,69 @@ export class MainThreadInlineDiff extends Disposable implements MainThreadInline
 		// this._wcHistoryService.addEntry()
 	}
 
-	_streamingState: 'streaming' | 'idle' = 'idle'
+	_streamingState: { type: 'streaming'; editGroup: UndoRedoGroup } | { type: 'idle' } = { type: 'idle' }
 
-	startStreaming(editor: ICodeEditor) {
+	startStreaming(editorId: string) {
+		const editor = this._getEditor(editorId)
+		if (!editor) return
 
-		this._streamingState = 'streaming'
-
-		// count all changes towards the group
-
-
-		// const versionId = editor.getModel()?.getVersionId()
-
-		this._register(editor.onDidChangeModelContent((e) => {
-
-
-			// user presses undo (and there is something to undo)
-			if (e.isUndoing) {
-				// cancel the stream, then undo normally
-				return
-			}
-			// user presses redo (and there is something to redo)
-			if (e.isRedoing) {
-				// cancel the stream, then redo normally
-				return
-
-			}
-
-			// for good measure
-			if (e.isEolChange) {
-				// cancel stream and apply change normally
-				return
-			}
-
-			// ignore any other kind of change (make it not happen)
-			if (this._streamingState === 'streaming') {
-				// completely ignore the change
-				return
-			}
-
-
-		}));
-
-		// streamChange(){
-
-		// }
-
-
+		const model = editor.getModel()
+		if (!model) return
 
 		// all changes made when streaming should be a part of the group so we can undo them all together
-		const group = new UndoRedoGroup()
+		this._streamingState = {
+			type: 'streaming',
+			editGroup: new UndoRedoGroup()
+		}
+
+		// TODO probably need to convert this to a stack
+		const diffsSnapshotBefore = { placeholder: '' }
+		const diffsSnapshotAfter = { placeholder: '' }
 
 		const elt: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
-			resource: URI.parse('file:///path/to/file.txt'),
+			resource: model.uri,
 			label: 'Add Diffs',
 			code: 'undoredo.inlineDiff',
 			undo: () => {
-
 				// reapply diffareas and diffs here
+				console.log('reverting diffareas...', diffsSnapshotBefore.placeholder)
 			},
 			redo: () => {
-
 				// reapply diffareas and diffs here
+				// when done, need to record diffSnapshotAfter
+				console.log('re-applying diffareas...', diffsSnapshotAfter.placeholder)
 			}
 		}
 
-		this._undoRedoService.pushElement(elt, group)
+		this._undoRedoService.pushElement(elt, this._streamingState.editGroup)
+
+		// ---------- START ----------
+		editor.updateOptions({ readOnly: true })
+
+
+
+		// ---------- WHEN DONE ----------
+		editor.updateOptions({ readOnly: false })
+
+
+	}
+
+
+
+
+	streamChange(editorId: string, edit: WorkspaceEdit) {
+		const editor = this._getEditor(editorId)
+		if (!editor) return
+
+		if (this._streamingState.type !== 'streaming') {
+			console.error('Expected streamChange to be in state \'streaming\'.')
+			return
+		}
+
+		// count all changes towards the group
+		this._bulkEditService.apply(edit, { undoRedoGroupId: this._streamingState.editGroup.id, })
+
 
 	}
 

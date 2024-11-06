@@ -5,7 +5,6 @@ import { IModelDeltaDecoration } from '../../../common/model.js';
 import { ICodeEditor, IViewZone } from '../../editorBrowser.js';
 import { IRange } from '../../../common/core/range.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-// import { sendLLMMessage } from './sendLLMMessage.js';
 
 export interface IInlineDiffService {
 	readonly _serviceBrand: undefined;

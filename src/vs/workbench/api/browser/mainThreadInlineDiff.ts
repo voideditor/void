@@ -11,7 +11,9 @@ import { extHostNamedCustomer, IExtHostContext } from '../../services/extensions
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType, UndoRedoGroup } from '../../../platform/undoRedo/common/undoRedo.js';
 import { URI } from '../../../base/common/uri.js';
 // import { IHistoryService } from '../../services/history/common/history.js';
+// import { openai } from '../../contrib/void/browser/out/void-imports.js'
 
+// console.log('openai', openai)
 
 
 @extHostNamedCustomer(MainContext.MainThreadInlineDiff)

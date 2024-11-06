@@ -10,6 +10,26 @@ import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 
+
+const buildEnv = process.env.BUILD_ENV || 'production';
+const buildNumber = process.env.BUILD_NUMBER || 'unknown';
+const isMac = process.platform === 'darwin';
+const commandKey = isMac ? '⌘' : 'Ctrl';
+const userLabel = buildEnv === 'development' ? 'Developer' : 'Production User';
+
+function sendMetrics(event: string) {
+    const metrics = {
+		isMac,
+		commandKey,
+        event,
+        buildNumber,
+        userLabel,
+    };
+    // Send metrics to your server
+    console.log('Metrics:', metrics);
+}
+
+
 // this comes from vscode.proposed.editorInsets.d.ts
 declare module 'vscode' {
 	export interface WebviewEditorInset {
@@ -39,6 +59,13 @@ const getSelection = (editor: vscode.TextEditor) => {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+
+	
+	console.log(`Build Environment: ${buildEnv}, Build Number: ${buildNumber}`);
+    console.log(`Use ${commandKey} for commands.`);
+    console.log(`User Label: ${userLabel}`);
+
+	sendMetrics('extensionActivated');
 
 	// 1. Mount the chat sidebar
 	const sidebarWebviewProvider = new SidebarWebviewProvider(context);

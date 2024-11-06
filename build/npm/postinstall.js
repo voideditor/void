@@ -139,3 +139,21 @@ for (let dir of dirs) {
 
 cp.execSync('git config pull.rebase merges');
 cp.execSync('git config blame.ignoreRevsFile .git-blame-ignore-revs');
+
+
+// Void added this (inject void-imports into project):
+const buildVoidImports = () => {
+	console.log('\n\nVoid is injecting void-imports...')
+	cp.execSync(`npm install`, { // this goes here, not in postinstall, because we need to
+		env: process.env,
+		cwd: path.join(__dirname, '..', '..', '/void-imports'),
+		stdio: 'inherit'
+	});
+	cp.execSync(`node build-index.mjs`, {
+		env: process.env,
+		cwd: path.join(__dirname, '..', '..', '/void-imports'),
+		stdio: 'inherit'
+	});
+	console.log('Done injecting void-imports.')
+}
+buildVoidImports()

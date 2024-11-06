@@ -6,7 +6,7 @@ tsup.build({
 	sourcemap: false,
 	bundle: true,
 	clean: true,
-	minify: true,
+	// minify: true, // no need to minify since it all gets bundled later
 	outDir: '../src/vs/workbench/contrib/void/browser/out',
 	dts: false,
 	name: 'void-imports',

@@ -21,6 +21,7 @@ const configString = (description: string, defaultVal: string) => {
 export const configFields = [
 	'anthropic',
 	'openAI',
+	'groq',//groq modle
 	'gemini',
 	'greptile',
 	'ollama',
@@ -136,6 +137,18 @@ const voidConfigInfo: Record<
 		endpoint: configString('The baseUrl (exluding /chat/completions).', 'http://127.0.0.1:11434/v1'),
 		model: configString('The name of the model to use.', 'gpt-4o'),
 		apikey: configString('Your API key.', ''),
+	},
+	groq: {
+		apikey: configString('Groq API key.', ''),
+		model: configEnum(
+			'Groq model to use.',
+			'mixtral-8x7b-32768',
+			[
+				"mixtral-8x7b-32768",
+				"llama2-70b-4096",
+				"gemma-7b-it"
+			] as const
+		),
 	},
 	azure: {
 		// "void.azure.apiKey": {

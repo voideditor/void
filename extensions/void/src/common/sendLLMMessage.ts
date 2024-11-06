@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { VoidConfig } from '../webviews/common/contextForConfig'
+import Groq from 'groq-sdk';
 
 export type AbortRef = { current: (() => void) | null }
 
@@ -340,6 +341,49 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
+const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+	let didAbort = false;
+	let fullText = '';
+
+	abortRef.current = () => {
+		didAbort = true;
+	};
+
+	const groq = new Groq({
+		apiKey: voidConfig.groq.apikey,
+		dangerouslyAllowBrowser: true
+	});
+
+	try {
+		const completion = await groq.chat.completions.create({
+			messages: messages,
+			model: voidConfig.groq.model,
+			stream: true,
+			temperature: 0.7,
+			max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens),
+		});
+
+		for await (const chunk of completion) {
+			if (didAbort) return;
+			
+			const newText = chunk.choices[0]?.delta?.content || '';
+			if (newText) {
+				fullText += newText;
+				onText(newText, fullText);
+			}
+		}
+		
+		onFinalMessage(fullText);
+	} catch (error: any) {
+		console.error('Groq error:', error);
+		if (error?.status === 401) {
+			onError('Invalid API key.');
+		} else {
+			onError(error.message || 'An error occurred while connecting to Groq.');
+		}
+	}
+};
+
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 	if (!voidConfig) return;
 
@@ -359,6 +403,8 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText,
 			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'greptile':
 			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+		case 'groq':
+			return sendGroqMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		default:
 			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
 	}

@@ -1,4 +1,4 @@
-import tsup from 'tsup'
+import tsup from 'tsup' // Void added tsup as a dependency
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -6,8 +6,8 @@ const buildFiles = (imports, to_be_built_folder) => {
 	// create a file with name importName that imports importName and immediately re-exports it
 	for (const importName of imports) {
 		const content = `\
-export { default } from '${importName}'
-export * from '${importName}'
+import * as mod from '${importName}'
+export default mod
 `
 		const dir = path.dirname(importName);
 		const file = path.basename(importName);
@@ -24,7 +24,7 @@ const compileFiles = async (imports, to_be_built_folder, outDir) => {
 	const fileEntries = imports.map((importName) => path.join(to_be_built_folder, `${importName}.ts`))
 	await tsup.build({
 		entry: fileEntries,
-		format: ['esm'],
+		format: ['cjs'],
 		sourcemap: false,
 		bundle: true,
 		clean: true,
@@ -34,6 +34,9 @@ const compileFiles = async (imports, to_be_built_folder, outDir) => {
 		noExternal: [/.*/],  // This bundles everything
 		platform: 'browser', // Important for browser compatibility
 		target: 'es2020',
+		banner: {
+			js: '/* eslint-disable */'
+		}
 	})
 }
 
@@ -43,6 +46,6 @@ fs.rmSync(to_be_built_folder, { recursive: true, force: true });
 const imports = ['openai', '@anthropic-ai/sdk', 'react', 'react-dom']
 buildFiles(imports, to_be_built_folder)
 
-const OUT_DIR = '../src/vs/workbench/contrib/void/browser/dist'
+const OUT_DIR = '../src/vs/workbench/contrib/void/browser/void-imports'
 compileFiles(imports, to_be_built_folder, OUT_DIR)
 

@@ -1,7 +1,7 @@
 
 
 
-import { ViewPane } from '../../../../workbench/browser/parts/views/viewPane.js';
+import { ViewPane } from '../../../browser/parts/views/viewPane.js';
 
 // import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 // import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
@@ -15,6 +15,8 @@ import { ViewPane } from '../../../../workbench/browser/parts/views/viewPane.js'
 // import { IViewDescriptorService } from 'vs/workbench/common/views';
 // import { IHoverService } from 'vs/platform/hover/browser/hover';
 
+import React from './void-imports/react.js'
+import { render } from './void-imports/react-dom.js'
 
 export class VoidViewPane extends ViewPane {
 
@@ -34,6 +36,24 @@ export class VoidViewPane extends ViewPane {
 	// 	super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService);
 	// }
 
+
+
+	protected override renderBody(parent: HTMLElement): void {
+		super.renderBody(parent);
+
+
+		const x = <>
+
+		</>
+
+
+
+		render()
+
+
+	}
 }
 
 // register a singleton service that mounts the ViewPane here
+
+

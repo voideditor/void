@@ -55,7 +55,7 @@ const dirs = [
 	'.vscode/extensions/vscode-selfhost-test-provider',
 
 	// Void added these:
-	'extensions/void',
+	// 'extensions/void',
 	'void-imports',
 
 ];

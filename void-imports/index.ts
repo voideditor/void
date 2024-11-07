@@ -1,13 +1,13 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import * as esbuild from 'esbuild'
+import tsup from 'tsup' // Void added tsup as a dependency
 
-export const buildFiles = (imports, to_be_built_folder) => {
+
+const buildFiles = (imports, to_be_built_folder) => {
 	// create a file with name importName that imports importName and immediately re-exports it
 	for (const importName of imports) {
 		const content = `\
-import * as mod from '${importName}'
-export default mod
+export * from '${importName}'
 `
 		const dir = path.dirname(importName);
 		const file = path.basename(importName);
@@ -22,19 +22,22 @@ export default mod
 
 
 
-export const compileFiles = async (imports: string[], srcFolder: string, outDir: string) => {
-	const entryPoints = imports.map(name => path.join(srcFolder, `${name}.ts`))
 
-	await esbuild.build({
-		entryPoints,
-		outdir: outDir,
+
+const compileFiles = async (imports, to_be_built_folder, outDir) => {
+	const fileEntries = imports.map((importName) => path.join(to_be_built_folder, `${importName}.ts`))
+	await tsup.build({
+		entry: fileEntries,
+		format: ['esm'],
+		sourcemap: false,
 		bundle: true,
-		format: 'iife',
-		platform: 'browser',
+		clean: true,
+		// minify: true, // no need to minify since it all gets bundled later
+		outDir: path.join(outDir),
+		dts: true,
+		noExternal: [/.*/],  // This bundles everything
+		platform: 'browser', // Important for browser compatibility
 		target: 'es2020',
-		banner: {
-			js: '/* eslint-disable */'
-		}
 	})
 }
 

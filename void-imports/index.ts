@@ -1,8 +1,8 @@
-import tsup from 'tsup' // Void added tsup as a dependency
 import * as fs from 'fs'
 import * as path from 'path'
+import * as esbuild from 'esbuild'
 
-const buildFiles = (imports, to_be_built_folder) => {
+export const buildFiles = (imports, to_be_built_folder) => {
 	// create a file with name importName that imports importName and immediately re-exports it
 	for (const importName of imports) {
 		const content = `\
@@ -20,25 +20,25 @@ export default mod
 	}
 }
 
-const compileFiles = async (imports, to_be_built_folder, outDir) => {
-	const fileEntries = imports.map((importName) => path.join(to_be_built_folder, `${importName}.ts`))
-	await tsup.build({
-		entry: fileEntries,
-		format: ['cjs'],
-		sourcemap: false,
+
+
+export const compileFiles = async (imports: string[], srcFolder: string, outDir: string) => {
+	const entryPoints = imports.map(name => path.join(srcFolder, `${name}.ts`))
+
+	await esbuild.build({
+		entryPoints,
+		outdir: outDir,
 		bundle: true,
-		clean: true,
-		// minify: true, // no need to minify since it all gets bundled later
-		outDir: path.join(outDir),
-		dts: false,
-		noExternal: [/.*/],  // This bundles everything
-		platform: 'browser', // Important for browser compatibility
+		format: 'iife',
+		platform: 'browser',
 		target: 'es2020',
 		banner: {
 			js: '/* eslint-disable */'
 		}
 	})
 }
+
+
 
 const to_be_built_folder = 'to_be_built'
 fs.rmSync(to_be_built_folder, { recursive: true, force: true });

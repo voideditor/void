@@ -1,5 +1,5 @@
 import React from "react";
-import { ThreadsProvider, useThreads } from "../common/contextForThreads";
+import { ThreadsProvider, useThreads } from "../util/contextForThreads";
 
 
 const truncate = (s: string) => {

@@ -6,11 +6,11 @@ import MarkdownRender from "./markdown/MarkdownRender";
 import BlockCode from "./markdown/BlockCode";
 import { File, ChatMessage, CodeSelection } from "../../common/shared_types";
 import * as vscode from 'vscode'
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "../common/getVscodeApi";
-import { useThreads } from "../common/contextForThreads";
+import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "../util/getVscodeApi";
+import { useThreads } from "../util/contextForThreads";
 import { sendLLMMessage } from "../../common/sendLLMMessage";
-import { useVoidConfig } from "../common/contextForConfig";
-import { captureEvent } from "../common/posthog";
+import { useVoidConfig } from "../util/contextForConfig";
+import { captureEvent } from "../util/posthog";
 import { generateDiffInstructions } from "../../common/systemPrompts";
 
 

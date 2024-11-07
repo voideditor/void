@@ -1,5 +1,4 @@
-import posthog from 'posthog-js'
-
+import posthog from '../void-imports/posthog-js.js'
 
 export const identifyUser = (id: string) => {
 	posthog.identify(id)

@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { findDiffs } from './findDiffs';
+import { findDiffs } from './src/extension/findDiffs';
 import { throttle } from 'lodash';
 import { DiffArea, BaseDiff, Diff } from '../common/shared_types';
-import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
+import { readFileContentOfUri } from './src/extension/extensionLib/readFileContentOfUri';
 import { AbortRef, sendLLMMessage } from '../common/sendLLMMessage';
 import { writeFileWithDiffInstructions } from '../common/systemPrompts';
-import { VoidConfig } from '../webviews/common/contextForConfig';
+import { VoidConfig } from './src/webviews/common/contextForConfig';
 
 
 const THROTTLE_TIME = 100

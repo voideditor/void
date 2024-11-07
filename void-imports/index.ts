@@ -1,14 +1,13 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import tsup from 'tsup' // Void added tsup as a dependency
+import * as tsup from 'tsup'
 
-
-const buildFiles = (imports, to_be_built_folder) => {
-	// create a file with name importName that imports importName and immediately re-exports it
+const buildFiles = (imports: string[], to_be_built_folder: string) => {
 	for (const importName of imports) {
 		const content = `\
-export * from '${importName}'
-`
+export * from '${importName}';
+`;
+
 		const dir = path.dirname(importName);
 		const file = path.basename(importName);
 
@@ -23,8 +22,7 @@ export * from '${importName}'
 
 
 
-
-const compileFiles = async (imports, to_be_built_folder, outDir) => {
+const compileFiles = async (imports: string[], to_be_built_folder: string, outDir: string) => {
 	const fileEntries = imports.map((importName) => path.join(to_be_built_folder, `${importName}.ts`))
 	await tsup.build({
 		entry: fileEntries,
@@ -38,6 +36,7 @@ const compileFiles = async (imports, to_be_built_folder, outDir) => {
 		noExternal: [/.*/],  // This bundles everything
 		platform: 'browser', // Important for browser compatibility
 		target: 'es2020',
+		outExtension: () => ({ js: '.js' })
 	})
 }
 

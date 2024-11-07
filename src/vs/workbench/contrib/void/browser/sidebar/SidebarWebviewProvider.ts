@@ -1,7 +1,7 @@
 // renders the code from `src/sidebar`
 
 import * as vscode from 'vscode';
-import { updateWebviewHTML as _updateWebviewHTML } from '../extensionLib/updateWebviewHTML';
+import { updateWebviewHTML as _updateWebviewHTML } from './src/extension/extensionLib/updateWebviewHTML';
 
 export class SidebarWebviewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewId = 'void.viewnumberone';

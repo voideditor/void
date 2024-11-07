@@ -4,9 +4,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { AbortRef } from '../common/sendLLMMessage';
 import { MessageToSidebar, MessageFromSidebar, DiffArea, ChatThreads } from '../common/shared_types';
 import { getVoidConfigFromPartial } from '../webviews/common/contextForConfig';
-import { DiffProvider } from './DiffProvider';
+import { DiffProvider } from '../../DiffProvider';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
-import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
+import { SidebarWebviewProvider } from '../sidebar/SidebarWebviewProvider';
 import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 
 const roundRangeToLines = (selection: vscode.Selection) => {

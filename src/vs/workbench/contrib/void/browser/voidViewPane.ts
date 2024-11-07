@@ -1,5 +1,6 @@
 
 
+import * as dom from '../../../../base/browser/dom.js';
 
 import { ViewPane } from '../../../browser/parts/views/viewPane.js';
 
@@ -15,8 +16,8 @@ import { ViewPane } from '../../../browser/parts/views/viewPane.js';
 // import { IViewDescriptorService } from 'vs/workbench/common/views';
 // import { IHoverService } from 'vs/platform/hover/browser/hover';
 
-import React from './void-imports/react.js'
-import { render } from './void-imports/react-dom.js'
+// import { useState } from './void-imports/react.js';
+// const x = useState();
 
 export class VoidViewPane extends ViewPane {
 
@@ -41,14 +42,10 @@ export class VoidViewPane extends ViewPane {
 	protected override renderBody(parent: HTMLElement): void {
 		super.renderBody(parent);
 
+		const container = dom.append(parent, dom.$('.search-view'));
+		container.textContent = 'Hello Void!';
 
-		const x = <>
-
-		</>
-
-
-
-		render()
+		console.log('Void container', container);
 
 
 	}

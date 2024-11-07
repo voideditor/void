@@ -1,11 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback, FormEvent } from "react"
-import { CodeSelection, ChatMessage, MessageToSidebar } from "../../common/shared_types"
-import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "../common/getVscodeApi"
-
-import { SidebarThreadSelector } from "./SidebarThreadSelector";
-import { SidebarChat } from "./SidebarChat";
-import { SidebarSettings } from "./SidebarSettings";
-import { identifyUser } from "../common/posthog";
+import React, { useState, useRef } from '../void-imports/react.js'
+import { SidebarThreadSelector } from './SidebarThreadSelector.js';
+import { SidebarChat } from './SidebarChat.js';
+import { SidebarSettings } from './SidebarSettings.js';
 
 
 const Sidebar = () => {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { configFields, useVoidConfig, VoidConfigField } from "../common/contextForConfig";
+import { configFields, useVoidConfig, VoidConfigField } from "../util/contextForConfig";
 
 
 const SettingOfFieldAndParam = ({ field, param }: { field: VoidConfigField, param: string }) => {

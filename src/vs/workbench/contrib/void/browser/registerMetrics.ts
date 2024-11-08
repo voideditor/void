@@ -30,6 +30,12 @@ class MetricsService extends Disposable implements IMetricsService {
 		console.debug('deviceId', deviceId)
 
 		posthog.identify(deviceId)
+
+
+		// export const captureEvent = (eventId: string, properties: object) => {
+		// 	posthog.capture(eventId, properties)
+		// }
+
 	}
 
 }

@@ -205,8 +205,14 @@ export type VoidConfig = {
 
 const VOID_CONFIG_KEY = 'void.partialVoidConfig'
 
+type setFieldType = <K extends VoidConfigField>(field: K, param: keyof VoidConfigInfo[K], newVal: string) => Promise<void>;
+
 export interface IVoidSettingsService {
 	readonly _serviceBrand: undefined;
+	onDidChange: Event<void>;
+	getPartialVoidConfig(): Promise<PartialVoidConfig>;
+	getVoidConfig(): Promise<VoidConfig>;
+	setField: setFieldType;
 }
 
 export const IVoidSettingsService = createDecorator<IVoidSettingsService>('voidSettingsService');
@@ -248,7 +254,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 
 	// Set field on PartialVoidConfig
-	async setField<K extends VoidConfigField>(field: K, param: keyof VoidConfigInfo[K], newVal: string) {
+	setField: setFieldType = async <K extends VoidConfigField>(field: K, param: keyof VoidConfigInfo[K], newVal: string) => {
 		const partialVoidConfig = await this.getPartialVoidConfig()
 
 		const newPartialConfig: PartialVoidConfig = {

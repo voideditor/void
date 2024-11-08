@@ -147,6 +147,29 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HTMLTextAreaElement> }) => {
 
+	// // if they pressed the + to add a new chat
+	// useOnVSCodeMessage('startNewThread', (m) => {
+	// 	const allThreads = getAllThreads()
+	// 	// find a thread with 0 messages and switch to it
+	// 	for (let threadId in allThreads) {
+	// 		if (allThreads[threadId].messages.length === 0) {
+	// 			switchToThread(threadId)
+	// 			return
+	// 		}
+	// 	}
+	// 	// start a new thread
+	// 	startNewThread()
+	// })
+
+	// // if user pressed ctrl+l, add their selection to the sidebar
+	// useOnVSCodeMessage('ctrl+l', (m) => {
+	// 	setSelection(m.selection)
+	// 	const filepath = m.selection.filePath
+
+	// 	// add current file to the context if it's not already in the files array
+	// 	if (!files.find(f => f.fsPath === filepath.fsPath))
+	// 		setFiles(files => [...files, filepath])
+	// })
 
 	// state of current message
 	const [selection, setSelection] = useState<CodeSelection | null>(null) // the code the user is selecting
@@ -167,29 +190,6 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 
 
 
-	// if they pressed the + to add a new chat
-	useOnVSCodeMessage('startNewThread', (m) => {
-		const allThreads = getAllThreads()
-		// find a thread with 0 messages and switch to it
-		for (let threadId in allThreads) {
-			if (allThreads[threadId].messages.length === 0) {
-				switchToThread(threadId)
-				return
-			}
-		}
-		// start a new thread
-		startNewThread()
-	})
-
-	// if user pressed ctrl+l, add their selection to the sidebar
-	useOnVSCodeMessage('ctrl+l', (m) => {
-		setSelection(m.selection)
-		const filepath = m.selection.filePath
-
-		// add current file to the context if it's not already in the files array
-		if (!files.find(f => f.fsPath === filepath.fsPath))
-			setFiles(files => [...files, filepath])
-	})
 
 
 	const isDisabled = !instructions

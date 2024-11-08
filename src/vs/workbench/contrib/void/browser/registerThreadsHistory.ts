@@ -39,7 +39,7 @@ type ChatMessage =
 
 // a "thread" means a chat message history
 
-const createNewThread = () => {
+const newThreadObject = () => {
 	const now = new Date().toISOString()
 	return {
 		id: new Date().getTime().toString(),
@@ -91,8 +91,17 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 
 
 	startNewThread() {
-		const newThread = createNewThread()
+
+		// if a thread with 0 messages already exists, switch to it
 		const currentThreads = this.getAllThreads()
+		for (let threadId in currentThreads) {
+			if (currentThreads[threadId].messages.length === 0) {
+				this.switchToThread(threadId)
+				return
+			}
+		}
+
+		const newThread = newThreadObject()
 		this._storeAllThreads({
 			...currentThreads,
 			[newThread.id]: newThread
@@ -110,7 +119,7 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 			currentThread = allThreads[this._currentThreadId]
 		}
 		else {
-			currentThread = createNewThread()
+			currentThread = newThreadObject()
 			this._currentThreadId = currentThread.id
 		}
 

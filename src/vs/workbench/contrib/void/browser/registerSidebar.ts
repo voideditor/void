@@ -37,6 +37,8 @@ import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { IVoidSettingsService } from './registerSettings.js';
+import { IEditorService } from '../../../services/editor/common/editorService.js';
+
 
 
 // compare against search.contribution.ts and https://app.greptile.com/chat/w1nsmt3lauwzculipycpn?repo=github%3Amain%3Amicrosoft%2Fvscode
@@ -78,20 +80,40 @@ class VoidSidebarViewPane extends ViewPane {
 	protected override renderBody(parent: HTMLElement): void {
 		super.renderBody(parent);
 
-		const { root, history, chat, settings } = dom.h('div@root', [
-			dom.h('div@history', []),
+		// <div className={`flex flex-col h-screen w-full`}>
+
+		const { root, chat, history, settings } = dom.h('div@root', [
 			dom.h('div@chat', []),
+			dom.h('div@history', []),
 			dom.h('div@settings', []),
 		])
 		root.style.display = 'flex';
 		root.style.flexDirection = 'column';
 		root.style.height = '100vh';
 		root.style.width = '100%';
-
-
 		dom.append(parent, root);
 
+		this._renderChat(chat);
 		this._renderHistory(history);
+		this._renderSettings(settings);
+	}
+
+
+	private _renderChat(element: HTMLElement) {
+		// <div className={`${tab !== 'chat' && tab !== 'threadSelector' ? 'hidden' : ''}`}>
+		// 	<SidebarChat chatInputRef={chatInputRef} />
+		// </div>
+
+
+
+		this._voidSidebarStateService.onDidChange(() => {
+		})
+
+
+		this._voidSidebarStateService.onFocusChat(() => {
+		})
+		this._voidSidebarStateService.onBlurChat(() => {
+		})
 
 	}
 
@@ -116,12 +138,6 @@ class VoidSidebarViewPane extends ViewPane {
 
 	}
 
-	private _renderChat(element: HTMLElement) {
-		// <div className={`${tab !== 'chat' && tab !== 'threadSelector' ? 'hidden' : ''}`}>
-		// 	<SidebarChat chatInputRef={chatInputRef} />
-		// </div>
-
-	}
 
 }
 
@@ -209,7 +225,7 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 		@IViewsService private readonly _viewsService: IViewsService,
 	) {
 		super()
-		// auto open the view on mount (can view this as initializing state...)
+		// auto open the view on mount (if it bothers you this is here, this is technically just initializing the state of the view)
 		this._viewsService.openView(SIDEBAR_VIEW_ID);
 	}
 
@@ -247,26 +263,25 @@ registerAction2(class extends Action2 {
 		const stateService = accessor.get(IVoidSidebarStateService)
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.focusChat()
+
+		const selection = accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+
+
+		// chat state:
+		// // if user pressed ctrl+l, add their selection to the sidebar
+		// useOnVSCodeMessage('ctrl+l', (m) => {
+		// 	setSelection(m.selection)
+		// 	const filepath = m.selection.filePath
+
+		// 	// add current file to the context if it's not already in the files array
+		// 	if (!files.find(f => f.fsPath === filepath.fsPath))
+		// 		setFiles(files => [...files, filepath])
+		// })
+
+
 	}
 });
 
-
-// History menu button
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'void.historyAction',
-			title: 'View past chats',
-			icon: { id: 'history' },
-			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', SIDEBAR_VIEW_ID), }]
-		});
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
-		stateService.setState({ isHistoryOpen: !stateService.state.isHistoryOpen })
-		stateService.blurChat()
-	}
-})
 
 // New chat menu button
 registerAction2(class extends Action2 {
@@ -285,6 +300,23 @@ registerAction2(class extends Action2 {
 
 		const historyService = accessor.get(IThreadHistoryService)
 		historyService.startNewThread()
+	}
+})
+
+// History menu button
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'void.historyAction',
+			title: 'View past chats',
+			icon: { id: 'history' },
+			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', SIDEBAR_VIEW_ID), }]
+		});
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const stateService = accessor.get(IVoidSidebarStateService)
+		stateService.setState({ isHistoryOpen: !stateService.state.isHistoryOpen })
+		stateService.blurChat()
 	}
 })
 

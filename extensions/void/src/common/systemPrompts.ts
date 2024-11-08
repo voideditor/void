@@ -397,6 +397,13 @@ COMPLETION
 export default Sidebar;\`\`\`
 `
 
+// used for ctrl+l
+const partialGenerationInstructions = ``
+
+
+// used for ctrl+k, autocomplete
+const fimInstructions = ``
+
 
 
 export {

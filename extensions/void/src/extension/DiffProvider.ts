@@ -48,8 +48,6 @@ export class DiffProvider implements vscode.CodeLensProvider {
 	constructor(context: vscode.ExtensionContext) {
 		this._extensionUri = context.extensionUri
 
-		console.log('Creating DisplayChangesProvider')
-
 		// this acts as a useEffect every time text changes
 		vscode.workspace.onDidChangeTextDocument((e) => {
 
@@ -167,7 +165,9 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		}
 		const originalFile = this._originalFileOfDocument[docUriStr]
 		if (!originalFile) {
-			console.log('Error: No original file!')
+			if (this._diffAreasOfDocument[docUriStr]?.length > 0) {
+				console.log('Error: More than one diff area exists, but no original file was set.')
+			}
 			return;
 		}
 
@@ -188,7 +188,6 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 			// add the diffs to `this._diffsOfDocument[docUriStr]`
 			this.createDiffs(editor.document.uri, diffs, diffArea)
-
 
 			// // print diffs
 			// console.log('!ORIGINAL FILE:', JSON.stringify(originalFile))
@@ -451,6 +450,7 @@ export class DiffProvider implements vscode.CodeLensProvider {
 		const diffareaRange = new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)
 		workspaceEdit.replace(editor.document.uri, diffareaRange, newCode)
 		await vscode.workspace.applyEdit(workspaceEdit)
+
 	}, THROTTLE_TIME)
 
 }

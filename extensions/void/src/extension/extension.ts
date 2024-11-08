@@ -11,8 +11,8 @@ import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 
 
-const buildEnv = process.env.BUILD_ENV || 'production';
-const buildNumber = process.env.BUILD_NUMBER || 'unknown';
+const buildEnv = 'development';
+const buildNumber = '1.0.0';
 const isMac = process.platform === 'darwin';
 const commandKey = isMac ? '⌘' : 'Ctrl';
 const userLabel = buildEnv === 'development' ? 'Developer' : 'Production User';
@@ -25,7 +25,6 @@ function sendMetrics(event: string) {
         buildNumber,
         userLabel,
     };
-    // Send metrics to your server
     console.log('Metrics:', metrics);
 }
 
@@ -61,7 +60,8 @@ const getSelection = (editor: vscode.TextEditor) => {
 export function activate(context: vscode.ExtensionContext) {
 
 	
-	console.log(`Build Environment: ${buildEnv}, Build Number: ${buildNumber}`);
+	console.log(`Build Environment: ${buildEnv}`);
+	console.log(`Build Number: ${buildNumber}`)
     console.log(`Use ${commandKey} for commands.`);
     console.log(`User Label: ${userLabel}`);
 

@@ -155,8 +155,5 @@
     "typescript": "5.5.4",
     "typescript-eslint": "^8.3.0",
     "uuid": "^10.0.0"
-  },
-  "dependencies": {
-    "vinyl-fs": "^4.0.0"
   }
 }

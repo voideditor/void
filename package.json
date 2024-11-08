@@ -72,6 +72,7 @@
     "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "@microsoft/1ds-core-js": "^3.2.13",
     "@microsoft/1ds-post-js": "^3.2.13",
     "@parcel/watcher": "2.1.0",
@@ -105,6 +106,7 @@
     "native-keymap": "^3.3.5",
     "native-watchdog": "^1.4.1",
     "node-pty": "1.1.0-beta21",
+    "ollama": "^0.5.9",
     "open": "^8.4.2",
     "tas-client-umd": "0.2.0",
     "v8-inspect-profiler": "^0.1.1",

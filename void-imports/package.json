@@ -1,0 +1,19 @@
+{
+  "name": "void-imports",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tdx index.ts"
+  },
+  "author": "",
+  "description": "",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@google/generative-ai": "^0.21.0",
+    "ollama": "^0.5.9",
+    "openai": "^4.71.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  }
+}

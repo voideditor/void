@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as tsup from 'tsup'
 
-const buildFiles = (imports: string[], to_be_built_folder: string) => {
+const createFiles = (imports: string[], to_be_built_folder: string) => {
 	for (const importName of imports) {
 		const content = `\
 export * from '${importName}';
@@ -43,10 +43,11 @@ const compileFiles = async (imports: string[], to_be_built_folder: string, outDi
 
 
 const to_be_built_folder = 'to_be_built'
-fs.rmSync(to_be_built_folder, { recursive: true, force: true });
+// const imports = ['openai', '@anthropic-ai/sdk', 'react', 'react-dom']
+const imports = ['sendLLMMessage']
 
-const imports = ['openai', '@anthropic-ai/sdk', 'react', 'react-dom']
-buildFiles(imports, to_be_built_folder)
+// fs.rmSync(to_be_built_folder, { recursive: true, force: true });
+// createFiles(imports, to_be_built_folder)
 
 const OUT_DIR = '../src/vs/workbench/contrib/void/browser/void-imports'
 compileFiles(imports, to_be_built_folder, OUT_DIR)

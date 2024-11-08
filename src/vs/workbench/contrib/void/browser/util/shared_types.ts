@@ -2,9 +2,9 @@
 import * as vscode from 'vscode';
 import { PartialVoidConfig } from '../webviews/common/contextForConfig'
 
-type CodeSelection = { selectionStr: string, filePath: vscode.Uri }
+// type CodeSelection = { selectionStr: string, filePath: vscode.Uri }
 
-type File = { filepath: vscode.Uri, content: string }
+// type File = { filepath: vscode.Uri, content: string }
 
 // an area that is currently being diffed
 type DiffArea = {
@@ -57,33 +57,33 @@ type MessageFromSidebar = (
 )
 
 
-type ChatThreads = {
-	[id: string]: {
-		id: string; // store the id here too
-		createdAt: string; // ISO string
-		lastModified: string; // ISO string
-		messages: ChatMessage[];
-	}
-}
+// type ChatThreads = {
+// 	[id: string]: {
+// 		id: string; // store the id here too
+// 		createdAt: string; // ISO string
+// 		lastModified: string; // ISO string
+// 		messages: ChatMessage[];
+// 	}
+// }
 
-type ChatMessage =
-	| {
-		role: "user";
-		content: string; // content sent to the llm
-		displayContent: string; // content displayed to user
-		selection: CodeSelection | null; // the user's selection
-		files: vscode.Uri[]; // the files sent in the message
-	}
-	| {
-		role: "assistant";
-		content: string; // content received from LLM
-		displayContent: string | undefined; // content displayed to user (this is the same as content for now)
-	}
-	| {
-		role: "system";
-		content: string;
-		displayContent?: undefined;
-	}
+// type ChatMessage =
+// 	| {
+// 		role: "user";
+// 		content: string; // content sent to the llm
+// 		displayContent: string; // content displayed to user
+// 		selection: CodeSelection | null; // the user's selection
+// 		files: vscode.Uri[]; // the files sent in the message
+// 	}
+// 	| {
+// 		role: "assistant";
+// 		content: string; // content received from LLM
+// 		displayContent: string | undefined; // content displayed to user (this is the same as content for now)
+// 	}
+// 	| {
+// 		role: "system";
+// 		content: string;
+// 		displayContent?: undefined;
+// 	}
 
 export {
 	BaseDiff, Diff,

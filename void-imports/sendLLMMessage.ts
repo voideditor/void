@@ -2,9 +2,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
-import { VoidConfig } from '../webviews/common/contextForConfig'
-import { captureEvent } from '../webviews/common/posthog';
-import { ChatMessage } from './shared_types';
+// import { VoidConfig } from '../webviews/common/contextForConfig'
+// import { captureEvent } from '../webviews/common/posthog';
+// import { ChatMessage } from './shared_types';
+
+type VoidConfig = any
 
 export type AbortRef = { current: (() => void) | null }
 
@@ -324,13 +326,13 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureChatEvent = (eventId: string, extras?: object) => {
-		captureEvent(eventId, {
-			whichApi: voidConfig.default['whichApi'],
-			numMessages: messages?.length,
-			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
-			version: '2024-11-02',
-			...extras,
-		})
+		// captureEvent(eventId, {
+		// 	whichApi: voidConfig.default['whichApi'],
+		// 	numMessages: messages?.length,
+		// 	messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
+		// 	version: '2024-11-02',
+		// 	...extras,
+		// })
 	}
 	const submit_time = new Date()
 

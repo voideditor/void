@@ -10,35 +10,35 @@ const Sidebar = () => {
 
 	const [tab, setTab] = useState<'threadSelector' | 'chat' | 'settings'>('chat')
 
-	// if they pressed the + to add a new chat
-	useOnVSCodeMessage('startNewThread', (m) => {
-		setTab('chat');
-		chatInputRef.current?.focus();
-	})
+	// // if they pressed the + to add a new chat
+	// useOnVSCodeMessage('startNewThread', (m) => {
+	// 	setTab('chat');
+	// 	chatInputRef.current?.focus();
+	// })
 
-	// ctrl+l should switch back to chat
-	useOnVSCodeMessage('ctrl+l', (m) => {
-		setTab('chat');
-		chatInputRef.current?.focus();
-	})
+	// // ctrl+l should switch back to chat
+	// useOnVSCodeMessage('ctrl+l', (m) => {
+	// 	setTab('chat');
+	// 	chatInputRef.current?.focus();
+	// })
 
-	// if they toggled thread selector
-	useOnVSCodeMessage('toggleThreadSelector', (m) => {
-		if (tab === 'threadSelector') {
-			setTab('chat')
-			chatInputRef.current?.blur();
-		} else
-			setTab('threadSelector')
-	})
+	// // if they toggled thread selector
+	// useOnVSCodeMessage('toggleThreadSelector', (m) => {
+	// 	if (tab === 'threadSelector') {
+	// 		setTab('chat')
+	// 		chatInputRef.current?.blur();
+	// 	} else
+	// 		setTab('threadSelector')
+	// })
 
-	// if they toggled settings
-	useOnVSCodeMessage('toggleSettings', (m) => {
-		if (tab === 'settings') {
-			setTab('chat')
-			chatInputRef.current?.blur();
-		} else
-			setTab('settings')
-	})
+	// // if they toggled settings
+	// useOnVSCodeMessage('toggleSettings', (m) => {
+	// 	if (tab === 'settings') {
+	// 		setTab('chat')
+	// 		chatInputRef.current?.blur();
+	// 	} else
+	// 		setTab('settings')
+	// })
 
 	return <>
 		<div className={`flex flex-col h-screen w-full`}>

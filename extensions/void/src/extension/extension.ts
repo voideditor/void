@@ -9,7 +9,6 @@ import { DiffProvider } from './DiffProvider';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
-import { setupAutocomplete } from './autocomplete';
 import { AutocompleteProvider } from './AutcompleteProvider';
 
 // // this comes from vscode.proposed.editorInsets.d.ts

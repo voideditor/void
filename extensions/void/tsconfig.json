@@ -1,7 +1,7 @@
 {
 	"include": [
 		"src/**/*"
-	],
+, "../../src/vs/workbench/contrib/welcomeGettingStarted/common/AutcompleteProvider.tsx"	],
 	"exclude": [
 		"node_modules"
 	],

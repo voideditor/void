@@ -14,7 +14,7 @@ type Autocompletion = {
 	result: string,
 }
 
-const TIMEOUT_TIME = 10000
+const TIMEOUT_TIME = 60000
 
 const toInlineCompletion = ({ prefix, suffix, autocompletion }: { prefix: string, suffix: string, autocompletion: Autocompletion }): vscode.InlineCompletionItem => {
 
@@ -37,13 +37,8 @@ const toInlineCompletion = ({ prefix, suffix, autocompletion }: { prefix: string
 		remainingText = generatedMiddle.substring(index + 1)
 	}
 
-	console.log('----')
-	console.log('fullPrefix', fullPrefix)
-	console.log('----')
-	console.log('----')
-	console.log('prefix', prefix)
-	console.log('----')
-	console.log('completion: ', remainingText)
+	console.log('generated middle: ', JSON.stringify(generatedMiddle))
+	console.log('remaining text: ', JSON.stringify(remainingText))
 
 	return new vscode.InlineCompletionItem(remainingText)
 
@@ -54,6 +49,10 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 	private _extensionContext: vscode.ExtensionContext;
 
 	private _autocompletionsOfDocument: { [docUriStr: string]: Autocompletion[] } = {}
+
+	constructor(context: vscode.ExtensionContext) {
+		this._extensionContext = context
+	}
 
 	// used internally by vscode
 	// fires after every keystroke
@@ -66,10 +65,12 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 
 		const docUriStr = document.uri.toString()
 
+		console.log('initial _autocompletionsOfDocument', this._autocompletionsOfDocument[docUriStr])
+
 		const fullText = document.getText();
 		const cursorOffset = document.offsetAt(position);
-		const prefix = fullText.substring(0, cursorOffset);
-		const suffix = fullText.substring(cursorOffset);
+		const prefix = fullText.substring(0, cursorOffset)
+		const suffix = fullText.substring(cursorOffset)
 
 		if (!this._autocompletionsOfDocument[docUriStr]) {
 			this._autocompletionsOfDocument[docUriStr] = []
@@ -94,44 +95,45 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 		if (cachedAutocompletion) {
 
 			if (cachedAutocompletion.status === 'finished') {
+				console.log('AAA1')
 
 				const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, suffix, })
 				return [inlineCompletion]
 
 			} else if (cachedAutocompletion.status === 'pending') {
+				console.log('AAA2')
 
 				try {
 					// await the result; if it hasnt resolved in 10 seconds assume the request is dead
-					await Promise.race([
-						cachedAutocompletion.promise,
-						new Promise<string>((resolve, reject) => setTimeout(() => reject('Request timed out'), TIMEOUT_TIME)),
-					])
+					await cachedAutocompletion.promise;
 					const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, suffix, })
 					return [inlineCompletion]
 
 				} catch (e) {
 					console.error('Error creating autocompletion (1): ' + e)
-					return []
 				}
 
-			} else {
-				return []
+			} else if (cachedAutocompletion.status === 'error') {
+				console.log('AAA3')
 			}
 
+			return []
 		}
+
+		console.log('BBB')
 
 		// if there is no autocomplete for this line, create it and add it to cache
 		let messages: LLMMessage[] = []
 		switch (voidConfig.default.whichApi) {
 			case 'ollama':
 				messages = [
-					{ role: 'user', content: `[SUFFIX]${suffix}[PREFIX]${prefix} ` }
+					{ role: 'user', content: `[SUFFIX]${suffix}[PREFIX]${prefix} Fill in the middle between the prefix and suffix. Return only the middle. [MIDDLE]` }
 				]
 				break;
 			case 'anthropic':
 			case 'openAI':
 				messages = [
-					{ role: 'system', content: '' },
+					{ role: 'system', content: 'Fill in the prefix up to the suffix. Return only the result and be very concise.' },
 					{ role: 'user', content: `[SUFFIX]${suffix}[PREFIX]${prefix}` },
 				]
 				break;
@@ -161,7 +163,6 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 					newAutocompletion.result = completionStr
 				},
 				onFinalMessage: (finalMessage) => {
-					console.log('finalMessage:', finalMessage);
 
 					// newAutocompletion.prefix = prefix
 					// newAutocompletion.suffix = suffix
@@ -184,16 +185,19 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 				voidConfig,
 				abortRef: newAutocompletion.abortRef,
 			})
+
+			setTimeout(() => { // if the request hasnt resolved in TIMEOUT_TIME seconds, end it
+				if (newAutocompletion.status === 'pending') {
+					reject('Timeout')
+				}
+			}, TIMEOUT_TIME)
 		})
 
 		this._autocompletionsOfDocument[docUriStr]!.push(newAutocompletion)
 
 
 		try {
-			const result = await Promise.race([
-				newAutocompletion.promise,
-				new Promise<string>((resolve, reject) => setTimeout(() => reject('Request timed out'), TIMEOUT_TIME)),
-			])
+			await newAutocompletion.promise;
 
 			const inlineCompletion = toInlineCompletion({ autocompletion: newAutocompletion, prefix, suffix, })
 			return [inlineCompletion]
@@ -202,13 +206,6 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 			console.error('Error creating autocompletion (2): ' + e)
 			return []
 		}
-
-
-	}
-
-	constructor(context: vscode.ExtensionContext) {
-
-		this._extensionContext = context
 
 	}
 

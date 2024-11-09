@@ -36,8 +36,9 @@ import { IKeybindingService } from '../../../../platform/keybinding/common/keybi
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-import { IVoidSettingsService } from './registerSettings.js';
+// import { IVoidSettingsService } from './registerSettings.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
+// import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
 
@@ -69,10 +70,10 @@ class VoidSidebarViewPane extends ViewPane {
 		// Void:
 		@IVoidSidebarStateService private readonly _voidSidebarStateService: IVoidSidebarStateService,
 		@IThreadHistoryService private readonly _threadHistoryService: IThreadHistoryService,
-		@IVoidSettingsService private readonly _voidSettingsService: IVoidSettingsService,
 		// TODO chat service
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService)
+
 	}
 
 

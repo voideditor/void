@@ -272,6 +272,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
 		@IEncryptionService private readonly _encryptionService: IEncryptionService,
+		// @ISecretStorageService private readonly _secretStorageService: ISecretStorageService, // could have used this, but it's clearer the way it is (+ slightly different eg StorageTarget.USER)
 	) {
 		super()
 	}

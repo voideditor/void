@@ -56,7 +56,7 @@ const dirs = [
 
 	// Void added these:
 	// 'extensions/void',
-	'void-imports',
+	// 'void-imports',
 
 ];
 

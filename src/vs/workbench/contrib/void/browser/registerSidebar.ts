@@ -38,10 +38,10 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 // import { IVoidSettingsService } from './registerSettings.js';
 // import { IEditorService } from '../../../services/editor/common/editorService.js';
-// import mountFn from './react/out/Sidebar.js';
+import mountFn from './react/out/Sidebar.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
-const mountFn = (...params: any) => { }
+// const mountFn = (...params: any) => { }
 
 
 // compare against search.contribution.ts and https://app.greptile.com/chat/w1nsmt3lauwzculipycpn?repo=github%3Amain%3Amicrosoft%2Fvscode

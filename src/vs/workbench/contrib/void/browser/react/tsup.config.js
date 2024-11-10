@@ -11,7 +11,7 @@ export default defineConfig({
 	platform: 'browser',
 	target: 'esnext',
 	outExtension: () => ({ js: '.js' }),
-	external: [/\.\.\/\.\.\/.*/],
+	// external: [/\.\.\/\.\.\/.*/],
 	noExternal: ['react', 'react-dom'],
 	treeshake: true,
 })

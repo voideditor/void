@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { mountFnGenerator } from '../util/mountFnGenerator'
 import { VIEWPANE_FILTER_ACTION } from '../../../../../browser/parts/views/viewPane'
+import { ServicesAccessor } from '../../../../../../platform/instantiation/common/instantiation'
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 // import { SidebarChat } from './SidebarChat.js';
 // import { SidebarSettings } from './SidebarSettings.js';
 console.log('!!filteraction', VIEWPANE_FILTER_ACTION)
-const Sidebar = () => {
+const Sidebar = ({ accessor }: { accessor: ServicesAccessor }) => {
 
 	// const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
 

@@ -1,1 +1,0 @@
-Use the command 'tsx' to run the main file here

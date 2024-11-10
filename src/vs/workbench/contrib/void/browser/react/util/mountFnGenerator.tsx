@@ -1,5 +1,6 @@
-// import React, { useEffect } from "react";
-// import * as ReactDOM from "react-dom/client"
+import React from "react";
+import * as ReactDOM from "react-dom/client"
+import { ServicesAccessor } from '../../../../../../platform/instantiation/common/instantiation';
 // import { initPosthog, identifyUser } from "./posthog";
 
 // const ListenersAndTracking = () => {
@@ -32,30 +33,11 @@
 
 
 
-// export const mount = (children: React.ReactNode) => {
-
-// 	if (typeof document === "undefined") {
-// 		console.error("index.tsx error: document was undefined")
-// 		return
-// 	}
-
-// 	// mount the sidebar on the id="root" element
-// 	const rootElement = document.getElementById("root")!
-// 	// console.log("Void root Element:", rootElement)
-
-// 	const content = (<>
-// 		<ListenersAndTracking />
-
-// 		<PropsProvider rootElement={rootElement}>
-// 			<ThreadsProvider>
-// 				<ConfigProvider>
-// 					{children}
-// 				</ConfigProvider>
-// 			</ThreadsProvider>
-// 		</PropsProvider>
-// 	</>)
-
-// 	const root = ReactDOM.createRoot(rootElement)
-// 	root.render(content);
-
-// }
+export const mountFnGenerator = (Component: React.FC<{ accessor: ServicesAccessor }>) => (rootElement: HTMLElement, accessor: ServicesAccessor) => {
+	if (typeof document === "undefined") {
+		console.error("index.tsx error: document was undefined")
+		return
+	}
+	const root = ReactDOM.createRoot(rootElement)
+	root.render(<Component accessor={accessor} />);
+}

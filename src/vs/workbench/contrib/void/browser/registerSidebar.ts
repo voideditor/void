@@ -37,9 +37,11 @@ import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 // import { IVoidSettingsService } from './registerSettings.js';
-import { IEditorService } from '../../../services/editor/common/editorService.js';
+// import { IEditorService } from '../../../services/editor/common/editorService.js';
+// import mountFn from './react/out/Sidebar.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
+const mountFn = (...params: any) => { }
 
 
 // compare against search.contribution.ts and https://app.greptile.com/chat/w1nsmt3lauwzculipycpn?repo=github%3Amain%3Amicrosoft%2Fvscode
@@ -68,8 +70,8 @@ class VoidSidebarViewPane extends ViewPane {
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IHoverService hoverService: IHoverService,
 		// Void:
-		@IVoidSidebarStateService private readonly _voidSidebarStateService: IVoidSidebarStateService,
-		@IThreadHistoryService private readonly _threadHistoryService: IThreadHistoryService,
+		// @IVoidSidebarStateService private readonly _voidSidebarStateService: IVoidSidebarStateService,
+		// @IThreadHistoryService private readonly _threadHistoryService: IThreadHistoryService,
 		// TODO chat service
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService)
@@ -83,61 +85,54 @@ class VoidSidebarViewPane extends ViewPane {
 
 		// <div className={`flex flex-col h-screen w-full`}>
 
-		const { root, chat, history, settings } = dom.h('div@root', [
-			dom.h('div@chat', []),
-			dom.h('div@history', []),
-			dom.h('div@settings', []),
-		])
-		root.style.display = 'flex';
-		root.style.flexDirection = 'column';
-		root.style.height = '100vh';
-		root.style.width = '100%';
+		const { root } = dom.h('div@root')
 		dom.append(parent, root);
 
-		this._renderChat(chat);
-		this._renderHistory(history);
-		this._renderSettings(settings);
+		// gets set immediately
+		let accessor_: ServicesAccessor = null as unknown as ServicesAccessor
+		this.instantiationService.invokeFunction(accessor => { accessor_ = accessor });
+
+		mountFn(root, accessor_);
 	}
 
 
-	private _renderChat(element: HTMLElement) {
-		// <div className={`${tab !== 'chat' && tab !== 'threadSelector' ? 'hidden' : ''}`}>
-		// 	<SidebarChat chatInputRef={chatInputRef} />
-		// </div>
+
+	// private _renderChat(element: HTMLElement) {
+
+	// 	// useEffect(() => {
+	// 	// 	this._voidSidebarStateService.onDidChange(() => {
+	// 	// 	})
+	// 	// 	this._voidSidebarStateService.onFocusChat(() => {
+	// 	// 	})
+	// 	// 	this._voidSidebarStateService.onBlurChat(() => {
+	// 	// 	})
+	// 	// })
 
 
-
-		this._voidSidebarStateService.onDidChange(() => {
-		})
+	// }
 
 
-		this._voidSidebarStateService.onFocusChat(() => {
-		})
-		this._voidSidebarStateService.onBlurChat(() => {
-		})
-
-	}
+	// private _renderHistory(element: HTMLElement) {
+	// 	// 	<div className={`mb-2 h-[30vh] ${tab !== 'threadSelector' ? 'hidden' : ''}`}>
+	// 	// 	<SidebarThreadSelector onClose={() => setTab('chat')} />
+	// 	// </div>
 
 
-	private _renderHistory(element: HTMLElement) {
-		// 	<div className={`mb-2 h-[30vh] ${tab !== 'threadSelector' ? 'hidden' : ''}`}>
-		// 	<SidebarThreadSelector onClose={() => setTab('chat')} />
-		// </div>
-		this._voidSidebarStateService.onDidChange(() => {
-		})
+	// 	this._voidSidebarStateService.onDidChange(() => {
+	// 	})
 
-		this._threadHistoryService.onDidChangeCurrentThread(() => {
+	// 	this._threadHistoryService.onDidChangeCurrentThread(() => {
 
-		})
+	// 	})
 
-	}
+	// }
 
-	private _renderSettings(element: HTMLElement) {
-		// <div className={`${tab !== 'settings' ? 'hidden' : ''}`}>
-		// 	<SidebarSettings />
-		// </div>
+	// private _renderSettings(element: HTMLElement) {
+	// 	// <div className={`${tab !== 'settings' ? 'hidden' : ''}`}>
+	// 	// 	<SidebarSettings />
+	// 	// </div>
 
-	}
+	// }
 
 
 }
@@ -146,7 +141,7 @@ class VoidSidebarViewPane extends ViewPane {
 
 // ---------- Register viewpane inside the void container ----------
 
-const voidThemeIcon = Codicon.search;
+const voidThemeIcon = Codicon.array;
 const voidViewIcon = registerIcon('void-view-icon', voidThemeIcon, localize('voidViewIcon', 'View icon of the Void chat view.'));
 
 // called VIEWLET_ID in other places for some reason
@@ -265,7 +260,7 @@ registerAction2(class extends Action2 {
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.focusChat()
 
-		const selection = accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+		// const selection = accessor.get(IEditorService).activeTextEditorControl?.getSelection()
 
 
 		// chat state:

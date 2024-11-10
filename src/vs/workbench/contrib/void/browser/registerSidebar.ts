@@ -48,8 +48,8 @@ const mountFn = (...params: any) => { }
 // and debug.contribution.ts, scm.contribution.ts (source control)
 
 type VoidSidebarState = {
-	isHistoryOpen: boolean
-	currentTab: 'chat' | 'settings'
+	isHistoryOpen: boolean;
+	currentTab: 'chat' | 'settings';
 }
 
 

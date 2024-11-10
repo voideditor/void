@@ -6,7 +6,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 
-export type CodeSelection = { selectionStr: string, filePath: URI }
+export type CodeSelection = { selectionStr: string; filePath: URI }
 
 export type ChatThreads = {
 	[id: string]: {
@@ -14,30 +14,30 @@ export type ChatThreads = {
 		createdAt: string; // ISO string
 		lastModified: string; // ISO string
 		messages: ChatMessage[];
-	}
+	};
 }
 
 type ChatMessage =
 	| {
-		role: "user";
+		role: 'user';
 		content: string; // content sent to the llm
 		displayContent: string; // content displayed to user
 		selection: CodeSelection | null; // the user's selection
 		files: URI[]; // the files sent in the message
 	}
 	| {
-		role: "assistant";
+		role: 'assistant';
 		content: string; // content received from LLM
 		displayContent: string | undefined; // content displayed to user (this is the same as content for now)
 	}
 	| {
-		role: "system";
+		role: 'system';
 		content: string;
 		displayContent?: undefined;
 	}
 
 
-// a "thread" means a chat message history
+// a 'thread' means a chat message history
 
 const newThreadObject = () => {
 	const now = new Date().toISOString()
@@ -94,7 +94,7 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 
 		// if a thread with 0 messages already exists, switch to it
 		const currentThreads = this.getAllThreads()
-		for (let threadId in currentThreads) {
+		for (const threadId in currentThreads) {
 			if (currentThreads[threadId].messages.length === 0) {
 				this.switchToThread(threadId)
 				return

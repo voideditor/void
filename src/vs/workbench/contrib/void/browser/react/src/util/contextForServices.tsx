@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react'
-import { ReactServicesType } from '../../registerSidebar.js';
+import { ReactServicesType } from '../../../registerSidebar.js';
 
 const AccessorContext = createContext<ReactServicesType | undefined>(undefined)
 

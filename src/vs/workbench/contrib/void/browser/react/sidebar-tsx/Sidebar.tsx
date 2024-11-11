@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { mountFnGenerator } from '../util/mountFnGenerator'
-import { VIEWPANE_FILTER_ACTION } from '../../../../../browser/parts/views/viewPane'
+import { VIEWPANE_FILTER_ACTION } from '../../../../../browser/parts/views/viewPane.js'
 import { ServicesAccessor } from '../../../../../../platform/instantiation/common/instantiation'
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 // import { SidebarChat } from './SidebarChat.js';

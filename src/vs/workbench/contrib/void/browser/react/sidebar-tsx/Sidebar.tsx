@@ -47,7 +47,7 @@ const Sidebar = ({ accessor }: { accessor: ServicesAccessor }) => {
 
 			<span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']
-				let index = tabs.indexOf(tab)
+				const index = tabs.indexOf(tab)
 				setTab(tabs[(index + 1) % tabs.length] as any)
 			}}>clickme {tab}</span>
 

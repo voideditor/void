@@ -1,7 +1,7 @@
-import React from "react";
-import * as ReactDOM from "react-dom/client"
+import React from 'react';
+import * as ReactDOM from 'react-dom/client'
 import { ServicesAccessor } from '../../../../../../platform/instantiation/common/instantiation';
-// import { initPosthog, identifyUser } from "./posthog";
+// import { initPosthog, identifyUser } from './posthog';
 
 // const ListenersAndTracking = () => {
 // 	// initialize posthog
@@ -34,8 +34,8 @@ import { ServicesAccessor } from '../../../../../../platform/instantiation/commo
 
 
 export const mountFnGenerator = (Component: React.FC<{ accessor: ServicesAccessor }>) => (rootElement: HTMLElement, accessor: ServicesAccessor) => {
-	if (typeof document === "undefined") {
-		console.error("index.tsx error: document was undefined")
+	if (typeof document === 'undefined') {
+		console.error('index.tsx error: document was undefined')
 		return
 	}
 	const root = ReactDOM.createRoot(rootElement)

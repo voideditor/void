@@ -1,7 +1,7 @@
 import React from 'react';
 import * as ReactDOM from 'react-dom/client'
 import { AccessorProvider } from './contextForServices';
-import { ReactServicesType } from '../../registerSidebar';
+import { ReactServicesType } from '../../../registerSidebar.js';
 
 
 export const mountFnGenerator = (Component: React.FC) => (rootElement: HTMLElement, services: ReactServicesType) => {

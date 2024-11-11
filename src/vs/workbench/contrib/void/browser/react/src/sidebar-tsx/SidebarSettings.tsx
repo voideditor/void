@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useServices } from '../util/contextForServices.js';
-import { IVoidConfigStateService, nonDefaultConfigFields, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../browser/registerConfig.js';
+import { IVoidConfigStateService, nonDefaultConfigFields, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../registerConfig.js';
 
 
 const SettingOfFieldAndParam = ({ field, param, configState, configStateService }:

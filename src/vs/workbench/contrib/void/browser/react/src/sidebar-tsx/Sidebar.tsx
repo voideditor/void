@@ -3,9 +3,11 @@ import { mountFnGenerator } from '../util/mountFnGenerator'
 
 import { SidebarSettings } from './SidebarSettings.js';
 import { useServices } from '../util/contextForServices.js';
-import { IVoidSidebarStateService, VoidSidebarState } from '../../registerSidebar.js';
+import { IVoidSidebarStateService, VoidSidebarState } from '../../../registerSidebar.js';
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 // import { SidebarChat } from './SidebarChat.js';
+
+import '../styles.css'
 
 const Sidebar = () => {
 	// state should come from sidebarStateService

@@ -38,10 +38,10 @@ export const nonDefaultConfigFields = [
 const voidConfigInfo: Record<
 	typeof nonDefaultConfigFields[number] | 'default', {
 		[prop: string]: {
-			description: string,
-			enumArr?: readonly string[] | undefined,
-			defaultVal: string,
-		},
+			description: string;
+			enumArr?: readonly string[] | undefined;
+			defaultVal: string;
+		};
 	}
 > = {
 	default: {
@@ -186,7 +186,7 @@ const voidConfigInfo: Record<
 
 
 // this is the type that comes with metadata like desc, default val, etc
-type VoidConfigInfo = typeof voidConfigInfo
+export type VoidConfigInfo = typeof voidConfigInfo
 export type VoidConfigField = keyof typeof voidConfigInfo // typeof configFields[number]
 
 // this is the type that specifies the user's actual config
@@ -203,27 +203,48 @@ export type VoidConfig = {
 }
 
 
-const VOID_CONFIG_KEY = 'void.partialVoidConfig'
-
-type setFieldType = <K extends VoidConfigField>(field: K, param: keyof VoidConfigInfo[K], newVal: string) => Promise<void>;
-
-export interface IVoidSettingsService {
-	readonly _serviceBrand: undefined;
-	onDidChange: Event<void>;
-	getPartialVoidConfig(): Promise<PartialVoidConfig>;
-	getVoidConfig(): Promise<VoidConfig>;
-	setField: setFieldType;
+const getVoidConfig = (partialVoidConfig: PartialVoidConfig): VoidConfig => {
+	const config = {} as PartialVoidConfig
+	for (const field of [...nonDefaultConfigFields, 'default'] as const) {
+		config[field] = {}
+		for (const prop in voidConfigInfo[field]) {
+			config[field][prop] = partialVoidConfig[field]?.[prop]?.trim() || voidConfigInfo[field][prop].defaultVal
+		}
+	}
+	return config as VoidConfig
 }
 
-export const IVoidSettingsService = createDecorator<IVoidSettingsService>('voidSettingsService');
-class VoidSettingsService extends Disposable implements IVoidSettingsService {
+
+const VOID_CONFIG_KEY = 'void.partialVoidConfig'
+
+export type SetFieldFnType = <K extends VoidConfigField>(field: K, param: keyof VoidConfigInfo[K], newVal: string) => Promise<void>;
+
+export type ConfigState = {
+	partialVoidConfig: PartialVoidConfig;
+	voidConfig: VoidConfig;
+}
+
+export interface IVoidConfigStateService {
+	readonly _serviceBrand: undefined;
+	readonly state: ConfigState;
+	readonly voidConfigInfo: VoidConfigInfo;
+	onDidChangeState: Event<void>;
+	setField: SetFieldFnType;
+}
+
+export const IVoidConfigStateService = createDecorator<IVoidConfigStateService>('VoidConfigStateService');
+class VoidConfigStateService extends Disposable implements IVoidConfigStateService {
 	_serviceBrand: undefined;
 
-	private readonly _onDidChange = new Emitter<void>();
-	readonly onDidChange: Event<void> = this._onDidChange.event;
+	private readonly _onDidChangeState = new Emitter<void>();
+	readonly onDidChangeState: Event<void> = this._onDidChangeState.event;
+
+	state: ConfigState;
+
+	voidConfigInfo: VoidConfigInfo = voidConfigInfo;
 
 
-	async getPartialVoidConfig(): Promise<PartialVoidConfig> {
+	private async _readPartialVoidConfig(): Promise<PartialVoidConfig> {
 		const encryptedPartialConfig = this._storageService.get(VOID_CONFIG_KEY, StorageScope.APPLICATION)
 
 		if (!encryptedPartialConfig)
@@ -234,28 +255,15 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 
-	async getVoidConfig(): Promise<VoidConfig> {
-		const partialVoidConfig = await this.getPartialVoidConfig()
-		const config = {} as PartialVoidConfig
-		for (let field of [...nonDefaultConfigFields, 'default'] as const) {
-			config[field] = {}
-			for (let prop in voidConfigInfo[field]) {
-				config[field][prop] = partialVoidConfig[field]?.[prop]?.trim() || voidConfigInfo[field][prop].defaultVal
-			}
-		}
-		return config as VoidConfig
-	}
-
-
-	private async storePartialVoidConfig(partialVoidConfig: PartialVoidConfig) {
+	private async _storePartialVoidConfig(partialVoidConfig: PartialVoidConfig) {
 		const encryptedPartialConfigStr = await this._encryptionService.encrypt(JSON.stringify(partialVoidConfig))
 		this._storageService.store(VOID_CONFIG_KEY, encryptedPartialConfigStr, StorageScope.APPLICATION, StorageTarget.USER)
 	}
 
 
 	// Set field on PartialVoidConfig
-	setField: setFieldType = async <K extends VoidConfigField>(field: K, param: keyof VoidConfigInfo[K], newVal: string) => {
-		const partialVoidConfig = await this.getPartialVoidConfig()
+	setField: SetFieldFnType = async <K extends VoidConfigField>(field: K, param: keyof VoidConfigInfo[K], newVal: string) => {
+		const partialVoidConfig = await this._readPartialVoidConfig()
 
 		const newPartialConfig: PartialVoidConfig = {
 			...partialVoidConfig,
@@ -264,19 +272,41 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				[param]: newVal
 			}
 		}
-		await this.storePartialVoidConfig(newPartialConfig)
-		this._onDidChange.fire()
+		await this._storePartialVoidConfig(newPartialConfig)
+		this._setState(newPartialConfig)
+	}
+
+	// internal function to update state, should be called every time state changes
+	private async _setState(partialVoidConfig: PartialVoidConfig) {
+		this.state = {
+			partialVoidConfig: partialVoidConfig,
+			voidConfig: getVoidConfig(partialVoidConfig),
+		}
+		this._onDidChangeState.fire()
 	}
 
 
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
 		@IEncryptionService private readonly _encryptionService: IEncryptionService,
-		// @ISecretStorageService private readonly _secretStorageService: ISecretStorageService, // could have used this, but it's clearer the way it is (+ slightly different eg StorageTarget.USER)
+		// could have used this, but it's clearer the way it is (+ slightly different eg StorageTarget.USER)
+		// @ISecretStorageService private readonly _secretStorageService: ISecretStorageService,
 	) {
 		super()
+
+		// at the start, we haven't read the partial config yet, but we need to set state to something, just treat partialVoidConfig like it's empty
+		this.state = {
+			partialVoidConfig: {},
+			voidConfig: getVoidConfig({}),
+		}
+
+		// read and update the actual state immediately
+		this._readPartialVoidConfig().then(partialVoidConfig => {
+			this._setState(partialVoidConfig)
+		})
+
 	}
 
 }
 
-registerSingleton(IVoidSettingsService, VoidSettingsService, InstantiationType.Eager);
+registerSingleton(IVoidConfigStateService, VoidConfigStateService, InstantiationType.Eager);

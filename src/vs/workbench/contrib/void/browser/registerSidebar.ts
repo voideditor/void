@@ -36,9 +36,10 @@ import { IKeybindingService } from '../../../../platform/keybinding/common/keybi
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-// import { IVoidSettingsService } from './registerSettings.js';
+// import { IVoidConfigService } from './registerSettings.js';
 // import { IEditorService } from '../../../services/editor/common/editorService.js';
 import mountFn from './react/out/Sidebar.js';
+import { IVoidConfigStateService } from './registerConfig.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 // const mountFn = (...params: any) => { }
@@ -47,11 +48,16 @@ import mountFn from './react/out/Sidebar.js';
 // compare against search.contribution.ts and https://app.greptile.com/chat/w1nsmt3lauwzculipycpn?repo=github%3Amain%3Amicrosoft%2Fvscode
 // and debug.contribution.ts, scm.contribution.ts (source control)
 
-type VoidSidebarState = {
+export type VoidSidebarState = {
 	isHistoryOpen: boolean;
 	currentTab: 'chat' | 'settings';
 }
 
+export type ReactServicesType = {
+	sidebarStateService: IVoidSidebarStateService;
+	configStateService: IVoidConfigStateService;
+	threadHistoryService: IThreadHistoryService;
+}
 
 // ---------- Define viewpane ----------
 
@@ -89,10 +95,13 @@ class VoidSidebarViewPane extends ViewPane {
 		dom.append(parent, root);
 
 		// gets set immediately
-		let accessor_: ServicesAccessor = null as unknown as ServicesAccessor
-		this.instantiationService.invokeFunction(accessor => { accessor_ = accessor });
-
-		mountFn(root, accessor_);
+		this.instantiationService.invokeFunction(accessor => {
+			mountFn(root, {
+				configStateService: accessor.get(IVoidConfigStateService),
+				sidebarStateService: accessor.get(IVoidSidebarStateService),
+				threadHistoryService: accessor.get(IThreadHistoryService),
+			});
+		});
 	}
 
 
@@ -184,37 +193,53 @@ viewsRegistry.registerViews([{
 
 // ---------- Register service that manages sidebar's state ----------
 
-interface IVoidSidebarStateService {
+export interface IVoidSidebarStateService {
 	readonly _serviceBrand: undefined;
-	setState(newState: Partial<VoidSidebarState>): void;
-	state: VoidSidebarState;
-	focusChat(): void;
-	blurChat(): void;
 
-	onDidChange: Event<void>;
-	onFocusChat: Event<void>;
-	onBlurChat: Event<void>;
+	state: VoidSidebarState;
+	setState(newState: Partial<VoidSidebarState>): void;
+	onDidChangeState: Event<void>;
+
+	onDidFocusChat: Event<void>;
+	onDidBlurChat: Event<void>;
+	fireFocusChat(): void;
+	fireBlurChat(): void;
 }
 
 
-const IVoidSidebarStateService = createDecorator<IVoidSidebarStateService>('voidSidebarStateService');
+export const IVoidSidebarStateService = createDecorator<IVoidSidebarStateService>('voidSidebarStateService');
 class VoidSidebarStateService extends Disposable implements IVoidSidebarStateService {
 	_serviceBrand: undefined;
 
-	private readonly _onDidChange = new Emitter<void>();
-	readonly onDidChange: Event<void> = this._onDidChange.event;
+	private readonly _onDidChangeState = new Emitter<void>();
+	readonly onDidChangeState: Event<void> = this._onDidChangeState.event;
 
 	private readonly _onFocusChat = new Emitter<void>();
-	readonly onFocusChat: Event<void> = this._onFocusChat.event;
+	readonly onDidFocusChat: Event<void> = this._onFocusChat.event;
 
 	private readonly _onBlurChat = new Emitter<void>();
-	readonly onBlurChat: Event<void> = this._onBlurChat.event;
+	readonly onDidBlurChat: Event<void> = this._onBlurChat.event;
 
 
 	// state
-	state: VoidSidebarState = {
-		isHistoryOpen: false,
-		currentTab: 'chat',
+	state: VoidSidebarState
+
+
+	setState(newState: Partial<VoidSidebarState>) {
+		// make sure view is open if the tab changes
+		if ('currentTab' in newState)
+			this._viewsService.openView(SIDEBAR_VIEW_ID);
+
+		this.state = { ...this.state, ...newState }
+		this._onDidChangeState.fire()
+	}
+
+	fireFocusChat() {
+		this._onFocusChat.fire()
+	}
+
+	fireBlurChat() {
+		this._onBlurChat.fire()
 	}
 
 	constructor(
@@ -223,23 +248,13 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 		super()
 		// auto open the view on mount (if it bothers you this is here, this is technically just initializing the state of the view)
 		this._viewsService.openView(SIDEBAR_VIEW_ID);
-	}
 
-	setState(newState: Partial<VoidSidebarState>) {
-		// make sure view is open if the tab changes
-		if ('currentTab' in newState)
-			this._viewsService.openView(SIDEBAR_VIEW_ID);
+		// initial state
+		this.state = {
+			isHistoryOpen: false,
+			currentTab: 'chat',
+		}
 
-		this.state = { ...this.state, ...newState }
-		this._onDidChange.fire()
-	}
-
-	focusChat() {
-		this._onFocusChat.fire()
-	}
-
-	blurChat() {
-		this._onBlurChat.fire()
 	}
 
 }
@@ -258,7 +273,7 @@ registerAction2(class extends Action2 {
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const stateService = accessor.get(IVoidSidebarStateService)
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		stateService.focusChat()
+		stateService.fireFocusChat()
 
 		// const selection = accessor.get(IEditorService).activeTextEditorControl?.getSelection()
 
@@ -292,7 +307,7 @@ registerAction2(class extends Action2 {
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const stateService = accessor.get(IVoidSidebarStateService)
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		stateService.focusChat()
+		stateService.fireFocusChat()
 
 		const historyService = accessor.get(IThreadHistoryService)
 		historyService.startNewThread()
@@ -312,7 +327,7 @@ registerAction2(class extends Action2 {
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const stateService = accessor.get(IVoidSidebarStateService)
 		stateService.setState({ isHistoryOpen: !stateService.state.isHistoryOpen })
-		stateService.blurChat()
+		stateService.fireBlurChat()
 	}
 })
 
@@ -329,6 +344,6 @@ registerAction2(class extends Action2 {
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const stateService = accessor.get(IVoidSidebarStateService)
 		stateService.setState({ isHistoryOpen: false, currentTab: 'settings' })
-		stateService.blurChat()
+		stateService.fireBlurChat()
 	}
 })

@@ -1,5 +1,5 @@
 // register Settings
-import './registerSettings.js'
+import './registerConfig.js'
 
 // register Sidebar chat
 import './registerSidebar.js'

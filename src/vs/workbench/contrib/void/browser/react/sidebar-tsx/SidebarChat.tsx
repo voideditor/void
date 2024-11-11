@@ -1,6 +1,11 @@
 // import React, { FormEvent, useCallback, useRef, useState } from "react";
 
 
+// sidebarStateService.onDidFocusChat(() => {})
+// sidebarStateService.onDidBlurChat(() => {})
+
+
+
 // import MarkdownRender from "../../sidebar/markdown/!MarkdownRender";
 // import BlockCode from "../../sidebar/markdown/!BlockCode";
 // import { ServicesAccessor } from '../../../../../../platform/instantiation/common/instantiation';

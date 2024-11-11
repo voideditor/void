@@ -6,7 +6,7 @@ export default defineConfig({
 	format: ['esm'],
 	// dts: true,
 	splitting: false,
-	sourcemap: true,
+	// sourcemap: true,
 	clean: true,
 	platform: 'browser',
 	target: 'esnext',

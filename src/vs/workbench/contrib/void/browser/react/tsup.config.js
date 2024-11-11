@@ -12,6 +12,7 @@ export default defineConfig({
 	clean: true,
 	platform: 'browser',
 	target: 'esnext',
+	injectStyle: true, // bundle css into the output file
 	outExtension: () => ({ js: '.js' }),
 	// default behavior is to take local files and make them internal (bundle them) and take imports like 'react' and leave them external (don't bundle them), we want the opposite in many ways
 	noExternal: ['react', 'react-dom'], // noExternal means we should take these things and make them not external (bundle them into the output file)
@@ -22,6 +23,6 @@ export default defineConfig({
 	],
 	treeshake: true,
 	esbuildOptions(options) {
-		options.outbase = 'out'  // This tells esbuild to use src2 as the base for output paths
+		options.outbase = 'src2'  // tries copying the folder hierarchy starting at src2
 	}
 })

@@ -39,7 +39,7 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 // import { IVoidConfigService } from './registerSettings.js';
 // import { IEditorService } from '../../../services/editor/common/editorService.js';
 
-import mountFn from './react/out/Sidebar.js';
+import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 import './react/out/styles.css';
 
 import { IVoidConfigStateService } from './registerConfig.js';

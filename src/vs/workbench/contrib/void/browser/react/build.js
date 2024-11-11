@@ -1,10 +1,10 @@
 import { execSync } from 'child_process';
 
 // tsup to build all react to out/
-execSync('tsup')
+execSync('npx scope-tailwind ./sidebar-tsx -c ')
 
 // build tailwind -> styles.css
-execSync('tailwindcss -i ./util/styles.css -o ./out/styles.css')
+execSync('tsup')
 
 // the structure of files here MUST be shallow so that external = ../../ works
 

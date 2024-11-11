@@ -216,6 +216,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "rimraf": "^2.2.8",
+    "scope-tailwind": "^1.0.1",
     "sinon": "^12.0.1",
     "sinon-test": "^3.1.3",
     "source-map": "0.6.1",

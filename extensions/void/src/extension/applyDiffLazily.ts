@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
-import { AbortRef, sendLLMMessage } from '../common/sendLLMMessage';
+
+import { sendLLMMessage } from '../common/llm';
+import { AbortRef } from '../common/llm/types';
 import { DiffArea } from '../common/shared_types';
 import { writeFileWithDiffInstructions, searchDiffChunkInstructions } from '../common/systemPrompts';
 import { VoidConfig } from '../webviews/common/contextForConfig';

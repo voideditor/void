@@ -8,7 +8,7 @@ import { File, ChatMessage, CodeSelection } from "../../common/shared_types";
 import * as vscode from 'vscode'
 import { awaitVSCodeResponse, getVSCodeAPI, onMessageFromVSCode, useOnVSCodeMessage } from "../common/getVscodeApi";
 import { useThreads } from "../common/contextForThreads";
-import { sendLLMMessage } from "../../common/sendLLMMessage";
+import { sendLLMMessage } from "../../common/llm";
 import { useVoidConfig } from "../common/contextForConfig";
 import { captureEvent } from "../common/posthog";
 import { generateDiffInstructions } from "../../common/systemPrompts";

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { v4 as uuidv4 } from 'uuid'
-import { AbortRef } from '../common/sendLLMMessage';
+import { AbortRef } from '../common/llm/types';
 import { MessageToSidebar, MessageFromSidebar, DiffArea, ChatThreads } from '../common/shared_types';
 import { getVoidConfigFromPartial } from '../webviews/common/contextForConfig';
 import { applyDiffLazily } from './applyDiffLazily';

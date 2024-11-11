@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
 	entry: [
-		'./sidebar-tsx/Sidebar.tsx'
+		'./src2/sidebar-tsx/Sidebar.tsx'
 	],
 	outDir: './out',
 	format: ['esm'],
@@ -21,4 +21,7 @@ export default defineConfig({
 			.replaceAll('*', '.*'))
 	],
 	treeshake: true,
+	esbuildOptions(options) {
+		options.outbase = 'out'  // This tells esbuild to use src2 as the base for output paths
+	}
 })

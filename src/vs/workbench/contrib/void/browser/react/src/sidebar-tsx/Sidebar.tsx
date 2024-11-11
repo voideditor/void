@@ -16,7 +16,7 @@ const Sidebar = () => {
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 	useEffect(() => { sidebarStateService.onDidChangeState(() => setSideBarState(sidebarStateService.state)) }, [sidebarStateService])
 
-	return <>
+	return <div className='@@void-scope'>
 		<div className={`flex flex-col h-screen w-full`}>
 
 			<span onClick={() => {
@@ -38,7 +38,7 @@ const Sidebar = () => {
 			</div>
 
 		</div>
-	</>
+	</div>
 
 }
 

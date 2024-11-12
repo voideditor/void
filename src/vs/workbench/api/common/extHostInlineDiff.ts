@@ -37,8 +37,9 @@ export class ExtHostInlineDiff implements ExtHostInlineDiffShape {
 		}
 		if (!apiEditor) {
 			throw new Error('not a visible editor');
-		}
 
+		}
+		// can't send over the editor, so just send over its id and reconstruct it. This is stupid but it's what VSCode's editorinset does - Andrew
 		const id = apiEditor.id;
 		// let uri = apiEditor.value.document.uri;
 

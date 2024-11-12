@@ -4,35 +4,38 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ICodeEditor, IViewZone } from '../../../../editor/browser/editorBrowser.js';
 
-import { IModelDeltaDecoration } from '../../../common/model.js';
-import { IRange } from '../../../common/core/range.js';
-import { EditorOption } from '../../../common/config/editorOptions.js';
-import { UndoRedoGroup } from '../../../../platform/undoRedo/common/undoRedo.js';
+import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType, UndoRedoGroup } from '../../../../platform/undoRedo/common/undoRedo.js';
+import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
+import { IBulkEditService } from '../../../../editor/browser/services/bulkEditService.js';
+import { WorkspaceEdit } from 'vscode';
+import { IModelDeltaDecoration } from '../../../../editor/common/model.js';
+import { IRange } from '../../../../editor/common/core/range.js';
+import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 
 
-if (m.type === 'applyChanges') {
+// if (m.type === 'applyChanges') {
 
-	const editor = vscode.window.activeTextEditor
-	if (!editor) {
-		vscode.window.showInformationMessage('No active editor!')
-		return
-	}
-	// create an area to show diffs
-	const partialDiffArea: Omit<DiffArea, 'diffareaid'> = {
-		startLine: 0, // in ctrl+L the start and end lines are the full document
-		endLine: editor.document.lineCount,
-		originalStartLine: 0,
-		originalEndLine: editor.document.lineCount,
-		sweepIndex: null,
-	}
-	const diffArea = diffProvider.createDiffArea(editor.document.uri, partialDiffArea, await readFileContentOfUri(editor.document.uri))
+// 	const editor = vscode.window.activeTextEditor
+// 	if (!editor) {
+// 		vscode.window.showInformationMessage('No active editor!')
+// 		return
+// 	}
+// 	// create an area to show diffs
+// 	const partialDiffArea: Omit<DiffArea, 'diffareaid'> = {
+// 		startLine: 0, // in ctrl+L the start and end lines are the full document
+// 		endLine: editor.document.lineCount,
+// 		originalStartLine: 0,
+// 		originalEndLine: editor.document.lineCount,
+// 		sweepIndex: null,
+// 	}
+// 	const diffArea = diffProvider.createDiffArea(editor.document.uri, partialDiffArea, await readFileContentOfUri(editor.document.uri))
 
-	const docUri = editor.document.uri
-	const fileStr = await readFileContentOfUri(docUri)
-	const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
+// 	const docUri = editor.document.uri
+// 	const fileStr = await readFileContentOfUri(docUri)
+// 	const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
 
-	await diffProvider.startStreamingInDiffArea({ docUri, oldFileStr: fileStr, diffRepr: m.diffRepr, voidConfig, diffArea, abortRef: abortApplyRef })
-}
+// 	await diffProvider.startStreamingInDiffArea({ docUri, oldFileStr: fileStr, diffRepr: m.diffRepr, voidConfig, diffArea, abortRef: abortApplyRef })
+// }
 
 
 
@@ -50,16 +53,16 @@ type DiffArea = {
 type BaseDiff = {
 	type: 'edit' | 'insertion' | 'deletion';
 	// repr: string; // representation of the diff in text
-	originalRange: vscode.Range;
+	originalRange: IRange;
 	originalCode: string;
-	range: vscode.Range;
+	range: IRange;
 	code: string;
 }
 
 // each diff on the user's screen
 type Diff = BaseDiff & {
 	diffid: number,
-	lenses: vscode.CodeLens[],
+	lenses: CodeLens[],
 }
 
 
@@ -75,6 +78,8 @@ export const IInlineDiffService = createDecorator<IInlineDiffService>('inlineDif
 class InlineDiffService extends Disposable implements IInlineDiffService {
 	private readonly _diffDecorations = new Map<ICodeEditor, string[]>();
 	private readonly _diffZones = new Map<ICodeEditor, string[]>();
+
+
 	_serviceBrand: undefined;
 
 	constructor() {
@@ -200,7 +205,6 @@ class StreamManager extends Disposable {
 
 
 	constructor(
-		context: IExtHostContext,
 		@IInlineDiffService private readonly _inlineDiff: IInlineDiffService,
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right

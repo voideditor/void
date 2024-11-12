@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { AbortRef, LLMMessage, sendLLMMessage } from '../common/sendLLMMessage';
 import { getVoidConfigFromPartial, VoidConfig } from '../webviews/common/contextForConfig';
-import { result } from 'lodash';
+import { LRUCache } from 'lru-cache';
+import { SimpleLRUCache } from '../common/SimpleLruCache';
 
 type AutocompletionStatus = 'pending' | 'finished' | 'error';
 type Autocompletion = {
@@ -15,7 +16,7 @@ type Autocompletion = {
 	result: string,
 }
 
-const DEBOUNCE_TIME = 500
+const DEBOUNCE_TIME = 300
 const TIMEOUT_TIME = 60000
 
 // postprocesses the result
@@ -25,7 +26,6 @@ const postprocessResult = (result: string) => {
 	return result.trimStart()
 
 }
-
 
 const extractCodeFromResult = (result: string) => {
 
@@ -110,7 +110,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 
 	private _extensionContext: vscode.ExtensionContext;
 
-	private _autocompletionsOfDocument: { [docUriStr: string]: Autocompletion[] } = {}
+	private _autocompletionsOfDocument: { [docUriStr: string]: SimpleLRUCache<Autocompletion> } = {}
 
 	private _lastTime = 0
 
@@ -135,14 +135,14 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 		const suffix = fullText.substring(cursorOffset)
 
 		if (!this._autocompletionsOfDocument[docUriStr]) {
-			this._autocompletionsOfDocument[docUriStr] = []
+			this._autocompletionsOfDocument[docUriStr] = new SimpleLRUCache()
 		}
 
 		const voidConfig = getVoidConfigFromPartial(this._extensionContext.globalState.get('partialVoidConfig') ?? {})
 
 		// get autocompletion from cache
 		let cachedAutocompletion: Autocompletion | undefined = undefined
-		loop: for (const autocompletion of this._autocompletionsOfDocument[docUriStr]!) {
+		loop: for (const autocompletion of this._autocompletionsOfDocument[docUriStr].values()) {
 			// if the user's change matches up with the generated text
 			if (doesPrefixMatchAutocompletion({ prefix, autocompletion })) {
 				cachedAutocompletion = autocompletion
@@ -240,8 +240,6 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 				onError: (e) => {
 					newAutocompletion.endTime = Date.now()
 					newAutocompletion.status = 'error'
-					newAutocompletion.result = ''
-
 					reject(e)
 				},
 				voidConfig,
@@ -256,7 +254,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 		})
 
 		// add autocompletion to cache
-		this._autocompletionsOfDocument[docUriStr]?.push(newAutocompletion)
+		this._autocompletionsOfDocument[docUriStr].push(newAutocompletion)
 
 		// show autocompletion
 		try {

@@ -28,7 +28,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
-import { IThreadHistoryService } from './registerThreadsHistory.js';
+import { IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
@@ -42,6 +42,7 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 
 import { IVoidConfigStateService } from './registerConfig.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 // const mountFn = (...params: any) => { }
@@ -58,7 +59,8 @@ export type VoidSidebarState = {
 export type ReactServicesType = {
 	sidebarStateService: IVoidSidebarStateService;
 	configStateService: IVoidConfigStateService;
-	threadHistoryService: IThreadHistoryService;
+	threadsStateService: IThreadHistoryService;
+	fileService: IFileService;
 }
 
 // ---------- Define viewpane ----------
@@ -198,7 +200,7 @@ viewsRegistry.registerViews([{
 export interface IVoidSidebarStateService {
 	readonly _serviceBrand: undefined;
 
-	state: VoidSidebarState;
+	readonly state: VoidSidebarState; // readonly to the user
 	setState(newState: Partial<VoidSidebarState>): void;
 	onDidChangeState: Event<void>;
 

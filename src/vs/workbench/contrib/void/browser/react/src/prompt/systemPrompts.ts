@@ -1,5 +1,5 @@
 
-const generateDiffInstructions = `
+export const generateDiffInstructions = `
 You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.
 
 Please edit the selected file following the user's instructions (or, if appropriate, answer their question instead).
@@ -160,7 +160,7 @@ We should change all the buttons like the one selected into a div component. Her
 `;
 
 
-const searchDiffChunkInstructions = `
+export const searchDiffChunkInstructions = `
 You are a coding assistant that applies a diff to a file. You are given a diff \`diff\`, a list of files \`files\` to apply the diff to, and a selection \`selection\` that you are currently considering in the file.
 
 Determine whether you should modify ANY PART of the selection \`selection\` following the \`diff\`. Return \`true\` if you should modify any part of the selection, and \`false\` if you should not modify any part of it.
@@ -269,7 +269,7 @@ OUTPUT
 `
 
 
-const writeFileWithDiffInstructions = `
+export const writeFileWithDiffInstructions = `
 You are a coding assistant that applies a diff to a file. You are given the original file \`original_file\`, a diff \`diff\`, and a new file that you are applying the diff to \`new_file\`.
 
 Please finish writing the new file \`new_file\`, according to the diff \`diff\`.
@@ -398,9 +398,3 @@ export default Sidebar;\`\`\`
 `
 
 
-
-export {
-	generateDiffInstructions,
-	searchDiffChunkInstructions,
-	writeFileWithDiffInstructions,
-};

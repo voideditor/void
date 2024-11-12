@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"moduleResolution": "NodeNext",
+		"module": "NodeNext",
+		"esModuleInterop": true,
+	},
+	"include": [
+		"./src/**/*.ts",
+	]
+}

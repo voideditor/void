@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useServices } from '../util/contextForServices.js';
+import { useConfigState } from '../util/contextForServices.js';
 import { IVoidConfigStateService, nonDefaultConfigFields, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../registerConfig.js';
 
 
 const SettingOfFieldAndParam = ({ field, param, configState, configStateService }:
-	{ field: VoidConfigField; param: string; configState: NonNullable<ConfigState>; configStateService: IVoidConfigStateService }) => {
+	{ field: VoidConfigField; param: string; configState: ConfigState; configStateService: IVoidConfigStateService }) => {
 
 	const { partialVoidConfig } = configState
 
@@ -60,12 +60,9 @@ const SettingOfFieldAndParam = ({ field, param, configState, configStateService 
 
 
 export const SidebarSettings = () => {
-	// track the config state using React state so visual updates happen
-	const { configStateService } = useServices()
-	const [configState, setConfigState] = useState<ConfigState>(configStateService.state)
-	const { voidConfig } = configState
-	useEffect(() => { configStateService.onDidChangeState(() => setConfigState(configStateService.state)) }, [configStateService])
 
+	const [configState, configStateService] = useConfigState()
+	const { voidConfig } = configState
 	const current_field = voidConfig.default['whichApi'] as VoidConfigField
 
 	return (

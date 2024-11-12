@@ -8,4 +8,4 @@ import './registerSidebar.js'
 import './registerMetrics.js'
 
 // register Thread History
-import './registerThreadsHistory.js'
+import './registerThreads.js'

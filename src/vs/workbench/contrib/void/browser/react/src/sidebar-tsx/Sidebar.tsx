@@ -2,19 +2,15 @@ import React, { useEffect, useState } from 'react'
 import { mountFnGenerator } from '../util/mountFnGenerator'
 
 import { SidebarSettings } from './SidebarSettings.js';
-import { useServices } from '../util/contextForServices.js';
-import { IVoidSidebarStateService, VoidSidebarState } from '../../../registerSidebar.js';
+import { useSidebarState } from '../util/contextForServices.js';
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 // import { SidebarChat } from './SidebarChat.js';
 
 import '../styles.css'
 
 const Sidebar = () => {
-	// state should come from sidebarStateService
-	const { sidebarStateService } = useServices()
-	const [sidebarState, setSideBarState] = useState<VoidSidebarState>(sidebarStateService.state)
+	const [sidebarState, sidebarStateService] = useSidebarState()
 	const { isHistoryOpen, currentTab: tab } = sidebarState
-	useEffect(() => { sidebarStateService.onDidChangeState(() => setSideBarState(sidebarStateService.state)) }, [sidebarStateService])
 
 	return <div className='@@void-scope'>
 		<div className={`flex flex-col h-screen w-full`}>

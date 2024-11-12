@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { AbortRef, LLMMessage, sendLLMMessage } from '../common/sendLLMMessage';
 import { getVoidConfigFromPartial, VoidConfig } from '../webviews/common/contextForConfig';
+import { result } from 'lodash';
 
 type AutocompletionStatus = 'pending' | 'finished' | 'error';
 type Autocompletion = {
@@ -17,6 +18,30 @@ type Autocompletion = {
 const DEBOUNCE_TIME = 500
 const TIMEOUT_TIME = 60000
 
+// postprocesses the result
+const postprocessResult = (result: string) => {
+
+	// remove leading whitespace from result
+	return result.trimStart()
+
+}
+
+
+const extractCodeFromResult = (result: string) => {
+
+	// extract the code between triple backticks
+	const parts = result.split(/```/);
+
+	// if there is no ``` then return the raw result
+	if (parts.length === 1) {
+		return result;
+	}
+
+	// else return the code between the triple backticks
+	return parts[1]
+
+}
+
 // trims the end of the prefix to improve cache hit rate
 const trimPrefix = (prefix: string) => {
 	const trimmedPrefix = prefix.trimEnd()
@@ -31,7 +56,13 @@ const trimPrefix = (prefix: string) => {
 	return trimmedPrefix
 }
 
-// finds the text in the autocompletion to display
+// finds the text in the autocompletion to display, assuming the prefix is already matched
+// example:
+// originalPrefix = abcd
+// generatedMiddle = efgh
+// originalSuffix = ijkl
+// the user has typed "ef" so prefix = abcdef
+// we want to return the rest of the generatedMiddle, which is "gh"
 const toInlineCompletion = ({ prefix, autocompletion }: { prefix: string, autocompletion: Autocompletion }): vscode.InlineCompletionItem => {
 	const originalPrefix = autocompletion.prefix
 	const generatedMiddle = autocompletion.result
@@ -44,18 +75,13 @@ const toInlineCompletion = ({ prefix, autocompletion }: { prefix: string, autoco
 	console.log('generatedMiddle ', generatedMiddle)
 	console.log('trimmedOriginalPrefix ', trimmedOriginalPrefix)
 	console.log('trimmedCurrentPrefix ', trimmedCurrentPrefix)
-	console.log('lastMatchupIndex ', lastMatchupIndex)
+	console.log('index: ', lastMatchupIndex)
 	if (lastMatchupIndex < 0) {
 		return new vscode.InlineCompletionItem('')
 	}
 
-	// example:
-	// originalPrefix = abcd
-	// generatedMiddle = efgh
-	// originalSuffix = ijkl
-	// the user has typed "ef" so prefix = abcdef
-	// we want to return the rest of the generatedMiddle, which is "gh"
 	const completionStr = generatedMiddle.substring(lastMatchupIndex)
+	console.log('completionStr: ', completionStr)
 
 	return new vscode.InlineCompletionItem(completionStr)
 
@@ -131,8 +157,6 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 				console.log('AAA1')
 
 				const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, })
-
-
 				return [inlineCompletion]
 
 			} else if (cachedAutocompletion.status === 'pending') {
@@ -189,30 +213,12 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 			result: '',
 		}
 
-
-		let messages: LLMMessage[] = []
-		switch (voidConfig.default.whichApi) {
-			case 'ollama':
-				messages = [
-					{ role: 'user', content: `[SUFFIX]${suffix}[PREFIX]${prefix} Fill in the middle between the prefix and suffix. Return only the middle. [MIDDLE]` }
-				]
-				break;
-			case 'anthropic':
-			case 'openAI':
-				messages = [
-					{ role: 'system', content: 'Fill in the prefix up to the suffix. Return only the result and be very concise.' },
-					{ role: 'user', content: `[SUFFIX]${suffix}[PREFIX]${prefix}` },
-				]
-				break;
-			default:
-				throw new Error(`We do not recommend using autocomplete with your selected provider (${voidConfig.default.whichApi}).`);
-		}
-
 		// set parameters of `newAutocompletion` appropriately
 		newAutocompletion.promise = new Promise((resolve, reject) => {
 
 			sendLLMMessage({
-				messages: messages,
+				mode: 'fim',
+				fimInfo: { prefix, suffix },
 				onText: async (tokenStr, completionStr) => {
 					// TODO filter out bad responses here
 					newAutocompletion.result = completionStr
@@ -226,9 +232,10 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 					// newAutocompletion.abortRef = { current: () => { } }
 					newAutocompletion.status = 'finished'
 					// newAutocompletion.promise = undefined
-					newAutocompletion.result = finalMessage
+					newAutocompletion.result = postprocessResult(extractCodeFromResult(finalMessage))
 
-					resolve(finalMessage)
+					resolve(newAutocompletion.result)
+
 				},
 				onError: (e) => {
 					newAutocompletion.endTime = Date.now()

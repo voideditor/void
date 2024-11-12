@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import { AbortRef, OnFinalMessage, OnText, sendLLMMessage } from "../common/sendLLMMessage"
 import { VoidConfig } from '../webviews/common/contextForConfig';
-import { searchDiffChunkInstructions, writeFileWithDiffInstructions } from '../common/systemPrompts';
-import { throttle } from 'lodash';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 
 const applyCtrlK = async ({ fileUri, startLine, endLine, instructions, voidConfig, abortRef }: { fileUri: vscode.Uri, startLine: number, endLine: number, instructions: string, voidConfig: VoidConfig, abortRef: AbortRef }) => {
@@ -22,14 +20,13 @@ const applyCtrlK = async ({ fileUri, startLine, endLine, instructions, voidConfi
 The user wants to apply the following instructions to the selection:
 ${instructions}
 
-
 Instructions:
 1. Follow the user's instructions
 2. You may ONLY CHANGE the selection, and nothing else in the file
 3. Make sure all brackets in the new selection are balanced the same was as in the original selection
 4. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
 
-Please rewrite the complete the following code, following the user's instructions.
+Please rewrite the complete the following code, following the instructions.
 \`\`\`
 <PRE>${prefix}</PRE>
 <SUF>${suffix}</SUF>

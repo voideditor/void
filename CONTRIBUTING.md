@@ -66,7 +66,27 @@ Finally, click Install.
 
 ### c. Build Prerequisites - Linux
 
-We haven't created prerequisite steps for building on Linux yet, but you can follow [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
+You will need at least 8GB of RAM to build & watch Void.
+
+If you are using a RHEL-based (Fedora, CentOS, etc.) Linux distribution, you will need to launch this command to install development tools and dependencies:
+```
+sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel
+```
+
+If you are using a Debian-based (Ubuntu, etc.) Linux distribution, you will need to launch this command to install development tools and dependencies:
+```
+sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev python-is-python3
+```
+
+You will also need to install NodeJS. We recommend using [nvm](https://github.com/nvm-sh/nvm) to install NodeJS.
+
+NOTE : when building void, you might need to remove packages-lock.json and node_modules and reinstall dependencies.
+
+You also might need to launch :
+```
+npm install -g node-gyp
+```
+(this is to install node-gyp, which is a Node.js package for compiling native addon modules for Node.js)
 
 ### Build instructions
 
@@ -147,7 +167,7 @@ We're always glad to talk about new ideas, help you get set up, and make sure yo
 
 ## Submitting a Pull Request
 
-Please submit a pull request once you've made a change. You don't need to submit an issue. 
+Please submit a pull request once you've made a change. You don't need to submit an issue.
 
 Please don't use AI to write your PR 🙂.
 

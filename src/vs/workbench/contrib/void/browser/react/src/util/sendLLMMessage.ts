@@ -2,11 +2,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
+import { VoidConfig } from '../../../registerConfig.js';
 // import { VoidConfig } from '../webviews/common/contextForConfig'
 // import { captureEvent } from '../webviews/common/posthog';
 // import { ChatMessage } from './shared_types';
-
-type VoidConfig = any
 
 export type AbortRef = { current: (() => void) | null }
 

@@ -1,5 +1,5 @@
 import React, { JSX, useCallback, useEffect, useState } from "react"
-import { marked, MarkedToken, Token, TokensList } from "marked"
+import { marked, MarkedToken, Token } from "marked"
 import { BlockCode } from "./BlockCode.js"
 
 

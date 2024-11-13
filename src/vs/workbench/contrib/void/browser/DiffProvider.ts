@@ -1,14 +1,7 @@
 import * as vscode from 'vscode';
-import { findDiffs } from './src/extension/findDiffs';
-import { throttle } from 'lodash';
-import { DiffArea, BaseDiff, Diff } from '../common/shared_types';
-import { readFileContentOfUri } from './src/extension/extensionLib/readFileContentOfUri';
-import { AbortRef, sendLLMMessage } from '../common/sendLLMMessage';
-import { writeFileWithDiffInstructions } from '../common/systemPrompts';
-import { VoidConfig } from './src/webviews/common/contextForConfig';
+import { findDiffs } from './findDiffs';
+import { DiffArea, Diff } from '../common/shared_types';
 
-
-const THROTTLE_TIME = 100
 
 // TODO in theory this should be disposed
 const lightGrayDecoration = vscode.window.createTextEditorDecorationType({
@@ -48,52 +41,52 @@ export class DiffProvider implements vscode.CodeLensProvider {
 
 		console.log('Creating DisplayChangesProvider')
 
-		// this acts as a useEffect every time text changes
-		vscode.workspace.onDidChangeTextDocument((e) => {
+		// // this acts as a useEffect every time text changes
+		// vscode.workspace.onDidChangeTextDocument((e) => {
 
-			const editor = vscode.window.activeTextEditor
+		// 	const editor = vscode.window.activeTextEditor
 
-			if (!editor) return
+		// 	if (!editor) return
 
-			const docUriStr = editor.document.uri.toString()
-			const changes = e.contentChanges.map(c => ({ startLine: c.range.start.line, endLine: c.range.end.line, text: c.text, }))
+		// 	const docUriStr = editor.document.uri.toString()
+		// 	const changes = e.contentChanges.map(c => ({ startLine: c.range.start.line, endLine: c.range.end.line, text: c.text, }))
 
-			// on user change, grow/shrink/merge/delete diff areas
-			this.resizeDiffAreas(docUriStr, changes, 'currentFile')
+		// 	// on user change, grow/shrink/merge/delete diff areas
+		// 	this.resizeDiffAreas(docUriStr, changes, 'currentFile')
 
-			// refresh the diffAreas
-			this.refreshStylesAndDiffs(docUriStr)
+		// 	// refresh the diffAreas
+		// 	this.refreshStylesAndDiffs(docUriStr)
 
-		})
+		// })
 	}
 
 	// used by us only
-	public createDiffArea(uri: vscode.Uri, partialDiffArea: Omit<DiffArea, 'diffareaid'>, originalFile: string) {
+	// public createDiffArea(uri: vscode.Uri, partialDiffArea: Omit<DiffArea, 'diffareaid'>, originalFile: string) {
 
-		const uriStr = uri.toString()
+	// 	const uriStr = uri.toString()
 
-		this._originalFileOfDocument[uriStr] = originalFile
+	// 	this._originalFileOfDocument[uriStr] = originalFile
 
-		// make sure array is defined
-		if (!this._diffAreasOfDocument[uriStr]) this._diffAreasOfDocument[uriStr] = []
+	// 	// make sure array is defined
+	// 	if (!this._diffAreasOfDocument[uriStr]) this._diffAreasOfDocument[uriStr] = []
 
-		// remove all diffAreas that the new `diffArea` is overlapping with
-		this._diffAreasOfDocument[uriStr] = this._diffAreasOfDocument[uriStr].filter(da => {
-			const noOverlap = da.startLine > partialDiffArea.endLine || da.endLine < partialDiffArea.startLine
-			if (!noOverlap) return false
-			return true
-		})
+	// 	// remove all diffAreas that the new `diffArea` is overlapping with
+	// 	this._diffAreasOfDocument[uriStr] = this._diffAreasOfDocument[uriStr].filter(da => {
+	// 		const noOverlap = da.startLine > partialDiffArea.endLine || da.endLine < partialDiffArea.startLine
+	// 		if (!noOverlap) return false
+	// 		return true
+	// 	})
 
-		// add `diffArea` to storage
-		const diffArea = {
-			...partialDiffArea,
-			diffareaid: this._diffareaidPool
-		}
-		this._diffAreasOfDocument[uriStr].push(diffArea)
-		this._diffareaidPool += 1
+	// 	// add `diffArea` to storage
+	// 	const diffArea = {
+	// 		...partialDiffArea,
+	// 		diffareaid: this._diffareaidPool
+	// 	}
+	// 	this._diffAreasOfDocument[uriStr].push(diffArea)
+	// 	this._diffareaidPool += 1
 
-		return diffArea
-	}
+	// 	return diffArea
+	// }
 
 	// used by us only
 	// changes the start/line locations based on the changes that were recently made. does not change any of the diffs in the diff areas
@@ -244,205 +237,205 @@ export class DiffProvider implements vscode.CodeLensProvider {
 	}
 
 
-	// called on void.acceptDiff
-	public async acceptDiff({ diffid, diffareaid }: { diffid: number, diffareaid: number }) {
-		const editor = vscode.window.activeTextEditor
-		if (!editor)
-			return
+	// // called on void.acceptDiff
+	// public async acceptDiff({ diffid, diffareaid }: { diffid: number, diffareaid: number }) {
+	// 	const editor = vscode.window.activeTextEditor
+	// 	if (!editor)
+	// 		return
 
-		const docUriStr = editor.document.uri.toString()
+	// 	const docUriStr = editor.document.uri.toString()
 
-		const diffIdx = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
-		if (diffIdx === -1) { console.error('Error: DiffID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return; }
+	// 	const diffIdx = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
+	// 	if (diffIdx === -1) { console.error('Error: DiffID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return; }
 
-		const diffareaIdx = this._diffAreasOfDocument[docUriStr].findIndex(diff => diff.diffareaid === diffareaid);
-		if (diffareaIdx === -1) { console.error('Error: DiffAreaID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return; }
+	// 	const diffareaIdx = this._diffAreasOfDocument[docUriStr].findIndex(diff => diff.diffareaid === diffareaid);
+	// 	if (diffareaIdx === -1) { console.error('Error: DiffAreaID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return; }
 
-		const diff = this._diffsOfDocument[docUriStr][diffIdx]
-		const originalFile = this._originalFileOfDocument[docUriStr]
-		const currentFile = await readFileContentOfUri(editor.document.uri)
+	// 	const diff = this._diffsOfDocument[docUriStr][diffIdx]
+	// 	const originalFile = this._originalFileOfDocument[docUriStr]
+	// 	const currentFile = await readFileContentOfUri(editor.document.uri)
 
-		// Fixed: Handle newlines properly by splitting into lines and joining with proper newlines
-		const originalLines = originalFile.split('\n');
-		const currentLines = currentFile.split('\n');
+	// 	// Fixed: Handle newlines properly by splitting into lines and joining with proper newlines
+	// 	const originalLines = originalFile.split('\n');
+	// 	const currentLines = currentFile.split('\n');
 
-		// Get the changed lines from current file
-		const changedLines = currentLines.slice(diff.range.start.line, diff.range.end.line + 1);
+	// 	// Get the changed lines from current file
+	// 	const changedLines = currentLines.slice(diff.range.start.line, diff.range.end.line + 1);
 
-		// Create new original file content by replacing the affected lines
-		const newOriginalLines = [
-			...originalLines.slice(0, diff.originalRange.start.line),
-			...changedLines,
-			...originalLines.slice(diff.originalRange.end.line + 1)
-		];
+	// 	// Create new original file content by replacing the affected lines
+	// 	const newOriginalLines = [
+	// 		...originalLines.slice(0, diff.originalRange.start.line),
+	// 		...changedLines,
+	// 		...originalLines.slice(diff.originalRange.end.line + 1)
+	// 	];
 
-		this._originalFileOfDocument[docUriStr] = newOriginalLines.join('\n');
+	// 	this._originalFileOfDocument[docUriStr] = newOriginalLines.join('\n');
 
-		// Update diff areas based on the change
-		this.resizeDiffAreas(docUriStr, [{
-			text: changedLines.join('\n'),
-			startLine: diff.originalRange.start.line,
-			endLine: diff.originalRange.end.line
-		}], 'originalFile')
+	// 	// Update diff areas based on the change
+	// 	this.resizeDiffAreas(docUriStr, [{
+	// 		text: changedLines.join('\n'),
+	// 		startLine: diff.originalRange.start.line,
+	// 		endLine: diff.originalRange.end.line
+	// 	}], 'originalFile')
 
-		// Check if diffArea should be removed
+	// 	// Check if diffArea should be removed
 
-		const diffArea = this._diffAreasOfDocument[docUriStr][diffareaIdx]
+	// 	const diffArea = this._diffAreasOfDocument[docUriStr][diffareaIdx]
 
-		const currentArea = currentLines.slice(diffArea.startLine, diffArea.endLine + 1).join('\n')
-		const originalArea = newOriginalLines.slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
+	// 	const currentArea = currentLines.slice(diffArea.startLine, diffArea.endLine + 1).join('\n')
+	// 	const originalArea = newOriginalLines.slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
 
-		if (originalArea === currentArea) {
-			const index = this._diffAreasOfDocument[docUriStr].findIndex(da => da.diffareaid === diffArea.diffareaid)
-			this._diffAreasOfDocument[docUriStr].splice(index, 1)
-		}
+	// 	if (originalArea === currentArea) {
+	// 		const index = this._diffAreasOfDocument[docUriStr].findIndex(da => da.diffareaid === diffArea.diffareaid)
+	// 		this._diffAreasOfDocument[docUriStr].splice(index, 1)
+	// 	}
 
-		this.refreshStylesAndDiffs(docUriStr)
-	}
+	// 	this.refreshStylesAndDiffs(docUriStr)
+	// }
 
-	// called on void.rejectDiff
-	public async rejectDiff({ diffid, diffareaid }: { diffid: number, diffareaid: number }) {
-		const editor = vscode.window.activeTextEditor
-		if (!editor)
-			return
+	// // called on void.rejectDiff
+	// public async rejectDiff({ diffid, diffareaid }: { diffid: number, diffareaid: number }) {
+	// 	const editor = vscode.window.activeTextEditor
+	// 	if (!editor)
+	// 		return
 
-		const docUriStr = editor.document.uri.toString()
+	// 	const docUriStr = editor.document.uri.toString()
 
-		const diffIdx = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
-		if (diffIdx === -1) { console.error('Error: DiffID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return; }
+	// 	const diffIdx = this._diffsOfDocument[docUriStr].findIndex(diff => diff.diffid === diffid);
+	// 	if (diffIdx === -1) { console.error('Error: DiffID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return; }
 
-		const diffareaIdx = this._diffAreasOfDocument[docUriStr].findIndex(diff => diff.diffareaid === diffareaid);
-		if (diffareaIdx === -1) { console.error('Error: DiffAreaID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return; }
+	// 	const diffareaIdx = this._diffAreasOfDocument[docUriStr].findIndex(diff => diff.diffareaid === diffareaid);
+	// 	if (diffareaIdx === -1) { console.error('Error: DiffAreaID could not be found: ', diffid, diffareaid, this._diffsOfDocument[docUriStr], this._diffAreasOfDocument[docUriStr]); return; }
 
-		const diff = this._diffsOfDocument[docUriStr][diffIdx]
+	// 	const diff = this._diffsOfDocument[docUriStr][diffIdx]
 
-		// Apply the rejection by replacing with original code
-		// we don't have to edit the original or final file; just do a workspace edit so the code equals the original code
-		const workspaceEdit = new vscode.WorkspaceEdit();
-		workspaceEdit.replace(editor.document.uri, diff.range, diff.originalCode)
-		await vscode.workspace.applyEdit(workspaceEdit)
+	// 	// Apply the rejection by replacing with original code
+	// 	// we don't have to edit the original or final file; just do a workspace edit so the code equals the original code
+	// 	const workspaceEdit = new vscode.WorkspaceEdit();
+	// 	workspaceEdit.replace(editor.document.uri, diff.range, diff.originalCode)
+	// 	await vscode.workspace.applyEdit(workspaceEdit)
 
-		// Check if diffArea should be removed
-		const originalFile = this._originalFileOfDocument[docUriStr]
-		const currentFile = await readFileContentOfUri(editor.document.uri)
-		const diffArea = this._diffAreasOfDocument[docUriStr][diffareaIdx]
-		const currentLines = currentFile.split('\n');
-		const originalLines = originalFile.split('\n');
+	// 	// Check if diffArea should be removed
+	// 	const originalFile = this._originalFileOfDocument[docUriStr]
+	// 	const currentFile = await readFileContentOfUri(editor.document.uri)
+	// 	const diffArea = this._diffAreasOfDocument[docUriStr][diffareaIdx]
+	// 	const currentLines = currentFile.split('\n');
+	// 	const originalLines = originalFile.split('\n');
 
-		const currentArea = currentLines.slice(diffArea.startLine, diffArea.endLine + 1).join('\n')
-		const originalArea = originalLines.slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
+	// 	const currentArea = currentLines.slice(diffArea.startLine, diffArea.endLine + 1).join('\n')
+	// 	const originalArea = originalLines.slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
 
-		if (originalArea === currentArea) {
-			const index = this._diffAreasOfDocument[docUriStr].findIndex(da => da.diffareaid === diffArea.diffareaid)
-			this._diffAreasOfDocument[docUriStr].splice(index, 1)
-		}
+	// 	if (originalArea === currentArea) {
+	// 		const index = this._diffAreasOfDocument[docUriStr].findIndex(da => da.diffareaid === diffArea.diffareaid)
+	// 		this._diffAreasOfDocument[docUriStr].splice(index, 1)
+	// 	}
 
-		this.refreshStylesAndDiffs(docUriStr)
-	}
+	// 	this.refreshStylesAndDiffs(docUriStr)
+	// }
 
-	async startStreamingInDiffArea({ docUri, oldFileStr, diffRepr, diffArea, voidConfig, abortRef }: { docUri: vscode.Uri, oldFileStr: string, diffRepr: string, voidConfig: VoidConfig, diffArea: DiffArea, abortRef: AbortRef }) {
-
-
-		const promptContent = `\
-ORIGINAL_FILE
-\`\`\`
-${oldFileStr}
-\`\`\`
-
-DIFF
-\`\`\`
-${diffRepr}
-\`\`\`
-
-INSTRUCTIONS
-Please finish writing the new file by applying the diff to the original file. Return ONLY the completion of the file, without any explanation.
-
-`
-		// make LLM complete the file to include the diff
-		await new Promise<void>((resolve, reject) => {
-			sendLLMMessage({
-				logging: { loggingName: 'streamChunk' },
-				messages: [
-					{ role: 'system', content: writeFileWithDiffInstructions, },
-					// TODO include more context too
-					{ role: 'user', content: promptContent, }
-				],
-				onText: (newText, fullText) => {
-					this._updateStream(docUri.toString(), diffArea, fullText)
-				},
-				onFinalMessage: (fullText) => {
-					this._updateStream(docUri.toString(), diffArea, fullText)
-					resolve();
-				},
-				onError: (e) => {
-					console.error('Error rewriting file with diff', e);
-					resolve();
-				},
-				voidConfig,
-				abortRef,
-			})
-		})
-
-	}
+	// async startStreamingInDiffArea({ docUri, oldFileStr, diffRepr, diffArea, voidConfig, abortRef }: { docUri: vscode.Uri, oldFileStr: string, diffRepr: string, voidConfig: VoidConfig, diffArea: DiffArea, abortRef: AbortRef }) {
 
 
-	// used by us only
-	private _updateStream = throttle(async (docUriStr: string, diffArea: DiffArea, newDiffAreaCode: string) => {
+	// 	const promptContent = `\
+	// ORIGINAL_FILE
+	// \`\`\`
+	// ${oldFileStr}
+	// \`\`\`
 
-		const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
-		if (!editor) {
-			console.log('Error: No active editor!')
-			return;
-		}
+	// DIFF
+	// \`\`\`
+	// ${diffRepr}
+	// \`\`\`
 
-		// original code all diffs are based on in the code
-		const originalDiffAreaCode = (this._originalFileOfDocument[docUriStr] || '').split('\n').slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
+	// INSTRUCTIONS
+	// Please finish writing the new file by applying the diff to the original file. Return ONLY the completion of the file, without any explanation.
 
-		// figure out where to highlight based on where the AI is in the stream right now, use the last diff in findDiffs to figure that out
-		const diffs = findDiffs(originalDiffAreaCode, newDiffAreaCode)
-		const lastDiff = diffs?.[diffs.length - 1] ?? null
+	// `
+	// 	// make LLM complete the file to include the diff
+	// 	await new Promise<void>((resolve, reject) => {
+	// 		sendLLMMessage({
+	// 			logging: { loggingName: 'streamChunk' },
+	// 			messages: [
+	// 				{ role: 'system', content: writeFileWithDiffInstructions, },
+	// 				// TODO include more context too
+	// 				{ role: 'user', content: promptContent, }
+	// 			],
+	// 			onText: (newText, fullText) => {
+	// 				this._updateStream(docUri.toString(), diffArea, fullText)
+	// 			},
+	// 			onFinalMessage: (fullText) => {
+	// 				this._updateStream(docUri.toString(), diffArea, fullText)
+	// 				resolve();
+	// 			},
+	// 			onError: (e) => {
+	// 				console.error('Error rewriting file with diff', e);
+	// 				resolve();
+	// 			},
+	// 			voidConfig,
+	// 			abortRef,
+	// 		})
+	// 	})
 
-		// these are two different coordinate systems - new and old line number
-		let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
-		let oldFileStartLine: number // get original[oldStartingPoint...]
+	// }
 
-		if (!lastDiff) {
-			// if the writing is identical so far, display no changes
-			newFileEndLine = 0
-			oldFileStartLine = 0
-		}
-		else {
-			if (lastDiff.type === 'insertion') {
-				newFileEndLine = lastDiff.range.end.line
-				oldFileStartLine = lastDiff.originalRange.start.line
-			}
-			else if (lastDiff.type === 'deletion') {
-				newFileEndLine = lastDiff.range.start.line
-				oldFileStartLine = lastDiff.originalRange.start.line
-			}
-			else if (lastDiff.type === 'edit') {
-				newFileEndLine = lastDiff.range.end.line
-				oldFileStartLine = lastDiff.originalRange.start.line
-			}
-			else {
-				throw new Error(`updateStream: diff.type not recognized: ${lastDiff.type}`)
-			}
-		}
 
-		// display
-		const newFileTop = newDiffAreaCode.split('\n').slice(0, newFileEndLine + 1).join('\n')
-		const oldFileBottom = originalDiffAreaCode.split('\n').slice(oldFileStartLine + 1, Infinity).join('\n')
+	// // used by us only
+	// private _updateStream = throttle(async (docUriStr: string, diffArea: DiffArea, newDiffAreaCode: string) => {
 
-		let newCode = `${newFileTop}\n${oldFileBottom}`
-		diffArea.sweepIndex = newFileEndLine
-		// replace oldDACode with newDACode with a vscode edit
+	// 	const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
+	// 	if (!editor) {
+	// 		console.log('Error: No active editor!')
+	// 		return;
+	// 	}
 
-		const workspaceEdit = new vscode.WorkspaceEdit();
+	// 	// original code all diffs are based on in the code
+	// 	const originalDiffAreaCode = (this._originalFileOfDocument[docUriStr] || '').split('\n').slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
 
-		const diffareaRange = new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)
-		workspaceEdit.replace(editor.document.uri, diffareaRange, newCode)
-		await vscode.workspace.applyEdit(workspaceEdit)
-	}, THROTTLE_TIME)
+	// 	// figure out where to highlight based on where the AI is in the stream right now, use the last diff in findDiffs to figure that out
+	// 	const diffs = findDiffs(originalDiffAreaCode, newDiffAreaCode)
+	// 	const lastDiff = diffs?.[diffs.length - 1] ?? null
+
+	// 	// these are two different coordinate systems - new and old line number
+	// 	let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
+	// 	let oldFileStartLine: number // get original[oldStartingPoint...]
+
+	// 	if (!lastDiff) {
+	// 		// if the writing is identical so far, display no changes
+	// 		newFileEndLine = 0
+	// 		oldFileStartLine = 0
+	// 	}
+	// 	else {
+	// 		if (lastDiff.type === 'insertion') {
+	// 			newFileEndLine = lastDiff.range.end.line
+	// 			oldFileStartLine = lastDiff.originalRange.start.line
+	// 		}
+	// 		else if (lastDiff.type === 'deletion') {
+	// 			newFileEndLine = lastDiff.range.start.line
+	// 			oldFileStartLine = lastDiff.originalRange.start.line
+	// 		}
+	// 		else if (lastDiff.type === 'edit') {
+	// 			newFileEndLine = lastDiff.range.end.line
+	// 			oldFileStartLine = lastDiff.originalRange.start.line
+	// 		}
+	// 		else {
+	// 			throw new Error(`updateStream: diff.type not recognized: ${lastDiff.type}`)
+	// 		}
+	// 	}
+
+	// 	// display
+	// 	const newFileTop = newDiffAreaCode.split('\n').slice(0, newFileEndLine + 1).join('\n')
+	// 	const oldFileBottom = originalDiffAreaCode.split('\n').slice(oldFileStartLine + 1, Infinity).join('\n')
+
+	// 	let newCode = `${newFileTop}\n${oldFileBottom}`
+	// 	diffArea.sweepIndex = newFileEndLine
+	// 	// replace oldDACode with newDACode with a vscode edit
+
+	// 	const workspaceEdit = new vscode.WorkspaceEdit();
+
+	// 	const diffareaRange = new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)
+	// 	workspaceEdit.replace(editor.document.uri, diffareaRange, newCode)
+	// 	await vscode.workspace.applyEdit(workspaceEdit)
+	// }, THROTTLE_TIME)
 
 }
 

@@ -1,39 +1,23 @@
 import React, { FormEvent, useCallback, useRef, useState } from 'react';
 
-import { generateDiffInstructions } from '../prompt/systemPrompts.js';
 
 import { useConfigState, useService, useSidebarState, useThreadsState } from '../util/contextForServices.js';
 import { URI } from '../../../../../../../base/common/uri.js';
-import { IFileService } from '../../../../../../../platform/files/common/files.js';
-import { userInstructionsStr } from '../prompt/stringifyFiles.js';
+import { VSReadFile } from '../../../registerInlineDiffs.js';
 import { sendLLMMessage } from '../util/sendLLMMessage.js';
+import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
+import { LLMCodeSelection, userInstructionsStr } from '../../../prompt/stringifyFiles.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { MarkdownRender } from '../markdown/MarkdownRender.js';
 
-// read files from VSCode
-let VSReadFile = async (fileService: IFileService, filepath: URI): Promise<ChatFile | null> => {
-	try {
-		const fileObj = await fileService.readFile(filepath)
-		const content = fileObj.value.toString()
-		return { filepath, content }
-	} catch (error) {
-		console.error(`Failed to read ${filepath}:`, error);
-		return null
-	}
-}
-
-
-export type ChatCodeSelection = { selectionStr: string; filePath: URI }
-
-export type ChatFile = { filepath: URI; content: string }
 
 export type ChatMessage =
 	| {
 		role: 'user';
 		content: string; // content sent to the llm
 		displayContent: string; // content displayed to user
-		selection: ChatCodeSelection | null; // the user's selection
+		selection: LLMCodeSelection | null; // the user's selection
 		files: URI[]; // the files sent in the message
 	}
 	| {
@@ -147,7 +131,7 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 
 	// ----- SIDEBAR CHAT state (local) -----
 	// state of current message
-	const [selection, setSelection] = useState<ChatCodeSelection | null>(null) // the code the user is selecting
+	const [selection, setSelection] = useState<LLMCodeSelection | null>(null) // the code the user is selecting
 	const [files, setFiles] = useState<URI[]>([]) // the names of the files in the chat
 	const [instructions, setInstructions] = useState('') // the user's instructions
 
@@ -181,9 +165,9 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 
 
 		const relevantFiles = await Promise.all(
-			files.map((filepath) => VSReadFile(fileService, filepath))
+			files.map(async (filepath) => ({ content: await VSReadFile(fileService, filepath), filepath }))
 		).then(
-			(files) => files.filter(file => file !== null)
+			(files) => files.filter(file => file.content !== null) as {content:string, filepath:URI}[]
 		)
 
 		// add system message to chat history

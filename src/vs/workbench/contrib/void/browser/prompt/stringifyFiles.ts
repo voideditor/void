@@ -1,7 +1,11 @@
 
-import { ChatFile, ChatCodeSelection } from '../sidebar-tsx/SidebarChat.js';
+import { URI } from '../../../../../base/common/uri.js';
 
-export const filesStr = (fullFiles: ChatFile[]) => {
+
+export type LLMCodeSelection = { selectionStr: string; filePath: URI }
+export type LLMFile = { content: string, filepath: URI }
+
+export const filesStr = (fullFiles: LLMFile[]) => {
 	return fullFiles.map(({ filepath, content }) =>
 		`
 ${filepath.fsPath}
@@ -11,7 +15,7 @@ ${content}
 }
 
 
-export const userInstructionsStr = (instructions: string, files: ChatFile[], selection: ChatCodeSelection | null) => {
+export const userInstructionsStr = (instructions: string, files: LLMFile[], selection: LLMCodeSelection | null) => {
 	let str = '';
 
 	if (files.length > 0) {

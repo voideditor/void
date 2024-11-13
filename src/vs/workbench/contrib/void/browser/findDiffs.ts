@@ -50,7 +50,7 @@ export function findDiffs(oldStr: string, newStr: string) {
 
 				let originalStartLine = streakStartInOldFile!
 				let originalEndLine = oldFileLineNum - 1 // don't include current line, the edit was up to this line but not including it
-				let originalStartCol = 0
+				// let originalStartCol = 0
 				// let originalEndCol = Number.MAX_SAFE_INTEGER
 
 				let newContent = newStrLines.slice(startLine, endLine + 1).join('\n')
@@ -70,13 +70,15 @@ export function findDiffs(oldStr: string, newStr: string) {
 				else if (originalEndLine === originalStartLine - 1) {
 					type = 'insertion'
 					originalEndLine = originalStartLine
-					originalStartCol = 0
+					// originalStartCol = 0
 					// originalEndCol = 0
 				}
 
 				const replacement: BaseDiff = {
 					type,
-					startLine, startCol, endLine, endCol,
+					startLine, endLine,
+					startCol, endCol,
+					originalStartLine, originalEndLine,
 					// code: newContent,
 					// originalRange: new Range(originalStartLine, originalStartCol, originalEndLine, originalEndCol),
 					originalCode: originalContent,

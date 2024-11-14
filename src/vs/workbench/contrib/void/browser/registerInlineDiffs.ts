@@ -7,7 +7,7 @@ import { ICodeEditor, IViewZone } from '../../../../editor/browser/editorBrowser
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType, UndoRedoGroup } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
-import { throttle } from '../../../../base/common/decorators.js';
+// import { throttle } from '../../../../base/common/decorators.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IVoidConfigStateService } from './registerConfig.js';
@@ -447,23 +447,22 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	private _registeredListeners = new Set<string>() // set of model IDs
 	private _registerTextChangeListener(model: ITextModel) {
-		const modelid = model.id
 
-		if (this._registeredListeners.has(modelid)) return
+		if (this._registeredListeners.has(model.id)) return
 
-		this._registeredListeners.add(modelid)
+		this._registeredListeners.add(model.id)
 		// listen for text changes
 		this._register(
 			model.onDidChangeContent(e => {
 				const changes = e.changes.map(c => ({ startLine: c.range.startLineNumber, endLine: c.range.endLineNumber, text: c.text, }))
-				this._resizeOnTextChange(modelid, changes, 'currentFile')
+				this._resizeOnTextChange(model.id, changes, 'currentFile')
 				this._refreshAllDiffsAndStyles(model)
 			})
 		)
 
 		this._register(
 			model.onWillDispose(e => {
-				this._registeredListeners.delete(modelid)
+				this._registeredListeners.delete(model.id)
 			})
 		)
 	}
@@ -477,16 +476,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	@throttle(100)
-	private async _updateDiffAreaText(diffArea: DiffArea, llmCodeSoFar: string, editorGroup: UndoRedoGroup) {
+	// @throttle(100)
+	private _updateDiffAreaText(diffArea: DiffArea, llmCodeSoFar: string, editorGroup: UndoRedoGroup) {
 		// clear all diffs in this diffarea and recompute them
-		const modelid = diffArea._model.id
+		const model = diffArea._model
 
-		if (this.streamingStateOfModelId[modelid].type !== 'streaming')
+		if (this.streamingStateOfModelId[model.id].type !== 'streaming')
 			return
 
 		// original code all diffs are based on
-		const originalDiffAreaCode = (this.originalFileStrOfModelId[modelid] || '').split('\n').slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
+		const originalDiffAreaCode = (this.originalFileStrOfModelId[model.id] || '').split('\n').slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
 
 		// figure out where to highlight based on where the AI is in the stream right now, use the last diff in findDiffs to figure that out
 		const diffs = findDiffs(originalDiffAreaCode, llmCodeSoFar)
@@ -536,7 +535,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// 	range: { startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
 		// 	text: newCode
 		// })], { undoRedoGroupId: editorGroup.id }); // count all changes towards the group
-		const model = diffArea._model
 		this._writeToModel(
 			model,
 			newCode,
@@ -553,26 +551,17 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	private async _initializeStream(model: ITextModel, diffRepr: string) {
-
-
-		const uri = model.uri
-		const modelid = uri.toString()
-		console.log('Model URI:', modelid)
-
-		const originalFileStr = await VSReadFile(this._fileService, uri)
-		if (originalFileStr === null) return
-
 		// diff area begin and end line
 		const beginLine = 0
 		const endLine = model.getLineCount()
 
 		// check if there's overlap with any other diffAreas and return early if there is
-		for (let diffareaid of this.diffAreasOfModelId[modelid]) {
+		for (let diffareaid of this.diffAreasOfModelId[model.id]) {
 			const da2 = this.diffAreaOfId[diffareaid]
 			if (!da2) continue
 			const noOverlap = da2.startLine > endLine || da2.endLine < beginLine
 			if (!noOverlap) {
-				console.error('Not diffing because found overlap:', this.diffAreasOfModelId[modelid], beginLine, endLine)
+				console.error('Not diffing because found overlap:', this.diffAreasOfModelId[model.id], beginLine, endLine)
 				return
 			}
 		}
@@ -601,22 +590,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_diffs: [], // added later
 		}
 
-		this.originalFileStrOfModelId[modelid] = originalFileStr
-
-		// make sure array is defined
-		if (!(modelid in this.diffAreasOfModelId))
-			this.diffAreasOfModelId[modelid] = new Set()
-
-
 		// add `diffArea` to storage
-		this.diffAreasOfModelId[modelid].add(diffArea.diffareaid.toString())
+		this.diffAreasOfModelId[model.id].add(diffArea.diffareaid.toString())
+		this.diffAreaOfId[diffArea.diffareaid] = diffArea
 
 		// actually call the LLM
-		const voidConfig = this._voidConfigStateService.state
+		const { voidConfig } = this._voidConfigStateService.state
 		const promptContent = `\
 ORIGINAL_FILE
 \`\`\`
-${originalFileStr}
+${this.originalFileStrOfModelId[model.id]}
 \`\`\`
 
 DIFF
@@ -663,7 +646,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 
 
-	startStreaming(type: 'ctrl+k' | 'ctrl+l', userMessage: string) {
+	async startStreaming(type: 'ctrl+k' | 'ctrl+l', userMessage: string) {
 
 		const editor = this._editorService.getActiveCodeEditor()
 		if (!editor) return
@@ -671,12 +654,16 @@ Please finish writing the new file by applying the diff to the original file. Re
 		const model = editor.getModel()
 		if (!model) return
 
-		// update streaming state
-		const streamingState: StreamingState = { type: 'streaming' }
-		this.streamingStateOfModelId[model.id] = streamingState
+		// update state state
+		const originalFileStr = await VSReadFile(this._fileService, model.uri)
+		if (originalFileStr === null) return
+		this.originalFileStrOfModelId[model.id] = originalFileStr
+		this.streamingStateOfModelId[model.id] = { type: 'streaming' }
+		this.diffAreasOfModelId[model.id] = new Set()
+
 
 		// initialize stream
-		this._initializeStream(model, userMessage)
+		await this._initializeStream(model, userMessage)
 
 	}
 

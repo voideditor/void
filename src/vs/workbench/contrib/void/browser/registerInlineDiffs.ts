@@ -14,10 +14,10 @@ import { URI } from '../../../../base/common/uri.js';
 import { IVoidConfigStateService } from './registerConfig.js';
 import { writeFileWithDiffInstructions } from './prompt/systemPrompts.js';
 import { findDiffs } from './findDiffs.js';
-import { EndOfLinePreference, IModelDeltaDecoration } from '../../../../editor/common/model.js';
+import { EndOfLinePreference, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+
 
 
 // read files from VSCode
@@ -31,8 +31,6 @@ export const VSReadFile = async (fileService: IFileService, uri: URI): Promise<s
 		return null
 	}
 }
-
-
 
 
 export type Diff = {
@@ -66,8 +64,7 @@ type DiffArea = {
 	endLine: number,
 
 	_diffs: Diff[],
-	_modelid: string, // model id (document where this diffarea lives)
-	_modeluri: URI,
+	_model: ITextModel, // the model or "document" this diffarea lives on
 	_generationid: number,
 	_sweepLine: number | null,
 	_sweepCol: number | null,
@@ -132,7 +129,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 		@IBulkEditService private readonly _bulkEditService: IBulkEditService,
 		@IFileService private readonly _fileService: IFileService,
-		@IModelService private readonly _modelService: IModelService,
 
 	) {
 		super();
@@ -141,84 +137,94 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private _addInlineDiffZone = (editor: ICodeEditor, originalText: string, greenRange: IRange) => {
+	private _addInlineDiffZone = (model: ITextModel, originalText: string, greenRange: IRange) => {
 
-		// green decoration and gutter decoration
-		const greenDecoration: IModelDeltaDecoration[] = [{
-			range: greenRange,
-			options: {
-				className: 'line-insert', // .monaco-editor .line-insert
-				description: 'line-insert',
-				isWholeLine: true,
-				minimap: {
-					color: { id: 'minimapGutter.addedBackground' },
-					position: 2
-				},
-				overviewRuler: {
-					color: { id: 'editorOverviewRuler.addedForeground' },
-					position: 7
+		const _addInlineDiffZoneToEditor = (editor: ICodeEditor) => {
+			// green decoration and gutter decoration
+			const greenDecoration: IModelDeltaDecoration[] = [{
+				range: greenRange,
+				options: {
+					className: 'line-insert', // .monaco-editor .line-insert
+					description: 'line-insert',
+					isWholeLine: true,
+					minimap: {
+						color: { id: 'minimapGutter.addedBackground' },
+						position: 2
+					},
+					overviewRuler: {
+						color: { id: 'editorOverviewRuler.addedForeground' },
+						position: 7
+					}
 				}
-			}
-		}];
-		const decorationIds = editor.deltaDecorations([], greenDecoration)
+			}];
+			const decorationIds = editor.deltaDecorations([], greenDecoration)
 
 
-		// red in a view zone
-		let zoneId: string | null = null
-		editor.changeViewZones(accessor => {
-			// Get the editor's font info
-			const fontInfo = editor.getOption(EditorOption.fontInfo);
-
-			const domNode = document.createElement('div');
-			domNode.className = 'monaco-editor view-zones line-delete monaco-mouse-cursor-text';
-			domNode.style.fontSize = `${fontInfo.fontSize}px`;
-			domNode.style.fontFamily = fontInfo.fontFamily;
-			domNode.style.lineHeight = `${fontInfo.lineHeight}px`;
-
-			// div
-			const lineContent = document.createElement('div');
-			lineContent.className = 'view-line'; // .monaco-editor .inline-deleted-text
-
-			// span
-			const contentSpan = document.createElement('span');
-
-			// span
-			const codeSpan = document.createElement('span');
-			codeSpan.className = 'mtk1'; // char-delete
-			codeSpan.textContent = originalText;
-
-			// Mount
-			contentSpan.appendChild(codeSpan);
-			lineContent.appendChild(contentSpan);
-			domNode.appendChild(lineContent);
-
-			// Gutter (thing to the left)
-			const gutterDiv = document.createElement('div');
-			gutterDiv.className = 'inline-diff-gutter';
-			const minusDiv = document.createElement('div');
-			minusDiv.className = 'inline-diff-deleted-gutter';
-			// minusDiv.textContent = '-';
-			gutterDiv.appendChild(minusDiv);
-
-			const viewZone: IViewZone = {
-				afterLineNumber: greenRange.startLineNumber - 1,
-				heightInLines: originalText.split('\n').length + 1,
-				domNode: domNode,
-				suppressMouseDown: true,
-				marginDomNode: gutterDiv
-			};
-
-			zoneId = accessor.addZone(viewZone);
-			// editor.layout();
-			// this._diffZones.set(editor, [zoneId]);
-		});
-
-
-		const dispose = () => {
-			editor.deltaDecorations(decorationIds, []);
+			// red in a view zone
+			let zoneId: string | null = null
 			editor.changeViewZones(accessor => {
-				if (zoneId) accessor.removeZone(zoneId);
+				// Get the editor's font info
+				const fontInfo = editor.getOption(EditorOption.fontInfo);
+
+				const domNode = document.createElement('div');
+				domNode.className = 'monaco-editor view-zones line-delete monaco-mouse-cursor-text';
+				domNode.style.fontSize = `${fontInfo.fontSize}px`;
+				domNode.style.fontFamily = fontInfo.fontFamily;
+				domNode.style.lineHeight = `${fontInfo.lineHeight}px`;
+
+				// div
+				const lineContent = document.createElement('div');
+				lineContent.className = 'view-line'; // .monaco-editor .inline-deleted-text
+
+				// span
+				const contentSpan = document.createElement('span');
+
+				// span
+				const codeSpan = document.createElement('span');
+				codeSpan.className = 'mtk1'; // char-delete
+				codeSpan.textContent = originalText;
+
+				// Mount
+				contentSpan.appendChild(codeSpan);
+				lineContent.appendChild(contentSpan);
+				domNode.appendChild(lineContent);
+
+				// Gutter (thing to the left)
+				const gutterDiv = document.createElement('div');
+				gutterDiv.className = 'inline-diff-gutter';
+				const minusDiv = document.createElement('div');
+				minusDiv.className = 'inline-diff-deleted-gutter';
+				// minusDiv.textContent = '-';
+				gutterDiv.appendChild(minusDiv);
+
+				const viewZone: IViewZone = {
+					afterLineNumber: greenRange.startLineNumber - 1,
+					heightInLines: originalText.split('\n').length + 1,
+					domNode: domNode,
+					suppressMouseDown: true,
+					marginDomNode: gutterDiv
+				};
+
+				zoneId = accessor.addZone(viewZone);
+				// editor.layout();
+				// this._diffZones.set(editor, [zoneId]);
 			});
+
+
+			const dispose = () => {
+				editor.deltaDecorations(decorationIds, []);
+				editor.changeViewZones(accessor => {
+					if (zoneId) accessor.removeZone(zoneId);
+				});
+			}
+			return dispose
+		}
+
+		const editors = this._editorService.listCodeEditors().filter(editor => editor.getModel()?.id === model.id)
+
+		const disposeFns = editors.map(editor => _addInlineDiffZoneToEditor(editor))
+		const dispose = () => {
+			disposeFns.forEach(fn => fn())
 		}
 
 		return dispose
@@ -287,16 +293,15 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	private _deleteDiffArea(diffArea: DiffArea) {
 		this._deleteDiffs(diffArea)
 		delete this.diffAreaOfId[diffArea.diffareaid]
-		this.diffAreasOfModelId[diffArea._modelid].delete(diffArea.diffareaid.toString())
+		this.diffAreasOfModelId[diffArea._model.id].delete(diffArea.diffareaid.toString())
 	}
 
 
+
+
+
 	// for every diffarea in this document, recompute its diffs and restyle it (the two are coupled)
-	private _refreshAllDiffsAndStyles(editor: ICodeEditor) {
-
-		const model = editor.getModel()
-		if (!model) return
-
+	private _refreshAllDiffsAndStyles(model: ITextModel) {
 
 		const modelid = model.id
 
@@ -322,7 +327,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			for (let computedDiff of computedDiffs) {
 				// add the view zone
 				const greenRange: IRange = { startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, }
-				const dispose = this._addInlineDiffZone(editor, computedDiff.originalCode, greenRange)
+				const dispose = this._addInlineDiffZone(model, computedDiff.originalCode, greenRange)
 
 				// create a Diff of it
 				const diffid = this._diffidPool++
@@ -339,34 +344,45 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 	}
 
-	private _refreshSweepStyles(editor: ICodeEditor) {
+	private _refreshSweepStyles(model: ITextModel) {
 
-		const model = editor.getModel()
-		if (!model) return
-		const modelid = model.id
+		// const model = editor.getModel()
+		// if (!model) return
+		// const modelid = model.id
 
-		// for each diffArea, highlight its sweepIndex in dark gray
-		editor.setDecorations(
-			darkGrayDecoration,
-			(this._diffAreasOfDocument[modelid]
-				.filter(diffArea => diffArea.sweepIndex !== null)
-				.map(diffArea => {
-					let s = diffArea.sweepIndex!
-					return new vscode.Range(s, 0, s, 0)
-				})
-			)
-		)
+		// const lightGrayDecoration = vscode.window.createTextEditorDecorationType({
+		// 	backgroundColor: 'rgba(218 218 218 / .2)',
+		// 	isWholeLine: true,
+		// })
+		// const darkGrayDecoration = vscode.window.createTextEditorDecorationType({
+		// 	backgroundColor: 'rgb(148 148 148 / .2)',
+		// 	isWholeLine: true,
+		// })
 
-		// for each diffArea, highlight sweepIndex+1...end in light gray
-		editor.setDecorations(
-			lightGrayDecoration,
-			(this._diffAreasOfDocument[modelid]
-				.filter(diffArea => diffArea.sweepIndex !== null)
-				.map(diffArea => {
-					return new vscode.Range(diffArea.sweepIndex! + 1, 0, diffArea.endLine, 0)
-				})
-			)
-		)
+
+
+		// // for each diffArea, highlight its sweepIndex in dark gray
+		// editor.setDecorations(
+		// 	darkGrayDecoration,
+		// 	(this._diffAreasOfDocument[modelid]
+		// 		.filter(diffArea => diffArea.sweepIndex !== null)
+		// 		.map(diffArea => {
+		// 			let s = diffArea.sweepIndex!
+		// 			return new vscode.Range(s, 0, s, 0)
+		// 		})
+		// 	)
+		// )
+
+		// // for each diffArea, highlight sweepIndex+1...end in light gray
+		// editor.setDecorations(
+		// 	lightGrayDecoration,
+		// 	(this._diffAreasOfDocument[modelid]
+		// 		.filter(diffArea => diffArea.sweepIndex !== null)
+		// 		.map(diffArea => {
+		// 			return new vscode.Range(diffArea.sweepIndex! + 1, 0, diffArea.endLine, 0)
+		// 		})
+		// 	)
+		// )
 
 	}
 
@@ -427,10 +443,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	private _registeredListeners = new Set<string>() // set of model IDs
-	private _registerTextChangeListener(editor: ICodeEditor) {
-		const model = editor.getModel()
-		if (!model) return
-
+	private _registerTextChangeListener(model: ITextModel) {
 		const modelid = model.id
 
 		if (this._registeredListeners.has(modelid)) return
@@ -441,7 +454,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			model.onDidChangeContent(e => {
 				const changes = e.changes.map(c => ({ startLine: c.range.startLineNumber, endLine: c.range.endLineNumber, text: c.text, }))
 				this._resizeOnTextChange(modelid, changes, 'currentFile')
-				this._refreshAllDiffsAndStyles(editor)
+				this._refreshAllDiffsAndStyles(model)
 			})
 		)
 
@@ -450,29 +463,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				this._registeredListeners.delete(modelid)
 			})
 		)
-
-		// listen for document changes
-
-		// // // this acts as a useEffect every time text changes
-		// vscode.workspace.onDidChangeTextDocument((e) => {
-		// 	const editor = vscode.window.activeTextEditor
-		// 	if (!editor) return
-		// 	const modelid = editor.document.uri.toString()
-		// 	const changes = e.contentChanges.map(c => ({ startLine: c.range.start.line, endLine: c.range.end.line, text: c.text, }))
-		// 	// on user change, grow/shrink/merge/delete diff areas
-		// 	// refresh the diffAreas
-		// 	this._refreshStylesAndDiffs(modelid)
-		// })
-
 	}
 
 
 
 	@throttle(100)
-	private async _updateDiffAreaText(diffArea: DiffArea, llmCodeSoFar: string, streamingGroup: UndoRedoGroup) {
+	private async _updateDiffAreaText(diffArea: DiffArea, llmCodeSoFar: string) {
 		// clear all diffs in this diffarea and recompute them
-		const uri = diffArea._modeluri
-		const modelid = diffArea._modelid
+		const modelid = diffArea._model.id
 
 		if (this.streamingStateOfModelId[modelid].type !== 'streaming')
 			return
@@ -518,18 +516,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let newCode = `${newFileTop}\n${oldFileBottom}`
 		diffArea._sweepLine = newFileEndLine
 
-		this._bulkEditService.apply(
-			[new ResourceTextEdit(uri, {
-				range: {
-					startLineNumber: diffArea.startLine,
-					startColumn: 0,
-					endLineNumber: diffArea.endLine,
-					endColumn: Number.MAX_SAFE_INTEGER,
-				},
+
+		// applies edits without adding them to undo/redo stack
+		const model = diffArea._model
+		if (!model.isDisposed())
+			model.applyEdits([{
+				range: { startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
 				text: newCode
-			})],
-			// count all changes towards the group
-			{ undoRedoGroupId: streamingGroup.id });
+			}])
 
 		// TODO resize diffAreas?? Or is this handled already by the listener?
 	}
@@ -537,11 +531,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private async _initializeStream(editor: ICodeEditor, diffRepr: string, streamingGroup: UndoRedoGroup) {
-
-		// do all the checks first
-		const model = editor.getModel()
-		if (!model) return
+	private async _initializeStream(model: ITextModel, diffRepr: string, streamingGroup: UndoRedoGroup) {
 
 		const uri = model.uri
 		const modelid = uri.toString()
@@ -566,7 +556,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 
 		// start listening for text changes
-		this._registerTextChangeListener(editor)
+		this._registerTextChangeListener(model)
 
 		// add to history
 		const { finishHistorySnapshot } = this._addToHistory(model.uri, streamingGroup)
@@ -582,8 +572,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			originalEndLine: endLine,
 			startLine: beginLine,
 			endLine: endLine, // starts out the same as the current file
-			_modelid: model.id,
-			_modeluri: model.uri,
+			_model: model,
 			_sweepLine: null,
 			_sweepCol: null,
 			_generationid: generationid,
@@ -625,14 +614,14 @@ Please finish writing the new file by applying the diff to the original file. Re
 					{ role: 'user', content: promptContent, }
 				],
 				onText: (newText, fullText) => {
-					this._updateDiffAreaText(diffArea, fullText, streamingGroup)
-					this._refreshAllDiffsAndStyles(editor)
-					this._refreshSweepStyles(editor)
+					this._updateDiffAreaText(diffArea, fullText)
+					this._refreshAllDiffsAndStyles(model)
+					this._refreshSweepStyles(model)
 				},
 				onFinalMessage: (fullText) => {
-					this._updateDiffAreaText(diffArea, fullText, streamingGroup)
-					this._refreshAllDiffsAndStyles(editor)
-					this._refreshSweepStyles(editor)
+					this._updateDiffAreaText(diffArea, fullText)
+					this._refreshAllDiffsAndStyles(model)
+					this._refreshSweepStyles(model)
 					resolve();
 				},
 				onError: (e) => {
@@ -666,7 +655,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		this.streamingStateOfModelId[model.id] = streamingState
 
 		// initialize stream
-		this._initializeStream(editor, userMessage, streamingGroup)
+		this._initializeStream(model, userMessage, streamingGroup)
 
 	}
 
@@ -691,8 +680,8 @@ Please finish writing the new file by applying the diff to the original file. Re
 		const diffArea = this.diffAreaOfId[diffareaid]
 		if (!diffArea) return
 
-		const modelid = diffArea._modelid
-		const uri = diffArea._modeluri
+		const model = diffArea._model
+		const { id: modelid, uri } = model
 
 		const originalFile = this.originalFileStrOfModelId[modelid]
 		const currentFile = await VSReadFile(this._fileService, uri)
@@ -730,10 +719,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		const shouldDeleteDiffArea = originalArea === currentArea
 		if (shouldDeleteDiffArea) {
 			this._deleteDiffArea(diffArea)
-			// TODO if editor is visible we should update it too, or focus it first
-			const editor = this._editorService.getActiveCodeEditor()
-			if (editor?.getModel()?.id === modelid)
-				this._refreshAllDiffsAndStyles(editor)
+			this._refreshAllDiffsAndStyles(model)
 		}
 
 		finishHistorySnapshot()
@@ -744,50 +730,50 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 
 	// called on void.rejectDiff
-	public async rejectDiff({ diffid, diffareaid }: { diffid: number, diffareaid: number }) {
-		const editor = vscode.window.activeTextEditor
-		if (!editor)
-			return
+	public async rejectDiff({ diffid }: { diffid: number }) {
 
-		const modelid = editor.document.uri.toString()
+		const diff = this.diffOfId[diffid]
+		if (!diff) return
 
-		const diffIdx = this._diffsOfDocument[modelid].findIndex(diff => diff.diffid === diffid);
-		if (diffIdx === -1) { console.error('Error: DiffID could not be found: ', diffid, diffareaid, this._diffsOfDocument[modelid], this._diffAreasOfDocument[modelid]); return; }
+		const { diffareaid } = diff
+		const diffArea = this.diffAreaOfId[diffareaid]
+		if (!diffArea) return
 
-		const diffareaIdx = this._diffAreasOfDocument[modelid].findIndex(diff => diff.diffareaid === diffareaid);
-		if (diffareaIdx === -1) { console.error('Error: DiffAreaID could not be found: ', diffid, diffareaid, this._diffsOfDocument[modelid], this._diffAreasOfDocument[modelid]); return; }
+		const model = diffArea._model
+		const { id: modelid, uri } = model
 
-		const diff = this._diffsOfDocument[modelid][diffIdx]
+		const originalFile = this.originalFileStrOfModelId[modelid]
+		const currentFile = await VSReadFile(this._fileService, uri)
+		if (currentFile === null) return
 
-		// Apply the rejection by replacing with original code
-		// we don't have to edit the original or final file; just do a workspace edit so the code equals the original code
-		const workspaceEdit = new vscode.WorkspaceEdit();
-		workspaceEdit.replace(editor.document.uri, diff.range, diff.originalCode)
-		await vscode.workspace.applyEdit(workspaceEdit)
+
+		// add to history
+		const { finishHistorySnapshot } = this._addToHistory(uri)
+
+		// Apply the rejection by replacing with original code (without putting it on the undo/redo stack, this is OK because we put it on the stack ourselves)
+		if (!model.isDisposed())
+			model.applyEdits([{
+				range: { startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
+				text: diff.originalCode
+			}])
 
 		// Check if diffArea should be removed
-		const originalFile = this._originalFileOfDocument[modelid]
-		const currentFile = await readFileContentOfUri(editor.document.uri)
-		const diffArea = this._diffAreasOfDocument[modelid][diffareaIdx]
 		const currentLines = currentFile.split('\n');
 		const originalLines = originalFile.split('\n');
 
 		const currentArea = currentLines.slice(diffArea.startLine, diffArea.endLine + 1).join('\n')
 		const originalArea = originalLines.slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
-
-		if (originalArea === currentArea) {
-			const index = this._diffAreasOfDocument[modelid].findIndex(da => da.diffareaid === diffArea.diffareaid)
-			this._diffAreasOfDocument[modelid].splice(index, 1)
+		const shouldDeleteDiffArea = originalArea === currentArea
+		if (shouldDeleteDiffArea) {
+			this._deleteDiffArea(diffArea)
 		}
+		const editor = this._editorService.getActiveCodeEditor()
+		if (editor?.getModel()?.id === modelid)
+			this._refreshAllDiffsAndStyles(model)
 
-		this.refreshStylesAndDiffs(modelid)
+		finishHistorySnapshot()
+
 	}
-
-
-
-
-
-
 
 }
 

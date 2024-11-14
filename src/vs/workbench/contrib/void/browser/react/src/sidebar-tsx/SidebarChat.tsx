@@ -1,7 +1,7 @@
 import React, { FormEvent, useCallback, useRef, useState } from 'react';
 
 
-import { useConfigState, useService, useSidebarState, useThreadsState } from '../util/contextForServices.js';
+import { useConfigState, useService, useSidebarState, useThreadsState } from '../util/services.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { VSReadFile } from '../../../registerInlineDiffs.js';
 import { sendLLMMessage } from '../util/sendLLMMessage.js';

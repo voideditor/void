@@ -1,5 +1,5 @@
 import React from "react";
-import { useService, useThreadsState } from '../util/contextForServices.js';
+import { useService, useThreadsState } from '../util/services.js';
 
 
 const truncate = (s: string) => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useConfigState, useService } from '../util/contextForServices.js';
+import { useConfigState, useService } from '../util/services.js';
 import { IVoidConfigStateService, nonDefaultConfigFields, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../registerConfig.js';
 
 

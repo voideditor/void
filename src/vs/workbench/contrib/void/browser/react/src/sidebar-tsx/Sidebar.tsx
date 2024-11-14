@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { mountFnGenerator } from '../util/mountFnGenerator.js'
 
 import { SidebarSettings } from './SidebarSettings.js';
-import { useSidebarState } from '../util/contextForServices.js';
+import { useSidebarState } from '../util/services.js';
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 // import { SidebarChat } from './SidebarChat.js';
 

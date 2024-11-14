@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import * as ReactDOM from 'react-dom/client'
-import { AccessorProvider } from './contextForServices.js';
-import { ReactServicesType } from '../../../registerSidebar.js';
+import { ReactServicesType, VoidSidebarState } from '../../../registerSidebar.js';
+import { ConfigState } from '../../../registerConfig.js';
+import { ThreadsState } from '../../../registerThreads.js';
+import { _registerServices } from './services.js';
 
 
 export const mountFnGenerator = (Component: React.FC) => (rootElement: HTMLElement, services: ReactServicesType) => {
@@ -9,10 +11,9 @@ export const mountFnGenerator = (Component: React.FC) => (rootElement: HTMLEleme
 		console.error('index.tsx error: document was undefined')
 		return
 	}
+
+	_registerServices(services)
+
 	const root = ReactDOM.createRoot(rootElement)
-	root.render(
-		<AccessorProvider services={services}>
-			<Component />
-		</AccessorProvider>
-	);
+	root.render(<Component />);
 }

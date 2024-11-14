@@ -1,7 +1,7 @@
 import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
-import { useService } from '../util/contextForServices.js'
+import { useService } from '../util/services.js'
 
 
 enum CopyButtonState {

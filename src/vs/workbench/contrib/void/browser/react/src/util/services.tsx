@@ -1,35 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { ReactServicesType, VoidSidebarState } from '../../../registerSidebar.js';
-import { ConfigState } from '../../../registerConfig.js';
-import { ThreadsState } from '../../../registerThreads.js';
-
-const AccessorContext = createContext<ReactServicesType | undefined>(undefined)
-
-export const AccessorProvider = ({ children, services }: { children: React.ReactNode; services: ReactServicesType }) => {
-	registerStateListeners(services)
-	return <AccessorContext.Provider value={services}>
-		{children}
-	</AccessorContext.Provider>
-}
+import { useState, useEffect } from 'react'
+import { ConfigState } from '../../../registerConfig.js'
+import { VoidSidebarState, ReactServicesType } from '../../../registerSidebar.js'
+import { ThreadsState } from '../../../registerThreads.js'
 
 
-// -- services --
+// normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
+let services: ReactServicesType | null = null
 
-const useServices = (): ReactServicesType => {
-	const context = useContext(AccessorContext)
-	if (context === undefined) {
-		throw new Error('useAccessor must be used within an AccessorProvider')
-	}
-	return context;
-}
-
-export const useService = <T extends keyof ReactServicesType,>(serviceName: T) => {
-	const services = useServices()
-	return services[serviceName] as ReactServicesType[T]
-}
-
-// -- state of services --
-// normally to do this you'd use a useEffect that calls .onDidChangeState(), but here, useEffect mounts too late and misses initial state changes
 let sidebarState: VoidSidebarState | null = null
 let configState: ConfigState | null = null
 let threadsState: ThreadsState | null = null
@@ -38,12 +15,10 @@ const sidebarStateListeners: Set<(s: VoidSidebarState) => void> = new Set()
 const configStateListeners: Set<(s: ConfigState) => void> = new Set()
 const threadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
 
-let isRegistered = false
-const registerStateListeners = (context: ReactServicesType) => {
-	if (isRegistered) return
-	isRegistered = true
-
-	const { sidebarStateService, configStateService, threadsStateService, } = context
+// must call this before you can use any of the hooks below
+export const _registerServices = (services_: ReactServicesType) => {
+	services = services_
+	const { sidebarStateService, configStateService, threadsStateService, } = services
 
 	sidebarState = sidebarStateService.state
 	sidebarStateService.onDidChangeState(() => {
@@ -66,7 +41,16 @@ const registerStateListeners = (context: ReactServicesType) => {
 }
 
 
-// track the config state using React state so visual updates happen
+// -- services --
+export const useService = <T extends keyof ReactServicesType,>(serviceName: T) => {
+	if (services === null) {
+		throw new Error('useAccessor must be used within an AccessorProvider')
+	}
+	return services[serviceName] as ReactServicesType[T]
+}
+
+// -- state of services --
+
 export const useSidebarState = () => {
 	const [s, ss] = useState(sidebarState)
 	useEffect(() => {

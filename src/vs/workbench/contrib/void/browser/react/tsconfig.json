@@ -6,6 +6,7 @@
 		"esModuleInterop": true,
 	},
 	"include": [
+		// this is just for type checking, so src/ is the correct dir
 		"./src/**/*.ts",
 		"./src/**/*.tsx"
 	]

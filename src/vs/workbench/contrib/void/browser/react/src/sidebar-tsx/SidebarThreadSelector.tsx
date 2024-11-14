@@ -1,5 +1,5 @@
 import React from "react";
-import { useThreadsState } from '../util/contextForServices.js';
+import { useSidebarState, useThreadsState } from '../util/contextForServices.js';
 
 
 const truncate = (s: string) => {
@@ -11,8 +11,10 @@ const truncate = (s: string) => {
 }
 
 
-export const SidebarThreadSelector = ({ onClose }: { onClose: () => void }) => {
+export const SidebarThreadSelector = () => {
 	const [threadsState, threadsStateService] = useThreadsState()
+
+	const [sidebarState, sidebarStateService] = useSidebarState()
 
 	const { allThreads } = threadsState
 
@@ -24,7 +26,7 @@ export const SidebarThreadSelector = ({ onClose }: { onClose: () => void }) => {
 
 			{/* X button at top right */}
 			<div className="text-right">
-				<button className="btn btn-sm" onClick={onClose}>
+				<button className="btn btn-sm" onClick={() => sidebarStateService.setState({ isHistoryOpen: false })}>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						fill="none"

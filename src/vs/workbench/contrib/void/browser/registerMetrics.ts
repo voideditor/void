@@ -9,7 +9,7 @@ interface IMetricsService {
 	readonly _serviceBrand: undefined;
 }
 
-const IMetricsService = createDecorator<IMetricsService>('inlineDiffService');
+const IMetricsService = createDecorator<IMetricsService>('metricsService');
 class MetricsService extends Disposable implements IMetricsService {
 	_serviceBrand: undefined;
 
@@ -17,28 +17,15 @@ class MetricsService extends Disposable implements IMetricsService {
 		@ITelemetryService private readonly _telemetryService: ITelemetryService
 	) {
 		super()
-	}
-
-	init() {
-
-		posthog.init('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2',
-			{
-				api_host: 'https://us.i.posthog.com',
-				person_profiles: 'identified_only' // we only track events from identified users. We identify them in Sidebar
-			}
-		)
-
+		posthog.init('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2', {
+			api_host: 'https://us.i.posthog.com',
+			person_profiles: 'identified_only' // we only track events from identified users. We identify them in Sidebar
+		})
 		const deviceId = this._telemetryService.devDeviceId
 		console.debug('deviceId', deviceId)
-
 		posthog.identify(deviceId)
-
-
-		// export const captureEvent = (eventId: string, properties: object) => {
-		// 	posthog.capture(eventId, properties)
-		// }
-
 	}
+
 
 }
 

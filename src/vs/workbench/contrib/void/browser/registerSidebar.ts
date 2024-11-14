@@ -108,46 +108,6 @@ class VoidSidebarViewPane extends ViewPane {
 		});
 	}
 
-
-
-	// private _renderChat(element: HTMLElement) {
-
-	// 	// useEffect(() => {
-	// 	// 	this._voidSidebarStateService.onDidChange(() => {
-	// 	// 	})
-	// 	// 	this._voidSidebarStateService.onFocusChat(() => {
-	// 	// 	})
-	// 	// 	this._voidSidebarStateService.onBlurChat(() => {
-	// 	// 	})
-	// 	// })
-
-
-	// }
-
-
-	// private _renderHistory(element: HTMLElement) {
-	// 	// 	<div className={`mb-2 h-[30vh] ${tab !== 'threadSelector' ? 'hidden' : ''}`}>
-	// 	// 	<SidebarThreadSelector onClose={() => setTab('chat')} />
-	// 	// </div>
-
-
-	// 	this._voidSidebarStateService.onDidChange(() => {
-	// 	})
-
-	// 	this._threadHistoryService.onDidChangeCurrentThread(() => {
-
-	// 	})
-
-	// }
-
-	// private _renderSettings(element: HTMLElement) {
-	// 	// <div className={`${tab !== 'settings' ? 'hidden' : ''}`}>
-	// 	// 	<SidebarSettings />
-	// 	// </div>
-
-	// }
-
-
 }
 
 

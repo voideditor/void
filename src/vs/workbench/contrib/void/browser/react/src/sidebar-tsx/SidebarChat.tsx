@@ -111,7 +111,9 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 
 
-export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HTMLTextAreaElement> }) => {
+export const SidebarChat = () => {
+
+	const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
 
 	const fileService = useService('fileService')
 

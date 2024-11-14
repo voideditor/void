@@ -7,6 +7,7 @@ import { useSidebarState } from '../util/contextForServices.js';
 // import { SidebarChat } from './SidebarChat.js';
 
 import '../styles.css'
+import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 
 const Sidebar = () => {
 	const [sidebarState, sidebarStateService] = useSidebarState()
@@ -15,18 +16,18 @@ const Sidebar = () => {
 	return <div className='@@void-scope'>
 		<div className={`flex flex-col h-screen w-full`}>
 
-			<span onClick={() => {
+			{/* <span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']
 				const index = tabs.indexOf(tab)
 				sidebarStateService.setState({ currentTab: tabs[(index + 1) % tabs.length] as any })
-			}}>clickme {tab}</span>
+			}}>clickme {tab}</span> */}
 
 			<div className={`mb-2 h-[30vh] ${isHistoryOpen ? '' : 'hidden'}`}>
-				{/* <SidebarThreadSelector onClose={() => setTab('chat')} /> */}
+				<SidebarThreadSelector />
 			</div>
 
 			<div className={`${tab === 'chat' ? '' : 'hidden'}`}>
-				{/* <SidebarChat chatInputRef={chatInputRef} /> */}
+				{/* <SidebarChat /> */}
 			</div>
 
 			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>

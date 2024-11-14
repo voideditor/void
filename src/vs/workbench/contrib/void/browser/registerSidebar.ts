@@ -45,8 +45,6 @@ import { IVoidConfigStateService } from './registerConfig.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
-// const mountFn = (...params: any) => { }
-
 
 // compare against search.contribution.ts and https://app.greptile.com/chat/w1nsmt3lauwzculipycpn?repo=github%3Amain%3Amicrosoft%2Fvscode
 // and debug.contribution.ts, scm.contribution.ts (source control)
@@ -93,18 +91,18 @@ class VoidSidebarViewPane extends ViewPane {
 	protected override renderBody(parent: HTMLElement): void {
 		super.renderBody(parent);
 
-		// <div className={`flex flex-col h-screen w-full`}>
-
 		const { root } = dom.h('div@root')
 		dom.append(parent, root);
 
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
-			mountFn(root, {
+			const services: ReactServicesType = {
 				configStateService: accessor.get(IVoidConfigStateService),
 				sidebarStateService: accessor.get(IVoidSidebarStateService),
-				threadHistoryService: accessor.get(IThreadHistoryService),
-			});
+				threadsStateService: accessor.get(IThreadHistoryService),
+				fileService: accessor.get(IFileService),
+			}
+			mountFn(root, services);
 		});
 	}
 

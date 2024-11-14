@@ -1,14 +1,14 @@
-// // register Settings
+// register Settings
 import './registerConfig.js'
 
-// // register Sidebar chat
+// register Sidebar chat
 import './registerSidebar.js'
 
-// // register Posthog metrics
+// register Posthog metrics
 import './registerMetrics.js'
 
-// // register Thread History
+// register Thread History
 import './registerThreads.js'
 
-// // register inline diffs
+// register inline diffs
 import './registerInlineDiffs.js'

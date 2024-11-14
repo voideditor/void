@@ -1,7 +1,7 @@
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions';
-import { createDecorator } from '../../../../platform/instantiation/common/instantiation';
-import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
+import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 
 import { posthog } from './react/out/util/posthog.js'
 

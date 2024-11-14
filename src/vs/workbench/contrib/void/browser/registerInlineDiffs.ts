@@ -93,6 +93,8 @@ type StreamingState = {
 
 export interface IInlineDiffsService {
 	readonly _serviceBrand: undefined;
+	startStreaming(type: 'ctrl+k' | 'ctrl+l', userMessage: string): void;
+
 }
 
 export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffsService');

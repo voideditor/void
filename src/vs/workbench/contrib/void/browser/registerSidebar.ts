@@ -43,6 +43,7 @@ import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 
 import { IVoidConfigStateService } from './registerConfig.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
+import { IInlineDiffsService } from './registerInlineDiffs.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
@@ -59,6 +60,7 @@ export type ReactServicesType = {
 	configStateService: IVoidConfigStateService;
 	threadsStateService: IThreadHistoryService;
 	fileService: IFileService;
+	inlineDiffService: IInlineDiffsService;
 }
 
 // ---------- Define viewpane ----------
@@ -101,6 +103,7 @@ class VoidSidebarViewPane extends ViewPane {
 				sidebarStateService: accessor.get(IVoidSidebarStateService),
 				threadsStateService: accessor.get(IThreadHistoryService),
 				fileService: accessor.get(IFileService),
+				inlineDiffService: accessor.get(IInlineDiffsService),
 			}
 			mountFn(root, services);
 		});
@@ -288,7 +291,7 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const stateService = accessor.get(IVoidSidebarStateService)
-		stateService.setState({ isHistoryOpen: !stateService.state.isHistoryOpen })
+		stateService.setState({ isHistoryOpen: !stateService.state.isHistoryOpen, currentTab: 'chat' })
 		stateService.fireBlurChat()
 	}
 })

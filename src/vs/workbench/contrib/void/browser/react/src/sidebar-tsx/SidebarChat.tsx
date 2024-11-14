@@ -119,17 +119,16 @@ export const SidebarChat = () => {
 
 	// ----- HIGHER STATE -----
 	// sidebar state
-	const [sidebarState, sidebarStateService] = useSidebarState()
-	const { isHistoryOpen, currentTab: tab } = sidebarState
+	const sidebarStateService = useService('sidebarStateService')
 	sidebarStateService.onDidFocusChat(() => { chatInputRef.current?.focus() })
 	sidebarStateService.onDidBlurChat(() => { chatInputRef.current?.blur() })
 
 	// config state
-	const [configState, configStateService] = useConfigState()
+	const configState = useConfigState()
 	const { voidConfig } = configState
 
 	// threads state
-	const [threadsState, threadsStateService] = useThreadsState()
+	const threadsStateService = useService('threadsStateService')
 
 	// ----- SIDEBAR CHAT state (local) -----
 	// state of current message

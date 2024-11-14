@@ -8,9 +8,10 @@ import { useSidebarState } from '../util/contextForServices.js';
 
 import '../styles.css'
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
+import { SidebarChat } from './SidebarChat.js';
 
 const Sidebar = () => {
-	const [sidebarState, sidebarStateService] = useSidebarState()
+	const sidebarState = useSidebarState()
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
 	return <div className='@@void-scope'>
@@ -27,7 +28,7 @@ const Sidebar = () => {
 			</div>
 
 			<div className={`${tab === 'chat' ? '' : 'hidden'}`}>
-				{/* <SidebarChat /> */}
+				<SidebarChat />
 			</div>
 
 			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>

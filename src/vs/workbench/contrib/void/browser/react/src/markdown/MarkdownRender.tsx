@@ -1,6 +1,7 @@
 import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
+import { useService } from '../util/contextForServices.js'
 
 
 enum CopyButtonState {
@@ -13,6 +14,7 @@ const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
 const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
+	const inlineDiffService = useService('inlineDiffService')
 
 	useEffect(() => {
 		if (copyButtonState !== CopyButtonState.Copy) {
@@ -43,7 +45,8 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 		<button
 			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 			onClick={async () => {
-				getVSCodeAPI().postMessage({ type: "applyChanges", diffRepr: text })
+
+				inlineDiffService.startStreaming('ctrl+l', text)
 			}}
 		>
 			Apply

@@ -1,5 +1,5 @@
-// import React from "react";
-import { useSidebarState, useThreadsState } from '../util/contextForServices.js';
+import React from "react";
+import { useService, useThreadsState } from '../util/contextForServices.js';
 
 
 const truncate = (s: string) => {
@@ -12,9 +12,9 @@ const truncate = (s: string) => {
 
 
 export const SidebarThreadSelector = () => {
-	const [threadsState, threadsStateService] = useThreadsState()
-
-	const [sidebarState, sidebarStateService] = useSidebarState()
+	const threadsState = useThreadsState()
+	const threadsStateService = useService('threadsStateService')
+	const sidebarStateService = useService('sidebarStateService')
 
 	const { allThreads } = threadsState
 

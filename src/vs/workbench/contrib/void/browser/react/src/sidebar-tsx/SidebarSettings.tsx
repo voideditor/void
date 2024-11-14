@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useConfigState } from '../util/contextForServices.js';
+import { useConfigState, useService } from '../util/contextForServices.js';
 import { IVoidConfigStateService, nonDefaultConfigFields, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../registerConfig.js';
 
 
@@ -61,7 +61,9 @@ const SettingOfFieldAndParam = ({ field, param, configState, configStateService 
 
 export const SidebarSettings = () => {
 
-	const [configState, configStateService] = useConfigState()
+	const configState = useConfigState()
+	const configStateService = useService('configStateService')
+
 	const { voidConfig } = configState
 	const current_field = voidConfig.default['whichApi'] as VoidConfigField
 

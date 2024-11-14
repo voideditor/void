@@ -6,6 +6,7 @@
 		"esModuleInterop": true,
 	},
 	"include": [
-		"./src/**/*.ts"
+		"./src/**/*.ts",
+		"./src/**/*.tsx"
 	]
 }

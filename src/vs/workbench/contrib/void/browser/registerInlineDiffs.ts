@@ -6,8 +6,7 @@ import { ICodeEditor, IViewZone } from '../../../../editor/browser/editorBrowser
 
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType, UndoRedoGroup } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { IBulkEditService, ResourceTextEdit } from '../../../../editor/browser/services/bulkEditService.js';
-import { sendLLMMessage } from './out/util/sendLLMMessage.js';
+import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 import { throttle } from '../../../../base/common/decorators.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -127,7 +126,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IVoidConfigStateService private readonly _voidConfigStateService: IVoidConfigStateService,
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
-		@IBulkEditService private readonly _bulkEditService: IBulkEditService,
 		@IFileService private readonly _fileService: IFileService,
 
 	) {
@@ -239,7 +237,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private _addToHistory(uri: URI, editGroup?: UndoRedoGroup) {
+	private _addToHistory(model: ITextModel) {
+
+		const uri = model.uri
 
 		const beforeSnapshot: HistorySnapshot = {
 			diffAreaOfId: structuredClone(this.diffAreaOfId),
@@ -257,26 +257,29 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			undo: () => {
 				// when the user undoes this element, revert to oldSnapshot
 				this.diffAreaOfId = structuredClone(beforeSnapshot.diffAreaOfId)
-				// TODO refresh diffs
+				this._refreshAllDiffsAndStyles(model)
+				this._refreshSweepStyles(model)
 			},
 			// called when restoring this state
 			redo: () => {
 				if (afterSnapshot === null) return
 				this.diffAreaOfId = structuredClone(afterSnapshot.diffAreaOfId)
-				// TODO refresh diffs
+				this._refreshAllDiffsAndStyles(model)
+				this._refreshSweepStyles(model)
 			}
 		}
+		const editGroup = new UndoRedoGroup()
 		this._undoRedoService.pushElement(elt, editGroup)
 
 
-		const finishHistorySnapshot = () => () => {
+		const onFinishEdit = () => () => {
 			if (afterSnapshot !== null) return
 			afterSnapshot = {
 				diffAreaOfId: structuredClone(this.diffAreaOfId),
 				type: 'ctrl+l',
 			}
 		}
-		return { finishHistorySnapshot }
+		return { onFinishEdit, editGroup }
 	}
 
 
@@ -345,45 +348,43 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 	private _refreshSweepStyles(model: ITextModel) {
+		const modelid = model.id;
 
-		// const model = editor.getModel()
-		// if (!model) return
-		// const modelid = model.id
+		// Create decorations for each diffArea
+		for (const diffareaid of this.diffAreasOfModelId[modelid] || new Set()) {
+			const diffArea = this.diffAreaOfId[diffareaid];
+			if (!diffArea._sweepLine) continue;
 
-		// const lightGrayDecoration = vscode.window.createTextEditorDecorationType({
-		// 	backgroundColor: 'rgba(218 218 218 / .2)',
-		// 	isWholeLine: true,
-		// })
-		// const darkGrayDecoration = vscode.window.createTextEditorDecorationType({
-		// 	backgroundColor: 'rgb(148 148 148 / .2)',
-		// 	isWholeLine: true,
-		// })
+			const lightGrayDecoration: IModelDeltaDecoration[] = [{
+				range: {
+					startLineNumber: diffArea._sweepLine + 1,
+					startColumn: 0,
+					endLineNumber: diffArea.endLine,
+					endColumn: Number.MAX_SAFE_INTEGER
+				},
+				options: {
+					className: 'sweep-light-gray',
+					description: 'sweep-light-gray',
+					isWholeLine: true
+				}
+			}];
 
+			const darkGrayDecoration: IModelDeltaDecoration[] = [{
+				range: {
+					startLineNumber: diffArea._sweepLine,
+					startColumn: 0,
+					endLineNumber: diffArea._sweepLine,
+					endColumn: Number.MAX_SAFE_INTEGER
+				},
+				options: {
+					className: 'sweep-dark-gray',
+					description: 'sweep-dark-gray',
+					isWholeLine: true
+				}
+			}];
 
-
-		// // for each diffArea, highlight its sweepIndex in dark gray
-		// editor.setDecorations(
-		// 	darkGrayDecoration,
-		// 	(this._diffAreasOfDocument[modelid]
-		// 		.filter(diffArea => diffArea.sweepIndex !== null)
-		// 		.map(diffArea => {
-		// 			let s = diffArea.sweepIndex!
-		// 			return new vscode.Range(s, 0, s, 0)
-		// 		})
-		// 	)
-		// )
-
-		// // for each diffArea, highlight sweepIndex+1...end in light gray
-		// editor.setDecorations(
-		// 	lightGrayDecoration,
-		// 	(this._diffAreasOfDocument[modelid]
-		// 		.filter(diffArea => diffArea.sweepIndex !== null)
-		// 		.map(diffArea => {
-		// 			return new vscode.Range(diffArea.sweepIndex! + 1, 0, diffArea.endLine, 0)
-		// 		})
-		// 	)
-		// )
-
+			model.deltaDecorations([], [...lightGrayDecoration, ...darkGrayDecoration]);
+		}
 	}
 
 
@@ -467,8 +468,15 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
+	private _writeToModel(model: ITextModel, text: string, range: IRange, editorGroup: UndoRedoGroup) {
+		if (!model.isDisposed())
+			model.pushEditOperations(null, [{ range, text }], () => null, editorGroup)
+	}
+
+
+
 	@throttle(100)
-	private async _updateDiffAreaText(diffArea: DiffArea, llmCodeSoFar: string) {
+	private async _updateDiffAreaText(diffArea: DiffArea, llmCodeSoFar: string, editorGroup: UndoRedoGroup) {
 		// clear all diffs in this diffarea and recompute them
 		const modelid = diffArea._model.id
 
@@ -518,12 +526,23 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 		// applies edits without adding them to undo/redo stack
+		// model.applyEdits([{
+		// 	range: { startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
+		// 	text: newCode
+		// }])
+		// this._bulkEditService.apply([new ResourceTextEdit(model.uri, {
+		// 	range: { startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
+		// 	text: newCode
+		// })], { undoRedoGroupId: editorGroup.id }); // count all changes towards the group
 		const model = diffArea._model
-		if (!model.isDisposed())
-			model.applyEdits([{
-				range: { startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
-				text: newCode
-			}])
+		this._writeToModel(
+			model,
+			newCode,
+			{ startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
+			editorGroup
+		)
+
+
 
 		// TODO resize diffAreas?? Or is this handled already by the listener?
 	}
@@ -531,7 +550,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private async _initializeStream(model: ITextModel, diffRepr: string, streamingGroup: UndoRedoGroup) {
+	private async _initializeStream(model: ITextModel, diffRepr: string) {
+
 
 		const uri = model.uri
 		const modelid = uri.toString()
@@ -559,7 +579,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this._registerTextChangeListener(model)
 
 		// add to history
-		const { finishHistorySnapshot } = this._addToHistory(model.uri, streamingGroup)
+		const { onFinishEdit, editGroup } = this._addToHistory(model)
 
 		// create a diffArea for the stream
 		const diffareaid = this._diffareaidPool++
@@ -613,26 +633,26 @@ Please finish writing the new file by applying the diff to the original file. Re
 					// TODO include more context too
 					{ role: 'user', content: promptContent, }
 				],
-				onText: (newText, fullText) => {
-					this._updateDiffAreaText(diffArea, fullText)
+				onText: (newText: string, fullText: string) => {
+					this._updateDiffAreaText(diffArea, fullText, editGroup)
 					this._refreshAllDiffsAndStyles(model)
 					this._refreshSweepStyles(model)
 				},
-				onFinalMessage: (fullText) => {
-					this._updateDiffAreaText(diffArea, fullText)
+				onFinalMessage: (fullText: string) => {
+					this._updateDiffAreaText(diffArea, fullText, editGroup)
 					this._refreshAllDiffsAndStyles(model)
 					this._refreshSweepStyles(model)
 					resolve();
 				},
-				onError: (e) => {
+				onError: (e: any) => {
 					console.error('Error rewriting file with diff', e);
 					resolve();
 				},
 				voidConfig,
-				abortRef,
+				abortRef: { current: null },
 			})
 		})
-		finishHistorySnapshot()
+		onFinishEdit()
 
 	}
 
@@ -650,15 +670,18 @@ Please finish writing the new file by applying the diff to the original file. Re
 		if (!model) return
 
 		// update streaming state
-		const streamingGroup = new UndoRedoGroup()
 		const streamingState: StreamingState = { type: 'streaming' }
 		this.streamingStateOfModelId[model.id] = streamingState
 
 		// initialize stream
-		this._initializeStream(model, userMessage, streamingGroup)
+		this._initializeStream(model, userMessage)
 
 	}
 
+
+	interruptStreaming() {
+		// TODO add abort
+	}
 
 
 
@@ -688,7 +711,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		if (currentFile === null) return
 
 		// add to history
-		const { finishHistorySnapshot } = this._addToHistory(uri)
+		const { onFinishEdit, editGroup: _editGroup } = this._addToHistory(model)
 
 		// Fixed: Handle newlines properly by splitting into lines and joining with proper newlines
 		const originalLines = originalFile.split('\n');
@@ -722,7 +745,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 			this._refreshAllDiffsAndStyles(model)
 		}
 
-		finishHistorySnapshot()
+		onFinishEdit()
 
 	}
 
@@ -748,14 +771,15 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 
 		// add to history
-		const { finishHistorySnapshot } = this._addToHistory(uri)
+		const { onFinishEdit, editGroup } = this._addToHistory(model)
 
 		// Apply the rejection by replacing with original code (without putting it on the undo/redo stack, this is OK because we put it on the stack ourselves)
-		if (!model.isDisposed())
-			model.applyEdits([{
-				range: { startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
-				text: diff.originalCode
-			}])
+		this._writeToModel(
+			model,
+			diff.originalCode,
+			{ startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
+			editGroup
+		)
 
 		// Check if diffArea should be removed
 		const currentLines = currentFile.split('\n');
@@ -771,7 +795,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		if (editor?.getModel()?.id === modelid)
 			this._refreshAllDiffsAndStyles(model)
 
-		finishHistorySnapshot()
+		onFinishEdit()
 
 	}
 

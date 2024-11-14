@@ -2,11 +2,13 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
 	entry: [
-		'./src2/sidebar-tsx/Sidebar.tsx'
+		'./src2/sidebar-tsx/Sidebar.tsx',
+		'./src2/util/sendLLMMessage.ts',
+		'./src2/util/posthog.ts',
 	],
 	outDir: './out',
 	format: ['esm'],
-	// dts: true,
+	dts: true,
 	splitting: false,
 	// sourcemap: true,
 	clean: true,

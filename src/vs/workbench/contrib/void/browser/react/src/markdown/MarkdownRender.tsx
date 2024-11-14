@@ -1,12 +1,12 @@
-import React, { JSX, useCallback, useEffect, useState } from "react"
-import { marked, MarkedToken, Token } from "marked"
-import { BlockCode } from "./BlockCode.js"
+import React, { JSX, useCallback, useEffect, useState } from 'react'
+import { marked, MarkedToken, Token } from 'marked'
+import { BlockCode } from './BlockCode.js'
 
 
 enum CopyButtonState {
-	Copy = "Copy",
-	Copied = "Copied!",
-	Error = "Could not copy",
+	Copy = 'Copy',
+	Copied = 'Copied!',
+	Error = 'Could not copy',
 }
 
 const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'

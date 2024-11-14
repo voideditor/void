@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { mountFnGenerator } from '../util/mountFnGenerator'
+import { mountFnGenerator } from '../util/mountFnGenerator.js'
 
 import { SidebarSettings } from './SidebarSettings.js';
 import { useSidebarState } from '../util/contextForServices.js';

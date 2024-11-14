@@ -1,6 +1,6 @@
 import React from 'react';
 import * as ReactDOM from 'react-dom/client'
-import { AccessorProvider } from './contextForServices';
+import { AccessorProvider } from './contextForServices.js';
 import { ReactServicesType } from '../../../registerSidebar.js';
 
 

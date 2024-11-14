@@ -3,7 +3,15 @@ import { Range } from 'vscode';
 import { diffLines, Change } from 'diff';
 import { Diff } from './registerInlineDiffs';
 
-type BaseDiff = Omit<Diff, '_zone' | '_decorationId' | 'diffid' | 'diffareaid'>
+type Fields =
+	| 'type'
+	| 'originalCode'
+	| 'originalStartLine' | 'originalEndLine'
+	| 'startLine' | 'endLine'
+	| 'startCol' | 'endCol'
+
+
+type BaseDiff = Pick<Diff, Fields>
 
 // Andrew diff algo:
 export type SuggestedEdit = {

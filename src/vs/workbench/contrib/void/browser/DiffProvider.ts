@@ -91,150 +91,150 @@ export class DiffProvider implements vscode.CodeLensProvider {
 	// used by us only
 	// changes the start/line locations based on the changes that were recently made. does not change any of the diffs in the diff areas
 	// changes tells us how many lines were inserted/deleted so we can grow/shrink the diffAreas accordingly
-	public resizeDiffAreas(docUriStr: string, changes: { text: string, startLine: number, endLine: number }[], changesTo: 'originalFile' | 'currentFile') {
+	// public resizeDiffAreas(docUriStr: string, changes: { text: string, startLine: number, endLine: number }[], changesTo: 'originalFile' | 'currentFile') {
 
-		const diffAreas = this._diffAreasOfDocument[docUriStr] || []
+	// 	const diffAreas = this._diffAreasOfDocument[docUriStr] || []
 
-		let endLine: 'originalEndLine' | 'endLine'
-		let startLine: 'originalStartLine' | 'startLine'
+	// 	let endLine: 'originalEndLine' | 'endLine'
+	// 	let startLine: 'originalStartLine' | 'startLine'
 
-		if (changesTo === 'originalFile') {
-			endLine = 'originalEndLine' as const
-			startLine = 'originalStartLine' as const
-		} else {
-			endLine = 'endLine' as const
-			startLine = 'startLine' as const
-		}
+	// 	if (changesTo === 'originalFile') {
+	// 		endLine = 'originalEndLine' as const
+	// 		startLine = 'originalStartLine' as const
+	// 	} else {
+	// 		endLine = 'endLine' as const
+	// 		startLine = 'startLine' as const
+	// 	}
 
-		for (const change of changes) {
+	// 	for (const change of changes) {
 
-			// here, `change.range` is the range of the original file that gets replaced with `change.text`
-
-
-			// compute net number of newlines lines that were added/removed
-			const numNewLines = (change.text.match(/\n/g) || []).length
-			const numLineDeletions = change.endLine - change.startLine
-			const deltaNewlines = numNewLines - numLineDeletions
-
-			// compute overlap with each diffArea and shrink/elongate the diffArea accordingly
-			for (const diffArea of diffAreas) {
-
-				// if the change is fully within the diffArea, elongate it by the delta amount of newlines
-				if (change.startLine >= diffArea[startLine] && change.endLine <= diffArea[endLine]) {
-					diffArea[endLine] += deltaNewlines
-				}
-				// check if the `diffArea` was fully deleted and remove it if so
-				if (diffArea[startLine] > diffArea[endLine]) {
-					//remove it
-					const index = diffAreas.findIndex(da => da === diffArea)
-					diffAreas.splice(index, 1)
-				}
-
-				// TODO handle other cases where eg. the change overlaps many diffAreas
-			}
+	// 		// here, `change.range` is the range of the original file that gets replaced with `change.text`
 
 
-			// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
-			for (const diffArea of diffAreas) {
-				if (diffArea[startLine] > change.endLine) {
-					diffArea[startLine] += deltaNewlines
-					diffArea[endLine] += deltaNewlines
-				}
-			}
+	// 		// compute net number of newlines lines that were added/removed
+	// 		const numNewLines = (change.text.match(/\n/g) || []).length
+	// 		const numLineDeletions = change.endLine - change.startLine
+	// 		const deltaNewlines = numNewLines - numLineDeletions
 
-			// TODO merge any diffAreas if they overlap with each other as a result from the shift
+	// 		// compute overlap with each diffArea and shrink/elongate the diffArea accordingly
+	// 		for (const diffArea of diffAreas) {
 
-		}
-	}
+	// 			// if the change is fully within the diffArea, elongate it by the delta amount of newlines
+	// 			if (change.startLine >= diffArea[startLine] && change.endLine <= diffArea[endLine]) {
+	// 				diffArea[endLine] += deltaNewlines
+	// 			}
+	// 			// check if the `diffArea` was fully deleted and remove it if so
+	// 			if (diffArea[startLine] > diffArea[endLine]) {
+	// 				//remove it
+	// 				const index = diffAreas.findIndex(da => da === diffArea)
+	// 				diffAreas.splice(index, 1)
+	// 			}
 
-
-	// used by us only
-	// refreshes all the diffs inside each diff area, and refreshes the styles
-	public refreshStylesAndDiffs(docUriStr: string) {
-
-		const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
-		if (!editor) {
-			console.log('Error: No active editor!')
-			return;
-		}
-		const originalFile = this._originalFileOfDocument[docUriStr]
-		if (!originalFile) {
-			console.log('Error: No original file!')
-			return;
-		}
-
-		const diffAreas = this._diffAreasOfDocument[docUriStr] || []
-
-		// reset all diffs (we update them below)
-		this._diffsOfDocument[docUriStr] = []
-
-		// TODO!!!!
-		// vscode.languages.clearInlineDiffs(editor)
-
-		// for each diffArea
-		for (const diffArea of diffAreas) {
-
-			// get code inside of diffArea
-			const originalCode = originalFile.split('\n').slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
-			const currentCode = editor.document.getText(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)).replace(/\r\n/g, '\n')
-
-			// compute the diffs
-			const diffs = findDiffs(originalCode, currentCode)
-
-			// add the diffs to `this._diffsOfDocument[docUriStr]`
-
-			// if no diffs, set diffs to []
-			if (!this._diffsOfDocument[docUriStr])
-				this._diffsOfDocument[docUriStr] = []
-
-			// add each diff and its codelens to the document
-			for (let i = diffs.length - 1; i > -1; i -= 1) {
-				let suggestedDiff = diffs[i]
-
-				this._diffsOfDocument[docUriStr].push({
-					...suggestedDiff,
-					diffid: this._diffidPool,
-					// originalCode: suggestedDiff.deletedText,
-					lenses: [
-						new vscode.CodeLens(suggestedDiff.range, { title: 'Accept', command: 'void.acceptDiff', arguments: [{ diffid: this._diffidPool, diffareaid: diffArea.diffareaid }] }),
-						new vscode.CodeLens(suggestedDiff.range, { title: 'Reject', command: 'void.rejectDiff', arguments: [{ diffid: this._diffidPool, diffareaid: diffArea.diffareaid }] })
-					]
-				});
-				vscode.languages.addInlineDiff(editor, suggestedDiff.originalCode, suggestedDiff.range)
-				this._diffidPool += 1
-			}
-
-		}
+	// 			// TODO handle other cases where eg. the change overlaps many diffAreas
+	// 		}
 
 
-		// for each diffArea, highlight its sweepIndex in dark gray
-		editor.setDecorations(
-			darkGrayDecoration,
-			(this._diffAreasOfDocument[docUriStr]
-				.filter(diffArea => diffArea.sweepIndex !== null)
-				.map(diffArea => {
-					let s = diffArea.sweepIndex!
-					return new vscode.Range(s, 0, s, 0)
-				})
-			)
-		)
+	// 		// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
+	// 		for (const diffArea of diffAreas) {
+	// 			if (diffArea[startLine] > change.endLine) {
+	// 				diffArea[startLine] += deltaNewlines
+	// 				diffArea[endLine] += deltaNewlines
+	// 			}
+	// 		}
 
-		// for each diffArea, highlight sweepIndex+1...end in light gray
-		editor.setDecorations(
-			lightGrayDecoration,
-			(this._diffAreasOfDocument[docUriStr]
-				.filter(diffArea => diffArea.sweepIndex !== null)
-				.map(diffArea => {
-					return new vscode.Range(diffArea.sweepIndex! + 1, 0, diffArea.endLine, 0)
-				})
-			)
-		)
+	// 		// TODO merge any diffAreas if they overlap with each other as a result from the shift
+
+	// 	}
+	// }
 
 
-		// update code lenses
-		this._onDidChangeCodeLenses.fire()
+	// // used by us only
+	// // refreshes all the diffs inside each diff area, and refreshes the styles
+	// public refreshStylesAndDiffs(docUriStr: string) {
 
-	}
+	// 	const editor = vscode.window.activeTextEditor // TODO the editor should be that of `docUri` and not necessarily the current editor
+	// 	if (!editor) {
+	// 		console.log('Error: No active editor!')
+	// 		return;
+	// 	}
+	// 	const originalFile = this._originalFileOfDocument[docUriStr]
+	// 	if (!originalFile) {
+	// 		console.log('Error: No original file!')
+	// 		return;
+	// 	}
+
+	// 	const diffAreas = this._diffAreasOfDocument[docUriStr] || []
+
+	// 	// reset all diffs (we update them below)
+	// 	this._diffsOfDocument[docUriStr] = []
+
+	// 	// TODO!!!!
+	// 	// vscode.languages.clearInlineDiffs(editor)
+
+	// 	// for each diffArea
+	// 	for (const diffArea of diffAreas) {
+
+	// 		// get code inside of diffArea
+	// 		const originalCode = originalFile.split('\n').slice(diffArea.originalStartLine, diffArea.originalEndLine + 1).join('\n')
+	// 		const currentCode = editor.document.getText(new vscode.Range(diffArea.startLine, 0, diffArea.endLine, Number.MAX_SAFE_INTEGER)).replace(/\r\n/g, '\n')
+
+	// 		// compute the diffs
+	// 		const diffs = findDiffs(originalCode, currentCode)
+
+	// 		// add the diffs to `this._diffsOfDocument[docUriStr]`
+
+	// 		// if no diffs, set diffs to []
+	// 		if (!this._diffsOfDocument[docUriStr])
+	// 			this._diffsOfDocument[docUriStr] = []
+
+	// 		// add each diff and its codelens to the document
+	// 		for (let i = diffs.length - 1; i > -1; i -= 1) {
+	// 			let suggestedDiff = diffs[i]
+
+	// 			this._diffsOfDocument[docUriStr].push({
+	// 				...suggestedDiff,
+	// 				diffid: this._diffidPool,
+	// 				// originalCode: suggestedDiff.deletedText,
+	// 				lenses: [
+	// 					new vscode.CodeLens(suggestedDiff.range, { title: 'Accept', command: 'void.acceptDiff', arguments: [{ diffid: this._diffidPool, diffareaid: diffArea.diffareaid }] }),
+	// 					new vscode.CodeLens(suggestedDiff.range, { title: 'Reject', command: 'void.rejectDiff', arguments: [{ diffid: this._diffidPool, diffareaid: diffArea.diffareaid }] })
+	// 				]
+	// 			});
+	// 			vscode.languages.addInlineDiff(editor, suggestedDiff.originalCode, suggestedDiff.range)
+	// 			this._diffidPool += 1
+	// 		}
+
+	// 	}
+
+
+	// 	// for each diffArea, highlight its sweepIndex in dark gray
+	// 	editor.setDecorations(
+	// 		darkGrayDecoration,
+	// 		(this._diffAreasOfDocument[docUriStr]
+	// 			.filter(diffArea => diffArea.sweepIndex !== null)
+	// 			.map(diffArea => {
+	// 				let s = diffArea.sweepIndex!
+	// 				return new vscode.Range(s, 0, s, 0)
+	// 			})
+	// 		)
+	// 	)
+
+	// 	// for each diffArea, highlight sweepIndex+1...end in light gray
+	// 	editor.setDecorations(
+	// 		lightGrayDecoration,
+	// 		(this._diffAreasOfDocument[docUriStr]
+	// 			.filter(diffArea => diffArea.sweepIndex !== null)
+	// 			.map(diffArea => {
+	// 				return new vscode.Range(diffArea.sweepIndex! + 1, 0, diffArea.endLine, 0)
+	// 			})
+	// 		)
+	// 	)
+
+
+	// 	// update code lenses
+	// 	this._onDidChangeCodeLenses.fire()
+
+	// }
 
 
 	// // called on void.acceptDiff

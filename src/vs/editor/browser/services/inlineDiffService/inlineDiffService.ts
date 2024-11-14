@@ -6,37 +6,6 @@ import { ICodeEditor, IViewZone } from '../../editorBrowser.js';
 import { IRange } from '../../../common/core/range.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
 
-
-
-
-// // an area that is currently being diffed
-// type DiffArea = {
-// 	diffareaid: number,
-// 	startLine: number,
-// 	endLine: number,
-// 	originalStartLine: number,
-// 	originalEndLine: number,
-// 	sweepIndex: number | null // null iff not sweeping
-// }
-
-// // the return type of diff creator
-// type BaseDiff = {
-// 	type: 'edit' | 'insertion' | 'deletion';
-// 	// repr: string; // representation of the diff in text
-// 	originalRange: vscode.Range;
-// 	originalCode: string;
-// 	range: vscode.Range;
-// 	code: string;
-// }
-
-// // each diff on the user's screen
-// type Diff = {
-// 	diffid: number,
-// 	lenses: vscode.CodeLens[],
-// } & BaseDiff
-
-
-
 export interface IInlineDiffService {
 	readonly _serviceBrand: undefined;
 	addDiff(editor: ICodeEditor, originalText: string, modifiedRange: IRange): void;

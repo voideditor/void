@@ -1,7 +1,8 @@
 
 import { Range } from 'vscode';
-import { diffLines, Change } from 'diff';
 import { Diff } from './registerInlineDiffs';
+
+import { diffLines } from './react/out/util/diffLines.js'
 
 type Fields =
 	| 'type'
@@ -27,7 +28,7 @@ export type SuggestedEdit = {
 
 export function findDiffs(oldStr: string, newStr: string) {
 	// an ordered list of every original line, line added to the new file, and line removed from the old file (order is unambiguous, think about it)
-	const lineByLineChanges: Change[] = diffLines(oldStr, newStr);
+	const lineByLineChanges = diffLines(oldStr, newStr);
 	lineByLineChanges.push({ value: '', added: false, removed: false }) // add a dummy so we flush any streaks we haven't yet at the very end (!line.added && !line.removed)
 
 	let oldFileLineNum: number = 0;

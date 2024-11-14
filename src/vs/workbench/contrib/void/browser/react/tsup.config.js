@@ -5,6 +5,7 @@ export default defineConfig({
 		'./src2/sidebar-tsx/Sidebar.tsx',
 		'./src2/util/sendLLMMessage.tsx',
 		'./src2/util/posthog.tsx',
+		'./src2/util/diffLines.tsx',
 	],
 	outDir: './out',
 	format: ['esm'],
@@ -14,10 +15,10 @@ export default defineConfig({
 	clean: true,
 	platform: 'browser',
 	target: 'esnext',
-	injectStyle: true, // bundle css into the output file
+	// injectStyle: true, // bundle css into the output file
 	outExtension: () => ({ js: '.js' }),
 	// default behavior is to take local files and make them internal (bundle them) and take imports like 'react' and leave them external (don't bundle them), we want the opposite in many ways
-	noExternal: [ // noExternal means we should take these things and make them not external (bundle them into the output file)
+	noExternal: [ // noExternal means we should take these things and make them not external (bundle them into the output file) - anything that doesn't start with a "." needs to be force-flagged as not external
 		/^(?!\.).*$/
 	],
 	external: [ // these imports should be kept external ../../../ are external (this is just an optimization so the output file doesn't re-implement functions)

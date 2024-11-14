@@ -27,7 +27,7 @@ export default defineConfig({
 		'openai',
 	],
 	external: [ // these imports should be kept external ../../../ are external (this is just an optimization so the output file doesn't re-implement functions)
-		new RegExp('../../../*'
+		new RegExp('../../../*.js'
 			.replaceAll('.', '\\.')
 			.replaceAll('*', '.*'))
 	],

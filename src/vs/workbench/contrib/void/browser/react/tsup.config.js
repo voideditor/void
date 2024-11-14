@@ -9,13 +9,15 @@ export default defineConfig({
 	],
 	outDir: './out',
 	format: ['esm'],
-	// dts: true,
 	splitting: false,
+
+	// dts: true,
 	// sourcemap: true,
+
 	clean: true,
 	platform: 'browser',
 	target: 'esnext',
-	// injectStyle: true, // bundle css into the output file
+	injectStyle: true, // bundle css into the output file
 	outExtension: () => ({ js: '.js' }),
 	// default behavior is to take local files and make them internal (bundle them) and take imports like 'react' and leave them external (don't bundle them), we want the opposite in many ways
 	noExternal: [ // noExternal means we should take these things and make them not external (bundle them into the output file) - anything that doesn't start with a "." needs to be force-flagged as not external

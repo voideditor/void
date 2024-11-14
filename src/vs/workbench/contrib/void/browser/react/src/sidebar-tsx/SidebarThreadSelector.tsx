@@ -66,7 +66,7 @@ export const SidebarThreadSelector = () => {
 					return (
 						<button
 							key={pastThread.id}
-							className={`btn btn-sm rounded-sm ${pastThread.id === threadsStateService.getCurrentThread()?.id ? "btn-primary" : "btn-secondary"}`}
+							className={`btn btn-sm rounded-sm ${pastThread.id === threadsStateService.getCurrentThread(threadsState)?.id ? "btn-primary" : "btn-secondary"}`}
 							onClick={() => threadsStateService.switchToThread(pastThread.id)}
 							title={new Date(pastThread.createdAt).toLocaleString()}
 						>

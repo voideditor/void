@@ -61,7 +61,7 @@ export interface IThreadHistoryService {
 	readonly state: ThreadsState;
 	onDidChangeCurrentThread: Event<void>;
 
-	getCurrentThread(): ChatThreads[string] | null;
+	getCurrentThread(state: ThreadsState): ChatThreads[string] | null;
 	startNewThread(): void;
 	switchToThread(threadId: string): void;
 	startNewThread(): void;
@@ -108,8 +108,9 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 		if (affectsCurrent) this._onDidChangeCurrentThread.fire()
 	}
 
-	getCurrentThread(): ChatThreads[string] | null {
-		return this.state._currentThreadId ? this.state.allThreads[this.state._currentThreadId] ?? null : null;
+	// must "prove" that you have access to the current state by providing it
+	getCurrentThread(state: ThreadsState): ChatThreads[string] | null {
+		return state._currentThreadId ? state.allThreads[state._currentThreadId] ?? null : null;
 	}
 
 	switchToThread(threadId: string) {

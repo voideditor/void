@@ -1,7 +1,7 @@
 import React, { FormEvent, useCallback, useRef, useState } from 'react';
 
 
-import { useConfigState, useService, useSidebarState, useThreadsState } from '../util/services.js';
+import { useConfigState, useService, useThreadsState } from '../util/services.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { VSReadFile } from '../../../registerInlineDiffs.js';
 import { sendLLMMessage } from '../util/sendLLMMessage.js';
@@ -128,6 +128,7 @@ export const SidebarChat = () => {
 	const { voidConfig } = configState
 
 	// threads state
+	const threadsState = useThreadsState()
 	const threadsStateService = useService('threadsStateService')
 
 	// ----- SIDEBAR CHAT state (local) -----
@@ -180,7 +181,7 @@ export const SidebarChat = () => {
 		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selection, files }
 		threadsStateService.addMessageToCurrentThread(newHistoryElt)
 
-		const currentThread = threadsStateService.getCurrentThread()
+		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
 
 
 		// send message to LLM
@@ -229,7 +230,7 @@ export const SidebarChat = () => {
 	}, [messageStream, threadsStateService])
 
 
-	const currentThread = threadsStateService.getCurrentThread()
+	const currentThread = threadsStateService.getCurrentThread(threadsState)
 	return <>
 		<div className="overflow-x-hidden space-y-4">
 			{/* previous messages */}

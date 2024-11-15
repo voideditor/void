@@ -2,7 +2,6 @@ import React, { FormEvent, Fragment, useCallback, useRef, useState } from 'react
 
 
 import { useConfigState, useService, useThreadsState } from '../util/services.js';
-import { VSReadFile } from '../../../registerInlineDiffs.js';
 import { sendLLMMessage } from '../util/sendLLMMessage.js';
 import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
 import { userInstructionsStr } from '../../../prompt/stringifyFiles.js';
@@ -10,6 +9,19 @@ import { CodeSelection, CodeStagingSelection } from '../../../registerThreads.js
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { MarkdownRender } from '../markdown/MarkdownRender.js';
+import { IModelService } from '../../../../../../../editor/common/services/model.js';
+import { URI } from '../../../../../../../base/common/uri.js';
+import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
+
+
+
+// read files from VSCode
+const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
+	const model = modelService.getModel(uri)
+	if (!model) return null
+	return model.getValue(EndOfLinePreference.LF)
+}
+
 
 
 export type ChatMessage =

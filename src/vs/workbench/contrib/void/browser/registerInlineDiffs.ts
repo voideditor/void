@@ -15,17 +15,8 @@ import { findDiffs } from './findDiffs.js';
 import { EndOfLinePreference, IModelDecorationOptions, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
 // import { IModelService } from '../../../../editor/common/services/model.js';
 
-
-
-// read files from VSCode
-export const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
-	const model = modelService.getModel(uri)
-	if (!model) return null
-	return model.getValue(EndOfLinePreference.LF)
-}
 
 
 export type Diff = {

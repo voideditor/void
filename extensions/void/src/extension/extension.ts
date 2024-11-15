@@ -10,6 +10,7 @@ import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 import { AutocompleteProvider } from './AutcompleteProvider';
+import { getFunctionTokens } from '../common/LangaugeServer/findFunctions';
 
 // // this comes from vscode.proposed.editorInsets.d.ts
 // declare module 'vscode' {
@@ -190,6 +191,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// setupAutocomplete({ voidConfig, abortRef })
 
+
+	// 7. Language Server
+	let disposable = vscode.commands.registerCommand('typeInspector.inspect', getFunctionTokens);
+
+	context.subscriptions.push(disposable);
 
 
 	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)

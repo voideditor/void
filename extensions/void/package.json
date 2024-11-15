@@ -22,6 +22,10 @@
     },
     "commands": [
       {
+        "command": "typeInspector.inspect",
+        "title": "Inspect Types of All Variables"
+      },
+      {
         "command": "void.ctrl+l",
         "title": "Show Sidebar"
       },

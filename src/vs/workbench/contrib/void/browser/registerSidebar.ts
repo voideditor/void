@@ -18,17 +18,14 @@ import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 
 
 import { IViewPaneOptions, ViewPane } from '../../../browser/parts/views/viewPane.js';
-import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
-import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 
-import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
-import { ContextKeyExpr, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
+import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
-import { CodeStagingSelection, IThreadHistoryService } from './registerThreads.js';
+import { IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
@@ -44,8 +41,6 @@ import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 import { IVoidConfigStateService } from './registerConfig.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
-import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
@@ -117,12 +112,12 @@ class VoidSidebarViewPane extends ViewPane {
 
 // ---------- Register viewpane inside the void container ----------
 
-const voidThemeIcon = Codicon.array;
+const voidThemeIcon = Codicon.symbolObject;
 const voidViewIcon = registerIcon('void-view-icon', voidThemeIcon, localize('voidViewIcon', 'View icon of the Void chat view.'));
 
 // called VIEWLET_ID in other places for some reason
-const VOID_VIEW_CONTAINER_ID = 'workbench.view.void'
-const SIDEBAR_VIEW_ID = VOID_VIEW_CONTAINER_ID // not sure if we can change this
+export const VOID_VIEW_CONTAINER_ID = 'workbench.view.void'
+export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID // not sure if we can change this
 
 // Register view container
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
@@ -140,7 +135,7 @@ const viewContainer = viewContainerRegistry.registerViewContainer({
 // Register search default location to the container (sidebar)
 const viewsRegistry = Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry);
 viewsRegistry.registerViews([{
-	id: SIDEBAR_VIEW_ID,
+	id: VOID_VIEW_ID,
 	hideByDefault: false, // start open
 	containerIcon: voidViewIcon,
 	name: nls.localize2('void chat', "Chat"), // this says ... : CHAT
@@ -214,7 +209,7 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 
 	openView() {
 		this._viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
-		this._viewsService.openView(SIDEBAR_VIEW_ID);
+		this._viewsService.openView(VOID_VIEW_ID);
 	}
 
 	constructor(
@@ -236,104 +231,3 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 }
 
 registerSingleton(IVoidSidebarStateService, VoidSidebarStateService, InstantiationType.Eager);
-
-
-
-// ---------- Register commands and keybindings ----------
-
-// Action: when press ctrl+L, show the sidebar chat and add to the selection
-registerAction2(class extends Action2 {
-	constructor() {
-		super({ id: 'void.ctrl+l', title: 'Show Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-
-		const model = accessor.get(ICodeEditorService).getActiveCodeEditor()?.getModel()
-		if (!model)
-			return
-
-
-		const stateService = accessor.get(IVoidSidebarStateService)
-		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		stateService.fireFocusChat()
-
-		// add selection
-		const threadHistoryService = accessor.get(IThreadHistoryService)
-		const currentStaging = threadHistoryService.state._currentStagingSelections
-		const currentStagingEltIdx = currentStaging?.findIndex(s => s.fileURI.fsPath === model.uri.fsPath)
-
-		// if there exists a selection with this URI, replace it
-		const selectionRange = accessor.get(IEditorService).activeTextEditorControl?.getSelection()
-
-		if (selectionRange) {
-			const selection: CodeStagingSelection = { selectionStr: model.getValueInRange(selectionRange), fileURI: model.uri }
-
-			if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
-				threadHistoryService.setStaging([
-					...currentStaging!.slice(0, currentStagingEltIdx),
-					selection,
-					...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
-				])
-			}
-			else {
-				threadHistoryService.setStaging([...(currentStaging ?? []), selection])
-			}
-		}
-
-	}
-});
-
-
-// New chat menu button
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'void.newChatAction',
-			title: 'View past chats',
-			icon: { id: 'add' },
-			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', SIDEBAR_VIEW_ID), }]
-		});
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
-		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		stateService.fireFocusChat()
-
-		const historyService = accessor.get(IThreadHistoryService)
-		historyService.startNewThread()
-	}
-})
-
-// History menu button
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'void.historyAction',
-			title: 'View past chats',
-			icon: { id: 'history' },
-			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', SIDEBAR_VIEW_ID), }]
-		});
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
-		stateService.setState({ isHistoryOpen: !stateService.state.isHistoryOpen, currentTab: 'chat' })
-		stateService.fireBlurChat()
-	}
-})
-
-// Settings (API config) menu button
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'void.viewSettings',
-			title: 'Void settings',
-			icon: { id: 'settings-gear' },
-			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', SIDEBAR_VIEW_ID), }]
-		});
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
-		stateService.setState({ isHistoryOpen: false, currentTab: 'settings' })
-		stateService.fireBlurChat()
-	}
-})

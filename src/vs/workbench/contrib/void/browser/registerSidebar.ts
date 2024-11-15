@@ -41,6 +41,7 @@ import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 import { IVoidConfigStateService } from './registerConfig.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
+import { IModelService } from '../../../../editor/common/services/model.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
@@ -57,6 +58,7 @@ export type ReactServicesType = {
 	configStateService: IVoidConfigStateService;
 	threadsStateService: IThreadHistoryService;
 	fileService: IFileService;
+	modelService: IModelService;
 	inlineDiffService: IInlineDiffsService;
 }
 
@@ -100,6 +102,7 @@ class VoidSidebarViewPane extends ViewPane {
 				sidebarStateService: accessor.get(IVoidSidebarStateService),
 				threadsStateService: accessor.get(IThreadHistoryService),
 				fileService: accessor.get(IFileService),
+				modelService: accessor.get(IModelService),
 				inlineDiffService: accessor.get(IInlineDiffsService),
 			}
 			mountFn(root, services);

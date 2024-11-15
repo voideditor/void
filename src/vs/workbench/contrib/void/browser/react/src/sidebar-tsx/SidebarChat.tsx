@@ -128,7 +128,7 @@ export const SidebarChat = () => {
 
 	const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
 
-	const fileService = useService('fileService')
+	const modelService = useService('modelService')
 
 	// ----- HIGHER STATE -----
 	// sidebar state
@@ -169,7 +169,7 @@ export const SidebarChat = () => {
 
 		const currSelns = threadsStateService.state._currentStagingSelections
 		const selections = !currSelns ? null : await Promise.all(
-			currSelns.map(async (sel) => ({ ...sel, content: await VSReadFile(fileService, sel.fileURI) }))
+			currSelns.map(async (sel) => ({ ...sel, content: await VSReadFile(modelService, sel.fileURI) }))
 		).then(
 			(files) => files.filter(file => file.content !== null) as CodeSelection[]
 		)

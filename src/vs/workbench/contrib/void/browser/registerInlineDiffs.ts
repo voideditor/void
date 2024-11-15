@@ -4,32 +4,27 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ICodeEditor, IViewZone } from '../../../../editor/browser/editorBrowser.js';
 
-import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType, UndoRedoGroup } from '../../../../platform/undoRedo/common/undoRedo.js';
+import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 // import { throttle } from '../../../../base/common/decorators.js';
-import { IFileService } from '../../../../platform/files/common/files.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IVoidConfigStateService } from './registerConfig.js';
 import { writeFileWithDiffInstructions } from './prompt/systemPrompts.js';
 import { findDiffs } from './findDiffs.js';
-import { IModelDecorationOptions, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/model.js';
+import { EndOfLinePreference, IModelDecorationOptions, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
+import { IModelService } from '../../../../editor/common/services/model.js';
 // import { IModelService } from '../../../../editor/common/services/model.js';
 
 
 
 // read files from VSCode
-export const VSReadFile = async (fileService: IFileService, uri: URI): Promise<string | null> => {
-	try {
-		const fileObj = await fileService.readFile(uri)
-		const content = fileObj.value.toString()
-		return content
-	} catch (error) {
-		console.error(`VSReadFile (Void) - Failed to read URI`, uri, error);
-		return null
-	}
+export const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
+	const model = modelService.getModel(uri)
+	if (!model) return null
+	return model.getValue(EndOfLinePreference.LF)
 }
 
 
@@ -130,7 +125,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IVoidConfigStateService private readonly _voidConfigStateService: IVoidConfigStateService,
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
-		@IFileService private readonly _fileService: IFileService,
 		// @IModelService private readonly _modelService: IModelService,
 
 	) {
@@ -172,10 +166,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			description: 'sweep-light-gray',
 			isWholeLine: true
 		}
+
+
 		decorationIds.push(
 			model.changeDecorations(accessor => accessor.addDecoration(bulkRange, lightGrayDecoration))
 		)
-
 		const dispose = () => {
 			for (let id of decorationIds) {
 				if (id) model.changeDecorations(accessor => accessor.removeDecoration(id))
@@ -207,6 +202,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}];
 			const decorationsCollection = editor.createDecorationsCollection(greenDecoration)
 
+
 			// red in a view zone
 			let zoneId: string | null = null
 			editor.changeViewZones(accessor => {
@@ -232,7 +228,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				const codeSpan = document.createElement('span');
 				codeSpan.className = 'mtk1'; // char-delete
 				codeSpan.textContent = redText;
-				console.log('originalText', redText.replace('\n', '\\n'));
 
 				// Mount
 				contentSpan.appendChild(codeSpan);
@@ -303,9 +298,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		}
 
-		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
-		let afterSnapshot: HistorySnapshot | null = null // this is set later
-
 		const restoreDiffAreas = (snapshot: HistorySnapshot) => {
 			const { snapshottedDiffAreaOfId, snapshottedOriginalFileStr } = structuredClone(snapshot) // don't want to destroy the snapshot
 
@@ -316,8 +308,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				this._deleteSweepStyles(diffArea)
 			}
 
-			// restore diffAreaOfId
+			// restore diffAreaOfId and diffAreasOfModelId
 			this.diffAreaOfId = {}
+			this.diffAreasOfModelId[model.id].clear()
 			for (let diffareaid in snapshottedDiffAreaOfId) {
 				this.diffAreaOfId[diffareaid] = {
 					...snapshottedDiffAreaOfId[diffareaid],
@@ -326,10 +319,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					_isStreaming: false,
 					_disposeSweepStyles: null,
 				}
-			}
-			// use it to restore diffAreasOfModelId
-			this.diffAreasOfModelId[model.id].clear()
-			for (let diffareaid in snapshottedDiffAreaOfId.diffAreaOfId) {
 				this.diffAreasOfModelId[model.id].add(diffareaid)
 			}
 			// restore originalFileStr of this model
@@ -337,34 +326,28 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 			// restore all the decorations
 			for (let diffareaid in this.diffAreaOfId) {
-				this._onGetNewDiffAreaText(this.diffAreaOfId[diffareaid], snapshottedOriginalFileStr, new UndoRedoGroup())
+				this._onGetNewDiffAreaText(this.diffAreaOfId[diffareaid], snapshottedOriginalFileStr)
 			}
 		}
 
-		const elt: IUndoRedoElement = {
-			type: UndoRedoElementType.Resource,
-			resource: model.uri,
-			label: 'Add Diffs',
-			code: 'undoredo.inlineDiffs',
-			// called when undoing this state
-			undo: () => {
-				// when the user undoes this element, revert to oldSnapshot
-				restoreDiffAreas(beforeSnapshot)
-			},
-			// called when restoring this state
-			redo: () => {
-				if (afterSnapshot === null) return
-				restoreDiffAreas(afterSnapshot)
-			}
-		}
-		const editGroup = new UndoRedoGroup()
-		this._undoRedoService.pushElement(elt, editGroup)
-
+		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
+		console.log('BEFORE', beforeSnapshot)
 		const onFinishEdit = () => {
-			if (afterSnapshot !== null) return
-			afterSnapshot = getCurrentSnapshot()
+			const afterSnapshot: HistorySnapshot = getCurrentSnapshot()
+			console.log('AFTER', afterSnapshot)
+
+			const elt: IUndoRedoElement = {
+				type: UndoRedoElementType.Resource,
+				resource: model.uri,
+				label: 'Add Diffs',
+				code: 'undoredo.inlineDiffs',
+				undo: () => { restoreDiffAreas(beforeSnapshot) },
+				redo: () => { restoreDiffAreas(afterSnapshot) }
+			}
+			this._undoRedoService.pushElement(elt)
+
 		}
-		return { onFinishEdit, editGroup }
+		return { onFinishEdit }
 	}
 
 
@@ -476,10 +459,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private _writeToModel(model: ITextModel, text: string, range: IRange, editorGroup: UndoRedoGroup) {
+	private _writeToModel(model: ITextModel, text: string, range: IRange) {
 		if (!model.isDisposed())
-			// model.applyEdits([{ range, text }]) // applies edits without adding them to undo/redo stack
-			model.pushEditOperations(null, [{ range, text }], () => null, editorGroup) // applies edits in the group
+			model.applyEdits([{ range, text }]) // applies edits without adding them to undo/redo stack
+		// model.pushEditOperations(null, [{ range, text }], () => null) // applies edits in the group
 
 		// this._bulkEditService.apply([new ResourceTextEdit(model.uri, {
 		// 	range: { startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
@@ -490,7 +473,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// @throttle(100)
-	private _onGetNewDiffAreaText(diffArea: DiffArea, newCodeSoFar: string, editorGroup: UndoRedoGroup) {
+	private _onGetNewDiffAreaText(diffArea: DiffArea, newCodeSoFar: string) {
 
 		const model = diffArea._model
 		// original code all diffs are based on
@@ -511,7 +494,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				model,
 				newCodeSoFar,
 				{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
-				editorGroup
 			)
 		}
 		// if streaming, use diffs to figure out where to write new code
@@ -556,7 +538,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				model,
 				newCode,
 				{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
-				editorGroup
 			)
 
 			// ----------- 2. Recompute sweep in the diffArea if streaming -----------
@@ -593,6 +574,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	private async _initializeStream(model: ITextModel, diffRepr: string) {
+
+		// update state state
+		if (!(model.id in this.originalFileStrOfModelId)) this.originalFileStrOfModelId[model.id] = model.getValue(EndOfLinePreference.LF)
+		if (!(model.id in this.diffAreasOfModelId)) this.diffAreasOfModelId[model.id] = new Set()
+
 		// diff area begin and end line
 		const beginLine = 0
 		const endLine = model.getLineCount()
@@ -612,7 +598,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// this._registerTextChangeListener(model)
 
 		// add to history
-		const { onFinishEdit, editGroup } = this._addToHistory(model)
+		const { onFinishEdit } = this._addToHistory(model)
 
 		// create a diffArea for the stream
 		const diffareaid = this._diffareaidPool++
@@ -660,10 +646,10 @@ Please finish writing the new file by applying the diff to the original file. Re
 					{ role: 'user', content: promptContent, }
 				],
 				onText: (newText: string, fullText: string) => {
-					this._onGetNewDiffAreaText(diffArea, fullText, editGroup)
+					this._onGetNewDiffAreaText(diffArea, fullText)
 				},
 				onFinalMessage: (fullText: string) => {
-					this._onGetNewDiffAreaText(diffArea, fullText, editGroup)
+					this._onGetNewDiffAreaText(diffArea, fullText)
 					resolve();
 				},
 				onError: (e: any) => {
@@ -674,6 +660,13 @@ Please finish writing the new file by applying the diff to the original file. Re
 				abortRef: { current: null },
 			})
 		})
+
+
+		// on end, commit this as the newly accepted originalFielStrOfModelId
+		// update state state
+		this.originalFileStrOfModelId[model.id] = model.getValue(EndOfLinePreference.LF) ?? ''
+
+
 		onFinishEdit()
 
 	}
@@ -691,17 +684,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		const model = editor.getModel()
 		if (!model) return
 
-		// update state state
-		const originalFileStr = await VSReadFile(this._fileService, model.uri)
-		if (originalFileStr === null) return
-		this.originalFileStrOfModelId[model.id] = originalFileStr
-
-		if (!(model.id in this.diffAreasOfModelId))
-			this.diffAreasOfModelId[model.id] = new Set()
-
-		// initialize stream
-		await this._initializeStream(model, userMessage)
-
+		this._initializeStream(model, userMessage)
 	}
 
 
@@ -730,14 +713,13 @@ Please finish writing the new file by applying the diff to the original file. Re
 		if (!diffArea) return
 
 		const model = diffArea._model
-		const { id: modelid, uri } = model
 
-		const originalFile = this.originalFileStrOfModelId[modelid]
-		const currentFile = await VSReadFile(this._fileService, uri)
+		const originalFile = this.originalFileStrOfModelId[model.id]
+		const currentFile = model.getValue(EndOfLinePreference.LF)
 		if (currentFile === null) return
 
 		// add to history
-		const { onFinishEdit, editGroup: _editGroup } = this._addToHistory(model)
+		const { onFinishEdit } = this._addToHistory(model)
 
 		// Fixed: Handle newlines properly by splitting into lines and joining with proper newlines
 		const originalLines = originalFile.split('\n');
@@ -753,7 +735,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 			...originalLines.slice(diff.originalEndLine + 1)
 		];
 
-		this.originalFileStrOfModelId[modelid] = newOriginalLines.join('\n');
+		this.originalFileStrOfModelId[model.id] = newOriginalLines.join('\n');
 
 		// // Update diff areas based on the change (this) - not sure why this is needed, accepting means there was no change
 		// this.resizeDiffAreas(modelid, [{
@@ -788,22 +770,20 @@ Please finish writing the new file by applying the diff to the original file. Re
 		if (!diffArea) return
 
 		const model = diffArea._model
-		const { id: modelid, uri } = model
 
-		const originalFile = this.originalFileStrOfModelId[modelid]
-		const currentFile = await VSReadFile(this._fileService, uri)
+		const originalFile = this.originalFileStrOfModelId[model.id]
+		const currentFile = model.getValue(EndOfLinePreference.LF)
 		if (currentFile === null) return
 
 
 		// add to history
-		const { onFinishEdit, editGroup } = this._addToHistory(model)
+		const { onFinishEdit } = this._addToHistory(model)
 
 		// Apply the rejection by replacing with original code (without putting it on the undo/redo stack, this is OK because we put it on the stack ourselves)
 		this._writeToModel(
 			model,
 			diff.originalCode,
 			{ startLineNumber: diffArea.startLine + 1, startColumn: 0, endLineNumber: diffArea.endLine + 1, endColumn: Number.MAX_SAFE_INTEGER, },
-			editGroup
 		)
 
 		// Check if diffArea should be removed

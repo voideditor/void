@@ -279,7 +279,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this._undoRedoService.pushElement(elt, editGroup)
 
 
-		const onFinishEdit = () => () => {
+		const onFinishEdit = () => {
 			if (afterSnapshot !== null) return
 			afterSnapshot = {
 				diffAreaOfId: structuredClone(this.diffAreaOfId),

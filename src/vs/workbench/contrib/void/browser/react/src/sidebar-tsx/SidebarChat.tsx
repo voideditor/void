@@ -39,26 +39,30 @@ const getBasename = (pathStr: string) => {
 	return parts[parts.length - 1]
 }
 
-export const SelectedFiles = ({ type, selections, setStagingSelns, }:
-	| { type: 'past', selections: CodeSelection[]; setStagingSelns?: undefined }
-	| { type: 'staging', selections: CodeStagingSelection[]; setStagingSelns: ((files: CodeStagingSelection[]) => void) }
+export const SelectedFiles = (
+	{ type, selections, setStaging }:
+		| { type: 'past', selections: CodeSelection[] | null; setStaging?: undefined }
+		| { type: 'staging', selections: CodeStagingSelection[] | null; setStaging: ((files: CodeStagingSelection[]) => void) }
 ) => {
 	return (
-		selections.length !== 0 && (
+		!!selections && selections.length !== 0 && (
 			<div className='flex flex-wrap -mx-1 -mb-1'>
 				{selections.map((selection, i) => (
 					<Fragment key={i}>
 
 						<button
-							disabled={!setStagingSelns}
+							disabled={!setStaging}
 							className={`btn btn-secondary btn-sm border border-vscode-input-border rounded flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default`}
 							type='button'
-							onClick={type === 'staging' ? () => setStagingSelns([...selections.slice(0, i), ...selections.slice(i + 1, Infinity)]) : undefined}
+							onClick={() => {
+								if (type !== 'staging') return
+								setStaging([...selections.slice(0, i), ...selections.slice(i + 1, Infinity)])
+							}}
 						>
 							<span>{getBasename(selection.fileURI.fsPath)}</span>
 
 							{/* X button */}
-							{!!setStagingSelns && <span className=''>
+							{type === 'staging' && <span className=''>
 								<svg
 									xmlns='http://www.w3.org/2000/svg'
 									fill='none'
@@ -74,14 +78,14 @@ export const SelectedFiles = ({ type, selections, setStagingSelns, }:
 								</svg>
 							</span>}
 						</button>
-						{selection.selectionStr && <BlockCode text={selection.selectionStr}
-							buttonsOnHover={(
-								<button
-									onClick={() => setStagingSelns?.([...selections.slice(0, i), { ...selection, selectionStr: null }, ...selections.slice(i + 1, Infinity)])}
-									className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-								>
-									Remove
-								</button>
+						{/* selection text */}
+						{type === 'staging' && selection.selectionStr && <BlockCode text={selection.selectionStr}
+							buttonsOnHover={(<button
+								onClick={() => {
+									setStaging([...selections.slice(0, i), { ...selection, selectionStr: null }, ...selections.slice(i + 1, Infinity)])
+								}}
+								className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+							>Remove</button>
 							)} />}
 					</Fragment>
 				))}
@@ -168,17 +172,15 @@ export const SidebarChat = () => {
 		threadsStateService.setStaging([]) // clear staging
 		setLatestError('')
 
-		const stagingSelections = threadsStateService.state._currentStagingSelections
-
-		const selections = await Promise.all(
-			stagingSelections.map(async (sel) => ({ ...sel, content: await VSReadFile(fileService, sel.fileURI) }))
+		const currSelns = threadsStateService.state._currentStagingSelections
+		const selections = !currSelns ? null : await Promise.all(
+			currSelns.map(async (sel) => ({ ...sel, content: await VSReadFile(fileService, sel.fileURI) }))
 		).then(
 			(files) => files.filter(file => file.content !== null) as CodeSelection[]
 		)
 
 		// add system message to chat history
 		const systemPromptElt: ChatMessage = { role: 'system', content: generateDiffInstructions }
-
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
 		const userContent = userInstructionsStr(instructions, selections)
@@ -215,11 +217,9 @@ export const SidebarChat = () => {
 			voidConfig,
 			abortRef: abortFnRef,
 		})
-
-
 	}
 
-	const onAbort = useCallback(() => {
+	const onAbort = () => {
 		// abort claude
 		abortFnRef.current?.()
 
@@ -231,12 +231,12 @@ export const SidebarChat = () => {
 		setMessageStream('')
 		setIsLoading(false)
 
-	}, [messageStream, threadsStateService])
+	}
 
 
 	const currentThread = threadsStateService.getCurrentThread(threadsState)
 
-	const selections = threadsState._currentStagingSelections ?? []
+	const selections = threadsState._currentStagingSelections
 
 	return <>
 		<div className="overflow-x-hidden space-y-4">
@@ -254,8 +254,8 @@ export const SidebarChat = () => {
 				<div className="relative">
 					<div className="input">
 						{/* selections */}
-						{(selections.length || selections) && <div className="p-2 pb-0 space-y-2">
-							<SelectedFiles type='staging' selections={selections} setStagingSelns={threadsStateService.setStaging} />
+						{(selections && selections.length !== 0) && <div className="p-2 pb-0 space-y-2">
+							<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
 						</div>}
 
 						<form

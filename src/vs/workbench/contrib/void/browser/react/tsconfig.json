@@ -1,5 +1,8 @@
 {
 	"compilerOptions": {
+		"strict": true,
+		"exactOptionalPropertyTypes": false,
+
 		"jsx": "react-jsx",
 		"moduleResolution": "NodeNext",
 		"module": "NodeNext",

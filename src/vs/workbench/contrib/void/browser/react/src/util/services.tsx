@@ -5,11 +5,11 @@ import { ThreadsState } from '../../../registerThreads.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
-let services: ReactServicesType | null = null
+let services: ReactServicesType
 
-let sidebarState: VoidSidebarState | null = null
-let configState: ConfigState | null = null
-let threadsState: ThreadsState | null = null
+let sidebarState: VoidSidebarState
+let configState: ConfigState
+let threadsState: ThreadsState
 
 const sidebarStateListeners: Set<(s: VoidSidebarState) => void> = new Set()
 const configStateListeners: Set<(s: ConfigState) => void> = new Set()

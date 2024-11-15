@@ -14,9 +14,9 @@ Selection: ${selectionStr}`}
 }
 
 
-export const userInstructionsStr = (instructions: string, selections: CodeSelection[]) => {
+export const userInstructionsStr = (instructions: string, selections: CodeSelection[] | null) => {
 	let str = '';
-	if (selections.length > 0) {
+	if (selections && selections.length > 0) {
 		str += filesStr(selections);
 		str += `Please edit the selected code following these instructions:\n`
 	}

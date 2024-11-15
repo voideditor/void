@@ -336,7 +336,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 			for (let computedDiff of computedDiffs) {
 				// add the view zone
-				const greenRange: IRange = { startLineNumber: computedDiff.startLine, startColumn: 0, endLineNumber: computedDiff.endLine, endColumn: Number.MAX_SAFE_INTEGER, }
+				const greenRange: IRange = { startLineNumber: computedDiff.startLine + 1, startColumn: 0, endLineNumber: computedDiff.endLine + 1, endColumn: Number.MAX_SAFE_INTEGER, }
 				const dispose = this._addInlineDiffZone(model, computedDiff.originalCode, greenRange)
 
 				// create a Diff of it
@@ -772,7 +772,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		this._writeToModel(
 			model,
 			diff.originalCode,
-			{ startLineNumber: diffArea.startLine, startColumn: 0, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, },
+			{ startLineNumber: diffArea.startLine + 1, startColumn: 0, endLineNumber: diffArea.endLine + 1, endColumn: Number.MAX_SAFE_INTEGER, },
 			editGroup
 		)
 

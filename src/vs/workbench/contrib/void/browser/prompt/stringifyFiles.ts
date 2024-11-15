@@ -1,55 +1,25 @@
 
-import { URI } from '../../../../../base/common/uri.js';
+import { CodeSelection } from '../registerThreads.js';
 
+export const filesStr = (selections: CodeSelection[]) => {
 
-export type LLMCodeSelection = { selectionStr: string; filePath: URI }
-export type LLMFile = { content: string, filepath: URI }
-
-export const filesStr = (fullFiles: LLMFile[]) => {
-	return fullFiles.map(({ filepath, content }) =>
-		`
-${filepath.fsPath}
+	return selections.map(({ fileURI, content, selectionStr }) =>
+		`\
+File: ${fileURI.fsPath}
 \`\`\`
 ${content}
-\`\`\``).join('\n')
+\`\`\`${selectionStr === null ? '' : `
+Selection: ${selectionStr}`}
+`).join('\n')
 }
 
 
-export const userInstructionsStr = (instructions: string, files: LLMFile[], selection: LLMCodeSelection | null) => {
+export const userInstructionsStr = (instructions: string, selections: CodeSelection[]) => {
 	let str = '';
-
-	if (files.length > 0) {
-		str += filesStr(files);
+	if (selections.length > 0) {
+		str += filesStr(selections);
+		str += `Please edit the selected code following these instructions:\n`
 	}
-
-	if (selection) {
-		str += `
-I am currently selecting this code:
-\t\`\`\`${selection.selectionStr}\`\`\`
-`;
-	}
-
-	if (files.length > 0 && selection) {
-		str += `
-Please edit the selected code or the entire file following these instructions:
-`;
-	} else if (files.length > 0) {
-		str += `
-Please edit the file following these instructions:
-`;
-	} else if (selection) {
-		str += `
-Please edit the selected code following these instructions:
-`;
-	}
-
-	str += `
-\t${instructions}
-`;
-	if (files.length > 0) {
-		str += `
-\tIf you make a change, rewrite the entire file.
-`; // TODO don't rewrite the whole file on prompt, instead rewrite it when click Apply
-	}
+	str += `${instructions}`;
 	return str;
 };

@@ -28,7 +28,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
-import { IThreadHistoryService } from './registerThreads.js';
+import { CodeStagingSelection, IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
@@ -44,6 +44,8 @@ import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 import { IVoidConfigStateService } from './registerConfig.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
+import { IEditorService } from '../../../services/editor/common/editorService.js';
+import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
@@ -169,6 +171,8 @@ export interface IVoidSidebarStateService {
 	onDidBlurChat: Event<void>;
 	fireFocusChat(): void;
 	fireBlurChat(): void;
+
+	openView(): void;
 }
 
 
@@ -192,8 +196,9 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 
 	setState(newState: Partial<VoidSidebarState>) {
 		// make sure view is open if the tab changes
-		if ('currentTab' in newState)
-			this._viewsService.openView(SIDEBAR_VIEW_ID);
+		if ('currentTab' in newState) {
+			this.openView()
+		}
 
 		this.state = { ...this.state, ...newState }
 		this._onDidChangeState.fire()
@@ -207,12 +212,18 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 		this._onBlurChat.fire()
 	}
 
+	openView() {
+		this._viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
+		this._viewsService.openView(SIDEBAR_VIEW_ID);
+	}
+
 	constructor(
 		@IViewsService private readonly _viewsService: IViewsService,
+		// @IThreadHistoryService private readonly _threadHistoryService: IThreadHistoryService,
 	) {
 		super()
 		// auto open the view on mount (if it bothers you this is here, this is technically just initializing the state of the view)
-		this._viewsService.openView(SIDEBAR_VIEW_ID);
+		this.openView()
 
 		// initial state
 		this.state = {
@@ -233,27 +244,41 @@ registerSingleton(IVoidSidebarStateService, VoidSidebarStateService, Instantiati
 // Action: when press ctrl+L, show the sidebar chat and add to the selection
 registerAction2(class extends Action2 {
 	constructor() {
-		super({ id: 'void.ctrl+l', title: 'Show Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.WorkbenchContrib } });
+		super({ id: 'void.ctrl+l', title: 'Show Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
+
+		const model = accessor.get(ICodeEditorService).getActiveCodeEditor()?.getModel()
+		if (!model)
+			return
+
+
 		const stateService = accessor.get(IVoidSidebarStateService)
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.fireFocusChat()
 
-		// const selection = accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+		// add selection
+		const threadHistoryService = accessor.get(IThreadHistoryService)
+		const currentStaging = threadHistoryService.state._currentStagingSelections
+		const currentStagingEltIdx = currentStaging?.findIndex(s => s.fileURI.fsPath === model.uri.fsPath)
 
+		// if there exists a selection with this URI, replace it
+		const selectionRange = accessor.get(IEditorService).activeTextEditorControl?.getSelection()
 
-		// chat state:
-		// // if user pressed ctrl+l, add their selection to the sidebar
-		// useOnVSCodeMessage('ctrl+l', (m) => {
-		// 	setSelection(m.selection)
-		// 	const filepath = m.selection.filePath
+		if (selectionRange) {
+			const selection: CodeStagingSelection = { selectionStr: model.getValueInRange(selectionRange), fileURI: model.uri }
 
-		// 	// add current file to the context if it's not already in the files array
-		// 	if (!files.find(f => f.fsPath === filepath.fsPath))
-		// 		setFiles(files => [...files, filepath])
-		// })
-
+			if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
+				threadHistoryService.setStaging([
+					...currentStaging!.slice(0, currentStagingEltIdx),
+					selection,
+					...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
+				])
+			}
+			else {
+				threadHistoryService.setStaging([...(currentStaging ?? []), selection])
+			}
+		}
 
 	}
 });

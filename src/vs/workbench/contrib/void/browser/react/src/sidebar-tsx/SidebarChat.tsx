@@ -1,12 +1,12 @@
-import React, { FormEvent, useCallback, useRef, useState } from 'react';
+import React, { FormEvent, Fragment, useCallback, useRef, useState } from 'react';
 
 
 import { useConfigState, useService, useThreadsState } from '../util/services.js';
-import { URI } from '../../../../../../../base/common/uri.js';
 import { VSReadFile } from '../../../registerInlineDiffs.js';
 import { sendLLMMessage } from '../util/sendLLMMessage.js';
 import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
-import { LLMCodeSelection, userInstructionsStr } from '../../../prompt/stringifyFiles.js';
+import { userInstructionsStr } from '../../../prompt/stringifyFiles.js';
+import { CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { MarkdownRender } from '../markdown/MarkdownRender.js';
@@ -17,8 +17,7 @@ export type ChatMessage =
 		role: 'user';
 		content: string; // content sent to the llm
 		displayContent: string; // content displayed to user
-		selection: LLMCodeSelection | null; // the user's selection
-		files: URI[]; // the files sent in the message
+		selections: CodeSelection[] | null; // the user's selection
 	}
 	| {
 		role: 'assistant';
@@ -40,37 +39,51 @@ const getBasename = (pathStr: string) => {
 	return parts[parts.length - 1]
 }
 
-export const SelectedFiles = ({ files, setFiles, }: { files: URI[]; setFiles: null | ((files: URI[]) => void) }) => {
+export const SelectedFiles = ({ type, selections, setStagingSelns, }:
+	| { type: 'past', selections: CodeSelection[]; setStagingSelns?: undefined }
+	| { type: 'staging', selections: CodeStagingSelection[]; setStagingSelns: ((files: CodeStagingSelection[]) => void) }
+) => {
 	return (
-		files.length !== 0 && (
+		selections.length !== 0 && (
 			<div className='flex flex-wrap -mx-1 -mb-1'>
-				{files.map((filename, i) => (
-					<button
-						key={filename.path}
-						disabled={!setFiles}
-						className={`btn btn-secondary btn-sm border border-vscode-input-border rounded flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default`}
-						type='button'
-						onClick={() => setFiles?.([...files.slice(0, i), ...files.slice(i + 1, Infinity)])}
-					>
-						<span>{getBasename(filename.fsPath)}</span>
+				{selections.map((selection, i) => (
+					<Fragment key={i}>
 
-						{/* X button */}
-						{!!setFiles && <span className=''>
-							<svg
-								xmlns='http://www.w3.org/2000/svg'
-								fill='none'
-								viewBox='0 0 24 24'
-								stroke='currentColor'
-								className='size-4'
-							>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									d='M6 18 18 6M6 6l12 12'
-								/>
-							</svg>
-						</span>}
-					</button>
+						<button
+							disabled={!setStagingSelns}
+							className={`btn btn-secondary btn-sm border border-vscode-input-border rounded flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default`}
+							type='button'
+							onClick={type === 'staging' ? () => setStagingSelns([...selections.slice(0, i), ...selections.slice(i + 1, Infinity)]) : undefined}
+						>
+							<span>{getBasename(selection.fileURI.fsPath)}</span>
+
+							{/* X button */}
+							{!!setStagingSelns && <span className=''>
+								<svg
+									xmlns='http://www.w3.org/2000/svg'
+									fill='none'
+									viewBox='0 0 24 24'
+									stroke='currentColor'
+									className='size-4'
+								>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										d='M6 18 18 6M6 6l12 12'
+									/>
+								</svg>
+							</span>}
+						</button>
+						{selection.selectionStr && <BlockCode text={selection.selectionStr}
+							buttonsOnHover={(
+								<button
+									onClick={() => setStagingSelns?.([...selections.slice(0, i), { ...selection, selectionStr: null }, ...selections.slice(i + 1, Infinity)])}
+									className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+								>
+									Remove
+								</button>
+							)} />}
+					</Fragment>
 				))}
 			</div>
 		)
@@ -90,11 +103,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 	if (role === 'user') {
 		chatbubbleContents = <>
-			<SelectedFiles files={chatMessage.files} setFiles={null} />
-			{chatMessage.selection?.selectionStr && <BlockCode
-				text={chatMessage.selection.selectionStr}
-				buttonsOnHover={null}
-			/>}
+			<SelectedFiles type='past' selections={chatMessage.selections} />
 			{children}
 		</>
 	}
@@ -133,8 +142,6 @@ export const SidebarChat = () => {
 
 	// ----- SIDEBAR CHAT state (local) -----
 	// state of current message
-	const [selection, setSelection] = useState<LLMCodeSelection | null>(null) // the code the user is selecting
-	const [files, setFiles] = useState<URI[]>([]) // the names of the files in the chat
 	const [instructions, setInstructions] = useState('') // the user's instructions
 
 	// state of chat
@@ -143,8 +150,6 @@ export const SidebarChat = () => {
 	const abortFnRef = useRef<(() => void) | null>(null)
 
 	const [latestError, setLatestError] = useState('')
-
-
 
 
 
@@ -160,16 +165,15 @@ export const SidebarChat = () => {
 		setIsLoading(true)
 		setInstructions('');
 		formRef.current?.reset(); // reset the form's text when clear instructions or unexpected behavior happens
-		setSelection(null)
-		setFiles([])
+		threadsStateService.setStaging([]) // clear staging
 		setLatestError('')
 
+		const stagingSelections = threadsStateService.state._currentStagingSelections
 
-
-		const relevantFiles = await Promise.all(
-			files.map(async (filepath) => ({ content: await VSReadFile(fileService, filepath), filepath }))
+		const selections = await Promise.all(
+			stagingSelections.map(async (sel) => ({ ...sel, content: await VSReadFile(fileService, sel.fileURI) }))
 		).then(
-			(files) => files.filter(file => file.content !== null) as {content:string, filepath:URI}[]
+			(files) => files.filter(file => file.content !== null) as CodeSelection[]
 		)
 
 		// add system message to chat history
@@ -177,8 +181,8 @@ export const SidebarChat = () => {
 
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
-		const userContent = userInstructionsStr(instructions, relevantFiles, selection)
-		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selection, files }
+		const userContent = userInstructionsStr(instructions, selections)
+		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selections }
 		threadsStateService.addMessageToCurrentThread(newHistoryElt)
 
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
@@ -231,6 +235,9 @@ export const SidebarChat = () => {
 
 
 	const currentThread = threadsStateService.getCurrentThread(threadsState)
+
+	const selections = threadsState._currentStagingSelections ?? []
+
 	return <>
 		<div className="overflow-x-hidden space-y-4">
 			{/* previous messages */}
@@ -246,22 +253,9 @@ export const SidebarChat = () => {
 			<div className="text-left">
 				<div className="relative">
 					<div className="input">
-						{/* selection */}
-						{(files.length || selection?.selectionStr) && <div className="p-2 pb-0 space-y-2">
-							{/* selected files */}
-							<SelectedFiles files={files} setFiles={setFiles} />
-							{/* selected code */}
-							{!!selection?.selectionStr && (
-								<BlockCode text={selection.selectionStr}
-									buttonsOnHover={(
-										<button
-											onClick={() => setSelection(null)}
-											className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-										>
-											Remove
-										</button>
-									)} />
-							)}
+						{/* selections */}
+						{(selections.length || selections) && <div className="p-2 pb-0 space-y-2">
+							<SelectedFiles type='staging' selections={selections} setStagingSelns={threadsStateService.setStaging} />
 						</div>}
 
 						<form

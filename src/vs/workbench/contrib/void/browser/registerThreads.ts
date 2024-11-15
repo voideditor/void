@@ -6,15 +6,24 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 
-export type CodeSelection = { selectionStr: string; filePath: URI }
+// if selectionStr is null, it means just send the whole file
+export type CodeSelection = {
+	selectionStr: string | null;
+	fileURI: URI,
+	content: string;
+}
+
+export type CodeStagingSelection = {
+	selectionStr: string | null;
+	fileURI: URI;
+}
 
 export type ChatMessage =
 	| {
 		role: 'user';
 		content: string; // content sent to the llm
 		displayContent: string; // content displayed to user
-		selection: CodeSelection | null; // the user's selection
-		files: URI[]; // the files sent in the message
+		selections: CodeSelection[] | null; // the user's selection
 	}
 	| {
 		role: 'assistant';
@@ -40,6 +49,7 @@ export type ChatThreads = {
 export type ThreadsState = {
 	allThreads: ChatThreads;
 	_currentThreadId: string | null; // intended for internal use only
+	_currentStagingSelections: CodeStagingSelection[] | null;
 }
 
 
@@ -64,8 +74,10 @@ export interface IThreadHistoryService {
 	getCurrentThread(state: ThreadsState): ChatThreads[string] | null;
 	startNewThread(): void;
 	switchToThread(threadId: string): void;
-	startNewThread(): void;
 	addMessageToCurrentThread(message: ChatMessage): void;
+
+	setStaging(stagingSelection: CodeStagingSelection[] | null): void;
+
 }
 
 export const IThreadHistoryService = createDecorator<IThreadHistoryService>('voidThreadHistoryService');
@@ -84,8 +96,9 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 		super()
 
 		this.state = {
+			allThreads: this._readAllThreads(),
 			_currentThreadId: null,
-			allThreads: this._readAllThreads()
+			_currentStagingSelections: null,
 		}
 	}
 
@@ -105,7 +118,8 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 			...this.state,
 			...state
 		}
-		if (affectsCurrent) this._onDidChangeCurrentThread.fire()
+		if (affectsCurrent)
+			this._onDidChangeCurrentThread.fire()
 	}
 
 	// must "prove" that you have access to the current state by providing it
@@ -164,6 +178,11 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 		}
 		this._storeAllThreads(newThreads)
 		this._setState({ allThreads: newThreads }, true) // the current thread just changed (it had a message added to it)
+	}
+
+
+	setStaging(stagingSelection: CodeStagingSelection[] | null): void {
+		this._setState({ _currentStagingSelections: stagingSelection }, true) // this is a hack for now
 	}
 
 }

@@ -24,10 +24,11 @@ import { IVoidSidebarStateService, VOID_VIEW_ID } from './registerSidebar.js';
 const roundRangeToLines = (range: IRange | null | undefined) => {
 	if (!range)
 		return null
-	let endLine = range.endColumn === 0 ? range.endLineNumber - 1 : range.endLineNumber // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
+	// IRange is 1-indexed
+	let endLine = range.endColumn === 1 ? range.endLineNumber - 1 : range.endLineNumber // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
 	const newRange: IRange = {
 		startLineNumber: range.startLineNumber,
-		startColumn: 0,
+		startColumn: 1,
 		endLineNumber: endLine,
 		endColumn: Number.MAX_SAFE_INTEGER
 	}

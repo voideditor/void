@@ -166,11 +166,6 @@ export const SidebarChat = () => {
 		if (isDisabled) return
 		if (isLoading) return
 
-		setIsLoading(true)
-		setInstructions('');
-		formRef.current?.reset(); // reset the form's text when clear instructions or unexpected behavior happens
-		threadsStateService.setStaging([]) // clear staging
-		setLatestError('')
 
 		const currSelns = threadsStateService.state._currentStagingSelections
 		const selections = !currSelns ? null : await Promise.all(
@@ -217,6 +212,14 @@ export const SidebarChat = () => {
 			voidConfig,
 			abortRef: abortFnRef,
 		})
+
+
+		setIsLoading(true)
+		setInstructions('');
+		formRef.current?.reset(); // reset the form's text when clear instructions or unexpected behavior happens
+		threadsStateService.setStaging([]) // clear staging
+		setLatestError('')
+
 	}
 
 	const onAbort = () => {

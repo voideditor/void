@@ -16,6 +16,7 @@ import { findDiffs } from './findDiffs.js';
 import { EndOfLinePreference, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
+// import { IModelService } from '../../../../editor/common/services/model.js';
 
 
 
@@ -46,7 +47,7 @@ export type Diff = {
 	startCol: number;
 	endCol: number;
 
-	disposeStyles: (() => void) | null;
+	_disposeStyles: (() => void) | null;
 
 	// _zone: IViewZone | null,
 	// _decorationId: string | null,
@@ -54,7 +55,7 @@ export type Diff = {
 
 
 
-// _ means computed later, temporary, or part of current state
+// _ means anything we don't include if we clone it
 type DiffArea = {
 	diffareaid: number,
 	originalStartLine: number,
@@ -62,18 +63,28 @@ type DiffArea = {
 	startLine: number,
 	endLine: number,
 
-	_diffs: Diff[],
-	_model: ITextModel, // the model or "document" this diffarea lives on
-	_generationid: number,
+	_model: ITextModel, // the model, computed by modelUriComponents
 	_sweepLine: number | null,
 	_sweepCol: number | null,
+	_diffs: Diff[],
+	// _generationid: number,
 }
 
+const diffAreaSnapshotKeys = [
+	'diffareaid',
+	'originalStartLine',
+	'originalEndLine',
+	'startLine',
+	'endLine',
+] as const
+
+type DiffAreaSnapshot = Pick<DiffArea, typeof diffAreaSnapshotKeys[number]>
 
 
 
 type HistorySnapshot = {
-	diffAreaOfId: Record<string, DiffArea>,
+	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>,
+	snapshottedOriginalFileStr: string, // snapshot knows which model it belongs to
 } &
 	({
 		type: 'ctrl+k',
@@ -119,7 +130,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	diffAreaOfId: Record<string, DiffArea> = {};
 	diffOfId: Record<string, Diff> = {}; // redundant with diffArea._diffs
 
-	_generationidPool = 0 // diffs that were generated together all get the same id (not sure if we'll use this or not but keeping it)
+	// _generationidPool = 0 // diffs that were generated together all get the same id (not sure if we'll use this or not but keeping it)
 	_diffareaidPool = 0 // each diffarea has an id
 	_diffidPool = 0 // each diff has an id
 
@@ -129,9 +140,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 		@IFileService private readonly _fileService: IFileService,
+		// @IModelService private readonly _modelService: IModelService,
 
 	) {
 		super();
+
 
 	}
 
@@ -234,57 +247,78 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-
-
-
-
 	private _addToHistory(model: ITextModel) {
 
-		const uri = model.uri
+		const getCurrentSnapshot = (): HistorySnapshot => {
+			const diffAreaOfId = this.diffAreaOfId
 
-		const beforeSnapshot: HistorySnapshot = {
-			diffAreaOfId: structuredClone(this.diffAreaOfId),
-			type: 'ctrl+l',
+			const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
+			for (let diffareaid in diffAreaOfId) {
+				const diffArea = diffAreaOfId[diffareaid]
+				snapshottedDiffAreaOfId[diffareaid] = structuredClone( // a structured clone must be on a JSON object
+					Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
+				) as DiffAreaSnapshot
+			}
+			const snapshottedOriginalFileStr = this.originalFileStrOfModelId[model.id]
+			return {
+				snapshottedDiffAreaOfId,
+				snapshottedOriginalFileStr,
+				type: 'ctrl+l',
+			}
+
 		}
 
-		let afterSnapshot: HistorySnapshot | null = null
+		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
+		let afterSnapshot: HistorySnapshot | null = null // this is set later
 
-		const replaceDiffAreas = (newDiffAreaOfId: typeof this.diffAreaOfId) => {
-			this.diffAreaOfId = structuredClone(newDiffAreaOfId)
+		const restoreDiffAreas = (snapshot: HistorySnapshot) => {
+			const { snapshottedDiffAreaOfId, snapshottedOriginalFileStr } = structuredClone(snapshot) // don't want to destroy the snapshot
+
+			// restore diffAreaOfId
+			this.diffAreaOfId = {}
+			for (let diffareaid in snapshottedDiffAreaOfId) {
+				this.diffAreaOfId[diffareaid] = {
+					...snapshottedDiffAreaOfId[diffareaid],
+					_diffs: [],
+					_model: model,
+					_sweepCol: null,
+					_sweepLine: null,
+				}
+			}
+			// use it to restore diffAreasOfModelId
 			this.diffAreasOfModelId[model.id].clear()
-			for (let diffareaid in beforeSnapshot.diffAreaOfId) {
+			for (let diffareaid in snapshottedDiffAreaOfId.diffAreaOfId) {
 				this.diffAreasOfModelId[model.id].add(diffareaid)
 			}
+			// restore originalFileStr of this model
+			this.originalFileStrOfModelId[model.id] = snapshottedOriginalFileStr
+
 			this._refreshAllDiffsAndStyles(model)
 			this._refreshSweepStyles(model)
 		}
 
 		const elt: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
-			resource: uri,
+			resource: model.uri,
 			label: 'Add Diffs',
 			code: 'undoredo.inlineDiffs',
 			// called when undoing this state
 			undo: () => {
 				// when the user undoes this element, revert to oldSnapshot
-				replaceDiffAreas(beforeSnapshot.diffAreaOfId)
+				restoreDiffAreas(beforeSnapshot)
 			},
 			// called when restoring this state
 			redo: () => {
 				if (afterSnapshot === null) return
-				replaceDiffAreas(afterSnapshot.diffAreaOfId)
+				restoreDiffAreas(afterSnapshot)
 			}
 		}
 		const editGroup = new UndoRedoGroup()
 		this._undoRedoService.pushElement(elt, editGroup)
 
-
 		const onFinishEdit = () => {
 			if (afterSnapshot !== null) return
-			afterSnapshot = {
-				diffAreaOfId: structuredClone(this.diffAreaOfId),
-				type: 'ctrl+l',
-			}
+			afterSnapshot = getCurrentSnapshot()
 		}
 		return { onFinishEdit, editGroup }
 	}
@@ -294,7 +328,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	private _deleteDiffs(diffArea: DiffArea) {
 		for (const diff of diffArea._diffs) {
-			diff.disposeStyles?.()
+			diff._disposeStyles?.()
 			delete this.diffOfId[diff.diffid]
 		}
 		diffArea._diffs = []
@@ -313,14 +347,12 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	// for every diffarea in this document, recompute its diffs and restyle it (the two are coupled)
 	private _refreshAllDiffsAndStyles(model: ITextModel) {
 
-		const modelid = model.id
-
-		const originalFile = this.originalFileStrOfModelId[modelid]
+		const originalFile = this.originalFileStrOfModelId[model.id]
 		if (originalFile === undefined) return
 
 		// ------------ recompute all diffs in each diffarea ------------
 		// for each diffArea
-		for (const diffareaid of this.diffAreasOfModelId[modelid]) {
+		for (const diffareaid of this.diffAreasOfModelId[model.id]) {
 
 			const diffArea = this.diffAreaOfId[diffareaid]
 
@@ -332,7 +364,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const currentCode = model.getValue(EndOfLinePreference.LF).split('\n').slice(diffArea.startLine, diffArea.endLine + 1).join('\n')
 
 			const computedDiffs = findDiffs(originalCode, currentCode)
-
+			console.log('Length of computed:', computedDiffs.length)
 
 			for (let computedDiff of computedDiffs) {
 				// add the view zone
@@ -344,7 +376,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				const newDiff: Diff = {
 					diffid: diffid,
 					diffareaid: diffArea.diffareaid,
-					disposeStyles: dispose,
+					_disposeStyles: dispose,
 					...computedDiff,
 				}
 
@@ -475,6 +507,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	private _writeToModel(model: ITextModel, text: string, range: IRange, editorGroup: UndoRedoGroup) {
+
 		if (!model.isDisposed())
 			model.pushEditOperations(null, [{ range, text }], () => null, editorGroup)
 	}
@@ -579,7 +612,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// create a diffArea for the stream
 		const diffareaid = this._diffareaidPool++
-		const generationid = this._generationidPool++
+		// const generationid = this._generationidPool++
 
 		// in ctrl+L the start and end lines are the full document
 		const diffArea: DiffArea = {
@@ -591,7 +624,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_model: model,
 			_sweepLine: null,
 			_sweepCol: null,
-			_generationid: generationid,
+			// _generationid: generationid,
 			_diffs: [], // added later
 		}
 

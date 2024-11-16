@@ -1,18 +1,20 @@
 
 import { Range } from 'vscode';
-import { Diff } from './registerInlineDiffs';
-
 import { diffLines } from './react/out/util/diffLines.js'
 
-type Fields =
-	| 'type'
-	| 'originalCode'
-	| 'originalStartLine' | 'originalEndLine'
-	| 'startLine' | 'endLine'
-	| 'startCol' | 'endCol'
+export type BaseDiff = {
+	type: 'edit' | 'insertion' | 'deletion';
+	originalCode: string;
 
+	startLine: number; // 1-indexed
+	endLine: number;
+	originalStartLine: number;
+	originalEndLine: number;
 
-export type BaseDiff = Pick<Diff, Fields>
+	startCol: number; // 1-indexed
+	endCol: number;
+}
+
 
 // Andrew diff algo:
 export type SuggestedEdit = {

@@ -63,11 +63,11 @@ export type Diff = {
 
 	startLine: number; // 1-indexed
 	endLine: number;
-	originalStartLine: number;
-	originalEndLine: number;
+	// originalStartLine: number;
+	// originalEndLine: number;
 
-	startCol: number; // 1-indexed
-	endCol: number;
+	// startCol: number; // 1-indexed
+	// endCol: number;
 
 	_disposeDiffZone: (() => void) | null;
 
@@ -80,8 +80,8 @@ export type Diff = {
 // _ means anything we don't include if we clone it
 type DiffArea = {
 	diffareaid: number,
-	originalStartLine: number,
-	originalEndLine: number,
+	// originalStartLine: number,
+	// originalEndLine: number,
 	originalCode: string,
 	startLine: number,
 	endLine: number,
@@ -198,7 +198,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	// 	this._register(
 	// 		model.onDidChangeContent(e => {
 	// 			const changes = e.changes.map(c => ({ startLine: c.range.startLineNumber, endLine: c.range.endLineNumber, text: c.text, }))
-	// 			this._resizeOnTextChange(model.id, changes, 'currentFile')
+	// 			this._realignDiffAreas(model.id, changes, 'currentFile')
 	// 			this._refreshAllDiffs(model)
 	// 		})
 	// 	)
@@ -210,57 +210,55 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	// 	)
 	// }
 
-	// // changes the start/line locations based on the changes that were recently made. does not change any of the diffs in the diff areas
-	// // changes tells us how many lines were inserted/deleted so we can grow/shrink the diffAreas accordingly
-	// private _resizeOnTextChange(modelid: string, changes: { text: string, startLine: number, endLine: number }[], changesTo: 'originalFile' | 'currentFile') {
 
-	// 	// resize all diffareas on page (adjust their start/end based on the change)
 
-	// 	let endLine: 'originalEndLine' | 'endLine'
-	// 	let startLine: 'originalStartLine' | 'startLine'
 
-	// 	if (changesTo === 'originalFile') {
-	// 		endLine = 'originalEndLine' as const
-	// 		startLine = 'originalStartLine' as const
-	// 	} else {
-	// 		endLine = 'endLine' as const
-	// 		startLine = 'startLine' as const
-	// 	}
+	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
+	private _realignDiffAreas(model: ITextModel, change: { startLine: number; endLine: number; text: string }, changesTo: 'originalFile' | 'currentFile') {
 
-	// 	// here, `change.range` is the range of the original file that gets replaced with `change.text`
-	// 	for (const change of changes) {
+		let endLine: 'originalEndLine' | 'endLine'
+		let startLine: 'originalStartLine' | 'startLine'
 
-	// 		// compute net number of newlines lines that were added/removed
-	// 		const numNewLines = (change.text.match(/\n/g) || []).length
-	// 		const numLineDeletions = change.endLine - change.startLine
-	// 		const deltaNewlines = numNewLines - numLineDeletions
+		if (changesTo === 'currentFile') {
+			endLine = 'endLine' as const
+			startLine = 'startLine' as const
+		} else {
+			endLine = 'originalEndLine' as const
+			startLine = 'originalStartLine' as const
+		}
 
-	// 		// compute overlap with each diffArea and shrink/elongate each diffArea accordingly
-	// 		for (const diffareaid of this.diffAreasOfModelId[modelid] || []) {
-	// 			const diffArea = this.diffAreaOfId[diffareaid]
+		// `change.range` is the range of the original file that gets replaced with `change.text`
 
-	// 			// if the change is fully within the diffArea, elongate it by the delta amount of newlines
-	// 			if (change.startLine >= diffArea[startLine] && change.endLine <= diffArea[endLine]) {
-	// 				diffArea[endLine] += deltaNewlines
-	// 			}
-	// 			// check if the `diffArea` was fully deleted and remove it if so
-	// 			if (diffArea[startLine] > diffArea[endLine]) {
-	// 				this.diffAreasOfModelId[modelid].delete(diffareaid)
-	// 				continue
-	// 			}
+		// compute net number of newlines lines that were added/removed
+		const numNewLines = (change.text.match(/\n/g) || []).length
+		const numLineDeletions = change.endLine - change.startLine
+		const deltaNewlines = numNewLines - numLineDeletions
 
-	// 			// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
-	// 			if (diffArea[startLine] > change.endLine) {
-	// 				diffArea[startLine] += deltaNewlines
-	// 				diffArea[endLine] += deltaNewlines
-	// 			}
+		// compute overlap with each diffArea and shrink/elongate each diffArea accordingly
+		for (const diffareaid of this.diffAreasOfModelId[model.id] || []) {
+			const diffArea = this.diffAreaOfId[diffareaid]
 
-	// 			// TODO handle other cases where eg. the change overlaps many diffAreas
-	// 		}
-	// 		// TODO merge any diffAreas if they overlap with each other as a result from the shift
+			// if the change is fully within the diffArea, elongate it by the delta amount of newlines
+			if (change.startLine >= diffArea[startLine] && change.endLine <= diffArea[endLine]) {
+				diffArea[endLine] += deltaNewlines
+			}
+			// check if the `diffArea` was fully deleted and remove it if so
+			if (diffArea[startLine] > diffArea[endLine]) {
+				this.diffAreasOfModelId[model.id].delete(diffareaid)
+				continue
+			}
 
-	// 	}
-	// }
+			// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
+			if (diffArea[startLine] > change.endLine) {
+				diffArea[startLine] += deltaNewlines
+				diffArea[endLine] += deltaNewlines
+			}
+
+			// TODO handle other cases where eg. the change overlaps many diffAreas
+			// TODO merge any diffAreas if they overlap with each other as a result from the shift
+
+		}
+	}
 
 
 
@@ -507,17 +505,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-
-
-
-
-
-
-
-
 	private _writeToModel(model: ITextModel, text: string, range: IRange) {
 		if (!model.isDisposed())
 			model.applyEdits([{ range, text }]) // applies edits without adding them to undo/redo stack
+
+		// realign diffAreas
+		this._realignDiffAreas(model, ,)
+
+
 		// model.pushEditOperations(null, [{ range, text }], () => null) // applies edits in the group
 
 		// this._bulkEditService.apply([new ResourceTextEdit(model.uri, {
@@ -525,6 +520,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// 	text: newCode
 		// })], { undoRedoGroupId: editorGroup.id }); // count all changes towards the group
 	}
+
 
 
 
@@ -582,8 +578,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}
 
 			// lines are 1-indexed
-			const newFileTop = newCodeSoFar.split('\n').slice(0, (newFileEndLine - 1)).join('\n')
 			const oldFileBottom = diffArea.originalCode.split('\n').slice((oldFileStartLine - 1), Infinity).join('\n')
+			const newFileTop = newCodeSoFar.split('\n').slice(0, (newFileEndLine - 1)).join('\n')
 
 			let newCode = `${newFileTop}\n${oldFileBottom}`
 
@@ -659,8 +655,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// in ctrl+L the start and end lines are the full document
 		const diffArea: DiffArea = {
 			diffareaid: diffareaid,
-			originalStartLine: beginLine,
-			originalEndLine: endLine,
+			// originalStartLine: beginLine,
+			// originalEndLine: endLine,
 			originalCode: originalCode,
 			startLine: beginLine,
 			endLine: endLine, // starts out the same as the current file
@@ -713,6 +709,9 @@ Please finish writing the new file by applying the diff to the original file. Re
 				abortRef: { current: null },
 			})
 		})
+
+		// on done, update original
+		diffArea.originalCode =
 
 		// onFinishEdit()
 

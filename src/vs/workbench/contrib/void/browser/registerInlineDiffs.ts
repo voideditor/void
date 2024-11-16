@@ -4,7 +4,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ICodeEditor, IViewZone } from '../../../../editor/browser/editorBrowser.js';
 
-import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType } from '../../../../platform/undoRedo/common/undoRedo.js';
+// import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 // import { throttle } from '../../../../base/common/decorators.js';
@@ -14,7 +14,40 @@ import { findDiffs } from './findDiffs.js';
 import { EndOfLinePreference, IModelDecorationOptions, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
+import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
+import { Color, RGBA } from '../../../../base/common/color.js';
 // import { IModelService } from '../../../../editor/common/services/model.js';
+
+
+
+// gets converted to --vscode-void-greenBG, see void.css
+const greenBG = new Color(new RGBA(155, 185, 85, .3)); // default is RGBA(155, 185, 85, .2)
+registerColor('void.greenBG', {
+	dark: greenBG,
+	light: greenBG, hcDark: null, hcLight: null
+}, '', true);
+
+const redBG = new Color(new RGBA(255, 0, 0, .3)); // default is RGBA(255, 0, 0, .2)
+registerColor('void.redBG', {
+	dark: redBG,
+	light: redBG, hcDark: null, hcLight: null
+}, '', true);
+
+const sweepBG = new Color(new RGBA(100, 100, 100, .2));
+registerColor('void.sweepBG', {
+	dark: sweepBG,
+	light: sweepBG, hcDark: null, hcLight: null
+}, '', true);
+
+const sweepIdxBG = new Color(new RGBA(100, 100, 100, .2));
+registerColor('void.sweepIdxBG', {
+	dark: sweepIdxBG,
+	light: sweepIdxBG, hcDark: null, hcLight: null
+}, '', true);
+
+
+
+
 
 
 
@@ -55,28 +88,28 @@ type DiffArea = {
 	// _generationid: number,
 }
 
-const diffAreaSnapshotKeys = [
-	'diffareaid',
-	'originalStartLine',
-	'originalEndLine',
-	'startLine',
-	'endLine',
-] as const satisfies (keyof DiffArea)[]
+// const diffAreaSnapshotKeys = [
+// 	'diffareaid',
+// 	'originalStartLine',
+// 	'originalEndLine',
+// 	'startLine',
+// 	'endLine',
+// ] as const satisfies (keyof DiffArea)[]
 
-type DiffAreaSnapshot = Pick<DiffArea, typeof diffAreaSnapshotKeys[number]>
+// type DiffAreaSnapshot = Pick<DiffArea, typeof diffAreaSnapshotKeys[number]>
 
 
 
-type HistorySnapshot = {
-	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>,
-	snapshottedOriginalFileStr: string, // snapshot knows which model it belongs to
-} &
-	({
-		type: 'ctrl+k',
-		ctrlKText: string
-	} | {
-		type: 'ctrl+l',
-	})
+// type HistorySnapshot = {
+// 	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>,
+// 	snapshottedOriginalFileStr: string, // snapshot knows which model it belongs to
+// } &
+// 	({
+// 		type: 'ctrl+k',
+// 		ctrlKText: string
+// 	} | {
+// 		type: 'ctrl+l',
+// 	})
 
 
 export interface IInlineDiffsService {
@@ -114,7 +147,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
 		@IVoidConfigStateService private readonly _voidConfigStateService: IVoidConfigStateService,
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
-		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
+		// @IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 		// @IModelService private readonly _modelService: IModelService,
 
 	) {
@@ -134,32 +167,32 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			endLineNumber: sweepLine,
 			endColumn: Number.MAX_SAFE_INTEGER
 		}
-		const darkGrayDecoration: IModelDecorationOptions = {
-			className: 'sweep-dark-gray',
-			description: 'sweep-dark-gray',
+		const sweepIdxDecoration: IModelDecorationOptions = {
+			className: 'void-sweepIdxBG',
+			description: 'void-sweepIdxBG',
 			isWholeLine: true
 		}
 		decorationIds.push(
-			model.changeDecorations(accessor => accessor.addDecoration(lineRange, darkGrayDecoration))
+			model.changeDecorations(accessor => accessor.addDecoration(lineRange, sweepIdxDecoration))
 		)
 
 
-		// sweepline+1 ... end
+		// sweepLine+1 ... endLine
 		const bulkRange = {
 			startLineNumber: sweepLine + 1,
 			startColumn: 1,
 			endLineNumber: endLine,
 			endColumn: Number.MAX_SAFE_INTEGER
 		}
-		const lightGrayDecoration: IModelDecorationOptions = {
-			className: 'sweep-light-gray',
-			description: 'sweep-light-gray',
+		const sweepDecoration: IModelDecorationOptions = {
+			className: 'void-sweepBG',
+			description: 'void-sweepBG',
 			isWholeLine: true
 		}
 
 
 		decorationIds.push(
-			model.changeDecorations(accessor => accessor.addDecoration(bulkRange, lightGrayDecoration))
+			model.changeDecorations(accessor => accessor.addDecoration(bulkRange, sweepDecoration))
 		)
 		const dispose = () => {
 			for (let id of decorationIds) {
@@ -177,8 +210,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const greenDecoration: IModelDeltaDecoration[] = [{
 				range: greenRange,
 				options: {
-					className: 'line-insert', // .monaco-editor .line-insert
-					description: 'line-insert',
+					className: 'void-greenBG line-insert', // .monaco-editor .line-insert
+					description: 'void-greenBG',
 					isWholeLine: true,
 					minimap: {
 						color: { id: 'minimapGutter.addedBackground' },
@@ -209,7 +242,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 				// div
 				const lineContent = document.createElement('div');
-				lineContent.className = 'view-line'; // .monaco-editor .inline-deleted-text
+				lineContent.className = 'void-redBG view-line'; // .monaco-editor .inline-deleted-text
 
 				// span
 				const contentSpan = document.createElement('span');
@@ -226,9 +259,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 				// Gutter (thing to the left)
 				const gutterDiv = document.createElement('div');
-				gutterDiv.className = 'inline-diff-gutter';
+				// gutterDiv.className = 'inline-diff-gutter';
 				const minusDiv = document.createElement('div');
-				minusDiv.className = 'inline-diff-deleted-gutter';
+				// minusDiv.className = 'inline-diff-deleted-gutter';
 				// minusDiv.textContent = '-';
 				gutterDiv.appendChild(minusDiv);
 
@@ -359,6 +392,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		delete this.diffAreaOfId[diffArea.diffareaid]
 		this.diffAreasOfModelId[diffArea._model.id].delete(diffArea.diffareaid.toString())
 	}
+
 
 
 

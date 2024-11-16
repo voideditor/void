@@ -17,3 +17,5 @@ import './registerSidebar.js'
 // register Thread History
 import './registerThreads.js'
 
+// register css
+import './media/void.css'

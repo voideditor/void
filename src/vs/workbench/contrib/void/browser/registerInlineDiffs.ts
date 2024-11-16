@@ -214,44 +214,34 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
-	private _realignDiffAreas(model: ITextModel, change: { startLine: number; endLine: number; text: string }, changesTo: 'originalFile' | 'currentFile') {
+	private _realignDiffAreas(model: ITextModel, text: string, recentChange: { startLineNumber: number; endLineNumber: number; }) {
 
-		let endLine: 'originalEndLine' | 'endLine'
-		let startLine: 'originalStartLine' | 'startLine'
-
-		if (changesTo === 'currentFile') {
-			endLine = 'endLine' as const
-			startLine = 'startLine' as const
-		} else {
-			endLine = 'originalEndLine' as const
-			startLine = 'originalStartLine' as const
-		}
-
-		// `change.range` is the range of the original file that gets replaced with `change.text`
+		const startLine = recentChange.startLineNumber
+		const endLine = recentChange.endLineNumber
 
 		// compute net number of newlines lines that were added/removed
-		const numNewLines = (change.text.match(/\n/g) || []).length
-		const numLineDeletions = change.endLine - change.startLine
-		const deltaNewlines = numNewLines - numLineDeletions
+		const newTextHeight = (text.match(/\n/g) || []).length
+		const rangeHeight = endLine - startLine
+		const deltaNewlines = newTextHeight - rangeHeight
 
 		// compute overlap with each diffArea and shrink/elongate each diffArea accordingly
 		for (const diffareaid of this.diffAreasOfModelId[model.id] || []) {
 			const diffArea = this.diffAreaOfId[diffareaid]
 
 			// if the change is fully within the diffArea, elongate it by the delta amount of newlines
-			if (change.startLine >= diffArea[startLine] && change.endLine <= diffArea[endLine]) {
-				diffArea[endLine] += deltaNewlines
+			if (startLine >= diffArea.startLine && endLine <= diffArea.endLine) {
+				diffArea.endLine += deltaNewlines
 			}
 			// check if the `diffArea` was fully deleted and remove it if so
-			if (diffArea[startLine] > diffArea[endLine]) {
+			if (diffArea.startLine > diffArea.endLine) {
 				this.diffAreasOfModelId[model.id].delete(diffareaid)
 				continue
 			}
 
 			// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
-			if (diffArea[startLine] > change.endLine) {
-				diffArea[startLine] += deltaNewlines
-				diffArea[endLine] += deltaNewlines
+			if (diffArea.startLine > endLine) {
+				diffArea.startLine += deltaNewlines
+				diffArea.endLine += deltaNewlines
 			}
 
 			// TODO handle other cases where eg. the change overlaps many diffAreas
@@ -510,7 +500,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			model.applyEdits([{ range, text }]) // applies edits without adding them to undo/redo stack
 
 		// realign diffAreas
-		this._realignDiffAreas(model, ,)
+		this._realignDiffAreas(model, text, range)
 
 
 		// model.pushEditOperations(null, [{ range, text }], () => null) // applies edits in the group
@@ -710,8 +700,12 @@ Please finish writing the new file by applying the diff to the original file. Re
 			})
 		})
 
-		// on done, update original
-		diffArea.originalCode =
+
+		// TODO delete this, it should only get changed BEFORE the change, not after
+		// // on done, update original
+		// const currentText = readModel(model)
+		// if (currentText)
+		// 	diffArea.originalCode = currentText.split('\n').slice(((diffArea.startLine - 1), (diffArea.endLine - 1) + 1)).join('\n')
 
 		// onFinishEdit()
 

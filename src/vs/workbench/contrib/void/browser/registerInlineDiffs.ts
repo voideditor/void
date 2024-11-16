@@ -15,6 +15,7 @@ import { IRange } from '../../../../editor/common/core/range.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
 import { Color, RGBA } from '../../../../base/common/color.js';
+import { IModelService } from '../../../../editor/common/services/model.js';
 // import { IModelService } from '../../../../editor/common/services/model.js';
 
 
@@ -150,36 +151,25 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
 		@IVoidConfigStateService private readonly _voidConfigStateService: IVoidConfigStateService,
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
+		@IModelService private readonly _modelService: IModelService,
 		// @IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
-		// @IModelService private readonly _modelService: IModelService,
 
 	) {
 		super();
 
-		let initializedModelIds: Set<string> = new Set()
-		const initializeEditor = (editor: ICodeEditor) => {
-			const model = editor.getModel();
-			if (!model) return
-			if (initializedModelIds.has(model.id)) return
-			initializedModelIds.add(model.id)
-
-			if (!(model.id in this.diffAreasOfModelId))
-				this.diffAreasOfModelId[model.id] = new Set();
-
-			this._register(
-				model.onWillDispose(() => {
-					delete this.diffAreasOfModelId[model.id];
-				})
-			)
-		}
-
-		// Initialize state for existing models
-		this._editorService.listCodeEditors().forEach(editor => { initializeEditor(editor) });
-
-		// Listen for new editors being created
+		// Replace the editor initialization with this:
 		this._register(
-			this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) })
-		)
+			this._modelService.onModelAdded(model => {
+				if (!(model.id in this.diffAreasOfModelId)) {
+					this.diffAreasOfModelId[model.id] = new Set();
+				}
+				this._register(
+					model.onWillDispose(() => {
+						delete this.diffAreasOfModelId[model.id];
+					})
+				);
+			})
+		);
 
 		// start listening for text changes
 		// TODO make it so this only applies to changes made by the USER, and manually call it when we want to resize diffs ourselves. Otherwise, too confusing where calls are happening
@@ -615,7 +605,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	private async _initializeStream(model: ITextModel, diffRepr: string) {
 
 		// diff area begin and end line
-		const beginLine = 0
+		const beginLine = 1
 		const endLine = model.getLineCount()
 
 		// check if there's overlap with any other diffAreas and return early if there is
@@ -639,7 +629,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// create a diffArea for the stream
 		const diffareaid = this._diffareaidPool++
 
-		const originalCode = currentFileStr.split('\n').slice(beginLine, endLine + 1).join('\n')
+		const originalCode = currentFileStr.split('\n').slice((beginLine - 1), (endLine - 1) + 1).join('\n')
 
 
 		// in ctrl+L the start and end lines are the full document
@@ -725,6 +715,8 @@ Please finish writing the new file by applying the diff to the original file. Re
 		if (!model) return
 
 		// TODO reject all diffs in the diff area
+
+		// TODO deselect user's cursor
 
 		this._initializeStream(model, userMessage)
 	}

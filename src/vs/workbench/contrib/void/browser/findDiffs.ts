@@ -125,7 +125,7 @@ export function findDiffs(oldStr: string, newStr: string) {
 		}
 	} // end for
 
-	// console.debug('Replacements', replacements)
+	console.log('DIFF', { oldStr, newStr, replacements })
 	return replacements
 }
 

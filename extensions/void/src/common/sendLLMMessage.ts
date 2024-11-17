@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { VoidConfig } from '../webviews/common/contextForConfig'
-import Groq from 'groq-sdk';
+import Groq, { GroqError } from 'groq-sdk';
 
 export type AbortRef = { current: (() => void) | null }
 
@@ -358,6 +358,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
+// Groq
 const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 	let didAbort = false;
 	let fullText = '';
@@ -366,39 +367,32 @@ const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onF
 		didAbort = true;
 	};
 
+	const max_tokens = parseMaxTokensStr(voidConfig.default.maxTokens)
+	const options = { model: voidConfig.groq.model, messages: messages, stream: true, max_tokens: max_tokens, } as const
+
 	const groq = new Groq({ apiKey: voidConfig.groq.apikey, dangerouslyAllowBrowser: true });
 
-	try {
-		const stream = await groq.chat.completions.create({
-			messages: messages,
-			model: voidConfig.groq.model,
-			stream: true,
-			temperature: 0.7,
-			max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens),
-		});
-
-		for await (const chunk of stream) {
-			if (didAbort) {
-				break;
-			}
-
-			const newText = chunk.choices[0]?.delta?.content || '';
-			if (newText) {
+	groq.chat.completions
+		.create(options)
+		.then(async response => {
+			for await (const chunk of response) {
+				if (didAbort) return;
+				const newText = chunk.choices[0]?.delta?.content || '';
 				fullText += newText;
 				onText(newText, fullText);
 			}
-		}
-
-		if (!didAbort) {
 			onFinalMessage(fullText);
-		}
-	} catch (error: any) {
-		if (error?.status === 401) {
-			onError('Invalid API key.');
-		} else {
-			onError(error.message || 'An error occurred while connecting to Groq.');
-		}
-	}
+		})
+		// when error/fail - this catches errors of both .create() and .then(for await)
+		.catch(error => {
+			if (error instanceof GroqError) {
+				onError(`${error.name}:\n${error.message}`);
+			}
+			else {
+				onError(error);
+			}
+		})
+
 };
 
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {

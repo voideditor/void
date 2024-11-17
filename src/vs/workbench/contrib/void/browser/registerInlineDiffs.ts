@@ -10,7 +10,7 @@ import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 import { IVoidConfigStateService } from './registerConfig.js';
 import { writeFileWithDiffInstructions } from './prompt/systemPrompts.js';
 import { BaseDiff, findDiffs } from './findDiffs.js';
-import { EndOfLinePreference, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/model.js';
+import { EndOfLinePreference, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
@@ -262,10 +262,13 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	private _addInlineDiffZone = (model: ITextModel, redText: string, greenRange: IRange, type: 'insertion' | 'deletion' | 'edit', diffid: number) => {
 		const _addInlineDiffZoneToEditor = (editor: ICodeEditor) => {
+
+
 			// green decoration and gutter decoration
-			const greenDecoration: IModelDeltaDecoration[] = [{
-				range: greenRange,
-				options: {
+			let decorationId: string | null = null
+			editor.changeDecorations(accessor => {
+				if (type === 'deletion') return
+				decorationId = accessor.addDecoration(greenRange, {
 					className: 'void-greenBG line-insert', // .monaco-editor .line-insert
 					description: 'void-greenBG',
 					isWholeLine: true,
@@ -277,9 +280,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						color: { id: 'editorOverviewRuler.addedForeground' },
 						position: 7
 					}
-				}
-			}];
-			const decorationsCollection = editor.createDecorationsCollection(greenDecoration)
+				})
+			})
 
 
 			// red in a view zone
@@ -337,7 +339,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			});
 
 			const dispose = () => {
-				decorationsCollection.clear()
+				editor.changeDecorations(accessor => { if (decorationId) accessor.removeDecoration(decorationId) })
 				editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId); });
 			}
 			return dispose

@@ -16,6 +16,7 @@ import { EditorOption } from '../../../../editor/common/config/editorOptions.js'
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
 import { Color, RGBA } from '../../../../base/common/color.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
+import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType } from '../../../../platform/undoRedo/common/undoRedo.js';
 // import { IModelService } from '../../../../editor/common/services/model.js';
 
 
@@ -101,28 +102,27 @@ type DiffArea = {
 	}
 })
 
-// const diffAreaSnapshotKeys = [
-// 	'diffareaid',
-// 	'originalStartLine',
-// 	'originalEndLine',
-// 	'startLine',
-// 	'endLine',
-// ] as const satisfies (keyof DiffArea)[]
+const diffAreaSnapshotKeys = [
+	'diffareaid',
+	'originalCode',
+	'startLine',
+	'endLine',
+] as const satisfies (keyof DiffArea)[]
 
-// type DiffAreaSnapshot = Pick<DiffArea, typeof diffAreaSnapshotKeys[number]>
-
+type DiffAreaSnapshot = Pick<DiffArea, typeof diffAreaSnapshotKeys[number]>
 
 
-// type HistorySnapshot = {
-// 	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>,
-// 	snapshottedOriginalFileStr: string, // snapshot knows which model it belongs to
-// } &
-// 	({
-// 		type: 'ctrl+k',
-// 		ctrlKText: string
-// 	} | {
-// 		type: 'ctrl+l',
-// 	})
+
+type HistorySnapshot = {
+	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>,
+	code: string,
+} &
+	({
+		type: 'ctrl+k',
+		ctrlKText: string
+	} | {
+		type: 'ctrl+l',
+	})
 
 
 export interface IInlineDiffsService {
@@ -159,7 +159,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IVoidConfigStateService private readonly _voidConfigStateService: IVoidConfigStateService,
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 		@IModelService private readonly _modelService: IModelService,
-		// @IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
+		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 
 	) {
 		super();
@@ -176,8 +176,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						delete this.diffAreasOfModelId[model.id];
 					})
 				);
-
-
 
 				// when the user types, realign diff areas and re-render them
 				// this gets called only when the user types, not when we make a change internally
@@ -203,10 +201,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						}
 					})
 				)
-
-
 			})
 		);
+
+
+
 
 
 
@@ -359,78 +358,84 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	// private _addToHistory(model: ITextModel) {
+	private _addToHistory(model: ITextModel) {
 
-	// 	const getCurrentSnapshot = (): HistorySnapshot => {
-	// 		const diffAreaOfId = this.diffAreaOfId
+		const getCurrentSnapshot = (): HistorySnapshot => {
+			const diffAreaOfId = this.diffAreaOfId
 
-	// 		const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
-	// 		for (let diffareaid in diffAreaOfId) {
-	// 			const diffArea = diffAreaOfId[diffareaid]
-	// 			snapshottedDiffAreaOfId[diffareaid] = structuredClone( // a structured clone must be on a JSON object
-	// 				Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
-	// 			) as DiffAreaSnapshot
-	// 		}
-	// 		const snapshottedOriginalFileStr = this.originalFileStrOfModelId[model.id]
-	// 		return {
-	// 			snapshottedDiffAreaOfId,
-	// 			snapshottedOriginalFileStr,
-	// 			type: 'ctrl+l',
-	// 		}
+			const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
+			for (let diffareaid in diffAreaOfId) {
+				const diffArea = diffAreaOfId[diffareaid]
+				snapshottedDiffAreaOfId[diffareaid] = structuredClone( // a structured clone must be on a JSON object
+					Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
+				) as DiffAreaSnapshot
+			}
+			return {
+				snapshottedDiffAreaOfId,
+				code: readModel(model) ?? '',
+				type: 'ctrl+l',
+			}
 
-	// 	}
+		}
 
-	// 	const restoreDiffAreas = (snapshot: HistorySnapshot) => {
-	// 		const { snapshottedDiffAreaOfId, snapshottedOriginalFileStr } = structuredClone(snapshot) // don't want to destroy the snapshot
+		const restoreDiffAreas = (snapshot: HistorySnapshot) => {
+			const { snapshottedDiffAreaOfId, code } = structuredClone(snapshot) // don't want to destroy the snapshot
 
-	// 		// delete all current decorations (diffs, sweep styles) so we don't have any unwanted leftover decorations
-	// 		for (let diffareaid in this.diffAreaOfId) {
-	// 			const diffArea = this.diffAreaOfId[diffareaid]
-	// 			this._deleteDiffs(diffArea)
-	// 			this._deleteSweepStyles(diffArea)
-	// 		}
+			// delete all current decorations (diffs, sweep styles) so we don't have any unwanted leftover decorations
+			for (let diffareaid in this.diffAreaOfId) {
+				const diffArea = this.diffAreaOfId[diffareaid]
+				this._deleteDiffs(diffArea)
+				this._deleteSweepStyles(diffArea)
+			}
 
-	// 		// restore diffAreaOfId and diffAreasOfModelId
-	// 		this.diffAreaOfId = {}
-	// 		this.diffAreasOfModelId[model.id].clear()
-	// 		for (let diffareaid in snapshottedDiffAreaOfId) {
-	// 			this.diffAreaOfId[diffareaid] = {
-	// 				...snapshottedDiffAreaOfId[diffareaid],
-	// 				_diffs: [],
-	// 				_model: model,
-	// 				_isStreaming: false,
-	// 				_disposeSweepStyles: null,
-	// 			}
-	// 			this.diffAreasOfModelId[model.id].add(diffareaid)
-	// 		}
-	// 		// restore originalFileStr of this model
-	// 		this.originalFileStrOfModelId[model.id] = snapshottedOriginalFileStr
+			// restore diffAreaOfId and diffAreasOfModelId
+			this.diffAreaOfId = {}
+			this.diffAreasOfModelId[model.id].clear()
+			for (let diffareaid in snapshottedDiffAreaOfId) {
+				this.diffAreaOfId[diffareaid] = {
+					...snapshottedDiffAreaOfId[diffareaid],
+					_diffOfId: {},
+					_model: model,
+					_sweepState: {
+						isStreaming: false,
+						line: null,
+					},
+					_disposeSweepStyles: null,
+				}
+				this.diffAreasOfModelId[model.id].add(diffareaid)
+			}
 
-	// 		// restore all the decorations
-	// 		for (let diffareaid in this.diffAreaOfId) {
-	// 			this._onGetNewDiffAreaText(this.diffAreaOfId[diffareaid], snapshottedOriginalFileStr)
-	// 		}
-	// 	}
+			// restore all the decorations
+			const newCode = code
+			this._writeText(model, code, { startColumn: 1, startLineNumber: 1, endLineNumber: model.getLineCount(), endColumn: Number.MAX_SAFE_INTEGER })
+			if (newCode === null) return
+			for (let diffareaid in this.diffAreaOfId) {
+				const diffArea = this.diffAreaOfId[diffareaid]
+				const computedDiffs = findDiffs(diffArea.originalCode, newCode)
+				this._refreshDiffArea(diffArea, computedDiffs)
+			}
 
-	// 	const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
-	// 	console.log('BEFORE', beforeSnapshot)
-	// 	const onFinishEdit = () => {
-	// 		const afterSnapshot: HistorySnapshot = getCurrentSnapshot()
-	// 		console.log('AFTER', afterSnapshot)
+		}
 
-	// 		const elt: IUndoRedoElement = {
-	// 			type: UndoRedoElementType.Resource,
-	// 			resource: model.uri,
-	// 			label: 'Add Diffs',
-	// 			code: 'undoredo.inlineDiffs',
-	// 			undo: () => { restoreDiffAreas(beforeSnapshot) },
-	// 			redo: () => { restoreDiffAreas(afterSnapshot) }
-	// 		}
-	// 		this._undoRedoService.pushElement(elt)
+		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
+		console.log('BEFORE', beforeSnapshot)
+		const onFinishEdit = () => {
+			const afterSnapshot: HistorySnapshot = getCurrentSnapshot()
+			console.log('AFTER', afterSnapshot)
+			const elt: IUndoRedoElement = {
+				type: UndoRedoElementType.Resource,
+				resource: model.uri,
+				label: 'Add Diffs',
+				code: 'undoredo.inlineDiffs',
+				undo: () => { restoreDiffAreas(beforeSnapshot) },
+				redo: () => { restoreDiffAreas(afterSnapshot) }
+			}
+			this._undoRedoService.pushElement(elt)
 
-	// 	}
-	// 	return { onFinishEdit }
-	// }
+
+		}
+		return { onFinishEdit }
+	}
 
 
 	private _deleteSweepStyles(diffArea: DiffArea) {
@@ -536,10 +541,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			// model.pushEditOperations(null, [{ range, text }], () => null) // applies edits in the group
 			this._weAreWriting = false
 		}
-		if (text !== readModel(model)) {
-			console.log('DIFFERENCE')
-		}
-		console.log({ text, read: readModel(model), range })
 
 		this._realignAllDiffAreasLines(model, text, range)
 	}
@@ -674,7 +675,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		if (currentFileStr === null) return
 
 		// add to history
-		// const { onFinishEdit } = this._addToHistory(model)
+		const { onFinishEdit } = this._addToHistory(model)
 
 		// create a diffArea for the stream
 		const diffareaid = this._diffareaidPool++
@@ -738,8 +739,9 @@ Please finish writing the new file by applying the diff to the original file. Re
 						{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 					)
 					const computedDiffs = findDiffs(diffArea.originalCode, fullText)
-					this._refreshDiffArea(diffArea, computedDiffs)
 					diffArea._sweepState = { isStreaming: false, line: null }
+					this._refreshDiffArea(diffArea, computedDiffs)
+					console.log('computed diffs', computedDiffs)
 					resolve();
 				},
 				onError: (e: any) => {
@@ -754,14 +756,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 			})
 		})
 
-
-		// TODO delete this, it should only get changed BEFORE the change, not after
-		// // on done, update original
-		// const currentText = readModel(model)
-		// if (currentText)
-		// 	diffArea.originalCode = currentText.split('\n').slice(((diffArea.startLine - 1), (diffArea.endLine - 1) + 1)).join('\n')
-
-		// onFinishEdit()
+		onFinishEdit()
 
 	}
 

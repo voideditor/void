@@ -190,7 +190,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						let refreshIds: Set<number> = new Set()
 						// realign
 						for (let change of e.changes) {
-							const ids = this._realignAllDiffAreaLines(model, change.text, change.range)
+							const ids = this._realignAllDiffAreasLines(model, change.text, change.range)
 							ids.forEach(id => refreshIds.add(id))
 						}
 						// refresh
@@ -467,7 +467,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
-	private _realignAllDiffAreaLines(model: ITextModel, text: string, recentChange: { startLineNumber: number; endLineNumber: number; }) {
+	private _realignAllDiffAreasLines(model: ITextModel, text: string, recentChange: { startLineNumber: number; endLineNumber: number; }) {
 
 		let diffAreaIdsThatNeedRefreshing: number[] = []
 
@@ -533,7 +533,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			this._weAreWriting = false
 		}
 
-		this._realignAllDiffAreaLines(model, text, range)
+		this._realignAllDiffAreasLines(model, text, range)
 	}
 
 

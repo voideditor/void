@@ -139,6 +139,7 @@
     "eslint-plugin-react": "^7.35.1",
     "eslint-plugin-react-hooks": "^4.6.2",
     "globals": "^15.9.0",
+    "groq-sdk": "^0.8.0",
     "lodash": "^4.17.21",
     "marked": "^14.1.0",
     "ollama": "^0.5.9",
@@ -155,8 +156,5 @@
     "typescript": "5.5.4",
     "typescript-eslint": "^8.3.0",
     "uuid": "^10.0.0"
-  },
-  "dependencies": {
-    "groq-sdk": "^0.7.0"
   }
 }

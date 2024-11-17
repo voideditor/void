@@ -21,7 +21,7 @@ const configString = (description: string, defaultVal: string) => {
 export const configFields = [
 	'anthropic',
 	'openAI',
-	'groq',//groq modle
+	'groq',
 	'gemini',
 	'greptile',
 	'ollama',

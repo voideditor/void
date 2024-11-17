@@ -366,10 +366,7 @@ const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onF
 		didAbort = true;
 	};
 
-	const groq = new Groq({
-		apiKey: voidConfig.groq.apikey,
-		dangerouslyAllowBrowser: true
-	});
+	const groq = new Groq({ apiKey: voidConfig.groq.apikey, dangerouslyAllowBrowser: true });
 
 	try {
 		const stream = await groq.chat.completions.create({
@@ -384,14 +381,14 @@ const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onF
 			if (didAbort) {
 				break;
 			}
-			
+
 			const newText = chunk.choices[0]?.delta?.content || '';
 			if (newText) {
 				fullText += newText;
 				onText(newText, fullText);
 			}
 		}
-		
+
 		if (!didAbort) {
 			onFinalMessage(fullText);
 		}

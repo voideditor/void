@@ -185,10 +185,12 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					model.onDidChangeContent(e => {
 						if (this._weAreWriting) return
 
+						// it's as if we just called _write, now all we need to do is realign and refresh
+
 						let refreshIds: Set<number> = new Set()
 						// realign
 						for (let change of e.changes) {
-							const ids = this._realignDiffAreas(model, change.text, change.range)
+							const ids = this._realignAllDiffAreaLines(model, change.text, change.range)
 							ids.forEach(id => refreshIds.add(id))
 						}
 						// refresh
@@ -214,63 +216,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// this._registerTextChangeListener(model)
 	}
 
-
-
-	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
-	private _realignDiffAreas(model: ITextModel, text: string, recentChange: { startLineNumber: number; endLineNumber: number; }) {
-
-		let diffAreaIdsThatNeedRefreshing: number[] = []
-
-		// compute net number of newlines lines that were added/removed
-		const startLine = recentChange.startLineNumber
-		const endLine = recentChange.endLineNumber
-		const changeRangeHeight = endLine - startLine + 1
-
-		const newTextHeight = (text.match(/\n/g) || []).length + 1 // number of newlines is number of \n's + 1, e.g. "ab\ncd"
-
-		const deltaNewlines = newTextHeight - changeRangeHeight
-
-		// compute overlap with each diffArea and shrink/elongate each diffArea accordingly
-		for (const diffareaid of this.diffAreasOfModelId[model.id] || []) {
-			const diffArea = this.diffAreaOfId[diffareaid]
-
-			// if the diffArea is above the range, it is not affected
-			if (diffArea.endLine < startLine) {
-				continue
-			}
-
-			console.log('Changing DiffArea:', diffArea.startLine, diffArea.endLine)
-
-			diffAreaIdsThatNeedRefreshing.push(diffArea.diffareaid)
-			// if the diffArea fully contains the change, elongate it by the delta amount of newlines
-			if (startLine >= diffArea.startLine && endLine <= diffArea.endLine) {
-				diffArea.endLine += deltaNewlines
-			}
-			// if the change fully contains the diffArea, make the diffArea have the same range as the change
-			else if (diffArea.startLine > startLine && diffArea.endLine < endLine) {
-				diffArea.startLine = startLine
-				diffArea.endLine = startLine + newTextHeight
-			}
-			// if the change contains only the diffArea's top
-			else if (diffArea.startLine > startLine) {
-				// TODO fill in this case
-			}
-			// if the change contains only the diffArea's bottom
-			else if (diffArea.endLine < endLine) {
-				const numOverlappingLines = diffArea.endLine - startLine + 1
-				diffArea.endLine += newTextHeight - numOverlappingLines // TODO double check this
-			}
-			// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
-			else if (diffArea.startLine > endLine) {
-				diffArea.startLine += deltaNewlines
-				diffArea.endLine += deltaNewlines
-			}
-
-			console.log('To:', diffArea.startLine, diffArea.endLine)
-		}
-
-		return diffAreaIdsThatNeedRefreshing
-	}
 
 
 
@@ -518,15 +463,77 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	// don't forget to call _realignDiffAreas after this so the change doesn't offset any diffAreas incorrectly
+
+
+
+	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
+	private _realignAllDiffAreaLines(model: ITextModel, text: string, recentChange: { startLineNumber: number; endLineNumber: number; }) {
+
+		let diffAreaIdsThatNeedRefreshing: number[] = []
+
+		// compute net number of newlines lines that were added/removed
+		const startLine = recentChange.startLineNumber
+		const endLine = recentChange.endLineNumber
+		const changeRangeHeight = endLine - startLine + 1
+
+		const newTextHeight = (text.match(/\n/g) || []).length + 1 // number of newlines is number of \n's + 1, e.g. "ab\ncd"
+
+		const deltaNewlines = newTextHeight - changeRangeHeight
+
+		// compute overlap with each diffArea and shrink/elongate each diffArea accordingly
+		for (const diffareaid of this.diffAreasOfModelId[model.id] || []) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+
+			// if the diffArea is above the range, it is not affected
+			if (diffArea.endLine < startLine) {
+				continue
+			}
+
+			console.log('Changing DiffArea:', diffArea.startLine, diffArea.endLine)
+
+			diffAreaIdsThatNeedRefreshing.push(diffArea.diffareaid)
+			// if the diffArea fully contains the change, elongate it by the delta amount of newlines
+			if (startLine >= diffArea.startLine && endLine <= diffArea.endLine) {
+				diffArea.endLine += deltaNewlines
+			}
+			// if the change fully contains the diffArea, make the diffArea have the same range as the change
+			else if (diffArea.startLine > startLine && diffArea.endLine < endLine) {
+				diffArea.startLine = startLine
+				diffArea.endLine = startLine + newTextHeight
+			}
+			// if the change contains only the diffArea's top
+			else if (diffArea.startLine > startLine) {
+				// TODO fill in this case
+			}
+			// if the change contains only the diffArea's bottom
+			else if (diffArea.endLine < endLine) {
+				const numOverlappingLines = diffArea.endLine - startLine + 1
+				diffArea.endLine += newTextHeight - numOverlappingLines // TODO double check this
+			}
+			// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
+			else if (diffArea.startLine > endLine) {
+				diffArea.startLine += deltaNewlines
+				diffArea.endLine += deltaNewlines
+			}
+
+			console.log('To:', diffArea.startLine, diffArea.endLine)
+		}
+
+		return diffAreaIdsThatNeedRefreshing
+	}
+
+
+
 	_weAreWriting = false
-	private _writeToModel(model: ITextModel, text: string, range: IRange) {
+	private _writeText(model: ITextModel, text: string, range: IRange) {
 		if (!model.isDisposed()) {
 			this._weAreWriting = true
 			// model.pushEditOperations(null, [{ range, text }], () => null) // applies edits in the group
 			model.applyEdits([{ range, text }]) // applies edits without adding them to undo/redo stack
 			this._weAreWriting = false
 		}
+
+		this._realignAllDiffAreaLines(model, text, range)
 	}
 
 
@@ -576,9 +583,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// if not streaming, just write the new code
 		if (!diffArea._sweepState.isStreaming) {
-			const range = { startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
-			this._writeToModel(model, newCodeSoFar, range)
-			this._realignDiffAreas(model, newCodeSoFar, range)
+			this._writeText(model, newCodeSoFar,
+				{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
+			)
 		}
 		// if streaming, use diffs to figure out where to write new code
 		else {
@@ -620,9 +627,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 			let newCode = `${newFileTop}\n${oldFileBottom}`
 
-			const range = { startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
-			this._writeToModel(model, newCode, range)
-			this._realignDiffAreas(model, newCode, range)
+			this._writeText(model, newCode,
+				{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
+			)
 
 		}
 
@@ -855,7 +862,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		const diffAreaLines = rejectedFileLines.slice((diffArea.startLine - 1), (diffArea.endLine - 1) + 1)
 
 		// update the file
-		this._writeToModel(
+		this._writeText(
 			model,
 			diff.originalCode,
 			{ startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed

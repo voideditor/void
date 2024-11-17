@@ -153,8 +153,7 @@ export function findDiffs(oldStr: string, newStr: string) {
 
 
 
-// uncomment this to test
-
+// // uncomment this to test
 // let name_ = ''
 // let testsFailed = 0
 // const assertEqual = (a: { [s: string]: any }, b: { [s: string]: any }) => {
@@ -178,22 +177,28 @@ export function findDiffs(oldStr: string, newStr: string) {
 // B
 // C
 // D
-// E
-// `
+// E`
+
 // const insertedCode = `\
 // A
 // B
 // C
 // F
 // D
-// E
-// `
+// E`
 
 // const modifiedCode = `\
 // A
 // B
 // C
 // F
+// E`
+
+// const modifiedCode2 = `\
+// A
+// B
+// C
+// D
 // E
 // `
 
@@ -244,6 +249,23 @@ export function findDiffs(oldStr: string, newStr: string) {
 // 		startLine: 4,
 // 		startCol: 1,
 // 		endLine: 4,
+// 		endCol: Number.MAX_SAFE_INTEGER,
+// 	}
+// 	assertEqual(diffs[0], expected)
+// })
+
+// test('Diffs Modification 2', () => {
+// 	const diffs = findDiffs(originalCode, modifiedCode2)
+// 	assertEqual({ length: diffs.length }, { length: 1 })
+// 	const expected: BaseDiff = {
+// 		type: 'insertion',
+// 		originalCode: '',
+// 		originalStartLine: 6,
+// 		originalEndLine: 6,
+
+// 		startLine: 6,
+// 		startCol: 1,
+// 		endLine: 6,
 // 		endCol: Number.MAX_SAFE_INTEGER,
 // 	}
 // 	assertEqual(diffs[0], expected)

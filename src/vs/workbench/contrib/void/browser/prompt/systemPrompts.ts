@@ -272,7 +272,7 @@ OUTPUT
 export const writeFileWithDiffInstructions = `
 You are a coding assistant that applies a diff to a file. You are given the original file \`original_file\`, a diff \`diff\`, and a new file that you are applying the diff to \`new_file\`.
 
-Please finish writing the new file \`new_file\`, according to the diff \`diff\`.
+Please finish writing the new file \`new_file\`, according to the diff \`diff\`. You must completely re-write the whole file, using the diff.
 
 Directions:
 1. Continue exactly where the new file \`new_file\` left off.

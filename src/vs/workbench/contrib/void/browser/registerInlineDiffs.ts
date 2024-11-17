@@ -10,7 +10,7 @@ import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 import { IVoidConfigStateService } from './registerConfig.js';
 import { writeFileWithDiffInstructions } from './prompt/systemPrompts.js';
 import { BaseDiff, findDiffs } from './findDiffs.js';
-import { EndOfLinePreference, IModelDecorationOptions, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/model.js';
+import { EndOfLinePreference, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
@@ -226,42 +226,42 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private _addSweepStyles = (model: ITextModel, sweepLine: number, endLine: number) => {
+	// private _addSweepStyles = (model: ITextModel, sweepLine: number, endLine: number) => {
 
-		const decorationIds: (string | null)[] = []
-		// sweepLine ... sweepLine
-		const lineRange = { startLineNumber: sweepLine, startColumn: 1, endLineNumber: sweepLine, endColumn: Number.MAX_SAFE_INTEGER }
-		const sweepIdxDecoration: IModelDecorationOptions = {
-			className: 'void-sweepIdxBG',
-			description: 'void-sweepIdxBG',
-			isWholeLine: true
-		}
-		decorationIds.push(
-			model.changeDecorations(accessor => accessor.addDecoration(lineRange, sweepIdxDecoration))
-		)
+	// 	const decorationIds: (string | null)[] = []
+	// 	// sweepLine ... sweepLine
+	// 	const lineRange = { startLineNumber: sweepLine, startColumn: 1, endLineNumber: sweepLine, endColumn: Number.MAX_SAFE_INTEGER }
+	// 	const sweepIdxDecoration: IModelDecorationOptions = {
+	// 		className: 'void-sweepIdxBG',
+	// 		description: 'void-sweepIdxBG',
+	// 		isWholeLine: true
+	// 	}
+	// 	decorationIds.push(
+	// 		model.changeDecorations(accessor => accessor.addDecoration(lineRange, sweepIdxDecoration))
+	// 	)
 
-		// sweepLine+1 ... endLine
-		const bulkRange = { startLineNumber: sweepLine + 1, startColumn: 1, endLineNumber: endLine, endColumn: Number.MAX_SAFE_INTEGER }
-		const sweepDecoration: IModelDecorationOptions = {
-			className: 'void-sweepBG',
-			description: 'void-sweepBG',
-			isWholeLine: true
-		}
+	// 	// sweepLine+1 ... endLine
+	// 	const bulkRange = { startLineNumber: sweepLine + 1, startColumn: 1, endLineNumber: endLine, endColumn: Number.MAX_SAFE_INTEGER }
+	// 	const sweepDecoration: IModelDecorationOptions = {
+	// 		className: 'void-sweepBG',
+	// 		description: 'void-sweepBG',
+	// 		isWholeLine: true
+	// 	}
 
-		decorationIds.push(
-			model.changeDecorations(accessor => accessor.addDecoration(bulkRange, sweepDecoration))
-		)
-		const dispose = () => {
-			for (let id of decorationIds) {
-				if (id) model.changeDecorations(accessor => accessor.removeDecoration(id))
-			}
-		}
-		return dispose
-	}
+	// 	decorationIds.push(
+	// 		model.changeDecorations(accessor => accessor.addDecoration(bulkRange, sweepDecoration))
+	// 	)
+	// 	const dispose = () => {
+	// 		for (let id of decorationIds) {
+	// 			if (id) model.changeDecorations(accessor => accessor.removeDecoration(id))
+	// 		}
+	// 	}
+	// 	return dispose
+	// }
 
 
 
-	private _addInlineDiffZone = (model: ITextModel, redText: string, greenRange: IRange, diffid: number) => {
+	private _addInlineDiffZone = (model: ITextModel, redText: string, greenRange: IRange, type: 'insertion' | 'deletion' | 'edit', diffid: number) => {
 		const _addInlineDiffZoneToEditor = (editor: ICodeEditor) => {
 			// green decoration and gutter decoration
 			const greenDecoration: IModelDeltaDecoration[] = [{
@@ -286,6 +286,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			// red in a view zone
 			let zoneId: string | null = null
 			editor.changeViewZones(accessor => {
+				// don't add a viewZone on insertions
+				if (type === 'insertion') return
 				// Get the editor's font info
 				const fontInfo = editor.getOption(EditorOption.fontInfo);
 
@@ -324,7 +326,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 				const viewZone: IViewZone = {
 					afterLineNumber: greenRange.startLineNumber - 1,
-					heightInLines: redText.split('\n').length,
+					heightInLines: (redText.match(/\n/g) || []).length + 1,
 					domNode: domNode,
 					// suppressMouseDown: true,
 					marginDomNode: gutterDiv
@@ -489,7 +491,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				continue
 			}
 
-			console.log('Changing DiffArea:', diffArea.startLine, diffArea.endLine)
+			// console.log('Changing DiffArea:', diffArea.startLine, diffArea.endLine)
 
 			diffAreaIdsThatNeedRefreshing.push(diffArea.diffareaid)
 			// if the diffArea fully contains the change, elongate it by the delta amount of newlines
@@ -516,7 +518,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				diffArea.endLine += deltaNewlines
 			}
 
-			console.log('To:', diffArea.startLine, diffArea.endLine)
+			// console.log('To:', diffArea.startLine, diffArea.endLine)
 		}
 
 		return diffAreaIdsThatNeedRefreshing
@@ -526,12 +528,18 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	_weAreWriting = false
 	private _writeText(model: ITextModel, text: string, range: IRange) {
+		// console.log('writing to diffarea', range.endLineNumber, '/', model.getLineCount())
+
 		if (!model.isDisposed()) {
 			this._weAreWriting = true
-			// model.pushEditOperations(null, [{ range, text }], () => null) // applies edits in the group
 			model.applyEdits([{ range, text }]) // applies edits without adding them to undo/redo stack
+			// model.pushEditOperations(null, [{ range, text }], () => null) // applies edits in the group
 			this._weAreWriting = false
 		}
+		if (text !== readModel(model)) {
+			console.log('DIFFERENCE')
+		}
+		console.log({ text, read: readModel(model), range })
 
 		this._realignAllDiffAreasLines(model, text, range)
 	}
@@ -547,8 +555,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// ----------- 2. Recompute sweep in the diffArea if streaming -----------
 		if (diffArea._sweepState.isStreaming) {
-			const disposeSweepStyles = this._addSweepStyles(model, diffArea._sweepState.line, diffArea.endLine)
-			diffArea._disposeSweepStyles = disposeSweepStyles
+			// const disposeSweepStyles = this._addSweepStyles(model, diffArea._sweepState.line, diffArea.endLine)
+			// diffArea._disposeSweepStyles = disposeSweepStyles
 		}
 
 		// ----------- 3. Recompute all Diffs in the diffArea -----------
@@ -557,8 +565,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const diffid = this._diffidPool++
 
 			// add the view zone
-			const greenRange: IRange = { startLineNumber: computedDiff.startLine, startColumn: 1, endLineNumber: computedDiff.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
-			const disposeDiffZone = this._addInlineDiffZone(model, computedDiff.originalCode, greenRange, diffid)
+			const disposeDiffZone = this._addInlineDiffZone(model, computedDiff.originalCode,
+				{ startLineNumber: computedDiff.startLine, startColumn: 1, endLineNumber: computedDiff.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
+				computedDiff.type, diffid)
 
 			// create a Diff of it
 			const newDiff: Diff = {
@@ -572,6 +581,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			diffArea._diffOfId[diffid] = newDiff
 		}
 	}
+
+
+
 
 	// @throttle(100)
 	private _writeDiffAreaLLMText(diffArea: DiffArea, newCodeSoFar: string) {
@@ -622,8 +634,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			diffArea._sweepState.line = newFileEndLine
 
 			// lines are 1-indexed
-			const oldFileBottom = diffArea.originalCode.split('\n').slice((oldFileStartLine - 1), Infinity).join('\n')
 			const newFileTop = newCodeSoFar.split('\n').slice(0, (newFileEndLine - 1)).join('\n')
+			const oldFileBottom = diffArea.originalCode.split('\n').slice((oldFileStartLine - 1), Infinity).join('\n')
 
 			let newCode = `${newFileTop}\n${oldFileBottom}`
 
@@ -723,9 +735,13 @@ Please finish writing the new file by applying the diff to the original file. Re
 					this._refreshDiffArea(diffArea, computedDiffs)
 				},
 				onFinalMessage: (fullText: string) => {
-					const computedDiffs = this._writeDiffAreaLLMText(diffArea, fullText)
+					this._writeText(model, fullText,
+						{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+					)
+					const computedDiffs = findDiffs(diffArea.originalCode, fullText)
 					this._refreshDiffArea(diffArea, computedDiffs)
 					diffArea._sweepState = { isStreaming: false, line: null }
+					console.log('diffArea', diffArea.originalCode, diffArea.startLine, diffArea.endLine)
 					resolve();
 				},
 				onError: (e: any) => {

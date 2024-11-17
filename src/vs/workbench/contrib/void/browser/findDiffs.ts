@@ -29,6 +29,11 @@ export type SuggestedEdit = {
 }
 
 export function findDiffs(oldStr: string, newStr: string) {
+
+	// this makes it so the end of the file always ends with a \n (if you don't have this, then diffing E vs E\n gives an "edit". With it, you end up diffing E\n vs E\n\n which now properly gives an insertion)
+	newStr += '\n';
+	oldStr += '\n';
+
 	// an ordered list of every original line, line added to the new file, and line removed from the old file (order is unambiguous, think about it)
 	const lineByLineChanges = diffLines(oldStr, newStr);
 	lineByLineChanges.push({ value: '', added: false, removed: false }) // add a dummy so we flush any streaks we haven't yet at the very end (!line.added && !line.removed)
@@ -172,7 +177,7 @@ export function findDiffs(oldStr: string, newStr: string) {
 // A
 // B
 // C
-
+// D
 // E
 // `
 // const insertedCode = `\

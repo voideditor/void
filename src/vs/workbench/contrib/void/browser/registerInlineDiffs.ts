@@ -731,7 +731,6 @@ Please finish writing the new file by applying the diff to the original file. Re
 				],
 				onText: (newText: string, fullText: string) => {
 					const computedDiffs = this._writeDiffAreaLLMText(diffArea, fullText)
-					computedDiffs.pop() // ignore the last diff because it was used to compute the sweep
 					this._refreshDiffArea(diffArea, computedDiffs)
 				},
 				onFinalMessage: (fullText: string) => {
@@ -741,7 +740,6 @@ Please finish writing the new file by applying the diff to the original file. Re
 					const computedDiffs = findDiffs(diffArea.originalCode, fullText)
 					this._refreshDiffArea(diffArea, computedDiffs)
 					diffArea._sweepState = { isStreaming: false, line: null }
-					console.log('diffArea', diffArea.originalCode, diffArea.startLine, diffArea.endLine)
 					resolve();
 				},
 				onError: (e: any) => {

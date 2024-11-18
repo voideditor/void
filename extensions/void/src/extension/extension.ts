@@ -9,21 +9,23 @@ import { DiffProvider } from './DiffProvider';
 import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
+import { AutocompleteProvider } from './AutcompleteProvider';
+import { runTreeSitter } from '../common/LangaugeServer/createJsProgramGraph';
 
-// this comes from vscode.proposed.editorInsets.d.ts
-declare module 'vscode' {
-	export interface WebviewEditorInset {
-		readonly editor: vscode.TextEditor;
-		readonly line: number;
-		readonly height: number;
-		readonly webview: vscode.Webview;
-		readonly onDidDispose: Event<void>;
-		dispose(): void;
-	}
-	export namespace window {
-		export function createWebviewTextEditorInset(editor: vscode.TextEditor, line: number, height: number, options?: vscode.WebviewOptions): WebviewEditorInset;
-	}
-}
+// // this comes from vscode.proposed.editorInsets.d.ts
+// declare module 'vscode' {
+// 	export interface WebviewEditorInset {
+// 		readonly editor: vscode.TextEditor;
+// 		readonly line: number;
+// 		readonly height: number;
+// 		readonly webview: vscode.Webview;
+// 		readonly onDidDispose: Event<void>;
+// 		dispose(): void;
+// 	}
+// 	export namespace window {
+// 		export function createWebviewTextEditorInset(editor: vscode.TextEditor, line: number, height: number, options?: vscode.WebviewOptions): WebviewEditorInset;
+// 	}
+// }
 
 const roundRangeToLines = (selection: vscode.Selection) => {
 	let endLine = selection.end.character === 0 ? selection.end.line - 1 : selection.end.line // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
@@ -112,7 +114,7 @@ export function activate(context: vscode.ExtensionContext) {
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
 			webview.onDidReceiveMessage(async (m: MessageFromSidebar) => {
 
-				const abortApplyRef: AbortRef = { current: null }
+				const abortRef: AbortRef = { current: null }
 
 				if (m.type === 'requestFiles') {
 
@@ -146,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
 					const fileStr = await readFileContentOfUri(docUri)
 					const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
 
-					await applyDiffLazily({ docUri, oldFileStr: fileStr, diffRepr: m.diffRepr, voidConfig, diffProvider, diffArea, abortRef: abortApplyRef })
+					await applyDiffLazily({ docUri, oldFileStr: fileStr, diffRepr: m.diffRepr, voidConfig, diffProvider, diffArea, abortRef: abortRef })
 				}
 				else if (m.type === 'getPartialVoidConfig') {
 					const partialVoidConfig = context.globalState.get('partialVoidConfig') ?? {}
@@ -180,7 +182,21 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	)
 
+	// 6. Autocomplete
+	const autocompleteProvider = new AutocompleteProvider(context);
+	context.subscriptions.push(vscode.languages.registerInlineCompletionItemProvider('*', autocompleteProvider));
 
+	const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
+	const abortRef: AbortRef = { current: null }
+
+	// setupAutocomplete({ voidConfig, abortRef })
+
+
+	// 7. Language Server
+	console.log('run lsp')
+	let disposable = vscode.commands.registerCommand('typeInspector.inspect', runTreeSitter);
+
+	context.subscriptions.push(disposable);
 
 
 	// Gets called when user presses ctrl + k (mounts ctrl+k-style codelens)

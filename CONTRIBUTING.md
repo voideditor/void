@@ -66,7 +66,13 @@ Finally, click Install.
 
 ### c. Build Prerequisites - Linux
 
-We haven't created prerequisite steps for building on Linux yet, but you can follow [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
+First, make sure you've installed NodeJS and run `npm install -g node-gyp`. Then:
+
+- Debian (Ubuntu, etc) - `sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev python-is-python3`.
+
+- Red Hat (Fedora, etc) - `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
+
+- Others - see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
 ### Build instructions
 
@@ -147,7 +153,7 @@ We're always glad to talk about new ideas, help you get set up, and make sure yo
 
 ## Submitting a Pull Request
 
-Please submit a pull request once you've made a change. You don't need to submit an issue. 
+Please submit a pull request once you've made a change. You don't need to submit an issue.
 
 Please don't use AI to write your PR 🙂.
 

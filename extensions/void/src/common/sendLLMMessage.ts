@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { VoidConfig } from '../webviews/common/contextForConfig'
+import { getFIMPrompt, getFIMSystem } from './getPrompt';
 
 export type AbortRef = { current: (() => void) | null }
 
@@ -21,22 +22,31 @@ export type LLMMessage = {
 }
 
 type SendLLMMessageFnTypeInternal = (params: {
+	mode: 'chat' | 'fim',
 	messages: LLMMessage[],
 	onText: OnText,
 	onFinalMessage: OnFinalMessage,
 	onError: (error: string) => void,
-	voidConfig: VoidConfig,
 	abortRef: AbortRef,
+	voidConfig: VoidConfig,
 }) => void
 
-type SendLLMMessageFnTypeExternal = (params: {
-	messages: LLMMessage[],
+
+type SendLLMMessageFnTypeExternal = (params: (
+	| { mode?: 'chat', messages: LLMMessage[], fimInfo?: undefined, }
+	| { mode: 'fim', fimInfo: FimInfo, messages?: undefined, }
+) & {
 	onText: OnText,
-	onFinalMessage: (fullText: string) => void,
+	onFinalMessage: OnFinalMessage,
 	onError: (error: string) => void,
-	voidConfig: VoidConfig | null,
 	abortRef: AbortRef,
+	voidConfig: VoidConfig | null, // these may be absent
 }) => void
+
+export type FimInfo = {
+	prefix: string,
+	suffix: string,
+}
 
 const parseMaxTokensStr = (maxTokensStr: string) => {
 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
@@ -232,7 +242,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 };
 
 // Ollama
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 
 	let didAbort = false
 	let fullText = ""
@@ -242,6 +252,10 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 	};
 
 	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
+
+	type GenerateResponse = Awaited<ReturnType<(typeof ollama.generate)>>
+	type ChatResponse = Awaited<ReturnType<(typeof ollama.chat)>>
+
 
 	// First check if model exists
 	ollama.list()
@@ -254,6 +268,18 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 				onText(errorMessage, errorMessage);
 				onFinalMessage(errorMessage);
 				return Promise.reject();
+			}
+
+			if (mode === 'fim') {
+
+				// the fim prompt is the last message
+				let prompt = messages[messages.length - 1].content
+				return ollama.generate({
+					model: voidConfig.ollama.model,
+					prompt: prompt,
+					stream: true,
+					raw: true,
+				})
 			}
 
 			return ollama.chat({
@@ -271,7 +297,11 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 			}
 			for await (const chunk of stream) {
 				if (didAbort) return;
-				const newText = chunk.message.content;
+
+				const newText = (mode === 'fim'
+					? (chunk as GenerateResponse).response
+					: (chunk as ChatResponse).message.content
+				)
 				fullText += newText;
 				onText(newText, fullText);
 			}
@@ -357,26 +387,49 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
-	if (!voidConfig) return;
+export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ mode, messages, fimInfo, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+	if (!voidConfig)
+		return onError('No config file found for LLM.');
+
+	// handle defaults
+	if (!mode) mode = 'chat'
+	if (!messages) messages = []
+
+	// build messages
+	if (mode === 'chat') {
+		// nothing needed
+	} else if (mode === 'fim') {
+		fimInfo = fimInfo!
+
+		const system = getFIMSystem({ voidConfig, fimInfo })
+		const prompt = getFIMPrompt({ voidConfig, fimInfo })
+		messages = ([
+			{ role: 'system', content: system },
+			{ role: 'user', content: prompt }
+		] as const)
+			.filter(m => m.content.trim() !== '')
+	}
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
+	if (messages.length === 0)
+		return onError('No messages provided to LLM.');
 
 	switch (voidConfig.default.whichApi) {
 		case 'anthropic':
-			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendAnthropicMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'openAI':
 		case 'openRouter':
 		case 'openAICompatible':
-			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendOpenAIMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'gemini':
-			return sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendGeminiMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'ollama':
-			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendOllamaMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'greptile':
-			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendGreptileMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		default:
 			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
 	}
+
 }

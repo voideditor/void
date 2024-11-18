@@ -9,7 +9,7 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 // if selectionStr is null, it means just send the whole file
 export type CodeSelection = {
 	selectionStr: string | null;
-	fileURI: URI,
+	fileURI: URI;
 	content: string;
 }
 

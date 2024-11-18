@@ -58,8 +58,8 @@ const readModel = (model: ITextModel) => {
 
 
 export type Diff = {
-	diffid: number,
-	diffareaid: number, // the diff area this diff belongs to, "computed"
+	diffid: number;
+	diffareaid: number; // the diff area this diff belongs to, "computed"
 	type: 'edit' | 'insertion' | 'deletion';
 	originalCode: string;
 
@@ -81,25 +81,25 @@ export type Diff = {
 
 // _ means anything we don't include if we clone it
 type DiffArea = {
-	diffareaid: number,
-	// originalStartLine: number,
-	// originalEndLine: number,
-	originalCode: string,
-	startLine: number,
-	endLine: number,
+	diffareaid: number;
+	// originalStartLine: number;
+	// originalEndLine: number;
+	originalCode: string;
+	startLine: number;
+	endLine: number;
 
-	_model: ITextModel, // the model (if we clone it, the function keeps track of the model id)
-	_diffOfId: Record<string, Diff>, // diff of id in this DiffArea
-	_disposeSweepStyles: (() => void) | null,
-	// _generationid: number,
+	_model: ITextModel; // the model (if we clone it; the function keeps track of the model id)
+	_diffOfId: Record<string, Diff>; // diff of id in this DiffArea
+	_disposeSweepStyles: (() => void) | null;
+	// _generationid: number;
 } & ({
 	_sweepState: {
-		isStreaming: true,
+		isStreaming: true;
 		line: number;
 	} | {
-		isStreaming: false,
+		isStreaming: false;
 		line: null;
-	}
+	};
 })
 
 const diffAreaSnapshotKeys = [
@@ -114,14 +114,14 @@ type DiffAreaSnapshot = Pick<DiffArea, typeof diffAreaSnapshotKeys[number]>
 
 
 type HistorySnapshot = {
-	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>,
-	code: string,
+	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>;
+	code: string;
 } &
 	({
-		type: 'ctrl+k',
-		ctrlKText: string
+		type: 'ctrl+k';
+		ctrlKText: string;
 	} | {
-		type: 'ctrl+l',
+		type: 'ctrl+l';
 	})
 
 
@@ -185,16 +185,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 						// it's as if we just called _write, now all we need to do is realign and refresh
 
-						let refreshIds: Set<number> = new Set()
+						const refreshIds: Set<number> = new Set()
 						// realign
-						for (let change of e.changes) {
+						for (const change of e.changes) {
 							const ids = this._realignAllDiffAreasLines(model, change.text, change.range)
 							ids.forEach(id => refreshIds.add(id))
 						}
 						// refresh
 						const content = readModel(model)
 						if (content === null) return
-						for (let diffareaid of refreshIds) {
+						for (const diffareaid of refreshIds) {
 							const diffArea = this.diffAreaOfId[diffareaid]
 							const computedDiffs = findDiffs(diffArea.originalCode, content)
 							this._refreshDiffArea(diffArea, computedDiffs)
@@ -366,7 +366,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const diffAreaOfId = this.diffAreaOfId
 
 			const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
-			for (let diffareaid in diffAreaOfId) {
+			for (const diffareaid in diffAreaOfId) {
 				const diffArea = diffAreaOfId[diffareaid]
 				snapshottedDiffAreaOfId[diffareaid] = structuredClone( // a structured clone must be on a JSON object
 					Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
@@ -384,7 +384,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const { snapshottedDiffAreaOfId, code } = structuredClone(snapshot) // don't want to destroy the snapshot
 
 			// delete all current decorations (diffs, sweep styles) so we don't have any unwanted leftover decorations
-			for (let diffareaid in this.diffAreaOfId) {
+			for (const diffareaid in this.diffAreaOfId) {
 				const diffArea = this.diffAreaOfId[diffareaid]
 				this._deleteDiffs(diffArea)
 				this._deleteSweepStyles(diffArea)
@@ -393,7 +393,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			// restore diffAreaOfId and diffAreasOfModelId
 			this.diffAreaOfId = {}
 			this.diffAreasOfModelId[model.id].clear()
-			for (let diffareaid in snapshottedDiffAreaOfId) {
+			for (const diffareaid in snapshottedDiffAreaOfId) {
 				this.diffAreaOfId[diffareaid] = {
 					...snapshottedDiffAreaOfId[diffareaid],
 					_diffOfId: {},
@@ -411,7 +411,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const newCode = code
 			this._writeText(model, code, { startColumn: 1, startLineNumber: 1, endLineNumber: model.getLineCount(), endColumn: Number.MAX_SAFE_INTEGER })
 			if (newCode === null) return
-			for (let diffareaid in this.diffAreaOfId) {
+			for (const diffareaid in this.diffAreaOfId) {
 				const diffArea = this.diffAreaOfId[diffareaid]
 				const computedDiffs = findDiffs(diffArea.originalCode, newCode)
 				this._refreshDiffArea(diffArea, computedDiffs)
@@ -476,9 +476,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
-	private _realignAllDiffAreasLines(model: ITextModel, text: string, recentChange: { startLineNumber: number; endLineNumber: number; }) {
+	private _realignAllDiffAreasLines(model: ITextModel, text: string, recentChange: { startLineNumber: number; endLineNumber: number }) {
 
-		let diffAreaIdsThatNeedRefreshing: number[] = []
+		const diffAreaIdsThatNeedRefreshing: number[] = []
 
 		// compute net number of newlines lines that were added/removed
 		const startLine = recentChange.startLineNumber
@@ -564,7 +564,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// ----------- 3. Recompute all Diffs in the diffArea -----------
 		// recompute
-		for (let computedDiff of computedDiffs) {
+		for (const computedDiff of computedDiffs) {
 			const diffid = this._diffidPool++
 
 			// add the view zone
@@ -640,7 +640,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const newFileTop = newCodeSoFar.split('\n').slice(0, (newFileEndLine - 1)).join('\n')
 			const oldFileBottom = diffArea.originalCode.split('\n').slice((oldFileStartLine - 1), Infinity).join('\n')
 
-			let newCode = `${newFileTop}\n${oldFileBottom}`
+			const newCode = `${newFileTop}\n${oldFileBottom}`
 
 			this._writeText(model, newCode,
 				{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
@@ -662,7 +662,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const endLine = model.getLineCount()
 
 		// check if there's overlap with any other diffAreas and return early if there is
-		for (let diffareaid of this.diffAreasOfModelId[model.id]) {
+		for (const diffareaid of this.diffAreasOfModelId[model.id]) {
 			const da2 = this.diffAreaOfId[diffareaid]
 			if (!da2) continue
 			const noOverlap = da2.startLine > endLine || da2.endLine < beginLine

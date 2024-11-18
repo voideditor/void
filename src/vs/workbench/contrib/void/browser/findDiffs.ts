@@ -23,9 +23,9 @@ export type SuggestedEdit = {
 
 	// start/end of original file
 	originalRange: Range;
-	type: 'insertion' | 'deletion' | 'edit',
-	originalContent: string, // original content (originalfile[originalStart...originalEnd])
-	newContent: string,
+	type: 'insertion' | 'deletion' | 'edit';
+	originalContent: string; // original content (originalfile[originalStart...originalEnd])
+	newContent: string;
 }
 
 export function findDiffs(oldStr: string, newStr: string) {
@@ -44,11 +44,11 @@ export function findDiffs(oldStr: string, newStr: string) {
 	let streakStartInNewFile: number | undefined = undefined
 	let streakStartInOldFile: number | undefined = undefined
 
-	let oldStrLines = ('\n' + oldStr).split('\n') // add newline so indexing starts at 1
+	const oldStrLines = ('\n' + oldStr).split('\n') // add newline so indexing starts at 1
 	// let newStrLines = ('\n' + newStr).split('\n')
 
 	const replacements: BaseDiff[] = []
-	for (let line of lineByLineChanges) {
+	for (const line of lineByLineChanges) {
 
 		// no change on this line
 		if (!line.added && !line.removed) {
@@ -59,18 +59,18 @@ export function findDiffs(oldStr: string, newStr: string) {
 			if (streakStartInNewFile !== undefined) {
 				let type: 'edit' | 'insertion' | 'deletion' = 'edit'
 
-				let startLine = streakStartInNewFile
+				const startLine = streakStartInNewFile
 				let endLine = newFileLineNum - 1 // don't include current line, the edit was up to this line but not including it
 				let startCol = 1
 				let endCol = Number.MAX_SAFE_INTEGER
 
-				let originalStartLine = streakStartInOldFile!
+				const originalStartLine = streakStartInOldFile!
 				let originalEndLine = oldFileLineNum - 1 // don't include current line, the edit was up to this line but not including it
 				// let originalStartCol = 0
 				// let originalEndCol = Number.MAX_SAFE_INTEGER
 
 				// let newContent = newStrLines.slice(startLine, endLine + 1).join('\n')
-				let originalContent = oldStrLines.slice(originalStartLine, originalEndLine + 1).join('\n')
+				const originalContent = oldStrLines.slice(originalStartLine, originalEndLine + 1).join('\n')
 
 				// if the range is empty, mark it as a deletion / insertion (both won't be true at once)
 				// DELETION

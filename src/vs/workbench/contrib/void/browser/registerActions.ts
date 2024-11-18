@@ -25,7 +25,7 @@ const roundRangeToLines = (range: IRange | null | undefined) => {
 	if (!range)
 		return null
 	// IRange is 1-indexed
-	let endLine = range.endColumn === 1 ? range.endLineNumber - 1 : range.endLineNumber // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
+	const endLine = range.endColumn === 1 ? range.endLineNumber - 1 : range.endLineNumber // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
 	const newRange: IRange = {
 		startLineNumber: range.startLineNumber,
 		startColumn: 1,

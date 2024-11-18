@@ -18,14 +18,14 @@ const commandKey = isMac ? '⌘' : 'Ctrl';
 const userLabel = buildEnv === 'development' ? 'Developer' : 'Production User';
 
 function sendMetrics(event: string) {
-    const metrics = {
+	const metrics = {
 		isMac,
 		commandKey,
-        event,
-        buildNumber,
-        userLabel,
-    };
-    console.log('Metrics:', metrics);
+		event,
+		buildNumber,
+		userLabel,
+	};
+	console.log('Metrics:', metrics);
 }
 
 
@@ -59,11 +59,11 @@ const getSelection = (editor: vscode.TextEditor) => {
 
 export function activate(context: vscode.ExtensionContext) {
 
-	
+
 	console.log(`Build Environment: ${buildEnv}`);
 	console.log(`Build Number: ${buildNumber}`)
-    console.log(`Use ${commandKey} for commands.`);
-    console.log(`User Label: ${userLabel}`);
+	console.log(`Use ${commandKey} for commands.`);
+	console.log(`User Label: ${userLabel}`);
 
 	sendMetrics('extensionActivated');
 

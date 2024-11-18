@@ -12,6 +12,7 @@ import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 import { AutocompleteProvider } from './AutcompleteProvider';
 import { runTreeSitter } from '../common/LangaugeServer/createJsProgramGraph';
 
+
 // // this comes from vscode.proposed.editorInsets.d.ts
 // declare module 'vscode' {
 // 	export interface WebviewEditorInset {

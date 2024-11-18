@@ -10,7 +10,7 @@ import { readFileContentOfUri } from './extensionLib/readFileContentOfUri';
 import { SidebarWebviewProvider } from './providers/SidebarWebviewProvider';
 import { CtrlKWebviewProvider } from './providers/CtrlKWebviewProvider';
 import { AutocompleteProvider } from './AutcompleteProvider';
-import { getFunctionTokens } from '../common/LangaugeServer/findFunctions';
+import { runTreeSitter } from '../common/LangaugeServer/createJsProgramGraph';
 
 // // this comes from vscode.proposed.editorInsets.d.ts
 // declare module 'vscode' {
@@ -193,7 +193,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 	// 7. Language Server
-	let disposable = vscode.commands.registerCommand('typeInspector.inspect', getFunctionTokens);
+	console.log('run lsp')
+	let disposable = vscode.commands.registerCommand('typeInspector.inspect', runTreeSitter);
 
 	context.subscriptions.push(disposable);
 

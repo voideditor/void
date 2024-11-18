@@ -160,6 +160,9 @@
     "uuid": "^10.0.0"
   },
   "dependencies": {
-    "lru-cache": "^11.0.2"
+    "lru-cache": "^11.0.2",
+    "tree-sitter": "^0.21.1",
+    "tree-sitter-javascript": "^0.23.1",
+    "tree-sitter-python": "^0.23.4"
   }
 }

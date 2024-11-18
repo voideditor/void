@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 const legend = new vscode.SemanticTokensLegend([], []);
 
-export async function getFunctionTokens() {
+export async function findFunctions() {
 
 	const editor = vscode.window.activeTextEditor;
 	if (!editor) return;
@@ -20,7 +20,6 @@ export async function getFunctionTokens() {
 
 	const allTokens = decodeTokens(tokens, document);
 
-	console.log("Tokens:", allTokens);
 
 	return allTokens;
 }

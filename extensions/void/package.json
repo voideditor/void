@@ -143,6 +143,7 @@
     "eslint-plugin-react": "^7.35.1",
     "eslint-plugin-react-hooks": "^4.6.2",
     "globals": "^15.9.0",
+    "lodash": "^4.17.21",
     "marked": "^14.1.0",
     "ollama": "^0.5.9",
     "openai": "^4.68.4",

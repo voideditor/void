@@ -13,25 +13,6 @@ import { AutocompleteProvider } from './AutcompleteProvider';
 import { runTreeSitter } from '../common/LangaugeServer/createJsProgramGraph';
 
 
-
-const buildEnv = 'development';
-const buildNumber = '1.0.0';
-const isMac = process.platform === 'darwin';
-const commandKey = isMac ? '⌘' : 'Ctrl';
-const userLabel = buildEnv === 'development' ? 'Developer' : 'Production User';
-
-function sendMetrics(event: string) {
-	const metrics = {
-		isMac,
-		commandKey,
-		event,
-		buildNumber,
-		userLabel,
-	};
-	console.log('Metrics:', metrics);
-}
-
-
 // // this comes from vscode.proposed.editorInsets.d.ts
 // declare module 'vscode' {
 // 	export interface WebviewEditorInset {
@@ -61,14 +42,6 @@ const getSelection = (editor: vscode.TextEditor) => {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-
-
-	console.log(`Build Environment: ${buildEnv}`);
-	console.log(`Build Number: ${buildNumber}`)
-	console.log(`Use ${commandKey} for commands.`);
-	console.log(`User Label: ${userLabel}`);
-
-	sendMetrics('extensionActivated');
 
 	// 1. Mount the chat sidebar
 	const sidebarWebviewProvider = new SidebarWebviewProvider(context);

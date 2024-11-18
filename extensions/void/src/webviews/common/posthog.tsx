@@ -1,12 +1,29 @@
 import posthog from 'posthog-js'
 
 
+
+
+const buildEnv = 'development';
+const buildNumber = '1.0.0';
+const isMac = process.platform === 'darwin';
+// TODO use commandKey
+const commandKey = isMac ? '⌘' : 'Ctrl';
+const systemInfo = {
+	buildEnv,
+	buildNumber,
+	isMac,
+}
+
+
 export const identifyUser = (id: string) => {
 	posthog.identify(id)
 }
 
+
+
+
 export const captureEvent = (eventId: string, properties: object) => {
-	posthog.capture(eventId, properties)
+	posthog.capture(eventId, { ...properties, systemInfo })
 }
 
 export const initPosthog = () => {

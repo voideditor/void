@@ -59,21 +59,21 @@ class InlineDiffService extends Disposable implements IInlineDiffService {
 			const fontInfo = editor.getOption(EditorOption.fontInfo);
 
 			const domNode = document.createElement('div');
-			domNode.className = 'monaco-editor view-zones line-delete monaco-mouse-cursor-text';
+			// domNode.className = 'monaco-editor view-zones line-delete monaco-mouse-cursor-text';
 			domNode.style.fontSize = `${fontInfo.fontSize}px`;
 			domNode.style.fontFamily = fontInfo.fontFamily;
 			domNode.style.lineHeight = `${fontInfo.lineHeight}px`;
 
 			// div
 			const lineContent = document.createElement('div');
-			lineContent.className = 'view-line'; // .monaco-editor .inline-deleted-text
+			// lineContent.className = 'view-line'; // .monaco-editor .inline-deleted-text
 
 			// span
 			const contentSpan = document.createElement('span');
 
 			// span
 			const codeSpan = document.createElement('span');
-			codeSpan.className = 'mtk1'; // char-delete
+			// codeSpan.className = 'mtk1'; // char-delete
 			codeSpan.textContent = originalText;
 
 			// Mount

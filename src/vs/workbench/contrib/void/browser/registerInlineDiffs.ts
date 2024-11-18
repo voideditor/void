@@ -12,11 +12,13 @@ import { writeFileWithDiffInstructions } from './prompt/systemPrompts.js';
 import { BaseDiff, findDiffs } from './findDiffs.js';
 import { EndOfLinePreference, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
-import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
 import { Color, RGBA } from '../../../../base/common/color.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType } from '../../../../platform/undoRedo/common/undoRedo.js';
+import { LineSource, renderLines, RenderOptions } from '../../../../editor/browser/widget/diffEditor/components/diffEditorViewZones/renderLines.js';
+import { LineTokens } from '../../../../editor/common/tokens/lineTokens.js';
+import { ILanguageService } from '../../../../editor/common/languages/language.js';
 // import { IModelService } from '../../../../editor/common/services/model.js';
 
 
@@ -160,7 +162,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 		@IModelService private readonly _modelService: IModelService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
-
+		@ILanguageService private readonly _langService: ILanguageService,
 	) {
 		super();
 
@@ -262,15 +264,13 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	private _addInlineDiffZone = (model: ITextModel, redText: string, greenRange: IRange, type: 'insertion' | 'deletion' | 'edit', diffid: number) => {
 		const _addInlineDiffZoneToEditor = (editor: ICodeEditor) => {
-
-
 			// green decoration and gutter decoration
 			let decorationId: string | null = null
 			editor.changeDecorations(accessor => {
 				if (type === 'deletion') return
 				decorationId = accessor.addDecoration(greenRange, {
-					className: 'void-greenBG line-insert', // .monaco-editor .line-insert
-					description: 'void-greenBG',
+					className: 'void-greenBG', // .monaco-editor .line-insert
+					description: 'Void added this code',
 					isWholeLine: true,
 					minimap: {
 						color: { id: 'minimapGutter.addedBackground' },
@@ -283,66 +283,46 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				})
 			})
 
-
 			// red in a view zone
 			let zoneId: string | null = null
 			editor.changeViewZones(accessor => {
-				// don't add a viewZone on insertions
-				if (type === 'insertion') return
-				// Get the editor's font info
-				const fontInfo = editor.getOption(EditorOption.fontInfo);
+				if (type === 'insertion') return;
+
+
+				// TODO compute lines with wrap
+
+				const renderOptions = RenderOptions.fromEditor(editor);
+
+				const lines = redText.split('\n');
+				const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
+				const source = new LineSource(lineTokens, lines.map(() => null), false, false);
 
 				const domNode = document.createElement('div');
-				domNode.className = 'monaco-editor view-zones line-delete monaco-mouse-cursor-text';
-				domNode.style.fontSize = `${fontInfo.fontSize}px`;
-				domNode.style.fontFamily = fontInfo.fontFamily;
-				domNode.style.lineHeight = `${fontInfo.lineHeight}px`;
 
-				domNode.style.whiteSpace = `pre`;
+				const result = renderLines(source, renderOptions, [], domNode);
 
-				// div
-				const lineContent = document.createElement('div');
-				lineContent.className = 'void-redBG view-line'; // .monaco-editor .inline-deleted-text
 
-				// span
-				const contentSpan = document.createElement('span');
+				// applyFontInfo(domNode, renderOptions.fontInfo)
 
-				// span
-				const codeSpan = document.createElement('span');
-				codeSpan.className = 'mtk1'; // char-delete
-				codeSpan.textContent = redText;
-
-				// Mount
-				contentSpan.appendChild(codeSpan);
-				lineContent.appendChild(contentSpan);
-				domNode.appendChild(lineContent);
-
-				// Gutter (thing to the left)
-				const gutterDiv = document.createElement('div');
-				// gutterDiv.className = 'inline-diff-gutter';
-				const minusDiv = document.createElement('div');
-				// minusDiv.className = 'inline-diff-deleted-gutter';
-				// minusDiv.textContent = '-';
-				gutterDiv.appendChild(minusDiv);
 
 				const viewZone: IViewZone = {
 					afterLineNumber: greenRange.startLineNumber - 1,
-					heightInLines: (redText.match(/\n/g) || []).length + 1,
+					heightInLines: result.heightInLines,
+					minWidthInPx: result.minWidthInPx,
 					domNode: domNode,
-					// suppressMouseDown: true,
-					marginDomNode: gutterDiv
+					marginDomNode: document.createElement('div'), // displayed to left
+					suppressMouseDown: true,
 				};
 
 				zoneId = accessor.addZone(viewZone);
-				// editor.layout();
-				// this._diffZones.set(editor, [zoneId]);
 			});
 
 			const dispose = () => {
-				editor.changeDecorations(accessor => { if (decorationId) accessor.removeDecoration(decorationId) })
+				editor.changeDecorations(accessor => { if (decorationId) accessor.removeDecoration(decorationId) });
 				editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId); });
+				// contentChangeDisposable.dispose();
 			}
-			return dispose
+			return dispose;
 		}
 
 		const editors = this._editorService.listCodeEditors().filter(editor => editor.getModel()?.id === model.id)
@@ -402,6 +382,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						isStreaming: false,
 						line: null,
 					},
+					// _generationid: generationid,
 					_disposeSweepStyles: null,
 				}
 				this.diffAreasOfModelId[model.id].add(diffareaid)
@@ -902,10 +883,3 @@ Please finish writing the new file by applying the diff to the original file. Re
 }
 
 registerSingleton(IInlineDiffsService, InlineDiffsService, InstantiationType.Eager);
-
-
-
-
-
-
-

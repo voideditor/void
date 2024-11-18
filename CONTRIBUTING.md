@@ -66,27 +66,13 @@ Finally, click Install.
 
 ### c. Build Prerequisites - Linux
 
-You will need at least 8GB of RAM to build & watch Void.
+First, make sure you've installed NodeJS and run `npm install -g node-gyp`. Then:
 
-If you are using a RHEL-based (Fedora, CentOS, etc.) Linux distribution, you will need to launch this command to install development tools and dependencies:
-```
-sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel
-```
+- Debian (Ubuntu, etc) - run `sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev python-is-python3`.
 
-If you are using a Debian-based (Ubuntu, etc.) Linux distribution, you will need to launch this command to install development tools and dependencies:
-```
-sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev python-is-python3
-```
+- Red Hat (Fedora, CentOS) - run `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
 
-You will also need to install NodeJS. We recommend using [nvm](https://github.com/nvm-sh/nvm) to install NodeJS.
-
-NOTE : when building void, you might need to remove packages-lock.json and node_modules and reinstall dependencies.
-
-You also might need to launch :
-```
-npm install -g node-gyp
-```
-(this is to install node-gyp, which is a Node.js package for compiling native addon modules for Node.js)
+- Others - see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
 ### Build instructions
 

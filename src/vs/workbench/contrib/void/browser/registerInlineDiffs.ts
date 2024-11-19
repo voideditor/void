@@ -414,7 +414,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const elt: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
 			resource: model.uri,
-			label: 'Add Diffs',
+			label: 'Void Changes',
 			code: 'undoredo.inlineDiffs',
 			undo: () => { restoreDiffAreas(beforeSnapshot) },
 			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }

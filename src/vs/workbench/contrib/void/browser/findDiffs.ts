@@ -1,5 +1,3 @@
-
-import { Range } from 'vscode';
 import { diffLines } from './react/out/util/diffLines.js'
 
 export type BaseDiff = {
@@ -15,18 +13,6 @@ export type BaseDiff = {
 	endCol: number;
 }
 
-
-// Andrew diff algo:
-export type SuggestedEdit = {
-	// start/end of current file
-	newRange: Range;
-
-	// start/end of original file
-	originalRange: Range;
-	type: 'insertion' | 'deletion' | 'edit';
-	originalContent: string; // original content (originalfile[originalStart...originalEnd])
-	newContent: string;
-}
 
 export function findDiffs(oldStr: string, newStr: string) {
 

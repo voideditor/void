@@ -247,11 +247,11 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, on
 	let didAbort = false
 	let fullText = ""
 
+	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
+
 	abortRef.current = () => {
 		didAbort = true;
 	};
-
-	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
 
 	type GenerateResponse = Awaited<ReturnType<(typeof ollama.generate)>>
 	type ChatResponse = Awaited<ReturnType<(typeof ollama.chat)>>
@@ -271,7 +271,6 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, on
 			}
 
 			if (mode === 'fim') {
-
 				// the fim prompt is the last message
 				let prompt = messages[messages.length - 1].content
 				return ollama.generate({

@@ -2,22 +2,24 @@ import * as vscode from 'vscode';
 import { AbortRef, LLMMessage, sendLLMMessage } from '../common/sendLLMMessage';
 import { getVoidConfigFromPartial, VoidConfig } from '../webviews/common/contextForConfig';
 import { LRUCache } from 'lru-cache';
-import { SimpleLRUCache } from '../common/SimpleLruCache';
 
 type AutocompletionStatus = 'pending' | 'finished' | 'error';
 type Autocompletion = {
+	id: number,
 	prefix: string,
 	suffix: string,
 	startTime: number,
 	endTime: number | undefined,
 	abortRef: AbortRef,
 	status: AutocompletionStatus,
-	promise: Promise<string> | undefined,
+	llmPromise: Promise<string> | undefined,
 	result: string,
 }
 
-const DEBOUNCE_TIME = 300
+const DEBOUNCE_TIME = 500
 const TIMEOUT_TIME = 60000
+const MAX_CACHE_SIZE = 20
+const MAX_PENDING_REQUESTS = 2
 
 // postprocesses the result
 const postprocessResult = (result: string) => {
@@ -72,10 +74,6 @@ const toInlineCompletion = ({ prefix, autocompletion, position }: { prefix: stri
 
 	const lastMatchupIndex = trimmedCurrentPrefix.length - trimmedOriginalPrefix.length
 
-	console.log('generatedMiddle ', generatedMiddle)
-	console.log('trimmedOriginalPrefix ', trimmedOriginalPrefix)
-	console.log('trimmedCurrentPrefix ', trimmedCurrentPrefix)
-	console.log('index: ', lastMatchupIndex)
 	if (lastMatchupIndex < 0) {
 		return new vscode.InlineCompletionItem('')
 	}
@@ -90,19 +88,19 @@ const toInlineCompletion = ({ prefix, autocompletion, position }: { prefix: stri
 
 }
 
-// returns whether we can use this autocompletion to complete the prefix
+// returns whether this autocompletion is in the cache
 const doesPrefixMatchAutocompletion = ({ prefix, autocompletion }: { prefix: string, autocompletion: Autocompletion }): boolean => {
 
 	const originalPrefix = autocompletion.prefix
 	const generatedMiddle = autocompletion.result
-	const trimmedOriginalPrefix = trimPrefix(originalPrefix)
-	const trimmedCurrentPrefix = trimPrefix(prefix)
+	const originalPrefixTrimmed = trimPrefix(originalPrefix)
+	const currentPrefixTrimmed = trimPrefix(prefix)
 
-	if (trimmedCurrentPrefix.length < trimmedOriginalPrefix.length) {
+	if (currentPrefixTrimmed.length < originalPrefixTrimmed.length) {
 		return false
 	}
 
-	const isMatch = (trimmedOriginalPrefix + generatedMiddle).startsWith(trimmedCurrentPrefix)
+	const isMatch = (originalPrefixTrimmed + generatedMiddle).startsWith(currentPrefixTrimmed)
 	return isMatch
 
 }
@@ -111,11 +109,14 @@ const doesPrefixMatchAutocompletion = ({ prefix, autocompletion }: { prefix: str
 
 export class AutocompleteProvider implements vscode.InlineCompletionItemProvider {
 
+
 	private _extensionContext: vscode.ExtensionContext;
 
-	private _autocompletionsOfDocument: { [docUriStr: string]: SimpleLRUCache<Autocompletion> } = {}
+	private _autocompletionId: number = 0;
+	private _autocompletionsOfDocument: { [docUriStr: string]: LRUCache<number, Autocompletion> } = {}
 
-	private _lastTime = 0
+	private _lastCompletionTime = 0
+	private _lastPrefix: string = ''
 
 	constructor(context: vscode.ExtensionContext) {
 		this._extensionContext = context
@@ -130,7 +131,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 		token: vscode.CancellationToken,
 	): Promise<vscode.InlineCompletionItem[]> {
 
-		const disabled = true
+		const disabled = false
 		if (disabled) { return []; }
 
 		const docUriStr = document.uri.toString()
@@ -139,20 +140,26 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 		const cursorOffset = document.offsetAt(position);
 		const prefix = fullText.substring(0, cursorOffset)
 		const suffix = fullText.substring(cursorOffset)
-
-		if (!this._autocompletionsOfDocument[docUriStr]) {
-			this._autocompletionsOfDocument[docUriStr] = new SimpleLRUCache()
-		}
-
 		const voidConfig = getVoidConfigFromPartial(this._extensionContext.globalState.get('partialVoidConfig') ?? {})
+
+		// initialize cache and other variables
+		// note that whenever an autocompletion is rejected, it is removed from cache
+		if (!this._autocompletionsOfDocument[docUriStr]) {
+			this._autocompletionsOfDocument[docUriStr] = new LRUCache<number, Autocompletion>({
+				max: MAX_CACHE_SIZE,
+				dispose: (autocompletion) => { autocompletion.abortRef.current() }
+			})
+		}
+		this._lastPrefix = prefix
+		console.log('cache size: ', this._autocompletionsOfDocument[docUriStr].size)
 
 		// get autocompletion from cache
 		let cachedAutocompletion: Autocompletion | undefined = undefined
-		loop: for (const autocompletion of this._autocompletionsOfDocument[docUriStr].values()) {
+		for (const autocompletion of this._autocompletionsOfDocument[docUriStr].values()) {
 			// if the user's change matches up with the generated text
 			if (doesPrefixMatchAutocompletion({ prefix, autocompletion })) {
 				cachedAutocompletion = autocompletion
-				break loop;
+				break
 			}
 		}
 
@@ -169,11 +176,12 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 				console.log('AAA2')
 
 				try {
-					await cachedAutocompletion.promise;
+					await cachedAutocompletion.llmPromise;
 					const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, position })
 					return [inlineCompletion]
 
 				} catch (e) {
+					this._autocompletionsOfDocument[docUriStr].delete(cachedAutocompletion.id)
 					console.error('Error creating autocompletion (1): ' + e)
 				}
 
@@ -184,15 +192,13 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 			return []
 		}
 
-
-		// if there is no cached autocompletion, create it and add it to cache
-
+		// else if no more typing happens, then go forwards with the request
 		// wait DEBOUNCE_TIME for the user to stop typing
 		const thisTime = Date.now()
-		this._lastTime = thisTime
+		this._lastCompletionTime = thisTime
 		const didTypingHappenDuringDebounce = await new Promise((resolve, reject) =>
 			setTimeout(() => {
-				if (this._lastTime === thisTime) {
+				if (this._lastCompletionTime === thisTime) {
 					resolve(false)
 				} else {
 					resolve(true)
@@ -207,27 +213,50 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 
 		console.log('BBB')
 
-		// else if no more typing happens, then go forwards with the request
+		// if there are too many pending requests, cancel the oldest one
+		let numPending = 0
+		let oldestPending: Autocompletion | undefined = undefined
+		for (const autocompletion of this._autocompletionsOfDocument[docUriStr].values()) {
+			if (autocompletion.status === 'pending') {
+				numPending += 1
+				if (oldestPending === undefined) {
+					oldestPending = autocompletion
+				}
+				if (numPending >= MAX_PENDING_REQUESTS) {
+					// cancel the oldest pending request and remove it from cache
+					this._autocompletionsOfDocument[docUriStr].delete(oldestPending.id)
+					break
+				}
+			}
+		}
+
+		// create a new autocompletion and add it to cache
 		const newAutocompletion: Autocompletion = {
+			id: this._autocompletionId++,
 			prefix: prefix,
 			suffix: suffix,
 			startTime: Date.now(),
 			endTime: undefined,
 			abortRef: { current: () => { } },
 			status: 'pending',
-			promise: undefined,
+			llmPromise: undefined,
 			result: '',
 		}
 
 		// set parameters of `newAutocompletion` appropriately
-		newAutocompletion.promise = new Promise((resolve, reject) => {
+		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
 			sendLLMMessage({
 				mode: 'fim',
 				fimInfo: { prefix, suffix },
 				onText: async (tokenStr, completionStr) => {
-					// TODO filter out bad responses here
+
 					newAutocompletion.result = completionStr
+
+					// if generation doesn't match the prefix for the first few tokens generated, reject it
+					if (completionStr.length < 20 && !doesPrefixMatchAutocompletion({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
+						reject('LLM response did not match user\'s text.')
+					}
 				},
 				onFinalMessage: (finalMessage) => {
 
@@ -252,31 +281,33 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 				abortRef: newAutocompletion.abortRef,
 			})
 
-			setTimeout(() => { // if the request hasnt resolved in TIMEOUT_TIME seconds, reject it
+			// if the request hasnt resolved in TIMEOUT_TIME seconds, reject it
+			setTimeout(() => {
 				if (newAutocompletion.status === 'pending') {
-					reject('Timeout')
+					reject('Timeout receiving message to LLM.')
 				}
 			}, TIMEOUT_TIME)
+
+
 		})
 
 		// add autocompletion to cache
-		this._autocompletionsOfDocument[docUriStr].push(newAutocompletion)
+		this._autocompletionsOfDocument[docUriStr].set(newAutocompletion.id, newAutocompletion)
 
 		// show autocompletion
 		try {
-			await newAutocompletion.promise;
+			await newAutocompletion.llmPromise;
 
 			const inlineCompletion = toInlineCompletion({ autocompletion: newAutocompletion, prefix, position })
 			return [inlineCompletion]
 
 		} catch (e) {
+			this._autocompletionsOfDocument[docUriStr].delete(newAutocompletion.id)
 			console.error('Error creating autocompletion (2): ' + e)
 			return []
 		}
 
 	}
-
-
 
 
 }

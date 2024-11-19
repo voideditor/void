@@ -17,6 +17,7 @@ import { Color, RGBA } from '../../../../base/common/color.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { LineSource, renderLines, RenderOptions } from '../../../../editor/browser/widget/diffEditor/components/diffEditorViewZones/renderLines.js';
+import { applyFontInfo } from '../../../../editor/browser/config/domFontInfo.js';
 import { LineTokens } from '../../../../editor/common/tokens/lineTokens.js';
 import { ILanguageService } from '../../../../editor/common/languages/language.js';
 // import { IModelService } from '../../../../editor/common/services/model.js';
@@ -42,7 +43,7 @@ registerColor('void.sweepBG', {
 	light: sweepBG, hcDark: null, hcLight: null
 }, '', true);
 
-const sweepIdxBG = new Color(new RGBA(100, 100, 100, .2));
+const sweepIdxBG = new Color(new RGBA(100, 100, 100, .5));
 registerColor('void.sweepIdxBG', {
 	dark: sweepIdxBG,
 	light: sweepIdxBG, hcDark: null, hcLight: null
@@ -227,38 +228,38 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	// private _addSweepStyles = (model: ITextModel, sweepLine: number, endLine: number) => {
+	private _addSweepStyles = (model: ITextModel, sweepLine: number, endLine: number) => {
 
-	// 	const decorationIds: (string | null)[] = []
-	// 	// sweepLine ... sweepLine
-	// 	const lineRange = { startLineNumber: sweepLine, startColumn: 1, endLineNumber: sweepLine, endColumn: Number.MAX_SAFE_INTEGER }
-	// 	const sweepIdxDecoration: IModelDecorationOptions = {
-	// 		className: 'void-sweepIdxBG',
-	// 		description: 'void-sweepIdxBG',
-	// 		isWholeLine: true
-	// 	}
-	// 	decorationIds.push(
-	// 		model.changeDecorations(accessor => accessor.addDecoration(lineRange, sweepIdxDecoration))
-	// 	)
+		const decorationIds: (string | null)[] = []
 
-	// 	// sweepLine+1 ... endLine
-	// 	const bulkRange = { startLineNumber: sweepLine + 1, startColumn: 1, endLineNumber: endLine, endColumn: Number.MAX_SAFE_INTEGER }
-	// 	const sweepDecoration: IModelDecorationOptions = {
-	// 		className: 'void-sweepBG',
-	// 		description: 'void-sweepBG',
-	// 		isWholeLine: true
-	// 	}
+		// sweepLine ... sweepLine
+		decorationIds.push(
+			model.changeDecorations(accessor => accessor.addDecoration(
+				{ startLineNumber: sweepLine, startColumn: 1, endLineNumber: sweepLine, endColumn: Number.MAX_SAFE_INTEGER },
+				{
+					className: 'void-sweepIdxBG',
+					description: 'void-sweepIdxBG',
+					isWholeLine: true
+				}))
+		)
 
-	// 	decorationIds.push(
-	// 		model.changeDecorations(accessor => accessor.addDecoration(bulkRange, sweepDecoration))
-	// 	)
-	// 	const dispose = () => {
-	// 		for (let id of decorationIds) {
-	// 			if (id) model.changeDecorations(accessor => accessor.removeDecoration(id))
-	// 		}
-	// 	}
-	// 	return dispose
-	// }
+		// sweepLine+1 ... endLine
+		decorationIds.push(
+			model.changeDecorations(accessor => accessor.addDecoration(
+				{ startLineNumber: sweepLine + 1, startColumn: 1, endLineNumber: endLine, endColumn: Number.MAX_SAFE_INTEGER },
+				{
+					className: 'void-sweepBG',
+					description: 'void-sweepBG',
+					isWholeLine: true
+				}))
+		)
+		const disposeSweepStyles = () => {
+			for (const id of decorationIds) {
+				if (id) model.changeDecorations(accessor => accessor.removeDecoration(id))
+			}
+		}
+		return disposeSweepStyles
+	}
 
 
 
@@ -285,24 +286,31 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 			// red in a view zone
 			let zoneId: string | null = null
+
 			editor.changeViewZones(accessor => {
 				if (type === 'insertion') return;
 
 
-				// TODO compute lines with wrap
-
-				const renderOptions = RenderOptions.fromEditor(editor);
-
-				const lines = redText.split('\n');
-				const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
-				const source = new LineSource(lineTokens, lines.map(() => null), false, false);
+				// const lines = redText.split('\n');
+				// const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
+				// const source = new LineSource(lineTokens, lines.map(() => null), false, false)
+				// const result = renderLines(source, renderOptions, [], domNode);
 
 				const domNode = document.createElement('div');
+				domNode.className = 'void-redBG'
 
+				const renderOptions = RenderOptions.fromEditor(editor);
+				applyFontInfo(domNode, renderOptions.fontInfo)
+
+
+				// Compute view-lines based on redText
+				const lines = redText.split('\n');
+				const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
+				const source = new LineSource(lineTokens, lines.map(() => null), false, false)
 				const result = renderLines(source, renderOptions, [], domNode);
-
-
-				// applyFontInfo(domNode, renderOptions.fontInfo)
+				console.log('RESULT', result)
+				// Set the computed view-lines to the domNode
+				// domNode.innerHTML = result.content; // Assuming result.content contains the HTML representation
 
 
 				const viewZone: IViewZone = {
@@ -539,8 +547,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// ----------- 2. Recompute sweep in the diffArea if streaming -----------
 		if (diffArea._sweepState.isStreaming) {
-			// const disposeSweepStyles = this._addSweepStyles(model, diffArea._sweepState.line, diffArea.endLine)
-			// diffArea._disposeSweepStyles = disposeSweepStyles
+			console.log('SWEEP STYLES', diffArea._sweepState.line, diffArea.endLine)
+			const disposeSweepStyles = this._addSweepStyles(model, diffArea._sweepState.line, diffArea.endLine)
+			diffArea._disposeSweepStyles = disposeSweepStyles
 		}
 
 		// ----------- 3. Recompute all Diffs in the diffArea -----------
@@ -589,8 +598,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
 			let oldFileStartLine: number // get original[oldStartingPoint...]
 
-			// pop the last diff and use it to compute where the new code should be written
-			const lastDiff = computedDiffs[computedDiffs.length - 1]
+			const lastDiff = computedDiffs.pop()
 
 			if (!lastDiff) {
 				// if the writing is identical so far, display no changes

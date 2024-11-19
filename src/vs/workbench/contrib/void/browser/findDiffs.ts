@@ -1,18 +1,30 @@
 import { diffLines } from './react/out/util/diffLines.js'
 
 export type BaseDiff = {
-	type: 'edit' | 'insertion' | 'deletion';
+	type: 'edit';
 	originalCode: string;
-
-	startLine: number; // 1-indexed
-	endLine: number;
 	originalStartLine: number;
 	originalEndLine: number;
-
-	startCol: number; // 1-indexed
-	endCol: number;
+	code: string;
+	startLine: number; // 1-indexed
+	endLine: number;
+} | {
+	type: 'insertion';
+	// originalCode: string;
+	originalStartLine: number; // insertion starts on column 0 of this
+	// originalEndLine: number;
+	code: string;
+	startLine: number;
+	endLine: number;
+} | {
+	type: 'deletion';
+	originalCode: string;
+	originalStartLine: number;
+	originalEndLine: number;
+	// code: string;
+	startLine: number; // deletion starts on column 0 of this
+	// endLine: number;
 }
-
 
 export function findDiffs(oldStr: string, newStr: string) {
 
@@ -31,7 +43,7 @@ export function findDiffs(oldStr: string, newStr: string) {
 	let streakStartInOldFile: number | undefined = undefined
 
 	const oldStrLines = ('\n' + oldStr).split('\n') // add newline so indexing starts at 1
-	// let newStrLines = ('\n' + newStr).split('\n')
+	const newStrLines = ('\n' + newStr).split('\n')
 
 	const replacements: BaseDiff[] = []
 	for (const line of lineByLineChanges) {
@@ -46,44 +58,36 @@ export function findDiffs(oldStr: string, newStr: string) {
 				let type: 'edit' | 'insertion' | 'deletion' = 'edit'
 
 				const startLine = streakStartInNewFile
-				let endLine = newFileLineNum - 1 // don't include current line, the edit was up to this line but not including it
-				let startCol = 1
-				let endCol = Number.MAX_SAFE_INTEGER
+				const endLine = newFileLineNum - 1 // don't include current line, the edit was up to this line but not including it
 
 				const originalStartLine = streakStartInOldFile!
-				let originalEndLine = oldFileLineNum - 1 // don't include current line, the edit was up to this line but not including it
-				// let originalStartCol = 0
-				// let originalEndCol = Number.MAX_SAFE_INTEGER
+				const originalEndLine = oldFileLineNum - 1 // don't include current line, the edit was up to this line but not including it
 
-				// let newContent = newStrLines.slice(startLine, endLine + 1).join('\n')
+				const newContent = newStrLines.slice(startLine, endLine + 1).join('\n')
 				const originalContent = oldStrLines.slice(originalStartLine, originalEndLine + 1).join('\n')
 
 				// if the range is empty, mark it as a deletion / insertion (both won't be true at once)
 				// DELETION
 				if (endLine === startLine - 1) {
 					type = 'deletion'
-					endLine = startLine
-					startCol = 1
-					endCol = 1
-					// newContent += '\n'
+					// endLine = startLine
 				}
 
 				// INSERTION
 				else if (originalEndLine === originalStartLine - 1) {
 					type = 'insertion'
-					originalEndLine = originalStartLine
-					// originalStartCol = 0
-					// originalEndCol = 0
+					// originalEndLine = originalStartLine
 				}
 
 				const replacement: BaseDiff = {
 					type,
 					startLine, endLine,
-					startCol, endCol,
+					// startCol, endCol,
 					originalStartLine, originalEndLine,
 					// code: newContent,
 					// originalRange: new Range(originalStartLine, originalStartCol, originalEndLine, originalEndCol),
 					originalCode: originalContent,
+					code: newContent,
 				}
 
 				replacements.push(replacement)

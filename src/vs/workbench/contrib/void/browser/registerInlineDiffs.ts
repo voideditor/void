@@ -1,7 +1,7 @@
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { ICodeEditor, IViewZone } from '../../../../editor/browser/editorBrowser.js';
+import { ICodeEditor, IOverlayWidget, IOverlayWidgetPosition, IViewZone } from '../../../../editor/browser/editorBrowser.js';
 
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
@@ -17,11 +17,12 @@ import { Color, RGBA } from '../../../../base/common/color.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { LineSource, renderLines, RenderOptions } from '../../../../editor/browser/widget/diffEditor/components/diffEditorViewZones/renderLines.js';
-import { applyFontInfo } from '../../../../editor/browser/config/domFontInfo.js';
 import { LineTokens } from '../../../../editor/common/tokens/lineTokens.js';
 import { ILanguageService } from '../../../../editor/common/languages/language.js';
 // import { IModelService } from '../../../../editor/common/services/model.js';
 
+import * as dom from '../../../../base/browser/dom.js';
+import { Widget } from '../../../../base/browser/ui/widget.js';
 
 
 // gets converted to --vscode-void-greenBG, see void.css
@@ -63,23 +64,12 @@ const readModel = (model: ITextModel) => {
 export type Diff = {
 	diffid: number;
 	diffareaid: number; // the diff area this diff belongs to, "computed"
-	type: 'edit' | 'insertion' | 'deletion';
-	originalCode: string;
-
-	startLine: number; // 1-indexed
-	endLine: number;
-	// originalStartLine: number;
-	// originalEndLine: number;
-
-	// startCol: number; // 1-indexed
-	// endCol: number;
 
 	_disposeDiffZone: (() => void) | null;
 
 	// _zone: IViewZone | null,
 	// _decorationId: string | null,
-}
-
+} & BaseDiff
 
 
 // _ means anything we don't include if we clone it
@@ -118,7 +108,7 @@ type DiffAreaSnapshot = Pick<DiffArea, typeof diffAreaSnapshotKeys[number]>
 
 type HistorySnapshot = {
 	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>;
-	code: string;
+	entireModelCode: string;
 } &
 	({
 		type: 'ctrl+k';
@@ -263,13 +253,20 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private _addInlineDiffZone = (model: ITextModel, redText: string, greenRange: IRange, type: 'insertion' | 'deletion' | 'edit', diffid: number) => {
+	private _addInlineDiffZone = (model: ITextModel, computedDiff: BaseDiff, diffid: number) => {
+
+		const type = computedDiff.type
+
 		const _addInlineDiffZoneToEditor = (editor: ICodeEditor) => {
-			// green decoration and gutter decoration
-			let decorationId: string | null = null
+
+			const disposeInThisEditorFns: (() => void)[] = []
+
+			// green decoration and minimap decoration
 			editor.changeDecorations(accessor => {
-				if (type === 'deletion') return
-				decorationId = accessor.addDecoration(greenRange, {
+				if (type === 'deletion') return;
+
+				const greenRange = { startLineNumber: computedDiff.startLine, startColumn: 1, endLineNumber: computedDiff.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
+				const decorationId = accessor.addDecoration(greenRange, {
 					className: 'void-greenBG', // .monaco-editor .line-insert
 					description: 'Void added this code',
 					isWholeLine: true,
@@ -282,63 +279,62 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						position: 7
 					}
 				})
+				disposeInThisEditorFns.push(() => { editor.changeDecorations(accessor => { if (decorationId) accessor.removeDecoration(decorationId) }) })
 			})
 
 			// red in a view zone
-			let zoneId: string | null = null
-
 			editor.changeViewZones(accessor => {
 				if (type === 'insertion') return;
-
-
-				// const lines = redText.split('\n');
-				// const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
-				// const source = new LineSource(lineTokens, lines.map(() => null), false, false)
-				// const result = renderLines(source, renderOptions, [], domNode);
 
 				const domNode = document.createElement('div');
 				domNode.className = 'void-redBG'
 
 				const renderOptions = RenderOptions.fromEditor(editor);
-				applyFontInfo(domNode, renderOptions.fontInfo)
-
+				// applyFontInfo(domNode, renderOptions.fontInfo)
 
 				// Compute view-lines based on redText
+				const redText = computedDiff.originalCode
 				const lines = redText.split('\n');
 				const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
 				const source = new LineSource(lineTokens, lines.map(() => null), false, false)
 				const result = renderLines(source, renderOptions, [], domNode);
-				console.log('RESULT', result)
-				// Set the computed view-lines to the domNode
-				// domNode.innerHTML = result.content; // Assuming result.content contains the HTML representation
 
+				const buttonsWidget = new AcceptRejectWidget({
+					editor,
+					onAccept: () => { this.acceptDiff({ diffid }) },
+					onReject: () => { this.rejectDiff({ diffid }) },
+					ID: diffid.toString(),
+				})
+
+				disposeInThisEditorFns.push(() => { buttonsWidget.dispose() })
 
 				const viewZone: IViewZone = {
-					afterLineNumber: greenRange.startLineNumber - 1,
+					afterLineNumber: computedDiff.startLine - 1,
 					heightInLines: result.heightInLines,
 					minWidthInPx: result.minWidthInPx,
 					domNode: domNode,
 					marginDomNode: document.createElement('div'), // displayed to left
 					suppressMouseDown: true,
+					onDomNodeTop: (topPx) => {
+						buttonsWidget.setTop(topPx)
+					}
 				};
 
-				zoneId = accessor.addZone(viewZone);
+				const zoneId = accessor.addZone(viewZone)
+				disposeInThisEditorFns.push(() => { editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) }) })
+
 			});
 
-			const dispose = () => {
-				editor.changeDecorations(accessor => { if (decorationId) accessor.removeDecoration(decorationId) });
-				editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId); });
-				// contentChangeDisposable.dispose();
-			}
-			return dispose;
+			const disposeInEditor = () => { disposeInThisEditorFns.forEach(f => f()) }
+			return disposeInEditor;
 		}
 
+		// call addInEditor on all editors
 		const editors = this._editorService.listCodeEditors().filter(editor => editor.getModel()?.id === model.id)
+		const disposeInEditorFns = editors.map(editor => _addInlineDiffZoneToEditor(editor))
 
-		const disposeFns = editors.map(editor => _addInlineDiffZoneToEditor(editor))
-		const disposeDiffZone = () => {
-			disposeFns.forEach(fn => fn())
-		}
+		// dispose
+		const disposeDiffZone = () => { disposeInEditorFns.forEach(fn => fn()) }
 
 		return disposeDiffZone
 	}
@@ -362,14 +358,13 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}
 			return {
 				snapshottedDiffAreaOfId,
-				code: readModel(model) ?? '',
+				entireModelCode: readModel(model) ?? '', // the whole file's code
 				type: 'ctrl+l',
 			}
-
 		}
 
 		const restoreDiffAreas = (snapshot: HistorySnapshot) => {
-			const { snapshottedDiffAreaOfId, code } = structuredClone(snapshot) // don't want to destroy the snapshot
+			const { snapshottedDiffAreaOfId, entireModelCode } = structuredClone(snapshot) // don't want to destroy the snapshot
 
 			// delete all current decorations (diffs, sweep styles) so we don't have any unwanted leftover decorations
 			for (const diffareaid in this.diffAreaOfId) {
@@ -396,16 +391,15 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				this.diffAreasOfModelId[model.id].add(diffareaid)
 			}
 
+			// restore file content
+			this._writeText(model, entireModelCode, { startColumn: 1, startLineNumber: 1, endLineNumber: model.getLineCount(), endColumn: Number.MAX_SAFE_INTEGER })
+
 			// restore all the decorations
-			const newCode = code
-			this._writeText(model, code, { startColumn: 1, startLineNumber: 1, endLineNumber: model.getLineCount(), endColumn: Number.MAX_SAFE_INTEGER })
-			if (newCode === null) return
 			for (const diffareaid in this.diffAreaOfId) {
 				const diffArea = this.diffAreaOfId[diffareaid]
-				const computedDiffs = findDiffs(diffArea.originalCode, newCode)
+				const computedDiffs = findDiffs(diffArea.originalCode, entireModelCode)
 				this._refreshDiffArea(diffArea, computedDiffs)
 			}
-
 		}
 
 		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
@@ -421,9 +415,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		this._undoRedoService.pushElement(elt)
 
-		const onFinishEdit = () => {
-			afterSnapshot = getCurrentSnapshot()
-		}
+		const onFinishEdit = () => { afterSnapshot = getCurrentSnapshot() }
 		return { onFinishEdit }
 	}
 
@@ -462,7 +454,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-
 	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
 	private _realignAllDiffAreasLines(model: ITextModel, text: string, recentChange: { startLineNumber: number; endLineNumber: number }) {
 
@@ -483,6 +474,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 			// if the diffArea is above the range, it is not affected
 			if (diffArea.endLine < startLine) {
+				console.log('A')
 				continue
 			}
 
@@ -495,22 +487,27 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}
 			// if the change fully contains the diffArea, make the diffArea have the same range as the change
 			else if (diffArea.startLine > startLine && diffArea.endLine < endLine) {
+
 				diffArea.startLine = startLine
 				diffArea.endLine = startLine + newTextHeight
+				console.log('B', diffArea.startLine, diffArea.endLine)
 			}
 			// if the change contains only the diffArea's top
 			else if (diffArea.startLine > startLine) {
 				// TODO fill in this case
+				console.log('C', diffArea.startLine, diffArea.endLine)
 			}
 			// if the change contains only the diffArea's bottom
 			else if (diffArea.endLine < endLine) {
 				const numOverlappingLines = diffArea.endLine - startLine + 1
 				diffArea.endLine += newTextHeight - numOverlappingLines // TODO double check this
+				console.log('D', diffArea.startLine, diffArea.endLine)
 			}
 			// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
 			else if (diffArea.startLine > endLine) {
 				diffArea.startLine += deltaNewlines
 				diffArea.endLine += deltaNewlines
+				console.log('E', diffArea.startLine, diffArea.endLine)
 			}
 
 			// console.log('To:', diffArea.startLine, diffArea.endLine)
@@ -556,16 +553,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const diffid = this._diffidPool++
 
 			// add the view zone
-			const disposeDiffZone = this._addInlineDiffZone(model, computedDiff.originalCode,
-				{ startLineNumber: computedDiff.startLine, startColumn: 1, endLineNumber: computedDiff.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
-				computedDiff.type, diffid)
+			const disposeDiffZone = this._addInlineDiffZone(model, computedDiff, diffid)
 
 			// create a Diff of it
 			const newDiff: Diff = {
+				...computedDiff,
 				diffid: diffid,
 				diffareaid: diffArea.diffareaid,
 				_disposeDiffZone: disposeDiffZone,
-				...computedDiff,
 			}
 
 			this.diffOfId[diffid] = newDiff
@@ -617,7 +612,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					oldFileStartLine = lastDiff.originalStartLine
 				}
 				else {
-					throw new Error(`Void: diff.type not recognized: ${lastDiff.type}`)
+					throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
 				}
 			}
 
@@ -792,30 +787,56 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 		const model = diffArea._model
 
-		const currentFile = readModel(model)
-		if (currentFile === null) return
-
 		// add to history
 		// const { onFinishEdit } = this._addToHistory(model)
 
-		// current file, accepting the Diff
-		const currentLines = currentFile.split('\n');
+		const originalLines = diffArea.originalCode.split('\n')
+		let newOriginalCode: string
 
-		// the lines of the DiffArea
-		const diffAreaLines = currentLines.slice((diffArea.startLine - 1), (diffArea.endLine - 1) + 1)
+		if (diff.type === 'deletion') {
+			newOriginalCode = [
+				...originalLines.slice(0, (diff.originalStartLine - 1)), // everything before startLine
+				// <-- deletion has nothing here
+				...originalLines.slice((diff.originalEndLine - 1) + 1, Infinity) // everything after endLine
+			].join('\n')
+		}
+		else if (diff.type === 'insertion') {
+			newOriginalCode = [
+				...originalLines.slice(0, (diff.originalStartLine - 1)), // everything before startLine
+				diff.code, // code
+				...originalLines.slice((diff.originalStartLine - 1), Infinity) // startLine (inclusive) and on (no +1)
+			].join('\n')
+		}
+		else if (diff.type === 'edit') {
+			newOriginalCode = [
+				...originalLines.slice(0, (diff.originalStartLine - 1)), // everything before startLine
+				diff.code, // code
+				...originalLines.slice((diff.originalEndLine - 1) + 1, Infinity) // everything after endLine
+			].join('\n')
+		}
+		else {
+			throw new Error(`Void error: ${diff}.type not recognized`)
+		}
+
+		console.log('DIFF', diff)
+		console.log('DIFFAREA', diffArea)
+		console.log('ORIGINAL', diffArea.originalCode)
+		console.log('new original Code', newOriginalCode)
 
 		// update code now accepted as original
-		const newDiffAreaCode = diffAreaLines.join('\n')
-		diffArea.originalCode = newDiffAreaCode
+		diffArea.originalCode = newOriginalCode
 
 		// delete the diff
 		this._deleteDiff(diff)
 
 		// diffArea should be removed if it has no more diffs in it
-		if (Object.keys(diffArea._diffOfId).length === 0)
+		if (Object.keys(diffArea._diffOfId).length === 0) {
 			this._deleteDiffArea(diffArea)
+		}
 		// else, refresh the diffs in this diffarea
 		else {
+			const modelText = readModel(model) ?? ''
+			const newDiffAreaCode = modelText.split('\n').slice((diffArea.startLine - 1), (diffArea.endLine - 1) + 1).join('\n')
 			const computedDiffs = findDiffs(diffArea.originalCode, newDiffAreaCode)
 			this._refreshDiffArea(diffArea, computedDiffs)
 		}
@@ -838,46 +859,59 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 		const model = diffArea._model
 
-		const currentFile = readModel(model)
-		if (currentFile === null) return
-
 		// add to history
 		// const { onFinishEdit } = this._addToHistory(model)
 
-		// current file
-		const currentLines = currentFile.split('\n');
+		let writeText: string
+		let toRange: IRange
 
-		const diffOriginalCode = diff.originalCode.split('\n')
-
-		// current file, rejecting the Diff (putting the original code back in where the Diff is)
-		const rejectedFileLines = [
-			...currentLines.slice(0, (diff.startLine - 1)),
-			...diffOriginalCode,
-			...currentLines.slice((diff.endLine - 1) + 1, Infinity)
-		]
-
-		// the lines of the Diff
-		const diffAreaLines = rejectedFileLines.slice((diffArea.startLine - 1), (diffArea.endLine - 1) + 1)
+		// if it was a deletion, need to re-insert
+		// (this image applies to writeText and toRange, not newOriginalCode)
+		//  A
+		// |B   <-- deleted here, diff.startLine == diff.endLine
+		//  C
+		if (diff.type === 'deletion') {
+			writeText = diff.originalCode + '\n'
+			toRange = { startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.startLine, endColumn: 1 }
+		}
+		// if it was an insertion, need to delete all the lines
+		// (this image applies to writeText and toRange, not newOriginalCode)
+		// |A   <-- startLine
+		//  B|  <-- endLine (we want to delete this whole line)
+		//  C
+		else if (diff.type === 'insertion') {
+			writeText = ''
+			toRange = { startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.endLine + 1, endColumn: 1 } // 1-indexed
+		}
+		// if it was an edit, just edit the range
+		// (this image applies to writeText and toRange, not newOriginalCode)
+		// |A    <-- startLine
+		//  B|   <-- endLine (just swap out these lines for the originalCode)
+		//  C
+		else if (diff.type === 'edit') {
+			writeText = diff.originalCode
+			toRange = { startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.endLine, endColumn: Number.MAX_SAFE_INTEGER } // 1-indexed
+		}
+		else {
+			throw new Error(`Void error: ${diff}.type not recognized`)
+		}
 
 		// update the file
-		this._writeText(
-			model,
-			diff.originalCode,
-			{ startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-		)
+		this._writeText(model, writeText, toRange)
 
-		// update code now accepted as original
-		const newDiffAreaCode = diffAreaLines.join('\n')
-		diffArea.originalCode = newDiffAreaCode
+		// originalCode does not change!
 
 		// delete the diff
 		this._deleteDiff(diff)
 
 		// diffArea should be removed if it has no more diffs in it
-		if (Object.keys(diffArea._diffOfId).length === 0)
+		if (Object.keys(diffArea._diffOfId).length === 0) {
 			this._deleteDiffArea(diffArea)
+		}
 		// else, refresh the diffs in this diffarea
 		else {
+			const modelText = readModel(model) ?? ''
+			const newDiffAreaCode = modelText.split('\n').slice((diffArea.startLine - 1), (diffArea.endLine - 1) + 1).join('\n')
 			const computedDiffs = findDiffs(diffArea.originalCode, newDiffAreaCode)
 			this._refreshDiffArea(diffArea, computedDiffs)
 		}
@@ -889,3 +923,67 @@ Please finish writing the new file by applying the diff to the original file. Re
 }
 
 registerSingleton(IInlineDiffsService, InlineDiffsService, InstantiationType.Eager);
+
+
+
+
+class AcceptRejectWidget extends Widget implements IOverlayWidget {
+
+
+	public getId(): string {
+		return this.ID;
+	}
+
+	public getDomNode(): HTMLElement {
+		return this._domNode;
+	}
+
+	public getPosition(): IOverlayWidgetPosition | null {
+		return { preference: { top: 100, left: 0 } }
+	}
+
+
+
+
+	private readonly _domNode: HTMLElement;
+	private readonly ID: string
+
+	constructor({ editor, onAccept, onReject, ID }: { editor: ICodeEditor; onAccept: () => void; onReject: () => void; ID: string }) {
+		super()
+
+		this.ID = ID
+
+		const { acceptButton, rejectButton, buttons } = dom.h('div@buttons', [
+			dom.h('button@acceptButton', []),
+			dom.h('button@rejectButton', [])
+		])
+
+		buttons.style.display = 'flex'
+		buttons.style.position = 'absolute'
+		buttons.style.right = '0px'
+
+		acceptButton.onclick = onAccept
+		acceptButton.textContent = 'Accept'
+
+		rejectButton.onclick = onReject
+		rejectButton.textContent = 'Reject'
+
+		this._domNode = buttons
+
+		// mount self as an overlay widget
+		editor.addOverlayWidget(this);
+		// console.log('created elt', this._domNode)
+	}
+
+	public setTop = (topPx: number) => {
+		this._domNode.style.display = 'block'
+		this._domNode.style.top = `${topPx}px`
+	}
+
+	public override dispose(): void {
+		this._domNode.remove()
+		super.dispose()
+	}
+
+}
+

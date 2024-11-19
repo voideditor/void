@@ -63,7 +63,7 @@ const trimPrefix = (prefix: string) => {
 // originalSuffix = ijkl
 // the user has typed "ef" so prefix = abcdef
 // we want to return the rest of the generatedMiddle, which is "gh"
-const toInlineCompletion = ({ prefix, autocompletion }: { prefix: string, autocompletion: Autocompletion }): vscode.InlineCompletionItem => {
+const toInlineCompletion = ({ prefix, autocompletion, position }: { prefix: string, autocompletion: Autocompletion, position: vscode.Position }): vscode.InlineCompletionItem => {
 	const originalPrefix = autocompletion.prefix
 	const generatedMiddle = autocompletion.result
 
@@ -83,7 +83,10 @@ const toInlineCompletion = ({ prefix, autocompletion }: { prefix: string, autoco
 	const completionStr = generatedMiddle.substring(lastMatchupIndex)
 	console.log('completionStr: ', completionStr)
 
-	return new vscode.InlineCompletionItem(completionStr)
+	return new vscode.InlineCompletionItem(
+		completionStr,
+		new vscode.Range(position, position)
+	)
 
 }
 
@@ -127,6 +130,9 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 		token: vscode.CancellationToken,
 	): Promise<vscode.InlineCompletionItem[]> {
 
+		const disabled = true
+		if (disabled) { return []; }
+
 		const docUriStr = document.uri.toString()
 
 		const fullText = document.getText();
@@ -156,7 +162,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 			if (cachedAutocompletion.status === 'finished') {
 				console.log('AAA1')
 
-				const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, })
+				const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, position })
 				return [inlineCompletion]
 
 			} else if (cachedAutocompletion.status === 'pending') {
@@ -164,7 +170,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 
 				try {
 					await cachedAutocompletion.promise;
-					const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, })
+					const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, position })
 					return [inlineCompletion]
 
 				} catch (e) {
@@ -260,7 +266,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 		try {
 			await newAutocompletion.promise;
 
-			const inlineCompletion = toInlineCompletion({ autocompletion: newAutocompletion, prefix, })
+			const inlineCompletion = toInlineCompletion({ autocompletion: newAutocompletion, prefix, position })
 			return [inlineCompletion]
 
 		} catch (e) {

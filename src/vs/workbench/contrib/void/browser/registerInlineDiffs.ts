@@ -409,21 +409,20 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 
 		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
-		console.log('BEFORE', beforeSnapshot)
+		let afterSnapshot: HistorySnapshot | null = null
+
+		const elt: IUndoRedoElement = {
+			type: UndoRedoElementType.Resource,
+			resource: model.uri,
+			label: 'Add Diffs',
+			code: 'undoredo.inlineDiffs',
+			undo: () => { restoreDiffAreas(beforeSnapshot) },
+			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }
+		}
+		this._undoRedoService.pushElement(elt)
+
 		const onFinishEdit = () => {
-			const afterSnapshot: HistorySnapshot = getCurrentSnapshot()
-			console.log('AFTER', afterSnapshot)
-			const elt: IUndoRedoElement = {
-				type: UndoRedoElementType.Resource,
-				resource: model.uri,
-				label: 'Add Diffs',
-				code: 'undoredo.inlineDiffs',
-				undo: () => { restoreDiffAreas(beforeSnapshot) },
-				redo: () => { restoreDiffAreas(afterSnapshot) }
-			}
-			this._undoRedoService.pushElement(elt)
-
-
+			afterSnapshot = getCurrentSnapshot()
 		}
 		return { onFinishEdit }
 	}
@@ -547,7 +546,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// ----------- 2. Recompute sweep in the diffArea if streaming -----------
 		if (diffArea._sweepState.isStreaming) {
-			console.log('SWEEP STYLES', diffArea._sweepState.line, diffArea.endLine)
 			const disposeSweepStyles = this._addSweepStyles(model, diffArea._sweepState.line, diffArea.endLine)
 			diffArea._disposeSweepStyles = disposeSweepStyles
 		}

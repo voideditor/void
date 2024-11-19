@@ -144,6 +144,7 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "globals": "^15.9.0",
     "groq-sdk": "^0.8.0",
+
     "lodash": "^4.17.21",
     "marked": "^14.1.0",
     "ollama": "^0.5.9",

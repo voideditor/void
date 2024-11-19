@@ -788,7 +788,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		const model = diffArea._model
 
 		// add to history
-		// const { onFinishEdit } = this._addToHistory(model)
+		const { onFinishEdit } = this._addToHistory(model)
 
 		const originalLines = diffArea.originalCode.split('\n')
 		let newOriginalCode: string
@@ -841,7 +841,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 			this._refreshDiffArea(diffArea, computedDiffs)
 		}
 
-		// onFinishEdit()
+		onFinishEdit()
 
 	}
 
@@ -860,7 +860,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		const model = diffArea._model
 
 		// add to history
-		// const { onFinishEdit } = this._addToHistory(model)
+		const { onFinishEdit } = this._addToHistory(model)
 
 		let writeText: string
 		let toRange: IRange
@@ -916,7 +916,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 			this._refreshDiffArea(diffArea, computedDiffs)
 		}
 
-		// onFinishEdit()
+		onFinishEdit()
 
 	}
 

@@ -365,28 +365,37 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 
 	captureChatEvent(`${loggingName} - Sending Message`, { messageLength: messages[messages.length - 1]?.content.length })
 
-	switch (voidConfig.default.whichApi) {
-		case 'anthropic':
-			sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
-			break;
-		case 'openAI':
-		case 'openRouter':
-		case 'openAICompatible':
-			sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
-			break;
-		case 'gemini':
-			sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
-			break;
-		case 'ollama':
-			sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
-			break;
-		case 'greptile':
-			sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
-			break;
-		default:
-			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
-			break;
+	try {
+		switch (voidConfig.default.whichApi) {
+			case 'anthropic':
+				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				break;
+			case 'openAI':
+			case 'openRouter':
+			case 'openAICompatible':
+				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				break;
+			case 'gemini':
+				sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				break;
+			case 'ollama':
+				sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				break;
+			case 'greptile':
+				sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				break;
+			default:
+				onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
+				break;
+		}
 	}
+
+	catch (e) {
+		onError(`Unexpected Error in sendLLMMessage: ${e}`);
+		(_aborter as any)?.()
+		_didAbort = true
+	}
+
 
 
 }

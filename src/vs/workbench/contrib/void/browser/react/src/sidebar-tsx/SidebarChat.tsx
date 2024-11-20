@@ -2,7 +2,7 @@
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
-import React, { FormEvent, Fragment, useCallback, useRef, useState } from 'react';
+import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
 import { useConfigState, useService, useThreadsState } from '../util/services.js';
@@ -16,6 +16,7 @@ import { MarkdownRender } from '../markdown/MarkdownRender.js';
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
+import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 
 
 
@@ -149,8 +150,14 @@ export const SidebarChat = () => {
 	// ----- HIGHER STATE -----
 	// sidebar state
 	const sidebarStateService = useService('sidebarStateService')
-	sidebarStateService.onDidFocusChat(() => { chatInputRef.current?.focus() })
-	sidebarStateService.onDidBlurChat(() => { chatInputRef.current?.blur() })
+	useEffect(() => {
+		const disposables: IDisposable[] = []
+		disposables.push(
+			sidebarStateService.onDidFocusChat(() => { chatInputRef.current?.focus() }),
+			sidebarStateService.onDidBlurChat(() => { chatInputRef.current?.blur() })
+		)
+		return () => disposables.forEach(d => d.dispose())
+	}, [sidebarStateService, chatInputRef])
 
 	// config state
 	const configState = useConfigState()

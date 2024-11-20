@@ -16,7 +16,15 @@ const configStateListeners: Set<(s: ConfigState) => void> = new Set()
 const threadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
 
 // must call this before you can use any of the hooks below
+// this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
+
+let wasCalled = false
+
 export const _registerServices = (services_: ReactServicesType) => {
+
+	if (wasCalled) console.error(`void _registerServices was called again! It should only be called once.`)
+	wasCalled = true
+
 	services = services_
 	const { sidebarStateService, configStateService, threadsStateService, } = services
 

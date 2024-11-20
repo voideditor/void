@@ -1,3 +1,7 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPLv3 License.
+ *--------------------------------------------------------------------------------------------*/
 import React, { useEffect, useState } from 'react'
 import { mountFnGenerator } from '../util/mountFnGenerator.js'
 

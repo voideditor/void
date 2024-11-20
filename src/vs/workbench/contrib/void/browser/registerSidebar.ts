@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPLv3 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import {
 	Extensions as ViewContainerExtensions, IViewContainersRegistry,

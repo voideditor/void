@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
@@ -69,19 +69,13 @@ const readModel = (model: ITextModel) => {
 export type Diff = {
 	diffid: number;
 	diffareaid: number; // the diff area this diff belongs to, "computed"
-
 	_disposeDiffZone: (() => void) | null;
-
-	// _zone: IViewZone | null,
-	// _decorationId: string | null,
 } & BaseDiff
 
 
 // _ means anything we don't include if we clone it
 type DiffArea = {
 	diffareaid: number;
-	// originalStartLine: number;
-	// originalEndLine: number;
 	originalCode: string;
 	startLine: number;
 	endLine: number;
@@ -89,7 +83,6 @@ type DiffArea = {
 	_model: ITextModel; // the model (if we clone it; the function keeps track of the model id)
 	_diffOfId: Record<string, Diff>; // diff of id in this DiffArea
 	_disposeSweepStyles: (() => void) | null;
-	// _generationid: number;
 } & ({
 	_sweepState: {
 		isStreaming: true;
@@ -134,16 +127,10 @@ export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineD
 class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	_serviceBrand: undefined;
 
-	/*
-	Picture of all the data structures:
-	() -modelid-> {originalFileStr, Set(diffareaid), state}
-		   ^  				     	|
-			\________________   diffareaid -> diffarea -> diff[]
-													^		|
-													  \____ diff
-	*/
-
 	// state of each document
+
+	// TODO!!! identify models based on uri, not id, so if they unmount and mount we don't forget them!!!!!!
+
 	diffAreasOfModelId: Record<string, Set<string>> = {} // modelid -> Set(diffAreaId)
 	diffAreaOfId: Record<string, DiffArea> = {};
 	diffOfId: Record<string, Diff> = {}; // redundant with diffArea._diffs
@@ -151,6 +138,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	// _generationidPool = 0 // diffs that were generated together all get the same id (not sure if we'll use this or not but keeping it)
 	_diffareaidPool = 0 // each diffarea has an id
 	_diffidPool = 0 // each diff has an id
+
+	/*
+	Picture of all the data structures:
+	() -modelid-> {originalFileStr, Set(diffareaid), state}
+		^  				     	|
+			\________________   diffareaid -> diffarea -> diff[]
+													^		|
+													\____ diff
+	*/
+
 
 	constructor(
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
@@ -162,49 +159,85 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	) {
 		super();
 
-		// Whenever a new model mounts, this gets run
-		this._register(
-			this._modelService.onModelAdded(model => {
-				// register diffAreasOfModelId
-				if (!(model.id in this.diffAreasOfModelId)) {
-					this.diffAreasOfModelId[model.id] = new Set();
+
+
+		// initialize data structures and listen for changes
+		const initializeModel = (model: ITextModel) => {
+			console.log('INITIALIZING MODEL', model.uri.fsPath + '')
+			// on mount, register diffAreasOfModelId
+			if (!(model.id in this.diffAreasOfModelId)) {
+				this.diffAreasOfModelId[model.id] = new Set();
+			}
+
+			// on delete
+			this._register(model.onWillDispose(() => { this._deleteModel(model) }));
+
+			// when the user types, realign diff areas and re-render them. this gets called only when the user types, not when we make a change internally
+			this._register(
+				model.onDidChangeContent(e => {
+					if (this._weAreWriting) return
+					console.log('REFRESHING MODEL', model.uri.fsPath + '')
+
+					// it's as if we just called _write, now all we need to do is realign and refresh
+					const refreshIds: Set<number> = new Set()
+					// realign
+					for (const change of e.changes) {
+						const ids = this._realignAllDiffAreasLines(model, change.text, change.range)
+						ids.forEach(id => refreshIds.add(id))
+					}
+					// refresh
+					const content = readModel(model)
+					if (content === null) return
+					for (const diffareaid of refreshIds) {
+						const diffArea = this.diffAreaOfId[diffareaid]
+						const computedDiffs = findDiffs(diffArea.originalCode, content)
+						this._refreshDiffArea(diffArea, computedDiffs)
+					}
+				})
+			)
+
+
+			let refreshModel = () => {
+				console.log('REFRESHING MODEL II', model.uri.fsPath + '')
+
+				const content = readModel(model)
+				if (content === null) return
+				for (const diffareaid of this.diffAreasOfModelId[model.id]) {
+					const diffArea = this.diffAreaOfId[diffareaid]
+					const computedDiffs = findDiffs(diffArea.originalCode, content)
+					this._refreshDiffArea(diffArea, computedDiffs)
 				}
-				this._register(
-					model.onWillDispose(() => {
-						delete this.diffAreasOfModelId[model.id];
-					})
-				);
+			}
 
-				// when the user types, realign diff areas and re-render them
-				// this gets called only when the user types, not when we make a change internally
-				this._register(
-					model.onDidChangeContent(e => {
-						if (this._weAreWriting) return
+			// if an editor is created on this model
+			this._register(
+				this._editorService.onCodeEditorAdd(editor => {
+					if (editor.getModel() !== model) return
+					console.log('REFRESHING EDITOR', model.uri.fsPath + '')
+					refreshModel()
+				})
+			)
 
-						// it's as if we just called _write, now all we need to do is realign and refresh
-
-						const refreshIds: Set<number> = new Set()
-						// realign
-						for (const change of e.changes) {
-							const ids = this._realignAllDiffAreasLines(model, change.text, change.range)
-							ids.forEach(id => refreshIds.add(id))
-						}
-						// refresh
-						const content = readModel(model)
-						if (content === null) return
-						for (const diffareaid of refreshIds) {
-							const diffArea = this.diffAreaOfId[diffareaid]
-							const computedDiffs = findDiffs(diffArea.originalCode, content)
-							this._refreshDiffArea(diffArea, computedDiffs)
-						}
-					})
-				)
-			})
-		);
+			// if an editor is deleted from this model
+			this._register(
+				this._editorService.onCodeEditorRemove(editor => {
+					if (editor.getModel() !== model) return
+					console.log('DELETING EDITOR', model.uri.fsPath + '')
+					refreshModel()
+				})
+			)
+		}
 
 
 
+		// for all existing models
+		for (let model of this._modelService.getModels()) { initializeModel(model) }
 
+		// whenever a new model mounts
+		this._register(this._modelService.onModelAdded(model => initializeModel(model)));
+
+		// whenever a model is deleted TODO don't delete this!!!!!!!! use model.uri instead!
+		this._register(this._modelService.onModelRemoved(model => this._deleteModel(model)))
 
 
 
@@ -304,31 +337,31 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				const source = new LineSource(lineTokens, lines.map(() => null), false, false)
 				const result = renderLines(source, renderOptions, [], domNode);
 
-				const buttonsWidget = new AcceptRejectWidget({
-					editor,
-					onAccept: () => { this.acceptDiff({ diffid }) },
-					onReject: () => { this.rejectDiff({ diffid }) },
-					ID: diffid.toString(),
-				})
-
-				disposeInThisEditorFns.push(() => { buttonsWidget.dispose() })
-
 				const viewZone: IViewZone = {
-					afterLineNumber: computedDiff.startLine - 1,
+					// afterLineNumber: computedDiff.startLine - 1,
+					afterLineNumber: type === 'edit' ? computedDiff.endLine : computedDiff.startLine - 1,
 					heightInLines: result.heightInLines,
 					minWidthInPx: result.minWidthInPx,
 					domNode: domNode,
 					marginDomNode: document.createElement('div'), // displayed to left
 					suppressMouseDown: true,
-					onDomNodeTop: (topPx) => {
-						buttonsWidget.setTop(topPx)
-					}
 				};
 
 				const zoneId = accessor.addZone(viewZone)
 				disposeInThisEditorFns.push(() => { editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) }) })
 
 			});
+
+			// Accept | Reject widget
+			const buttonsWidget = new AcceptRejectWidget({
+				editor,
+				onAccept: () => { this.acceptDiff({ diffid }) },
+				onReject: () => { this.rejectDiff({ diffid }) },
+				diffid: diffid.toString(),
+				startLine: computedDiff.startLine,
+			})
+			disposeInThisEditorFns.push(() => { buttonsWidget.dispose() })
+
 
 			const disposeInEditor = () => { disposeInThisEditorFns.forEach(f => f()) }
 			return disposeInEditor;
@@ -453,8 +486,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this.diffAreasOfModelId[diffArea._model.id].delete(diffArea.diffareaid.toString())
 	}
 
-
-
+	private _deleteModel = (model: ITextModel) => {
+		console.log('DELETING MODEL', model.uri.fsPath + '')
+		for (let diffareaid in this.diffAreasOfModelId[model.id]) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			this._deleteDiffArea(diffArea)
+		}
+		delete this.diffAreasOfModelId[model.id]
+	}
 
 
 
@@ -823,10 +862,10 @@ Please finish writing the new file by applying the diff to the original file. Re
 			throw new Error(`Void error: ${diff}.type not recognized`)
 		}
 
-		console.log('DIFF', diff)
-		console.log('DIFFAREA', diffArea)
-		console.log('ORIGINAL', diffArea.originalCode)
-		console.log('new original Code', newOriginalCode)
+		// console.log('DIFF', diff)
+		// console.log('DIFFAREA', diffArea)
+		// console.log('ORIGINAL', diffArea.originalCode)
+		// console.log('new original Code', newOriginalCode)
 
 		// update code now accepted as original
 		diffArea.originalCode = newOriginalCode
@@ -936,53 +975,87 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 
 
 	public getId(): string {
-		return this.ID;
+		return this.editor.getId() + this.diffid;
 	}
+
 
 	public getDomNode(): HTMLElement {
 		return this._domNode;
 	}
 
 	public getPosition(): IOverlayWidgetPosition | null {
-		return { preference: { top: 100, left: 0 } }
+		return null
 	}
-
-
 
 
 	private readonly _domNode: HTMLElement;
-	private readonly ID: string
+	private readonly editor
+	private readonly diffid
+	private readonly startLine
 
-	constructor({ editor, onAccept, onReject, ID }: { editor: ICodeEditor; onAccept: () => void; onReject: () => void; ID: string }) {
+	constructor({ editor, onAccept, onReject, diffid, startLine }: { editor: ICodeEditor; onAccept: () => void; onReject: () => void; diffid: string, startLine: number }) {
 		super()
 
-		this.ID = ID
+		this.diffid = diffid;
+		this.editor = editor;
+		this.startLine = startLine;
 
+		// Create container div with buttons
 		const { acceptButton, rejectButton, buttons } = dom.h('div@buttons', [
 			dom.h('button@acceptButton', []),
 			dom.h('button@rejectButton', [])
-		])
+		]);
 
-		buttons.style.display = 'flex'
-		buttons.style.position = 'absolute'
-		buttons.style.right = '0px'
+		// Style the container
+		buttons.style.display = 'flex';
+		buttons.style.position = 'absolute';
+		buttons.style.gap = '4px';
+		buttons.style.padding = '4px';
+		buttons.style.zIndex = '1000';
 
-		acceptButton.onclick = onAccept
-		acceptButton.textContent = 'Accept'
 
-		rejectButton.onclick = onReject
-		rejectButton.textContent = 'Reject'
+		// Style accept button
+		acceptButton.onclick = onAccept;
+		acceptButton.textContent = 'Accept';
+		acceptButton.style.backgroundColor = '#28a745';
+		acceptButton.style.color = 'white';
+		acceptButton.style.border = 'none';
+		acceptButton.style.padding = '4px 8px';
+		acceptButton.style.borderRadius = '3px';
+		acceptButton.style.cursor = 'pointer';
 
-		this._domNode = buttons
+		// Style reject button
+		rejectButton.onclick = onReject;
+		rejectButton.textContent = 'Reject';
+		rejectButton.style.backgroundColor = '#dc3545';
+		rejectButton.style.color = 'white';
+		rejectButton.style.border = 'none';
+		rejectButton.style.padding = '4px 8px';
+		rejectButton.style.borderRadius = '3px';
+		rejectButton.style.cursor = 'pointer';
 
-		// mount self as an overlay widget
+		this._domNode = buttons;
+
+		const updateTop = () => {
+			const topPx = editor.getTopForLineNumber(this.startLine) - editor.getScrollTop()
+			this._domNode.style.top = `${topPx}px`
+		}
+
+		updateTop()
+		this._register(editor.onDidScrollChange(e => { updateTop() }))
+		this._register(editor.onDidChangeModelContent(e => { updateTop() }))
+
+		const updateLeft = () => {
+			const leftPx = editor.getContentWidth()
+			this._domNode.style.left = `${leftPx}px`
+		}
+		updateLeft()
+
+
+
+		// mount this widget
 		editor.addOverlayWidget(this);
 		// console.log('created elt', this._domNode)
-	}
-
-	public setTop = (topPx: number) => {
-		this._domNode.style.display = 'block'
-		this._domNode.style.top = `${topPx}px`
 	}
 
 	public override dispose(): void {

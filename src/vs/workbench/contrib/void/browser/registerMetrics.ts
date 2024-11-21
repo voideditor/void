@@ -12,16 +12,16 @@ import { posthog } from './react/out/util/posthog.js'
 
 
 
-const buildEnv = 'development';
-const buildNumber = '1.0.0';
-const isMac = process.platform === 'darwin';
-// TODO use commandKey
-const commandKey = isMac ? '⌘' : 'Ctrl';
-const systemInfo = {
-	buildEnv,
-	buildNumber,
-	isMac,
-}
+// const buildEnv = 'development';
+// const buildNumber = '1.0.0';
+// const isMac = process.platform === 'darwin';
+// // TODO use commandKey
+// const commandKey = isMac ? '⌘' : 'Ctrl';
+// const systemInfo = {
+// 	buildEnv,
+// 	buildNumber,
+// 	isMac,
+// }
 
 
 

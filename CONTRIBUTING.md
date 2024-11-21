@@ -47,9 +47,8 @@ First, make sure you've installed NodeJS and run `npm install -g node-gyp`. Then
 
 ### Build instructions
 
-Before building Void, please follow the prerequisite steps above for your operating system.
 
-To build Void, first open `void/` in VSCode. Then:
+To build Void, first follow the prerequisite steps above for your operating system and open the `void/` repo in VSCode. Then:
 
 1. Install all dependencies.
 
@@ -57,7 +56,7 @@ To build Void, first open `void/` in VSCode. Then:
 npm install
 ```
 
-2. Build Void's React components by running `cd ./src/vs/workbench/contrib/void/browser/react/`, and executing the build script with `node ./build.js`. You might need to run `npm i -g tsup` if this doesn't work.
+2. Build Void's React components by opening a new terminal, running `cd ./src/vs/workbench/contrib/void/browser/react/`, and executing the build script, `node ./build.js`. You might need to run `npm i -g tsup` if this doesn't work.
 
 3. Press <kbd>Ctrl+Shift+B</kbd>, or if you prefer using the terminal run `npm run watch`.
 

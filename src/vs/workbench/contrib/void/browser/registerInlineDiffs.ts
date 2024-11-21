@@ -67,14 +67,15 @@ export type Diff = {
 
 
 // _ means anything we don't include if we clone it
+// DiffArea.originalStartLine is the line in originalCode (not the file)
 type DiffArea = {
 	diffareaid: number;
 	originalCode: string;
 	startLine: number;
 	endLine: number;
 
-	_URI: URI; // typically get the URI from model
-	_diffOfId: Record<string, Diff>; // diff of id in this DiffArea
+	_URI: URI; // typically we get the URI from model
+	_diffOfId: Record<string, Diff>; // diffid -> diff in this DiffArea
 } & ({
 	_sweepState: {
 		isStreaming: true;
@@ -531,11 +532,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const editors = this._editorService.listCodeEditors().filter(editor => editor.getModel()?.uri.fsPath === uri.fsPath)
 		const fullFileText = this._readURI(uri) ?? ''
 
-		console.log('going...')
 
 		// go thru all diffareas in this URI, creating diffs and adding styles to it
 		for (let diffareaid of this.diffAreasOfURI[uri.fsPath]) {
-			console.log('aaa s')
 			const diffArea = this.diffAreaOfId[diffareaid]
 
 			const newDiffAreaCode = fullFileText.split('\n').slice((diffArea.startLine - 1), (diffArea.endLine - 1) + 1).join('\n')
@@ -952,8 +951,6 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 	constructor({ editor, onAccept, onReject, diffid, startLine }: { editor: ICodeEditor; onAccept: () => void; onReject: () => void; diffid: string, startLine: number }) {
 		super()
 
-		console.log('CREATING')
-
 		this.ID = editor.getModel()?.uri.fsPath + diffid;
 		this.editor = editor;
 		this.startLine = startLine;
@@ -1017,7 +1014,6 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 	}
 
 	public override dispose(): void {
-		console.log('DISPOSING aaaa')
 		this.editor.removeOverlayWidget(this)
 		super.dispose()
 	}

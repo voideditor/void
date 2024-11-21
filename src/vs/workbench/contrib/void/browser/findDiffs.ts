@@ -5,7 +5,7 @@
 
 import { diffLines } from './react/out/util/diffLines.js'
 
-export type BaseDiff = {
+export type ComputedDiff = {
 	type: 'edit';
 	originalCode: string;
 	originalStartLine: number;
@@ -50,7 +50,7 @@ export function findDiffs(oldStr: string, newStr: string) {
 	const oldStrLines = ('\n' + oldStr).split('\n') // add newline so indexing starts at 1
 	const newStrLines = ('\n' + newStr).split('\n')
 
-	const replacements: BaseDiff[] = []
+	const replacements: ComputedDiff[] = []
 	for (const line of lineByLineChanges) {
 
 		// no change on this line
@@ -84,7 +84,7 @@ export function findDiffs(oldStr: string, newStr: string) {
 					// originalEndLine = originalStartLine
 				}
 
-				const replacement: BaseDiff = {
+				const replacement: ComputedDiff = {
 					type,
 					startLine, endLine,
 					// startCol, endCol,

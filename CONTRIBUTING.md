@@ -9,10 +9,11 @@ There are a few ways to contribute:
 - Submit Issues/Docs/Bugs ([Issues](https://github.com/voideditor/void/issues))
 
 
-## Building the full IDE
+## 2. Building the full IDE
 
-Please follow the steps below to build the IDE. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page. Also feel free to [submit an issue](https://github.com/voideditor/void/issues/new) or get in touch with us with any build errors.
+If you want to work on the full IDE, please follow the steps below. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page. Also feel free to submit an issue or get in touch with us with any build errors.
 
+<!-- TODO say whether you can build each distribution on any Operating System, or if you need to build Windows on Windows, etc -->
 
 ### a. Build Prerequisites - Mac
 
@@ -47,7 +48,8 @@ First, make sure you've installed NodeJS and run `npm install -g node-gyp`. Then
 
 ### Build instructions
 
-Before building Void, please follow the prerequisite steps above for your operating system. Also, make sure you've already built and compiled the Void React components by running `cd ./` (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`).
+Before building Void, please follow the prerequisite steps above for your operating system.
+
 To build Void, first open `void/` in VSCode. Then:
 
 1. Install all dependencies.

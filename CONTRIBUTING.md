@@ -22,8 +22,6 @@ If you're using a Mac, make sure you have Python and XCode installed (you probab
 
 If you're using a Windows computer, first get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community) (recommended) or [VS Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools) (not recommended). If you already have both, you might need to run the next few steps on both of them.
 
-Open the installer for Visual Studio 2022 (or VS Build Tools). This is often automatic.
-
 Go to the "Workloads" tab and select:
 - `Desktop development with C++`
 - `Node.js build tools`
@@ -38,17 +36,13 @@ Finally, click Install.
 ### c. Build Prerequisites - Linux
 
 First, make sure you've installed NodeJS and run `npm install -g node-gyp`. Then:
-
 - Debian (Ubuntu, etc) - `sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev python-is-python3`.
-
 - Red Hat (Fedora, etc) - `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
-
 - Others - see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
 ### Build instructions
 
-
-To build Void, first follow the prerequisite steps above for your operating system and open the `void/` repo in VSCode. Then:
+To build Void, first follow the prerequisite steps above for your operating system and open `void/` inside VSCode. Then:
 
 1. Install all dependencies.
 
@@ -56,7 +50,7 @@ To build Void, first follow the prerequisite steps above for your operating syst
 npm install
 ```
 
-2. Build Void's React components by opening a new terminal, running `cd ./src/vs/workbench/contrib/void/browser/react/`, and executing the build script, `node ./build.js`. You might need to run `npm i -g tsup` if this doesn't work.
+2. Build Void's React components by opening a new terminal (`Ctrl+Shift+\``), running `cd ./src/vs/workbench/contrib/void/browser/react/`, and executing the build script, `node ./build.js`. You might need to run `npm i -g tsup` if this doesn't work.
 
 3. Press <kbd>Ctrl+Shift+B</kbd>, or if you prefer using the terminal run `npm run watch`.
 

@@ -704,6 +704,30 @@ INSTRUCTIONS
 Please finish writing the new file by applying the diff to the original file. Return ONLY the completion of the file, without any explanation.
 `
 
+
+		// CTRL+K prompt:
+		// const promptContent = `Here is the user's original selection:
+		// \`\`\`
+		// <MID>${selection}</MID>
+		// \`\`\`
+
+		// The user wants to apply the following instructions to the selection:
+		// ${instructions}
+
+		// Please rewrite the selection following the user's instructions.
+
+		// Instructions to follow:
+		// 1. Follow the user's instructions
+		// 2. You may ONLY CHANGE the selection, and nothing else in the file
+		// 3. Make sure all brackets in the new selection are balanced the same was as in the original selection
+		// 3. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
+
+		// Complete the following:
+		// \`\`\`
+		// <PRE>${prefix}</PRE>
+		// <SUF>${suffix}</SUF>
+		// <MID>`;
+
 		const abortRef = { current: null } as { current: null | (() => void) }
 		await new Promise<void>((resolve, reject) => {
 			sendLLMMessage({
@@ -999,4 +1023,30 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 	}
 
 }
+
+
+
+
+
+
+
+
+
+
+
+// // 6. Autocomplete
+// const autocompleteProvider = new AutocompleteProvider(context);
+// context.subscriptions.push(vscode.languages.registerInlineCompletionItemProvider('*', autocompleteProvider));
+
+// const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
+// const abortRef: AbortRef = { current: null }
+
+// // setupAutocomplete({ voidConfig, abortRef })
+
+
+// // 7. Language Server
+// console.log('run lsp')
+// let disposable = vscode.commands.registerCommand('typeInspector.inspect', runTreeSitter);
+
+// context.subscriptions.push(disposable);
 

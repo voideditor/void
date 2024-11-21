@@ -1,4 +1,14 @@
 
+
+
+// // used for ctrl+l
+// const partialGenerationInstructions = ``
+
+
+// // used for ctrl+k, autocomplete
+// const fimInstructions = ``
+
+
 export const generateDiffInstructions = `
 You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.
 
@@ -396,5 +406,6 @@ COMPLETION
 
 export default Sidebar;\`\`\`
 `
+
 
 

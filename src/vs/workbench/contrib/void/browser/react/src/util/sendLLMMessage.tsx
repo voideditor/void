@@ -1,9 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
+<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { posthog } from 'posthog-js'
 import type { VoidConfig } from '../../../registerConfig.js';
+=======
+import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
+import { VoidConfig } from '../webviews/common/contextForConfig'
+import { getFIMPrompt, getFIMSystem } from './getPrompt';
+>>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 
 export type AbortRef = { current: (() => void) | null }
 
@@ -22,6 +28,7 @@ export type LLMMessage = {
 }
 
 type SendLLMMessageFnTypeInternal = (params: {
+<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 	messages: LLMMessage[];
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
@@ -42,7 +49,33 @@ type SendLLMMessageFnTypeExternal = (params: {
 	logging: {
 		loggingName: string,
 	};
+=======
+	mode: 'chat' | 'fim',
+	messages: LLMMessage[],
+	onText: OnText,
+	onFinalMessage: OnFinalMessage,
+	onError: (error: string) => void,
+	abortRef: AbortRef,
+	voidConfig: VoidConfig,
 }) => void
+
+
+type SendLLMMessageFnTypeExternal = (params: (
+	| { mode?: 'chat', messages: LLMMessage[], fimInfo?: undefined, }
+	| { mode: 'fim', fimInfo: FimInfo, messages?: undefined, }
+) & {
+	onText: OnText,
+	onFinalMessage: OnFinalMessage,
+	onError: (error: string) => void,
+	abortRef: AbortRef,
+	voidConfig: VoidConfig | null, // these may be absent
+>>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
+}) => void
+
+export type FimInfo = {
+	prefix: string,
+	suffix: string,
+}
 
 const parseMaxTokensStr = (maxTokensStr: string) => {
 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
@@ -213,34 +246,94 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 };
 
 // Ollama
+<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
 	let fullText = ''
+=======
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+
+	let didAbort = false
+	let fullText = ""
+
+	abortRef.current = () => {
+		didAbort = true;
+	};
+>>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 
 	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
 
-	ollama.chat({
-		model: voidConfig.ollama.model,
-		messages: messages,
-		stream: true,
-		options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) } // this is max_tokens
-	})
+	type GenerateResponse = Awaited<ReturnType<(typeof ollama.generate)>>
+	type ChatResponse = Awaited<ReturnType<(typeof ollama.chat)>>
+
+
+	// First check if model exists
+	ollama.list()
+		.then(async models => {
+			const installedModels = models.models.map(m => m.name.replace(/:latest$/, ''))
+			const modelExists = installedModels.some(m => m.startsWith(voidConfig.ollama.model));
+			if (!modelExists) {
+				const errorMessage = `The model "${voidConfig.ollama.model}" is not available locally. Please run 'ollama pull ${voidConfig.ollama.model}' to download it first or
+				try selecting one from the Installed models: ${installedModels.join(', ')}`;
+				onText(errorMessage, errorMessage);
+				onFinalMessage(errorMessage);
+				return Promise.reject();
+			}
+
+			if (mode === 'fim') {
+
+				// the fim prompt is the last message
+				let prompt = messages[messages.length - 1].content
+				return ollama.generate({
+					model: voidConfig.ollama.model,
+					prompt: prompt,
+					stream: true,
+					raw: true,
+				})
+			}
+
+			return ollama.chat({
+				model: voidConfig.ollama.model,
+				messages: messages,
+				stream: true,
+				options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) }
+			});
+		})
 		.then(async stream => {
+<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 			_setAborter(() => stream.abort())
 			// iterate through the stream
 			for await (const chunk of stream) {
 				const newText = chunk.message.content;
+=======
+			if (!stream) return;
+
+			abortRef.current = () => {
+				didAbort = true
+			}
+			for await (const chunk of stream) {
+				if (didAbort) return;
+
+				const newText = (mode === 'fim'
+					? (chunk as GenerateResponse).response
+					: (chunk as ChatResponse).message.content
+				)
+>>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 				fullText += newText;
 				onText(newText, fullText);
 			}
 			onFinalMessage(fullText);
-
 		})
-		// when error/fail
 		.catch(error => {
-			onError(error)
-		})
-
+			// Check if the error is a connection error
+			if (error instanceof Error && error.message.includes('Failed to fetch')) {
+				const errorMessage = 'Ollama service is not running. Please start the Ollama service and try again.';
+				onText(errorMessage, errorMessage);
+				onFinalMessage(errorMessage);
+			} else if (error) {
+				onError(error);
+			}
+		});
 };
 
 // Greptile
@@ -303,6 +396,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
+<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 
 
 
@@ -317,10 +411,37 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 	logging: { loggingName }
 }) => {
 	if (!voidConfig) return;
+=======
+export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ mode, messages, fimInfo, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+	if (!voidConfig)
+		return onError('No config file found for LLM.');
+
+	// handle defaults
+	if (!mode) mode = 'chat'
+	if (!messages) messages = []
+
+	// build messages
+	if (mode === 'chat') {
+		// nothing needed
+	} else if (mode === 'fim') {
+		fimInfo = fimInfo!
+
+		const system = getFIMSystem({ voidConfig, fimInfo })
+		const prompt = getFIMPrompt({ voidConfig, fimInfo })
+		messages = ([
+			{ role: 'system', content: system },
+			{ role: 'user', content: prompt }
+		] as const)
+			.filter(m => m.content.trim() !== '')
+	}
+>>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
+	if (messages.length === 0)
+		return onError('No messages provided to LLM.');
 
+<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureChatEvent = (eventId: string, extras?: object) => {
 		posthog.capture(eventId, {
@@ -397,5 +518,23 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 	}
 
 
+=======
+	switch (voidConfig.default.whichApi) {
+		case 'anthropic':
+			return sendAnthropicMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+		case 'openAI':
+		case 'openRouter':
+		case 'openAICompatible':
+			return sendOpenAIMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+		case 'gemini':
+			return sendGeminiMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+		case 'ollama':
+			return sendOllamaMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+		case 'greptile':
+			return sendGreptileMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+		default:
+			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
+	}
+>>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 
 }

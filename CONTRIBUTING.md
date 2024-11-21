@@ -9,37 +9,9 @@ There are a few ways to contribute:
 - Submit Issues/Docs/Bugs ([Issues](https://github.com/voideditor/void/issues))
 
 
-## 1. Building the Extension
+## 2. Building the IDE
 
-Here's how you can start contributing to the Void extension. This is where you should get started if you're new.
-
-1. Clone the repository:
-
-```
-git clone https://github.com/voideditor/void
-```
-
-2. Open the folder `/extensions/void` in VSCode (open it in a new workspace, _don't_ just cd into it).
-
-3. Install dependencies:
-
-```
-npm install
-```
-
-1. Compile the React files by running `npm run build`. This build command converts all the Tailwind/React entrypoint files into raw .css and .js files in `dist/`.
-
-```
-npm run build
-```
-
-5. Run the extension in a new window by pressing <kbd>F5</kbd>.
-
-This will start a new instance of VSCode with the extension enabled. If this doesn't work, you can press <kbd>Ctrl+Shift+P</kbd>, select "Debug: Start Debugging", and select "VSCode Extension Development".
-
-## 2. Building the full IDE
-
-If you want to work on the full IDE, please follow the steps below. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page. Also feel free to submit an issue or get in touch with us with any build errors.
+Please follow the steps below to build the IDE. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page. Also feel free to [submit an issue](https://github.com/voideditor/void/issues/new) or get in touch with us with any build errors.
 
 <!-- TODO say whether you can build each distribution on any Operating System, or if you need to build Windows on Windows, etc -->
 
@@ -70,7 +42,7 @@ We haven't created prerequisite steps for building on Linux yet, but you can fol
 
 ### Build instructions
 
-Before building Void, please follow the prerequisite steps above for your operating system. Also, make sure you've already built and compiled the Void extension (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`).
+Before building Void, please follow the prerequisite steps above for your operating system. Also, make sure you've already built and compiled the Void React components by running `cd ./` (or just run `cd ./extensions/void && npm install && npm run build && npm run compile && cd ../..`).
 
 To build Void, first open `void/` in VSCode. Then:
 
@@ -80,7 +52,9 @@ To build Void, first open `void/` in VSCode. Then:
 npm install
 ```
 
-2. Press <kbd>Ctrl+Shift+B</kbd>, or if you prefer using the terminal run `npm run watch`.
+2. Build Void's React components by running `cd ./src/vs/workbench/contrib/void/browser/react/`, and executing the build script with `node ./build.js`. You might need to run `npm i -g tsup` if this doesn't work.
+
+3. Press <kbd>Ctrl+Shift+B</kbd>, or if you prefer using the terminal run `npm run watch`.
 
 This can take ~5 min.
 
@@ -97,11 +71,10 @@ If you ran `npm run watch`, the build is done when you see something like this:
 
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
-1. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `/.scripts/code.bat` (Windows). This should open up the built IDE!
+4. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `./scripts/code.bat` (Windows). This should open up the built IDE!
 You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building.
 
-Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page!
-
+Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page.
 
 ### Common Fixes
 

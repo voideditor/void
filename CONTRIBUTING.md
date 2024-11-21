@@ -9,11 +9,10 @@ There are a few ways to contribute:
 - Submit Issues/Docs/Bugs ([Issues](https://github.com/voideditor/void/issues))
 
 
-## 2. Building the full IDE
+## Building the full IDE
 
-If you want to work on the full IDE, please follow the steps below. If you have any questions/issues, you can refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page. Also feel free to submit an issue or get in touch with us with any build errors.
+Please follow the steps below to build the IDE. If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new) with any build errors, or refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
-<!-- TODO say whether you can build each distribution on any Operating System, or if you need to build Windows on Windows, etc -->
 
 ### a. Build Prerequisites - Mac
 

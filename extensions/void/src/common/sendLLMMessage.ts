@@ -5,7 +5,7 @@ import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeA
 import { VoidConfig } from '../webviews/common/contextForConfig'
 import { getFIMPrompt, getFIMSystem } from './getPrompt';
 
-export type AbortRef = { current: (() => void) | null }
+export type AbortRef = { current: (() => void) }
 
 export type OnText = (newText: string, fullText: string) => void
 
@@ -21,9 +21,12 @@ export type LLMMessage = {
 	content: string,
 }
 
+type LLMMessageOptions = { stopTokens?: string[] }
+
 type SendLLMMessageFnTypeInternal = (params: {
 	mode: 'chat' | 'fim',
 	messages: LLMMessage[],
+	options?: LLMMessageOptions,
 	onText: OnText,
 	onFinalMessage: OnFinalMessage,
 	onError: (error: string) => void,
@@ -34,8 +37,9 @@ type SendLLMMessageFnTypeInternal = (params: {
 
 type SendLLMMessageFnTypeExternal = (params: (
 	| { mode?: 'chat', messages: LLMMessage[], fimInfo?: undefined, }
-	| { mode: 'fim', fimInfo: FimInfo, messages?: undefined, }
+	| { mode: 'fim', messages?: undefined, fimInfo: FimInfo, }
 ) & {
+	options?: LLMMessageOptions,
 	onText: OnText,
 	onFinalMessage: OnFinalMessage,
 	onError: (error: string) => void,
@@ -242,7 +246,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 };
 
 // Ollama
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ options, mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 
 	let didAbort = false
 	let fullText = ""
@@ -278,6 +282,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, on
 					prompt: prompt,
 					stream: true,
 					raw: true,
+					options: { stop: options?.stopTokens }
 				})
 			}
 
@@ -293,6 +298,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, on
 
 			abortRef.current = () => {
 				didAbort = true
+				stream.abort()
 			}
 			for await (const chunk of stream) {
 				if (didAbort) return;
@@ -386,7 +392,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ mode, messages, fimInfo, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ options, mode, messages, fimInfo, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 	if (!voidConfig)
 		return onError('No config file found for LLM.');
 
@@ -406,27 +412,29 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ mode, messages, f
 			{ role: 'system', content: system },
 			{ role: 'user', content: prompt }
 		] as const)
-			.filter(m => m.content.trim() !== '')
+
 	}
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
+		.filter(m => m.content !== '')
+
 	if (messages.length === 0)
 		return onError('No messages provided to LLM.');
 
 	switch (voidConfig.default.whichApi) {
 		case 'anthropic':
-			return sendAnthropicMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendAnthropicMsg({ options, mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'openAI':
 		case 'openRouter':
 		case 'openAICompatible':
-			return sendOpenAIMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendOpenAIMsg({ options, mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'gemini':
-			return sendGeminiMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendGeminiMsg({ options, mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'ollama':
-			return sendOllamaMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendOllamaMsg({ options, mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'greptile':
-			return sendGreptileMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendGreptileMsg({ options, mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		default:
 			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
 	}

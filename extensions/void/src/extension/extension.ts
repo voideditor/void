@@ -114,7 +114,7 @@ export function activate(context: vscode.ExtensionContext) {
 			// Receive messages in the extension from the sidebar webview (messages are sent using `postMessage`)
 			webview.onDidReceiveMessage(async (m: MessageFromSidebar) => {
 
-				const abortRef: AbortRef = { current: null }
+				const abortRef: AbortRef = { current: () => { } }
 
 				if (m.type === 'requestFiles') {
 
@@ -187,15 +187,12 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.languages.registerInlineCompletionItemProvider('*', autocompleteProvider));
 
 	const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
-	const abortRef: AbortRef = { current: null }
 
 	// setupAutocomplete({ voidConfig, abortRef })
-
 
 	// 7. Language Server
 	console.log('run lsp')
 	let disposable = vscode.commands.registerCommand('typeInspector.inspect', runTreeSitter);
-
 	context.subscriptions.push(disposable);
 
 

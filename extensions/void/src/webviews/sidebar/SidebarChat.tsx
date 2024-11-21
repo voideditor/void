@@ -156,7 +156,7 @@ export const SidebarChat = ({ chatInputRef }: { chatInputRef: React.RefObject<HT
 	// state of chat
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
-	const abortFnRef = useRef<(() => void) | null>(null)
+	const abortFnRef = useRef<(() => void)>(() => { })
 
 	const [latestError, setLatestError] = useState('')
 

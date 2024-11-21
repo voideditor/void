@@ -3,6 +3,47 @@ import { AbortRef, LLMMessage, sendLLMMessage } from '../common/sendLLMMessage';
 import { getVoidConfigFromPartial, VoidConfig } from '../webviews/common/contextForConfig';
 import { LRUCache } from 'lru-cache';
 
+
+/*
+A summary of autotab:
+
+Postprocessing
+-one common problem for all models is outputting unbalanced parentheses
+we solve this by trimming all extra closing parentheses from the generated string
+in future, should make sure parentheses are always balanced
+
+-another problem is completing the middle of a string, eg. "const [x, CURSOR] = useState()"
+we complete up to first matchup character
+but should instead complete the whole line / block (difficult because of parenthesis accuracy)
+
+-too much info is bad. usually we want to show the user 1 line, and have a preloaded response afterwards
+this should happen automatically with caching system
+should break preloaded responses into \n\n chunks
+
+Preprocessing
+- we don't generate if cursor is at end / beginning of a line (no spaces)
+- we generate 1 line if there is text to the right of cursor
+- we generate 1 line if variable declaration
+- (in many cases want to show 1 line but generate multiple)
+
+State
+- cache based on prefix (and do some trimming first)
+- when press tab on one line, should have an immediate followup response
+to do this, show autocompletes before they're fully finished
+- [todo] remove each autotab when accepted
+- [todo] treat windows \r\n separately from \n
+!- [todo] provide type information
+
+Details
+-generated results are trimmed up to 1 leading/trailing space
+-prefixes are cached up to 1 trailing newline
+-
+*/
+
+
+
+
+
 type AutocompletionStatus = 'pending' | 'finished' | 'error';
 type Autocompletion = {
 	id: number,
@@ -24,15 +65,21 @@ const MAX_PENDING_REQUESTS = 2
 // postprocesses the result
 const postprocessResult = (result: string) => {
 
-	// remove leading whitespace from result
-	return result.trimStart()
+	console.log('result: ', JSON.stringify(result))
+
+	// trim all whitespace except for a single leading/trailing space
+	const hasLeadingSpace = result.startsWith(' ');
+	const hasTrailingSpace = result.endsWith(' ');
+	return (hasLeadingSpace ? ' ' : '')
+		+ result.trim()
+		+ (hasTrailingSpace ? ' ' : '');
 
 }
 
 const extractCodeFromResult = (result: string) => {
 
 	// extract the code between triple backticks
-	const parts = result.split(/```/);
+	const parts = result.split(/```(?:\s*\w+)?\n?/);
 
 	// if there is no ``` then return the raw result
 	if (parts.length === 1) {
@@ -58,6 +105,28 @@ const trimPrefix = (prefix: string) => {
 	return trimmedPrefix
 }
 
+function getStringUpToUnbalancedParenthesis(s: string, prefixToTheLeft: string): string {
+
+	const pairs: Record<string, string> = { ')': '(', '}': '{', ']': '[' };
+
+	// todo find first open bracket in prefix and get all brackets beyond it in prefix
+	// get all bracets in prefix
+	let stack: string[] = []
+	const firstOpenIdx = prefixToTheLeft.search(/[[({]/);
+	if (firstOpenIdx !== -1) stack = prefixToTheLeft.slice(firstOpenIdx).split('').filter(c => '()[]{}'.includes(c))
+
+	// Iterate through each character
+	for (let i = 0; i < s.length; i++) {
+		const char = s[i];
+
+		if (char === '(' || char === '{' || char === '[') { stack.push(char); }
+		else if (char === ')' || char === '}' || char === ']') {
+			if (stack.length === 0 || stack.pop() !== pairs[char]) { return s.substring(0, i); }
+		}
+	}
+	return s;
+}
+
 // finds the text in the autocompletion to display, assuming the prefix is already matched
 // example:
 // originalPrefix = abcd
@@ -65,26 +134,69 @@ const trimPrefix = (prefix: string) => {
 // originalSuffix = ijkl
 // the user has typed "ef" so prefix = abcdef
 // we want to return the rest of the generatedMiddle, which is "gh"
-const toInlineCompletion = ({ prefix, autocompletion, position }: { prefix: string, autocompletion: Autocompletion, position: vscode.Position }): vscode.InlineCompletionItem => {
+const toInlineCompletion = ({ prefix, suffix, autocompletion, position }: { prefix: string, suffix: string, autocompletion: Autocompletion, position: vscode.Position }): vscode.InlineCompletionItem => {
 	const originalPrefix = autocompletion.prefix
 	const generatedMiddle = autocompletion.result
 
 	const trimmedOriginalPrefix = trimPrefix(originalPrefix)
 	const trimmedCurrentPrefix = trimPrefix(prefix)
 
-	const lastMatchupIndex = trimmedCurrentPrefix.length - trimmedOriginalPrefix.length
+	const suffixLines = suffix.split('\n')
+	const prefixLines = trimmedCurrentPrefix.split('\n')
+	const suffixToTheRightOfCursor = suffixLines[0].trim()
+	const prefixToTheLeftOfCursor = prefixLines[prefixLines.length - 1].trim()
 
-	if (lastMatchupIndex < 0) {
+	const generatedLines = generatedMiddle.split('\n')
+
+	// compute startIdx
+	let startIdx = trimmedCurrentPrefix.length - trimmedOriginalPrefix.length
+	if (startIdx < 0) {
 		return new vscode.InlineCompletionItem('')
 	}
 
-	const completionStr = generatedMiddle.substring(lastMatchupIndex)
-	console.log('completionStr: ', completionStr)
+	// compute endIdx
+	// hacks to get the suffix to render properly with lower quality models
+	// if the generated text matches with the suffix on the current line, stop
+	let endIdx: number | undefined = generatedMiddle.length // exclusive bounds
 
-	return new vscode.InlineCompletionItem(
-		completionStr,
-		new vscode.Range(position, position)
-	)
+	if (suffixToTheRightOfCursor !== '') { // completing in the middle of a line
+		console.log('1')
+		// complete until there is a match
+		const matchIndex = generatedMiddle.lastIndexOf(suffixToTheRightOfCursor[0])
+		if (matchIndex > 0) { endIdx = matchIndex }
+	}
+
+	if (prefixToTheLeftOfCursor !== '') { // completing the end of a line
+		console.log('2')
+		// show a single line
+		const newlineIdx = generatedMiddle.indexOf('\n')
+		if (newlineIdx > -1) { endIdx = newlineIdx }
+	}
+
+	// // if a generated line matches with a suffix line, stop
+	// if (suffixLines.length > 1) {
+	// 	console.log('3')
+	// 	const lines = []
+	// 	for (const generatedLine of generatedLines) {
+	// 		if (suffixLines.slice(0, 10).some(suffixLine =>
+	// 			generatedLine.trim() !== '' && suffixLine.trim() !== ''
+	// 			&& generatedLine.trim().startsWith(suffixLine.trim())
+	// 		)) break;
+	// 		lines.push(generatedLine)
+	// 	}
+	// 	endIdx = lines.join('\n').length // this is hacky, remove or refactor in future
+	// }
+
+	let completionStr = generatedMiddle.slice(startIdx, endIdx)
+
+	// filter out unbalanced parentheses
+	console.log('completionStrBeforeParens: ', JSON.stringify(completionStr))
+	completionStr = getStringUpToUnbalancedParenthesis(completionStr, prefixLines.slice(-2).join('\n'))
+
+	console.log('originalCompletionStr: ', JSON.stringify(generatedMiddle.slice(startIdx)))
+	console.log('finalCompletionStr: ', JSON.stringify(completionStr))
+
+	return new vscode.InlineCompletionItem(completionStr, new vscode.Range(position, position))
 
 }
 
@@ -105,10 +217,38 @@ const doesPrefixMatchAutocompletion = ({ prefix, autocompletion }: { prefix: str
 
 }
 
+const getCompletionOptions = ({ prefix, suffix }: { prefix: string, suffix: string }) => {
 
+	const prefixLines = prefix.split('\n')
+	const suffixLines = suffix.split('\n')
+
+	const prefixToLeftOfCursor = prefixLines.slice(-1)[0] ?? ''
+	const suffixToRightOfCursor = suffixLines[0]
+
+	// default parameters
+	let shouldGenerate = true
+	let stopTokens: string[] = ['\n\n', '\r\n\r\n']
+
+	// specific cases
+	if (suffixToRightOfCursor.trim() !== '') { // typing between something
+		stopTokens = ['\n', '\r\n']
+	}
+
+	// if (prefixToLeftOfCursor.trim() === '' && suffixToRightOfCursor.trim() === '') { // at an empty line
+	// 	stopTokens = ['\n\n', '\r\n\r\n']
+	// }
+
+	if (prefixToLeftOfCursor === '' || suffixToRightOfCursor === '') { // at beginning or end of line
+		shouldGenerate = false
+	}
+
+	console.log('shouldGenerate:', shouldGenerate, stopTokens)
+
+	return { shouldGenerate, stopTokens }
+
+}
 
 export class AutocompleteProvider implements vscode.InlineCompletionItemProvider {
-
 
 	private _extensionContext: vscode.ExtensionContext;
 
@@ -123,7 +263,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 	}
 
 	// used internally by vscode
-	// fires after every keystroke
+	// fires after every keystroke and returns the completion to show
 	async provideInlineCompletionItems(
 		document: vscode.TextDocument,
 		position: vscode.Position,
@@ -136,6 +276,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 
 		const docUriStr = document.uri.toString()
 
+
 		const fullText = document.getText();
 		const cursorOffset = document.offsetAt(position);
 		const prefix = fullText.substring(0, cursorOffset)
@@ -147,11 +288,17 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 		if (!this._autocompletionsOfDocument[docUriStr]) {
 			this._autocompletionsOfDocument[docUriStr] = new LRUCache<number, Autocompletion>({
 				max: MAX_CACHE_SIZE,
-				dispose: (autocompletion) => { autocompletion.abortRef.current() }
+				dispose: (autocompletion) => {
+					autocompletion.abortRef.current()
+				}
 			})
 		}
 		this._lastPrefix = prefix
-		console.log('cache size: ', this._autocompletionsOfDocument[docUriStr].size)
+
+		// get all pending autocompletions
+		let __c = 0
+		this._autocompletionsOfDocument[docUriStr].forEach(a => { if (a.status === 'pending') __c += 1 })
+		console.log('pending: ' + __c)
 
 		// get autocompletion from cache
 		let cachedAutocompletion: Autocompletion | undefined = undefined
@@ -167,17 +314,18 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 		if (cachedAutocompletion) {
 
 			if (cachedAutocompletion.status === 'finished') {
-				console.log('AAA1')
+				console.log('A1')
 
-				const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, position })
+				const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, suffix, position })
 				return [inlineCompletion]
 
 			} else if (cachedAutocompletion.status === 'pending') {
-				console.log('AAA2')
+				console.log('A2')
 
 				try {
 					await cachedAutocompletion.llmPromise;
-					const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, position })
+					console.log('id: ' + cachedAutocompletion.id)
+					const inlineCompletion = toInlineCompletion({ autocompletion: cachedAutocompletion, prefix, suffix, position })
 					return [inlineCompletion]
 
 				} catch (e) {
@@ -186,7 +334,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 				}
 
 			} else if (cachedAutocompletion.status === 'error') {
-				console.log('AAA3')
+				console.log('A3')
 			}
 
 			return []
@@ -211,7 +359,7 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 			return []
 		}
 
-		console.log('BBB')
+		console.log('B')
 
 		// if there are too many pending requests, cancel the oldest one
 		let numPending = 0
@@ -229,6 +377,10 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 				}
 			}
 		}
+
+		const { shouldGenerate, stopTokens } = getCompletionOptions({ prefix, suffix })
+
+		if (!shouldGenerate) return []
 
 		// create a new autocompletion and add it to cache
 		const newAutocompletion: Autocompletion = {
@@ -249,12 +401,13 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 			sendLLMMessage({
 				mode: 'fim',
 				fimInfo: { prefix, suffix },
+				options: { stopTokens },
 				onText: async (tokenStr, completionStr) => {
 
 					newAutocompletion.result = completionStr
 
 					// if generation doesn't match the prefix for the first few tokens generated, reject it
-					if (completionStr.length < 20 && !doesPrefixMatchAutocompletion({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
+					if (!doesPrefixMatchAutocompletion({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
 						reject('LLM response did not match user\'s text.')
 					}
 				},
@@ -296,9 +449,10 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 
 		// show autocompletion
 		try {
-			await newAutocompletion.llmPromise;
+			await newAutocompletion.llmPromise
+			console.log('id: ' + newAutocompletion.id)
 
-			const inlineCompletion = toInlineCompletion({ autocompletion: newAutocompletion, prefix, position })
+			const inlineCompletion = toInlineCompletion({ autocompletion: newAutocompletion, prefix, suffix, position })
 			return [inlineCompletion]
 
 		} catch (e) {

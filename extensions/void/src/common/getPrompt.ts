@@ -73,22 +73,23 @@ const z = 3
 
 export const getFIMPrompt: GetFIMPrompt = ({ voidConfig, fimInfo }) => {
 
-	// if no prefix or suffix, return empty string
-	if (!fimInfo.prefix.trim() && !fimInfo.suffix.trim()) return ''
+	const { prefix: fullPrefix, suffix: fullSuffix } = fimInfo
+	const prefix = fullPrefix.split('\n').slice(-20).join('\n')
+	const suffix = fullSuffix.split('\n').slice(0, 20).join('\n')
 
-	// instruct model to generate a single line if there is text immediately after the cursor
-	const suffixLines = fimInfo.suffix.split('\n');
-	const afterCursor = suffixLines[0] || '';
-	const generateSingleLine = afterCursor.trim().length > 0;
-	const singleLinePrompt = generateSingleLine ? `Please produce a single line of code that fills in the middle.` : ''
+
+	console.log('prefix', JSON.stringify(prefix))
+	console.log('suffix', JSON.stringify(suffix))
+
+	if (!prefix.trim() && !suffix.trim()) return ''
 
 	// TODO may want to trim the prefix and suffix
 	switch (voidConfig.default.whichApi) {
 		case 'ollama':
 			if (voidConfig.ollama.model === 'codestral') {
-				return `${singleLinePrompt}[SUFFIX]${fimInfo.suffix}[PREFIX] ${fimInfo.prefix}`
+				return `[SUFFIX]${suffix}[PREFIX] ${prefix}`
 			} else if (voidConfig.ollama.model.includes('qwen')) {
-				return `${singleLinePrompt}<|fim_prefix|>${fimInfo.prefix}<|fim_suffix|>${fimInfo.suffix}<|fim_middle|>`
+				return `<|fim_prefix|>${prefix}<|fim_suffix|>${suffix}<|fim_middle|>`
 			}
 			return ''
 		case 'anthropic':
@@ -101,14 +102,13 @@ export const getFIMPrompt: GetFIMPrompt = ({ voidConfig, fimInfo }) => {
 		default:
 			return `## START:
 \`\`\`
-${fimInfo.prefix}
+${prefix}
 \`\`\`
 ## END:
 \`\`\`
-${fimInfo.suffix}
+${suffix}
 \`\`\`
 `
-
 	}
 }
 

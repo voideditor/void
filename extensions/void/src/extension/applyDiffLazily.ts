@@ -50,7 +50,6 @@ ${completedStr}
 					isAnyChangeSoFar = true
 				}
 
-
 				const isRecentMatchup = false
 				// the final NUM_MATCHUP_TOKENS characters of fullCompletedStr are the same as the final NUM_MATCHUP_TOKENS characters of the last item in the diffs of oldFileStr that had 0 changes
 

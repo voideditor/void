@@ -1,15 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
-<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { posthog } from 'posthog-js'
 import type { VoidConfig } from '../../../registerConfig.js';
-=======
-import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
-import { VoidConfig } from '../webviews/common/contextForConfig'
-import { getFIMPrompt, getFIMSystem } from './getPrompt';
->>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 
 export type AbortRef = { current: (() => void) | null }
 
@@ -28,7 +22,6 @@ export type LLMMessage = {
 }
 
 type SendLLMMessageFnTypeInternal = (params: {
-<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 	messages: LLMMessage[];
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
@@ -49,33 +42,7 @@ type SendLLMMessageFnTypeExternal = (params: {
 	logging: {
 		loggingName: string,
 	};
-=======
-	mode: 'chat' | 'fim',
-	messages: LLMMessage[],
-	onText: OnText,
-	onFinalMessage: OnFinalMessage,
-	onError: (error: string) => void,
-	abortRef: AbortRef,
-	voidConfig: VoidConfig,
 }) => void
-
-
-type SendLLMMessageFnTypeExternal = (params: (
-	| { mode?: 'chat', messages: LLMMessage[], fimInfo?: undefined, }
-	| { mode: 'fim', fimInfo: FimInfo, messages?: undefined, }
-) & {
-	onText: OnText,
-	onFinalMessage: OnFinalMessage,
-	onError: (error: string) => void,
-	abortRef: AbortRef,
-	voidConfig: VoidConfig | null, // these may be absent
->>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
-}) => void
-
-export type FimInfo = {
-	prefix: string,
-	suffix: string,
-}
 
 const parseMaxTokensStr = (maxTokensStr: string) => {
 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
@@ -246,94 +213,34 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 };
 
 // Ollama
-<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
 	let fullText = ''
-=======
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
-
-	let didAbort = false
-	let fullText = ""
-
-	abortRef.current = () => {
-		didAbort = true;
-	};
->>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 
 	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
 
-	type GenerateResponse = Awaited<ReturnType<(typeof ollama.generate)>>
-	type ChatResponse = Awaited<ReturnType<(typeof ollama.chat)>>
-
-
-	// First check if model exists
-	ollama.list()
-		.then(async models => {
-			const installedModels = models.models.map(m => m.name.replace(/:latest$/, ''))
-			const modelExists = installedModels.some(m => m.startsWith(voidConfig.ollama.model));
-			if (!modelExists) {
-				const errorMessage = `The model "${voidConfig.ollama.model}" is not available locally. Please run 'ollama pull ${voidConfig.ollama.model}' to download it first or
-				try selecting one from the Installed models: ${installedModels.join(', ')}`;
-				onText(errorMessage, errorMessage);
-				onFinalMessage(errorMessage);
-				return Promise.reject();
-			}
-
-			if (mode === 'fim') {
-
-				// the fim prompt is the last message
-				let prompt = messages[messages.length - 1].content
-				return ollama.generate({
-					model: voidConfig.ollama.model,
-					prompt: prompt,
-					stream: true,
-					raw: true,
-				})
-			}
-
-			return ollama.chat({
-				model: voidConfig.ollama.model,
-				messages: messages,
-				stream: true,
-				options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) }
-			});
-		})
+	ollama.chat({
+		model: voidConfig.ollama.model,
+		messages: messages,
+		stream: true,
+		options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) } // this is max_tokens
+	})
 		.then(async stream => {
-<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 			_setAborter(() => stream.abort())
 			// iterate through the stream
 			for await (const chunk of stream) {
 				const newText = chunk.message.content;
-=======
-			if (!stream) return;
-
-			abortRef.current = () => {
-				didAbort = true
-			}
-			for await (const chunk of stream) {
-				if (didAbort) return;
-
-				const newText = (mode === 'fim'
-					? (chunk as GenerateResponse).response
-					: (chunk as ChatResponse).message.content
-				)
->>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 				fullText += newText;
 				onText(newText, fullText);
 			}
 			onFinalMessage(fullText);
+
 		})
+		// when error/fail
 		.catch(error => {
-			// Check if the error is a connection error
-			if (error instanceof Error && error.message.includes('Failed to fetch')) {
-				const errorMessage = 'Ollama service is not running. Please start the Ollama service and try again.';
-				onText(errorMessage, errorMessage);
-				onFinalMessage(errorMessage);
-			} else if (error) {
-				onError(error);
-			}
-		});
+			onError(error)
+		})
+
 };
 
 // Greptile
@@ -396,7 +303,6 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
-<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 
 
 
@@ -411,37 +317,10 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 	logging: { loggingName }
 }) => {
 	if (!voidConfig) return;
-=======
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ mode, messages, fimInfo, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
-	if (!voidConfig)
-		return onError('No config file found for LLM.');
-
-	// handle defaults
-	if (!mode) mode = 'chat'
-	if (!messages) messages = []
-
-	// build messages
-	if (mode === 'chat') {
-		// nothing needed
-	} else if (mode === 'fim') {
-		fimInfo = fimInfo!
-
-		const system = getFIMSystem({ voidConfig, fimInfo })
-		const prompt = getFIMPrompt({ voidConfig, fimInfo })
-		messages = ([
-			{ role: 'system', content: system },
-			{ role: 'user', content: prompt }
-		] as const)
-			.filter(m => m.content.trim() !== '')
-	}
->>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
-	if (messages.length === 0)
-		return onError('No messages provided to LLM.');
 
-<<<<<<< HEAD:src/vs/workbench/contrib/void/browser/react/src/util/sendLLMMessage.tsx
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureChatEvent = (eventId: string, extras?: object) => {
 		posthog.capture(eventId, {
@@ -518,23 +397,127 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ mode, messages, f
 	}
 
 
-=======
-	switch (voidConfig.default.whichApi) {
-		case 'anthropic':
-			return sendAnthropicMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
-		case 'openAI':
-		case 'openRouter':
-		case 'openAICompatible':
-			return sendOpenAIMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
-		case 'gemini':
-			return sendGeminiMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
-		case 'ollama':
-			return sendOllamaMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
-		case 'greptile':
-			return sendGreptileMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
-		default:
-			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
-	}
->>>>>>> origin/main:extensions/void/src/common/sendLLMMessage.ts
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// type GetFIMPrompt = ({ voidConfig, fimInfo }: { voidConfig: VoidConfig, fimInfo: FimInfo, }) => string
+
+// export const getFIMSystem: GetFIMPrompt = ({ voidConfig, fimInfo }) => {
+
+// 	switch (voidConfig.default.whichApi) {
+// 		case 'ollama':
+// 			return ''
+// 		case 'anthropic':
+// 		case 'openAI':
+// 		case 'gemini':
+// 		case 'greptile':
+// 		case 'openRouter':
+// 		case 'openAICompatible':
+// 		case 'azure':
+// 		default:
+// 			return `You are given the START and END to a piece of code. Please FILL IN THE MIDDLE between the START and END.
+
+// Instruction summary:
+// 1. Return the MIDDLE of the code between the START and END.
+// 2. Do not give an explanation, description, or any other code besides the middle.
+// 2. Do not return duplicate code from either START or END.
+// 3. Make sure the MIDDLE piece of code has balanced brackets that match the START and END.
+// 4. The MIDDLE begins on the same line as START. Please include a newline character if you want to begin on the next line.
+
+// # EXAMPLE
+
+// ## START:
+// \`\`\` python
+// def add(a,b):
+// 	return a + b
+// def subtract(a,b):
+// 	return a - b
+// \`\`\`
+// ## END:
+// \`\`\` python
+// def divide(a,b):
+// 	return a / b
+// \`\`\`
+// ## EXPECTED OUTPUT:
+// \`\`\` python
+
+// def multiply(a,b):
+// 	return a * b
+// \`\`\`
+
+// # EXAMPLE
+// ## START:
+// \`\`\` javascript
+// const x = 1
+
+// const y
+// \`\`\`
+// ## END:
+// \`\`\` javascript
+
+// const z = 3
+// \`\`\`
+// ## EXPECTED OUTPUT:
+// \`\`\` javascript
+// = 2
+// \`\`\`
+// `
+// 	}
+
+
+// }
+
+
+// export const getFIMPrompt: GetFIMPrompt = ({ voidConfig, fimInfo }) => {
+
+// 	// if no prefix or suffix, return empty string
+// 	if (!fimInfo.prefix.trim() && !fimInfo.suffix.trim()) return ''
+
+// 	// TODO may want to trim the prefix and suffix
+// 	switch (voidConfig.default.whichApi) {
+// 		case 'ollama':
+// 			if (voidConfig.ollama.model === 'codestral') {
+// 				return `[SUFFIX]${fimInfo.suffix}[PREFIX] ${fimInfo.prefix}`
+// 			}
+// 			return ''
+// 		case 'anthropic':
+// 		case 'openAI':
+// 		case 'gemini':
+// 		case 'greptile':
+// 		case 'openRouter':
+// 		case 'openAICompatible':
+// 		case 'azure':
+// 		default:
+// 			return `## START:
+// \`\`\`
+// ${fimInfo.prefix}
+// \`\`\`
+// ## END:
+// \`\`\`
+// ${fimInfo.suffix}
+// \`\`\`
+// `
+
+// 	}
+// }
+

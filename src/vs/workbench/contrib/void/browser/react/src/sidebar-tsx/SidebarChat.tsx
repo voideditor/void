@@ -214,6 +214,7 @@ export const SidebarChat = () => {
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
 			onText: (newText, fullText) => setMessageStream(fullText),
 			onFinalMessage: (content) => {
+				console.log('chat: running final message')
 
 				// add assistant's message to chat history, and clear selection
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content }
@@ -222,6 +223,8 @@ export const SidebarChat = () => {
 				setIsLoading(false)
 			},
 			onError: (error) => {
+				console.log('chat: running error')
+
 				// add assistant's message to chat history, and clear selection
 				let content = messageStream; // just use the current content
 				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }

@@ -160,6 +160,7 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 
 
 	addMessageToCurrentThread(message: ChatMessage) {
+		console.log('adding ', message.role, 'to chat')
 		const { allThreads, _currentThreadId } = this.state
 
 		// get the current thread, or create one

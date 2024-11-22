@@ -1027,22 +1027,3 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 
 
 
-
-
-
-// // 6. Autocomplete
-// const autocompleteProvider = new AutocompleteProvider(context);
-// context.subscriptions.push(vscode.languages.registerInlineCompletionItemProvider('*', autocompleteProvider));
-
-// const voidConfig = getVoidConfigFromPartial(context.globalState.get('partialVoidConfig') ?? {})
-// const abortRef: AbortRef = { current: null }
-
-// // setupAutocomplete({ voidConfig, abortRef })
-
-
-// // 7. Language Server
-// console.log('run lsp')
-// let disposable = vscode.commands.registerCommand('typeInspector.inspect', runTreeSitter);
-
-// context.subscriptions.push(disposable);
-

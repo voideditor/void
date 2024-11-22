@@ -50,7 +50,7 @@ To build Void, first follow the prerequisite steps above for your operating syst
 npm install
 ```
 
-2. Build Void's React components by opening a new terminal (`Ctrl+Shift+\``), running `cd ./src/vs/workbench/contrib/void/browser/react/`, and executing the build script, `node ./build.js`. You might need to run `npm i -g tsup` if this doesn't work.
+2. Run `cd ./src/vs/workbench/contrib/void/browser/react/` and then `node ./build.js` to build Void's external dependencies (our React components, etc).
 
 3. Press <kbd>Ctrl+Shift+B</kbd>, or if you prefer using the terminal run `npm run watch`.
 

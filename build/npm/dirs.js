@@ -7,8 +7,6 @@ const fs = require('fs');
 
 // Complete list of directories where npm should be executed to install node modules
 const dirs = [
-	'extensions/void', // <-- Void
-
 	'',
 	'build',
 	'extensions',
@@ -55,6 +53,11 @@ const dirs = [
 	'test/smoke',
 	'.vscode/extensions/vscode-selfhost-import-aid',
 	'.vscode/extensions/vscode-selfhost-test-provider',
+
+	// Void added these:
+	// 'extensions/void',
+	// 'void-imports',
+
 ];
 
 if (fs.existsSync(`${__dirname}/../../.build/distro/npm`)) {

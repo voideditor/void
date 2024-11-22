@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 declare module 'vscode' {
-
 	/**
 	 * The version of the editor.
 	 */
@@ -14073,6 +14072,9 @@ declare module 'vscode' {
 	 * score is used for determining the order in which providers are asked to participate.
 	 */
 	export namespace languages {
+
+		/** Void added this: */
+		export function addInlineDiff(editor: TextEditor, originalText: string, modifiedRange: Range): void;
 
 		/**
 		 * Return the identifiers of all known languages.

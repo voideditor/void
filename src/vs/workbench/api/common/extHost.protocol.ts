@@ -2984,7 +2984,10 @@ export const MainContext = {
 	MainThreadTesting: createProxyIdentifier<MainThreadTestingShape>('MainThreadTesting'),
 	MainThreadLocalization: createProxyIdentifier<MainThreadLocalizationShape>('MainThreadLocalizationShape'),
 	MainThreadAiRelatedInformation: createProxyIdentifier<MainThreadAiRelatedInformationShape>('MainThreadAiRelatedInformation'),
-	MainThreadAiEmbeddingVector: createProxyIdentifier<MainThreadAiEmbeddingVectorShape>('MainThreadAiEmbeddingVector')
+	MainThreadAiEmbeddingVector: createProxyIdentifier<MainThreadAiEmbeddingVectorShape>('MainThreadAiEmbeddingVector'),
+
+	// Void added this:
+	MainThreadInlineDiff: createProxyIdentifier<MainThreadInlineDiffShape>('MainThreadInlineDiff'),
 };
 
 export const ExtHostContext = {
@@ -3055,5 +3058,17 @@ export const ExtHostContext = {
 	ExtHostTimeline: createProxyIdentifier<ExtHostTimelineShape>('ExtHostTimeline'),
 	ExtHostTesting: createProxyIdentifier<ExtHostTestingShape>('ExtHostTesting'),
 	ExtHostTelemetry: createProxyIdentifier<ExtHostTelemetryShape>('ExtHostTelemetry'),
-	ExtHostLocalization: createProxyIdentifier<ExtHostLocalizationShape>('ExtHostLocalization')
+	ExtHostLocalization: createProxyIdentifier<ExtHostLocalizationShape>('ExtHostLocalization'),
+
+	// Void added this:
+	ExtHostInlineDiff: createProxyIdentifier<ExtHostInlineDiffShape>('ExtHostInlineDiff'), // Void added this
 };
+
+
+// Void added these:
+export interface ExtHostInlineDiffShape {
+	$onDidDispose(handle: number): void;
+}
+export interface MainThreadInlineDiffShape {
+	$addDiff(editorId: string, originalText: string, range: IRange): void;
+}

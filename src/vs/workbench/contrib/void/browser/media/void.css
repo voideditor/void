@@ -1,0 +1,15 @@
+.monaco-editor .void-sweepIdxBG {
+	background-color: var(--vscode-void-sweepIdxBG);
+}
+
+.void-sweepBG {
+	background-color: var(--vscode-void-sweepBG);
+}
+
+.void-greenBG {
+	background-color: var(--vscode-void-greenBG);
+}
+
+.void-redBG {
+	background-color: var(--vscode-void-redBG);
+}

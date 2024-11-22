@@ -688,6 +688,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// actually call the LLM
 		const { voidConfig } = this._voidConfigStateService.state
+
+
+		// SWEEP PROMPT:
 		const promptContent = `\
 ORIGINAL_CODE
 \`\`\`
@@ -726,6 +729,9 @@ Please finish writing the new file by applying the diff to the original file. Re
 		// <PRE>${prefix}</PRE>
 		// <SUF>${suffix}</SUF>
 		// <MID>`;
+
+
+
 
 		const abortRef = { current: null } as { current: null | (() => void) }
 		await new Promise<void>((resolve, reject) => {

@@ -1,3 +1,15 @@
+// /*---------------------------------------------------------------------------------------------
+//  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+//  *  Void Editor additions licensed under the AGPLv3 License.
+//  *--------------------------------------------------------------------------------------------*/
+
+
+
+
+
+
+
+
 // import * as vscode from 'vscode';
 // import { AbortRef, LLMMessage, sendLLMMessage } from '../common/sendLLMMessage';
 // import { getVoidConfigFromPartial, VoidConfig } from '../webviews/common/contextForConfig';
@@ -252,7 +264,20 @@
 
 // }
 
-// export class AutocompleteProvider implements vscode.InlineCompletionItemProvider {
+
+
+// import { Disposable } from '../../../../base/common/lifecycle.js';
+// import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+// import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+// import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+
+// interface IAutocompleteService {
+// 	readonly _serviceBrand: undefined;
+// }
+
+// const IAutocompleteService = createDecorator<IAutocompleteService>('autocompleteService');
+// class AutocompleteService extends Disposable implements IAutocompleteService {
+// 	_serviceBrand: undefined;
 
 // 	private _extensionContext: vscode.ExtensionContext;
 
@@ -262,9 +287,6 @@
 // 	private _lastCompletionTime = 0
 // 	private _lastPrefix: string = ''
 
-// 	constructor(context: vscode.ExtensionContext) {
-// 		this._extensionContext = context
-// 	}
 
 // 	// used internally by vscode
 // 	// fires after every keystroke and returns the completion to show
@@ -468,4 +490,28 @@
 // 	}
 
 
+
+// 	constructor(
+// 		@ILanguageFeaturesService private readonly _langFeatureService: ILanguageFeaturesService
+// 	) {
+// 		super()
+
+// 		// this._extensionContext = context
+
+// 		this._langFeatureService.inlineCompletionsProvider.register('*', {
+// 			provideInlineCompletions: (model, position, context, token) => {
+// 				return this.provideInlineCompletionItems(model)
+
+// 			},
+// 			freeInlineCompletions(completions) {
+
+// 			},
+// 		})
+
+
+// 	}
+
+
 // }
+
+// registerSingleton(IAutocompleteService, AutocompleteService, InstantiationType.Eager);

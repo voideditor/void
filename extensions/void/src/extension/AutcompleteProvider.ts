@@ -4,6 +4,10 @@ import { getVoidConfigFromPartial, VoidConfig } from '../webviews/common/context
 import { LRUCache } from 'lru-cache';
 
 
+
+// The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
+
+
 /*
 A summary of autotab:
 

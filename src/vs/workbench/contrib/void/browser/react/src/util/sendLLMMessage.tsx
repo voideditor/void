@@ -25,7 +25,7 @@ type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[];
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
-	onError: (error: string) => void;
+	onError: (error: Error | string) => void;
 	voidConfig: VoidConfig;
 
 	_setAborter: (aborter: () => void) => void;
@@ -35,7 +35,7 @@ type SendLLMMessageFnTypeExternal = (params: {
 	messages: LLMMessage[];
 	onText: OnText;
 	onFinalMessage: (fullText: string) => void;
-	onError: (error: string) => void;
+	onError: (error: Error | string) => void;
 	voidConfig: VoidConfig | null;
 	abortRef: AbortRef;
 
@@ -92,7 +92,7 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 			onError('Invalid API key.')
 		}
 		else {
-			onError(error.message)
+			onError(error)
 		}
 	})
 
@@ -136,13 +136,8 @@ const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, o
 			onFinalMessage(fullText);
 		})
 		.catch((error) => {
-			if (error instanceof GoogleGenerativeAIFetchError) {
-				if (error.status === 400) {
-					onError('Invalid API key.');
-				}
-				else {
-					onError(`${error.name}:\n${error.message}`);
-				}
+			if (error instanceof GoogleGenerativeAIFetchError && error.status === 400) {
+				onError('Invalid API key.');
 			}
 			else {
 				onError(error);
@@ -197,13 +192,8 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
-			if (error instanceof OpenAI.APIError) {
-				if (error.status === 401) {
-					onError('Invalid API key.');
-				}
-				else {
-					onError(`${error.name}:\n${error.message}`);
-				}
+			if (error instanceof OpenAI.APIError && error.status === 401) {
+				onError('Invalid API key.');
 			}
 			else {
 				onError(error);
@@ -297,11 +287,12 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 			}
 
 		})
-		.catch(e => {
-			onError(e)
+		.catch(error => {
+			onError(error)
 		});
 
 }
+
 
 
 
@@ -350,7 +341,8 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 		onFinalMessage_(fullText)
 	}
 
-	const onError = (error: string) => {
+	const onError = (error: Error | string) => {
+		console.error('sendLLMMessage onError:', error)
 		if (_didAbort) return
 		captureChatEvent(`${loggingName} - Error`, { error })
 		onError_(error)
@@ -391,8 +383,9 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 	}
 
 	catch (e) {
-		onError(`Unexpected Error in sendLLMMessage: ${e}`);
-		(_aborter as any)?.()
+		if (e instanceof Error) { onError(e) }
+		else { onError(`Unexpected Error in sendLLMMessage: ${e}`); }
+		; (_aborter as any)?.()
 		_didAbort = true
 	}
 

@@ -17,8 +17,9 @@ import { IModelService } from '../../../../../../../editor/common/services/model
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
+import { ErrorDisplay } from '../util/ErrorDisplay.js';
 
-
+// import {  } from '@vscode/webview-ui-toolkit/react';
 
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
@@ -176,7 +177,7 @@ export const SidebarChat = () => {
 	const [isLoading, setIsLoading] = useState(false)
 	const abortFnRef = useRef<(() => void) | null>(null)
 
-	const [latestError, setLatestError] = useState('')
+	const [latestError, setLatestError] = useState<Error | string | null>(null)
 
 
 
@@ -338,9 +339,11 @@ export const SidebarChat = () => {
 			</div>
 
 			{/* error message */}
-			{!latestError ? null : <div>
-				{latestError}
-			</div>}
+			{!latestError ? null :
+				<ErrorDisplay
+					error={latestError}
+					onDismiss={() => { setLatestError(null) }}
+				/>}
 		</div>
 	</>
 }

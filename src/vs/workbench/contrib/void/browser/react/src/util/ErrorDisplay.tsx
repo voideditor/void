@@ -1,21 +1,39 @@
 import React, { useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, X } from 'lucide-react';
-import {  } from '@vscode/webview-ui-toolkit/react';
 
+import { getCmdKey } from '../../../getCmdKey.js';
+
+const opaqueMessage = `\
+Unfortunately, Void can't see the full error. However, you should be able to find more details by pressing ${getCmdKey()}+Shift+P, typing "Toggle Developer Tools", and looking at the console.\n
+This error often means you have an incorrect API key. If you're self-hosting your own server, it might mean your CORS headers are off, and you should make sure your server's response has the header "Access-Control-Allow-Origins" set to "*", or at least allows "vscode-file://vscode-app".`
 
 // Get detailed error information
-const getErrorDetails = (error: any) => {
+const getErrorDetails = (error: unknown) => {
 
 	let details: { message: string, name: string, stack: string | null, cause: string | null, code: string | null, additional: Record<string, any> };
 
-	const e = error instanceof Error ? error : new Error(String(error));
+	let e: Error & { [other: string]: undefined | any }
+
+
+
+	// If fetch() fails, it gives an opaque message. We add extra details to the error.
+	if ((error instanceof Error) && (error.cause + '').includes('TypeError: Failed to fetch')) {
+		e = error as any
+		e.voidMessage = opaqueMessage
+	}
+	else if (error instanceof Error) {
+		e = error
+	}
+	else {
+		e = new Error(String(error))
+	}
 
 	details = {
-		message: e.message || String(e),
 		name: e.name || 'Error',
+		message: e.message || String(e),
 		stack: e.stack || null,
 		cause: e.cause ? String(e.cause) : null,
-		code: (e as any).code || null,
+		code: e.code || null,
 		additional: {}
 	}
 
@@ -29,13 +47,13 @@ const getErrorDetails = (error: any) => {
 
 
 
-const ErrorDisplay = ({
+export const ErrorDisplay = ({
 	error,
 	onDismiss = null,
 	showDismiss = true,
 	className = ''
 }: {
-	error: Error,
+	error: Error | string,
 	onDismiss: (() => void) | null,
 	showDismiss?: boolean,
 	className?: string
@@ -105,8 +123,8 @@ const ErrorDisplay = ({
 					{Object.keys(details.additional).length > 0 && (
 						<div>
 							<span className="font-semibold text-red-800">Additional Information:</span>
-							<pre className="mt-1 text-sm text-red-700 overflow-x-auto">
-								{JSON.stringify(details.additional, null, 2)}
+							<pre className="mt-1 text-sm text-red-700 overflow-x-auto whitespace-pre-wrap">
+								{Object.keys(details.additional).map(key => `${key}:\n${details.additional[key]}`).join('\n')}
 							</pre>
 						</div>
 					)}
@@ -124,5 +142,3 @@ const ErrorDisplay = ({
 		</div>
 	);
 };
-
-export default ErrorDisplay;

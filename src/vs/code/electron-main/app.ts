@@ -121,6 +121,9 @@ import { normalizeNFC } from '../../base/common/normalization.js';
 import { ICSSDevelopmentService, CSSDevelopmentService } from '../../platform/cssDev/node/cssDevService.js';
 import { ExtensionSignatureVerificationService, IExtensionSignatureVerificationService } from '../../platform/extensionManagement/node/extensionSignatureVerificationService.js';
 
+import { ISendLLMMessageService } from '../../platform/void/common/sendLLMMessage.js';
+import { SendLLMMessageService } from '../../platform/void/electron-main/sendLLMMessage.js';
+
 /**
  * The main VS Code application. There will only ever be one instance,
  * even if the user starts many instances (e.g. from the command line).
@@ -508,6 +511,16 @@ export class CodeApplication extends Disposable {
 		});
 
 		//#endregion
+
+		// //#region Void IPC
+		// validatedIpcMain.handle('vscode:sendLLMMessage', async (event, data) => {
+		// 	try {
+		// 		await this.sendLLMMessage(data);
+		// 	} catch (error) {
+		// 		console.error('Error sending LLM message:', error);
+		// 	}
+		// });
+		// //#endregion
 	}
 
 	private onUnexpectedError(error: Error): void {
@@ -998,6 +1011,9 @@ export class CodeApplication extends Disposable {
 				break;
 		}
 
+		// Void
+		services.set(ISendLLMMessageService, new SyncDescriptor(SendLLMMessageService));
+
 		// Windows
 		services.set(IWindowsMainService, new SyncDescriptor(WindowsMainService, [machineId, sqmId, devDeviceId, this.userEnv], false));
 		services.set(IAuxiliaryWindowsMainService, new SyncDescriptor(AuxiliaryWindowsMainService, undefined, false));
@@ -1182,8 +1198,8 @@ export class CodeApplication extends Disposable {
 		mainProcessElectronServer.registerChannel('keyboardLayout', keyboardLayoutChannel);
 
 		// Void
-		const sendLLMMessageChannel = ProxyChannel.fromService(accessor.get(IEncryptionMainService), disposables);
-		mainProcessElectronServer.registerChannel('sendLLMMessage', sendLLMMessageChannel);
+		const sendLLMMessageChannel = ProxyChannel.fromService(accessor.get(ISendLLMMessageService), disposables);
+		mainProcessElectronServer.registerChannel('void-channel-sendLLMMessage', sendLLMMessageChannel);
 
 		// Native host (main & shared process)
 		this.nativeHostMainService = accessor.get(INativeHostMainService);

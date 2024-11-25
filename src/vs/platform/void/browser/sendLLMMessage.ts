@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ISendLLMMessageService, SendLLMMessageParams } from '../common/sendLLMMessage.js';
-import { ProxyChannel } from '../../../../base/parts/ipc/common/ipc.js';
-import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
+import { ProxyChannel } from '../../../base/parts/ipc/common/ipc.js';
+import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
+import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
 
 
 // BROWSER IMPLEMENTATION OF SENDLLMMESSAGE
@@ -22,7 +22,7 @@ export class SendLLMMessageService implements ISendLLMMessageService {
 	constructor(
 		@IMainProcessService mainProcessService: IMainProcessService
 	) {
-		this._proxySendLLMService = ProxyChannel.toService<ISendLLMMessageService>(mainProcessService.getChannel('sendLLMMessage'));
+		this._proxySendLLMService = ProxyChannel.toService<ISendLLMMessageService>(mainProcessService.getChannel('void-channel-sendLLMMessage'));
 	}
 
 	sendLLMMessage(params: SendLLMMessageParams) {

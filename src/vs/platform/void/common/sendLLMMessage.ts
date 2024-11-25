@@ -1,7 +1,7 @@
 // void/common/sendLLMMessage.ts
 
-import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { VoidConfig } from '../../../contrib/void/browser/registerConfig.js';
+import { createDecorator } from '../../instantiation/common/instantiation.js';
+import { VoidConfig } from '../../../workbench/contrib/void/browser/registerConfig.js';
 
 
 

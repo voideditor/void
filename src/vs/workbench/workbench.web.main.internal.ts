@@ -33,11 +33,6 @@ import './browser/web.main.js';
 
 
 
-//#region --- Void
-// Void added this (modeling off of import '.*clipboardservice.js'):
-import './services/void/browser/sendLLMMessage.js';
-//#endregion
-
 
 
 //#region --- workbench services

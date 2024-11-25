@@ -12,7 +12,7 @@ export interface IInlineDiffService {
 	removeDiffs(editor: ICodeEditor): void;
 }
 
-export const IInlineDiffService = createDecorator<IInlineDiffService>('inlineDiffService');
+export const IInlineDiffService = createDecorator<IInlineDiffService>('inlineDiffServiceOld');
 
 class InlineDiffService extends Disposable implements IInlineDiffService {
 	private readonly _diffDecorations = new Map<ICodeEditor, string[]>();

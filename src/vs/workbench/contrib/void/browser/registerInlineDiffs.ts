@@ -28,7 +28,8 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ISendLLMMessageService } from '../../../services/void/common/sendLLMMessage.js';
+import { ISendLLMMessageService } from '../../../../platform/void/common/sendLLMMessage.js';
+// import { ISendLLMMessageService } from '../../../../platform/void/common/sendLLMMessage.js';
 // import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 
 
@@ -116,7 +117,7 @@ export interface IInlineDiffsService {
 
 }
 
-export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffsService');
+export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffAreasService');
 
 class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	_serviceBrand: undefined;

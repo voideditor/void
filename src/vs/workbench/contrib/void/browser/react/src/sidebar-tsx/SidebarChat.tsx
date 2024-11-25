@@ -6,7 +6,6 @@ import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } 
 
 
 import { useConfigState, useService, useThreadsState } from '../util/services.js';
-import { sendLLMMessage } from '../util/sendLLMMessage.js';
 import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
 import { userInstructionsStr } from '../../../prompt/stringifyFiles.js';
 import { CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';

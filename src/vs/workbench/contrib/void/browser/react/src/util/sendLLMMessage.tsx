@@ -4,8 +4,8 @@ import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { posthog } from 'posthog-js'
 import type { VoidConfig } from '../../../registerConfig.js';
-import type { LLMMessage, LLMMessageOnText, OnFinalMessage, } from '../../../../../../services/void/common/sendLLMMessage.js';
-import { SendLLMMessageParams } from '../../../../../../services/void/common/sendLLMMessage.js';
+import type { LLMMessage, LLMMessageOnText, OnFinalMessage, } from '../../../../../../../platform/void/common/sendLLMMessage.js';
+import { SendLLMMessageParams } from '../../../../../../../platform/void/common/sendLLMMessage.js';
 
 type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[];

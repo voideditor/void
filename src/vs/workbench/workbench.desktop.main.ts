@@ -32,6 +32,15 @@ import './electron-sandbox/parts/dialogs/dialog.contribution.js';
 //#endregion
 
 
+
+
+//#region --- Void
+// Void added this (modeling off of import '.*clipboardservice.js'):
+import './services/void/electron-sandbox/sendLLMMessage.js';
+//#endregion
+
+
+
 //#region --- workbench services
 
 import './services/textfile/electron-sandbox/nativeTextFileService.js';

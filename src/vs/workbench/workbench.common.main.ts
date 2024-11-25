@@ -14,7 +14,7 @@ import './browser/workbench.contribution.js';
 
 
 
-//#region --- void
+//#region --- Void
 // Void added this:
 import './contrib/void/browser/void.contribution.js';
 //#endregion

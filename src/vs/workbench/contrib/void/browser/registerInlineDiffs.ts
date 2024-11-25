@@ -10,7 +10,6 @@ import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/brows
 
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 // import { throttle } from '../../../../base/common/decorators.js';
 import { IVoidConfigStateService } from './registerConfig.js';
 import { writeFileWithDiffInstructions } from './prompt/systemPrompts.js';
@@ -29,6 +28,8 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
+import { ISendLLMMessageService } from '../../../services/void/common/sendLLMMessage.js';
+// import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 
 
 // gets converted to --vscode-void-greenBG, see void.css
@@ -148,6 +149,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IModelService private readonly _modelService: IModelService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 		@ILanguageService private readonly _langService: ILanguageService,
+		@ISendLLMMessageService private readonly _sendLLMMessageService: ISendLLMMessageService,
 	) {
 		super();
 
@@ -729,7 +731,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 		const abortRef = { current: null } as { current: null | (() => void) }
 		await new Promise<void>((resolve, reject) => {
-			sendLLMMessage({
+			this._sendLLMMessageService.sendLLMMessage({
 				logging: { loggingName: 'streamChunk' },
 				messages: [
 					{ role: 'system', content: writeFileWithDiffInstructions, },

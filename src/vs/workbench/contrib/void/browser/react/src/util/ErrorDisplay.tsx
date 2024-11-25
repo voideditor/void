@@ -19,7 +19,7 @@ const getErrorDetails = (error: unknown) => {
 	// If fetch() fails, it gives an opaque message. We add extra details to the error.
 	if ((error instanceof Error) && (error.cause + '').includes('TypeError: Failed to fetch')) {
 		e = error as any
-		e.voidMessage = opaqueMessage
+		e['Void Team'] = opaqueMessage
 	}
 	else if (error instanceof Error) {
 		e = error

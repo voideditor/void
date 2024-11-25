@@ -4,26 +4,11 @@ import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { posthog } from 'posthog-js'
 import type { VoidConfig } from '../../../registerConfig.js';
-
-export type AbortRef = { current: (() => void) | null }
-
-export type OnText = (newText: string, fullText: string) => void
-
-export type OnFinalMessage = (input: string) => void
-
-export type LLMMessageAnthropic = {
-	role: 'user' | 'assistant';
-	content: string;
-}
-
-export type LLMMessage = {
-	role: 'system' | 'user' | 'assistant';
-	content: string;
-}
+import type { LLMMessage, LLMMessageOnText, OnFinalMessage, SendLLMMessageFnType, } from '../../../registerSendLLMMessage.js';
 
 type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[];
-	onText: OnText;
+	onText: LLMMessageOnText;
 	onFinalMessage: OnFinalMessage;
 	onError: (error: Error | string) => void;
 	voidConfig: VoidConfig;
@@ -31,18 +16,6 @@ type SendLLMMessageFnTypeInternal = (params: {
 	_setAborter: (aborter: () => void) => void;
 }) => void
 
-type SendLLMMessageFnTypeExternal = (params: {
-	messages: LLMMessage[];
-	onText: OnText;
-	onFinalMessage: (fullText: string) => void;
-	onError: (error: Error | string) => void;
-	voidConfig: VoidConfig | null;
-	abortRef: AbortRef;
-
-	logging: {
-		loggingName: string,
-	};
-}) => void
 
 const parseMaxTokensStr = (maxTokensStr: string) => {
 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
@@ -53,6 +26,10 @@ const parseMaxTokensStr = (maxTokensStr: string) => {
 }
 
 // Anthropic
+type LLMMessageAnthropic = {
+	role: 'user' | 'assistant';
+	content: string;
+}
 const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
 	const anthropic = new Anthropic({ apiKey: voidConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
@@ -298,7 +275,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 
 
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
+export const sendLLMMessage: SendLLMMessageFnType = ({
 	messages,
 	onText: onText_,
 	onFinalMessage: onFinalMessage_,
@@ -573,7 +550,7 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 
 // export type AbortRef = { current: (() => void) }
 
-// export type OnText = (newText: string, fullText: string) => void
+// export type LLMMessageOnText = (newText: string, fullText: string) => void
 
 // export type OnFinalMessage = (input: string) => void
 
@@ -593,7 +570,7 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 // 	mode: 'chat' | 'fim',
 // 	messages: LLMMessage[],
 // 	options?: LLMMessageOptions,
-// 	onText: OnText,
+// 	onText: LLMMessageOnText,
 // 	onFinalMessage: OnFinalMessage,
 // 	onError: (error: string) => void,
 // 	abortRef: AbortRef,
@@ -606,7 +583,7 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 // 	| { mode: 'fim', messages?: undefined, fimInfo: FimInfo, }
 // ) & {
 // 	options?: LLMMessageOptions,
-// 	onText: OnText,
+// 	onText: LLMMessageOnText,
 // 	onFinalMessage: OnFinalMessage,
 // 	onError: (error: string) => void,
 // 	abortRef: AbortRef,

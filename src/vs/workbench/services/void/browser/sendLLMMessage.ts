@@ -3,35 +3,10 @@
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { VoidConfig } from '../../../contrib/void/browser/registerConfig.js';
-import { ISendLLMMessageService } from '../common/sendLLMMessage.js';
+import { ISendLLMMessageService, SendLLMMessageParams } from '../common/sendLLMMessage.js';
 import { ProxyChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-
-export type LLMMessageAbortRef = { current: (() => void) | null }
-
-export type LLMMessageOnText = (newText: string, fullText: string) => void
-
-export type OnFinalMessage = (input: string) => void
-
-export type LLMMessage = {
-	role: 'system' | 'user' | 'assistant';
-	content: string;
-}
-
-export type SendLLMMessageFnType = (params: {
-	messages: LLMMessage[];
-	onText: LLMMessageOnText;
-	onFinalMessage: (fullText: string) => void;
-	onError: (error: Error | string) => void;
-	voidConfig: VoidConfig | null;
-	abortRef: LLMMessageAbortRef;
-
-	logging: {
-		loggingName: string,
-	};
-}) => void
 
 
 // BROWSER IMPLEMENTATION OF SENDLLMMESSAGE
@@ -50,8 +25,8 @@ export class SendLLMMessageService implements ISendLLMMessageService {
 		this._proxySendLLMService = ProxyChannel.toService<ISendLLMMessageService>(mainProcessService.getChannel('sendLLMMessage'));
 	}
 
-	sendLLMMessage(data: any): Promise<any> {
-		return this._proxySendLLMService.sendLLMMessage(data);
+	sendLLMMessage(params: SendLLMMessageParams) {
+		this._proxySendLLMService.sendLLMMessage(params);
 	}
 }
 

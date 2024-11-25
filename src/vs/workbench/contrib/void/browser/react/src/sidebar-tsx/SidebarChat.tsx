@@ -179,7 +179,7 @@ export const SidebarChat = () => {
 
 	const [latestError, setLatestError] = useState<Error | string | null>(null)
 
-
+	const sendLLMMessageService = useService('sendLLMMessageService')
 
 	const isDisabled = !instructions
 
@@ -210,7 +210,7 @@ export const SidebarChat = () => {
 
 
 		// send message to LLM
-		sendLLMMessage({
+		sendLLMMessageService.sendLLMMessage({
 			logging: { loggingName: 'Chat' },
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
 			onText: (newText, fullText) => setMessageStream(fullText),

@@ -47,6 +47,7 @@ import { IVoidConfigStateService } from './registerConfig.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
+import { ISendLLMMessageService } from '../../../services/void/common/sendLLMMessage.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
@@ -65,6 +66,7 @@ export type ReactServicesType = {
 	fileService: IFileService;
 	modelService: IModelService;
 	inlineDiffService: IInlineDiffsService;
+	sendLLMMessageService: ISendLLMMessageService;
 }
 
 // ---------- Define viewpane ----------
@@ -109,6 +111,7 @@ class VoidSidebarViewPane extends ViewPane {
 				fileService: accessor.get(IFileService),
 				modelService: accessor.get(IModelService),
 				inlineDiffService: accessor.get(IInlineDiffsService),
+				sendLLMMessageService: accessor.get(ISendLLMMessageService),
 			}
 			mountFn(root, services);
 		});

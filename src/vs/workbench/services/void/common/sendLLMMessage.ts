@@ -1,6 +1,35 @@
 // void/common/sendLLMMessage.ts
 
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+import { VoidConfig } from '../../../contrib/void/browser/registerConfig.js';
+
+
+
+export type LLMMessageAbortRef = { current: (() => void) | null }
+
+export type LLMMessageOnText = (newText: string, fullText: string) => void
+
+export type OnFinalMessage = (input: string) => void
+
+export type LLMMessage = {
+	role: 'system' | 'user' | 'assistant';
+	content: string;
+}
+
+export type SendLLMMessageParams = {
+	messages: LLMMessage[];
+	onText: LLMMessageOnText;
+	onFinalMessage: (fullText: string) => void;
+	onError: (error: Error | string) => void;
+	voidConfig: VoidConfig | null;
+	abortRef: LLMMessageAbortRef;
+
+	logging: {
+		loggingName: string,
+	};
+}
+
+
 
 export const ISendLLMMessageService = createDecorator<ISendLLMMessageService>('sendLLMMessageService');
 
@@ -8,7 +37,7 @@ export const ISendLLMMessageService = createDecorator<ISendLLMMessageService>('s
 export interface ISendLLMMessageService {
 	readonly _serviceBrand: undefined;
 
-	sendLLMMessage(data: any): Promise<any>;
-}
+	sendLLMMessage: (params: SendLLMMessageParams) => void;
 
+}
 

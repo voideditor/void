@@ -4,7 +4,8 @@ import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { posthog } from 'posthog-js'
 import type { VoidConfig } from '../../../registerConfig.js';
-import type { LLMMessage, LLMMessageOnText, OnFinalMessage, SendLLMMessageFnType, } from '../../../../../../services/void/browser/sendLLMMessage.js';
+import type { LLMMessage, LLMMessageOnText, OnFinalMessage, } from '../../../../../../services/void/common/sendLLMMessage.js';
+import { SendLLMMessageParams } from '../../../../../../services/void/common/sendLLMMessage.js';
 
 type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[];
@@ -275,7 +276,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 
 
-export const sendLLMMessage: SendLLMMessageFnType = ({
+export const sendLLMMessage = ({
 	messages,
 	onText: onText_,
 	onFinalMessage: onFinalMessage_,
@@ -283,7 +284,7 @@ export const sendLLMMessage: SendLLMMessageFnType = ({
 	abortRef: abortRef_,
 	voidConfig,
 	logging: { loggingName }
-}) => {
+}: SendLLMMessageParams) => {
 	if (!voidConfig) return;
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)

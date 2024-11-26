@@ -10,6 +10,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
+import { IAutocompleteService } from './registerAutocomplete.js';
 
 // if selectionStr is null, it means just send the whole file
 export type CodeSelection = {
@@ -97,8 +98,10 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
+		@IAutocompleteService private readonly _autocomplete: IAutocompleteService,
 	) {
 		super()
+		this._autocomplete
 
 		this.state = {
 			allThreads: this._readAllThreads(),

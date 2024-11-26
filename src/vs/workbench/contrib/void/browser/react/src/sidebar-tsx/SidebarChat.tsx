@@ -237,6 +237,7 @@ export const SidebarChat = () => {
 			},
 			voidConfig,
 			abortRef: abortFnRef,
+			options: {},
 		})
 
 

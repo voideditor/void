@@ -21,8 +21,15 @@ export type LLMMessage = {
 	content: string;
 }
 
+export type LLMMessageOptions = {
+	stopTokens?: string[],
+	prefix?: string,
+	suffix?: string,
+}
+
 type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[];
+	options: LLMMessageOptions;
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: (error: string) => void;
@@ -33,6 +40,7 @@ type SendLLMMessageFnTypeInternal = (params: {
 
 type SendLLMMessageFnTypeExternal = (params: {
 	messages: LLMMessage[];
+	options: LLMMessageOptions;
 	onText: OnText;
 	onFinalMessage: (fullText: string) => void;
 	onError: (error: string) => void;
@@ -213,34 +221,65 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 };
 
 // Ollama
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, options, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
 	let fullText = ''
 
 	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
 
-	ollama.chat({
-		model: voidConfig.ollama.model,
-		messages: messages,
-		stream: true,
-		options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) } // this is max_tokens
-	})
-		.then(async stream => {
-			_setAborter(() => stream.abort())
-			// iterate through the stream
-			for await (const chunk of stream) {
-				const newText = chunk.message.content;
-				fullText += newText;
-				onText(newText, fullText);
+	if (options.prefix !== '' || options.suffix !== '') {
+		ollama.generate({
+			model: voidConfig.ollama.model,
+			prompt: options.prefix ?? '',
+			suffix: options.suffix ?? '',
+			stream: true,
+			options: {
+				num_predict: parseMaxTokensStr(voidConfig.default.maxTokens),
+				stop: options.stopTokens,
 			}
-			onFinalMessage(fullText);
-
 		})
-		// when error/fail
-		.catch(error => {
-			onError(error)
-		})
+			.then(async stream => {
+				_setAborter(() => stream.abort())
+				for await (const chunk of stream) {
+					const newText = chunk.response;
+					fullText += newText;
+					onText(newText, fullText);
+				}
+				onFinalMessage(fullText);
 
+			})
+			// when error/fail
+			.catch(error => {
+				onError(error)
+			})
+
+	} else {
+
+		ollama.chat({
+			model: voidConfig.ollama.model,
+			messages: messages,
+			stream: true,
+			options: {
+				num_predict: parseMaxTokensStr(voidConfig.default.maxTokens), // this is max_tokens
+				stop: options.stopTokens,
+			}
+		})
+			.then(async stream => {
+				_setAborter(() => stream.abort())
+				// iterate through the stream
+				for await (const chunk of stream) {
+					const newText = chunk.message.content;
+					fullText += newText;
+					onText(newText, fullText);
+				}
+				onFinalMessage(fullText);
+
+			})
+			// when error/fail
+			.catch(error => {
+				onError(error)
+			})
+	}
 };
 
 // Greptile
@@ -309,14 +348,28 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 	messages,
+	options,
 	onText: onText_,
 	onFinalMessage: onFinalMessage_,
 	onError: onError_,
 	abortRef: abortRef_,
 	voidConfig,
-	logging: { loggingName }
+	logging: { loggingName },
 }) => {
 	if (!voidConfig) return;
+
+	// set messages appropriately if fill in middle mode
+	if (options.prefix || options.suffix) {
+		const prefix = (options.prefix ?? '').split('\n').slice(-20).join('\n')
+		const suffix = (options.suffix ?? '').split('\n').slice(0, 20).join('\n')
+		options.prefix = prefix
+		options.suffix = suffix
+		if (!prefix.trim() && !suffix.trim()) return;
+		const system = getFimSystem({ voidConfig, prefix, suffix })
+		const prompt = getFimPrompt({ voidConfig, prefix, suffix })
+		if (system) messages.push({ role: 'system', content: system })
+		if (prompt) messages.push({ role: 'user', content: prompt })
+	}
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
@@ -368,21 +421,21 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 	try {
 		switch (voidConfig.default.whichApi) {
 			case 'anthropic':
-				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendAnthropicMsg({ messages, options, onText, onFinalMessage, onError, voidConfig, _setAborter, });
 				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'openAICompatible':
-				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendOpenAIMsg({ messages, options, onText, onFinalMessage, onError, voidConfig, _setAborter, });
 				break;
 			case 'gemini':
-				sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendGeminiMsg({ messages, options, onText, onFinalMessage, onError, voidConfig, _setAborter, });
 				break;
 			case 'ollama':
-				sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendOllamaMsg({ messages, options, onText, onFinalMessage, onError, voidConfig, _setAborter, });
 				break;
 			case 'greptile':
-				sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendGreptileMsg({ messages, options, onText, onFinalMessage, onError, voidConfig, _setAborter, });
 				break;
 			default:
 				onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
@@ -405,16 +458,101 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 
 
 
+type getFimPrompt = ({ voidConfig, prefix, suffix }: { voidConfig: VoidConfig, prefix: string, suffix: string, }) => string | undefined
+
+export const getFimSystem: getFimPrompt = ({ voidConfig, prefix, suffix }) => {
+
+	switch (voidConfig.default.whichApi) {
+		case 'ollama':
+			return undefined
+		case 'anthropic':
+		case 'openAI':
+		case 'gemini':
+		case 'greptile':
+		case 'openRouter':
+		case 'openAICompatible':
+		case 'azure':
+		default:
+			return `\
+You are given the START and END to a piece of code. Please FILL IN THE MIDDLE between the START and END.
+
+Instruction summary:
+1. Return the MIDDLE of the code between the START and END.
+2. Do not give an explanation, description, or any other code besides the middle.
+3. Do not return duplicate code from either START or END.
+4. Make sure the MIDDLE piece of code has balanced brackets that match the START and END.
+5. The MIDDLE begins on the same line as START. Please include a newline character if you want to begin on the next line.
+6. Around 90% of the time, you should return just one or a few lines of code. You should keep your outputs short unless you are confident the user is trying to write boilderplate code.
+
+# EXAMPLE
+
+## START:
+\`\`\` python
+def add(a,b):
+	return a + b
+def subtract(a,b):
+	return a - b
+\`\`\`
+## END:
+\`\`\` python
+def divide(a,b):
+	return a / b
+\`\`\`
+## EXPECTED OUTPUT:
+\`\`\` python
+
+def multiply(a,b):
+	return a * b
+\`\`\`
+
+# EXAMPLE
+## START:
+\`\`\` javascript
+const x = 1
+
+const y
+\`\`\`
+## END:
+\`\`\` javascript
+
+const z = 3
+\`\`\`
+## EXPECTED OUTPUT:
+\`\`\` javascript
+= 2
+\`\`\`
+`
+	}
 
 
+}
 
 
+export const getFimPrompt: getFimPrompt = ({ voidConfig, prefix, suffix }) => {
 
-
-
-
-
-
+	switch (voidConfig.default.whichApi) {
+		case 'ollama':
+			return undefined
+		case 'anthropic':
+		case 'openAI':
+		case 'gemini':
+		case 'greptile':
+		case 'openRouter':
+		case 'openAICompatible':
+		case 'azure':
+		default:
+			return `\
+## START:
+\`\`\`
+${prefix}
+\`\`\`
+## END:
+\`\`\`
+${suffix}
+\`\`\`
+`
+	}
+}
 
 
 // // 6. Autocomplete
@@ -429,135 +567,6 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 // console.log('run lsp')
 // let disposable = vscode.commands.registerCommand('typeInspector.inspect', runTreeSitter);
 // context.subscriptions.push(disposable);
-
-
-
-
-
-
-
-
-
-
-// import { configFields, VoidConfig } from "../webviews/common/contextForConfig"
-// import { FimInfo } from "./sendLLMMessage"
-
-
-// type GetFIMPrompt = ({ voidConfig, fimInfo }: { voidConfig: VoidConfig, fimInfo: FimInfo, }) => string
-
-// export const getFIMSystem: GetFIMPrompt = ({ voidConfig, fimInfo }) => {
-
-// 	switch (voidConfig.default.whichApi) {
-// 		case 'ollama':
-// 			return ''
-// 		case 'anthropic':
-// 		case 'openAI':
-// 		case 'gemini':
-// 		case 'greptile':
-// 		case 'openRouter':
-// 		case 'openAICompatible':
-// 		case 'azure':
-// 		default:
-// 			return `You are given the START and END to a piece of code. Please FILL IN THE MIDDLE between the START and END.
-
-// Instruction summary:
-// 1. Return the MIDDLE of the code between the START and END.
-// 2. Do not give an explanation, description, or any other code besides the middle.
-// 3. Do not return duplicate code from either START or END.
-// 4. Make sure the MIDDLE piece of code has balanced brackets that match the START and END.
-// 5. The MIDDLE begins on the same line as START. Please include a newline character if you want to begin on the next line.
-// 6. Around 90% of the time, you should return just one or a few lines of code. You should keep your outputs short unless you are confident the user is trying to write boilderplate code.
-
-// # EXAMPLE
-
-// ## START:
-// \`\`\` python
-// def add(a,b):
-// 	return a + b
-// def subtract(a,b):
-// 	return a - b
-// \`\`\`
-// ## END:
-// \`\`\` python
-// def divide(a,b):
-// 	return a / b
-// \`\`\`
-// ## EXPECTED OUTPUT:
-// \`\`\` python
-
-// def multiply(a,b):
-// 	return a * b
-// \`\`\`
-
-// # EXAMPLE
-// ## START:
-// \`\`\` javascript
-// const x = 1
-
-// const y
-// \`\`\`
-// ## END:
-// \`\`\` javascript
-
-// const z = 3
-// \`\`\`
-// ## EXPECTED OUTPUT:
-// \`\`\` javascript
-// = 2
-// \`\`\`
-// `
-// 	}
-
-
-// }
-
-
-// export const getFIMPrompt: GetFIMPrompt = ({ voidConfig, fimInfo }) => {
-
-// 	const { prefix: fullPrefix, suffix: fullSuffix } = fimInfo
-// 	const prefix = fullPrefix.split('\n').slice(-20).join('\n')
-// 	const suffix = fullSuffix.split('\n').slice(0, 20).join('\n')
-
-
-// 	console.log('prefix', JSON.stringify(prefix))
-// 	console.log('suffix', JSON.stringify(suffix))
-
-// 	if (!prefix.trim() && !suffix.trim()) return ''
-
-// 	// TODO may want to trim the prefix and suffix
-// 	switch (voidConfig.default.whichApi) {
-// 		case 'ollama':
-// 			if (voidConfig.ollama.model === 'codestral') {
-// 				return `[SUFFIX]${suffix}[PREFIX] ${prefix}`
-// 			} else if (voidConfig.ollama.model.includes('qwen')) {
-// 				return `<|fim_prefix|>${prefix}<|fim_suffix|>${suffix}<|fim_middle|>`
-// 			}
-// 			return ''
-// 		case 'anthropic':
-// 		case 'openAI':
-// 		case 'gemini':
-// 		case 'greptile':
-// 		case 'openRouter':
-// 		case 'openAICompatible':
-// 		case 'azure':
-// 		default:
-// 			return `## START:
-// \`\`\`
-// ${prefix}
-// \`\`\`
-// ## END:
-// \`\`\`
-// ${suffix}
-// \`\`\`
-// `
-// 	}
-// }
-
-
-
-
-
-
 
 
 

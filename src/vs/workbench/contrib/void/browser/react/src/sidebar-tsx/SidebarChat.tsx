@@ -248,7 +248,7 @@ export const SidebarChat = () => {
 		setInstructions('');
 		formRef.current?.reset(); // reset the form's text when clear instructions or unexpected behavior happens
 		threadsStateService.setStaging([]) // clear staging
-		setLatestError('')
+		setLatestError(null)
 
 	}
 

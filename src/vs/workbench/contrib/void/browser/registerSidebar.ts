@@ -47,7 +47,7 @@ import { IVoidConfigStateService } from './registerConfig.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
-import { ISendLLMMessageService } from '../../../../platform/void/browser/sendLLMMessage.js';
+import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
 
 
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';

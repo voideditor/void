@@ -28,8 +28,8 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
-import { SendLLMMessageParams } from '../../../../platform/void/common/sendLLMTypes.js';
-import { ISendLLMMessageService } from '../../../../platform/void/browser/sendLLMMessage.js';
+import { LLMMessageServiceParams } from '../../../../platform/void/common/llmMessageTypes.js';
+import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
 // import { ISendLLMMessageService } from '../../../../platform/void/common/sendLLMMessage.js';
 // import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 
@@ -734,7 +734,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 		const abortRef = { current: null } as { current: null | (() => void) }
 		await new Promise<void>((resolve, reject) => {
 
-			const object: SendLLMMessageParams = {
+			const object: LLMMessageServiceParams = {
 				logging: { loggingName: 'streamChunk' },
 				messages: [
 					{ role: 'system', content: writeFileWithDiffInstructions, },
@@ -764,7 +764,6 @@ Please finish writing the new file by applying the diff to the original file. Re
 				abortRef,
 			}
 
-			console.log('object!!!!!', Object.keys(object))
 			this._sendLLMMessageService.sendLLMMessage(object)
 		})
 

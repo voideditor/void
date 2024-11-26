@@ -4,12 +4,12 @@ import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { posthog } from 'posthog-js'
 import type { VoidConfig } from '../../../registerConfig.js';
-import type { LLMMessage, LLMMessageOnText, OnError, OnFinalMessage, } from '../../../../../../../platform/void/common/sendLLMTypes.js';
-import { SendLLMMessageParams } from '../../../../../../../platform/void/common/sendLLMTypes.js';
+import type { LLMMessage, OnText, OnError, OnFinalMessage, } from '../../../../../../../platform/void/common/llmMessageTypes.js';
+import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 
 type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[];
-	onText: LLMMessageOnText;
+	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
 	voidConfig: VoidConfig;
@@ -284,7 +284,7 @@ export const sendLLMMessage = ({
 	abortRef: abortRef_,
 	voidConfig,
 	logging: { loggingName }
-}: SendLLMMessageParams) => {
+}: LLMMessageServiceParams) => {
 	if (!voidConfig) return;
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
@@ -307,7 +307,7 @@ export const sendLLMMessage = ({
 	let _setAborter = (fn: () => void) => { _aborter = fn }
 	let _didAbort = false
 
-	const onText: LLMMessageOnText = ({ newText, fullText }) => {
+	const onText: OnText = ({ newText, fullText }) => {
 		if (_didAbort) return
 		onText_({ newText, fullText })
 		_fullTextSoFar = fullText

@@ -17,7 +17,7 @@ import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from '../util/ErrorDisplay.js';
-import { SendLLMMessageParams } from '../../../../../../../platform/void/common/sendLLMTypes.js';
+import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 
 // import {  } from '@vscode/webview-ui-toolkit/react';
 
@@ -211,7 +211,7 @@ export const SidebarChat = () => {
 
 		// send message to LLM
 
-		const object: SendLLMMessageParams = {
+		const object: LLMMessageServiceParams = {
 			logging: { loggingName: 'Chat' },
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
 			onText: ({ newText, fullText }) => setMessageStream(fullText),
@@ -240,8 +240,6 @@ export const SidebarChat = () => {
 			voidConfig,
 			abortRef: abortFnRef,
 		}
-
-		console.log('object!!!!!2', Object.keys(object))
 
 		sendLLMMessageService.sendLLMMessage(object)
 

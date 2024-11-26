@@ -5,29 +5,29 @@
 
 import { VoidConfig } from '../../../workbench/contrib/void/browser/registerConfig.js';
 
-// ---------- definitions ----------
+// ---------- type definitions ----------
 
-export type LLMMessageOnText = (p: { newText: string, fullText: string }) => void
+export type OnText = (p: { newText: string, fullText: string }) => void
 
 export type OnFinalMessage = (p: { fullText: string }) => void
 
 export type OnError = (p: { error: Error | string }) => void
 
-export type LLMMessageAbortRef = { current: (() => void) | null }
+export type AbortRef = { current: (() => void) | null }
 
 export type LLMMessage = {
 	role: 'system' | 'user' | 'assistant';
 	content: string;
 }
 
-export type SendLLMMessageParams = {
-	onText: LLMMessageOnText;
+export type LLMMessageServiceParams = {
+	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
 
 	messages: LLMMessage[];
 	voidConfig: VoidConfig | null;
-	abortRef: LLMMessageAbortRef;
+	abortRef: AbortRef;
 
 	logging: {
 		loggingName: string,
@@ -36,8 +36,8 @@ export type SendLLMMessageParams = {
 
 // can't send functions across a proxy, use listeners instead
 export const listenerNames = ['onText', 'onFinalMessage', 'onError'] as const
-export type SendLLMMessageProxyParams = Omit<SendLLMMessageParams, typeof listenerNames[number]> & { requestId: string }
+export type ProxyLLMMessageParams = Omit<LLMMessageServiceParams, typeof listenerNames[number]> & { requestId: string }
 
-export type LLMMessageOnTextEvent = Parameters<LLMMessageOnText>[0] & { requestId: string }
-export type OnFinalMessageEvent = Parameters<OnFinalMessage>[0] & { requestId: string }
-export type OnErrorEvent = Parameters<OnError>[0] & { requestId: string }
+export type ProxyOnTextPayload = Parameters<OnText>[0] & { requestId: string }
+export type ProxyOnFinalMessagePayload = Parameters<OnFinalMessage>[0] & { requestId: string }
+export type ProxyOnErrorPayload = Parameters<OnError>[0] & { requestId: string }

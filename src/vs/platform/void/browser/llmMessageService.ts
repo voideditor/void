@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { LLMMessageOnTextEvent, OnErrorEvent, OnFinalMessageEvent, SendLLMMessageParams, SendLLMMessageProxyParams } from '../common/sendLLMTypes.js';
+import { ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, LLMMessageServiceParams, ProxyLLMMessageParams } from '../common/llmMessageTypes.js';
 import { IChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
@@ -18,7 +18,7 @@ export const ISendLLMMessageService = createDecorator<ISendLLMMessageService>('s
 // defines an interface that node/ creates and browser/ uses
 export interface ISendLLMMessageService {
 	readonly _serviceBrand: undefined;
-	sendLLMMessage: (params: SendLLMMessageParams) => void;
+	sendLLMMessage: (params: LLMMessageServiceParams) => void;
 }
 
 
@@ -36,35 +36,32 @@ export class SendLLMMessageService implements ISendLLMMessageService {
 		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service, not needed here
 	}
 
-	sendLLMMessage(params: SendLLMMessageParams) {
+	sendLLMMessage(params: LLMMessageServiceParams) {
 		const requestId_ = generateUuid();
 		const { onText, onFinalMessage, onError, ...proxyParams } = params;
 
 		// listen for listenerName='onText' | 'onFinalMessage' | 'onError', and call the original function on it
 
-		const onTextEvent: Event<LLMMessageOnTextEvent> = this.channel.listen('onText')
+		const onTextEvent: Event<ProxyOnTextPayload> = this.channel.listen('onText')
 		onTextEvent(e => {
-			console.log('event TEXT EVENT!!!:', JSON.stringify(e, null, 5))
 			if (requestId_ !== e.requestId) return;
 			onText(e)
 		})
 
-		const onFinalMessageEvent: Event<OnFinalMessageEvent> = this.channel.listen('onFinalMessage')
+		const onFinalMessageEvent: Event<ProxyOnFinalMessagePayload> = this.channel.listen('onFinalMessage')
 		onFinalMessageEvent(e => {
-			console.log('FINAL MESSAGE EVENT!!!:', JSON.stringify(e, null, 5))
 			if (requestId_ !== e.requestId) return;
 			onFinalMessage(e)
 		})
 
-		const onErrorEvent: Event<OnErrorEvent> = this.channel.listen('onError')
+		const onErrorEvent: Event<ProxyOnErrorPayload> = this.channel.listen('onError')
 		onErrorEvent(e => {
-			console.log('ERROR EVENT!!!:', JSON.stringify(e, null, 5))
 			if (requestId_ !== e.requestId) return;
 			onError(e)
 		})
 
 		// params will be stripped of all its functions
-		this.channel.call('sendLLMMessage', { ...proxyParams, requestId: requestId_ } satisfies SendLLMMessageProxyParams);
+		this.channel.call('sendLLMMessage', { ...proxyParams, requestId: requestId_ } satisfies ProxyLLMMessageParams);
 	}
 }
 

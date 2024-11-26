@@ -174,7 +174,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 				onError({ error: 'Invalid API key.' });
 			}
 			else {
-				onError(error);
+				onError({ error });
 			}
 		})
 
@@ -206,7 +206,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		})
 		// when error/fail
 		.catch(error => {
-			onError(error)
+			onError({ error })
 		})
 
 };
@@ -266,7 +266,7 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 		})
 		.catch(error => {
-			onError(error)
+			onError({ error })
 		});
 
 }

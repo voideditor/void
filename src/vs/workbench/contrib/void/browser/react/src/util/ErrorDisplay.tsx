@@ -28,9 +28,13 @@ const getErrorDetails = (error: unknown) => {
 		e = new Error(String(error))
 	}
 
+	const message = e.message && e.error ?
+		(e.message + ':\n' + e.error)
+		: e.message || e.error || JSON.stringify(error)
+
 	details = {
 		name: e.name || 'Error',
-		message: e.message || String(e),
+		message: message,
 		stack: e.stack || null,
 		cause: e.cause ? String(e.cause) : null,
 		code: e.code || null,

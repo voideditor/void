@@ -19,7 +19,8 @@ export const ISendLLMMessageService = createDecorator<ISendLLMMessageService>('s
 // defines an interface that node/ creates and browser/ uses
 export interface ISendLLMMessageService {
 	readonly _serviceBrand: undefined;
-	sendLLMMessage: (params: LLMMessageServiceParams) => void;
+	sendLLMMessage: (params: LLMMessageServiceParams) => string;
+	abort: (requestId: string) => void;
 }
 
 
@@ -74,6 +75,7 @@ export class SendLLMMessageService implements ISendLLMMessageService {
 		this._addDisposable(requestId_,
 			onErrorEvent(e => {
 				if (requestId_ !== e.requestId) return;
+				console.log('event onError', JSON.stringify(e))
 				onError(e)
 				this._dispose(requestId_)
 			})

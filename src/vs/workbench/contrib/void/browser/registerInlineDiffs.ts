@@ -731,8 +731,9 @@ Please finish writing the new file by applying the diff to the original file. Re
 		// <SUF>${suffix}</SUF>
 		// <MID>`;
 
-		const abortRef = { current: null } as { current: null | (() => void) }
 		await new Promise<void>((resolve, reject) => {
+
+			let streamRequestId: string | null = null
 
 			const object: LLMMessageServiceParams = {
 				logging: { loggingName: 'streamChunk' },
@@ -756,14 +757,16 @@ Please finish writing the new file by applying the diff to the original file. Re
 				onError: (e: any) => {
 					console.error('Error rewriting file with diff', e);
 					// TODO indicate there was an error
-					abortRef.current?.()
+					if (streamRequestId)
+						this._sendLLMMessageService.abort(streamRequestId)
+
 					diffArea._sweepState = { isStreaming: false, line: null }
 					resolve();
 				},
 				voidConfig,
 			}
 
-			this._sendLLMMessageService.sendLLMMessage(object)
+			streamRequestId = this._sendLLMMessageService.sendLLMMessage(object)
 		})
 
 		onFinishEdit()

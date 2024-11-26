@@ -175,7 +175,7 @@ export const SidebarChat = () => {
 	// state of chat
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
-	const abortFnRef = useRef<(() => void) | null>(null)
+	const latestRequestIdRef = useRef<string | null>(null)
 
 	const [latestError, setLatestError] = useState<Error | string | null>(null)
 
@@ -225,7 +225,7 @@ export const SidebarChat = () => {
 				setIsLoading(false)
 			},
 			onError: ({ error }) => {
-				console.log('chat: running error')
+				console.log('chat: running error', error)
 
 				// add assistant's message to chat history, and clear selection
 				let content = messageStream; // just use the current content
@@ -238,10 +238,10 @@ export const SidebarChat = () => {
 				setLatestError(error)
 			},
 			voidConfig,
-			abortRef: abortFnRef,
 		}
 
-		sendLLMMessageService.sendLLMMessage(object)
+		const latestRequestId = sendLLMMessageService.sendLLMMessage(object)
+		latestRequestIdRef.current = latestRequestId
 
 
 		setIsLoading(true)
@@ -253,8 +253,9 @@ export const SidebarChat = () => {
 	}
 
 	const onAbort = () => {
-		// abort claude
-		abortFnRef.current?.()
+		// abort the LLM
+		if (latestRequestIdRef.current)
+			sendLLMMessageService.abort(latestRequestIdRef.current)
 
 		// if messageStream was not empty, add it to the history
 		const llmContent = messageStream || '(null)'
@@ -342,7 +343,7 @@ export const SidebarChat = () => {
 			</div>
 
 			{/* error message */}
-			{!latestError ? null :
+			{latestError === null ? null :
 				<ErrorDisplay
 					error={latestError}
 					onDismiss={() => { setLatestError(null) }}

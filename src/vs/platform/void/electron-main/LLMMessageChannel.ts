@@ -62,10 +62,11 @@ export class LLMMessageChannel implements IServerChannel {
 			}
 		}
 		catch (e) {
-			console.log('sendLLM channel: call error', e)
+			console.log('llmMessageChannel: Call Error:', e)
 		}
 	}
 
+	// the only place sendLLMMessage is actually called
 	private _callSendLLMMessage(params: ProxyLLMMessageParams) {
 		const { requestId } = params;
 
@@ -81,7 +82,6 @@ export class LLMMessageChannel implements IServerChannel {
 		}
 		sendLLMMessage(mainThreadParams);
 	}
-
 
 	private _callAbort(params: ProxyLLMMessageAbortParams) {
 		const { requestId } = params;

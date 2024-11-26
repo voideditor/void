@@ -121,7 +121,7 @@ import { normalizeNFC } from '../../base/common/normalization.js';
 import { ICSSDevelopmentService, CSSDevelopmentService } from '../../platform/cssDev/node/cssDevService.js';
 import { ExtensionSignatureVerificationService, IExtensionSignatureVerificationService } from '../../platform/extensionManagement/node/extensionSignatureVerificationService.js';
 
-import { LLMMessageChannel } from '../../platform/void/electron-main/llmMessageChannel.js';
+import { LLMMessageChannel } from '../../platform/void/electron-main/allmMessageChannel.js';
 
 /**
  * The main VS Code application. There will only ever be one instance,

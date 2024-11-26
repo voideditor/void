@@ -761,7 +761,6 @@ Please finish writing the new file by applying the diff to the original file. Re
 					resolve();
 				},
 				voidConfig,
-				abortRef,
 			}
 
 			this._sendLLMMessageService.sendLLMMessage(object)

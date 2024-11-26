@@ -11,7 +11,7 @@
 import { IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { sendLLMMessage } from '../../../workbench/contrib/void/browser/react/out/util/sendLLMMessage.js';
-import { listenerNames, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, LLMMessageServiceParams, ProxyLLMMessageParams } from '../common/llmMessageTypes.js';
+import { listenerNames, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, ProxyLLMMessageParams, AbortRef, SendLLMMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
 
 // NODE IMPLEMENTATION OF SENDLLMMESSAGE - calls sendLLMMessage() and returns listeners
 
@@ -25,11 +25,14 @@ export class LLMMessageChannel implements IServerChannel {
 	private readonly _onError = new Emitter<ProxyOnErrorPayload>();
 	readonly onError = this._onError.event;
 
+
+	private readonly _abortRefOfRequestId: Record<string, AbortRef> = {}
+
+
 	constructor() { }
 
-	// browser uses this
+	// browser uses this to listen for changes
 	listen(_: unknown, event: typeof listenerNames[number]): Event<any> {
-		console.log('event LISTENING!!!:', event)
 		if (event === 'onText') {
 			return this.onText;
 		}
@@ -44,23 +47,48 @@ export class LLMMessageChannel implements IServerChannel {
 		}
 	}
 
-	// both use this
-	async call(_: unknown, command: string, params: ProxyLLMMessageParams): Promise<any> {
-
-		if (command !== 'sendLLMMessage') throw new Error(`Invalid call in sendLLMMessage channel: ${command}.\nArgs:\n${JSON.stringify(params, null, 5)}`);
+	// browser uses this to call
+	async call(_: unknown, command: string, params: any): Promise<any> {
 
 		try {
-			const { requestId } = params;
-			const mainThreadParams: LLMMessageServiceParams = {
-				...params,
-				onText: ({ newText, fullText }) => { this._onText.fire({ requestId, newText, fullText }); },
-				onFinalMessage: ({ fullText }) => { this._onFinalMessage.fire({ requestId, fullText }); },
-				onError: ({ error }) => { this._onError.fire({ requestId, error }); },
+			if (command === 'sendLLMMessage') {
+				this._callSendLLMMessage(params)
 			}
-			sendLLMMessage(mainThreadParams);
+			else if (command === 'abort') {
+				this._callAbort(params)
+			}
+			else {
+				throw new Error(`Void sendLLM: command "${command}" not recognized.`)
+			}
 		}
 		catch (e) {
 			console.log('sendLLM channel: call error', e)
 		}
 	}
+
+	private _callSendLLMMessage(params: ProxyLLMMessageParams) {
+		const { requestId } = params;
+
+		if (!(requestId in this._abortRefOfRequestId))
+			this._abortRefOfRequestId[requestId] = { current: null }
+
+		const mainThreadParams: SendLLMMMessageParams = {
+			...params,
+			onText: ({ newText, fullText }) => { this._onText.fire({ requestId, newText, fullText }); },
+			onFinalMessage: ({ fullText }) => { this._onFinalMessage.fire({ requestId, fullText }); },
+			onError: ({ error }) => { this._onError.fire({ requestId, error }); },
+			abortRef: this._abortRefOfRequestId[requestId],
+		}
+		sendLLMMessage(mainThreadParams);
+	}
+
+
+	private _callAbort(params: ProxyLLMMessageAbortParams) {
+		const { requestId } = params;
+		if (!(requestId in this._abortRefOfRequestId)) return
+		this._abortRefOfRequestId[requestId].current?.()
+		delete this._abortRefOfRequestId[requestId]
+	}
+
+
 }

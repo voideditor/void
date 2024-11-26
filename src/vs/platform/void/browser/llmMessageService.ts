@@ -3,13 +3,14 @@
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, LLMMessageServiceParams, ProxyLLMMessageParams } from '../common/llmMessageTypes.js';
+import { ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, LLMMessageServiceParams, ProxyLLMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
 import { IChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
 import { generateUuid } from '../../../base/common/uuid.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { Event } from '../../../base/common/event.js';
+import { IDisposable } from '../../../base/common/lifecycle.js';
 
 
 // BROWSER IMPLEMENTATION OF SENDLLMMESSAGE
@@ -23,10 +24,11 @@ export interface ISendLLMMessageService {
 
 
 export class SendLLMMessageService implements ISendLLMMessageService {
-	static readonly ID = 'void.contrib.browserSendLLMMessageService';
 
 	readonly _serviceBrand: undefined;
-	readonly channel: IChannel;
+	private readonly channel: IChannel;
+
+	private readonly _disposablesOfRequestId: Record<string, IDisposable[]> = {}
 
 	constructor(
 		@IMainProcessService mainProcessService: IMainProcessService // used as a renderer (only usable on client side)
@@ -36,6 +38,15 @@ export class SendLLMMessageService implements ISendLLMMessageService {
 		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service, not needed here
 	}
 
+	_addDisposable(requestId: string, disposable: IDisposable) {
+		if (!this._disposablesOfRequestId[requestId]) {
+			this._disposablesOfRequestId[requestId] = []
+		}
+		this._disposablesOfRequestId[requestId].push(disposable)
+	}
+
+
+
 	sendLLMMessage(params: LLMMessageServiceParams) {
 		const requestId_ = generateUuid();
 		const { onText, onFinalMessage, onError, ...proxyParams } = params;
@@ -43,25 +54,48 @@ export class SendLLMMessageService implements ISendLLMMessageService {
 		// listen for listenerName='onText' | 'onFinalMessage' | 'onError', and call the original function on it
 
 		const onTextEvent: Event<ProxyOnTextPayload> = this.channel.listen('onText')
-		onTextEvent(e => {
-			if (requestId_ !== e.requestId) return;
-			onText(e)
-		})
+		this._addDisposable(requestId_,
+			onTextEvent(e => {
+				if (requestId_ !== e.requestId) return;
+				onText(e)
+			})
+		)
 
 		const onFinalMessageEvent: Event<ProxyOnFinalMessagePayload> = this.channel.listen('onFinalMessage')
-		onFinalMessageEvent(e => {
-			if (requestId_ !== e.requestId) return;
-			onFinalMessage(e)
-		})
+		this._addDisposable(requestId_,
+			onFinalMessageEvent(e => {
+				if (requestId_ !== e.requestId) return;
+				onFinalMessage(e)
+				this._dispose(requestId_)
+			})
+		)
 
 		const onErrorEvent: Event<ProxyOnErrorPayload> = this.channel.listen('onError')
-		onErrorEvent(e => {
-			if (requestId_ !== e.requestId) return;
-			onError(e)
-		})
+		this._addDisposable(requestId_,
+			onErrorEvent(e => {
+				if (requestId_ !== e.requestId) return;
+				onError(e)
+				this._dispose(requestId_)
+			})
+		)
 
 		// params will be stripped of all its functions
 		this.channel.call('sendLLMMessage', { ...proxyParams, requestId: requestId_ } satisfies ProxyLLMMessageParams);
+
+		return requestId_
+	}
+
+	private _dispose(requestId: string) {
+		if (!(requestId in this._disposablesOfRequestId)) return
+		for (const disposable of this._disposablesOfRequestId[requestId]) {
+			disposable.dispose()
+		}
+		delete this._disposablesOfRequestId[requestId]
+	}
+
+	abort(requestId: string) {
+		this.channel.call('abort', { requestId } satisfies ProxyLLMMessageAbortParams);
+		this._dispose(requestId)
 	}
 }
 

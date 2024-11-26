@@ -27,11 +27,24 @@ export type LLMMessageServiceParams = {
 
 	messages: LLMMessage[];
 	voidConfig: VoidConfig | null;
-	abortRef: AbortRef;
 
 	logging: {
 		loggingName: string,
 	};
+}
+
+export type SendLLMMMessageParams = {
+	onText: OnText;
+	onFinalMessage: OnFinalMessage;
+	onError: OnError;
+
+	messages: LLMMessage[];
+	voidConfig: VoidConfig | null;
+
+	logging: {
+		loggingName: string,
+	};
+	abortRef: AbortRef;
 }
 
 // can't send functions across a proxy, use listeners instead
@@ -41,3 +54,5 @@ export type ProxyLLMMessageParams = Omit<LLMMessageServiceParams, typeof listene
 export type ProxyOnTextPayload = Parameters<OnText>[0] & { requestId: string }
 export type ProxyOnFinalMessagePayload = Parameters<OnFinalMessage>[0] & { requestId: string }
 export type ProxyOnErrorPayload = Parameters<OnError>[0] & { requestId: string }
+
+export type ProxyLLMMessageAbortParams = { requestId: string }

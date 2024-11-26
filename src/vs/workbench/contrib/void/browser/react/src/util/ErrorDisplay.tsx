@@ -15,7 +15,7 @@ import { getCmdKey } from '../../../getCmdKey.js';
 type Details = {
 	message: string,
 	name: string,
-	// stack: string | null,
+	stack: string | null,
 	cause: string | null,
 	code: string | null,
 	additional: Record<string, any>
@@ -48,7 +48,7 @@ const getErrorDetails = (error: unknown) => {
 	details = {
 		name: e.name || 'Error',
 		message: message,
-		// stack: e.stack || null, // can we remove this? it looks awful and not sure stack is ever useful
+		stack: null, //  e.stack is ignored because it's ugly and not very useful
 		cause: e.cause ? String(e.cause) : null,
 		code: e.code || null,
 		additional: {}

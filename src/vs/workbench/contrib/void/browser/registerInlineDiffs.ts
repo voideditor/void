@@ -28,7 +28,8 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ISendLLMMessageService } from '../../../../platform/void/common/sendLLMMessage.js';
+import { SendLLMMessageParams } from '../../../../platform/void/common/sendLLMTypes.js';
+import { ISendLLMMessageService } from '../../../../platform/void/browser/sendLLMMessage.js';
 // import { ISendLLMMessageService } from '../../../../platform/void/common/sendLLMMessage.js';
 // import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 
@@ -732,18 +733,19 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 		const abortRef = { current: null } as { current: null | (() => void) }
 		await new Promise<void>((resolve, reject) => {
-			this._sendLLMMessageService.sendLLMMessage({
+
+			const object: SendLLMMessageParams = {
 				logging: { loggingName: 'streamChunk' },
 				messages: [
 					{ role: 'system', content: writeFileWithDiffInstructions, },
 					// TODO include more context too
 					{ role: 'user', content: promptContent, }
 				],
-				onText: (newText: string, fullText: string) => {
+				onText: ({ newText, fullText }) => {
 					this._writeDiffAreaLLMText(diffArea, fullText)
 					this._refreshDiffsInURI(uri)
 				},
-				onFinalMessage: (fullText: string) => {
+				onFinalMessage: ({ fullText }) => {
 					this._writeText(uri, fullText,
 						{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 					)
@@ -760,7 +762,10 @@ Please finish writing the new file by applying the diff to the original file. Re
 				},
 				voidConfig,
 				abortRef,
-			})
+			}
+
+			console.log('object!!!!!', Object.keys(object))
+			this._sendLLMMessageService.sendLLMMessage(object)
 		})
 
 		onFinishEdit()

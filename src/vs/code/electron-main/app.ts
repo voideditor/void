@@ -121,8 +121,7 @@ import { normalizeNFC } from '../../base/common/normalization.js';
 import { ICSSDevelopmentService, CSSDevelopmentService } from '../../platform/cssDev/node/cssDevService.js';
 import { ExtensionSignatureVerificationService, IExtensionSignatureVerificationService } from '../../platform/extensionManagement/node/extensionSignatureVerificationService.js';
 
-import { ISendLLMMessageService } from '../../platform/void/common/sendLLMMessage.js';
-import { SendLLMMessageService } from '../../platform/void/electron-main/sendLLMMessage.js';
+import { LLMMessageChannel } from '../../platform/void/electron-main/LLMMessageChannel.js';
 
 /**
  * The main VS Code application. There will only ever be one instance,
@@ -1011,9 +1010,6 @@ export class CodeApplication extends Disposable {
 				break;
 		}
 
-		// Void
-		services.set(ISendLLMMessageService, new SyncDescriptor(SendLLMMessageService));
-
 		// Windows
 		services.set(IWindowsMainService, new SyncDescriptor(WindowsMainService, [machineId, sqmId, devDeviceId, this.userEnv], false));
 		services.set(IAuxiliaryWindowsMainService, new SyncDescriptor(AuxiliaryWindowsMainService, undefined, false));
@@ -1197,10 +1193,6 @@ export class CodeApplication extends Disposable {
 		const keyboardLayoutChannel = ProxyChannel.fromService(accessor.get(IKeyboardLayoutMainService), disposables);
 		mainProcessElectronServer.registerChannel('keyboardLayout', keyboardLayoutChannel);
 
-		// Void
-		const sendLLMMessageChannel = ProxyChannel.fromService(accessor.get(ISendLLMMessageService), disposables);
-		mainProcessElectronServer.registerChannel('void-channel-sendLLMMessage', sendLLMMessageChannel);
-
 		// Native host (main & shared process)
 		this.nativeHostMainService = accessor.get(INativeHostMainService);
 		const nativeHostChannel = ProxyChannel.fromService(this.nativeHostMainService, disposables);
@@ -1244,6 +1236,11 @@ export class CodeApplication extends Disposable {
 		const loggerChannel = new LoggerChannel(accessor.get(ILoggerMainService),);
 		mainProcessElectronServer.registerChannel('logger', loggerChannel);
 		sharedProcessClient.then(client => client.registerChannel('logger', loggerChannel));
+
+		// Void
+		// const sendLLMMessageChannel = ProxyChannel.fromService(accessor.get(ISendLLMMessageService), disposables);
+		const sendLLMMessageChannel = new LLMMessageChannel();
+		mainProcessElectronServer.registerChannel('void-channel-sendLLMMessage', sendLLMMessageChannel);
 
 		// Extension Host Debug Broadcasting
 		const electronExtensionHostDebugBroadcastChannel = new ElectronExtensionHostDebugBroadcastChannel(accessor.get(IWindowsMainService));

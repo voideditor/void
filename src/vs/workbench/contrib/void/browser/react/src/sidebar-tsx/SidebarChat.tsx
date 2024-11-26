@@ -17,6 +17,7 @@ import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from '../util/ErrorDisplay.js';
+import { SendLLMMessageParams } from '../../../../../../../platform/void/common/sendLLMTypes.js';
 
 // import {  } from '@vscode/webview-ui-toolkit/react';
 
@@ -209,11 +210,12 @@ export const SidebarChat = () => {
 
 
 		// send message to LLM
-		sendLLMMessageService.sendLLMMessage({
+
+		const object: SendLLMMessageParams = {
 			logging: { loggingName: 'Chat' },
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
-			onText: (newText, fullText) => setMessageStream(fullText),
-			onFinalMessage: (content) => {
+			onText: ({ newText, fullText }) => setMessageStream(fullText),
+			onFinalMessage: ({ fullText: content }) => {
 				console.log('chat: running final message')
 
 				// add assistant's message to chat history, and clear selection
@@ -222,7 +224,7 @@ export const SidebarChat = () => {
 				setMessageStream('')
 				setIsLoading(false)
 			},
-			onError: (error) => {
+			onError: ({ error }) => {
 				console.log('chat: running error')
 
 				// add assistant's message to chat history, and clear selection
@@ -237,7 +239,11 @@ export const SidebarChat = () => {
 			},
 			voidConfig,
 			abortRef: abortFnRef,
-		})
+		}
+
+		console.log('object!!!!!2', Object.keys(object))
+
+		sendLLMMessageService.sendLLMMessage(object)
 
 
 		setIsLoading(true)

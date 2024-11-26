@@ -6,7 +6,6 @@ import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } 
 
 
 import { useConfigState, useService, useThreadsState } from '../util/services.js';
-import { sendLLMMessage } from '../util/sendLLMMessage.js';
 import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
 import { userInstructionsStr } from '../../../prompt/stringifyFiles.js';
 import { CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';
@@ -17,8 +16,10 @@ import { IModelService } from '../../../../../../../editor/common/services/model
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
+import { ErrorDisplay } from '../util/ErrorDisplay.js';
+import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 
-
+// import {  } from '@vscode/webview-ui-toolkit/react';
 
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
@@ -174,11 +175,11 @@ export const SidebarChat = () => {
 	// state of chat
 	const [messageStream, setMessageStream] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
-	const abortFnRef = useRef<(() => void) | null>(null)
+	const latestRequestIdRef = useRef<string | null>(null)
 
-	const [latestError, setLatestError] = useState('')
+	const [latestError, setLatestError] = useState<Error | string | null>(null)
 
-
+	const sendLLMMessageService = useService('sendLLMMessageService')
 
 	const isDisabled = !instructions
 
@@ -209,11 +210,12 @@ export const SidebarChat = () => {
 
 
 		// send message to LLM
-		sendLLMMessage({
+
+		const object: LLMMessageServiceParams = {
 			logging: { loggingName: 'Chat' },
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
-			onText: (newText, fullText) => setMessageStream(fullText),
-			onFinalMessage: (content) => {
+			onText: ({ newText, fullText }) => setMessageStream(fullText),
+			onFinalMessage: ({ fullText: content }) => {
 				console.log('chat: running final message')
 
 				// add assistant's message to chat history, and clear selection
@@ -222,8 +224,8 @@ export const SidebarChat = () => {
 				setMessageStream('')
 				setIsLoading(false)
 			},
-			onError: (error) => {
-				console.log('chat: running error')
+			onError: ({ error }) => {
+				console.log('chat: running error', error)
 
 				// add assistant's message to chat history, and clear selection
 				let content = messageStream; // just use the current content
@@ -236,21 +238,24 @@ export const SidebarChat = () => {
 				setLatestError(error)
 			},
 			voidConfig,
-			abortRef: abortFnRef,
-		})
+		}
+
+		const latestRequestId = sendLLMMessageService.sendLLMMessage(object)
+		latestRequestIdRef.current = latestRequestId
 
 
 		setIsLoading(true)
 		setInstructions('');
 		formRef.current?.reset(); // reset the form's text when clear instructions or unexpected behavior happens
 		threadsStateService.setStaging([]) // clear staging
-		setLatestError('')
+		setLatestError(null)
 
 	}
 
 	const onAbort = () => {
-		// abort claude
-		abortFnRef.current?.()
+		// abort the LLM
+		if (latestRequestIdRef.current)
+			sendLLMMessageService.abort(latestRequestIdRef.current)
 
 		// if messageStream was not empty, add it to the history
 		const llmContent = messageStream || '(null)'
@@ -338,9 +343,11 @@ export const SidebarChat = () => {
 			</div>
 
 			{/* error message */}
-			{!latestError ? null : <div>
-				{latestError}
-			</div>}
+			{latestError === null ? null :
+				<ErrorDisplay
+					error={latestError}
+					onDismiss={() => { setLatestError(null) }}
+				/>}
 		</div>
 	</>
 }

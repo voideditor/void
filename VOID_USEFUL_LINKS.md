@@ -4,6 +4,8 @@ The Void team put together this list of links to get up and running with VSCode'
 
 ## Beginners / Getting started
 
+<!-- - [Void's Guide](https://voideditor.com) to VSCode - we put together covers VSCode's source. -->
+
 - [VSCode UI guide](https://code.visualstudio.com/docs/getstarted/userinterface)  - covers auxbar, panels, etc.
 
 - [UX guide](https://code.visualstudio.com/api/ux-guidelines/overview) - covers Containers, Views, Items, etc.
@@ -12,8 +14,7 @@ The Void team put together this list of links to get up and running with VSCode'
 
 - [How VS Code's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. This is the most important read on this whole list! We recommend reading the whole thing.
 
-
-- [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - sometimes useful to reference.
+- [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - sometimes useful to reference (especially if you're building an extension).
 
 
 ## VSCode's Extension API

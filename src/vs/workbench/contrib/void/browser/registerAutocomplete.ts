@@ -45,7 +45,6 @@ State
 - when press tab on one line, should have an immediate followup response
 to do this, show autocompletes before they're fully finished
 - [todo] remove each autotab when accepted
-- [todo] treat windows \r\n separately from \n
 !- [todo] provide type information
 
 Details
@@ -246,16 +245,18 @@ const toInlineCompletions = ({ matchInfo, prefix, suffix, autocompletion, positi
 	let startIdx = matchInfo.startIdx
 	let endIdx = generatedMiddle.length // exclusive bounds
 
-	// const naiveReturnValue = generatedMiddle.slice(startIdx)
-	// console.log('insertText: ', naiveReturnValue)
+	const naiveReturnValue = generatedMiddle.slice(startIdx)
+	console.log('naiveReturnValue: ', JSON.stringify(naiveReturnValue))
 	// return [{ insertText: naiveReturnValue, }]
 
 	// do postprocessing for better ux
 	// this is a bit hacky but may change a lot
 
-	// if there is space at the start of the completion, show it if the user has not added it
-	const rawFirstNonspaceIdx = generatedMiddle.slice(startIdx).search(/[^ \t]/)
-	if (rawFirstNonspaceIdx > -1) {
+	// if there is space at the start of the completion and user has added it, remove it
+	const charToLeftOfCursor = prefixToTheLeftOfCursor.slice(-1)[0] || ''
+	const userHasAddedASpace = charToLeftOfCursor === ' ' || charToLeftOfCursor === '\t'
+	const rawFirstNonspaceIdx = generatedMiddle.slice(startIdx).search(/[^\t ]/)
+	if (rawFirstNonspaceIdx > -1 && userHasAddedASpace) {
 		const firstNonspaceIdx = rawFirstNonspaceIdx + startIdx;
 		console.log('p0', startIdx, rawFirstNonspaceIdx)
 		startIdx = Math.max(startIdx, firstNonspaceIdx)
@@ -268,7 +269,7 @@ const toInlineCompletions = ({ matchInfo, prefix, suffix, autocompletion, positi
 		&& !suffixToTheRightOfCursor.trim()
 		&& numStartingNewlines > 0
 	) {
-		console.log('p1')
+		console.log('p1', numStartingNewlines)
 		startIdx += numStartingNewlines
 	}
 
@@ -500,6 +501,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 	): Promise<InlineCompletion[]> {
 
 		const disabled = false
+		const testMode = true
 		if (disabled) { return []; }
 
 		const docUriStr = model.uri.toString();
@@ -612,7 +614,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		if (!shouldGenerate) return []
 
-		if (this._autocompletionId !== 0) { // TODO remove this
+		if (testMode && this._autocompletionId !== 0) { // TODO remove this
 			return []
 		}
 
@@ -716,13 +718,18 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				console.log('item: ', items?.[0]?.insertText)
 				return { items: items, }
 			},
-			freeInlineCompletions(completions) {
+			freeInlineCompletions: (completions) => {
 			},
-			handlePartialAccept(completions, item, acceptedCharacters, info) {
-
-				// TODO remove partially accepted chars
-				// TODO windows \r\n vs \n
+			handlePartialAccept: (completions, item, acceptedCharacters, info) => {
+				console.log('@partialAccept')
+				// TODO remove accepted chars
 				// make it so spaces count as 1 space only(need to alter findMatch a bit)
+
+				this._lastPrefix
+			},
+			handleItemDidShow: (completions, item, updatedInsertText) => {
+				console.log('@itemDidShow')
+
 
 			}
 		})

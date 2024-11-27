@@ -8,12 +8,12 @@ import { ILanguageFeaturesService } from '../../../../editor/common/services/lan
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IVoidConfigStateService } from './registerConfig.js';
-import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 import { ITextModel } from '../../../../editor/common/model.js';
 import { Position } from '../../../../editor/common/core/position.js';
 import { InlineCompletion, InlineCompletionContext } from '../../../../editor/common/languages.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Range } from '../../../../editor/common/core/range.js';
+import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
 
@@ -138,10 +138,10 @@ type Autocompletion = {
 	suffix: string,
 	startTime: number,
 	endTime: number | undefined,
-	abortRef: { current: () => void },
 	status: AutocompletionStatus,
 	llmPromise: Promise<string> | undefined,
 	result: string,
+	requestId: string | null,
 }
 
 const DEBOUNCE_TIME = 500
@@ -516,7 +516,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			this._autocompletionsOfDocument[docUriStr] = new LRUCache<number, Autocompletion>(
 				MAX_CACHE_SIZE,
 				(autocompletion: Autocompletion) => {
-					autocompletion.abortRef.current()
+					if (autocompletion.requestId)
+						this._sendLLMMessageService.abort(autocompletion.requestId)
 				}
 			)
 		}
@@ -624,29 +625,29 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			suffix: suffix,
 			startTime: Date.now(),
 			endTime: undefined,
-			abortRef: { current: () => { } },
 			status: 'pending',
 			llmPromise: undefined,
 			result: '',
+			requestId: null,
 		}
 
 		// set parameters of `newAutocompletion` appropriately
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
-			sendLLMMessage({
+			const requestId = this._sendLLMMessageService.sendLLMMessage({
 				logging: { loggingName: 'Autocomplete' },
 				messages: [],
 				options: { prefix, suffix, stopTokens, },
-				onText: async (tokenStr: string, completionStr: string) => {
+				onText: async ({ newText, fullText }) => {
 
-					newAutocompletion.result = completionStr
+					newAutocompletion.result = fullText
 
 					// if generation doesn't match the prefix for the first few tokens generated, reject it
 					if (!getPrefixAutocompletionMatch({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
 						reject('LLM response did not match user\'s text.')
 					}
 				},
-				onFinalMessage: (finalMessage: string) => {
+				onFinalMessage: ({ fullText }) => {
 
 					// newAutocompletion.prefix = prefix
 					// newAutocompletion.suffix = suffix
@@ -655,19 +656,19 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					// newAutocompletion.abortRef = { current: () => { } }
 					newAutocompletion.status = 'finished'
 					// newAutocompletion.promise = undefined
-					newAutocompletion.result = postprocessResult(extractCodeFromResult(finalMessage))
+					newAutocompletion.result = postprocessResult(extractCodeFromResult(fullText))
 
 					resolve(newAutocompletion.result)
 
 				},
-				onError: (e: any) => {
+				onError: ({ error }) => {
 					newAutocompletion.endTime = Date.now()
 					newAutocompletion.status = 'error'
-					reject(e)
+					reject(error)
 				},
 				voidConfig: this._voidConfigStateService.state.voidConfig,
-				abortRef: newAutocompletion.abortRef,
 			})
+			newAutocompletion.requestId = requestId
 
 			// if the request hasnt resolved in TIMEOUT_TIME seconds, reject it
 			setTimeout(() => {
@@ -676,8 +677,9 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				}
 			}, TIMEOUT_TIME)
 
-
 		})
+
+
 
 		// add autocompletion to cache
 		this._autocompletionsOfDocument[docUriStr].set(newAutocompletion.id, newAutocompletion)
@@ -703,6 +705,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 	constructor(
 		@ILanguageFeaturesService private _langFeatureService: ILanguageFeaturesService,
 		@IVoidConfigStateService private readonly _voidConfigStateService: IVoidConfigStateService,
+		@ISendLLMMessageService private readonly _sendLLMMessageService: ISendLLMMessageService,
 	) {
 		super()
 

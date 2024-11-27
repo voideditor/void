@@ -4,52 +4,19 @@ import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { posthog } from 'posthog-js'
 import type { VoidConfig } from '../../../registerConfig.js';
+import type { LLMMessage, OnText, OnError, OnFinalMessage, SendLLMMMessageParams, LLMMessageOptions, } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 
-export type AbortRef = { current: (() => void) | null }
 
-export type OnText = (newText: string, fullText: string) => void
-
-export type OnFinalMessage = (input: string) => void
-
-export type LLMMessageAnthropic = {
-	role: 'user' | 'assistant';
-	content: string;
-}
-
-export type LLMMessage = {
-	role: 'system' | 'user' | 'assistant';
-	content: string;
-}
-
-export type LLMMessageOptions = {
-	stopTokens?: string[],
-	prefix?: string,
-	suffix?: string,
-}
 
 type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[];
 	options: LLMMessageOptions;
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
-	onError: (error: string) => void;
+	onError: OnError;
 	voidConfig: VoidConfig;
 
 	_setAborter: (aborter: () => void) => void;
-}) => void
-
-type SendLLMMessageFnTypeExternal = (params: {
-	messages: LLMMessage[];
-	options: LLMMessageOptions;
-	onText: OnText;
-	onFinalMessage: (fullText: string) => void;
-	onError: (error: string) => void;
-	voidConfig: VoidConfig | null;
-	abortRef: AbortRef;
-
-	logging: {
-		loggingName: string,
-	};
 }) => void
 
 const parseMaxTokensStr = (maxTokensStr: string) => {
@@ -61,6 +28,10 @@ const parseMaxTokensStr = (maxTokensStr: string) => {
 }
 
 // Anthropic
+type LLMMessageAnthropic = {
+	role: 'user' | 'assistant';
+	content: string;
+}
 const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
 	const anthropic = new Anthropic({ apiKey: voidConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
@@ -84,23 +55,23 @@ const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFi
 
 	// when receive text
 	stream.on('text', (newText, fullText) => {
-		onText(newText, fullText)
+		onText({ newText, fullText })
 	})
 
 	// when we get the final message on this stream (or when error/fail)
 	stream.on('finalMessage', (claude_response) => {
 		// stringify the response's content
 		const content = claude_response.content.map(c => c.type === 'text' ? c.text : c.type).join('\n');
-		onFinalMessage(content)
+		onFinalMessage({ fullText: content })
 	})
 
 	stream.on('error', (error) => {
 		// the most common error will be invalid API key (401), so we handle this with a nice message
 		if (error instanceof Anthropic.APIError && error.status === 401) {
-			onError('Invalid API key.')
+			onError({ error: 'Invalid API key.' })
 		}
 		else {
-			onError(error.message)
+			onError({ error })
 		}
 	})
 
@@ -139,21 +110,16 @@ const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, o
 			for await (const chunk of response.stream) {
 				const newText = chunk.text();
 				fullText += newText;
-				onText(newText, fullText);
+				onText({ newText, fullText });
 			}
-			onFinalMessage(fullText);
+			onFinalMessage({ fullText });
 		})
 		.catch((error) => {
-			if (error instanceof GoogleGenerativeAIFetchError) {
-				if (error.status === 400) {
-					onError('Invalid API key.');
-				}
-				else {
-					onError(`${error.name}:\n${error.message}`);
-				}
+			if (error instanceof GoogleGenerativeAIFetchError && error.status === 400) {
+				onError({ error: 'Invalid API key.' });
 			}
 			else {
-				onError(error);
+				onError({ error });
 			}
 		})
 }
@@ -199,22 +165,17 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 			for await (const chunk of response) {
 				const newText = chunk.choices[0]?.delta?.content || '';
 				fullText += newText;
-				onText(newText, fullText);
+				onText({ newText, fullText });
 			}
-			onFinalMessage(fullText);
+			onFinalMessage({ fullText });
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
-			if (error instanceof OpenAI.APIError) {
-				if (error.status === 401) {
-					onError('Invalid API key.');
-				}
-				else {
-					onError(`${error.name}:\n${error.message}`);
-				}
+			if (error instanceof OpenAI.APIError && error.status === 401) {
+				onError({ error: 'Invalid API key.' });
 			}
 			else {
-				onError(error);
+				onError({ error });
 			}
 		})
 
@@ -233,19 +194,17 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, options,
 			prompt: options.prefix ?? '',
 			suffix: options.suffix ?? '',
 			stream: true,
-			options: {
-				num_predict: parseMaxTokensStr(voidConfig.default.maxTokens),
-				stop: options.stopTokens,
-			}
+			options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens), stop: options.stopTokens, }
 		})
 			.then(async stream => {
 				_setAborter(() => stream.abort())
+				// iterate through the stream
 				for await (const chunk of stream) {
 					const newText = chunk.response;
 					fullText += newText;
-					onText(newText, fullText);
+					onText({ newText, fullText });
 				}
-				onFinalMessage(fullText);
+				onFinalMessage({ fullText });
 
 			})
 			// when error/fail
@@ -259,10 +218,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, options,
 			model: voidConfig.ollama.model,
 			messages: messages,
 			stream: true,
-			options: {
-				num_predict: parseMaxTokensStr(voidConfig.default.maxTokens), // this is max_tokens
-				stop: options.stopTokens,
-			}
+			options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) } // this is max_tokens
 		})
 			.then(async stream => {
 				_setAborter(() => stream.abort())
@@ -270,9 +226,9 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, options,
 				for await (const chunk of stream) {
 					const newText = chunk.message.content;
 					fullText += newText;
-					onText(newText, fullText);
+					onText({ newText, fullText });
 				}
-				onFinalMessage(fullText);
+				onFinalMessage({ fullText });
 
 			})
 			// when error/fail
@@ -320,24 +276,24 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 				// when receive text
 				if (type === 'message') {
 					fullText += message
-					onText(message, fullText)
+					onText({ newText: message, fullText })
 				}
 				else if (type === 'sources') {
 					const { filepath, linestart: _, lineend: _2 } = message as { filepath: string; linestart: number | null; lineend: number | null }
 					fullText += filepath
-					onText(filepath, fullText)
+					onText({ newText: filepath, fullText })
 				}
 				// type: 'status' with an empty 'message' means last message
 				else if (type === 'status') {
 					if (!message) {
-						onFinalMessage(fullText)
+						onFinalMessage({ fullText })
 					}
 				}
 			}
 
 		})
-		.catch(e => {
-			onError(e)
+		.catch(error => {
+			onError({ error })
 		});
 
 }
@@ -346,7 +302,8 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 
 
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
+
+export const sendLLMMessage = ({
 	messages,
 	options,
 	onText: onText_,
@@ -354,8 +311,8 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 	onError: onError_,
 	abortRef: abortRef_,
 	voidConfig,
-	logging: { loggingName },
-}) => {
+	logging: { loggingName }
+}: SendLLMMMessageParams) => {
 	if (!voidConfig) return;
 
 	// set messages appropriately if fill in middle mode
@@ -391,22 +348,23 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 	let _setAborter = (fn: () => void) => { _aborter = fn }
 	let _didAbort = false
 
-	const onText = (newText: string, fullText: string) => {
+	const onText: OnText = ({ newText, fullText }) => {
 		if (_didAbort) return
-		onText_(newText, fullText)
+		onText_({ newText, fullText })
 		_fullTextSoFar = fullText
 	}
 
-	const onFinalMessage = (fullText: string) => {
+	const onFinalMessage: OnFinalMessage = ({ fullText }) => {
 		if (_didAbort) return
 		captureChatEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
-		onFinalMessage_(fullText)
+		onFinalMessage_({ fullText })
 	}
 
-	const onError = (error: string) => {
+	const onError: OnError = ({ error }) => {
+		console.error('sendLLMMessage onError:', error)
 		if (_didAbort) return
 		captureChatEvent(`${loggingName} - Error`, { error })
-		onError_(error)
+		onError_({ error })
 	}
 
 	const onAbort = () => {
@@ -438,14 +396,15 @@ export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({
 				sendGreptileMsg({ messages, options, onText, onFinalMessage, onError, voidConfig, _setAborter, });
 				break;
 			default:
-				onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
+				onError({ error: `Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!` })
 				break;
 		}
 	}
 
-	catch (e) {
-		onError(`Unexpected Error in sendLLMMessage: ${e}`);
-		(_aborter as any)?.()
+	catch (error) {
+		if (error instanceof Error) { onError({ error }) }
+		else { onError({ error: `Unexpected Error in sendLLMMessage: ${error}` }); }
+		; (_aborter as any)?.()
 		_didAbort = true
 	}
 
@@ -589,7 +548,7 @@ ${suffix}
 
 // export type AbortRef = { current: (() => void) }
 
-// export type OnText = (newText: string, fullText: string) => void
+// export type LLMMessageOnText = (newText: string, fullText: string) => void
 
 // export type OnFinalMessage = (input: string) => void
 
@@ -609,7 +568,7 @@ ${suffix}
 // 	mode: 'chat' | 'fim',
 // 	messages: LLMMessage[],
 // 	options?: LLMMessageOptions,
-// 	onText: OnText,
+// 	onText: LLMMessageOnText,
 // 	onFinalMessage: OnFinalMessage,
 // 	onError: (error: string) => void,
 // 	abortRef: AbortRef,
@@ -622,7 +581,7 @@ ${suffix}
 // 	| { mode: 'fim', messages?: undefined, fimInfo: FimInfo, }
 // ) & {
 // 	options?: LLMMessageOptions,
-// 	onText: OnText,
+// 	onText: LLMMessageOnText,
 // 	onFinalMessage: OnFinalMessage,
 // 	onError: (error: string) => void,
 // 	abortRef: AbortRef,

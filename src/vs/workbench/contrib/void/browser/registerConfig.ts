@@ -241,7 +241,7 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 	_serviceBrand: undefined;
 
 	private readonly _onDidChangeState = new Emitter<void>();
-	readonly onDidChangeState: Event<void> = this._onDidChangeState.event;
+	readonly onDidChangeState: Event<void> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
 	state: ConfigState;
 	readonly voidConfigInfo: VoidConfigInfo = voidConfigInfo; // just putting this here for simplicity, it's static though

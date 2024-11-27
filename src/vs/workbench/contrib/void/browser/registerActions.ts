@@ -147,7 +147,7 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const stateService = accessor.get(IVoidSidebarStateService)
-		stateService.setState({ isHistoryOpen: false, currentTab: 'settings' })
+		stateService.setState({ isHistoryOpen: false, currentTab: stateService.state.currentTab === 'settings' ? 'chat' : 'settings' })
 		stateService.fireBlurChat()
 	}
 })

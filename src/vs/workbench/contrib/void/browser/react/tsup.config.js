@@ -15,7 +15,7 @@ export default defineConfig({
 	// sourcemap: true,
 
 	clean: true,
-	platform: 'browser',
+	platform: 'browser', // 'node'
 	target: 'esnext',
 	injectStyle: true, // bundle css into the output file
 	outExtension: () => ({ js: '.js' }),

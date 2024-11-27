@@ -10,7 +10,6 @@ import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/brows
 
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 // import { throttle } from '../../../../base/common/decorators.js';
 import { IVoidConfigStateService } from './registerConfig.js';
 import { writeFileWithDiffInstructions } from './prompt/systemPrompts.js';
@@ -29,6 +28,10 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
+import { LLMMessageServiceParams } from '../../../../platform/void/common/llmMessageTypes.js';
+import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+// import { ISendLLMMessageService } from '../../../../platform/void/common/sendLLMMessage.js';
+// import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 
 
 // gets converted to --vscode-void-greenBG, see void.css
@@ -115,7 +118,7 @@ export interface IInlineDiffsService {
 
 }
 
-export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffsService');
+export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffAreasService');
 
 class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	_serviceBrand: undefined;
@@ -148,6 +151,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IModelService private readonly _modelService: IModelService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 		@ILanguageService private readonly _langService: ILanguageService,
+		@ISendLLMMessageService private readonly _sendLLMMessageService: ISendLLMMessageService,
 	) {
 		super();
 
@@ -730,23 +734,22 @@ Please finish writing the new file by applying the diff to the original file. Re
 		// <SUF>${suffix}</SUF>
 		// <MID>`;
 
-
-
-
-		const abortRef = { current: null } as { current: null | (() => void) }
 		await new Promise<void>((resolve, reject) => {
-			sendLLMMessage({
+
+			let streamRequestId: string | null = null
+
+			const object: LLMMessageServiceParams = {
 				logging: { loggingName: 'streamChunk' },
 				messages: [
 					{ role: 'system', content: writeFileWithDiffInstructions, },
 					// TODO include more context too
 					{ role: 'user', content: promptContent, }
 				],
-				onText: (newText: string, fullText: string) => {
+				onText: ({ newText, fullText }) => {
 					this._writeDiffAreaLLMText(diffArea, fullText)
 					this._refreshDiffsInURI(uri)
 				},
-				onFinalMessage: (fullText: string) => {
+				onFinalMessage: ({ fullText }) => {
 					this._writeText(uri, fullText,
 						{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 					)
@@ -757,14 +760,17 @@ Please finish writing the new file by applying the diff to the original file. Re
 				onError: (e: any) => {
 					console.error('Error rewriting file with diff', e);
 					// TODO indicate there was an error
-					abortRef.current?.()
+					if (streamRequestId)
+						this._sendLLMMessageService.abort(streamRequestId)
+
 					diffArea._sweepState = { isStreaming: false, line: null }
 					resolve();
 				},
 				voidConfig,
-				abortRef,
-				options: {},
-			})
+				options: {}
+			}
+
+			streamRequestId = this._sendLLMMessageService.sendLLMMessage(object)
 		})
 
 		onFinishEdit()

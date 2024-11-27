@@ -1,6 +1,7 @@
 {
 	"extends": "./tsconfig.base.json",
 	"compilerOptions": {
+		// "jsx": "react", // <-- Void added this
 		"esModuleInterop": true,
 		"removeComments": false,
 		"preserveConstEnums": true,
@@ -52,5 +53,9 @@
 		"./vs/**/*.ts",
 		"vscode-dts/vscode.proposed.*.d.ts",
 		"vscode-dts/vscode.d.ts"
+
+		// Void added these:
+		// "./vs/**/*.tsx",
+		// "./vs/**/*.d.mts",
 	]
 }

@@ -328,6 +328,11 @@ export class DesktopMain extends Disposable {
 		//
 		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+		// // Void
+		// const sendLLMMessageService = new SendLLMMessageService();
+		// serviceCollection.set(ISendLLMMessageService, sendLLMMessageService);
+
+
 
 		return { serviceCollection, logService, storageService, configurationService };
 	}

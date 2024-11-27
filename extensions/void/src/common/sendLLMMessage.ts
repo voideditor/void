@@ -3,11 +3,7 @@ import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIError, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { VoidConfig } from '../webviews/common/contextForConfig'
-
-import Groq, { GroqError } from 'groq-sdk';
-
-import { getFIMPrompt, getFIMSystem } from './getPrompt';
-
+import Groq from 'groq-sdk';
 
 export type AbortRef = { current: (() => void) | null }
 
@@ -26,31 +22,22 @@ export type LLMMessage = {
 }
 
 type SendLLMMessageFnTypeInternal = (params: {
-	mode: 'chat' | 'fim',
 	messages: LLMMessage[],
 	onText: OnText,
 	onFinalMessage: OnFinalMessage,
 	onError: (error: string) => void,
-	abortRef: AbortRef,
 	voidConfig: VoidConfig,
-}) => void
-
-
-type SendLLMMessageFnTypeExternal = (params: (
-	| { mode?: 'chat', messages: LLMMessage[], fimInfo?: undefined, }
-	| { mode: 'fim', fimInfo: FimInfo, messages?: undefined, }
-) & {
-	onText: OnText,
-	onFinalMessage: OnFinalMessage,
-	onError: (error: string) => void,
 	abortRef: AbortRef,
-	voidConfig: VoidConfig | null, // these may be absent
 }) => void
 
-export type FimInfo = {
-	prefix: string,
-	suffix: string,
-}
+type SendLLMMessageFnTypeExternal = (params: {
+	messages: LLMMessage[],
+	onText: OnText,
+	onFinalMessage: (fullText: string) => void,
+	onError: (error: string) => void,
+	voidConfig: VoidConfig | null,
+	abortRef: AbortRef,
+}) => void
 
 const parseMaxTokensStr = (maxTokensStr: string) => {
 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
@@ -246,7 +233,7 @@ const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinal
 };
 
 // Ollama
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
+export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 
 	let didAbort = false
 	let fullText = ""
@@ -256,10 +243,6 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, on
 	};
 
 	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
-
-	type GenerateResponse = Awaited<ReturnType<(typeof ollama.generate)>>
-	type ChatResponse = Awaited<ReturnType<(typeof ollama.chat)>>
-
 
 	// First check if model exists
 	ollama.list()
@@ -272,18 +255,6 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, on
 				onText(errorMessage, errorMessage);
 				onFinalMessage(errorMessage);
 				return Promise.reject();
-			}
-
-			if (mode === 'fim') {
-
-				// the fim prompt is the last message
-				let prompt = messages[messages.length - 1].content
-				return ollama.generate({
-					model: voidConfig.ollama.model,
-					prompt: prompt,
-					stream: true,
-					raw: true,
-				})
 			}
 
 			return ollama.chat({
@@ -301,11 +272,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ mode, messages, on
 			}
 			for await (const chunk of stream) {
 				if (didAbort) return;
-
-				const newText = (mode === 'fim'
-					? (chunk as GenerateResponse).response
-					: (chunk as ChatResponse).message.content
-				)
+				const newText = chunk.message.content;
 				fullText += newText;
 				onText(newText, fullText);
 			}
@@ -391,8 +358,6 @@ const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFin
 
 }
 
-
-// Groq
 const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 	let didAbort = false;
 	let fullText = '';
@@ -401,84 +366,67 @@ const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onF
 		didAbort = true;
 	};
 
-	const max_tokens = parseMaxTokensStr(voidConfig.default.maxTokens)
-	const options = { model: voidConfig.groq.model, messages: messages, stream: true, max_tokens: max_tokens, } as const
+	const groq = new Groq({
+		apiKey: voidConfig.groq.apikey,
+		dangerouslyAllowBrowser: true
+	});
 
-	const groq = new Groq({ apiKey: voidConfig.groq.apikey, dangerouslyAllowBrowser: true });
 
-	groq.chat.completions
-		.create(options)
-		.then(async response => {
-			for await (const chunk of response) {
-				if (didAbort) return;
-				const newText = chunk.choices[0]?.delta?.content || '';
+	try {
+		const stream = await groq.chat.completions.create({
+			messages: messages,
+			model: voidConfig.groq.model,
+			stream: true,
+			temperature: 0.7,
+			max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens),
+		});
+
+		for await (const chunk of stream) {
+			if (didAbort) {
+				break;
+			}
+
+			const newText = chunk.choices[0]?.delta?.content || '';
+			if (newText) {
 				fullText += newText;
 				onText(newText, fullText);
 			}
-			onFinalMessage(fullText);
-		})
-		// when error/fail - this catches errors of both .create() and .then(for await)
-		.catch(error => {
-			if (error instanceof GroqError) {
-				onError(`${error.name}:\n${error.message}`);
-			}
-			else {
-				onError(error);
-			}
-		})
+		}
 
+		if (!didAbort) {
+			onFinalMessage(fullText);
+		}
+	} catch (error: any) {
+		if (error?.status === 401) {
+			onError('Invalid API key.');
+		} else {
+			onError(error.message || 'An error occurred while connecting to Groq.');
+		}
+	}
 };
 
 export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ messages, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
 	if (!voidConfig) return;
-export const sendLLMMessage: SendLLMMessageFnTypeExternal = ({ mode, messages, fimInfo, onText, onFinalMessage, onError, voidConfig, abortRef }) => {
-	if (!voidConfig)
-		return onError('No config file found for LLM.');
-
-	// handle defaults
-	if (!mode) mode = 'chat'
-	if (!messages) messages = []
-
-	// build messages
-	if (mode === 'chat') {
-		// nothing needed
-	} else if (mode === 'fim') {
-		fimInfo = fimInfo!
-
-		const system = getFIMSystem({ voidConfig, fimInfo })
-		const prompt = getFIMPrompt({ voidConfig, fimInfo })
-		messages = ([
-			{ role: 'system', content: system },
-			{ role: 'user', content: prompt }
-		] as const)
-			.filter(m => m.content.trim() !== '')
-	}
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
-	if (messages.length === 0)
-		return onError('No messages provided to LLM.');
 
 	switch (voidConfig.default.whichApi) {
 		case 'anthropic':
-			return sendAnthropicMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'openAI':
 		case 'openRouter':
 		case 'openAICompatible':
-			return sendOpenAIMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'gemini':
-			return sendGeminiMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'ollama':
-			return sendOllamaMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
+			return sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'greptile':
-
 			return sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		case 'groq':
 			return sendGroqMsg({ messages, onText, onFinalMessage, onError, voidConfig, abortRef });
-
-			return sendGreptileMsg({ mode, messages, onText, onFinalMessage, onError, voidConfig, abortRef });
 		default:
 			onError(`Error: whichApi was ${voidConfig.default.whichApi}, which is not recognized!`)
 	}
-
 }

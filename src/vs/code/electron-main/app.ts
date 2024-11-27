@@ -121,6 +121,8 @@ import { normalizeNFC } from '../../base/common/normalization.js';
 import { ICSSDevelopmentService, CSSDevelopmentService } from '../../platform/cssDev/node/cssDevService.js';
 import { ExtensionSignatureVerificationService, IExtensionSignatureVerificationService } from '../../platform/extensionManagement/node/extensionSignatureVerificationService.js';
 
+import { LLMMessageChannel } from '../../platform/void/electron-main/llmMessageChannel.js';
+
 /**
  * The main VS Code application. There will only ever be one instance,
  * even if the user starts many instances (e.g. from the command line).
@@ -148,7 +150,7 @@ export class CodeApplication extends Disposable {
 		@IStateService private readonly stateService: IStateService,
 		@IFileService private readonly fileService: IFileService,
 		@IProductService private readonly productService: IProductService,
-		@IUserDataProfilesMainService private readonly userDataProfilesMainService: IUserDataProfilesMainService
+		@IUserDataProfilesMainService private readonly userDataProfilesMainService: IUserDataProfilesMainService,
 	) {
 		super();
 
@@ -508,6 +510,16 @@ export class CodeApplication extends Disposable {
 		});
 
 		//#endregion
+
+		// //#region Void IPC
+		// validatedIpcMain.handle('vscode:sendLLMMessage', async (event, data) => {
+		// 	try {
+		// 		await this.sendLLMMessage(data);
+		// 	} catch (error) {
+		// 		console.error('Error sending LLM message:', error);
+		// 	}
+		// });
+		// //#endregion
 	}
 
 	private onUnexpectedError(error: Error): void {
@@ -1224,6 +1236,11 @@ export class CodeApplication extends Disposable {
 		const loggerChannel = new LoggerChannel(accessor.get(ILoggerMainService),);
 		mainProcessElectronServer.registerChannel('logger', loggerChannel);
 		sharedProcessClient.then(client => client.registerChannel('logger', loggerChannel));
+
+		// Void
+		// const sendLLMMessageChannel = ProxyChannel.fromService(accessor.get(ISendLLMMessageService), disposables);
+		const sendLLMMessageChannel = new LLMMessageChannel();
+		mainProcessElectronServer.registerChannel('void-channel-sendLLMMessage', sendLLMMessageChannel);
 
 		// Extension Host Debug Broadcasting
 		const electronExtensionHostDebugBroadcastChannel = new ElectronExtensionHostDebugBroadcastChannel(accessor.get(IWindowsMainService));

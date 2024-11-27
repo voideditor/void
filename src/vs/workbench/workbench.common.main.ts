@@ -13,6 +13,14 @@ import './browser/workbench.contribution.js';
 //#endregion
 
 
+
+//#region --- Void
+// Void added this:
+import './contrib/void/browser/void.contribution.js';
+import '../platform/void/browser/llmMessageService.js';
+//#endregion
+
+
 //#region --- workbench actions
 
 import './browser/actions/textInputActions.js';

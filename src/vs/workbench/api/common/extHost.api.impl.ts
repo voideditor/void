@@ -109,6 +109,7 @@ import { ProxyIdentifier } from '../../services/extensions/common/proxyIdentifie
 import { ExcludeSettingOptions, TextSearchCompleteMessageType, TextSearchContextNew, TextSearchMatchNew } from '../../services/search/common/searchExtTypes.js';
 import type * as vscode from 'vscode';
 import { ExtHostCodeMapper } from './extHostCodeMapper.js';
+import { ExtHostInlineDiff } from './extHostInlineDiff.js';
 
 export interface IExtensionRegistries {
 	mine: ExtensionDescriptionRegistry;
@@ -220,6 +221,9 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 	const extHostStatusBar = rpcProtocol.set(ExtHostContext.ExtHostStatusBar, new ExtHostStatusBar(rpcProtocol, extHostCommands.converter));
 	const extHostSpeech = rpcProtocol.set(ExtHostContext.ExtHostSpeech, new ExtHostSpeech(rpcProtocol));
 	const extHostEmbeddings = rpcProtocol.set(ExtHostContext.ExtHostEmbeddings, new ExtHostEmbeddings(rpcProtocol));
+
+	// Void added this:
+	const extHostInlineDiff = rpcProtocol.set(ExtHostContext.ExtHostInlineDiff, new ExtHostInlineDiff(rpcProtocol.getProxy(MainContext.MainThreadInlineDiff), extHostEditors));
 
 	// Check that no named customers are missing
 	const expected = Object.values<ProxyIdentifier<any>>(ExtHostContext);
@@ -519,6 +523,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 
 		// namespace: languages
 		const languages: typeof vscode.languages = {
+
 			createDiagnosticCollection(name?: string): vscode.DiagnosticCollection {
 				return extHostDiagnostics.createDiagnosticCollection(extension.identifier, name);
 			},
@@ -551,6 +556,11 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			},
 			registerCodeLensProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
 				return extHostLanguageFeatures.registerCodeLensProvider(extension, checkSelector(selector), provider);
+			},
+
+			// Void added addInlineDiff here:
+			addInlineDiff(editor: vscode.TextEditor, originalText: string, modifiedRange: vscode.Range): void {
+				extHostInlineDiff.addDiff(editor, originalText, modifiedRange)
 			},
 
 			// Void added this (I think will need to add this back when add ctrl+K)

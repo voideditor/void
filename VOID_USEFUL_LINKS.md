@@ -18,7 +18,7 @@ The Void team put together this list of links to get up and running with VSCode'
 
 ## VSCode's Extension API
 
-Void is mainly an extension right now, and these links were very useful for us to get set up.
+Void is no longer an extension, so these links are no longer required, but they might be useful if we ever build an extension again.
 
 - [Files you need in an extension](https://code.visualstudio.com/api/get-started/extension-anatomy).
 

@@ -30,8 +30,6 @@ import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { LLMMessageServiceParams } from '../../../../platform/void/common/llmMessageTypes.js';
 import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
-// import { ISendLLMMessageService } from '../../../../platform/void/common/sendLLMMessage.js';
-// import { sendLLMMessage } from './react/out/util/sendLLMMessage.js';
 
 
 // gets converted to --vscode-void-greenBG, see void.css

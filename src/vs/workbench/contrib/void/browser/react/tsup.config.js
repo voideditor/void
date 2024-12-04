@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup'
 export default defineConfig({
 	entry: [
 		'./src2/sidebar-tsx/Sidebar.tsx',
-		'./src2/util/sendLLMMessage.tsx',
+		'./src2/sendLLMMessage/sendLLMMessage.tsx',
 		'./src2/util/posthog.tsx',
 		'./src2/util/diffLines.tsx',
 	],

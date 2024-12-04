@@ -5,12 +5,14 @@ import { SendLLMMessageFnTypeInternal } from './_types.js';
 // Ollama
 export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
+	const thisConfig = voidConfig.ollama
+
 	let fullText = ''
 
-	const ollama = new Ollama({ host: voidConfig.ollama.endpoint })
+	const ollama = new Ollama({ host: thisConfig.endpoint })
 
 	ollama.chat({
-		model: voidConfig.ollama.model,
+		model: thisConfig.model,
 		messages: messages,
 		stream: true,
 		options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) } // this is max_tokens

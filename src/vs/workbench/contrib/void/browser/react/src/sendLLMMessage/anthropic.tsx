@@ -9,7 +9,9 @@ type LLMMessageAnthropic = {
 }
 export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 
-	const anthropic = new Anthropic({ apiKey: voidConfig.anthropic.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
+	const thisConfig = voidConfig.anthropic
+
+	const anthropic = new Anthropic({ apiKey: thisConfig.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
 
 	// find system messages and concatenate them
 	const systemMessage = messages
@@ -23,7 +25,7 @@ export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onTex
 	const stream = anthropic.messages.stream({
 		system: systemMessage,
 		messages: anthropicMessages,
-		model: voidConfig.anthropic.model,
+		model: thisConfig.model,
 		max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens)!, // this might be undefined, but it will just throw an error for the user
 	});
 

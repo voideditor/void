@@ -6,8 +6,10 @@ export const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, on
 
 	let fullText = ''
 
-	const genAI = new GoogleGenerativeAI(voidConfig.gemini.apikey);
-	const model = genAI.getGenerativeModel({ model: voidConfig.gemini.model });
+	const thisConfig = voidConfig.gemini
+
+	const genAI = new GoogleGenerativeAI(thisConfig.apikey);
+	const model = genAI.getGenerativeModel({ model: thisConfig.model });
 
 	// remove system messages that get sent to Gemini
 	// str of all system messages

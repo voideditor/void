@@ -9,17 +9,19 @@ export const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText
 
 	let fullText = ''
 
+	const thisConfig = voidConfig.greptile
+
 	fetch('https://api.greptile.com/v2/query', {
 		method: 'POST',
 		headers: {
-			'Authorization': `Bearer ${voidConfig.greptile.apikey}`,
-			'X-Github-Token': `${voidConfig.greptile.githubPAT}`,
+			'Authorization': `Bearer ${thisConfig.apikey}`,
+			'X-Github-Token': `${thisConfig.githubPAT}`,
 			'Content-Type': `application/json`,
 		},
 		body: JSON.stringify({
 			messages,
 			stream: true,
-			repositories: [voidConfig.greptile.repoinfo],
+			repositories: [thisConfig.repoinfo],
 		}),
 	})
 		// this is {message}\n{message}\n{message}...\n

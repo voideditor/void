@@ -3,9 +3,10 @@ import OpenAI from 'openai';
 import { Ollama } from 'ollama/browser'
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { posthog } from 'posthog-js'
+import Groq, { GroqError } from 'groq-sdk'
+
 import type { VoidConfig } from '../../../registerConfig.js';
 import type { LLMMessage, OnText, OnError, OnFinalMessage, SendLLMMMessageParams, } from '../../../../../../../platform/void/common/llmMessageTypes.js';
-import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 
 type SendLLMMessageFnTypeInternal = (params: {
 	messages: LLMMessage[];
@@ -210,6 +211,44 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		})
 
 };
+
+// Groq
+const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
+	let fullText = '';
+
+	const groq = new Groq({
+		apiKey: voidConfig.groq.apikey,
+		dangerouslyAllowBrowser: true
+	});
+
+	await groq.chat.completions
+		.create({
+			messages: messages,
+			model: voidConfig.groq.model,
+			stream: true,
+			temperature: 0.7,
+			max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens),
+		})
+		.then(async response => {
+			_setAborter(() => response.controller.abort())
+			// when receive text
+			for await (const chunk of response) {
+				const newText = chunk.choices[0]?.delta?.content || '';
+				if (newText) {
+					fullText += newText;
+					onText({ newText, fullText });
+				}
+			}
+
+			onFinalMessage({ fullText });
+		})
+		.catch(error => {
+			onError({ error });
+		})
+
+
+};
+
 
 // Greptile
 // https://docs.greptile.com/api-reference/query

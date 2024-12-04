@@ -3,11 +3,12 @@ import type { OnText, OnError, OnFinalMessage, SendLLMMMessageParams, } from '..
 import { sendAnthropicMsg } from './anthropic.js';
 import { sendGeminiMsg } from './gemini.js';
 import { sendGreptileMsg } from './greptile.js';
+import { sendGroqMsg } from './groq.js';
 import { sendOllamaMsg } from './ollama.js';
 import { sendOpenAIMsg } from './openai.js';
 
 
-export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFinalMessage_, onError: onError_, abortRef: abortRef_, voidConfig, logging: { loggingName }}: SendLLMMMessageParams) => {
+export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFinalMessage_, onError: onError_, abortRef: abortRef_, voidConfig, logging: { loggingName } }: SendLLMMMessageParams) => {
 	if (!voidConfig) return;
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
@@ -76,6 +77,9 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 				break;
 			case 'greptile':
 				sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				break;
+			case 'groq':
+				sendGroqMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
 				break;
 			default:
 				onError({ error: `Error: whichApi was "${voidConfig.default.whichApi}", which is not recognized!` })

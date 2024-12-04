@@ -41,6 +41,7 @@ export const nonDefaultConfigFields = [
 	'openAI',
 	'gemini',
 	'greptile',
+	'groq',
 	'ollama',
 	'openRouter',
 	'openAICompatible',
@@ -130,6 +131,18 @@ const voidConfigInfo: Record<
 		),
 		repository: configString('Repository identifier in "owner / repository" format.', ''),
 		branch: configString('Name of the branch to use.', 'main'),
+	},
+	groq: {
+		apikey: configString('Groq API key.', ''),
+		model: configEnum(
+			'Groq model to use.',
+			'mixtral-8x7b-32768',
+			[
+				"mixtral-8x7b-32768",
+				"llama2-70b-4096",
+				"gemma-7b-it"
+			] as const
+		),
 	},
 	ollama: {
 		endpoint: configString(

@@ -26,6 +26,15 @@ const configString = (description: string, defaultVal: string) => {
 	}
 }
 
+export const parseMaxTokensStr = (maxTokensStr: string) => {
+	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
+	const int = isNaN(Number(maxTokensStr)) ? undefined : parseInt(maxTokensStr)
+	if (Number.isNaN(int))
+		return undefined
+	return int
+}
+
+
 // fields you can customize (don't forget 'default' - it isn't included here!)
 export const nonDefaultConfigFields = [
 	'anthropic',

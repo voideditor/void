@@ -445,7 +445,6 @@ const getPrefixAutocompletionMatch = ({ prefix, autocompletion }: { prefix: stri
 
 	const startIdx = getIndex(autocompletion.insertText, lineStart, character)
 
-
 	return {
 		lineStart,
 		character,
@@ -515,7 +514,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 	): Promise<InlineCompletion[]> {
 
 		const disabled = false
-		const testMode = true
+		const testMode = false
+
 		if (disabled) { return []; }
 
 		const docUriStr = model.uri.toString();
@@ -751,12 +751,9 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				// autocompletion.prefix + autocompletion.insertedText ~== insertedText
 				completions.items.forEach(item => {
 					this._autocompletionsOfDocument[docUriStr].items.forEach((autocompletion: Autocompletion) => {
-						console.log('A', JSON.stringify(removeLeftTabsAndTrimEnd(prefix)))
-						console.log('B', JSON.stringify(removeLeftTabsAndTrimEnd(autocompletion.prefix + autocompletion.insertText)))
 						if (removeLeftTabsAndTrimEnd(prefix)
-							=== (removeLeftTabsAndTrimEnd(autocompletion.prefix + autocompletion.insertText))
+							=== removeLeftTabsAndTrimEnd(autocompletion.prefix + autocompletion.insertText)
 						) {
-							console.log('DELETE')
 							this._autocompletionsOfDocument[docUriStr].delete(autocompletion.id);
 						}
 					});

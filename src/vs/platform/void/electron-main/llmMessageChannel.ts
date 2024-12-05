@@ -10,7 +10,7 @@
 
 import { IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { Emitter, Event } from '../../../base/common/event.js';
-import { sendLLMMessage } from '../../../workbench/contrib/void/browser/react/out/util/sendLLMMessage.js';
+import { sendLLMMessage } from '../../../workbench/contrib/void/browser/react/out/sendLLMMessage/sendLLMMessage.js';
 import { listenerNames, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, ProxyLLMMessageParams, AbortRef, SendLLMMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
 
 // NODE IMPLEMENTATION OF SENDLLMMESSAGE - calls sendLLMMessage() and returns listeners

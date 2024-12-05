@@ -57,19 +57,17 @@ export const SidebarThreadSelector = () => {
 					let btnStringArr: string[] = []
 
 					const firstUserMsg = allThreads[threadId].messages.find(msg => msg.role === 'user')?.displayContent ?? ''
-					let msg1 = truncate(firstUserMsg)
-					if (msg1)
-						btnStringArr.push(msg1)
+					if (firstUserMsg)
+						btnStringArr.push(truncate(firstUserMsg))
 					else
 						btnStringArr.push('""')
 
 					const firstAssistantMsg = allThreads[threadId].messages.find(msg => msg.role === 'assistant')?.displayContent ?? ''
-					let msg2 = truncate(firstAssistantMsg)
-					if (msg2)
-						btnStringArr.push(msg2)
+					if (firstAssistantMsg)
+						btnStringArr.push(truncate(firstAssistantMsg))
 
 					const numMessages = allThreads[threadId].messages.filter(msg => msg.role !== 'system').length
-					if (firstUserMsg && firstAssistantMsg)
+					if (numMessages > 2)
 						btnStringArr.push((numMessages - 2) + '')
 
 					const btnString = btnStringArr.join(' / ')

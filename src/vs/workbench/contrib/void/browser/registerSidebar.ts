@@ -11,7 +11,6 @@ import {
 } from '../../../common/views.js';
 
 import * as nls from '../../../../nls.js';
-import * as dom from '../../../../base/browser/dom.js';
 
 import { Codicon } from '../../../../base/common/codicons.js';
 import { localize } from '../../../../nls.js';
@@ -101,9 +100,7 @@ class VoidSidebarViewPane extends ViewPane {
 
 	protected override renderBody(parent: HTMLElement): void {
 		super.renderBody(parent);
-
-		const { root } = dom.h('div@root')
-		dom.append(parent, root);
+		parent.style.overflow = 'auto'
 
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
@@ -117,7 +114,7 @@ class VoidSidebarViewPane extends ViewPane {
 				sendLLMMessageService: accessor.get(ISendLLMMessageService),
 				contextViewService: accessor.get(IContextViewService),
 			}
-			mountFn(root, services);
+			mountFn(parent, services);
 		});
 	}
 

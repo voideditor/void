@@ -44,15 +44,16 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 	}
 
 	const onError: OnError = ({ error }) => {
-		console.error('sendLLMMessage onError:', error)
 		if (_didAbort) return
+		console.error('sendLLMMessage onError:', error)
 		captureChatEvent(`${loggingName} - Error`, { error })
 		onError_({ error })
 	}
 
 	const onAbort = () => {
 		captureChatEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
-		_aborter?.()
+		try { _aborter?.() } // aborter sometimes automatically throws an error
+		catch (e) { }
 		_didAbort = true
 	}
 	abortRef_.current = onAbort
@@ -90,8 +91,8 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 	catch (error) {
 		if (error instanceof Error) { onError({ error }) }
 		else { onError({ error: `Unexpected Error in sendLLMMessage: ${error}` }); }
-		; (_aborter as any)?.()
-		_didAbort = true
+		// ; (_aborter as any)?.()
+		// _didAbort = true
 	}
 
 

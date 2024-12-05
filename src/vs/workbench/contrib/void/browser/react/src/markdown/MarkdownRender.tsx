@@ -212,7 +212,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 }
 
 export const MarkdownRender = ({ string, nested = false }: { string: string, nested?: boolean }) => {
-	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
+	const tokens = marked.lexer(string ?? '(empty)'); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (

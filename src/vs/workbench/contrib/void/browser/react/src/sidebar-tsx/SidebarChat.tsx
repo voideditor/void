@@ -21,7 +21,6 @@ import { LLMMessageServiceParams } from '../../../../../../../platform/void/comm
 import { getCmdKey } from '../../../getCmdKey.js'
 
 import { VSCodeDropdown } from '@vscode/webview-ui-toolkit/react';
-import { InputBox } from './InputBox.js';
 
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
@@ -260,7 +259,7 @@ export const SidebarChat = () => {
 			sendLLMMessageService.abort(latestRequestIdRef.current)
 
 		// if messageStream was not empty, add it to the history
-		const llmContent = messageStream || '(null)'
+		const llmContent = messageStream || '(empty)'
 		const newHistoryElt: ChatMessage = { role: 'assistant', content: llmContent, displayContent: messageStream, }
 		threadsStateService.addMessageToCurrentThread(newHistoryElt)
 

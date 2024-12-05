@@ -33,7 +33,7 @@ const getErrorDetails = (error: unknown) => {
 	}
 	// sometimes error is an object but not an Error
 	else if (typeof error === 'object') {
-		e = new Error(`The server didn't give a very useful error message. More details below.`, { cause: JSON.stringify(error) })
+		e = new Error(`More details below.`, { cause: JSON.stringify(error) })
 
 	}
 	else {

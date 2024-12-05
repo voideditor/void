@@ -18,8 +18,9 @@ const Sidebar = () => {
 	const sidebarState = useSidebarState()
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
+	// className='@@void-scope'
 	return <div className='@@void-scope'>
-		<div className={`flex flex-col h-screen w-full px-2 py-2 overflow-y-auto`}>
+		<div className={`flex flex-col h-screen w-full px-2 py-2`}>
 
 			{/* <span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']
@@ -27,7 +28,7 @@ const Sidebar = () => {
 				sidebarStateService.setState({ currentTab: tabs[(index + 1) % tabs.length] as any })
 			}}>clickme {tab}</span> */}
 
-			<div className={`mb-2 h-[30vh] overflow-y-auto ${isHistoryOpen ? '' : 'hidden'}`}>
+			<div className={`mb-2 ${isHistoryOpen ? '' : 'hidden'}`}>
 				<SidebarThreadSelector />
 			</div>
 
@@ -41,6 +42,7 @@ const Sidebar = () => {
 
 		</div>
 	</div>
+
 
 }
 

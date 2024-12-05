@@ -23,10 +23,10 @@ export const SidebarThreadSelector = () => {
 	const { allThreads } = threadsState
 
 	// sorted by most recent to least recent
-	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? 1 : -1)
+	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
 
 	return (
-		<div className="flex flex-col gap-y-1">
+		<div className="flex flex-col gap-y-1 overflow-y-auto h-[30vh]">
 
 			{/* X button at top right */}
 			<div className="text-right">

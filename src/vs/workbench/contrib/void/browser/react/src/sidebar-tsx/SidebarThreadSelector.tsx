@@ -56,19 +56,19 @@ export const SidebarThreadSelector = () => {
 
 					let btnStringArr: string[] = []
 
-					const firstUserMsg = allThreads[threadId].messages.find(msg => msg.role === 'user')?.displayContent ?? ''
-					if (firstUserMsg)
-						btnStringArr.push(truncate(firstUserMsg))
+					const firstMsgIdx = allThreads[threadId].messages.findIndex(msg => msg.role !== 'system' && !!msg.displayContent) ?? ''
+					if (firstMsgIdx !== -1)
+						btnStringArr.push(truncate(allThreads[threadId].messages[firstMsgIdx].displayContent ?? ''))
 					else
 						btnStringArr.push('""')
 
-					const firstAssistantMsg = allThreads[threadId].messages.find(msg => msg.role === 'assistant')?.displayContent ?? ''
-					if (firstAssistantMsg)
-						btnStringArr.push(truncate(firstAssistantMsg))
+					const secondMsgIdx = allThreads[threadId].messages.findIndex((msg, i) => msg.role !== 'system' && !!msg.displayContent && i > firstMsgIdx) ?? ''
+					if (secondMsgIdx !== -1)
+						btnStringArr.push(truncate(allThreads[threadId].messages[secondMsgIdx].displayContent ?? ''))
 
-					const numMessages = allThreads[threadId].messages.filter(msg => msg.role !== 'system').length
-					if (numMessages > 2)
-						btnStringArr.push((numMessages - 2) + '')
+					const numMessagesRemaining = allThreads[threadId].messages.filter((msg, i) => msg.role !== 'system' && !!msg.displayContent && i > secondMsgIdx).length
+					if (numMessagesRemaining > 0)
+						btnStringArr.push(numMessagesRemaining + '')
 
 					const btnString = btnStringArr.join(' / ')
 

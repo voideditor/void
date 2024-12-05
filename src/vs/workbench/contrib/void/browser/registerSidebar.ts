@@ -47,6 +47,7 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
@@ -69,6 +70,7 @@ export type ReactServicesType = {
 	inlineDiffService: IInlineDiffsService;
 	sendLLMMessageService: ISendLLMMessageService;
 	contextViewService: IContextViewService;
+	clipboardService: IClipboardService;
 }
 
 // ---------- Define viewpane ----------
@@ -101,6 +103,7 @@ class VoidSidebarViewPane extends ViewPane {
 	protected override renderBody(parent: HTMLElement): void {
 		super.renderBody(parent);
 		parent.style.overflow = 'auto'
+		parent.style.userSelect = 'text'
 
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
@@ -113,6 +116,7 @@ class VoidSidebarViewPane extends ViewPane {
 				inlineDiffService: accessor.get(IInlineDiffsService),
 				sendLLMMessageService: accessor.get(ISendLLMMessageService),
 				contextViewService: accessor.get(IContextViewService),
+				clipboardService: accessor.get(IClipboardService),
 			}
 			mountFn(parent, services);
 		});

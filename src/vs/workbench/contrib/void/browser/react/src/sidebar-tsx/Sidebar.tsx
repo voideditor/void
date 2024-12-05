@@ -20,7 +20,7 @@ const Sidebar = () => {
 
 	// className='@@void-scope'
 	return <div className='@@void-scope'>
-		<div className={`flex flex-col h-screen w-full px-2 py-2`}>
+		<div className={`flex flex-col w-full px-2 py-2`}>
 
 			{/* <span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']

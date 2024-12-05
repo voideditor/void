@@ -16,10 +16,12 @@ import { IModelService } from '../../../../../../../editor/common/services/model
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
-import { ErrorDisplay } from '../util/ErrorDisplay.js';
+import { ErrorDisplay } from './ErrorDisplay.js';
 import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
+import { getCmdKey } from '../../../getCmdKey.js'
 
-// import {  } from '@vscode/webview-ui-toolkit/react';
+import { VSCodeDropdown } from '@vscode/webview-ui-toolkit/react';
+import { InputBox } from './InputBox.js';
 
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
@@ -292,25 +294,39 @@ export const SidebarChat = () => {
 							<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
 						</div>}
 
+						{/* error message */}
+						{latestError === null ? null :
+							<ErrorDisplay
+								error={latestError}
+								onDismiss={() => { setLatestError(null) }}
+							/>}
+
 						<form
 							ref={formRef}
-							className="flex flex-row items-center rounded-md p-2"
+							className={`flex flex-row items-center rounded-md p-2`}
 							onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
 
 							onSubmit={(e) => {
 								console.log('submit!')
 								onSubmit(e)
 							}}>
+
 							{/* input */}
+							{/* <InputBox
+								placeholder={`${getCmdKey()}+L to select`}
+								onChangeText={(newStr) => { setInstructions(newStr) }}
+								className='w-full p-2 leading-tight resize-none max-h-[50vh] overflow-auto bg-transparent border-none !outline-none'
+							/> */}
 
 							<textarea
 								ref={chatInputRef}
 								onChange={(e) => { setInstructions(e.target.value) }}
-								className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
-								placeholder="Ctrl+L to select"
+								className={`w-full p-2 leading-tight resize-none max-h-[50vh] overflow-auto bg-transparent border-none !outline-none`}
+								placeholder={`${getCmdKey()}+L to select`}
 								rows={1}
 								onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
 							/>
+
 							{isLoading ?
 								// stop button
 								<button
@@ -341,13 +357,6 @@ export const SidebarChat = () => {
 					</div>
 				</div>
 			</div>
-
-			{/* error message */}
-			{latestError === null ? null :
-				<ErrorDisplay
-					error={latestError}
-					onDismiss={() => { setLatestError(null) }}
-				/>}
 		</div>
 	</>
 }

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, X } from 'lucide-react';
 
-import { getCmdKey } from '../../../getCmdKey.js';
 
 // const opaqueMessage = `\
 // Unfortunately, Void can't see the full error. However, you should be able to find more details by pressing ${getCmdKey()}+Shift+P, typing "Toggle Developer Tools", and looking at the console.\n

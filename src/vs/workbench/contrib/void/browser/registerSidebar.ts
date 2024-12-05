@@ -33,7 +33,7 @@ import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
+import { IContextMenuService, IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
@@ -69,6 +69,7 @@ export type ReactServicesType = {
 	modelService: IModelService;
 	inlineDiffService: IInlineDiffsService;
 	sendLLMMessageService: ISendLLMMessageService;
+	contextViewService: IContextViewService;
 }
 
 // ---------- Define viewpane ----------
@@ -114,6 +115,7 @@ class VoidSidebarViewPane extends ViewPane {
 				modelService: accessor.get(IModelService),
 				inlineDiffService: accessor.get(IInlineDiffsService),
 				sendLLMMessageService: accessor.get(ISendLLMMessageService),
+				contextViewService: accessor.get(IContextViewService),
 			}
 			mountFn(root, services);
 		});

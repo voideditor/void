@@ -8,7 +8,7 @@ import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } 
 import { useConfigState, useService, useThreadsState } from '../util/services.js';
 import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
 import { userInstructionsStr } from '../../../prompt/stringifyFiles.js';
-import { CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';
+import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { MarkdownRender } from '../markdown/MarkdownRender.js';
@@ -20,35 +20,12 @@ import { ErrorDisplay } from './ErrorDisplay.js';
 import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../getCmdKey.js'
 
-import { VSCodeDropdown } from '@vscode/webview-ui-toolkit/react';
-
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
 	const model = modelService.getModel(uri)
 	if (!model) return null
 	return model.getValue(EndOfLinePreference.LF)
 }
-
-
-
-export type ChatMessage =
-	| {
-		role: 'user';
-		content: string; // content sent to the llm
-		displayContent: string; // content displayed to user
-		selections: CodeSelection[] | null; // the user's selection
-	}
-	| {
-		role: 'assistant';
-		content: string; // content received from LLM
-		displayContent: string | undefined; // content displayed to user (this is the same as content for now)
-	}
-	| {
-		role: 'system';
-		content: string;
-		displayContent?: undefined;
-	}
-
 
 
 const getBasename = (pathStr: string) => {
@@ -174,7 +151,7 @@ export const SidebarChat = () => {
 	const [instructions, setInstructions] = useState('') // the user's instructions
 
 	// state of chat
-	const [messageStream, setMessageStream] = useState('')
+	const [messageStream, setMessageStream] = useState<string | null>(null)
 	const [isLoading, setIsLoading] = useState(false)
 	const latestRequestIdRef = useRef<string | null>(null)
 
@@ -204,8 +181,8 @@ export const SidebarChat = () => {
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
 		const userContent = userInstructionsStr(instructions, selections)
-		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selections }
-		threadsStateService.addMessageToCurrentThread(newHistoryElt)
+		const userHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selections }
+		threadsStateService.addMessageToCurrentThread(userHistoryElt)
 
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
 
@@ -214,24 +191,24 @@ export const SidebarChat = () => {
 
 		const object: LLMMessageServiceParams = {
 			logging: { loggingName: 'Chat' },
-			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
+			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content || '(null)' })),],
 			onText: ({ newText, fullText }) => setMessageStream(fullText),
 			onFinalMessage: ({ fullText: content }) => {
 				console.log('chat: running final message')
 
 				// add assistant's message to chat history, and clear selection
-				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content }
-				threadsStateService.addMessageToCurrentThread(newHistoryElt)
-				setMessageStream('')
+				const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null }
+				threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
+				setMessageStream(null)
 				setIsLoading(false)
 			},
 			onError: ({ error }) => {
 				console.log('chat: running error', error)
 
 				// add assistant's message to chat history, and clear selection
-				let content = messageStream; // just use the current content
-				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
-				threadsStateService.addMessageToCurrentThread(newHistoryElt)
+				let content = messageStream ?? ''; // just use the current content
+				const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null, }
+				threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
 
 				setMessageStream('')
 				setIsLoading(false)
@@ -259,9 +236,9 @@ export const SidebarChat = () => {
 			sendLLMMessageService.abort(latestRequestIdRef.current)
 
 		// if messageStream was not empty, add it to the history
-		const llmContent = messageStream || '(empty)'
-		const newHistoryElt: ChatMessage = { role: 'assistant', content: llmContent, displayContent: messageStream, }
-		threadsStateService.addMessageToCurrentThread(newHistoryElt)
+		const llmContent = messageStream ?? ''
+		const assistantHistoryElt: ChatMessage = { role: 'assistant', content: llmContent, displayContent: messageStream || null, }
+		threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
 
 		setMessageStream('')
 		setIsLoading(false)
@@ -280,7 +257,7 @@ export const SidebarChat = () => {
 				<ChatBubble key={i} chatMessage={message} />
 			)}
 			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream }} />
+			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream , displayContent: messageStream || null }} />
 		</div>
 		{/* chatbar */}
 		<div className="shrink-0 py-4">
@@ -331,7 +308,7 @@ export const SidebarChat = () => {
 								<button
 									onClick={onAbort}
 									type='button'
-									className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+									className="font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
 								>
 									<svg
 										className='scale-50'
@@ -342,7 +319,7 @@ export const SidebarChat = () => {
 								:
 								// submit button (up arrow)
 								<button
-									className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+									className="font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
 									disabled={isDisabled}
 									type='submit'
 								>

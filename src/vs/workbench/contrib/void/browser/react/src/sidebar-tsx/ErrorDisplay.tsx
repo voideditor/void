@@ -68,7 +68,6 @@ export const ErrorDisplay = ({
 	error,
 	onDismiss = null,
 	showDismiss = true,
-	className = ''
 }: {
 	error: Error | object | string,
 	onDismiss: (() => void) | null,
@@ -81,7 +80,7 @@ export const ErrorDisplay = ({
 	const hasDetails = details.cause || Object.keys(details.additional).length > 0;
 
 	return (
-		<div className={`rounded-lg border border-red-200 bg-red-50 p-4 ${className}`}>
+		<div className={`rounded-lg border border-red-200 bg-red-50 p-4 overflow-auto`}>
 			{/* Header */}
 			<div className="flex items-start justify-between">
 				<div className="flex gap-3">

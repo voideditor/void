@@ -56,21 +56,28 @@ export const SidebarThreadSelector = () => {
 
 					let btnStringArr: string[] = []
 
-					let msg1 = truncate(allThreads[threadId].messages[0]?.displayContent ?? '(empty)')
-					btnStringArr.push(msg1)
+					const firstUserMsg = allThreads[threadId].messages.find(msg => msg.role === 'user')?.displayContent ?? ''
+					let msg1 = truncate(firstUserMsg)
+					if (msg1)
+						btnStringArr.push(msg1)
+					else
+						btnStringArr.push('""')
 
-					let msg2 = truncate(allThreads[threadId].messages[1]?.displayContent ?? '')
+					const firstAssistantMsg = allThreads[threadId].messages.find(msg => msg.role === 'assistant')?.displayContent ?? ''
+					let msg2 = truncate(firstAssistantMsg)
 					if (msg2)
 						btnStringArr.push(msg2)
 
-					btnStringArr.push(allThreads[threadId].messages.length + '')
+					const numMessages = allThreads[threadId].messages.filter(msg => msg.role !== 'system').length
+					if (firstUserMsg && firstAssistantMsg)
+						btnStringArr.push((numMessages - 2) + '')
 
 					const btnString = btnStringArr.join(' / ')
 
 					return (
 						<button
 							key={pastThread.id}
-							className={`btn btn-sm rounded-sm ${pastThread.id === threadsStateService.getCurrentThread(threadsState)?.id ? "btn-primary" : "btn-secondary"}`}
+							className={`rounded-sm`}
 							onClick={() => threadsStateService.switchToThread(pastThread.id)}
 							title={new Date(pastThread.createdAt).toLocaleString()}
 						>

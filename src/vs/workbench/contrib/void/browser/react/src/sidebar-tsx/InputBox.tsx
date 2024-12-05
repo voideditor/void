@@ -1,36 +1,59 @@
-// import { useEffect, useRef } from 'react'
-// import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-// import { useService } from '../util/services.js'
-// import { defaultInputBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js'
+import React, { useEffect, useRef } from 'react';
+import { useService } from '../util/services.js';
+import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { defaultInputBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 
-// export const InputBox = ({ onChangeText, placeholder, className }: { onChangeText: (value: string) => void, placeholder: string, className: string }) => {
+export const InputBox = ({ onChangeText, placeholder, historyInputBoxRef, }: {
+	onChangeText: (value: string) => void;
+	placeholder: string;
+	historyInputBoxRef: React.MutableRefObject<HistoryInputBox | null>; // update this whenever historyInputBoxRef.current changes
+}) => {
+	const contextViewProvider = useService('contextViewService');
 
-// 	const domNodeRef = useRef<HTMLDivElement | null>(null)
+	const containerRef = useRef<HTMLDivElement>(null);
 
-// 	const contextViewProvider = useService('contextViewService')
+	useEffect(() => {
+		if (!containerRef.current) return;
+
+		// create and mount the HistoryInputBox
+		historyInputBoxRef.current = new HistoryInputBox(
+			containerRef.current,
+			contextViewProvider,
+			{
+				inputBoxStyles: {
+					...defaultInputBoxStyles,
+					inputBackground: 'transparent',
+				},
+				placeholder,
+				history: [],
+				flexibleHeight: true,
+				flexibleMaxHeight: 500,
+				flexibleWidth: false,
+			}
+		);
 
 
-// 	useEffect(() => {
+		historyInputBoxRef.current.onDidChange((newStr) => {
+			onChangeText(newStr)
+		})
 
-// 		const htmlNode = domNodeRef.current
-// 		if (!htmlNode) return
+		// historyInputBoxRef.current.onDidHeightChange((newHeight) => {
+		// 	console.log('CHANGE height', newHeight);
+		// })
 
+		// cleanup
+		return () => {
+			if (historyInputBoxRef.current) {
+				historyInputBoxRef.current.dispose();
+				if (containerRef.current) {
+					while (containerRef.current.firstChild) {
+						containerRef.current.removeChild(containerRef.current.firstChild);
+					}
+				}
+				historyInputBoxRef.current = null;
+			}
+		};
+	}, [onChangeText, placeholder, contextViewProvider]); // Empty dependency array since we only want to mount/unmount once
 
-// 		console.log('creating inputbox')
-// 		const widget = new HistoryInputBox(htmlNode, contextViewProvider, {
-// 			inputBoxStyles: defaultInputBoxStyles,
-// 			placeholder,
-// 			history: [],
-// 		})
-
-
-// 		widget.onDidChange((newStr) => { onChangeText(newStr) })
-
-// 		return () => {
-// 			console.log('disposing inputbox')
-// 			widget.dispose()
-// 		}
-// 	}, [onChangeText, contextViewProvider, placeholder])
-
-// 	return <div ref={domNodeRef}className={className}/>
-// }
+	return <div ref={containerRef} className="w-full" />;
+};

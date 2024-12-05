@@ -19,6 +19,8 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../getCmdKey.js'
+import { InputBox } from './InputBox.js';
+import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
@@ -147,8 +149,6 @@ export const SidebarChat = () => {
 	const threadsStateService = useService('threadsStateService')
 
 	// ----- SIDEBAR CHAT state (local) -----
-	// state of current message
-	const [instructions, setInstructions] = useState('') // the user's instructions
 
 	// state of chat
 	const [messageStream, setMessageStream] = useState<string | null>(null)
@@ -159,9 +159,14 @@ export const SidebarChat = () => {
 
 	const sendLLMMessageService = useService('sendLLMMessageService')
 
-	const isDisabled = !instructions
 
+	// state of current message
+	const [instructions, setInstructions] = useState('') // the user's instructions
+	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
+	const isDisabled = !instructions
 	const formRef = useRef<HTMLFormElement | null>(null)
+	const inputBoxRef: React.MutableRefObject<HistoryInputBox | null> = useRef(null);
+
 	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
 		e.preventDefault()
@@ -223,8 +228,10 @@ export const SidebarChat = () => {
 
 
 		setIsLoading(true)
-		setInstructions('');
-		formRef.current?.reset(); // reset the form's text when clear instructions or unexpected behavior happens
+		if (inputBoxRef.current) {
+			inputBoxRef.current.value = ''; // this triggers onDidChangeText
+			inputBoxRef.current.blur();
+		}
 		threadsStateService.setStaging([]) // clear staging
 		setLatestError(null)
 
@@ -257,7 +264,7 @@ export const SidebarChat = () => {
 				<ChatBubble key={i} chatMessage={message} />
 			)}
 			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream , displayContent: messageStream || null }} />
+			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
 		</div>
 		{/* chatbar */}
 		<div className="shrink-0 py-4">
@@ -288,20 +295,20 @@ export const SidebarChat = () => {
 							}}>
 
 							{/* input */}
-							{/* <InputBox
+							<InputBox
 								placeholder={`${getCmdKey()}+L to select`}
-								onChangeText={(newStr) => { setInstructions(newStr) }}
-								className='w-full p-2 leading-tight resize-none max-h-[50vh] overflow-auto bg-transparent border-none !outline-none'
-							/> */}
+								onChangeText={onChangeText}
+								historyInputBoxRef={inputBoxRef}
+							/>
 
-							<textarea
+							{/* <textarea
 								ref={chatInputRef}
+								placeholder={`Press ${getCmdKey()}+L to select.`}
 								onChange={(e) => { setInstructions(e.target.value) }}
 								className={`w-full p-2 leading-tight resize-none max-h-[50vh] overflow-auto bg-transparent border-none !outline-none`}
-								placeholder={`${getCmdKey()}+L to select`}
 								rows={1}
 								onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
-							/>
+							/> */}
 
 							{isLoading ?
 								// stop button

@@ -19,7 +19,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../getCmdKey.js'
-import { InputBox } from './InputBox.js';
+import { InputBox } from './inputs.js';
 import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 
 // read files from VSCode
@@ -298,7 +298,9 @@ export const SidebarChat = () => {
 							<InputBox
 								placeholder={`${getCmdKey()}+L to select`}
 								onChangeText={onChangeText}
-								historyInputBoxRef={inputBoxRef}
+								inputBoxRef={inputBoxRef}
+								multiline={true}
+								initVal=''
 							/>
 
 							{/* <textarea

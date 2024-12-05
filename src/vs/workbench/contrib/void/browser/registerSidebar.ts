@@ -69,8 +69,10 @@ export type ReactServicesType = {
 	modelService: IModelService;
 	inlineDiffService: IInlineDiffsService;
 	sendLLMMessageService: ISendLLMMessageService;
-	contextViewService: IContextViewService;
 	clipboardService: IClipboardService;
+
+	contextViewService: IContextViewService;
+	contextMenuService: IContextMenuService;
 }
 
 // ---------- Define viewpane ----------
@@ -115,8 +117,9 @@ class VoidSidebarViewPane extends ViewPane {
 				modelService: accessor.get(IModelService),
 				inlineDiffService: accessor.get(IInlineDiffsService),
 				sendLLMMessageService: accessor.get(ISendLLMMessageService),
-				contextViewService: accessor.get(IContextViewService),
 				clipboardService: accessor.get(IClipboardService),
+				contextViewService: accessor.get(IContextViewService),
+				contextMenuService: accessor.get(IContextMenuService),
 			}
 			mountFn(parent, services);
 		});

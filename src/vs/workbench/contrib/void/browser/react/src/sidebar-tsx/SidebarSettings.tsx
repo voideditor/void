@@ -2,9 +2,12 @@
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useConfigState, useService } from '../util/services.js';
 import { IVoidConfigStateService, nonDefaultConfigFields, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../registerConfig.js';
+import { EnumInputBox, InputBox } from './inputs.js';
+import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 
 
 const SettingOfFieldAndParam = ({ field, param, configState, configStateService }:
@@ -16,13 +19,30 @@ const SettingOfFieldAndParam = ({ field, param, configState, configStateService 
 	const { enumArr, defaultVal, description } = configStateService.voidConfigInfo[field][param]
 	const val = partialVoidConfig[field]?.[param] ?? defaultVal // current value of this item
 
-	const updateState = (newValue: string) => { configStateService.setField(field, param, newValue) }
+	const updateState = useCallback((newValue: string) => {
+		configStateService.setField(field, param, newValue)
+	}, [configStateService, field, param])
+
+
+	const inputBoxRef = useRef<HistoryInputBox | null>(null);
+	const selectBoxRef = useRef<SelectBox | null>(null);
+	const forceState = useCallback((newValue: string) => {
+		if (inputBoxRef.current) {
+			// inputBoxRef.current.addToHistory();
+			inputBoxRef.current.value = newValue;
+		}
+		if (selectBoxRef.current) {
+			selectBoxRef.current.select(enumArr?.indexOf(newValue) ?? 0);
+		}
+		updateState(newValue);
+	}, [enumArr, updateState])
+
 
 	const resetButton = <button
 		disabled={val === defaultVal}
 		title={val === defaultVal ? 'This is the default value.' : `Revert value to '${defaultVal}'?`}
 		className='group btn btn-sm disabled:opacity-75 disabled:cursor-default'
-		onClick={() => updateState(defaultVal)}
+		onClick={() => forceState(defaultVal)}
 	>
 		<svg
 			className='size-5 group-disabled:stroke-current group-disabled:fill-current group-hover:stroke-red-600 group-hover:fill-red-600 duration-200'
@@ -30,27 +50,42 @@ const SettingOfFieldAndParam = ({ field, param, configState, configStateService 
 		</svg>
 	</button>
 
+
+
 	const inputElement = enumArr === undefined ?
 		// string
-		(<input
-			className='input p-1 w-full'
-			type='text'
-			value={val}
-			onChange={(e) => updateState(e.target.value)}
+		(<InputBox
+			onChangeText={updateState}
+			initVal={val}
+			multiline={false}
+			placeholder=''
+			inputBoxRef={inputBoxRef}
 		/>)
+		// <input
+		// 	className='input p-1 w-full'
+		// 	type='text'
+		// 	value={val}
+		// 	onChange={(e) => updateState(e.target.value)}
+		// />
 		:
 		// enum
-		(<select
-			className='dropdown p-1 w-full'
-			value={val}
-			onChange={(e) => updateState(e.target.value)}
-		>
-			{enumArr.map((option) => (
-				<option key={option} value={option}>
-					{option}
-				</option>
-			))}
-		</select>)
+		(<EnumInputBox
+			onChangeSelection={updateState}
+			initVal={val}
+			options={enumArr}
+			selectBoxRef={selectBoxRef}
+		/>)
+	// (<select
+	// 	className='dropdown p-1 w-full'
+	// 	value={val}
+	// 	onChange={(e) => updateState(e.target.value)}
+	// >
+	// 	{enumArr.map((option) => (
+	// 		<option key={option} value={option}>
+	// 			{option}
+	// 		</option>
+	// 	))}
+	// </select>)
 
 	return <div>
 		<label className='hidden'>{param}</label>

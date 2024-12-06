@@ -513,7 +513,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		token: CancellationToken,
 	): Promise<InlineCompletion[]> {
 
-		const disabled = false
+		const disabled = true
 		const testMode = false
 
 		if (disabled) { return []; }

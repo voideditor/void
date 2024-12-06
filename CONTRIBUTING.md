@@ -13,6 +13,7 @@ There are a few ways to contribute:
 
 Please follow the steps below to build the IDE. If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new) with any build errors, or refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
+Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`.
 
 ### a. Build Prerequisites - Mac
 

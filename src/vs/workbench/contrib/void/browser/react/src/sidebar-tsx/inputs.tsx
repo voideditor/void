@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { useService } from '../util/services.js';
-import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultInputBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox, unthemedSelectBoxStyles } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 
-export const InputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, multiline }: {
+export const VoidInputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, multiline }: {
 	onChangeText: (value: string) => void;
 	placeholder: string;
-	inputBoxRef: React.MutableRefObject<HistoryInputBox | null>;
+	inputBoxRef: React.MutableRefObject<InputBox | null>;
 	multiline: boolean;
 	initVal: string;
 }) => {
@@ -19,7 +19,7 @@ export const InputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, mult
 		if (!containerRef.current) return;
 
 		// create and mount the HistoryInputBox
-		inputBoxRef.current = new HistoryInputBox(
+		inputBoxRef.current = new InputBox(
 			containerRef.current,
 			contextViewProvider,
 			{
@@ -28,19 +28,19 @@ export const InputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, mult
 					inputBackground: 'transparent',
 				},
 				placeholder,
-				history: [initVal],
 				flexibleHeight: multiline,
 				flexibleMaxHeight: 500,
 				flexibleWidth: false,
 
 			}
 		);
+		inputBoxRef.current.value = initVal;
+
 
 		inputBoxRef.current.onDidChange((newStr) => {
 			console.log('CHANGE TEXT on inputbox', newStr)
 			onChangeText(newStr)
 		})
-
 
 		// cleanup
 		return () => {
@@ -54,14 +54,14 @@ export const InputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, mult
 				inputBoxRef.current = null;
 			}
 		};
-	}, [inputBoxRef, onChangeText, placeholder, contextViewProvider, initVal, multiline]); // Empty dependency array since we only want to mount/unmount once
+	}, [inputBoxRef, contextViewProvider, placeholder, multiline, initVal, onChangeText]); // Empty dependency array since we only want to mount/unmount once
 
 	return <div ref={containerRef} className="w-full" />;
 };
 
 
 
-export const EnumInputBox = ({ onChangeSelection, initVal, selectBoxRef, options }: {
+export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, options }: {
 	onChangeSelection: (value: string) => void;
 	initVal: string;
 	selectBoxRef: React.MutableRefObject<SelectBox | null>;
@@ -98,7 +98,7 @@ export const EnumInputBox = ({ onChangeSelection, initVal, selectBoxRef, options
 				}
 			}
 		};
-	}, [options, initVal, onChangeSelection, contextViewProvider]);
+	}, [options, initVal, onChangeSelection, contextViewProvider, selectBoxRef]);
 
 	return <div ref={containerRef} className="w-full" />;
 };

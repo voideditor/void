@@ -5,7 +5,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useConfigState, useService } from '../util/services.js';
 import { IVoidConfigStateService, nonDefaultConfigFields, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../registerConfig.js';
-import { EnumInputBox, InputBox } from './inputs.js';
+import { VoidSelectBox, VoidInputBox } from './inputs.js';
 import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 
@@ -18,6 +18,7 @@ const SettingOfFieldAndParam = ({ field, param, configState, configStateService 
 
 	const { enumArr, defaultVal, description } = configStateService.voidConfigInfo[field][param]
 	const val = partialVoidConfig[field]?.[param] ?? defaultVal // current value of this item
+	const initValRef = useRef(val)
 
 	const updateState = useCallback((newValue: string) => {
 		configStateService.setField(field, param, newValue)
@@ -28,13 +29,12 @@ const SettingOfFieldAndParam = ({ field, param, configState, configStateService 
 	const selectBoxRef = useRef<SelectBox | null>(null);
 	const forceState = useCallback((newValue: string) => {
 		if (inputBoxRef.current) {
-			// inputBoxRef.current.addToHistory();
 			inputBoxRef.current.value = newValue;
 		}
 		if (selectBoxRef.current) {
 			selectBoxRef.current.select(enumArr?.indexOf(newValue) ?? 0);
 		}
-		updateState(newValue);
+		// updateState is called automatically when the change happens
 	}, [enumArr, updateState])
 
 
@@ -54,9 +54,9 @@ const SettingOfFieldAndParam = ({ field, param, configState, configStateService 
 
 	const inputElement = enumArr === undefined ?
 		// string
-		(<InputBox
+		(<VoidInputBox
 			onChangeText={updateState}
-			initVal={val}
+			initVal={initValRef.current}
 			multiline={false}
 			placeholder=''
 			inputBoxRef={inputBoxRef}
@@ -69,9 +69,9 @@ const SettingOfFieldAndParam = ({ field, param, configState, configStateService 
 		// />
 		:
 		// enum
-		(<EnumInputBox
+		(<VoidSelectBox
 			onChangeSelection={updateState}
-			initVal={val}
+			initVal={initValRef.current}
 			options={enumArr}
 			selectBoxRef={selectBoxRef}
 		/>)

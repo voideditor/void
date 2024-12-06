@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import { parseMaxTokensStr } from '../../../registerConfig.js';
-import { SendLLMMessageFnTypeInternal } from './_types.js';
+import { SendLLMMessageFnTypeInternal } from './util';
+import { parseMaxTokensStr } from './util.js';
 
 
 // OpenAI, OpenRouter, OpenAICompatible

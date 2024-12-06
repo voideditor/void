@@ -1,6 +1,6 @@
 import Groq from 'groq-sdk';
-import { SendLLMMessageFnTypeInternal } from './_types.js';
-import { parseMaxTokensStr } from '../../../registerConfig.js';
+import { SendLLMMessageFnTypeInternal } from './util';
+import { parseMaxTokensStr } from './util.js';
 
 // Groq
 export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {

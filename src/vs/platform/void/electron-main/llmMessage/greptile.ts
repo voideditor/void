@@ -3,7 +3,7 @@
 // https://docs.greptile.com/api-reference/query
 // https://docs.greptile.com/quickstart#sample-response-streamed
 
-import { SendLLMMessageFnTypeInternal } from './_types.js';
+import { SendLLMMessageFnTypeInternal } from './util';
 
 export const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 

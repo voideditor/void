@@ -3,7 +3,8 @@
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { VoidConfig } from '../../../workbench/contrib/void/browser/registerConfig.js';
+import { VoidConfig } from './configTypes.js'
+
 
 // ---------- type definitions ----------
 

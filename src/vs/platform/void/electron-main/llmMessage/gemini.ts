@@ -1,5 +1,5 @@
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
-import { SendLLMMessageFnTypeInternal } from './_types.js';
+import { SendLLMMessageFnTypeInternal } from './util';
 
 // Gemini
 export const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {

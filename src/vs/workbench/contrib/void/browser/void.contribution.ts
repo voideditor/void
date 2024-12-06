@@ -7,13 +7,10 @@
 import './registerActions.js'
 
 // register Settings
-import './registerConfig.js'
+import './registerConfig.js' // TODO move this to platform
 
 // register inline diffs
 import './registerInlineDiffs.js'
-
-// register Posthog metrics
-import './registerMetrics.js'
 
 // register Sidebar chat
 import './registerSidebar.js'

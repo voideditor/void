@@ -1,6 +1,6 @@
-import { Ollama, ErrorResponse } from 'ollama/browser';
-import { parseMaxTokensStr } from '../../../registerConfig.js';
-import { SendLLMMessageFnTypeInternal } from './_types.js';
+import { Ollama, ErrorResponse } from 'ollama';
+import { SendLLMMessageFnTypeInternal } from './util';
+import { parseMaxTokensStr } from './util.js';
 
 // Ollama
 export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {

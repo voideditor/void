@@ -122,6 +122,8 @@ import { ICSSDevelopmentService, CSSDevelopmentService } from '../../platform/cs
 import { ExtensionSignatureVerificationService, IExtensionSignatureVerificationService } from '../../platform/extensionManagement/node/extensionSignatureVerificationService.js';
 
 import { LLMMessageChannel } from '../../platform/void/electron-main/llmMessageChannel.js';
+import { IMetricsService } from '../../platform/void/common/metricsService.js';
+import { MetricsMainService } from '../../platform/void/electron-main/metricsMainService.js';
 
 /**
  * The main VS Code application. There will only ever be one instance,
@@ -1103,6 +1105,9 @@ export class CodeApplication extends Disposable {
 			services.set(ITelemetryService, NullTelemetryService);
 		}
 
+		// Void main process services (required for services with a channel for comm between browser and electron-main (node))
+		services.set(IMetricsService, new SyncDescriptor(MetricsMainService, undefined, false));
+
 		// Default Extensions Profile Init
 		services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService, undefined, true));
 		services.set(IExtensionsScannerService, new SyncDescriptor(ExtensionsScannerService, undefined, true));
@@ -1238,8 +1243,10 @@ export class CodeApplication extends Disposable {
 		sharedProcessClient.then(client => client.registerChannel('logger', loggerChannel));
 
 		// Void
-		// const sendLLMMessageChannel = ProxyChannel.fromService(accessor.get(ISendLLMMessageService), disposables);
-		const sendLLMMessageChannel = new LLMMessageChannel();
+		const metricsChannel = ProxyChannel.fromService(accessor.get(IMetricsService), disposables);
+		mainProcessElectronServer.registerChannel('void-channel-metrics', metricsChannel);
+
+		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
 		mainProcessElectronServer.registerChannel('void-channel-sendLLMMessage', sendLLMMessageChannel);
 
 		// Extension Host Debug Broadcasting

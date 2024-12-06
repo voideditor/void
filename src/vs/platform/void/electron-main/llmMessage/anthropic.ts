@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { SendLLMMessageFnTypeInternal } from './_types.js';
-import { parseMaxTokensStr } from '../../../registerConfig.js';
+import { parseMaxTokensStr, SendLLMMessageFnTypeInternal } from './util.js';
 
 // Anthropic
 type LLMMessageAnthropic = {

@@ -4,10 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useConfigState, useService } from '../util/services.js';
-import { IVoidConfigStateService, nonDefaultConfigFields, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../registerConfig.js';
+
 import { VoidSelectBox, VoidInputBox } from './inputs.js';
 import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
+import { ConfigState, IVoidConfigStateService } from '../../../registerConfig.js';
+import { nonDefaultConfigFields, VoidConfigField } from '../../../../../../../platform/void/common/configTypes.js';
 
 
 const SettingOfFieldAndParam = ({ field, param, configState, configStateService }:

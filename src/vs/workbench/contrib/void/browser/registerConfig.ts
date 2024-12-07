@@ -10,7 +10,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 
-const configEnum = <EnumArr extends readonly string[]>(description: string, defaultVal: EnumArr[number], enumArr: EnumArr) => {
+const _uiConfig = <EnumArr extends readonly string[]>(description: string, defaultVal: EnumArr[number], enumArr?: EnumArr) => {
 	return {
 		description,
 		defaultVal,
@@ -18,20 +18,13 @@ const configEnum = <EnumArr extends readonly string[]>(description: string, defa
 	}
 }
 
-const configString = (description: string, defaultVal: string) => {
-	return {
-		description,
-		defaultVal,
-		enumArr: undefined,
-	}
-}
 
 // fields you can customize (don't forget 'default' - it isn't included here!)
 export const nonDefaultConfigFields = [
 	'anthropic',
 	'openAI',
 	'gemini',
-	'greptile',
+	// 'greptile',
 	'ollama',
 	'openRouter',
 	'openAICompatible',
@@ -50,13 +43,13 @@ const voidConfigInfo: Record<
 	}
 > = {
 	default: {
-		whichApi: configEnum(
+		whichApi: _uiConfig(
 			'API Provider.',
 			'anthropic',
 			nonDefaultConfigFields,
 		),
 
-		maxTokens: configEnum(
+		maxTokens: _uiConfig(
 			'Max number of tokens to output.',
 			'1024',
 			[
@@ -70,8 +63,8 @@ const voidConfigInfo: Record<
 
 	},
 	anthropic: {
-		apikey: configString('Anthropic API key.', ''),
-		model: configEnum(
+		apikey: _uiConfig('Anthropic API key.', ''),
+		model: _uiConfig(
 			'Anthropic model to use.',
 			'claude-3-5-sonnet-20240620',
 			[
@@ -83,8 +76,8 @@ const voidConfigInfo: Record<
 		),
 	},
 	openAI: {
-		apikey: configString('OpenAI API key.', ''),
-		model: configEnum(
+		apikey: _uiConfig('OpenAI API key.', ''),
+		model: _uiConfig(
 			'OpenAI model to use.',
 			'gpt-4o',
 			[
@@ -108,43 +101,46 @@ const voidConfigInfo: Record<
 			] as const
 		),
 	},
-	greptile: {
-		apikey: configString('Greptile API key.', ''),
-		githubPAT: configString('Github PAT that Greptile uses to access your repository', ''),
-		remote: configEnum(
-			'Repo location',
-			'github',
-			[
-				'github',
-				'gitlab'
-			] as const
-		),
-		repository: configString('Repository identifier in "owner / repository" format.', ''),
-		branch: configString('Name of the branch to use.', 'main'),
-	},
 	ollama: {
-		endpoint: configString(
-			'The endpoint of your Ollama instance. Start Ollama by running `OLLAMA_ORIGINS="vscode - webview://*" ollama serve`.',
+		endpoint: _uiConfig(
+			'The endpoint of your Ollama instance.',
 			'http://127.0.0.1:11434'
 		),
-		model: configEnum(
+		model: _uiConfig(
 			'Ollama model to use.',
 			'codestral',
 			['codestral', 'qwen2.5-coder', 'qwen2.5-coder:0.5b', 'qwen2.5-coder:1.5b', 'qwen2.5-coder:3b', 'qwen2.5-coder:7b', 'qwen2.5-coder:14b', 'qwen2.5-coder:32b', 'codegemma', 'codegemma:2b', 'codegemma:7b', 'codellama', 'codellama:7b', 'codellama:13b', 'codellama:34b', 'codellama:70b', 'codellama:code', 'codellama:python', 'command-r', 'command-r:35b', 'command-r-plus', 'command-r-plus:104b', 'deepseek-coder-v2', 'deepseek-coder-v2:16b', 'deepseek-coder-v2:236b', 'falcon2', 'falcon2:11b', 'firefunction-v2', 'firefunction-v2:70b', 'gemma', 'gemma:2b', 'gemma:7b', 'gemma2', 'gemma2:2b', 'gemma2:9b', 'gemma2:27b', 'llama2', 'llama2:7b', 'llama2:13b', 'llama2:70b', 'llama3', 'llama3:8b', 'llama3:70b', 'llama3-chatqa', 'llama3-chatqa:8b', 'llama3-chatqa:70b', 'llama3-gradient', 'llama3-gradient:8b', 'llama3-gradient:70b', 'llama3.1', 'llama3.1:8b', 'llama3.1:70b', 'llama3.1:405b', 'llava', 'llava:7b', 'llava:13b', 'llava:34b', 'llava-llama3', 'llava-llama3:8b', 'llava-phi3', 'llava-phi3:3.8b', 'mistral', 'mistral:7b', 'mistral-large', 'mistral-large:123b', 'mistral-nemo', 'mistral-nemo:12b', 'mixtral', 'mixtral:8x7b', 'mixtral:8x22b', 'moondream', 'moondream:1.8b', 'openhermes', 'openhermes:v2.5', 'phi3', 'phi3:3.8b', 'phi3:14b', 'phi3.5', 'phi3.5:3.8b', 'qwen', 'qwen:7b', 'qwen:14b', 'qwen:32b', 'qwen:72b', 'qwen:110b', 'qwen2', 'qwen2:0.5b', 'qwen2:1.5b', 'qwen2:7b', 'qwen2:72b', 'smollm', 'smollm:135m', 'smollm:360m', 'smollm:1.7b'] as const
 		),
 	},
 	openRouter: {
-		model: configString(
+		model: _uiConfig(
 			'OpenRouter model to use.',
 			'openai/gpt-4o'
 		),
-		apikey: configString('OpenRouter API key.', ''),
+		apikey: _uiConfig('OpenRouter API key.', ''),
 	},
 	openAICompatible: {
-		endpoint: configString('The baseUrl (exluding /chat/completions).', 'http://127.0.0.1:11434/v1'),
-		model: configString('The name of the model to use.', 'gpt-4o'),
-		apikey: configString('Your API key.', ''),
+		endpoint: _uiConfig('The baseUrl (exluding /chat/completions).', 'http://127.0.0.1:11434/v1'),
+		model: _uiConfig('The name of the model to use.', 'gpt-4o'),
+		apikey: _uiConfig('Your API key.', ''),
 	},
+
+	// greptile: {
+	// 	apikey: _uiConfig('Greptile API key.', ''),
+	// 	githubPAT: _uiConfig('Github PAT that Greptile uses to access your repository', ''),
+	// 	remote: _uiConfig(
+	// 		'Repo location',
+	// 		'github',
+	// 		[
+	// 			'github',
+	// 			'gitlab'
+	// 		] as const
+	// 	),
+	// 	repository: _uiConfig('Repository identifier in "owner / repository" format.', ''),
+	// 	branch: _uiConfig('Name of the branch to use.', 'main'),
+	// },
+
+
 	azure: {
 		// 'void.azure.apiKey': {
 		// 	'type': 'string',
@@ -174,8 +170,8 @@ const voidConfigInfo: Record<
 		// },
 	},
 	gemini: {
-		apikey: configString('Google API key.', ''),
-		model: configEnum(
+		apikey: _uiConfig('Google API key.', ''),
+		model: _uiConfig(
 			'Gemini model to use.',
 			'gemini-1.5-flash',
 			[

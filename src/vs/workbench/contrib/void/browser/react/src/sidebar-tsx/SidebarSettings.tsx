@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import React, { useEffect, useState } from 'react';
 import { useConfigState, useService } from '../util/services.js';
-import { IVoidConfigStateService, nonDefaultConfigFields, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../registerConfig.js';
+import { IVoidConfigStateService, allowedProviders, PartialVoidConfig, VoidConfig, VoidConfigField, VoidConfigInfo, SetFieldFnType, ConfigState } from '../../../registerConfig.js';
 
 
 const SettingOfFieldAndParam = ({ field, param, configState, configStateService }:
@@ -93,7 +93,7 @@ export const SidebarSettings = () => {
 			<hr />
 
 			{/* render all fields, but hide the ones not visible for fast tab switching */}
-			{nonDefaultConfigFields.map(field => {
+			{allowedProviders.map(field => {
 				return <div
 					key={field}
 					className={`flex flex-col gap-y-2 ${field !== current_field ? 'hidden' : ''}`}

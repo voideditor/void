@@ -427,10 +427,10 @@ export const getFimSystem: getFimPrompt = ({ voidConfig, prefix, suffix }) => {
 		case 'anthropic':
 		case 'openAI':
 		case 'gemini':
-		// case 'greptile':
+			// case 'greptile':
+			// case 'azure':
 		case 'openRouter':
 		case 'openAICompatible':
-		case 'azure':
 		default:
 			return `\
 You are given the START and END to a piece of code. Please FILL IN THE MIDDLE between the START and END.
@@ -496,9 +496,9 @@ export const getFimPrompt: getFimPrompt = ({ voidConfig, prefix, suffix }) => {
 		case 'openAI':
 		case 'gemini':
 		// case 'greptile':
+		// case 'azure':
 		case 'openRouter':
 		case 'openAICompatible':
-		case 'azure':
 		default:
 			return `\
 ## START:

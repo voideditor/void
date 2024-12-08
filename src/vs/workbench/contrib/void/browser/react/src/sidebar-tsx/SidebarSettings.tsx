@@ -5,7 +5,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useConfigState, useService } from '../util/services.js';
 
-import { VoidSelectBox, VoidInputBox } from './inputs.js';
 import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { ConfigState, IVoidConfigStateService } from '../../../registerConfig.js';
@@ -53,41 +52,40 @@ const SettingOfFieldAndParam = ({ field, param, configState, configStateService 
 	</button>
 
 
-
 	const inputElement = enumArr === undefined ?
 		// string
-		(<VoidInputBox
-			onChangeText={updateState}
-			initVal={initValRef.current}
-			multiline={false}
-			placeholder=''
-			inputBoxRef={inputBoxRef}
-		/>)
-		// <input
-		// 	className='input p-1 w-full'
-		// 	type='text'
-		// 	value={val}
-		// 	onChange={(e) => updateState(e.target.value)}
-		// />
+		// (<VoidInputBox
+		// 	onChangeText={updateState}
+		// 	initVal={initValRef.current}
+		// 	multiline={false}
+		// 	placeholder=''
+		// 	inputBoxRef={inputBoxRef}
+		// />)
+		<input
+			className='input p-1 w-full'
+			type='text'
+			value={val}
+			onChange={(e) => updateState(e.target.value)}
+		/>
 		:
 		// enum
-		(<VoidSelectBox
-			onChangeSelection={updateState}
-			initVal={initValRef.current}
-			options={enumArr}
-			selectBoxRef={selectBoxRef}
-		/>)
-	// (<select
-	// 	className='dropdown p-1 w-full'
-	// 	value={val}
-	// 	onChange={(e) => updateState(e.target.value)}
-	// >
-	// 	{enumArr.map((option) => (
-	// 		<option key={option} value={option}>
-	// 			{option}
-	// 		</option>
-	// 	))}
-	// </select>)
+		// (<VoidSelectBox
+		// 	onChangeSelection={updateState}
+		// 	initVal={initValRef.current}
+		// 	options={enumArr}
+		// 	selectBoxRef={selectBoxRef}
+		// />)
+		(<select
+			className='dropdown p-1 w-full'
+			value={val}
+			onChange={(e) => updateState(e.target.value)}
+		>
+			{enumArr.map((option) => (
+				<option key={option} value={option}>
+					{option}
+				</option>
+			))}
+		</select>)
 
 	return <div>
 		<label className='hidden'>{param}</label>

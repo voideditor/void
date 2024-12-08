@@ -23,17 +23,19 @@ export type CodeStagingSelection = {
 	fileURI: URI;
 }
 
+
+// WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
 	| {
 		role: 'user';
-		content: string; // content sent to the llm
-		displayContent: string; // content displayed to user
+		content: string | null; // content sent to the llm - yes, allowed to be '', will be replaced with (empty)
+		displayContent: string | null; // content displayed to user  - yes, allowed to be '', will be ignored
 		selections: CodeSelection[] | null; // the user's selection
 	}
 	| {
 		role: 'assistant';
-		content: string; // content received from LLM
-		displayContent: string | undefined; // content displayed to user (this is the same as content for now)
+		content: string | null; // content received from LLM  - yes, allowed to be '', will be replaced with (empty)
+		displayContent: string | null; // content displayed to user (this is the same as content for now) - yes, allowed to be '', will be ignored
 	}
 	| {
 		role: 'system';
@@ -133,6 +135,8 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 	}
 
 	switchToThread(threadId: string) {
+		console.log('threadId', threadId)
+		console.log('messages', this.state.allThreads[threadId].messages)
 		this._setState({ _currentThreadId: threadId }, true)
 	}
 
@@ -194,3 +198,4 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 }
 
 registerSingleton(IThreadHistoryService, ThreadHistoryService, InstantiationType.Eager);
+

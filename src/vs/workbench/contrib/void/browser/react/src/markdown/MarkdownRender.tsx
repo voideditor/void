@@ -16,6 +16,9 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
 	const inlineDiffService = useService('inlineDiffService')
 
+	const clipboardService = useService('clipboardService')
+
+
 	useEffect(() => {
 		if (copyButtonState !== CopyButtonState.Copy) {
 			setTimeout(() => {
@@ -25,15 +28,10 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 	}, [copyButtonState])
 
 	const onCopy = useCallback(() => {
-		navigator.clipboard.writeText(text).then(
-			() => {
-				setCopyButtonState(CopyButtonState.Copied)
-			},
-			() => {
-				setCopyButtonState(CopyButtonState.Error)
-			}
-		)
-	}, [text])
+		clipboardService.writeText(text)
+			.then(() => { setCopyButtonState(CopyButtonState.Copied) })
+			.catch(() => { setCopyButtonState(CopyButtonState.Error) })
+	}, [text, clipboardService])
 
 	return <>
 		<button

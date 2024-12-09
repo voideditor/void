@@ -1,63 +1,63 @@
-// import React, { useEffect, useRef } from 'react';
-// import { useService } from '../util/services.js';
-// import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-// import { defaultInputBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
-// import { SelectBox, unthemedSelectBoxStyles } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
+import React, { useEffect, useRef } from 'react';
+import { useService } from '../util/services.js';
+import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { defaultInputBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
+import { SelectBox, unthemedSelectBoxStyles } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 
-// export const VoidInputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, multiline }: {
-// 	onChangeText: (value: string) => void;
-// 	placeholder: string;
-// 	inputBoxRef: React.MutableRefObject<InputBox | null>;
-// 	multiline: boolean;
-// 	initVal: string;
-// }) => {
-// 	const contextViewProvider = useService('contextViewService');
+export const VoidInputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, multiline }: {
+	onChangeText: (value: string) => void;
+	placeholder: string;
+	inputBoxRef: React.MutableRefObject<InputBox | null>;
+	multiline: boolean;
+	initVal: string;
+}) => {
+	const contextViewProvider = useService('contextViewService');
 
-// 	const containerRef = useRef<HTMLDivElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 
-// 	useEffect(() => {
-// 		if (!containerRef.current) return;
+	useEffect(() => {
+		if (!containerRef.current) return;
 
-// 		// create and mount the HistoryInputBox
-// 		inputBoxRef.current = new InputBox(
-// 			containerRef.current,
-// 			contextViewProvider,
-// 			{
-// 				inputBoxStyles: {
-// 					...defaultInputBoxStyles,
-// 					inputBackground: 'transparent',
-// 				},
-// 				placeholder,
-// 				flexibleHeight: multiline,
-// 				flexibleMaxHeight: 500,
-// 				flexibleWidth: false,
+		// create and mount the HistoryInputBox
+		inputBoxRef.current = new InputBox(
+			containerRef.current,
+			contextViewProvider,
+			{
+				inputBoxStyles: {
+					...defaultInputBoxStyles,
+					inputBackground: 'transparent',
+				},
+				placeholder,
+				flexibleHeight: multiline,
+				flexibleMaxHeight: 500,
+				flexibleWidth: false,
 
-// 			}
-// 		);
-// 		inputBoxRef.current.value = initVal;
+			}
+		);
+		inputBoxRef.current.value = initVal;
 
 
-// 		inputBoxRef.current.onDidChange((newStr) => {
-// 			console.log('CHANGE TEXT on inputbox', newStr)
-// 			onChangeText(newStr)
-// 		})
+		inputBoxRef.current.onDidChange((newStr) => {
+			console.log('CHANGE TEXT on inputbox', newStr)
+			onChangeText(newStr)
+		})
 
-// 		// cleanup
-// 		return () => {
-// 			if (inputBoxRef.current) {
-// 				inputBoxRef.current.dispose();
-// 				if (containerRef.current) {
-// 					while (containerRef.current.firstChild) {
-// 						containerRef.current.removeChild(containerRef.current.firstChild);
-// 					}
-// 				}
-// 				inputBoxRef.current = null;
-// 			}
-// 		};
-// 	}, [inputBoxRef, contextViewProvider, placeholder, multiline, initVal, onChangeText]);
+		// cleanup
+		return () => {
+			if (inputBoxRef.current) {
+				inputBoxRef.current.dispose();
+				if (containerRef.current) {
+					while (containerRef.current.firstChild) {
+						containerRef.current.removeChild(containerRef.current.firstChild);
+					}
+				}
+				inputBoxRef.current = null;
+			}
+		};
+	}, [inputBoxRef, contextViewProvider, placeholder, multiline, initVal, onChangeText]);
 
-// 	return <div ref={containerRef} className="w-full" />;
-// };
+	return <div ref={containerRef} className="w-full" />;
+};
 
 
 

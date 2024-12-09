@@ -19,8 +19,8 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../getCmdKey.js'
-import { VoidInputBox } from './inputs.js';
 import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { VoidInputBox } from './inputs.js';
 
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {

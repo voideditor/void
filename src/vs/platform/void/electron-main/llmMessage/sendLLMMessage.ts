@@ -1,5 +1,6 @@
-import { posthog } from 'posthog-js'
-import type { OnText, OnError, OnFinalMessage, SendLLMMMessageParams, } from '../../../../../../../platform/void/common/llmMessageTypes.js';
+import { SendLLMMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
+import { IMetricsService } from '../../common/metricsService.js';
+
 import { sendAnthropicMsg } from './anthropic.js';
 import { sendGeminiMsg } from './gemini.js';
 import { sendGreptileMsg } from './greptile.js';
@@ -8,7 +9,14 @@ import { sendOllamaMsg } from './ollama.js';
 import { sendOpenAIMsg } from './openai.js';
 
 
-export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFinalMessage_, onError: onError_, abortRef: abortRef_, voidConfig, logging: { loggingName } }: SendLLMMMessageParams) => {
+export const sendLLMMessage = (
+	{
+		messages, onText: onText_, onFinalMessage: onFinalMessage_, onError: onError_,
+		abortRef: abortRef_, voidConfig, logging: { loggingName },
+	}: SendLLMMMessageParams,
+
+	metricsService: IMetricsService
+) => {
 	if (!voidConfig) return;
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
@@ -16,7 +24,7 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureChatEvent = (eventId: string, extras?: object) => {
-		posthog.capture(eventId, {
+		metricsService.capture(eventId, {
 			whichApi: voidConfig.default['whichApi'],
 			numMessages: messages?.length,
 			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
@@ -44,15 +52,16 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 	}
 
 	const onError: OnError = ({ error }) => {
-		console.error('sendLLMMessage onError:', error)
 		if (_didAbort) return
+		console.error('sendLLMMessage onError:', error)
 		captureChatEvent(`${loggingName} - Error`, { error })
 		onError_({ error })
 	}
 
 	const onAbort = () => {
 		captureChatEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
-		_aborter?.()
+		try { _aborter?.() } // aborter sometimes automatically throws an error
+		catch (e) { }
 		_didAbort = true
 	}
 	abortRef_.current = onAbort
@@ -90,8 +99,8 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 	catch (error) {
 		if (error instanceof Error) { onError({ error }) }
 		else { onError({ error: `Unexpected Error in sendLLMMessage: ${error}` }); }
-		; (_aborter as any)?.()
-		_didAbort = true
+		// ; (_aborter as any)?.()
+		// _didAbort = true
 	}
 
 

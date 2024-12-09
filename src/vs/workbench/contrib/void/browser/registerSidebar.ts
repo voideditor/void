@@ -11,7 +11,6 @@ import {
 } from '../../../common/views.js';
 
 import * as nls from '../../../../nls.js';
-import * as dom from '../../../../base/browser/dom.js';
 
 import { Codicon } from '../../../../base/common/codicons.js';
 import { localize } from '../../../../nls.js';
@@ -33,7 +32,7 @@ import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
+import { IContextMenuService, IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
@@ -48,6 +47,7 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
@@ -69,6 +69,10 @@ export type ReactServicesType = {
 	modelService: IModelService;
 	inlineDiffService: IInlineDiffsService;
 	sendLLMMessageService: ISendLLMMessageService;
+	clipboardService: IClipboardService;
+
+	contextViewService: IContextViewService;
+	contextMenuService: IContextMenuService;
 }
 
 // ---------- Define viewpane ----------
@@ -100,9 +104,8 @@ class VoidSidebarViewPane extends ViewPane {
 
 	protected override renderBody(parent: HTMLElement): void {
 		super.renderBody(parent);
-
-		const { root } = dom.h('div@root')
-		dom.append(parent, root);
+		parent.style.overflow = 'auto'
+		parent.style.userSelect = 'text'
 
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
@@ -114,8 +117,11 @@ class VoidSidebarViewPane extends ViewPane {
 				modelService: accessor.get(IModelService),
 				inlineDiffService: accessor.get(IInlineDiffsService),
 				sendLLMMessageService: accessor.get(ISendLLMMessageService),
+				clipboardService: accessor.get(IClipboardService),
+				contextViewService: accessor.get(IContextViewService),
+				contextMenuService: accessor.get(IContextMenuService),
 			}
-			mountFn(root, services);
+			mountFn(parent, services);
 		});
 	}
 

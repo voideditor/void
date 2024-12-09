@@ -1,3 +1,6 @@
 {
-	"type": "module"
+	"type": "module",
+	"dependencies": {
+		"zod": "^3.23.8"
+	}
 }

@@ -115,7 +115,8 @@
     "vscode-regexpp": "^3.1.0",
     "vscode-textmate": "9.1.0",
     "yauzl": "^3.0.0",
-    "yazl": "^2.4.3"
+    "yazl": "^2.4.3",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

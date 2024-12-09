@@ -179,7 +179,6 @@ const voidConfigInfo: Record<
 			'open-codestral-mamba',
 			[
 				'open-codestral-mamba',
-				'mistral-large-latest'
 			] as const
 		),
 	},

@@ -6,18 +6,20 @@ import { parseMaxTokensStr } from './util.js';
 export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
 	let fullText = '';
 
+	const thisConfig = voidConfig.groq
+
 	const groq = new Groq({
-		apiKey: voidConfig.groq.apikey,
+		apiKey: thisConfig.apiKey,
 		dangerouslyAllowBrowser: true
 	});
 
 	await groq.chat.completions
 		.create({
 			messages: messages,
-			model: voidConfig.groq.model,
+			model: thisConfig.model,
 			stream: true,
 			temperature: 0.7,
-			max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens),
+			max_tokens: parseMaxTokensStr(thisConfig.maxTokens),
 		})
 		.then(async response => {
 			_setAborter(() => response.controller.abort())

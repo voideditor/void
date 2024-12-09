@@ -15,7 +15,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		model: thisConfig.model,
 		messages: messages,
 		stream: true,
-		options: { num_predict: parseMaxTokensStr(voidConfig.default.maxTokens) } // this is max_tokens
+		options: { num_predict: parseMaxTokensStr(thisConfig.maxTokens) } // this is max_tokens
 	})
 		.then(async stream => {
 			_setAborter(() => stream.abort())

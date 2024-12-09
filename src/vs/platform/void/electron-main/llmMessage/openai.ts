@@ -4,39 +4,38 @@ import { parseMaxTokensStr } from './util.js';
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
+export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName }) => {
 
 	let fullText = ''
 
 	let openai: OpenAI
 	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
 
-	const maxTokens = parseMaxTokensStr(voidConfig.default.maxTokens)
 
-	if (voidConfig.default.whichApi === 'openAI') {
+	if (providerName === 'openAI') {
 		const thisConfig = voidConfig.openAI
-		openai = new OpenAI({ apiKey: thisConfig.apikey, dangerouslyAllowBrowser: true });
-		options = { model: thisConfig.model, messages: messages, stream: true, max_completion_tokens: maxTokens }
+		openai = new OpenAI({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
+		options = { model: thisConfig.model, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
 	}
-	else if (voidConfig.default.whichApi === 'openRouter') {
+	else if (providerName === 'openRouter') {
 		const thisConfig = voidConfig.openRouter
 		openai = new OpenAI({
-			baseURL: 'https://openrouter.ai/api/v1', apiKey: thisConfig.apikey, dangerouslyAllowBrowser: true,
+			baseURL: 'https://openrouter.ai/api/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 			defaultHeaders: {
 				'HTTP-Referer': 'https://voideditor.com', // Optional, for including your app on openrouter.ai rankings.
 				'X-Title': 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
 			},
 		});
-		options = { model: thisConfig.model, messages: messages, stream: true, max_completion_tokens: maxTokens }
+		options = { model: thisConfig.model, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
 	}
-	else if (voidConfig.default.whichApi === 'openAICompatible') {
+	else if (providerName === 'openAICompatible') {
 		const thisConfig = voidConfig.openAICompatible
-		openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apikey, dangerouslyAllowBrowser: true })
-		options = { model: thisConfig.model, messages: messages, stream: true, max_completion_tokens: maxTokens }
+		openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true })
+		options = { model: thisConfig.model, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
 	}
 	else {
-		console.error(`sendOpenAIMsg: invalid whichApi: ${voidConfig.default.whichApi}`)
-		throw new Error(`voidConfig.whichAPI was invalid: ${voidConfig.default.whichApi}`)
+		console.error(`sendOpenAIMsg: invalid providerName: ${providerName}`)
+		throw new Error(`providerName was invalid: ${providerName}`)
 	}
 
 	openai.chat.completions

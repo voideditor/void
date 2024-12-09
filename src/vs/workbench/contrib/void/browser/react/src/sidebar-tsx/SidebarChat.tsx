@@ -11,7 +11,7 @@ import { userInstructionsStr } from '../../../prompt/stringifyFiles.js';
 import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
-import { MarkdownRender } from '../markdown/MarkdownRender.js';
+import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
@@ -110,7 +110,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 		</>
 	}
 	else if (role === 'assistant') {
-		chatbubbleContents = <MarkdownRender string={children} /> // sectionsHTML
+		chatbubbleContents = <ChatMarkdownRender string={children} /> // sectionsHTML
 	}
 
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
@@ -141,8 +141,8 @@ export const SidebarChat = () => {
 	}, [sidebarStateService, chatInputRef])
 
 	// config state
-	const configState = useConfigState()
-	const { voidConfig } = configState
+	const voidConfigState = useConfigState()
+
 
 	// threads state
 	const threadsState = useThreadsState()
@@ -220,7 +220,8 @@ export const SidebarChat = () => {
 
 				setLatestError(error)
 			},
-			voidConfig,
+			voidConfig: voidConfigState,
+			providerName: 'anthropic',
 		}
 
 		const latestRequestId = sendLLMMessageService.sendLLMMessage(object)

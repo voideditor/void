@@ -30,6 +30,7 @@ import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { LLMMessageServiceParams } from '../../../../platform/void/common/llmMessageTypes.js';
 import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+import { ProviderName } from '../../../../platform/void/common/configTypes.js';
 
 
 // gets converted to --vscode-void-greenBG, see void.css
@@ -110,10 +111,18 @@ type HistorySnapshot = {
 	})
 
 
+type StartStreamingOptions = {
+	type: 'ctrl+k',
+	providerName: ProviderName,
+	range: IRange
+} | {
+	type: 'ctrl+l',
+	providerName: ProviderName
+}
+
 export interface IInlineDiffsService {
 	readonly _serviceBrand: undefined;
-	startStreaming(type: 'ctrl+k' | 'ctrl+l', userMessage: string): void;
-
+	startStreaming(params: StartStreamingOptions, str: string): void;
 }
 
 export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffAreasService');
@@ -637,7 +646,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private async _initializeStream(uri: URI, diffRepr: string) {
+	private async _initializeStream(uri: URI, diffRepr: string, providerName: ProviderName) {
 
 		// diff area begin and end line
 		const numLines = this._getNumLines(uri)
@@ -689,7 +698,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this.diffAreaOfId[diffArea.diffareaid] = diffArea
 
 		// actually call the LLM
-		const { voidConfig } = this._voidConfigStateService.state
+		const voidConfigState = this._voidConfigStateService.state
 		const promptContent = `\
 ORIGINAL_CODE
 \`\`\`
@@ -761,7 +770,8 @@ Please finish writing the new file by applying the diff to the original file. Re
 					diffArea._sweepState = { isStreaming: false, line: null }
 					resolve();
 				},
-				voidConfig,
+				voidConfig: voidConfigState,
+				providerName,
 			}
 
 			streamRequestId = this._sendLLMMessageService.sendLLMMessage(object)
@@ -776,7 +786,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 
 
-	async startStreaming(type: 'ctrl+k' | 'ctrl+l', userMessage: string) {
+	async startStreaming(params: StartStreamingOptions, userMessage: string) {
 
 		const editor = this._editorService.getActiveCodeEditor()
 		if (!editor) return
@@ -788,7 +798,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 		// TODO deselect user's cursor
 
-		this._initializeStream(uri, userMessage)
+		this._initializeStream(uri, userMessage, params.providerName)
 	}
 
 

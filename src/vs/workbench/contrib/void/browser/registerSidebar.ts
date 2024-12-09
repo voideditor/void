@@ -53,8 +53,7 @@ import { IClipboardService } from '../../../../platform/clipboard/common/clipboa
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
-// compare against search.contribution.ts and https://app.greptile.com/chat/w1nsmt3lauwzculipycpn?repo=github%3Amain%3Amicrosoft%2Fvscode
-// and debug.contribution.ts, scm.contribution.ts (source control)
+// compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
 
 export type VoidSidebarState = {
 	isHistoryOpen: boolean;
@@ -91,10 +90,6 @@ class VoidSidebarViewPane extends ViewPane {
 		@IOpenerService openerService: IOpenerService,
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IHoverService hoverService: IHoverService,
-		// Void:
-		// @IVoidSidebarStateService private readonly _voidSidebarStateService: IVoidSidebarStateService,
-		// @IThreadHistoryService private readonly _threadHistoryService: IThreadHistoryService,
-		// TODO chat service
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService)
 

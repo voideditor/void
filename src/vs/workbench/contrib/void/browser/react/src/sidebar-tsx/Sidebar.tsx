@@ -5,7 +5,9 @@
 import React, { useEffect, useState } from 'react'
 import { mountFnGenerator } from '../util/mountFnGenerator.js'
 
-import { SidebarSettings } from './SidebarSettings.js';
+// import { SidebarSettings } from './SidebarSettings.js';
+
+
 import { useSidebarState } from '../util/services.js';
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 // import { SidebarChat } from './SidebarChat.js';
@@ -13,6 +15,8 @@ import { useSidebarState } from '../util/services.js';
 import '../styles.css'
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { SidebarChat } from './SidebarChat.js';
+import { SidebarModelSettings } from './SidebarModelSettings.js';
+import { SidebarProviderSettings } from './SidebarProviderSettings.js';
 
 const Sidebar = () => {
 	const sidebarState = useSidebarState()
@@ -37,7 +41,8 @@ const Sidebar = () => {
 			</div>
 
 			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>
-				<SidebarSettings />
+				{false && <SidebarModelSettings />}
+				<SidebarProviderSettings />
 			</div>
 
 		</div>

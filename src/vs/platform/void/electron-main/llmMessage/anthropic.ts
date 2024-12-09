@@ -10,7 +10,7 @@ export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onTex
 
 	const thisConfig = voidConfig.anthropic
 
-	const anthropic = new Anthropic({ apiKey: thisConfig.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
+	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 
 	// find system messages and concatenate them
 	const systemMessage = messages
@@ -25,7 +25,7 @@ export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onTex
 		system: systemMessage,
 		messages: anthropicMessages,
 		model: thisConfig.model,
-		max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens)!, // this might be undefined, but it will just throw an error for the user
+		max_tokens: parseMaxTokensStr(thisConfig.maxTokens)!, // this might be undefined, but it will just throw an error for the user to see
 	});
 
 

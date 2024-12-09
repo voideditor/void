@@ -44,7 +44,7 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 			onClick={async () => {
 
-				inlineDiffService.startStreaming('ctrl+l', text)
+				inlineDiffService.startStreaming({ type: 'ctrl+l', providerName: 'anthropic' }, text)
 			}}
 		>
 			Apply
@@ -125,7 +125,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 						{item.task && (
 							<input type="checkbox" checked={item.checked} readOnly />
 						)}
-						<MarkdownRender string={item.text} nested={true} />
+						<ChatMarkdownRender string={item.text} nested={true} />
 					</li>
 				))}
 			</ListTag>
@@ -209,7 +209,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	)
 }
 
-export const MarkdownRender = ({ string, nested = false }: { string: string, nested?: boolean }) => {
+export const ChatMarkdownRender = ({ string, nested = false }: { string: string, nested?: boolean }) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>

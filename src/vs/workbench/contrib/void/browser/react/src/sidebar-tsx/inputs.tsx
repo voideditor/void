@@ -61,44 +61,44 @@ export const VoidInputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, 
 
 
 
-// export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, options }: {
-// 	onChangeSelection: (value: string) => void;
-// 	initVal: string;
-// 	selectBoxRef: React.MutableRefObject<SelectBox | null>;
-// 	options: readonly string[];
+export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, options }: {
+	onChangeSelection: (value: string) => void;
+	initVal: string;
+	selectBoxRef: React.MutableRefObject<SelectBox | null>;
+	options: readonly string[];
 
-// }) => {
-// 	const containerRef = useRef<HTMLDivElement>(null);
-// 	const contextViewProvider = useService('contextViewService');
+}) => {
+	const containerRef = useRef<HTMLDivElement>(null);
+	const contextViewProvider = useService('contextViewService');
 
-// 	useEffect(() => {
-// 		if (!containerRef.current) return;
+	useEffect(() => {
+		if (!containerRef.current) return;
 
-// 		const defaultIndex = options.indexOf(initVal);
+		const defaultIndex = options.indexOf(initVal);
 
-// 		selectBoxRef.current = new SelectBox(
-// 			options.map(opt => ({ text: opt })),
-// 			defaultIndex,
-// 			contextViewProvider,
-// 			unthemedSelectBoxStyles
-// 		);
+		selectBoxRef.current = new SelectBox(
+			options.map(opt => ({ text: opt })),
+			defaultIndex,
+			contextViewProvider,
+			unthemedSelectBoxStyles
+		);
 
-// 		selectBoxRef.current.render(containerRef.current);
+		selectBoxRef.current.render(containerRef.current);
 
-// 		selectBoxRef.current.onDidSelect(e => { onChangeSelection(e.selected); });
+		selectBoxRef.current.onDidSelect(e => { onChangeSelection(e.selected); });
 
-// 		// cleanup
-// 		return () => {
-// 			if (selectBoxRef.current) {
-// 				selectBoxRef.current.dispose();
-// 				if (containerRef.current) {
-// 					while (containerRef.current.firstChild) {
-// 						containerRef.current.removeChild(containerRef.current.firstChild);
-// 					}
-// 				}
-// 			}
-// 		};
-// 	}, [options, initVal, onChangeSelection, contextViewProvider, selectBoxRef]);
+		// cleanup
+		return () => {
+			if (selectBoxRef.current) {
+				selectBoxRef.current.dispose();
+				if (containerRef.current) {
+					while (containerRef.current.firstChild) {
+						containerRef.current.removeChild(containerRef.current.firstChild);
+					}
+				}
+			}
+		};
+	}, [options, initVal, onChangeSelection, contextViewProvider, selectBoxRef]);
 
-// 	return <div ref={containerRef} className="w-full" />;
-// };
+	return <div ref={containerRef} className="w-full" />;
+};

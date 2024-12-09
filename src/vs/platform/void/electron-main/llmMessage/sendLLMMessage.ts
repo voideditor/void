@@ -2,18 +2,21 @@ import { SendLLMMMessageParams, OnText, OnFinalMessage, OnError } from '../../co
 import { IMetricsService } from '../../common/metricsService.js';
 
 import { sendAnthropicMsg } from './anthropic.js';
-import { sendGeminiMsg } from './gemini.js';
-import { sendGreptileMsg } from './greptile.js';
-import { sendGroqMsg } from './groq.js';
 import { sendOllamaMsg } from './ollama.js';
 import { sendOpenAIMsg } from './openai.js';
+import { sendGeminiMsg } from './gemini.js';
+import { sendGroqMsg } from './groq.js';
 
-
-export const sendLLMMessage = (
-	{
-		messages, onText: onText_, onFinalMessage: onFinalMessage_, onError: onError_,
-		abortRef: abortRef_, voidConfig, logging: { loggingName },
-	}: SendLLMMMessageParams,
+export const sendLLMMessage = ({
+	messages,
+	onText: onText_,
+	onFinalMessage: onFinalMessage_,
+	onError: onError_,
+	abortRef: abortRef_,
+	voidConfig,
+	logging: { loggingName },
+	providerName
+}: SendLLMMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
@@ -25,7 +28,7 @@ export const sendLLMMessage = (
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureChatEvent = (eventId: string, extras?: object) => {
 		metricsService.capture(eventId, {
-			whichApi: voidConfig.default['whichApi'],
+			providerName,
 			numMessages: messages?.length,
 			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
 			version: '2024-11-14',
@@ -69,29 +72,29 @@ export const sendLLMMessage = (
 	captureChatEvent(`${loggingName} - Sending Message`, { messageLength: messages[messages.length - 1]?.content.length })
 
 	try {
-		switch (voidConfig.default.whichApi) {
+		switch (providerName) {
 			case 'anthropic':
-				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
 				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'openAICompatible':
-				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
 				break;
 			case 'gemini':
-				sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
 				break;
 			case 'ollama':
-				sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
 				break;
-			case 'greptile':
-				sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
-				break;
+			// case 'greptile':
+			// 	sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+			// 	break;
 			case 'groq':
-				sendGroqMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendGroqMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
 				break;
 			default:
-				onError({ error: `Error: whichApi was "${voidConfig.default.whichApi}", which is not recognized!` })
+				onError({ error: `Error: whichApi was "${providerName}", which is not recognized!` })
 				break;
 		}
 	}

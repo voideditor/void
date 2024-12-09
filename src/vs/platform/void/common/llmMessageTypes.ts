@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { VoidConfig } from './configTypes.js'
+import { ProviderName, VoidConfigState } from './configTypes'
 
 
 // ---------- type definitions ----------
@@ -27,11 +27,13 @@ export type LLMMessageServiceParams = {
 	onError: OnError;
 
 	messages: LLMMessage[];
-	voidConfig: VoidConfig | null;
+	voidConfig: VoidConfigState | null;
 
 	logging: {
 		loggingName: string,
 	};
+	providerName: ProviderName;
+
 }
 
 export type SendLLMMMessageParams = {
@@ -40,11 +42,12 @@ export type SendLLMMMessageParams = {
 	onError: OnError;
 
 	messages: LLMMessage[];
-	voidConfig: VoidConfig | null;
+	voidConfig: VoidConfigState | null;
 
 	logging: {
 		loggingName: string,
 	};
+	providerName: ProviderName;
 	abortRef: AbortRef;
 }
 

@@ -8,11 +8,9 @@ There are a few ways to contribute:
 - Build New Features ([Project](https://github.com/orgs/voideditor/projects/2/views/3))
 - Submit Issues/Docs/Bugs ([Issues](https://github.com/voideditor/void/issues))
 
-
 ## Building the full IDE
 
 Please follow the steps below to build the IDE. If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new) with any build errors, or refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
-
 
 ### a. Build Prerequisites - Mac
 
@@ -23,11 +21,13 @@ If you're using a Mac, make sure you have Python and XCode installed (you probab
 If you're using a Windows computer, first get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community) (recommended) or [VS Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools) (not recommended). If you already have both, you might need to run the next few steps on both of them.
 
 Go to the "Workloads" tab and select:
+
 - `Desktop development with C++`
 - `Node.js build tools`
 
 Go to the "Individual Components" tab and select:
-- `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)`,
+
+- `MSVC v143 - VS 2022 C++ x64/x86 ARM64 Spectre-mitigated libs (Latest)` OR `MSVC v143 - VS 2022 C++ ARM64 Spectre-mitigated libs (Latest)` on ARM64 machines,
 - `C++ ATL for latest build tools with Spectre Mitigations`,
 - `C++ MFC for latest build tools with Spectre Mitigations`.
 
@@ -36,6 +36,7 @@ Finally, click Install.
 ### c. Build Prerequisites - Linux
 
 First, make sure you've installed NodeJS and run `npm install -g node-gyp`. Then:
+
 - Debian (Ubuntu, etc) - `sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev python-is-python3`.
 - Red Hat (Fedora, etc) - `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
 - Others - see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
@@ -70,7 +71,7 @@ If you ran `npm run watch`, the build is done when you see something like this:
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
 4. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `./scripts/code.bat` (Windows). This should open up the built IDE!
-You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building.
+   You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building.
 
 Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page.
 
@@ -80,13 +81,11 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 - If you see `[ERROR] Cannot start service: Host version "0.23.1" does not match binary version "0.23.0"`, run `npm i -D esbuild@0.23.0` or do a clean install of your npm dependencies.
 
-
 ## Bundling
 
 To bundle the IDE into an executable, run `npm run gulp vscode-darwin-arm64`.
 
 Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
-
 
 ## Roadmap
 
@@ -113,8 +112,6 @@ Eventually, we want to build a convenient API for creating AI tools. The API wil
 # Guidelines
 
 We're always glad to talk about new ideas, help you get set up, and make sure your changes align with our vision for the project. Feel free to shoot us a message in the #general channel of the [Discord](https://discord.gg/RSNjgaugJs) for any reason. Please check in especially if you want to make a lot of changes or build a large new feature.
-
-
 
 ## Submitting a Pull Request
 
@@ -146,35 +143,39 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 
 - vscode.proposed.editorInsets.d.ts - not modified, but code copied
 
-
 ## References
 
 For some useful links we've compiled on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
-
 ### Advanced Builder shortcuts (if you are here, you RTFM till the end so you deserve it 😉)
+
 1. Install dependencies and build the react components
-`npm install && cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../..`
+   `npm install && cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../..`
 
 2. Develop the things you want then :
-`npm run watch`
-Wait for the watch task to be done
-While the watch task is running open a new terminal then build
+   `npm run watch`
+   Wait for the watch task to be done
+   While the watch task is running open a new terminal then build
 
 NOTE : It's even possible to combine the 1. and 2. commands :
 `npm install && cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../.. && npm run watch`
 But you allready knew it 🤓. This is just useless because the watch task will need to be done again if you are not recloning the repo and building the react components.
 
 3. Build
+
 ### On Mac
+
 `./scripts/code.sh`
 Using <kbd>⌘ + ⇥ (tab)</kbd> to get focus to the editor window or by clic on it
 <kbd>⌘ + R</kbd> is reloading the window to see changes
 
 ### On Windows
+
 `./scripts/code.bat`
+
 - Press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes
 
 ### On Linux
+
 `./scripts/code.sh`
 Press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes

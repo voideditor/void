@@ -6,6 +6,7 @@ import { sendGreptileMsg } from './greptile.js';
 import { sendGroqMsg } from './groq.js';
 import { sendOllamaMsg } from './ollama.js';
 import { sendOpenAIMsg } from './openai.js';
+import { sendMistralMsg } from './mistral.js';
 
 
 export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFinalMessage_, onError: onError_, abortRef: abortRef_, voidConfig, logging: { loggingName } }: SendLLMMMessageParams) => {
@@ -72,6 +73,9 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 			case 'gemini':
 				sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
 				break;
+			case 'mistral':
+				sendMistralMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				break;
 			case 'ollama':
 				sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
 				break;
@@ -93,8 +97,4 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 		; (_aborter as any)?.()
 		_didAbort = true
 	}
-
-
-
 }
-

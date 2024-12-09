@@ -46,6 +46,7 @@ export const nonDefaultConfigFields = [
 	'openRouter',
 	'openAICompatible',
 	'azure',
+	'mistral',
 ] as const
 
 
@@ -166,6 +167,21 @@ const voidConfigInfo: Record<
 		endpoint: configString('The baseUrl (exluding /chat/completions).', 'http://127.0.0.1:11434/v1'),
 		model: configString('The name of the model to use.', 'gpt-4o'),
 		apikey: configString('Your API key.', ''),
+	},
+	mistral: {
+		endpoint: configString(
+			'Mistral endpoint you want to use, if you have fine tuned model, enter here you ednpoint',
+			'https://codestral.mistral.ai/'
+		),
+		apikey: configString('Mistral API key.', ''),
+		model: configEnum(
+			'Mistral model to use.',
+			'codestral',
+			[
+				'codestral',
+				'mistral-large-latest'
+			] as const
+		),
 	},
 	azure: {
 		// 'void.azure.apiKey': {

@@ -176,9 +176,9 @@ const voidConfigInfo: Record<
 		apikey: configString('Mistral API key.', ''),
 		model: configEnum(
 			'Mistral model to use.',
-			'codestral',
+			'open-codestral-mamba',
 			[
-				'codestral',
+				'open-codestral-mamba',
 				'mistral-large-latest'
 			] as const
 		),

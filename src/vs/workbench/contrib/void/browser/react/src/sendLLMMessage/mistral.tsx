@@ -2,8 +2,12 @@ import { Mistral } from "@mistralai/mistralai";
 import { SendLLMMessageFnTypeInternal } from "./_types.js";
 import { parseMaxTokensStr } from "../../../registerConfig.js";
 
-// Mistral
-export const sendMistralMsg: SendLLMMessageFnTypeInternal = async ({
+type LLMMessageMistral = {
+	role: "user" | "assistant" | "system";
+	content: string;
+};
+
+export const sendMistralMsg: SendLLMMessageFnTypeInternal = ({
 	messages,
 	onText,
 	onFinalMessage,
@@ -12,36 +16,48 @@ export const sendMistralMsg: SendLLMMessageFnTypeInternal = async ({
 	_setAborter,
 }) => {
 	let fullText = "";
+	const thisConfig = voidConfig.mistral;
 
 	const mistral = new Mistral({
-		apiKey: voidConfig.mistral.apikey,
+		apiKey: thisConfig.apikey,
 	});
 
-	try {
-		const response = await mistral.chat.complete({
-			model: voidConfig.mistral.model,
-			messages: messages,
-			stream: true,
-			maxTokens: parseMaxTokensStr(voidConfig.default.maxTokens),
-		});
+	// Find system messages
+	const systemMessage = messages
+		.filter((msg) => msg.role === "system")
+		.map((msg) => msg.content)
+		.join("\n");
 
-		_setAborter(() => {
-			// Pas de contrôleur disponible dans la réponse actuelle
-			// TODO: Implémenter une méthode d'annulation appropriée si nécessaire
-		});
+	// Filtrer les messages non-système
+	const mistralMessages = messages
+		.filter((msg) => msg.role !== "system")
+		.map((msg) => ({
+			role: msg.role,
+			content: msg.content,
+		})) as LLMMessageMistral[];
+
+	mistral.chat.create({
+		systemMessage:systemMessage,
+		messages: mistralMessages,
+		model: thisConfig.model,
+		stream: true,
+		max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens),
+	})
+	.then(async (response) => {
+		_setAborter(() => response.controller.abort());
 
 		for await (const chunk of response) {
 			const newText = chunk.choices[0]?.delta?.content || "";
-			if (newText) {
-				fullText += newText;
-				await onText({ newText, fullText });
-			}
+			fullText += newText;
+			onText({ newText, fullText });
 		}
-
-		await onFinalMessage({ fullText });
-	} catch (error) {
-		onError({
-			error: error instanceof Error ? error : new Error(String(error)),
-		});
-	}
+		onFinalMessage({ fullText });
+	})
+	.catch((error) => {
+		if (error instanceof Mistral.APIError && error.status === 401) {
+			onError({ error: "Invalid API key." });
+		} else {
+			onError({ error });
+		}
+	});
 };

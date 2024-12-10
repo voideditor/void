@@ -13,18 +13,18 @@ export const SidebarModelSettingsForFeature = ({ featureName }: { featureName: F
 
 	const voidConfigState = useConfigState()
 
-	const models: [string,string][] = []
+	const models: [string, string][] = []
 	for (const providerName of providerNames) {
 		const providerConfig = voidConfigState[providerName]
-		if (providerConfig.enabled === 'false') continue
+		if (providerConfig.enabled !== 'true') continue
 		providerConfig.models?.forEach(model => {
-			models.push([providerName,model])
+			models.push([providerName, model])
 		})
 	}
 
 	return <>
 		<h1>Settings - {featureName}</h1>
-		{models.map(([providerName,model], i) => <p key={i}>{providerName} - {model}</p>)}
+		{models.map(([providerName, model], i) => <p key={i}>{providerName} - {model}</p>)}
 	</>
 }
 

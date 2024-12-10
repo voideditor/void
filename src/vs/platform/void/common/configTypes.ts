@@ -228,7 +228,7 @@ export type VoidProviderState = {
 
 type UnionOfKeys<T> = T extends T ? keyof T : never;
 
-type ProviderSettingName = UnionOfKeys<VoidProviderState[ProviderName]>
+export type ProviderSettingName = UnionOfKeys<VoidProviderState[ProviderName]>
 
 
 
@@ -361,5 +361,5 @@ type VoidFeatureState = {
 	} | null,
 }
 export type FeatureName = keyof VoidFeatureState
-export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete']
+export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete'] as const
 

@@ -19,7 +19,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../getCmdKey.js'
-import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from './inputs.js';
 
 // read files from VSCode
@@ -124,7 +124,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 export const SidebarChat = () => {
 
-	const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
+	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
 	const modelService = useService('modelService')
 
@@ -134,11 +134,11 @@ export const SidebarChat = () => {
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { chatInputRef.current?.focus() }),
-			sidebarStateService.onDidBlurChat(() => { chatInputRef.current?.blur() })
+			sidebarStateService.onDidFocusChat(() => { inputBoxRef.current?.focus() }),
+			sidebarStateService.onDidBlurChat(() => { inputBoxRef.current?.blur() })
 		)
 		return () => disposables.forEach(d => d.dispose())
-	}, [sidebarStateService, chatInputRef])
+	}, [sidebarStateService, inputBoxRef])
 
 	// config state
 	const voidConfigState = useConfigState()
@@ -164,7 +164,7 @@ export const SidebarChat = () => {
 	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
 	const isDisabled = !instructions
 	const formRef = useRef<HTMLFormElement | null>(null)
-	const inputBoxRef: React.MutableRefObject<HistoryInputBox | null> = useRef(null);
+
 
 	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
@@ -298,7 +298,7 @@ export const SidebarChat = () => {
 							<VoidInputBox
 								placeholder={`${getCmdKey()}+L to select`}
 								onChangeText={onChangeText}
-								inputBoxRef={inputBoxRef}
+								onCreateInstance={inputBoxRef}
 								multiline={true}
 								initVal=''
 							/>

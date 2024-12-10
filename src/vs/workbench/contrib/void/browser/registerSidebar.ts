@@ -70,6 +70,9 @@ export type ReactServicesType = {
 	sendLLMMessageService: ISendLLMMessageService;
 	clipboardService: IClipboardService;
 
+	themeService: IThemeService,
+	hoverService: IHoverService,
+
 	contextViewService: IContextViewService;
 	contextMenuService: IContextMenuService;
 }
@@ -113,6 +116,8 @@ class VoidSidebarViewPane extends ViewPane {
 				inlineDiffService: accessor.get(IInlineDiffsService),
 				sendLLMMessageService: accessor.get(ISendLLMMessageService),
 				clipboardService: accessor.get(IClipboardService),
+				themeService: accessor.get(IThemeService),
+				hoverService: accessor.get(IHoverService),
 				contextViewService: accessor.get(IContextViewService),
 				contextMenuService: accessor.get(IContextMenuService),
 			}

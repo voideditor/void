@@ -10,18 +10,12 @@ import { IMetricsService } from '../common/metricsService.js';
 import { PostHog } from 'posthog-node'
 
 
+// posthog-js (old):
 // posthog.init('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2', { api_host: 'https://us.i.posthog.com', })
 
 // const buildEnv = 'development';
 // const buildNumber = '1.0.0';
 // const isMac = process.platform === 'darwin';
-// // TODO use commandKey
-// const commandKey = isMac ? '⌘' : 'Ctrl';
-// const systemInfo = {
-// 	buildEnv,
-// 	buildNumber,
-// 	isMac,
-// }
 
 export class MetricsMainService extends Disposable implements IMetricsService {
 	_serviceBrand: undefined;
@@ -43,9 +37,9 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 	}
 
 	capture: IMetricsService['capture'] = (event, params) => {
-		console.log('Capturing', { event, params })
-		console.log('full capture:', { distinctId: this._distinctId, event, properties: params })
-		this.client.capture({ distinctId: this._distinctId, event, properties: params })
+		const capture = { distinctId: this._distinctId, event, properties: params } as const
+		// console.log('full capture:', capture)
+		this.client.capture(capture)
 	}
 }
 

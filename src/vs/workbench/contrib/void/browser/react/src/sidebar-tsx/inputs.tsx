@@ -1,29 +1,54 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useService } from '../util/services.js';
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultToggleStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox, unthemedSelectBoxStyles } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { Checkbox, Toggle } from '../../../../../../../base/browser/ui/toggle/toggle.js';
-
+import { ObjectSettingCheckboxWidget } from '../../../../../preferences/browser/settingsWidgets.js'
+import { Widget } from '../../../../../../../base/browser/ui/widget.js';
+import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 // settingitem
 
-export const VoidInputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, multiline }: {
+
+
+export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, propsFn, dispose, onCreateInstance }
+	: {
+		ctor: { new(...params: CtorParams): Instance },
+		propsFn: (container: HTMLDivElement) => CtorParams,
+		onCreateInstance: (instance: Instance) => IDisposable[],
+		dispose: (instance: Instance) => void,
+	}
+) => {
+	const containerRef = useRef<HTMLDivElement | null>(null);
+
+	useEffect(() => {
+		const instance = new ctor(...propsFn(containerRef.current!));
+		const disposables = onCreateInstance(instance);
+		return () => {
+			disposables.forEach(d => d.dispose());
+			dispose(instance)
+		}
+	}, [ctor, propsFn, dispose, onCreateInstance, containerRef])
+
+	return <div ref={containerRef} className='w-full' />
+}
+
+
+
+export const VoidInputBox = ({ onChangeText, onCreateInstance, initVal, placeholder, multiline }: {
 	onChangeText: (value: string) => void;
+	onCreateInstance?: { current: InputBox | null } | ((instance: InputBox) => void | IDisposable[]);
 	placeholder: string;
-	inputBoxRef: React.MutableRefObject<InputBox | null>;
 	multiline: boolean;
 	initVal: string;
 }) => {
 	const contextViewProvider = useService('contextViewService');
 
-	const containerRef = useRef<HTMLDivElement>(null);
 
-	useEffect(() => {
-		if (!containerRef.current) return;
-
-		// create and mount the HistoryInputBox
-		inputBoxRef.current = new InputBox(
-			containerRef.current,
+	return <WidgetComponent
+		ctor={InputBox}
+		propsFn={useCallback((container) => [
+			container,
 			contextViewProvider,
 			{
 				inputBoxStyles: {
@@ -34,32 +59,29 @@ export const VoidInputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, 
 				flexibleHeight: multiline,
 				flexibleMaxHeight: 500,
 				flexibleWidth: false,
-
 			}
-		);
-		inputBoxRef.current.value = initVal;
-
-
-		inputBoxRef.current.onDidChange((newStr) => {
-			console.log('CHANGE TEXT on inputbox', newStr)
-			onChangeText(newStr)
-		})
-
-		// cleanup
-		return () => {
-			if (inputBoxRef.current) {
-				inputBoxRef.current.dispose();
-				if (containerRef.current) {
-					while (containerRef.current.firstChild) {
-						containerRef.current.removeChild(containerRef.current.firstChild);
-					}
-				}
-				inputBoxRef.current = null;
+		] as const, [contextViewProvider, placeholder, multiline])}
+		dispose={useCallback((instance: InputBox) => {
+			instance.dispose()
+			instance.element.remove()
+		}, [])}
+		onCreateInstance={useCallback((instance: InputBox) => {
+			instance.value = initVal
+			const disposables: IDisposable[] = []
+			disposables.push(
+				instance.onDidChange((newText) => onChangeText(newText))
+			)
+			if (typeof onCreateInstance === 'function') {
+				const ds = onCreateInstance(instance) ?? []
+				disposables.push(...ds)
 			}
-		};
-	}, [inputBoxRef, contextViewProvider, placeholder, multiline, initVal, onChangeText]);
-
-	return <div ref={containerRef} className="w-full" />;
+			if (typeof onCreateInstance === 'object') {
+				onCreateInstance.current = instance
+			}
+			return disposables
+		}, [initVal, onChangeText, onCreateInstance])
+		}
+	/>
 };
 
 
@@ -113,27 +135,39 @@ export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, option
 export const VoidCheckBox = ({ onChangeChecked, initVal, label, checkboxRef, }: {
 	onChangeChecked: (checked: boolean) => void;
 	initVal: boolean;
-	checkboxRef: React.MutableRefObject<Toggle | null>;
+	checkboxRef: React.MutableRefObject<ObjectSettingCheckboxWidget | null>;
 	label: string;
 }) => {
 	const containerRef = useRef<HTMLDivElement>(null);
+
+	const themeService = useService('themeService');
+	const contextViewService = useService('contextViewService');
+	const hoverService = useService('hoverService');
 
 	useEffect(() => {
 		if (!containerRef.current) return;
 
 		// Create and mount the Checkbox using VSCode's implementation
-		checkboxRef.current = new Toggle({
-			title: label,
-			isChecked: initVal,
-			...defaultToggleStyles
-		});
 
-		containerRef.current.appendChild(checkboxRef.current.domNode);
+		checkboxRef.current = new ObjectSettingCheckboxWidget(
+			containerRef.current,
+			themeService,
+			contextViewService,
+			hoverService,
+		);
 
-		checkboxRef.current.onChange(checked => {
-			console.log('CHANGE checked state on checkbox', checked);
-			onChangeChecked(checked);
-		});
+
+		checkboxRef.current.setValue([{
+			key: { type: 'string', data: label },
+			value: { type: 'boolean', data: initVal },
+			removable: false,
+			resetable: true,
+		}])
+
+		checkboxRef.current.onDidChangeList((list) => {
+			onChangeChecked(!!list);
+		})
+
 
 		// cleanup
 		return () => {

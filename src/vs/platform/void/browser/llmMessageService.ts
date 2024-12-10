@@ -27,16 +27,28 @@ export interface ISendLLMMessageService {
 export class SendLLMMessageService implements ISendLLMMessageService {
 
 	readonly _serviceBrand: undefined;
-	private readonly channel: IChannel;
+	private readonly channel: IChannel // LLMMessageChannel
 
 	private readonly _disposablesOfRequestId: Record<string, IDisposable[]> = {}
 
+	private readonly onTextEvent: Event<ProxyOnTextPayload>
+	private readonly onFinalMessageEvent: Event<ProxyOnFinalMessagePayload>
+	private readonly onErrorEvent: Event<ProxyOnErrorPayload>
 	constructor(
 		@IMainProcessService mainProcessService: IMainProcessService // used as a renderer (only usable on client side)
 	) {
 
+
 		this.channel = mainProcessService.getChannel('void-channel-sendLLMMessage')
-		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service, not needed here
+
+		console.log('setting up IPC')
+
+		// this sets up an IPC channel and takes a few ms, so should happen immediately
+		this.onTextEvent = this.channel.listen('onText')
+		this.onFinalMessageEvent = this.channel.listen('onFinalMessage')
+		this.onErrorEvent = this.channel.listen('onError')
+
+		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service
 	}
 
 	_addDisposable(requestId: string, disposable: IDisposable) {
@@ -54,28 +66,26 @@ export class SendLLMMessageService implements ISendLLMMessageService {
 
 		// listen for listenerName='onText' | 'onFinalMessage' | 'onError', and call the original function on it
 
-		const onTextEvent: Event<ProxyOnTextPayload> = this.channel.listen('onText')
 		this._addDisposable(requestId_,
-			onTextEvent(e => {
+			this.onTextEvent(e => {
 				if (requestId_ !== e.requestId) return;
 				onText(e)
 			})
 		)
 
-		const onFinalMessageEvent: Event<ProxyOnFinalMessagePayload> = this.channel.listen('onFinalMessage')
 		this._addDisposable(requestId_,
-			onFinalMessageEvent(e => {
+			this.onFinalMessageEvent(e => {
 				if (requestId_ !== e.requestId) return;
 				onFinalMessage(e)
 				this._dispose(requestId_)
 			})
 		)
 
-		const onErrorEvent: Event<ProxyOnErrorPayload> = this.channel.listen('onError')
 		this._addDisposable(requestId_,
-			onErrorEvent(e => {
+			this.onErrorEvent(e => {
+				console.log('sendLLMMessageService - error event received (havent checked req)')
 				if (requestId_ !== e.requestId) return;
-				console.log('event onError', JSON.stringify(e))
+				console.log('sendLLMMessageService - error event received', JSON.stringify(e))
 				onError(e)
 				this._dispose(requestId_)
 			})

@@ -243,9 +243,9 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 		return {
 			title: 'API Key',
 			type: 'string',
-			placeholder: providerName === 'anthropic' ? 'sk-ant-api03-abc123...' :
+			placeholder: providerName === 'anthropic' ? 'sk-ant-abc123...' : // sk-ant-api03-abc123
 				providerName === 'openAI' ? 'sk-proj-abc123...' :
-					providerName === 'openRouter' ? 'sk-or-v1-abc123...' :
+					providerName === 'openRouter' ? 'sk-or-abc123...' : // sk-or-v1-abc123
 						providerName === 'gemini' ? 'abc123...' :
 							providerName === 'groq' ? 'gsk_abc123...' :
 								'(never)',
@@ -278,7 +278,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	}
 	else if (settingName === 'enabled') {
 		return {
-			title: 'Enabled',
+			title: 'Enabled?',
 			type: 'boolean',
 			placeholder: '(never)',
 		}

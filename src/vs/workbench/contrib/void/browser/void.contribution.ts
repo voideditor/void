@@ -18,5 +18,8 @@ import './registerSidebar.js'
 // register Thread History
 import './registerThreads.js'
 
+// register Autocomplete
+import './registerAutocomplete.js'
+
 // register css
 import './media/void.css'

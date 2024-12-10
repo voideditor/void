@@ -159,7 +159,6 @@ export const SidebarChat = () => {
 
 	const sendLLMMessageService = useService('sendLLMMessageService')
 
-
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
 	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])

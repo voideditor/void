@@ -40,6 +40,10 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 	state: VoidConfigState;
 
 	// readonly voidConfigInfo: VoidConfigInfo = voidConfigInfo; // just putting this here for simplicity, it's static though
+	get _defaultState() {
+		return deepClone(defaultVoidConfigState)
+	}
+
 
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
@@ -50,7 +54,7 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 		super()
 
 		// at the start, we haven't read the partial config yet, but we need to set state to something, just treat partialVoidConfig like it's empty
-		this.state = deepClone(defaultVoidConfigState)
+		this.state = this._defaultState
 
 		// read and update the actual state immediately
 		this._readVoidConfigState().then(voidConfigState => {
@@ -59,11 +63,13 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 
 	}
 
+
+
 	private async _readVoidConfigState(): Promise<VoidConfigState> {
 		const encryptedPartialConfig = this._storageService.get(VOID_CONFIG_KEY, StorageScope.APPLICATION)
 
 		if (!encryptedPartialConfig)
-			return deepClone(defaultVoidConfigState)
+			return this._defaultState
 
 		const voidConfigStateStr = await this._encryptionService.decrypt(encryptedPartialConfig)
 		return JSON.parse(voidConfigStateStr)

@@ -11,7 +11,7 @@ import { useConfigState, useService } from '../util/services.js'
 const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
 	const voidConfigState = useConfigState()
 	const voidConfigService = useService('configStateService')
-	console.log('CONFIG', voidConfigState)
+	console.log('CONFIG!', voidConfigState)
 	console.log('provider:', providerName, voidConfigState[providerName])
 	const { models, model, ...others } = voidConfigState[providerName]
 
@@ -36,12 +36,14 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 		})}
 
 		<h2>{'Models'}</h2>
-		<VoidSelectBox
-			initVal={models[0]}
-			options={models}
-			onChangeSelection={(newVal) => { () => { } }}
-			selectBoxRef={{ current: null }}
-		/>
+		{models === null ?
+			<p>{'No models available.'}</p>
+			: <VoidSelectBox
+				initVal={models[0]}
+				options={models}
+				onChangeSelection={(newVal) => { () => { } }}
+				selectBoxRef={{ current: null }}
+			/>}
 
 		<h2>{'Enabled'}</h2>
 		todo

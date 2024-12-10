@@ -41,7 +41,8 @@ const Sidebar = () => {
 			</div>
 
 			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>
-				{false && <SidebarModelSettings />}
+				<SidebarModelSettings />
+				--------
 				<SidebarProviderSettings />
 			</div>
 

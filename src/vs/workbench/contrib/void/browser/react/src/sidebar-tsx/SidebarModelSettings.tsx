@@ -16,8 +16,8 @@ export const SidebarModelSettingsForFeature = ({ featureName }: { featureName: F
 	const models: [string,string][] = []
 	for (const providerName of providerNames) {
 		const providerConfig = voidConfigState[providerName]
-		if (!providerConfig.enabled) continue
-		providerConfig.models.forEach(model => {
+		if (providerConfig.enabled === 'false') continue
+		providerConfig.models?.forEach(model => {
 			models.push([providerName,model])
 		})
 	}
@@ -31,7 +31,6 @@ export const SidebarModelSettingsForFeature = ({ featureName }: { featureName: F
 export const SidebarModelSettings = () => {
 	return <>
 		{featureNames.map(featureName => <SidebarModelSettingsForFeature key={featureName} featureName={featureName} />)}
-
-
 	</>
 }
+

@@ -5,6 +5,46 @@
  *--------------------------------------------------------------------------------------------*/
 
 
+
+// const voidProviderDefaults = {
+// 	"ctrl+L":{
+// 		models:[ // select only if present
+// 			{
+// 				provider:"anthropic",
+// 				model:"claude-3-5-sonnet-20240620"
+// 			},
+// 		]
+// 	},
+// }
+
+
+
+export const voidProviderDefaults = {
+	anthropic: {
+		apiKey: '',
+	},
+	openAI: {
+		apiKey: '',
+	},
+	ollama: {
+		endpoint: 'http://127.0.0.1:11434',
+	},
+	openRouter: {
+		apiKey: '',
+	},
+	openAICompatible: {
+		apiKey: '',
+		endpoint: 'http://127.0.0.1:11434/v1',
+	},
+	gemini: {
+		apiKey: '',
+	},
+	groq: {
+		apiKey: ''
+	}
+} as const
+
+
 export const voidInitModelOptions = {
 	anthropic: () => ({
 		model: 'claude-3-5-sonnet-20240620',
@@ -161,33 +201,7 @@ export const voidInitModelOptions = {
 			"gemma-7b-it"
 		]
 	})
-}
-
-export const voidProviderDefaults = {
-	anthropic: {
-		apiKey: '',
-	},
-	openAI: {
-		apiKey: '',
-	},
-	ollama: {
-		endpoint: 'http://127.0.0.1:11434',
-	},
-	openRouter: {
-		apiKey: '',
-	},
-	openAICompatible: {
-		apiKey: '',
-		endpoint: 'http://127.0.0.1:11434/v1',
-	},
-	gemini: {
-		apiKey: '',
-	},
-	groq: {
-		apiKey: ''
-	}
 } as const
-
 
 
 
@@ -204,7 +218,7 @@ export type FeatureName = typeof featureNames[number]
 export type VoidConfigState = {
 	[providerName in ProviderName]: ({
 		enabled: string, // 'true' | 'false'
-		models: string[],
+		models: string[] | null, // if null, user can type in any string as a model
 		model: string,
 		maxTokens: string,
 	} & {
@@ -214,6 +228,7 @@ export type VoidConfigState = {
 
 
 type UnionOfKeys<T> = T extends T ? keyof T : never;
+
 export const descOfSettingName = (providerName: ProviderName, settingName: UnionOfKeys<VoidConfigState[ProviderName]>) => {
 	if (settingName === 'apiKey')
 		return 'API Key'
@@ -230,60 +245,68 @@ export const descOfSettingName = (providerName: ProviderName, settingName: Union
 	else if (settingName === 'models')
 		return 'Available Models'
 
-	throw new Error(`Unknown setting name: "${settingName}"`)
+	throw new Error(`desc: Unknown setting name: "${settingName}"`)
 }
 
+export const inputTypeOfSettingName = (settingName: UnionOfKeys<VoidConfigState[ProviderName]>) => {
+	if (settingName === 'apiKey')
+		return 'string'
+	else if (settingName === 'endpoint')
+		return 'string'
+	else if (settingName === 'maxTokens')
+		return 'number'
+	else if (settingName === 'model')
+		return 'string'
+	else if (settingName === 'enabled')
+		return 'boolean'
+	else if (settingName === 'models')
+		return 'string[]?'
+
+	throw new Error(`inputType: Unknown setting name: "${settingName}"`)
+}
 
 
 export const defaultVoidConfigState: VoidConfigState = {
 	anthropic: {
+		...voidProviderDefaults.anthropic,
+		...voidInitModelOptions.anthropic(),
 		enabled: 'false',
-		models: [],
-		model: '',
-		apiKey: '',
-		maxTokens: '1000',
+		maxTokens: '',
 	},
 	openAI: {
+		...voidProviderDefaults.openAI,
+		...voidInitModelOptions.openAI(),
 		enabled: 'false',
-		models: [],
-		model: '',
-		apiKey: '',
-		maxTokens: '1000',
+		maxTokens: '',
 	},
 	ollama: {
+		...voidProviderDefaults.ollama,
+		...voidInitModelOptions.ollama(),
 		enabled: 'false',
-		models: [],
-		model: '',
-		endpoint: '',
-		maxTokens: '1000',
+		maxTokens: '',
 	},
 	openRouter: {
+		...voidProviderDefaults.openRouter,
+		...voidInitModelOptions.openRouter(),
 		enabled: 'false',
-		models: [],
-		model: '',
-		apiKey: '',
-		maxTokens: '1000',
+		maxTokens: '',
 	},
 	openAICompatible: {
+		...voidProviderDefaults.openAICompatible,
+		...voidInitModelOptions.openAICompatible(),
 		enabled: 'false',
-		models: [],
-		model: '',
-		apiKey: '',
-		endpoint: '',
-		maxTokens: '1000',
+		maxTokens: '',
 	},
 	gemini: {
+		...voidProviderDefaults.gemini,
+		...voidInitModelOptions.gemini(),
 		enabled: 'false',
-		models: [],
-		model: '',
-		apiKey: '',
-		maxTokens: '1000',
+		maxTokens: '',
 	},
 	groq: {
+		...voidProviderDefaults.groq,
+		...voidInitModelOptions.groq(),
 		enabled: 'false',
-		models: [],
-		model: '',
-		apiKey: '',
-		maxTokens: '1000',
+		maxTokens: '',
 	}
 }

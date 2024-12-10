@@ -24,7 +24,7 @@ export const SidebarModelSettingsForFeature = ({ featureName }: { featureName: F
 
 	return <>
 		<h1>Settings - {featureName}</h1>
-		{models.map(([providerName,model], i) => <span key={i}>{providerName} - {model}</span>)}
+		{models.map(([providerName,model], i) => <p key={i}>{providerName} - {model}</p>)}
 	</>
 }
 

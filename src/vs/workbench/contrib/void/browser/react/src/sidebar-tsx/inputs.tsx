@@ -35,13 +35,14 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 
 
 
-export const VoidInputBox = ({ onChangeText, onCreateInstance, initVal, placeholder, multiline }: {
+export const VoidInputBox = ({ onChangeText, onCreateInstance, placeholder, multiline }: {
 	onChangeText: (value: string) => void;
 	onCreateInstance?: { current: InputBox | null } | ((instance: InputBox) => void | IDisposable[]);
 	placeholder: string;
 	multiline: boolean;
-	initVal: string;
 }) => {
+
+
 	const contextViewProvider = useService('contextViewService');
 
 
@@ -66,7 +67,6 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, initVal, placehol
 			instance.element.remove()
 		}, [])}
 		onCreateInstance={useCallback((instance: InputBox) => {
-			instance.value = initVal
 			const disposables: IDisposable[] = []
 			disposables.push(
 				instance.onDidChange((newText) => onChangeText(newText))
@@ -79,7 +79,7 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, initVal, placehol
 				onCreateInstance.current = instance
 			}
 			return disposables
-		}, [initVal, onChangeText, onCreateInstance])
+		}, [onChangeText, onCreateInstance])
 		}
 	/>
 };

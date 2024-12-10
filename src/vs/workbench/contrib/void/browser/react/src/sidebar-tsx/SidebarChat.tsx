@@ -300,7 +300,6 @@ export const SidebarChat = () => {
 								onChangeText={onChangeText}
 								onCreateInstance={inputBoxRef}
 								multiline={true}
-								initVal=''
 							/>
 
 							{/* <textarea

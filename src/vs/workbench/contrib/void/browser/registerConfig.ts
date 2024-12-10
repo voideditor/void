@@ -169,16 +169,13 @@ const voidConfigInfo: Record<
 		apikey: configString('Your API key.', ''),
 	},
 	mistral: {
-		endpoint: configString(
-			'Mistral endpoint you want to use, if you have fine tuned model, enter here you ednpoint',
-			'https://codestral.mistral.ai/'
-		),
-		apikey: configString('Mistral API key.', ''),
+		apikey: configString('Mistral API key.', 'Your API key'),
 		model: configEnum(
 			'Mistral model to use.',
 			'open-codestral-mamba',
 			[
 				'open-codestral-mamba',
+				'open-mistral-nemo',
 			] as const
 		),
 	},

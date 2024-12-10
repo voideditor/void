@@ -216,54 +216,93 @@ export type FeatureName = typeof featureNames[number]
 
 
 export type VoidConfigState = {
-	[providerName in ProviderName]: ({
-		enabled: string, // 'true' | 'false'
-		models: string[] | null, // if null, user can type in any string as a model
-		model: string,
-		maxTokens: string,
-	} & {
-		[optionName in keyof typeof voidProviderDefaults[providerName]]: string
-	})
+	[providerName in ProviderName]: (
+		{
+			[optionName in keyof typeof voidProviderDefaults[providerName]]: string
+		}
+		&
+		{
+			enabled: string, // 'true' | 'false'
+			maxTokens: string,
+
+			models: string[] | null, // if null, user can type in any string as a model
+			model: string,
+		})
 }
 
 
 type UnionOfKeys<T> = T extends T ? keyof T : never;
 
-export const descOfSettingName = (providerName: ProviderName, settingName: UnionOfKeys<VoidConfigState[ProviderName]>) => {
-	if (settingName === 'apiKey')
-		return 'API Key'
-	else if (settingName === 'endpoint') {
-		if (providerName === 'ollama') return 'The endpoint of your Ollama instance.'
-		if (providerName === 'openAICompatible') return 'The baseUrl (exluding /chat/completions).'
+type SettingName = UnionOfKeys<VoidConfigState[ProviderName]>
+
+
+
+type DisplayInfo = {
+	title: string,
+	type: string,
+	placeholder: string,
+}
+
+export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
+	if (settingName === 'apiKey') {
+		return {
+			title: 'API Key',
+			type: 'string',
+			placeholder: providerName === 'anthropic' ? 'sk-ant-api03-abc123...' :
+				providerName === 'openAI' ? 'sk-proj-abc123...' :
+					providerName === 'openRouter' ? 'sk-or-v1-abc123...' :
+						providerName === 'gemini' ? 'abc123...' :
+							providerName === 'groq' ? 'gsk_abc123...' :
+								'(never)',
+		}
 	}
-	else if (settingName === 'maxTokens')
-		return 'Max Tokens'
-	else if (settingName === 'model')
-		return 'Model'
-	else if (settingName === 'enabled')
-		return 'Enabled'
-	else if (settingName === 'models')
-		return 'Available Models'
+	else if (settingName === 'endpoint') {
+		return {
+			title: providerName === 'ollama' ? 'The endpoint of your Ollama instance.' :
+				providerName === 'openAICompatible' ? 'The baseUrl (exluding /chat/completions).'
+					: '(never)',
+			type: 'string',
+			placeholder: providerName === 'ollama' || providerName === 'openAICompatible' ?
+				voidProviderDefaults[providerName].endpoint
+				: '(never)',
+		}
+	}
+	else if (settingName === 'maxTokens') {
+		return {
+			title: 'Max Tokens',
+			type: 'number',
+			placeholder: '1024',
+		}
+	}
+	else if (settingName === 'model') {
+		return {
+			title: 'Model',
+			type: '(never)',
+			placeholder: '(never)',
+		}
+	}
+	else if (settingName === 'enabled') {
+		return {
+			title: 'Enabled',
+			type: 'boolean',
+			placeholder: '(never)',
+		}
+	}
+	else if (settingName === 'models') {
+		return {
+			title: 'Available Models',
+			type: '(never)',
+			placeholder: '(never)',
+		}
+	}
 
-	throw new Error(`desc: Unknown setting name: "${settingName}"`)
+	throw new Error(`displayInfo: Unknown setting name: "${settingName}"`)
+
 }
 
-export const inputTypeOfSettingName = (settingName: UnionOfKeys<VoidConfigState[ProviderName]>) => {
-	if (settingName === 'apiKey')
-		return 'string' as const
-	else if (settingName === 'endpoint')
-		return 'string' as const
-	else if (settingName === 'maxTokens')
-		return 'number' as const
-	else if (settingName === 'model')
-		return 'string' as const
-	else if (settingName === 'enabled')
-		return 'boolean' as const
-	else if (settingName === 'models')
-		return 'string[]?' as const
 
-	throw new Error(`inputType: Unknown setting name: "${settingName}"`)
-}
+
+
 
 
 export const defaultVoidConfigState: VoidConfigState = {
@@ -310,3 +349,6 @@ export const defaultVoidConfigState: VoidConfigState = {
 		maxTokens: '',
 	}
 }
+
+
+

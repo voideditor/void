@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { Fragment } from 'react'
-import { descOfSettingName, inputTypeOfSettingName, ProviderName, providerNames } from '../../../../../../../platform/void/common/configTypes.js'
+import { displayInfoOfSettingName, ProviderName, providerNames } from '../../../../../../../platform/void/common/configTypes.js'
 import { VoidCheckBox, VoidInputBox, VoidSelectBox } from './inputs.js'
 import { useConfigState, useService } from '../util/services.js'
 
@@ -20,10 +20,12 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 		{Object.entries(others).map(([settingName, defaultVal], i) => {
 			const sName = settingName as keyof typeof others
 
+			const { title, type, placeholder } = displayInfoOfSettingName(providerName, sName)
+
 			return <Fragment key={i}>
-				<h2>{descOfSettingName(providerName, sName)}</h2>
+				<h2>{title}</h2>
 				{
-					inputTypeOfSettingName(sName) === 'boolean' ?
+					type === 'boolean' ?
 						<VoidCheckBox
 							initVal={defaultVal === 'true'}
 							onChangeChecked={(newVal) => { voidConfigService.setState(providerName, sName, newVal ? 'true' : 'false') }}
@@ -33,8 +35,8 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 						:
 						<VoidInputBox
 							initVal={defaultVal}
+							placeholder={placeholder}
 							onChangeText={(newVal) => { () => { voidConfigService.setState(providerName, sName, newVal) } }}
-							placeholder={defaultVal}
 							multiline={false}
 							inputBoxRef={{ current: null }}
 						/>}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { VoidSidebarState, ReactServicesType } from '../../../registerSidebar.js'
 import { ThreadsState } from '../../../registerThreads.js'
-import { VoidConfigState } from '../../../../../../../platform/void/common/configTypes.js'
+import { VoidProviderState } from '../../../../../../../platform/void/common/configTypes.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -10,12 +10,12 @@ let services: ReactServicesType
 
 // even if React hasn't mounted yet, these variables are always updated to the latest state:
 let sidebarState: VoidSidebarState
-let configState: VoidConfigState
+let configState: VoidProviderState
 let threadsState: ThreadsState
 
 // React listens by adding a setState function to these:
 const sidebarStateListeners: Set<(s: VoidSidebarState) => void> = new Set()
-const configStateListeners: Set<(s: VoidConfigState) => void> = new Set()
+const configStateListeners: Set<(s: VoidProviderState) => void> = new Set()
 const threadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
 
 // must call this before you can use any of the hooks below

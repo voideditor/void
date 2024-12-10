@@ -1,4 +1,4 @@
-import { ProviderName, VoidConfigState } from '../../common/configTypes'
+import { ProviderName, VoidProviderState } from '../../common/configTypes'
 import { LLMMessage, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes'
 
 export const parseMaxTokensStr = (maxTokensStr: string) => {
@@ -15,7 +15,7 @@ export type SendLLMMessageFnTypeInternal = (params: {
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
-	voidConfig: VoidConfigState;
+	voidConfig: VoidProviderState;
 	providerName: ProviderName;
 
 	_setAborter: (aborter: () => void) => void;

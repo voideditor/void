@@ -619,7 +619,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			}
 		}
 
-		const { shouldGenerate, stopTokens } = getCompletionOptions({ prefix, suffix })
+		const { shouldGenerate, stopTokens: _ } = getCompletionOptions({ prefix, suffix }) // TODO mat
 
 		if (!shouldGenerate) return []
 
@@ -648,7 +648,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			const requestId = this._sendLLMMessageService.sendLLMMessage({
 				logging: { loggingName: 'Autocomplete' },
 				messages: [],
-				options: { prefix, suffix, stopTokens, },
 				onText: async ({ newText, fullText }) => {
 
 					newAutocompletion.insertText = fullText
@@ -677,7 +676,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(error)
 				},
-				voidConfig: this._voidConfigStateService.state.voidConfig,
+				providerName: 'anthropic',
+				voidConfig: this._voidConfigStateService.state,
 			})
 			newAutocompletion.requestId = requestId
 

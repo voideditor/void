@@ -209,13 +209,8 @@ export type ProviderName = keyof typeof voidProviderDefaults
 export const providerNames = Object.keys(voidProviderDefaults) as ProviderName[]
 
 
-export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete']
-export type FeatureName = typeof featureNames[number]
 
-
-
-
-export type VoidConfigState = {
+export type VoidProviderState = {
 	[providerName in ProviderName]: (
 		{
 			[optionName in keyof typeof voidProviderDefaults[providerName]]: string
@@ -233,7 +228,7 @@ export type VoidConfigState = {
 
 type UnionOfKeys<T> = T extends T ? keyof T : never;
 
-type SettingName = UnionOfKeys<VoidConfigState[ProviderName]>
+type ProviderSettingName = UnionOfKeys<VoidProviderState[ProviderName]>
 
 
 
@@ -243,7 +238,7 @@ type DisplayInfo = {
 	placeholder: string,
 }
 
-export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
+export const displayInfoOfSettingName = (providerName: ProviderName, settingName: ProviderSettingName): DisplayInfo => {
 	if (settingName === 'apiKey') {
 		return {
 			title: 'API Key',
@@ -302,10 +297,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 
 
 
-
-
-
-export const defaultVoidConfigState: VoidConfigState = {
+export const defaultVoidProviderState: VoidProviderState = {
 	anthropic: {
 		...voidProviderDefaults.anthropic,
 		...voidInitModelOptions.anthropic(),
@@ -351,4 +343,23 @@ export const defaultVoidConfigState: VoidConfigState = {
 }
 
 
+
+
+
+type VoidFeatureState = {
+	'Ctrl+L': {
+		provider: ProviderName,
+		model: string,
+	} | null,
+	'Ctrl+K': {
+		provider: ProviderName,
+		model: string,
+	} | null,
+	'Autocomplete': {
+		provider: ProviderName,
+		model: string,
+	} | null,
+}
+export type FeatureName = keyof VoidFeatureState
+export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete']
 

@@ -10,7 +10,7 @@ import { IEncryptionService } from '../../../../platform/encryption/common/encry
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
-import { defaultVoidConfigState, ProviderName, VoidConfigState } from '../../../../platform/void/common/configTypes.js';
+import { defaultVoidProviderState, ProviderName, VoidProviderState } from '../../../../platform/void/common/configTypes.js';
 
 
 
@@ -18,14 +18,14 @@ const VOID_CONFIG_KEY = 'void.partialVoidConfig'
 
 type SetStateFn = <K extends ProviderName>(
 	providerName: K,
-	option: keyof VoidConfigState[K],
+	option: keyof VoidProviderState[K],
 	newVal: string
 ) => Promise<void>;
 
 
 export interface IVoidConfigStateService {
 	readonly _serviceBrand: undefined;
-	readonly state: VoidConfigState;
+	readonly state: VoidProviderState;
 	onDidChangeState: Event<void>;
 	setState: SetStateFn;
 }
@@ -37,11 +37,11 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 	private readonly _onDidChangeState = new Emitter<void>();
 	readonly onDidChangeState: Event<void> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
-	state: VoidConfigState;
+	state: VoidProviderState;
 
 	// readonly voidConfigInfo: VoidConfigInfo = voidConfigInfo; // just putting this here for simplicity, it's static though
 	get _defaultState() {
-		return deepClone(defaultVoidConfigState)
+		return deepClone(defaultVoidProviderState)
 	}
 
 
@@ -65,7 +65,7 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 
 
 
-	private async _readVoidConfigState(): Promise<VoidConfigState> {
+	private async _readVoidConfigState(): Promise<VoidProviderState> {
 		const encryptedPartialConfig = this._storageService.get(VOID_CONFIG_KEY, StorageScope.APPLICATION)
 
 		if (!encryptedPartialConfig)
@@ -76,7 +76,7 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 	}
 
 
-	private async _storeVoidConfigState(voidConfigState: VoidConfigState) {
+	private async _storeVoidConfigState(voidConfigState: VoidProviderState) {
 		const encryptedVoidConfigStr = await this._encryptionService.encrypt(JSON.stringify(voidConfigState))
 		this._storageService.store(VOID_CONFIG_KEY, encryptedVoidConfigStr, StorageScope.APPLICATION, StorageTarget.USER)
 	}
@@ -84,7 +84,7 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 
 	// Set field on PartialVoidConfig
 	setState: SetStateFn = async (providerName, option, newVal) => {
-		const newState: VoidConfigState = {
+		const newState: VoidProviderState = {
 			...this.state,
 			[providerName]: {
 				...this.state[providerName],
@@ -96,7 +96,7 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 	}
 
 	// internal function to update state, should be called every time state changes
-	private async _setState(voidConfigState: VoidConfigState) {
+	private async _setState(voidConfigState: VoidProviderState) {
 		this.state = voidConfigState
 		this._onDidChangeState.fire()
 	}

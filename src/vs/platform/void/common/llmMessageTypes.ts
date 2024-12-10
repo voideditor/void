@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { ProviderName, VoidConfigState } from './configTypes'
+import { ProviderName, VoidProviderState } from './configTypes'
 
 
 // ---------- type definitions ----------
@@ -27,7 +27,7 @@ export type LLMMessageServiceParams = {
 	onError: OnError;
 
 	messages: LLMMessage[];
-	voidConfig: VoidConfigState | null;
+	voidConfig: VoidProviderState | null;
 
 	logging: {
 		loggingName: string,
@@ -42,7 +42,7 @@ export type SendLLMMMessageParams = {
 	onError: OnError;
 
 	messages: LLMMessage[];
-	voidConfig: VoidConfigState | null;
+	voidConfig: VoidProviderState | null;
 
 	logging: {
 		loggingName: string,

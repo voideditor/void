@@ -1,8 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { useService } from '../util/services.js';
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { defaultInputBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
+import { defaultCheckboxStyles, defaultInputBoxStyles, defaultToggleStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox, unthemedSelectBoxStyles } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
+import { Checkbox, Toggle } from '../../../../../../../base/browser/ui/toggle/toggle.js';
+
+// settingitem
 
 export const VoidInputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, multiline }: {
 	onChangeText: (value: string) => void;
@@ -99,6 +102,52 @@ export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, option
 			}
 		};
 	}, [options, initVal, onChangeSelection, contextViewProvider, selectBoxRef]);
+
+	return <div ref={containerRef} className="w-full" />;
+};
+
+
+
+
+
+export const VoidCheckBox = ({ onChangeChecked, initVal, label, checkboxRef, }: {
+	onChangeChecked: (checked: boolean) => void;
+	initVal: boolean;
+	checkboxRef: React.MutableRefObject<Toggle | null>;
+	label: string;
+}) => {
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!containerRef.current) return;
+
+		// Create and mount the Checkbox using VSCode's implementation
+		checkboxRef.current = new Toggle({
+			title: label,
+			isChecked: initVal,
+			...defaultToggleStyles
+		});
+
+		containerRef.current.appendChild(checkboxRef.current.domNode);
+
+		checkboxRef.current.onChange(checked => {
+			console.log('CHANGE checked state on checkbox', checked);
+			onChangeChecked(checked);
+		});
+
+		// cleanup
+		return () => {
+			if (checkboxRef.current) {
+				checkboxRef.current.dispose();
+				if (containerRef.current) {
+					while (containerRef.current.firstChild) {
+						containerRef.current.removeChild(containerRef.current.firstChild);
+					}
+				}
+				checkboxRef.current = null;
+			}
+		};
+	}, [checkboxRef, label, initVal, onChangeChecked]);
 
 	return <div ref={containerRef} className="w-full" />;
 };

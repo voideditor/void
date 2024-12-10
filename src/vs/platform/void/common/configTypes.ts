@@ -250,17 +250,17 @@ export const descOfSettingName = (providerName: ProviderName, settingName: Union
 
 export const inputTypeOfSettingName = (settingName: UnionOfKeys<VoidConfigState[ProviderName]>) => {
 	if (settingName === 'apiKey')
-		return 'string'
+		return 'string' as const
 	else if (settingName === 'endpoint')
-		return 'string'
+		return 'string' as const
 	else if (settingName === 'maxTokens')
-		return 'number'
+		return 'number' as const
 	else if (settingName === 'model')
-		return 'string'
+		return 'string' as const
 	else if (settingName === 'enabled')
-		return 'boolean'
+		return 'boolean' as const
 	else if (settingName === 'models')
-		return 'string[]?'
+		return 'string[]?' as const
 
 	throw new Error(`inputType: Unknown setting name: "${settingName}"`)
 }

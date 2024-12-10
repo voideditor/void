@@ -14,7 +14,7 @@ import { defaultVoidProviderState, ProviderName, VoidProviderState } from '../..
 
 
 
-const VOID_CONFIG_KEY = 'void.partialVoidConfig'
+const VOID_CONFIG_KEY = 'void.config'
 
 type SetStateFn = <K extends ProviderName>(
 	providerName: K,

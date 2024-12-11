@@ -94,7 +94,9 @@ export const SelectedFiles = (
 }
 
 
-const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
+const ChatBubble = ({ chatMessage }: {
+	chatMessage: ChatMessage
+}) => {
 
 	const role = chatMessage.role
 	const children = chatMessage.displayContent
@@ -191,8 +193,8 @@ export const SidebarChat = () => {
 
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
 
-
 		// send message to LLM
+		setIsLoading(true) // must come before message is sent so onError will work
 
 		const object: LLMMessageServiceParams = {
 			logging: { loggingName: 'Chat' },
@@ -228,7 +230,6 @@ export const SidebarChat = () => {
 		latestRequestIdRef.current = latestRequestId
 
 
-		setIsLoading(true)
 		if (inputBoxRef.current) {
 			inputBoxRef.current.value = ''; // this triggers onDidChangeText
 			inputBoxRef.current.blur();

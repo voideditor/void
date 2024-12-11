@@ -91,11 +91,11 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, placeholder, mult
 
 
 
-export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, options }: {
-	onChangeSelection: (value: string) => void;
-	initVal: string;
+export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, options }: {
+	initVal: T;
 	selectBoxRef: React.MutableRefObject<SelectBox | null>;
-	options: readonly string[];
+	options: readonly { text: string, value: T }[];
+	onChangeSelection: (value: T) => void;
 
 }) => {
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -104,10 +104,10 @@ export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, option
 	useEffect(() => {
 		if (!containerRef.current) return;
 
-		const defaultIndex = options.indexOf(initVal);
+		const defaultIndex = options.findIndex(opt => opt.value === initVal);
 
 		selectBoxRef.current = new SelectBox(
-			options.map(opt => ({ text: opt, detail: 'detail', description: 'description' })),
+			options.map(opt => ({ text: opt.text })),
 			defaultIndex,
 			contextViewProvider,
 			unthemedSelectBoxStyles
@@ -115,7 +115,7 @@ export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, option
 
 		selectBoxRef.current.render(containerRef.current);
 
-		selectBoxRef.current.onDidSelect(e => { onChangeSelection(e.selected); });
+		selectBoxRef.current.onDidSelect(e => { console.log('e.selected', JSON.stringify(e)); onChangeSelection(options[e.index].value); });
 
 		// cleanup
 		return () => {
@@ -137,58 +137,58 @@ export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, option
 
 
 
-export const VoidCheckBox = ({ onChangeChecked, initVal, label, checkboxRef, }: {
-	onChangeChecked: (checked: boolean) => void;
-	initVal: boolean;
-	checkboxRef: React.MutableRefObject<ObjectSettingCheckboxWidget | null>;
-	label: string;
-}) => {
-	const containerRef = useRef<HTMLDivElement>(null);
+// export const VoidCheckBox = ({ onChangeChecked, initVal, label, checkboxRef, }: {
+// 	onChangeChecked: (checked: boolean) => void;
+// 	initVal: boolean;
+// 	checkboxRef: React.MutableRefObject<ObjectSettingCheckboxWidget | null>;
+// 	label: string;
+// }) => {
+// 	const containerRef = useRef<HTMLDivElement>(null);
 
-	const themeService = useService('themeService');
-	const contextViewService = useService('contextViewService');
-	const hoverService = useService('hoverService');
+// 	const themeService = useService('themeService');
+// 	const contextViewService = useService('contextViewService');
+// 	const hoverService = useService('hoverService');
 
-	useEffect(() => {
-		if (!containerRef.current) return;
+// 	useEffect(() => {
+// 		if (!containerRef.current) return;
 
-		// Create and mount the Checkbox using VSCode's implementation
+// 		// Create and mount the Checkbox using VSCode's implementation
 
-		checkboxRef.current = new ObjectSettingCheckboxWidget(
-			containerRef.current,
-			themeService,
-			contextViewService,
-			hoverService,
-		);
-
-
-		checkboxRef.current.setValue([{
-			key: { type: 'string', data: label },
-			value: { type: 'boolean', data: initVal },
-			removable: false,
-			resetable: true,
-		}])
-
-		checkboxRef.current.onDidChangeList((list) => {
-			onChangeChecked(!!list);
-		})
+// 		checkboxRef.current = new ObjectSettingCheckboxWidget(
+// 			containerRef.current,
+// 			themeService,
+// 			contextViewService,
+// 			hoverService,
+// 		);
 
 
-		// cleanup
-		return () => {
-			if (checkboxRef.current) {
-				checkboxRef.current.dispose();
-				if (containerRef.current) {
-					while (containerRef.current.firstChild) {
-						containerRef.current.removeChild(containerRef.current.firstChild);
-					}
-				}
-				checkboxRef.current = null;
-			}
-		};
-	}, [checkboxRef, label, initVal, onChangeChecked]);
+// 		checkboxRef.current.setValue([{
+// 			key: { type: 'string', data: label },
+// 			value: { type: 'boolean', data: initVal },
+// 			removable: false,
+// 			resetable: true,
+// 		}])
 
-	return <div ref={containerRef} className="w-full" />;
-};
+// 		checkboxRef.current.onDidChangeList((list) => {
+// 			onChangeChecked(!!list);
+// 		})
+
+
+// 		// cleanup
+// 		return () => {
+// 			if (checkboxRef.current) {
+// 				checkboxRef.current.dispose();
+// 				if (containerRef.current) {
+// 					while (containerRef.current.firstChild) {
+// 						containerRef.current.removeChild(containerRef.current.firstChild);
+// 					}
+// 				}
+// 				checkboxRef.current = null;
+// 			}
+// 		};
+// 	}, [checkboxRef, label, initVal, onChangeChecked]);
+
+// 	return <div ref={containerRef} className="w-full" />;
+// };
 
 

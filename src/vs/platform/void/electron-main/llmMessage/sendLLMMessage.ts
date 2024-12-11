@@ -91,7 +91,7 @@ export const sendLLMMessage = ({
 				sendGroqMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
-				onError({ error: `Error: whichApi was "${providerName}", which is not recognized!` })
+				onError({ error: `Error: Void provider was "${providerName}", which is not recognized.` })
 				break;
 		}
 	}

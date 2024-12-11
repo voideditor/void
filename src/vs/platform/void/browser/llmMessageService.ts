@@ -74,25 +74,27 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 
 
 	sendLLMMessage(params: LLMMessageServiceParams) {
-		const requestId_ = generateUuid();
 		const { onText, onFinalMessage, onError, ...proxyParams } = params;
+		const { featureName } = proxyParams
 
+		// end early if no provider
+		const modelSelection = this.voidConfigStateService.state.modelSelectionOfFeature[featureName]
+		if (modelSelection === null) {
+			this.notificationService.warn('Please add a Provider in Settings!')
+			setTimeout(() => onError({ error: 'Please add a Provider in Settings!' }), 100)
+			return null
+		}
+		const { providerName, modelName } = modelSelection
+
+		// add state for request id
+		const requestId_ = generateUuid();
 		this.onTextHooks[requestId_] = onText
 		this.onFinalMessageHooks[requestId_] = onFinalMessage
 		this.onErrorHooks[requestId_] = onError
 
-		const { featureName } = params
-
-		// params will be stripped of all its functions
-		const stateOfFeature = this.voidConfigStateService.state.modelSelectionOfFeature[featureName]
-		if (stateOfFeature === null) {
-			this.notificationService.warn('Please add a Provider in Settings!')
-			return null
-		}
-		const { providerName, modelName } = stateOfFeature
-
 		const { settingsOfProvider } = this.voidConfigStateService.state
 
+		// params will be stripped of all its functions over the IPC channel
 		this.channel.call('sendLLMMessage', {
 			...proxyParams,
 			requestId: requestId_,

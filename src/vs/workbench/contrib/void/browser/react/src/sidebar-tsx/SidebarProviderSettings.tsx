@@ -20,19 +20,24 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 
 	useEffect(() => {
 		// this is really just to sync the state on initial mount, when init value hasn't been set yet
-		const syncState = () => {
+		let synced = false
+		const syncStateOnMount = () => {
 			if (!instanceRef.current) return
+			if (synced) return
+			synced = true
 
 			const settingsAtProvider = voidConfigService.state.settingsOfProvider[providerName];
 
 			// @ts-ignore
 			const stateVal = settingsAtProvider[settingName]
 
-			if (instanceRef.current.value !== stateVal)
-				instanceRef.current.value = stateVal
+			if (instanceRef.current.value !== stateVal) {
+				instanceRef.current.value = stateVal // triggers onDidChangeState
+			}
 		}
-		syncState()
-		const disposable = voidConfigService.onDidChangeState(syncState)
+		syncStateOnMount()
+		synced = false // sync the next time state changes (but not after that - the "current.value = ..." triggers a state change, causing an infinite loop!)
+		const disposable = voidConfigService.onDidChangeState(syncStateOnMount)
 		return () => disposable.dispose()
 	}, [instanceRef, voidConfigService])
 

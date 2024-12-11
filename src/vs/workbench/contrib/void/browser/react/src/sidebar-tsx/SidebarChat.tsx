@@ -2,24 +2,26 @@
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
+
 import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
 import { useConfigState, useService, useThreadsState } from '../util/services.js';
 import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
 import { userInstructionsStr } from '../../../prompt/stringifyFiles.js';
-import { CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';
+import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
-import { MarkdownRender } from '../markdown/MarkdownRender.js';
+import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
-import { ErrorDisplay } from '../util/ErrorDisplay.js';
+import { ErrorDisplay } from './ErrorDisplay.js';
 import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
-
-// import {  } from '@vscode/webview-ui-toolkit/react';
+import { getCmdKey } from '../../../getCmdKey.js'
+import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { VoidInputBox } from './inputs.js';
 
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
@@ -27,27 +29,6 @@ const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string
 	if (!model) return null
 	return model.getValue(EndOfLinePreference.LF)
 }
-
-
-
-export type ChatMessage =
-	| {
-		role: 'user';
-		content: string; // content sent to the llm
-		displayContent: string; // content displayed to user
-		selections: CodeSelection[] | null; // the user's selection
-	}
-	| {
-		role: 'assistant';
-		content: string; // content received from LLM
-		displayContent: string | undefined; // content displayed to user (this is the same as content for now)
-	}
-	| {
-		role: 'system';
-		content: string;
-		displayContent?: undefined;
-	}
-
 
 
 const getBasename = (pathStr: string) => {
@@ -130,7 +111,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 		</>
 	}
 	else if (role === 'assistant') {
-		chatbubbleContents = <MarkdownRender string={children} /> // sectionsHTML
+		chatbubbleContents = <ChatMarkdownRender string={children} /> // sectionsHTML
 	}
 
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
@@ -144,7 +125,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 export const SidebarChat = () => {
 
-	const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
+	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
 	const modelService = useService('modelService')
 
@@ -154,26 +135,24 @@ export const SidebarChat = () => {
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { chatInputRef.current?.focus() }),
-			sidebarStateService.onDidBlurChat(() => { chatInputRef.current?.blur() })
+			sidebarStateService.onDidFocusChat(() => { inputBoxRef.current?.focus() }),
+			sidebarStateService.onDidBlurChat(() => { inputBoxRef.current?.blur() })
 		)
 		return () => disposables.forEach(d => d.dispose())
-	}, [sidebarStateService, chatInputRef])
+	}, [sidebarStateService, inputBoxRef])
 
 	// config state
-	const configState = useConfigState()
-	const { voidConfig } = configState
+	const voidConfigState = useConfigState()
+
 
 	// threads state
 	const threadsState = useThreadsState()
 	const threadsStateService = useService('threadsStateService')
 
 	// ----- SIDEBAR CHAT state (local) -----
-	// state of current message
-	const [instructions, setInstructions] = useState('') // the user's instructions
 
 	// state of chat
-	const [messageStream, setMessageStream] = useState('')
+	const [messageStream, setMessageStream] = useState<string | null>(null)
 	const [isLoading, setIsLoading] = useState(false)
 	const latestRequestIdRef = useRef<string | null>(null)
 
@@ -181,9 +160,13 @@ export const SidebarChat = () => {
 
 	const sendLLMMessageService = useService('sendLLMMessageService')
 
+	// state of current message
+	const [instructions, setInstructions] = useState('') // the user's instructions
+	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
 	const isDisabled = !instructions
-
 	const formRef = useRef<HTMLFormElement | null>(null)
+
+
 	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
 		e.preventDefault()
@@ -203,8 +186,8 @@ export const SidebarChat = () => {
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
 		const userContent = userInstructionsStr(instructions, selections)
-		const newHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selections }
-		threadsStateService.addMessageToCurrentThread(newHistoryElt)
+		const userHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selections }
+		threadsStateService.addMessageToCurrentThread(userHistoryElt)
 
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
 
@@ -213,31 +196,32 @@ export const SidebarChat = () => {
 
 		const object: LLMMessageServiceParams = {
 			logging: { loggingName: 'Chat' },
-			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content })),],
+			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content || '(null)' })),],
 			onText: ({ newText, fullText }) => setMessageStream(fullText),
 			onFinalMessage: ({ fullText: content }) => {
 				console.log('chat: running final message')
 
 				// add assistant's message to chat history, and clear selection
-				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content }
-				threadsStateService.addMessageToCurrentThread(newHistoryElt)
-				setMessageStream('')
+				const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null }
+				threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
+				setMessageStream(null)
 				setIsLoading(false)
 			},
 			onError: ({ error }) => {
 				console.log('chat: running error', error)
 
 				// add assistant's message to chat history, and clear selection
-				let content = messageStream; // just use the current content
-				const newHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content, }
-				threadsStateService.addMessageToCurrentThread(newHistoryElt)
+				let content = messageStream ?? ''; // just use the current content
+				const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null, }
+				threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
 
 				setMessageStream('')
 				setIsLoading(false)
 
 				setLatestError(error)
 			},
-			voidConfig,
+			featureName: 'Ctrl+L',
+
 		}
 
 		const latestRequestId = sendLLMMessageService.sendLLMMessage(object)
@@ -245,8 +229,10 @@ export const SidebarChat = () => {
 
 
 		setIsLoading(true)
-		setInstructions('');
-		formRef.current?.reset(); // reset the form's text when clear instructions or unexpected behavior happens
+		if (inputBoxRef.current) {
+			inputBoxRef.current.value = ''; // this triggers onDidChangeText
+			inputBoxRef.current.blur();
+		}
 		threadsStateService.setStaging([]) // clear staging
 		setLatestError(null)
 
@@ -258,9 +244,9 @@ export const SidebarChat = () => {
 			sendLLMMessageService.abort(latestRequestIdRef.current)
 
 		// if messageStream was not empty, add it to the history
-		const llmContent = messageStream || '(null)'
-		const newHistoryElt: ChatMessage = { role: 'assistant', content: llmContent, displayContent: messageStream, }
-		threadsStateService.addMessageToCurrentThread(newHistoryElt)
+		const llmContent = messageStream ?? ''
+		const assistantHistoryElt: ChatMessage = { role: 'assistant', content: llmContent, displayContent: messageStream || null, }
+		threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
 
 		setMessageStream('')
 		setIsLoading(false)
@@ -279,7 +265,7 @@ export const SidebarChat = () => {
 				<ChatBubble key={i} chatMessage={message} />
 			)}
 			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream }} />
+			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
 		</div>
 		{/* chatbar */}
 		<div className="shrink-0 py-4">
@@ -292,31 +278,46 @@ export const SidebarChat = () => {
 							<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
 						</div>}
 
+						{/* error message */}
+						{latestError === null ? null :
+							<ErrorDisplay
+								error={latestError}
+								onDismiss={() => { setLatestError(null) }}
+							/>}
+
 						<form
 							ref={formRef}
-							className="flex flex-row items-center rounded-md p-2"
+							className={`flex flex-row items-center rounded-md p-2`}
 							onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
 
 							onSubmit={(e) => {
 								console.log('submit!')
 								onSubmit(e)
 							}}>
-							{/* input */}
 
-							<textarea
+							{/* input */}
+							<VoidInputBox
+								placeholder={`${getCmdKey()}+L to select`}
+								onChangeText={onChangeText}
+								onCreateInstance={inputBoxRef}
+								multiline={true}
+							/>
+
+							{/* <textarea
 								ref={chatInputRef}
+								placeholder={`Press ${getCmdKey()}+L to select.`}
 								onChange={(e) => { setInstructions(e.target.value) }}
-								className="w-full p-2 leading-tight resize-none max-h-[50vh] overflow-hidden bg-transparent border-none !outline-none"
-								placeholder="Ctrl+L to select"
+								className={`w-full p-2 leading-tight resize-none max-h-[50vh] overflow-auto bg-transparent border-none !outline-none`}
 								rows={1}
 								onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
-							/>
+							/> */}
+
 							{isLoading ?
 								// stop button
 								<button
 									onClick={onAbort}
 									type='button'
-									className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+									className="font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
 								>
 									<svg
 										className='scale-50'
@@ -327,7 +328,7 @@ export const SidebarChat = () => {
 								:
 								// submit button (up arrow)
 								<button
-									className="btn btn-primary font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
+									className="font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
 									disabled={isDisabled}
 									type='submit'
 								>
@@ -341,13 +342,6 @@ export const SidebarChat = () => {
 					</div>
 				</div>
 			</div>
-
-			{/* error message */}
-			{latestError === null ? null :
-				<ErrorDisplay
-					error={latestError}
-					onDismiss={() => { setLatestError(null) }}
-				/>}
 		</div>
 	</>
 }

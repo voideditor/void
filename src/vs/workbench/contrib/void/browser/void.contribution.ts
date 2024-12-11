@@ -7,19 +7,19 @@
 import './registerActions.js'
 
 // register Settings
-import './registerConfig.js'
+import '../../../../platform/void/common/voidConfigService.js' // TODO move this to platform
 
 // register inline diffs
 import './registerInlineDiffs.js'
-
-// register Posthog metrics
-import './registerMetrics.js'
 
 // register Sidebar chat
 import './registerSidebar.js'
 
 // register Thread History
 import './registerThreads.js'
+
+// register Autocomplete
+import './registerAutocomplete.js'
 
 // register css
 import './media/void.css'

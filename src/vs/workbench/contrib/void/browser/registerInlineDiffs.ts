@@ -11,7 +11,7 @@ import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/brows
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 // import { throttle } from '../../../../base/common/decorators.js';
-import { IVoidConfigStateService } from './registerConfig.js';
+// import { IVoidConfigStateService } from './registerConfig.js';
 import { writeFileWithDiffInstructions } from './prompt/systemPrompts.js';
 import { ComputedDiff, findDiffs } from './findDiffs.js';
 import { EndOfLinePreference, ITextModel } from '../../../../editor/common/model.js';
@@ -28,7 +28,7 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
-import { LLMMessageServiceParams } from '../../../../platform/void/common/llmMessageTypes.js';
+import { LLMFeatureSelection, LLMMessageServiceParams } from '../../../../platform/void/common/llmMessageTypes.js';
 import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
 
 
@@ -103,17 +103,17 @@ type HistorySnapshot = {
 	entireFileCode: string;
 } &
 	({
-		type: 'ctrl+k';
+		type: 'Ctrl+K';
 		ctrlKText: string;
 	} | {
-		type: 'ctrl+l';
+		type: 'Ctrl+L';
 	})
+
 
 
 export interface IInlineDiffsService {
 	readonly _serviceBrand: undefined;
-	startStreaming(type: 'ctrl+k' | 'ctrl+l', userMessage: string): void;
-
+	startStreaming(params: LLMFeatureSelection, str: string): void;
 }
 
 export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffAreasService');
@@ -144,7 +144,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	constructor(
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
-		@IVoidConfigStateService private readonly _voidConfigStateService: IVoidConfigStateService,
+		// @IVoidConfigStateService private readonly _voidConfigStateService: IVoidConfigStateService,
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 		@IModelService private readonly _modelService: IModelService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
@@ -370,7 +370,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			return {
 				snapshottedDiffAreaOfId,
 				entireFileCode: this._readURI(uri) ?? '', // the whole file's code
-				type: 'ctrl+l',
+				type: 'Ctrl+L',
 			}
 		}
 
@@ -637,7 +637,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private async _initializeStream(uri: URI, diffRepr: string) {
+	private async _initializeStream(opts: LLMFeatureSelection, diffRepr: string, uri: URI,) {
 
 		// diff area begin and end line
 		const numLines = this._getNumLines(uri)
@@ -689,7 +689,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this.diffAreaOfId[diffArea.diffareaid] = diffArea
 
 		// actually call the LLM
-		const { voidConfig } = this._voidConfigStateService.state
 		const promptContent = `\
 ORIGINAL_CODE
 \`\`\`
@@ -705,29 +704,6 @@ INSTRUCTIONS
 Please finish writing the new file by applying the diff to the original file. Return ONLY the completion of the file, without any explanation.
 `
 
-
-		// CTRL+K prompt:
-		// const promptContent = `Here is the user's original selection:
-		// \`\`\`
-		// <MID>${selection}</MID>
-		// \`\`\`
-
-		// The user wants to apply the following instructions to the selection:
-		// ${instructions}
-
-		// Please rewrite the selection following the user's instructions.
-
-		// Instructions to follow:
-		// 1. Follow the user's instructions
-		// 2. You may ONLY CHANGE the selection, and nothing else in the file
-		// 3. Make sure all brackets in the new selection are balanced the same was as in the original selection
-		// 3. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
-
-		// Complete the following:
-		// \`\`\`
-		// <PRE>${prefix}</PRE>
-		// <SUF>${suffix}</SUF>
-		// <MID>`;
 
 		await new Promise<void>((resolve, reject) => {
 
@@ -761,7 +737,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 					diffArea._sweepState = { isStreaming: false, line: null }
 					resolve();
 				},
-				voidConfig,
+				...opts
 			}
 
 			streamRequestId = this._sendLLMMessageService.sendLLMMessage(object)
@@ -776,7 +752,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 
 
-	async startStreaming(type: 'ctrl+k' | 'ctrl+l', userMessage: string) {
+	async startStreaming(opts: LLMFeatureSelection, userMessage: string) {
 
 		const editor = this._editorService.getActiveCodeEditor()
 		if (!editor) return
@@ -788,7 +764,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 		// TODO deselect user's cursor
 
-		this._initializeStream(uri, userMessage)
+		this._initializeStream(opts, userMessage, uri)
 	}
 
 

@@ -1,23 +1,25 @@
 import Groq from 'groq-sdk';
-import { SendLLMMessageFnTypeInternal } from './_types.js';
-import { parseMaxTokensStr } from '../../../registerConfig.js';
+import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
+import { parseMaxTokensStr } from './util.js';
 
 // Groq
-export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
+export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 	let fullText = '';
 
+	const thisConfig = settingsOfProvider.groq
+
 	const groq = new Groq({
-		apiKey: voidConfig.groq.apikey,
+		apiKey: thisConfig.apiKey,
 		dangerouslyAllowBrowser: true
 	});
 
 	await groq.chat.completions
 		.create({
 			messages: messages,
-			model: voidConfig.groq.model,
+			model: modelName,
 			stream: true,
 			temperature: 0.7,
-			max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens),
+			max_tokens: parseMaxTokensStr(thisConfig.maxTokens),
 		})
 		.then(async response => {
 			_setAborter(() => response.controller.abort())
@@ -33,7 +35,7 @@ export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onTe
 			onFinalMessage({ fullText });
 		})
 		.catch(error => {
-			onError({ error });
+			onError({ error: error + '' });
 		})
 
 

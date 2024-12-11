@@ -1,7 +1,11 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPLv3 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import React, { useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, X } from 'lucide-react';
 
-import { getCmdKey } from '../../../getCmdKey.js';
 
 // const opaqueMessage = `\
 // Unfortunately, Void can't see the full error. However, you should be able to find more details by pressing ${getCmdKey()}+Shift+P, typing "Toggle Developer Tools", and looking at the console.\n
@@ -34,7 +38,7 @@ const getErrorDetails = (error: unknown) => {
 	}
 	// sometimes error is an object but not an Error
 	else if (typeof error === 'object') {
-		e = new Error(`The server didn't give a very useful error message. More details below.`, { cause: JSON.stringify(error) })
+		e = new Error(`More details below.`, { cause: JSON.stringify(error) })
 
 	}
 	else {
@@ -56,7 +60,7 @@ const getErrorDetails = (error: unknown) => {
 	}
 
 
-	// Collect any additional properties from the e
+	// Collect any additional properties from e
 	for (let prop of Object.getOwnPropertyNames(e).filter((prop) => !Object.keys(details).includes(prop)))
 		details.additional[prop] = (e as any)[prop]
 
@@ -69,7 +73,6 @@ export const ErrorDisplay = ({
 	error,
 	onDismiss = null,
 	showDismiss = true,
-	className = ''
 }: {
 	error: Error | object | string,
 	onDismiss: (() => void) | null,
@@ -82,7 +85,7 @@ export const ErrorDisplay = ({
 	const hasDetails = details.cause || Object.keys(details.additional).length > 0;
 
 	return (
-		<div className={`rounded-lg border border-red-200 bg-red-50 p-4 ${className}`}>
+		<div className={`rounded-lg border border-red-200 bg-red-50 p-4 overflow-auto`}>
 			{/* Header */}
 			<div className="flex items-start justify-between">
 				<div className="flex gap-3">

@@ -123,7 +123,7 @@ protocol.registerSchemesAsPrivileged([
 	},
 	{
 		scheme: 'vscode-file',
-		privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true, codeCache: true }
+		privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true, codeCache: true, }
 	}
 ]);
 

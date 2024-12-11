@@ -3,17 +3,16 @@
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
 
-// this channel is registered in `app.ts`
-// code convention is to make a service responsible for this stuff, and not a channel, but this is simpler.
-// you could create one instance in electron-main/my-service.ts and one in browser/my-service.ts (and define the interface IMyService in common/my-service.ts), but we just use a channel here
-// registerSingleton(ISendLLMMessageService, SendLLMMessageService, InstantiationType.Delayed);
+// registered in app.ts
+// code convention is to make a service responsible for this stuff, and not a channel, but having fewer files is simpler...
 
 import { IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { Emitter, Event } from '../../../base/common/event.js';
-import { sendLLMMessage } from '../../../workbench/contrib/void/browser/react/out/sendLLMMessage/sendLLMMessage.js';
-import { listenerNames, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, ProxyLLMMessageParams, AbortRef, SendLLMMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
+import { BlockedProxyParams, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, ProxyLLMMessageParams, AbortRef, SendLLMMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
+import { sendLLMMessage } from './llmMessage/sendLLMMessage.js'
+import { IMetricsService } from '../common/metricsService.js';
 
-// NODE IMPLEMENTATION OF SENDLLMMESSAGE - calls sendLLMMessage() and returns listeners
+// NODE IMPLEMENTATION - calls actual sendLLMMessage() and returns listeners to it
 
 export class LLMMessageChannel implements IServerChannel {
 	private readonly _onText = new Emitter<ProxyOnTextPayload>();
@@ -29,10 +28,15 @@ export class LLMMessageChannel implements IServerChannel {
 	private readonly _abortRefOfRequestId: Record<string, AbortRef> = {}
 
 
-	constructor() { }
+	// stupidly, channels can't take in @IService
+	constructor(
+		private readonly metricsService: IMetricsService,
+	) {
+
+	}
 
 	// browser uses this to listen for changes
-	listen(_: unknown, event: typeof listenerNames[number]): Event<any> {
+	listen(_: unknown, event: BlockedProxyParams): Event<any> {
 		if (event === 'onText') {
 			return this.onText;
 		}
@@ -67,7 +71,7 @@ export class LLMMessageChannel implements IServerChannel {
 	}
 
 	// the only place sendLLMMessage is actually called
-	private _callSendLLMMessage(params: ProxyLLMMessageParams) {
+	private async _callSendLLMMessage(params: ProxyLLMMessageParams) {
 		const { requestId } = params;
 
 		if (!(requestId in this._abortRefOfRequestId))
@@ -77,10 +81,10 @@ export class LLMMessageChannel implements IServerChannel {
 			...params,
 			onText: ({ newText, fullText }) => { this._onText.fire({ requestId, newText, fullText }); },
 			onFinalMessage: ({ fullText }) => { this._onFinalMessage.fire({ requestId, fullText }); },
-			onError: ({ error }) => { this._onError.fire({ requestId, error }); },
+			onError: ({ error }) => { console.log('sendLLM: firing err'); this._onError.fire({ requestId, error }); },
 			abortRef: this._abortRefOfRequestId[requestId],
 		}
-		sendLLMMessage(mainThreadParams);
+		sendLLMMessage(mainThreadParams, this.metricsService);
 	}
 
 	private _callAbort(params: ProxyLLMMessageAbortParams) {

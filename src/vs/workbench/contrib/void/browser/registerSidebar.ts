@@ -11,7 +11,6 @@ import {
 } from '../../../common/views.js';
 
 import * as nls from '../../../../nls.js';
-import * as dom from '../../../../base/browser/dom.js';
 
 import { Codicon } from '../../../../base/common/codicons.js';
 import { localize } from '../../../../nls.js';
@@ -33,7 +32,7 @@ import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
+import { IContextMenuService, IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
@@ -43,18 +42,18 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 
 import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 
-import { IVoidConfigStateService } from './registerConfig.js';
+import { IVoidConfigStateService } from '../../../../platform/void/common/voidConfigService.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
-// compare against search.contribution.ts and https://app.greptile.com/chat/w1nsmt3lauwzculipycpn?repo=github%3Amain%3Amicrosoft%2Fvscode
-// and debug.contribution.ts, scm.contribution.ts (source control)
+// compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
 
 export type VoidSidebarState = {
 	isHistoryOpen: boolean;
@@ -69,6 +68,13 @@ export type ReactServicesType = {
 	modelService: IModelService;
 	inlineDiffService: IInlineDiffsService;
 	sendLLMMessageService: ISendLLMMessageService;
+	clipboardService: IClipboardService;
+
+	themeService: IThemeService,
+	hoverService: IHoverService,
+
+	contextViewService: IContextViewService;
+	contextMenuService: IContextMenuService;
 }
 
 // ---------- Define viewpane ----------
@@ -87,10 +93,6 @@ class VoidSidebarViewPane extends ViewPane {
 		@IOpenerService openerService: IOpenerService,
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IHoverService hoverService: IHoverService,
-		// Void:
-		// @IVoidSidebarStateService private readonly _voidSidebarStateService: IVoidSidebarStateService,
-		// @IThreadHistoryService private readonly _threadHistoryService: IThreadHistoryService,
-		// TODO chat service
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService)
 
@@ -100,9 +102,8 @@ class VoidSidebarViewPane extends ViewPane {
 
 	protected override renderBody(parent: HTMLElement): void {
 		super.renderBody(parent);
-
-		const { root } = dom.h('div@root')
-		dom.append(parent, root);
+		parent.style.overflow = 'auto'
+		parent.style.userSelect = 'text'
 
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
@@ -114,8 +115,13 @@ class VoidSidebarViewPane extends ViewPane {
 				modelService: accessor.get(IModelService),
 				inlineDiffService: accessor.get(IInlineDiffsService),
 				sendLLMMessageService: accessor.get(ISendLLMMessageService),
+				clipboardService: accessor.get(IClipboardService),
+				themeService: accessor.get(IThemeService),
+				hoverService: accessor.get(IHoverService),
+				contextViewService: accessor.get(IContextViewService),
+				contextMenuService: accessor.get(IContextMenuService),
 			}
-			mountFn(root, services);
+			mountFn(parent, services);
 		});
 	}
 

@@ -1,23 +1,34 @@
-import { posthog } from 'posthog-js'
-import type { OnText, OnError, OnFinalMessage, SendLLMMMessageParams, } from '../../../../../../../platform/void/common/llmMessageTypes.js';
+import { SendLLMMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
+import { IMetricsService } from '../../common/metricsService.js';
+
 import { sendAnthropicMsg } from './anthropic.js';
-import { sendGeminiMsg } from './gemini.js';
-import { sendGreptileMsg } from './greptile.js';
-import { sendGroqMsg } from './groq.js';
 import { sendOllamaMsg } from './ollama.js';
 import { sendOpenAIMsg } from './openai.js';
+import { sendGeminiMsg } from './gemini.js';
+import { sendGroqMsg } from './groq.js';
 
+export const sendLLMMessage = ({
+	messages,
+	onText: onText_,
+	onFinalMessage: onFinalMessage_,
+	onError: onError_,
+	abortRef: abortRef_,
+	logging: { loggingName },
+	settingsOfProvider,
+	providerName,
+	modelName,
+}: SendLLMMMessageParams,
 
-export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFinalMessage_, onError: onError_, abortRef: abortRef_, voidConfig, logging: { loggingName } }: SendLLMMMessageParams) => {
-	if (!voidConfig) return;
+	metricsService: IMetricsService
+) => {
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureChatEvent = (eventId: string, extras?: object) => {
-		posthog.capture(eventId, {
-			whichApi: voidConfig.default['whichApi'],
+		metricsService.capture(eventId, {
+			providerName,
 			numMessages: messages?.length,
 			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
 			version: '2024-11-14',
@@ -44,15 +55,16 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 	}
 
 	const onError: OnError = ({ error }) => {
-		console.error('sendLLMMessage onError:', error)
 		if (_didAbort) return
+		console.error('sendLLMMessage onError:', error)
 		captureChatEvent(`${loggingName} - Error`, { error })
 		onError_({ error })
 	}
 
 	const onAbort = () => {
 		captureChatEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
-		_aborter?.()
+		try { _aborter?.() } // aborter sometimes automatically throws an error
+		catch (e) { }
 		_didAbort = true
 	}
 	abortRef_.current = onAbort
@@ -60,38 +72,35 @@ export const sendLLMMessage = ({ messages, onText: onText_, onFinalMessage: onFi
 	captureChatEvent(`${loggingName} - Sending Message`, { messageLength: messages[messages.length - 1]?.content.length })
 
 	try {
-		switch (voidConfig.default.whichApi) {
+		switch (providerName) {
 			case 'anthropic':
-				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'openAICompatible':
-				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'gemini':
-				sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendGeminiMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'ollama':
-				sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
-				break;
-			case 'greptile':
-				sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendOllamaMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'groq':
-				sendGroqMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, });
+				sendGroqMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
-				onError({ error: `Error: whichApi was "${voidConfig.default.whichApi}", which is not recognized!` })
+				onError({ error: `Error: whichApi was "${providerName}", which is not recognized!` })
 				break;
 		}
 	}
 
 	catch (error) {
-		if (error instanceof Error) { onError({ error }) }
+		if (error instanceof Error) { onError({ error: error + '' }) }
 		else { onError({ error: `Unexpected Error in sendLLMMessage: ${error}` }); }
-		; (_aborter as any)?.()
-		_didAbort = true
+		// ; (_aborter as any)?.()
+		// _didAbort = true
 	}
 
 

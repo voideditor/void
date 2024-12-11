@@ -41,11 +41,11 @@ export const sendMistralMsg: SendLLMMessageFnTypeInternal = async ({
 			onText({ newText: content, fullText: content });
 			onFinalMessage({ fullText: content });
 		} else {
-			throw new Error("Réponse invalide de l'API Mistral");
+			throw new Error("Invalid response from Mistral API");
 		}
 	} catch (error) {
 		onError({
-			error: error instanceof Error ? error.message : "Erreur inconnue",
+			error: error instanceof Error ? error.message : "Unknown error",
 		});
 	}
 };

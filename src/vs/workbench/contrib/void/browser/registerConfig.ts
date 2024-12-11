@@ -176,6 +176,14 @@ const voidConfigInfo: Record<
 			[
 				'open-codestral-mamba',
 				'open-mistral-nemo',
+				`codestral-latest`,
+				`mistral-large-latest`,
+				`mistral-small-latest`,
+				`mistral-embed`,
+				`pixtral-large-latest`,
+				`pixtral-12b-2409`,
+				`ministral-3b-latest`,
+				`ministral-8b-latest`
 			] as const
 		),
 	},

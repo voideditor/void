@@ -84,10 +84,20 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 ## Bundling
 
-To bundle the IDE into an executable, run `npm run gulp vscode-darwin-arm64`.
+To bundle Void into an executable app, run one of the following commands:
 
-Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
+### Mac
+- `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)
+- `npm run gulp vscode-darwin-x64` (Intel)
 
+### Windows
+- `npm run gulp vscode-win32-x64` - most common
+- `npm run gulp vscode-win32-ia32`
+
+### Linux
+- `npm run gulp vscode-linux-x64` - most common
+- `npm run gulp vscode-linux-arm`
+- `npm run gulp vscode-linux-ia32`
 
 ## Roadmap
 

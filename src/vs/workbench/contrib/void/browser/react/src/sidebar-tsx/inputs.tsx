@@ -6,13 +6,12 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useService } from '../util/services.js';
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { defaultCheckboxStyles, defaultInputBoxStyles, defaultToggleStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
+import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles, defaultToggleStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox, unthemedSelectBoxStyles } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { Checkbox, Toggle } from '../../../../../../../base/browser/ui/toggle/toggle.js';
 import { ObjectSettingCheckboxWidget } from '../../../../../preferences/browser/settingsWidgets.js'
 import { Widget } from '../../../../../../../base/browser/ui/widget.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
-// settingitem
 
 
 
@@ -110,7 +109,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, op
 				options.map(opt => ({ text: opt.text })),
 				defaultIndex,
 				contextViewProvider,
-				unthemedSelectBoxStyles
+				defaultSelectBoxStyles
 			] as const;
 		}, [containerRef, options, initVal, contextViewProvider])}
 

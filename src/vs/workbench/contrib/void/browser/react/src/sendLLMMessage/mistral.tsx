@@ -1,4 +1,4 @@
-import { Mistral } from "@mistralai/mistralai";
+import { Mistral, ChatStreamResponse } from "@mistralai/mistralai";
 import { SendLLMMessageFnTypeInternal } from "./_types.js";
 
 export const sendMistralMsg: SendLLMMessageFnTypeInternal = async ({
@@ -23,9 +23,11 @@ export const sendMistralMsg: SendLLMMessageFnTypeInternal = async ({
 	});
 
 	for await (const chunk of result) {
-		const newText = chunk.choices[0]?.delta?.content || "";
-		fullText += newText;
-		onText({ newText, fullText });
+		if (chunk.choices[0]?.delta?.content) {
+			const newText = chunk.choices[0].delta.content;
+			fullText += newText;
+			onText({ newText, fullText });
+		}
 	}
 
 	onFinalMessage({ fullText });

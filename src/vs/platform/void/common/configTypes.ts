@@ -47,7 +47,7 @@ export const voidProviderDefaults = {
 
 export const voidInitModelOptions = {
 	anthropic: () => ({
-		model: 'claude-3-5-sonnet-20240620',
+		// model: 'claude-3-5-sonnet-20240620',
 		models: [
 			'claude-3-5-sonnet-20240620',
 			'claude-3-opus-20240229',
@@ -56,7 +56,7 @@ export const voidInitModelOptions = {
 		],
 	}),
 	openAI: () => ({
-		model: 'gpt-4o',
+		// model: 'gpt-4o',
 		models: [
 			'o1-preview',
 			'o1-mini',
@@ -78,7 +78,7 @@ export const voidInitModelOptions = {
 		],
 	}),
 	ollama: () => ({ // TODO make this do a fetch to get the models
-		model: 'codestral',
+		// model: 'codestral',
 		models: [
 			'codestral',
 			'qwen2.5-coder',
@@ -177,15 +177,15 @@ export const voidInitModelOptions = {
 		],
 	}),
 	openRouter: () => ({
-		model: 'openai/gpt-4o',
+		// model: 'openai/gpt-4o',
 		models: null, // any
 	}),
 	openAICompatible: () => ({
-		model: 'openai/gpt-4o',
+		// model: 'openai/gpt-4o',
 		models: null, // any
 	}),
 	gemini: () => ({
-		model: 'gemini-1.5-flash',
+		// model: 'gemini-1.5-flash',
 		models: [
 			'gemini-1.5-flash',
 			'gemini-1.5-pro',
@@ -194,7 +194,7 @@ export const voidInitModelOptions = {
 		],
 	}),
 	groq: () => ({
-		model: 'mixtral-8x7b-32768',
+		// model: 'mixtral-8x7b-32768',
 		models: [
 			"mixtral-8x7b-32768",
 			"llama2-70b-4096",
@@ -210,7 +210,8 @@ export const providerNames = Object.keys(voidProviderDefaults) as ProviderName[]
 
 
 
-export type VoidProviderState = {
+// state
+export type SettingsOfProvider = {
 	[providerName in ProviderName]: (
 		{
 			[optionName in keyof typeof voidProviderDefaults[providerName]]: string
@@ -221,14 +222,13 @@ export type VoidProviderState = {
 			maxTokens: string,
 
 			models: string[] | null, // if null, user can type in any string as a model
-			model: string,
 		})
 }
 
 
 type UnionOfKeys<T> = T extends T ? keyof T : never;
 
-export type ProviderSettingName = UnionOfKeys<VoidProviderState[ProviderName]>
+export type SettingName = UnionOfKeys<SettingsOfProvider[ProviderName]>
 
 
 
@@ -238,7 +238,7 @@ type DisplayInfo = {
 	placeholder: string,
 }
 
-export const displayInfoOfSettingName = (providerName: ProviderName, settingName: ProviderSettingName): DisplayInfo => {
+export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
 	if (settingName === 'apiKey') {
 		return {
 			title: 'API Key',
@@ -270,13 +270,6 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			placeholder: '1024',
 		}
 	}
-	else if (settingName === 'model') {
-		return {
-			title: 'Model',
-			type: '(never)',
-			placeholder: '(never)',
-		}
-	}
 	else if (settingName === 'enabled') {
 		return {
 			title: 'Enabled?',
@@ -298,7 +291,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 
 
 
-export const defaultVoidProviderState: VoidProviderState = {
+export const defaultVoidProviderState: SettingsOfProvider = {
 	anthropic: {
 		...voidProviderDefaults.anthropic,
 		...voidInitModelOptions.anthropic(),
@@ -345,22 +338,21 @@ export const defaultVoidProviderState: VoidProviderState = {
 
 
 
-
-
-type VoidFeatureState = {
+// this is a state
+export type ModelSelectionOfFeature = {
 	'Ctrl+L': {
-		provider: ProviderName,
-		model: string,
+		providerName: ProviderName,
+		modelName: string,
 	} | null,
 	'Ctrl+K': {
-		provider: ProviderName,
-		model: string,
+		providerName: ProviderName,
+		modelName: string,
 	} | null,
 	'Autocomplete': {
-		provider: ProviderName,
-		model: string,
+		providerName: ProviderName,
+		modelName: string,
 	} | null,
 }
-export type FeatureName = keyof VoidFeatureState
+export type FeatureName = keyof ModelSelectionOfFeature
 export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete'] as const
 

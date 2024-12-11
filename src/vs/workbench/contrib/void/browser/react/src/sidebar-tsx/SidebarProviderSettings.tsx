@@ -5,7 +5,7 @@
 
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { displayInfoOfSettingName, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
-import { VoidCheckBox, VoidInputBox, VoidSelectBox } from './inputs.js'
+import { VoidInputBox, VoidSelectBox } from './inputs.js'
 import { useConfigState, useService } from '../util/services.js'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
 import ErrorBoundary from './ErrorBoundary.js'

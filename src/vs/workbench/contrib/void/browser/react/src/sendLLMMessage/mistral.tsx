@@ -1,5 +1,18 @@
-import { Mistral, chatCompletionResponse } from "@mistralai/mistralai";
+import { Mistral } from "@mistralai/mistralai";
 import { SendLLMMessageFnTypeInternal } from "./_types.js";
+
+interface MistralMessage {
+	role: "user" | "assistant" | "system";
+	content: string;
+}
+
+interface MistralResponse {
+	choices: Array<{
+		message: {
+			content: string;
+		};
+	}>;
+}
 
 export const sendMistralMsg: SendLLMMessageFnTypeInternal = async ({
 	messages,
@@ -7,39 +20,32 @@ export const sendMistralMsg: SendLLMMessageFnTypeInternal = async ({
 	onFinalMessage,
 	onError,
 	voidConfig,
-	_setAborter,
 }) => {
 	try {
-		let fullText = "";
 		const thisConfig = voidConfig.mistral;
-
 		const mistral = new Mistral({
 			apiKey: thisConfig.apikey,
 		});
 
-		const chatResponse = await mistral.chat.complete({
+		const response = (await mistral.chat.complete({
 			model: thisConfig.model,
 			messages: messages.map((msg) => ({
-				role: msg.role,
+				role: msg.role as MistralMessage["role"],
 				content: msg.content,
 			})),
-			stream: true,
-		});
+			stream: false,
+		})) as MistralResponse;
 
-		for await (const chunk of chatResponse) {
-			if (chunk.choices[0]?.delta?.content) {
-				const newText = chunk.choices[0].delta.content;
-				fullText += newText;
-				onText({ newText, fullText });
-			}
-		}
-
-		onFinalMessage({ fullText });
-	} catch (error) {
-		if (error instanceof Error) {
-			onError({ error: error.message });
+		if (response?.choices?.[0]?.message?.content) {
+			const content = response.choices[0].message.content;
+			onText({ newText: content, fullText: content });
+			onFinalMessage({ fullText: content });
 		} else {
-			onError({ error: "Une erreur inconnue s'est produite" });
+			throw new Error("Réponse invalide de l'API Mistral");
 		}
+	} catch (error) {
+		onError({
+			error: error instanceof Error ? error.message : "Erreur inconnue",
+		});
 	}
 };

@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import Anthropic from '@anthropic-ai/sdk';
 import { parseMaxTokensStr } from './util.js';
 import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';

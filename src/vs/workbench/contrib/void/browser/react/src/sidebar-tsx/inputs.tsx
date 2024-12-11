@@ -50,7 +50,6 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, placeholder, mult
 
 	const contextViewProvider = useService('contextViewService');
 
-
 	return <WidgetComponent
 		ctor={InputBox}
 		propsFn={useCallback((container) => [
@@ -91,48 +90,50 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, placeholder, mult
 
 
 
+
 export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, options }: {
 	initVal: T;
 	selectBoxRef: React.MutableRefObject<SelectBox | null>;
 	options: readonly { text: string, value: T }[];
 	onChangeSelection: (value: T) => void;
-
 }) => {
-	const containerRef = useRef<HTMLDivElement>(null);
 	const contextViewProvider = useService('contextViewService');
 
-	useEffect(() => {
-		if (!containerRef.current) return;
+	let containerRef = useRef<HTMLDivElement | null>(null);
 
-		const defaultIndex = options.findIndex(opt => opt.value === initVal);
+	return <WidgetComponent
+		ctor={SelectBox}
+		propsFn={useCallback((container) => {
+			containerRef.current = container
+			const defaultIndex = options.findIndex(opt => opt.value === initVal);
+			return [
+				options.map(opt => ({ text: opt.text })),
+				defaultIndex,
+				contextViewProvider,
+				unthemedSelectBoxStyles
+			] as const;
+		}, [containerRef, options, initVal, contextViewProvider])}
 
-		selectBoxRef.current = new SelectBox(
-			options.map(opt => ({ text: opt.text })),
-			defaultIndex,
-			contextViewProvider,
-			unthemedSelectBoxStyles
-		);
+		dispose={useCallback((instance: SelectBox) => {
+			instance.dispose();
+			for (let child of containerRef.current?.childNodes ?? [])
+				containerRef.current?.removeChild(child)
+		}, [containerRef])}
 
-		selectBoxRef.current.render(containerRef.current);
+		onCreateInstance={useCallback((instance: SelectBox) => {
+			selectBoxRef.current = instance;
+			if (containerRef.current) instance.render(containerRef.current)
+			const disposables = [
+				instance.onDidSelect(e => {
+					console.log('e.selected', JSON.stringify(e));
+					onChangeSelection(options[e.index].value);
+				})
+			];
+			return disposables;
+		}, [containerRef, selectBoxRef, options, onChangeSelection])}
 
-		selectBoxRef.current.onDidSelect(e => { console.log('e.selected', JSON.stringify(e)); onChangeSelection(options[e.index].value); });
-
-		// cleanup
-		return () => {
-			if (selectBoxRef.current) {
-				selectBoxRef.current.dispose();
-				if (containerRef.current) {
-					while (containerRef.current.firstChild) {
-						containerRef.current.removeChild(containerRef.current.firstChild);
-					}
-				}
-			}
-		};
-	}, [options, initVal, onChangeSelection, contextViewProvider, selectBoxRef]);
-
-	return <div ref={containerRef} className="w-full" />;
+	/>;
 };
-
 
 
 

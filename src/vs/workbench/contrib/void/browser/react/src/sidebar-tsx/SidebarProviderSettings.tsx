@@ -18,6 +18,7 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 
 	const instanceRef = useRef<InputBox | null>(null)
 
+	// set init val to the current state
 	useEffect(() => {
 		// this is really just to sync the state on initial mount, when init value hasn't been set yet
 		let synced = false
@@ -32,14 +33,14 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 			const stateVal = settingsAtProvider[settingName]
 
 			if (instanceRef.current.value !== stateVal) {
-				instanceRef.current.value = stateVal // triggers onDidChangeState
+				instanceRef.current.value = stateVal // triggers onChangeText
 			}
 		}
 		syncStateOnMount()
 		synced = false // sync the next time state changes (but not after that - the "current.value = ..." triggers a state change, causing an infinite loop!)
 		const disposable = voidConfigService.onDidChangeState(syncStateOnMount)
 		return () => disposable.dispose()
-	}, [instanceRef, voidConfigService])
+	}, [instanceRef, voidConfigService, providerName, settingName])
 
 	return <><ErrorBoundary>
 		<h2>{title}</h2>

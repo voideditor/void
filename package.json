@@ -9,7 +9,7 @@
   "main": "./out/main",
   "private": true,
   "scripts": {
-    "build": "cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../../",
+    "react": "cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../../",
     "test": "echo Please run any of the test scripts from the scripts folder.",
     "test-browser": "npx playwright install && node test/unit/browser/index.js",
     "test-browser-amd": "npx playwright install && node test/unit/browser/index.amd.js",

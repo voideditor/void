@@ -17,6 +17,7 @@ import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { SidebarChat } from './SidebarChat.js';
 import { SidebarModelSettings } from './SidebarModelSettings.js';
 import { SidebarProviderSettings } from './SidebarProviderSettings.js';
+import ErrorBoundary from './ErrorBoundary.js';
 
 const Sidebar = () => {
 	const sidebarState = useSidebarState()
@@ -33,17 +34,25 @@ const Sidebar = () => {
 			}}>clickme {tab}</span> */}
 
 			<div className={`mb-2 ${isHistoryOpen ? '' : 'hidden'}`}>
-				<SidebarThreadSelector />
+				<ErrorBoundary>
+					<SidebarThreadSelector />
+				</ErrorBoundary>
 			</div>
 
 			<div className={`${tab === 'chat' ? '' : 'hidden'}`}>
-				<SidebarChat />
+				<ErrorBoundary>
+					<SidebarChat />
+				</ErrorBoundary>
 			</div>
 
 			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>
-				<SidebarModelSettings />
+				<ErrorBoundary>
+					<SidebarModelSettings />
+				</ErrorBoundary>
 				--------
-				<SidebarProviderSettings />
+				<ErrorBoundary>
+					<SidebarProviderSettings />
+				</ErrorBoundary>
 			</div>
 
 		</div>

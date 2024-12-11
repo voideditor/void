@@ -1245,7 +1245,6 @@ export class CodeApplication extends Disposable {
 		// Void
 		const metricsChannel = ProxyChannel.fromService(accessor.get(IMetricsService), disposables);
 		mainProcessElectronServer.registerChannel('void-channel-metrics', metricsChannel);
-
 		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
 		mainProcessElectronServer.registerChannel('void-channel-sendLLMMessage', sendLLMMessageChannel);
 

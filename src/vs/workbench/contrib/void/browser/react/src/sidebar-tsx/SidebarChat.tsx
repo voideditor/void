@@ -2,6 +2,7 @@
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
+
 import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
@@ -219,8 +220,8 @@ export const SidebarChat = () => {
 
 				setLatestError(error)
 			},
-			voidConfig: voidConfigState,
-			providerName: 'anthropic',
+			featureName: 'Ctrl+L',
+
 		}
 
 		const latestRequestId = sendLLMMessageService.sendLLMMessage(object)

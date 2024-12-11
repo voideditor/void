@@ -12,7 +12,6 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 import { CodeStagingSelection, IThreadHistoryService } from './registerThreads.js';
-// import { IVoidConfigService } from './registerSettings.js';
 // import { IEditorService } from '../../../services/editor/common/editorService.js';
 
 import { IEditorService } from '../../../services/editor/common/editorService.js';

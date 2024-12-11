@@ -42,7 +42,7 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 
 import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 
-import { IVoidConfigStateService } from './registerConfig.js';
+import { IVoidConfigStateService } from '../../../../platform/void/common/voidConfigService.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';

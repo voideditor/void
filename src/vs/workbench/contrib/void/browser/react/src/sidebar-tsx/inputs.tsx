@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPLv3 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useService } from '../util/services.js';
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
@@ -102,7 +107,7 @@ export const VoidSelectBox = ({ onChangeSelection, initVal, selectBoxRef, option
 		const defaultIndex = options.indexOf(initVal);
 
 		selectBoxRef.current = new SelectBox(
-			options.map(opt => ({ text: opt })),
+			options.map(opt => ({ text: opt, detail: 'detail', description: 'description' })),
 			defaultIndex,
 			contextViewProvider,
 			unthemedSelectBoxStyles

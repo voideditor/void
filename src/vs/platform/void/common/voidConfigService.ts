@@ -3,15 +3,14 @@
  *  Void Editor additions licensed under the AGPLv3 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { Emitter, Event } from '../../../../base/common/event.js';
-import { Disposable } from '../../../../base/common/lifecycle.js';
-import { deepClone } from '../../../../base/common/objects.js';
-import { IEncryptionService } from '../../../../platform/encryption/common/encryptionService.js';
-import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
-import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
-import { defaultVoidProviderState, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider } from '../../../../platform/void/common/configTypes.js';
-
+import { Emitter, Event } from '../../../base/common/event.js';
+import { Disposable } from '../../../base/common/lifecycle.js';
+import { deepClone } from '../../../base/common/objects.js';
+import { IEncryptionService } from '../../encryption/common/encryptionService.js';
+import { registerSingleton, InstantiationType } from '../../instantiation/common/extensions.js';
+import { createDecorator } from '../../instantiation/common/instantiation.js';
+import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
+import { defaultVoidProviderState, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider } from './voidConfigTypes.js';
 
 
 const CONFIG_STORAGE_KEY = 'void.voidConfigStateII'
@@ -89,7 +88,7 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 
 	private async _storeVoidConfigState(voidConfigState: VoidConfigState) {
 		const encryptedVoidConfigStr = await this._encryptionService.encrypt(JSON.stringify(voidConfigState))
-		this._storageService.store(CONFIG_STORAGE_KEY, encryptedVoidConfigStr, StorageScope.APPLICATION, StorageTarget.USER)
+		this._storageService.store(CONFIG_STORAGE_KEY, encryptedVoidConfigStr, StorageScope.APPLICATION, StorageTarget.USER);
 	}
 
 	setSettingOfProvider: SetSettingOfProviderFn = async (providerName, option, newVal) => {

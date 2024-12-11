@@ -4,10 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { displayInfoOfSettingName, ProviderName, providerNames, ProviderSettingName, VoidProviderState } from '../../../../../../../platform/void/common/configTypes.js'
+import { displayInfoOfSettingName, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
 import { VoidCheckBox, VoidInputBox, VoidSelectBox } from './inputs.js'
 import { useConfigState, useService } from '../util/services.js'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
+import ErrorBoundary from './ErrorBoundary.js'
 
 
 const Setting = ({ providerName, settingName }: { providerName: ProviderName, settingName: any }) => {
@@ -21,8 +22,12 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 		// this is really just to sync the state on initial mount, when init value hasn't been set yet
 		const syncState = () => {
 			if (!instanceRef.current) return
+
+			const settingsAtProvider = voidConfigService.state.settingsOfProvider[providerName];
+
 			// @ts-ignore
-			const stateVal = voidConfigService.state[providerName][settingName]
+			const stateVal = settingsAtProvider[settingName]
+
 			if (instanceRef.current.value !== stateVal)
 				instanceRef.current.value = stateVal
 		}
@@ -31,44 +36,30 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 		return () => disposable.dispose()
 	}, [instanceRef, voidConfigService])
 
-	return <>
+	return <><ErrorBoundary>
 		<h2>{title}</h2>
 		{<VoidInputBox
 			placeholder={placeholder}
 			onChangeText={useCallback((newVal) => {
-				voidConfigService.setState(providerName, settingName, newVal)
+				voidConfigService.setSettingOfProvider(providerName, settingName, newVal)
 			}, [voidConfigService, providerName, settingName])
 			}
 			onCreateInstance={instanceRef}
 			multiline={false}
 		/>}
-	</>
+	</ErrorBoundary></>
 
 }
 
 const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
 	const voidConfigState = useConfigState()
-	const { models, model, ...others } = voidConfigState[providerName]
-	const voidConfigService = useService('configStateService')
-
+	const { models, ...others } = voidConfigState[providerName]
 	return <>
 		<h1>{providerName}</h1>
-
-		{/* other settings (e.g. api key) */}
+		{/* settings besides models (e.g. api key) */}
 		{Object.keys(others).map((settingName, i) => {
 			return <Setting key={settingName} providerName={providerName} settingName={settingName} />
 		})}
-
-		<h2>{'Models'}</h2>
-		{models === null ?
-			<p>{'No models available.'}</p>
-			: <VoidSelectBox
-				initVal={models[0]}
-				options={models}
-				onChangeSelection={(newVal) => { voidConfigService.setState(providerName, 'model', newVal) }}
-				selectBoxRef={{ current: null }}
-			/>}
-
 	</>
 }
 

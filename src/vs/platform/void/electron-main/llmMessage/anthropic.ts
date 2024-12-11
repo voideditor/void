@@ -1,14 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { parseMaxTokensStr, SendLLMMessageFnTypeInternal } from './util.js';
+import { parseMaxTokensStr } from './util.js';
+import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
 
 // Anthropic
 type LLMMessageAnthropic = {
 	role: 'user' | 'assistant';
 	content: string;
 }
-export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
+export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
-	const thisConfig = voidConfig.anthropic
+	const thisConfig = settingsOfProvider.anthropic
 
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 
@@ -24,7 +25,7 @@ export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onTex
 	const stream = anthropic.messages.stream({
 		system: systemMessage,
 		messages: anthropicMessages,
-		model: thisConfig.model,
+		model: modelName,
 		max_tokens: parseMaxTokensStr(thisConfig.maxTokens)!, // this might be undefined, but it will just throw an error for the user to see
 	});
 

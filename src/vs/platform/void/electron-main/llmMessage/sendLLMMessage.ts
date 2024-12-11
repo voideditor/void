@@ -13,14 +13,14 @@ export const sendLLMMessage = ({
 	onFinalMessage: onFinalMessage_,
 	onError: onError_,
 	abortRef: abortRef_,
-	voidConfig,
 	logging: { loggingName },
-	providerName
+	settingsOfProvider,
+	providerName,
+	modelName,
 }: SendLLMMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
-	if (!voidConfig) return;
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
@@ -74,21 +74,21 @@ export const sendLLMMessage = ({
 	try {
 		switch (providerName) {
 			case 'anthropic':
-				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'openAICompatible':
-				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'gemini':
-				sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendGeminiMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'ollama':
-				sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendOllamaMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'groq':
-				sendGroqMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendGroqMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
 				onError({ error: `Error: whichApi was "${providerName}", which is not recognized!` })

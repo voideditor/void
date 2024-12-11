@@ -8,7 +8,7 @@
 
 import { IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { Emitter, Event } from '../../../base/common/event.js';
-import { listenerNames, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, ProxyLLMMessageParams, AbortRef, SendLLMMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
+import { BlockedProxyParams, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, ProxyLLMMessageParams, AbortRef, SendLLMMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
 import { sendLLMMessage } from './llmMessage/sendLLMMessage.js'
 import { IMetricsService } from '../common/metricsService.js';
 
@@ -28,12 +28,15 @@ export class LLMMessageChannel implements IServerChannel {
 	private readonly _abortRefOfRequestId: Record<string, AbortRef> = {}
 
 
+	// stupidly, channels can't take in @IService
 	constructor(
-		private readonly metricsService: IMetricsService
-	) { }
+		private readonly metricsService: IMetricsService,
+	) {
+
+	}
 
 	// browser uses this to listen for changes
-	listen(_: unknown, event: typeof listenerNames[number]): Event<any> {
+	listen(_: unknown, event: BlockedProxyParams): Event<any> {
 		if (event === 'onText') {
 			return this.onText;
 		}

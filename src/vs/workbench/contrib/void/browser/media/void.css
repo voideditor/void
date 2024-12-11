@@ -1,4 +1,9 @@
-.monaco-editor .void-sweepIdxBG {
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPLv3 License.
+ *--------------------------------------------------------------------------------------------*/
+
+ .monaco-editor .void-sweepIdxBG {
 	background-color: var(--vscode-void-sweepIdxBG);
 }
 

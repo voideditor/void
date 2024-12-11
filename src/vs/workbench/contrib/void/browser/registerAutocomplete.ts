@@ -7,7 +7,6 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { IVoidConfigStateService } from './registerConfig.js';
 import { ITextModel } from '../../../../editor/common/model.js';
 import { Position } from '../../../../editor/common/core/position.js';
 import { InlineCompletion, InlineCompletionContext } from '../../../../editor/common/languages.js';
@@ -516,7 +515,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		const disabled = true
 		const testMode = false
 
-		if (disabled) { return []; }
+		if (disabled) return [];
 
 		const docUriStr = model.uri.toString();
 
@@ -676,8 +675,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(error)
 				},
-				providerName: 'anthropic',
-				voidConfig: this._voidConfigStateService.state,
+				featureName: 'Autocomplete',
+				range: { startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column },
 			})
 			newAutocompletion.requestId = requestId
 
@@ -714,7 +713,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 	constructor(
 		@ILanguageFeaturesService private _langFeatureService: ILanguageFeaturesService,
-		@IVoidConfigStateService private readonly _voidConfigStateService: IVoidConfigStateService,
 		@ISendLLMMessageService private readonly _sendLLMMessageService: ISendLLMMessageService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IModelService private readonly _modelService: IModelService,

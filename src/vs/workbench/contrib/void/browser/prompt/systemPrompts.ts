@@ -1,5 +1,7 @@
-
-
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPLv3 License.
+ *--------------------------------------------------------------------------------------------*/
 
 // // used for ctrl+l
 // const partialGenerationInstructions = ``
@@ -7,6 +9,31 @@
 
 // // used for ctrl+k, autocomplete
 // const fimInstructions = ``
+
+
+// CTRL+K prompt:
+// const promptContent = `Here is the user's original selection:
+// \`\`\`
+// <MID>${selection}</MID>
+// \`\`\`
+
+// The user wants to apply the following instructions to the selection:
+// ${instructions}
+
+// Please rewrite the selection following the user's instructions.
+
+// Instructions to follow:
+// 1. Follow the user's instructions
+// 2. You may ONLY CHANGE the selection, and nothing else in the file
+// 3. Make sure all brackets in the new selection are balanced the same was as in the original selection
+// 3. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
+
+// Complete the following:
+// \`\`\`
+// <PRE>${prefix}</PRE>
+// <SUF>${suffix}</SUF>
+// <MID>`;
+
 
 
 export const generateDiffInstructions = `

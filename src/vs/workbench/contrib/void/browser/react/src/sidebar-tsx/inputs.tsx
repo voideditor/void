@@ -8,9 +8,6 @@ import { useService } from '../util/services.js';
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles, defaultToggleStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox, unthemedSelectBoxStyles } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
-import { Checkbox, Toggle } from '../../../../../../../base/browser/ui/toggle/toggle.js';
-import { ObjectSettingCheckboxWidget } from '../../../../../preferences/browser/settingsWidgets.js'
-import { Widget } from '../../../../../../../base/browser/ui/widget.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 
 
@@ -133,6 +130,50 @@ export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, op
 
 	/>;
 };
+
+
+
+// export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, options }: {
+// 	initVal: T;
+// 	selectBoxRef: React.MutableRefObject<SelectBox | null>;
+// 	options: readonly { text: string, value: T }[];
+// 	onChangeSelection: (value: T) => void;
+// }) => {
+// 	const contextViewProvider = useService('contextViewService');
+// 	const contextMenuProvider = useService('contextMenuService');
+
+
+// 	return <WidgetComponent
+// 		ctor={DropdownMenu}
+// 		propsFn={useCallback((container) => {
+// 			return [
+// 				container, {
+// 					contextMenuProvider,
+// 					actions: options.map(({ text, value }, i) => ({
+// 						id: i + '',
+// 						label: text,
+// 						tooltip: text,
+// 						class: undefined,
+// 						enabled: true,
+// 						run: () => {
+// 							onChangeSelection(value);
+// 						},
+// 					}))
+
+// 				}] as const;
+// 		}, [options, initVal, contextViewProvider])}
+
+// 		dispose={useCallback((instance: DropdownMenu) => {
+// 			instance.dispose();
+// 			// instance.element.remove()
+// 		}, [])}
+
+// 		onCreateInstance={useCallback((instance: DropdownMenu) => {
+// 			return []
+// 		}, [])}
+
+// 	/>;
+// };
 
 
 

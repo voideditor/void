@@ -42,7 +42,7 @@ export const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, on
 				onError({ error: 'Invalid API key.' });
 			}
 			else {
-				onError({ error });
+				onError({ error: error + '' });
 			}
 		})
 }

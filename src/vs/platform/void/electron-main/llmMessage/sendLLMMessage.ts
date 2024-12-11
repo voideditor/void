@@ -87,9 +87,6 @@ export const sendLLMMessage = ({
 			case 'ollama':
 				sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
 				break;
-			// case 'greptile':
-			// 	sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
-			// 	break;
 			case 'groq':
 				sendGroqMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
 				break;
@@ -100,7 +97,7 @@ export const sendLLMMessage = ({
 	}
 
 	catch (error) {
-		if (error instanceof Error) { onError({ error }) }
+		if (error instanceof Error) { onError({ error: error + '' }) }
 		else { onError({ error: `Unexpected Error in sendLLMMessage: ${error}` }); }
 		// ; (_aborter as any)?.()
 		// _didAbort = true

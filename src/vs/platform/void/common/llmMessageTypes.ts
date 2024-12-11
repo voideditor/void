@@ -12,7 +12,7 @@ export type OnText = (p: { newText: string, fullText: string }) => void
 
 export type OnFinalMessage = (p: { fullText: string }) => void
 
-export type OnError = (p: { error: Error | string }) => void
+export type OnError = (p: { error: string }) => void
 
 export type AbortRef = { current: (() => void) | null }
 

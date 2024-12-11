@@ -10,7 +10,7 @@ import { InstantiationType, registerSingleton } from '../../instantiation/common
 import { generateUuid } from '../../../base/common/uuid.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { Event } from '../../../base/common/event.js';
-import { IDisposable } from '../../../base/common/lifecycle.js';
+import { Disposable } from '../../../base/common/lifecycle.js';
 
 
 // BROWSER IMPLEMENTATION OF SENDLLMMESSAGE
@@ -24,72 +24,59 @@ export interface ISendLLMMessageService {
 }
 
 
-export class SendLLMMessageService implements ISendLLMMessageService {
+export class SendLLMMessageService extends Disposable implements ISendLLMMessageService {
 
 	readonly _serviceBrand: undefined;
 	private readonly channel: IChannel // LLMMessageChannel
 
-	private readonly _disposablesOfRequestId: Record<string, IDisposable[]> = {}
+	private readonly onTextHooks: { [eventId: string]: ((params: ProxyOnTextPayload) => void) } = {}
+	private readonly onFinalMessageHooks: { [eventId: string]: ((params: ProxyOnFinalMessagePayload) => void) } = {}
+	private readonly onErrorHooks: { [eventId: string]: ((params: ProxyOnErrorPayload) => void) } = {}
 
-	private readonly onTextEvent: Event<ProxyOnTextPayload>
-	private readonly onFinalMessageEvent: Event<ProxyOnFinalMessagePayload>
-	private readonly onErrorEvent: Event<ProxyOnErrorPayload>
 	constructor(
 		@IMainProcessService mainProcessService: IMainProcessService // used as a renderer (only usable on client side)
 	) {
-
-
-		this.channel = mainProcessService.getChannel('void-channel-sendLLMMessage')
-
-		console.log('setting up IPC')
-
-		// this sets up an IPC channel and takes a few ms, so should happen immediately
-		this.onTextEvent = this.channel.listen('onText')
-		this.onFinalMessageEvent = this.channel.listen('onFinalMessage')
-		this.onErrorEvent = this.channel.listen('onError')
+		super()
 
 		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service
-	}
+		this.channel = mainProcessService.getChannel('void-channel-sendLLMMessage')
 
-	_addDisposable(requestId: string, disposable: IDisposable) {
-		if (!this._disposablesOfRequestId[requestId]) {
-			this._disposablesOfRequestId[requestId] = []
-		}
-		this._disposablesOfRequestId[requestId].push(disposable)
-	}
+		// this sets up an IPC channel and takes a few ms, so we set up listeners immediately and add hooks to them instead
+		const onTextEvent: Event<ProxyOnTextPayload> = this.channel.listen('onText')
+		const onFinalMessageEvent: Event<ProxyOnFinalMessagePayload> = this.channel.listen('onFinalMessage')
+		const onErrorEvent: Event<ProxyOnErrorPayload> = this.channel.listen('onError')
 
+		this._register(
+			onTextEvent(e => {
+				this.onTextHooks[e.requestId]?.(e)
+			})
+		)
+
+		this._register(
+			onFinalMessageEvent(e => {
+				this.onFinalMessageHooks[e.requestId]?.(e)
+				this._onRequestIdDone(e.requestId)
+			})
+		)
+
+		this._register(
+			onErrorEvent(e => {
+				console.log('Error in SendLLMMessageService:', JSON.stringify(e))
+				this.onErrorHooks[e.requestId]?.(e)
+				this._onRequestIdDone(e.requestId)
+			})
+		)
+	}
 
 
 	sendLLMMessage(params: LLMMessageServiceParams) {
 		const requestId_ = generateUuid();
 		const { onText, onFinalMessage, onError, ...proxyParams } = params;
 
-		// listen for listenerName='onText' | 'onFinalMessage' | 'onError', and call the original function on it
+		this.onTextHooks[requestId_] = onText
+		this.onFinalMessageHooks[requestId_] = onFinalMessage
+		this.onErrorHooks[requestId_] = onError
 
-		this._addDisposable(requestId_,
-			this.onTextEvent(e => {
-				if (requestId_ !== e.requestId) return;
-				onText(e)
-			})
-		)
-
-		this._addDisposable(requestId_,
-			this.onFinalMessageEvent(e => {
-				if (requestId_ !== e.requestId) return;
-				onFinalMessage(e)
-				this._dispose(requestId_)
-			})
-		)
-
-		this._addDisposable(requestId_,
-			this.onErrorEvent(e => {
-				console.log('sendLLMMessageService - error event received (havent checked req)')
-				if (requestId_ !== e.requestId) return;
-				console.log('sendLLMMessageService - error event received', JSON.stringify(e))
-				onError(e)
-				this._dispose(requestId_)
-			})
-		)
 
 		// params will be stripped of all its functions
 		this.channel.call('sendLLMMessage', { ...proxyParams, requestId: requestId_ } satisfies ProxyLLMMessageParams);
@@ -97,17 +84,16 @@ export class SendLLMMessageService implements ISendLLMMessageService {
 		return requestId_
 	}
 
-	private _dispose(requestId: string) {
-		if (!(requestId in this._disposablesOfRequestId)) return
-		for (const disposable of this._disposablesOfRequestId[requestId]) {
-			disposable.dispose()
-		}
-		delete this._disposablesOfRequestId[requestId]
-	}
 
 	abort(requestId: string) {
 		this.channel.call('abort', { requestId } satisfies ProxyLLMMessageAbortParams);
-		this._dispose(requestId)
+		this._onRequestIdDone(requestId)
+	}
+
+	_onRequestIdDone(requestId: string) {
+		delete this.onTextHooks[requestId]
+		delete this.onFinalMessageHooks[requestId]
+		delete this.onErrorHooks[requestId]
 	}
 }
 

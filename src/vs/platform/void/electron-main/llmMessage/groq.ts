@@ -35,7 +35,7 @@ export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onTe
 			onFinalMessage({ fullText });
 		})
 		.catch(error => {
-			onError({ error });
+			onError({ error: error + '' });
 		})
 
 

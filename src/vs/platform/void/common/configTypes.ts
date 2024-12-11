@@ -34,7 +34,7 @@ export const voidProviderDefaults = {
 	},
 	openAICompatible: {
 		apiKey: '',
-		endpoint: 'http://127.0.0.1:11434/v1',
+		endpoint: 'https://my-website.com/v1',
 	},
 	gemini: {
 		apiKey: '',
@@ -248,7 +248,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 					providerName === 'openRouter' ? 'sk-or-abc123...' : // sk-or-v1-abc123
 						providerName === 'gemini' ? 'abc123...' :
 							providerName === 'groq' ? 'gsk_abc123...' :
-								'(never)',
+								providerName === 'openAICompatible' ? 'sk-abc123...' :
+									'(never)',
 		}
 	}
 	else if (settingName === 'endpoint') {

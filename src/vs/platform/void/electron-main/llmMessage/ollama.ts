@@ -1,4 +1,4 @@
-import { Ollama, ErrorResponse } from 'ollama';
+import { Ollama } from 'ollama';
 import { SendLLMMessageFnTypeInternal } from './util';
 import { parseMaxTokensStr } from './util.js';
 
@@ -30,14 +30,14 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		})
 		// when error/fail
 		.catch((error) => {
-			if (typeof error === 'object') {
-				const e = error.error as ErrorResponse['error']
-				if (e) {
-					const name = error.name ?? 'Error'
-					onError({ error: `${name}: ${e}` })
-					return;
-				}
-			}
+			// if (typeof error === 'object') {
+			// 	const e = error.error as ErrorResponse['error']
+			// 	if (e) {
+			// 		const name = error.name ?? 'Error'
+			// 		onError({ error: `${name}: ${e}` })
+			// 		return;
+			// 	}
+			// }
 			onError({ error })
 		})
 

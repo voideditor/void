@@ -47,7 +47,7 @@ export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onTex
 			onError({ error: 'Invalid API key.' })
 		}
 		else {
-			onError({ error })
+			onError({ error: error + '' })
 		}
 	})
 

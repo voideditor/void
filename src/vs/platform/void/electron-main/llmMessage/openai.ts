@@ -56,7 +56,7 @@ export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 				onError({ error: 'Invalid API key.' });
 			}
 			else {
-				onError({ error });
+				onError({ error: error + '' });
 			}
 		})
 

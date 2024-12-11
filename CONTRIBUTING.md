@@ -70,7 +70,7 @@ If you ran `npm run watch`, the build is done when you see something like this:
 
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
-4. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `./scripts/code.bat` (Windows). This should open up the built IDE!
+4. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `./scripts/code.bat` (Windows). This should open up the built IDE.
 You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building.
 
 Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page.

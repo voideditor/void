@@ -55,7 +55,7 @@ const getErrorDetails = (error: unknown) => {
 	}
 
 
-	// Collect any additional properties from the e
+	// Collect any additional properties from e
 	for (let prop of Object.getOwnPropertyNames(e).filter((prop) => !Object.keys(details).includes(prop)))
 		details.additional[prop] = (e as any)[prop]
 

@@ -254,7 +254,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	else if (settingName === 'endpoint') {
 		return {
 			title: providerName === 'ollama' ? 'The endpoint of your Ollama instance.' :
-				providerName === 'openAICompatible' ? 'The baseUrl (exluding /chat/completions).'
+				providerName === 'openAICompatible' ? 'The baseUrl (excluding /chat/completions).'
 					: '(never)',
 			type: 'string',
 			placeholder: providerName === 'ollama' || providerName === 'openAICompatible' ?

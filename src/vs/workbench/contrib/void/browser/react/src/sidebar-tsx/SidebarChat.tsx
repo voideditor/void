@@ -47,7 +47,7 @@ export const SelectedFiles = (
 			<div className='flex flex-wrap -mx-1 -mb-1'>
 				{selections.map((selection, i) => (
 					<Fragment key={i}>
-
+						{/* selection display summary */}
 						<button
 							disabled={!setStaging}
 							className={`btn btn-secondary btn-sm border border-vscode-input-border rounded flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default`}
@@ -76,7 +76,7 @@ export const SelectedFiles = (
 								</svg>
 							</span>}
 						</button>
-						{/* selection text */}
+						{/* selection full text */}
 						{type === 'staging' && selection.selectionStr && <BlockCode text={selection.selectionStr}
 							buttonsOnHover={(<button
 								onClick={() => {
@@ -96,9 +96,8 @@ export const SelectedFiles = (
 const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 	const role = chatMessage.role
-	const children = chatMessage.displayContent
 
-	if (!children)
+	if (!chatMessage.displayContent)
 		return null
 
 	let chatbubbleContents: React.ReactNode
@@ -106,11 +105,11 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 	if (role === 'user') {
 		chatbubbleContents = <>
 			<SelectedFiles type='past' selections={chatMessage.selections} />
-			{children}
+			{chatMessage.displayContent}
 		</>
 	}
 	else if (role === 'assistant') {
-		chatbubbleContents = <ChatMarkdownRender string={children} /> // sectionsHTML
+		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent} /> // sectionsHTML
 	}
 
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
@@ -142,7 +141,6 @@ export const SidebarChat = () => {
 
 	// config state
 	const voidConfigState = useConfigState()
-
 
 	// threads state
 	const threadsState = useThreadsState()
@@ -184,15 +182,13 @@ export const SidebarChat = () => {
 		const systemPromptElt: ChatMessage = { role: 'system', content: generateDiffInstructions }
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
-		const userContent = userInstructionsStr(instructions, selections)
-		const userHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selections }
+		// add user's message to chat history
+		const userHistoryElt: ChatMessage = { role: 'user', content: userInstructionsStr(instructions, selections), displayContent: instructions, selections }
 		threadsStateService.addMessageToCurrentThread(userHistoryElt)
 
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
 
-
 		// send message to LLM
-
 		const object: LLMMessageServiceParams = {
 			logging: { loggingName: 'Chat' },
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content || '(null)' })),],
@@ -238,7 +234,7 @@ export const SidebarChat = () => {
 	}
 
 	const onAbort = () => {
-		// abort the LLM
+		// abort the LLM call
 		if (latestRequestIdRef.current)
 			sendLLMMessageService.abort(latestRequestIdRef.current)
 
@@ -263,12 +259,13 @@ export const SidebarChat = () => {
 			{currentThread !== null && currentThread?.messages.map((message, i) =>
 				<ChatBubble key={i} chatMessage={message} />
 			)}
+
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
 		</div>
-		{/* chatbar */}
+
 		<div className="shrink-0 py-4">
-			{/* selection */}
+			{/* input box */}
 			<div className="text-left">
 				<div className="relative">
 					<div className="input">
@@ -282,8 +279,10 @@ export const SidebarChat = () => {
 							<ErrorDisplay
 								error={latestError}
 								onDismiss={() => { setLatestError(null) }}
-							/>}
+							/>
+						}
 
+						{/* user input box */}
 						<form
 							ref={formRef}
 							className={`flex flex-row items-center rounded-md p-2`}
@@ -292,9 +291,10 @@ export const SidebarChat = () => {
 							onSubmit={(e) => {
 								console.log('submit!')
 								onSubmit(e)
-							}}>
+							}}
+						>
 
-							{/* input */}
+							{/* text input */}
 							<VoidInputBox
 								placeholder={`${getCmdKey()}+L to select`}
 								onChangeText={onChangeText}

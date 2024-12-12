@@ -4,13 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { useCallback, useEffect, useRef } from 'react'
-import { FeatureName, featureNames, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
+import { dummyModelData, FeatureName, featureNames, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
 import { useConfigState, useService } from '../util/services.js'
-import ErrorBoundary from './ErrorBoundary.js'
 import { VoidSelectBox } from './inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
-
-
 
 
 export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureName }) => {
@@ -31,12 +28,11 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 
 	const isDummy = modelOptions.length === 0
 	if (isDummy) {
-		modelOptions.push(
-			{ text: 'claude 3.5 (anthropic)', value: ['dummy', 'dummy'] as [string, string] },
-			{ text: 'gpt 4o (openai)', value: ['dummy', 'dummy'] as [string, string] },
-			{ text: 'llama 3.2 (ollama)', value: ['dummy', 'dummy'] as [string, string] },
-			{ text: 'qwen 2.5 (openrouter)', value: ['dummy', 'dummy'] as [string, string] },
-		)
+		for (const [providerName, models] of Object.entries(dummyModelData)) {
+			for (let model of models) {
+				modelOptions.push({ text: `${model} (${providerName})`, value: ['dummy', 'dummy'] })
+			}
+		}
 	}
 
 	return <>

@@ -106,7 +106,7 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 				}
 			}
 		}
-		console.log('NEW STATE I', newState)
+		// console.log('NEW STATE I', JSON.stringify(newState, null, 2))
 
 		await this._storeVoidConfigState(newState)
 		this._setState(newState)
@@ -120,7 +120,7 @@ class VoidConfigStateService extends Disposable implements IVoidConfigStateServi
 				[featureName]: newVal
 			}
 		}
-		console.log('NEW STATE II', newState)
+		// console.log('NEW STATE II', JSON.stringify(newState, null, 2))
 
 		await this._storeVoidConfigState(newState)
 		this._setState(newState)

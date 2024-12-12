@@ -45,6 +45,16 @@ export const voidProviderDefaults = {
 } as const
 
 
+export const dummyModelData = {
+	anthropic: ['claude 3.5'],
+	openAI: ['gpt 4o'],
+	ollama: ['llama 3.2'],
+	openRouter: ['qwen 2.5'],
+}
+
+
+
+
 export const voidInitModelOptions = {
 	anthropic: () => ({
 		// model: 'claude-3-5-sonnet-20240620',

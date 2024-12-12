@@ -284,6 +284,7 @@ export const SidebarChat = () => {
 								message={latestError.message}
 								fullError={latestError.fullError}
 								onDismiss={() => { setLatestError(null) }}
+								showDismiss={true}
 							/>}
 
 						<form

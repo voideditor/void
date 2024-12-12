@@ -53,9 +53,8 @@ export const ErrorDisplay = ({
 
 				<div className="flex gap-2">
 					{details && (
-						<button
+						<button className="text-red-600 hover:text-red-800 p-1 rounded"
 							onClick={() => setIsExpanded(!isExpanded)}
-							className="text-red-600 hover:text-red-800 p-1 rounded"
 						>
 							{isExpanded ? (
 								<ChevronUp className="h-5 w-5" />
@@ -65,9 +64,8 @@ export const ErrorDisplay = ({
 						</button>
 					)}
 					{showDismiss && onDismiss && (
-						<button
+						<button className="text-red-600 hover:text-red-800 p-1 rounded"
 							onClick={onDismiss}
-							className="text-red-600 hover:text-red-800 p-1 rounded"
 						>
 							<X className="h-5 w-5" />
 						</button>

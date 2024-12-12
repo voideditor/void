@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 import React, { useEffect, useState } from 'react'
 import { mountFnGenerator } from '../util/mountFnGenerator.js'
@@ -15,8 +15,9 @@ import { useSidebarState } from '../util/services.js';
 import '../styles.css'
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { SidebarChat } from './SidebarChat.js';
-import { SidebarModelSettings } from './SidebarModelSettings.js';
-import { SidebarProviderSettings } from './SidebarProviderSettings.js';
+import { ModelSelectionSettings } from './ModelSelectionSettings.js';
+import { VoidProviderSettings } from './VoidProviderSettings.js';
+import ErrorBoundary from './ErrorBoundary.js';
 
 const Sidebar = () => {
 	const sidebarState = useSidebarState()
@@ -33,17 +34,25 @@ const Sidebar = () => {
 			}}>clickme {tab}</span> */}
 
 			<div className={`mb-2 ${isHistoryOpen ? '' : 'hidden'}`}>
-				<SidebarThreadSelector />
+				<ErrorBoundary>
+					<SidebarThreadSelector />
+				</ErrorBoundary>
 			</div>
 
 			<div className={`${tab === 'chat' ? '' : 'hidden'}`}>
-				<SidebarChat />
+				<ErrorBoundary>
+					<SidebarChat />
+				</ErrorBoundary>
+
+				<ErrorBoundary>
+					<ModelSelectionSettings />
+				</ErrorBoundary>
 			</div>
 
 			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>
-				<SidebarModelSettings />
-				--------
-				<SidebarProviderSettings />
+				<ErrorBoundary>
+					<VoidProviderSettings />
+				</ErrorBoundary>
 			</div>
 
 		</div>

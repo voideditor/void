@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import { SendLLMMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 
@@ -13,14 +18,14 @@ export const sendLLMMessage = ({
 	onFinalMessage: onFinalMessage_,
 	onError: onError_,
 	abortRef: abortRef_,
-	voidConfig,
 	logging: { loggingName },
-	providerName
+	settingsOfProvider,
+	providerName,
+	modelName,
 }: SendLLMMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
-	if (!voidConfig) return;
 
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
@@ -54,11 +59,12 @@ export const sendLLMMessage = ({
 		onFinalMessage_({ fullText })
 	}
 
-	const onError: OnError = ({ error }) => {
+	const onError: OnError = ({ message: error, fullError }) => {
 		if (_didAbort) return
+		console.log("ERROR!!!!!", error)
 		console.error('sendLLMMessage onError:', error)
 		captureChatEvent(`${loggingName} - Error`, { error })
-		onError_({ error })
+		onError_({ message: error, fullError })
 	}
 
 	const onAbort = () => {
@@ -74,34 +80,31 @@ export const sendLLMMessage = ({
 	try {
 		switch (providerName) {
 			case 'anthropic':
-				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'openAICompatible':
-				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'gemini':
-				sendGeminiMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendGeminiMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'ollama':
-				sendOllamaMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendOllamaMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
-			// case 'greptile':
-			// 	sendGreptileMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
-			// 	break;
 			case 'groq':
-				sendGroqMsg({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName });
+				sendGroqMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
-				onError({ error: `Error: whichApi was "${providerName}", which is not recognized!` })
+				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })
 				break;
 		}
 	}
 
 	catch (error) {
-		if (error instanceof Error) { onError({ error }) }
-		else { onError({ error: `Unexpected Error in sendLLMMessage: ${error}` }); }
+		if (error instanceof Error) { onError({ message: error + '', fullError: error }) }
+		else { onError({ message: `Unexpected Error in sendLLMMessage: ${error}`, fullError: error }); }
 		// ; (_aborter as any)?.()
 		// _didAbort = true
 	}

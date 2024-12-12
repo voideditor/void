@@ -1,5 +1,7 @@
-import { ProviderName, VoidProviderState } from '../../common/configTypes'
-import { LLMMessage, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes'
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
 
 export const parseMaxTokensStr = (maxTokensStr: string) => {
 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
@@ -10,13 +12,3 @@ export const parseMaxTokensStr = (maxTokensStr: string) => {
 }
 
 
-export type SendLLMMessageFnTypeInternal = (params: {
-	messages: LLMMessage[];
-	onText: OnText;
-	onFinalMessage: OnFinalMessage;
-	onError: OnError;
-	voidConfig: VoidProviderState;
-	providerName: ProviderName;
-
-	_setAborter: (aborter: () => void) => void;
-}) => void

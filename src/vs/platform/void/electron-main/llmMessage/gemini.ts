@@ -1,15 +1,20 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
-import { SendLLMMessageFnTypeInternal } from './util';
+import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
 
 // Gemini
-export const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
+export const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	let fullText = ''
 
-	const thisConfig = voidConfig.gemini
+	const thisConfig = settingsOfProvider.gemini
 
 	const genAI = new GoogleGenerativeAI(thisConfig.apiKey);
-	const model = genAI.getGenerativeModel({ model: thisConfig.model });
+	const model = genAI.getGenerativeModel({ model: modelName });
 
 	// remove system messages that get sent to Gemini
 	// str of all system messages
@@ -39,10 +44,10 @@ export const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, on
 		})
 		.catch((error) => {
 			if (error instanceof GoogleGenerativeAIFetchError && error.status === 400) {
-				onError({ error: 'Invalid API key.' });
+				onError({ message: 'Invalid API key.', fullError: null });
 			}
 			else {
-				onError({ error });
+				onError({ message: error + '', fullError: error });
 			}
 		})
 }

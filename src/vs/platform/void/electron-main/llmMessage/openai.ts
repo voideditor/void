@@ -1,10 +1,15 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import OpenAI from 'openai';
-import { SendLLMMessageFnTypeInternal } from './util';
+import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
 import { parseMaxTokensStr } from './util.js';
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter, providerName }) => {
+export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
 
 	let fullText = ''
 
@@ -13,12 +18,12 @@ export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 
 
 	if (providerName === 'openAI') {
-		const thisConfig = voidConfig.openAI
+		const thisConfig = settingsOfProvider.openAI
 		openai = new OpenAI({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
-		options = { model: thisConfig.model, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
+		options = { model: modelName, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
 	}
 	else if (providerName === 'openRouter') {
-		const thisConfig = voidConfig.openRouter
+		const thisConfig = settingsOfProvider.openRouter
 		openai = new OpenAI({
 			baseURL: 'https://openrouter.ai/api/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 			defaultHeaders: {
@@ -26,12 +31,12 @@ export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 				'X-Title': 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
 			},
 		});
-		options = { model: thisConfig.model, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
+		options = { model: modelName, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
 	}
 	else if (providerName === 'openAICompatible') {
-		const thisConfig = voidConfig.openAICompatible
+		const thisConfig = settingsOfProvider.openAICompatible
 		openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true })
-		options = { model: thisConfig.model, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
+		options = { model: modelName, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
 	}
 	else {
 		console.error(`sendOpenAIMsg: invalid providerName: ${providerName}`)
@@ -53,10 +58,10 @@ export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
 			if (error instanceof OpenAI.APIError && error.status === 401) {
-				onError({ error: 'Invalid API key.' });
+				onError({ message: 'Invalid API key.', fullError: error });
 			}
 			else {
-				onError({ error });
+				onError({ message: error, fullError: error });
 			}
 		})
 

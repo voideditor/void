@@ -1,7 +1,8 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
+
 import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
@@ -17,9 +18,9 @@ import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
+import { LLMMessageServiceParams, OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../getCmdKey.js'
-import { HistoryInputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from './inputs.js';
 
 
@@ -173,7 +174,9 @@ export const SelectedFiles = (
 }
 
 
-const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
+const ChatBubble = ({ chatMessage }: {
+	chatMessage: ChatMessage
+}) => {
 
 	const role = chatMessage.role
 
@@ -203,7 +206,7 @@ const ChatBubble = ({ chatMessage }: { chatMessage: ChatMessage }) => {
 
 export const SidebarChat = () => {
 
-	const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
+	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
 	const modelService = useService('modelService')
 
@@ -213,11 +216,11 @@ export const SidebarChat = () => {
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { chatInputRef.current?.focus() }),
-			sidebarStateService.onDidBlurChat(() => { chatInputRef.current?.blur() })
+			sidebarStateService.onDidFocusChat(() => { inputBoxRef.current?.focus() }),
+			sidebarStateService.onDidBlurChat(() => { inputBoxRef.current?.blur() })
 		)
 		return () => disposables.forEach(d => d.dispose())
-	}, [sidebarStateService, chatInputRef])
+	}, [sidebarStateService, inputBoxRef])
 
 	// config state
 	const voidConfigState = useConfigState()
@@ -233,7 +236,7 @@ export const SidebarChat = () => {
 	const [isLoading, setIsLoading] = useState(false)
 	const latestRequestIdRef = useRef<string | null>(null)
 
-	const [latestError, setLatestError] = useState<Error | string | null>(null)
+	const [latestError, setLatestError] = useState<Parameters<OnError>[0] | null>(null)
 
 	const sendLLMMessageService = useService('sendLLMMessageService')
 
@@ -242,7 +245,7 @@ export const SidebarChat = () => {
 	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
 	const isDisabled = !instructions
 	const formRef = useRef<HTMLFormElement | null>(null)
-	const inputBoxRef: React.MutableRefObject<HistoryInputBox | null> = useRef(null);
+
 
 	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
@@ -283,6 +286,13 @@ export const SidebarChat = () => {
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
 
 		// send message to LLM
+		setIsLoading(true) // must come before message is sent so onError will work
+		setLatestError(null)
+		if (inputBoxRef.current) {
+			inputBoxRef.current.value = ''; // this triggers onDidChangeText
+			inputBoxRef.current.blur();
+		}
+
 		const object: LLMMessageServiceParams = {
 			logging: { loggingName: 'Chat' },
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content || '(null)' })),],
@@ -296,8 +306,8 @@ export const SidebarChat = () => {
 				setMessageStream(null)
 				setIsLoading(false)
 			},
-			onError: ({ error }) => {
-				console.log('chat: running error', error)
+			onError: ({ message, fullError }) => {
+				console.log('chat: running error', message, fullError)
 
 				// add assistant's message to chat history, and clear selection
 				let content = messageStream ?? ''; // just use the current content
@@ -307,23 +317,16 @@ export const SidebarChat = () => {
 				setMessageStream('')
 				setIsLoading(false)
 
-				setLatestError(error)
+				setLatestError({ message, fullError })
 			},
-			voidConfig: voidConfigState,
-			providerName: 'anthropic',
+			featureName: 'Ctrl+L',
+
 		}
 
 		const latestRequestId = sendLLMMessageService.sendLLMMessage(object)
 		latestRequestIdRef.current = latestRequestId
 
-
-		setIsLoading(true)
-		if (inputBoxRef.current) {
-			inputBoxRef.current.value = ''; // this triggers onDidChangeText
-			inputBoxRef.current.blur();
-		}
 		threadsStateService.setStaging([]) // clear staging
-		setLatestError(null)
 
 	}
 
@@ -373,7 +376,8 @@ export const SidebarChat = () => {
 						{/* error message */}
 						{latestError === null ? null :
 							<ErrorDisplay
-								error={latestError}
+								message={latestError.message}
+								fullError={latestError.fullError}
 								onDismiss={() => { setLatestError(null) }}
 							/>
 						}
@@ -395,7 +399,6 @@ export const SidebarChat = () => {
 								onChangeText={onChangeText}
 								inputBoxRef={inputBoxRef}
 								multiline={true}
-								initVal=''
 							/>
 
 							{/* submit/stop button */}

@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
 // registered in app.ts
@@ -8,7 +8,7 @@
 
 import { IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { Emitter, Event } from '../../../base/common/event.js';
-import { listenerNames, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, ProxyLLMMessageParams, AbortRef, SendLLMMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
+import { BlockedProxyParams, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, ProxyLLMMessageParams, AbortRef, SendLLMMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
 import { sendLLMMessage } from './llmMessage/sendLLMMessage.js'
 import { IMetricsService } from '../common/metricsService.js';
 
@@ -28,12 +28,15 @@ export class LLMMessageChannel implements IServerChannel {
 	private readonly _abortRefOfRequestId: Record<string, AbortRef> = {}
 
 
+	// stupidly, channels can't take in @IService
 	constructor(
-		private readonly metricsService: IMetricsService
-	) { }
+		private readonly metricsService: IMetricsService,
+	) {
+
+	}
 
 	// browser uses this to listen for changes
-	listen(_: unknown, event: typeof listenerNames[number]): Event<any> {
+	listen(_: unknown, event: BlockedProxyParams): Event<any> {
 		if (event === 'onText') {
 			return this.onText;
 		}
@@ -68,7 +71,7 @@ export class LLMMessageChannel implements IServerChannel {
 	}
 
 	// the only place sendLLMMessage is actually called
-	private _callSendLLMMessage(params: ProxyLLMMessageParams) {
+	private async _callSendLLMMessage(params: ProxyLLMMessageParams) {
 		const { requestId } = params;
 
 		if (!(requestId in this._abortRefOfRequestId))
@@ -78,7 +81,7 @@ export class LLMMessageChannel implements IServerChannel {
 			...params,
 			onText: ({ newText, fullText }) => { this._onText.fire({ requestId, newText, fullText }); },
 			onFinalMessage: ({ fullText }) => { this._onFinalMessage.fire({ requestId, fullText }); },
-			onError: ({ error }) => { this._onError.fire({ requestId, error }); },
+			onError: ({ message: error, fullError }) => { console.log('sendLLM: firing err'); this._onError.fire({ requestId, message: error, fullError }); },
 			abortRef: this._abortRefOfRequestId[requestId],
 		}
 		sendLLMMessage(mainThreadParams, this.metricsService);

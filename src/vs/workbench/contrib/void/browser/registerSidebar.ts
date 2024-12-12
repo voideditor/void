@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
 import { Registry } from '../../../../platform/registry/common/platform.js';
@@ -42,7 +42,7 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 
 import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 
-import { IVoidConfigStateService } from './registerConfig.js';
+import { IVoidConfigStateService } from '../../../../platform/void/common/voidConfigService.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
@@ -69,6 +69,9 @@ export type ReactServicesType = {
 	inlineDiffService: IInlineDiffsService;
 	sendLLMMessageService: ISendLLMMessageService;
 	clipboardService: IClipboardService;
+
+	themeService: IThemeService,
+	hoverService: IHoverService,
 
 	contextViewService: IContextViewService;
 	contextMenuService: IContextMenuService;
@@ -113,6 +116,8 @@ class VoidSidebarViewPane extends ViewPane {
 				inlineDiffService: accessor.get(IInlineDiffsService),
 				sendLLMMessageService: accessor.get(ISendLLMMessageService),
 				clipboardService: accessor.get(IClipboardService),
+				themeService: accessor.get(IThemeService),
+				hoverService: accessor.get(IHoverService),
 				contextViewService: accessor.get(IContextViewService),
 				contextMenuService: accessor.get(IContextMenuService),
 			}

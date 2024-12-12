@@ -1,13 +1,10 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
 // register keybinds
 import './registerActions.js'
-
-// register Settings
-import './registerConfig.js' // TODO move this to platform
 
 // register inline diffs
 import './registerInlineDiffs.js'

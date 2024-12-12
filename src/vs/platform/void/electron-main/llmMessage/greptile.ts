@@ -1,15 +1,19 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
 
 // // Greptile
 // // https://docs.greptile.com/api-reference/query
 // // https://docs.greptile.com/quickstart#sample-response-streamed
 
-// import { SendLLMMessageFnTypeInternal } from './util';
+// import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
 
-// export const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
+// export const sendGreptileMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, _setAborter }) => {
 
 // 	let fullText = ''
 
-// 	const thisConfig = voidConfig.greptile
+// 	const thisConfig = settingsOfProvider.greptile
 
 // 	fetch('https://api.greptile.com/v2/query', {
 // 		method: 'POST',

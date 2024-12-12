@@ -1,7 +1,7 @@
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
 
@@ -34,7 +34,7 @@ export const voidProviderDefaults = {
 	},
 	openAICompatible: {
 		apiKey: '',
-		endpoint: 'http://127.0.0.1:11434/v1',
+		endpoint: 'https://my-website.com/v1',
 	},
 	gemini: {
 		apiKey: '',
@@ -47,7 +47,7 @@ export const voidProviderDefaults = {
 
 export const voidInitModelOptions = {
 	anthropic: () => ({
-		model: 'claude-3-5-sonnet-20240620',
+		// model: 'claude-3-5-sonnet-20240620',
 		models: [
 			'claude-3-5-sonnet-20240620',
 			'claude-3-opus-20240229',
@@ -56,7 +56,7 @@ export const voidInitModelOptions = {
 		],
 	}),
 	openAI: () => ({
-		model: 'gpt-4o',
+		// model: 'gpt-4o',
 		models: [
 			'o1-preview',
 			'o1-mini',
@@ -78,7 +78,7 @@ export const voidInitModelOptions = {
 		],
 	}),
 	ollama: () => ({ // TODO make this do a fetch to get the models
-		model: 'codestral',
+		// model: 'codestral',
 		models: [
 			'codestral',
 			'qwen2.5-coder',
@@ -177,15 +177,15 @@ export const voidInitModelOptions = {
 		],
 	}),
 	openRouter: () => ({
-		model: 'openai/gpt-4o',
+		// model: 'openai/gpt-4o',
 		models: null, // any
 	}),
 	openAICompatible: () => ({
-		model: 'openai/gpt-4o',
+		// model: 'openai/gpt-4o',
 		models: null, // any
 	}),
 	gemini: () => ({
-		model: 'gemini-1.5-flash',
+		// model: 'gemini-1.5-flash',
 		models: [
 			'gemini-1.5-flash',
 			'gemini-1.5-pro',
@@ -194,7 +194,7 @@ export const voidInitModelOptions = {
 		],
 	}),
 	groq: () => ({
-		model: 'mixtral-8x7b-32768',
+		// model: 'mixtral-8x7b-32768',
 		models: [
 			"mixtral-8x7b-32768",
 			"llama2-70b-4096",
@@ -210,7 +210,8 @@ export const providerNames = Object.keys(voidProviderDefaults) as ProviderName[]
 
 
 
-export type VoidProviderState = {
+// state
+export type SettingsOfProvider = {
 	[providerName in ProviderName]: (
 		{
 			[optionName in keyof typeof voidProviderDefaults[providerName]]: string
@@ -221,14 +222,13 @@ export type VoidProviderState = {
 			maxTokens: string,
 
 			models: string[] | null, // if null, user can type in any string as a model
-			model: string,
 		})
 }
 
 
 type UnionOfKeys<T> = T extends T ? keyof T : never;
 
-type ProviderSettingName = UnionOfKeys<VoidProviderState[ProviderName]>
+export type SettingName = UnionOfKeys<SettingsOfProvider[ProviderName]>
 
 
 
@@ -238,23 +238,43 @@ type DisplayInfo = {
 	placeholder: string,
 }
 
-export const displayInfoOfSettingName = (providerName: ProviderName, settingName: ProviderSettingName): DisplayInfo => {
+export const titleOfProviderName = (providerName: ProviderName) => {
+	if (providerName === 'anthropic')
+		return 'Anthropic'
+	else if (providerName === 'openAI')
+		return 'OpenAI'
+	else if (providerName === 'ollama')
+		return 'Ollama'
+	else if (providerName === 'openRouter')
+		return 'OpenRouter'
+	else if (providerName === 'openAICompatible')
+		return 'OpenAI-Compatible'
+	else if (providerName === 'gemini')
+		return 'Gemini'
+	else if (providerName === 'groq')
+		return 'Groq'
+
+	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
+}
+
+export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
 	if (settingName === 'apiKey') {
 		return {
 			title: 'API Key',
 			type: 'string',
-			placeholder: providerName === 'anthropic' ? 'sk-ant-api03-abc123...' :
+			placeholder: providerName === 'anthropic' ? 'sk-ant-abc123...' : // sk-ant-api03-abc123
 				providerName === 'openAI' ? 'sk-proj-abc123...' :
-					providerName === 'openRouter' ? 'sk-or-v1-abc123...' :
+					providerName === 'openRouter' ? 'sk-or-abc123...' : // sk-or-v1-abc123
 						providerName === 'gemini' ? 'abc123...' :
 							providerName === 'groq' ? 'gsk_abc123...' :
-								'(never)',
+								providerName === 'openAICompatible' ? 'sk-abc123...' :
+									'(never)',
 		}
 	}
 	else if (settingName === 'endpoint') {
 		return {
-			title: providerName === 'ollama' ? 'The endpoint of your Ollama instance.' :
-				providerName === 'openAICompatible' ? 'The baseUrl (excluding /chat/completions).'
+			title: providerName === 'ollama' ? 'Your Ollama endpoint' :
+				providerName === 'openAICompatible' ? 'Endpoint compatible with OpenAI API' // (do not include /chat/completions)
 					: '(never)',
 			type: 'string',
 			placeholder: providerName === 'ollama' || providerName === 'openAICompatible' ?
@@ -269,16 +289,9 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			placeholder: '1024',
 		}
 	}
-	else if (settingName === 'model') {
-		return {
-			title: 'Model',
-			type: '(never)',
-			placeholder: '(never)',
-		}
-	}
 	else if (settingName === 'enabled') {
 		return {
-			title: 'Enabled',
+			title: 'Enabled?',
 			type: 'boolean',
 			placeholder: '(never)',
 		}
@@ -297,7 +310,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 
 
 
-export const defaultVoidProviderState: VoidProviderState = {
+export const defaultVoidProviderState: SettingsOfProvider = {
 	anthropic: {
 		...voidProviderDefaults.anthropic,
 		...voidInitModelOptions.anthropic(),
@@ -344,22 +357,21 @@ export const defaultVoidProviderState: VoidProviderState = {
 
 
 
-
-
-type VoidFeatureState = {
+// this is a state
+export type ModelSelectionOfFeature = {
 	'Ctrl+L': {
-		provider: ProviderName,
-		model: string,
+		providerName: ProviderName,
+		modelName: string,
 	} | null,
 	'Ctrl+K': {
-		provider: ProviderName,
-		model: string,
+		providerName: ProviderName,
+		modelName: string,
 	} | null,
 	'Autocomplete': {
-		provider: ProviderName,
-		model: string,
+		providerName: ProviderName,
+		modelName: string,
 	} | null,
 }
-export type FeatureName = keyof VoidFeatureState
-export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete']
+export type FeatureName = keyof ModelSelectionOfFeature
+export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete'] as const
 

@@ -1,12 +1,17 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import Groq from 'groq-sdk';
-import { SendLLMMessageFnTypeInternal } from './util';
+import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
 import { parseMaxTokensStr } from './util.js';
 
 // Groq
-export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
+export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 	let fullText = '';
 
-	const thisConfig = voidConfig.groq
+	const thisConfig = settingsOfProvider.groq
 
 	const groq = new Groq({
 		apiKey: thisConfig.apiKey,
@@ -16,7 +21,7 @@ export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onTe
 	await groq.chat.completions
 		.create({
 			messages: messages,
-			model: thisConfig.model,
+			model: modelName,
 			stream: true,
 			temperature: 0.7,
 			max_tokens: parseMaxTokensStr(thisConfig.maxTokens),
@@ -35,7 +40,7 @@ export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onTe
 			onFinalMessage({ fullText });
 		})
 		.catch(error => {
-			onError({ error });
+			onError({ message: error + '', fullError: error });
 		})
 
 

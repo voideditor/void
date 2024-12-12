@@ -18,6 +18,7 @@ import './browser/workbench.contribution.js';
 // Void added this:
 import './contrib/void/browser/void.contribution.js';
 import '../platform/void/browser/llmMessageService.js';
+import '../platform/void/common/voidConfigService.js';
 //#endregion
 
 

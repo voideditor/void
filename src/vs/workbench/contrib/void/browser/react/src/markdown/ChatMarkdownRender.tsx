@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
@@ -44,7 +49,7 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 			onClick={async () => {
 
-				inlineDiffService.startStreaming({ type: 'ctrl+l', providerName: 'anthropic' }, text)
+				inlineDiffService.startStreaming({ featureName: 'Ctrl+L' }, text)
 			}}
 		>
 			Apply

@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import React, { useEffect, useState } from 'react';
 import * as ReactDOM from 'react-dom/client'
 import { ReactServicesType, VoidSidebarState } from '../../../registerSidebar.js';

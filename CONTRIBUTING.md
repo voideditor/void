@@ -70,7 +70,7 @@ If you ran `npm run watch`, the build is done when you see something like this:
 
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
-4. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `./scripts/code.bat` (Windows). This should open up the built IDE!
+4. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `./scripts/code.bat` (Windows). This should open up the built IDE.
 You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building.
 
 Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page.
@@ -84,10 +84,20 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 ## Bundling
 
-To bundle the IDE into an executable, run `npm run gulp vscode-darwin-arm64`.
+We don't usually recommend bundling - instead, usually you should just build (above). To bundle Void into an executable app, run one of the following commands. This will create a folder named `VSCode-darwin-arm64` (or similar) in the repo's parent's directory. Be patient - compiling can take ~25 minutes.
 
-Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
+### Mac
+- `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)
+- `npm run gulp vscode-darwin-x64` (Intel)
 
+### Windows
+- `npm run gulp vscode-win32-x64` - most common
+- `npm run gulp vscode-win32-ia32`
+
+### Linux
+- `npm run gulp vscode-linux-x64` - most common
+- `npm run gulp vscode-linux-arm`
+- `npm run gulp vscode-linux-ia32`
 
 ## Roadmap
 

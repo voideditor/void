@@ -7,59 +7,60 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorDisplay } from './ErrorDisplay.js';
 
 interface Props {
-    children: ReactNode;
-    fallback?: ReactNode;
-    onDismiss?: () => void;
+	children: ReactNode;
+	fallback?: ReactNode;
+	onDismiss?: () => void;
 }
 
 interface State {
-    hasError: boolean;
-    error: Error | null;
-    errorInfo: ErrorInfo | null;
+	hasError: boolean;
+	error: Error | null;
+	errorInfo: ErrorInfo | null;
 }
 
 class ErrorBoundary extends Component<Props, State> {
-    constructor(props: Props) {
-        super(props);
-        this.state = {
-            hasError: false,
-            error: null,
-            errorInfo: null
-        };
-    }
+	constructor(props: Props) {
+		super(props);
+		this.state = {
+			hasError: false,
+			error: null,
+			errorInfo: null
+		};
+	}
 
-    static getDerivedStateFromError(error: Error): Partial<State> {
-        return {
-            hasError: true,
-            error
-        };
-    }
+	static getDerivedStateFromError(error: Error): Partial<State> {
+		return {
+			hasError: true,
+			error
+		};
+	}
 
-    componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-        this.setState({
-            error,
-            errorInfo
-        });
-    }
+	componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+		this.setState({
+			error,
+			errorInfo
+		});
+	}
 
-    render(): ReactNode {
-        if (this.state.hasError && this.state.error) {
-            // If a custom fallback is provided, use it
-            if (this.props.fallback) {
-                return this.props.fallback;
-            }
+	render(): ReactNode {
+		if (this.state.hasError && this.state.error) {
+			// If a custom fallback is provided, use it
+			if (this.props.fallback) {
+				return this.props.fallback;
+			}
 
-            // Use ErrorDisplay component as the default error UI
-            return (
-                <ErrorDisplay
-                    error={this.state.error}
-                    onDismiss={this.props.onDismiss || null}
-                />
-            );
-        }
+			// Use ErrorDisplay component as the default error UI
+			return (
+				<ErrorDisplay
+					message={this.state.error + ''}
+					fullError={this.state.error}
+					onDismiss={this.props.onDismiss || null}
+				/>
+			);
+		}
 
-        return this.props.children;
-    }
+		return this.props.children;
+	}
 }
 
 export default ErrorBoundary;

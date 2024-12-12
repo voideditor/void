@@ -670,10 +670,10 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					resolve(newAutocompletion.insertText)
 
 				},
-				onError: ({ error }) => {
+				onError: ({ message }) => {
 					newAutocompletion.endTime = Date.now()
 					newAutocompletion.status = 'error'
-					reject(error)
+					reject(message)
 				},
 				featureName: 'Autocomplete',
 				range: { startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column },

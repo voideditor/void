@@ -273,7 +273,7 @@ function createServerHost(
 			try {
 				fs.createDirectory(pathMapper.toResource(path));
 			} catch (error) {
-				logger.logNormal('Error fs.createDirectory', { path, error: error + '' });
+				logger.logNormal('Error fs.createDirectory', { path, error });
 			}
 		},
 		getExecutingFilePath(): string {
@@ -323,7 +323,7 @@ function createServerHost(
 			try {
 				fs.delete(pathMapper.toResource(path));
 			} catch (error) {
-				logger.logNormal('Error fs.deleteFile', { path, error: error + '' });
+				logger.logNormal('Error fs.deleteFile', { path, error });
 			}
 		},
 		createHash: generateDjb2Hash,

@@ -18,7 +18,7 @@ import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { LLMMessageServiceParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
+import { LLMMessageServiceParams, OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from './inputs.js';
@@ -158,7 +158,7 @@ export const SidebarChat = () => {
 	const [isLoading, setIsLoading] = useState(false)
 	const latestRequestIdRef = useRef<string | null>(null)
 
-	const [latestError, setLatestError] = useState<Error | string | null>(null)
+	const [latestError, setLatestError] = useState<Parameters<OnError>[0] | null>(null)
 
 	const sendLLMMessageService = useService('sendLLMMessageService')
 
@@ -195,6 +195,11 @@ export const SidebarChat = () => {
 
 		// send message to LLM
 		setIsLoading(true) // must come before message is sent so onError will work
+		setLatestError(null)
+		if (inputBoxRef.current) {
+			inputBoxRef.current.value = ''; // this triggers onDidChangeText
+			inputBoxRef.current.blur();
+		}
 
 		const object: LLMMessageServiceParams = {
 			logging: { loggingName: 'Chat' },
@@ -209,8 +214,8 @@ export const SidebarChat = () => {
 				setMessageStream(null)
 				setIsLoading(false)
 			},
-			onError: ({ error }) => {
-				console.log('chat: running error', error)
+			onError: ({ message, fullError }) => {
+				console.log('chat: running error', message, fullError)
 
 				// add assistant's message to chat history, and clear selection
 				let content = messageStream ?? ''; // just use the current content
@@ -220,7 +225,7 @@ export const SidebarChat = () => {
 				setMessageStream('')
 				setIsLoading(false)
 
-				setLatestError(error)
+				setLatestError({ message, fullError })
 			},
 			featureName: 'Ctrl+L',
 
@@ -229,13 +234,7 @@ export const SidebarChat = () => {
 		const latestRequestId = sendLLMMessageService.sendLLMMessage(object)
 		latestRequestIdRef.current = latestRequestId
 
-
-		if (inputBoxRef.current) {
-			inputBoxRef.current.value = ''; // this triggers onDidChangeText
-			inputBoxRef.current.blur();
-		}
 		threadsStateService.setStaging([]) // clear staging
-		setLatestError(null)
 
 	}
 
@@ -282,7 +281,8 @@ export const SidebarChat = () => {
 						{/* error message */}
 						{latestError === null ? null :
 							<ErrorDisplay
-								error={latestError}
+								message={latestError.message}
+								fullError={latestError.fullError}
 								onDismiss={() => { setLatestError(null) }}
 							/>}
 
@@ -300,7 +300,7 @@ export const SidebarChat = () => {
 							<VoidInputBox
 								placeholder={`${getCmdKey()}+L to select`}
 								onChangeText={onChangeText}
-								onCreateInstance={inputBoxRef}
+								inputBoxRef={inputBoxRef}
 								multiline={true}
 							/>
 

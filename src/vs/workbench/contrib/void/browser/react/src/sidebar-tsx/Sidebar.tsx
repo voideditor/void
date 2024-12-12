@@ -15,8 +15,8 @@ import { useSidebarState } from '../util/services.js';
 import '../styles.css'
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { SidebarChat } from './SidebarChat.js';
-import { SidebarModelSettings } from './SidebarModelSettings.js';
-import { SidebarProviderSettings } from './SidebarProviderSettings.js';
+import { ModelSelectionSettings } from './ModelSelectionSettings.js';
+import { VoidProviderSettings } from './VoidProviderSettings.js';
 import ErrorBoundary from './ErrorBoundary.js';
 
 const Sidebar = () => {
@@ -43,15 +43,15 @@ const Sidebar = () => {
 				<ErrorBoundary>
 					<SidebarChat />
 				</ErrorBoundary>
+
+				<ErrorBoundary>
+					<ModelSelectionSettings />
+				</ErrorBoundary>
 			</div>
 
 			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>
 				<ErrorBoundary>
-					<SidebarModelSettings />
-				</ErrorBoundary>
-				--------
-				<ErrorBoundary>
-					<SidebarProviderSettings />
+					<VoidProviderSettings />
 				</ErrorBoundary>
 			</div>
 

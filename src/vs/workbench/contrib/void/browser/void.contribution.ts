@@ -6,9 +6,6 @@
 // register keybinds
 import './registerActions.js'
 
-// register Settings
-import '../../../../platform/void/common/voidConfigService.js' // TODO move this to platform
-
 // register inline diffs
 import './registerInlineDiffs.js'
 

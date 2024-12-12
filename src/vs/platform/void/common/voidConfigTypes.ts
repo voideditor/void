@@ -238,6 +238,25 @@ type DisplayInfo = {
 	placeholder: string,
 }
 
+export const titleOfProviderName = (providerName: ProviderName) => {
+	if (providerName === 'anthropic')
+		return 'Anthropic'
+	else if (providerName === 'openAI')
+		return 'OpenAI'
+	else if (providerName === 'ollama')
+		return 'Ollama'
+	else if (providerName === 'openRouter')
+		return 'OpenRouter'
+	else if (providerName === 'openAICompatible')
+		return 'OpenAI-Compatible'
+	else if (providerName === 'gemini')
+		return 'Gemini'
+	else if (providerName === 'groq')
+		return 'Groq'
+
+	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
+}
+
 export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
 	if (settingName === 'apiKey') {
 		return {
@@ -254,8 +273,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	}
 	else if (settingName === 'endpoint') {
 		return {
-			title: providerName === 'ollama' ? 'The endpoint of your Ollama instance.' :
-				providerName === 'openAICompatible' ? 'The baseUrl (exluding /chat/completions).'
+			title: providerName === 'ollama' ? 'Your Ollama endpoint' :
+				providerName === 'openAICompatible' ? 'Endpoint compatible with OpenAI API' // (do not include /chat/completions)
 					: '(never)',
 			type: 'string',
 			placeholder: providerName === 'ollama' || providerName === 'openAICompatible' ?

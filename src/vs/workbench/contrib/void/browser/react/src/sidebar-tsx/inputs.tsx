@@ -36,9 +36,10 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 
 
 
-export const VoidInputBox = ({ onChangeText, onCreateInstance, placeholder, multiline }: {
+export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, multiline }: {
 	onChangeText: (value: string) => void;
-	onCreateInstance?: { current: InputBox | null } | ((instance: InputBox) => void | IDisposable[]);
+	onCreateInstance?: (instance: InputBox) => void | IDisposable[];
+	inputBoxRef?: { current: InputBox | null };
 	placeholder: string;
 	multiline: boolean;
 }) => {
@@ -71,15 +72,15 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, placeholder, mult
 			disposables.push(
 				instance.onDidChange((newText) => onChangeText(newText))
 			)
-			if (typeof onCreateInstance === 'function') {
+			if (onCreateInstance) {
 				const ds = onCreateInstance(instance) ?? []
 				disposables.push(...ds)
 			}
-			if (typeof onCreateInstance === 'object') {
-				onCreateInstance.current = instance
-			}
+			if (inputBoxRef)
+				inputBoxRef.current = instance;
+
 			return disposables
-		}, [onChangeText, onCreateInstance])
+		}, [onChangeText, onCreateInstance, inputBoxRef])
 		}
 	/>
 };
@@ -87,11 +88,11 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, placeholder, mult
 
 
 
-export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, options }: {
-	initVal: T;
-	selectBoxRef: React.MutableRefObject<SelectBox | null>;
-	options: readonly { text: string, value: T }[];
+export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options }: {
 	onChangeSelection: (value: T) => void;
+	onCreateInstance?: ((instance: SelectBox) => void | IDisposable[]);
+	selectBoxRef?: React.MutableRefObject<SelectBox | null>;
+	options: readonly { text: string, value: T }[];
 }) => {
 	const contextViewProvider = useService('contextViewService');
 
@@ -101,14 +102,14 @@ export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, op
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container
-			const defaultIndex = options.findIndex(opt => opt.value === initVal);
+			const defaultIndex = 0;
 			return [
 				options.map(opt => ({ text: opt.text })),
 				defaultIndex,
 				contextViewProvider,
 				defaultSelectBoxStyles
 			] as const;
-		}, [containerRef, options, initVal, contextViewProvider])}
+		}, [containerRef, options, contextViewProvider])}
 
 		dispose={useCallback((instance: SelectBox) => {
 			instance.dispose();
@@ -117,16 +118,24 @@ export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, op
 		}, [containerRef])}
 
 		onCreateInstance={useCallback((instance: SelectBox) => {
-			selectBoxRef.current = instance;
-			if (containerRef.current) instance.render(containerRef.current)
-			const disposables = [
-				instance.onDidSelect(e => {
-					console.log('e.selected', JSON.stringify(e));
-					onChangeSelection(options[e.index].value);
-				})
-			];
+			const disposables: IDisposable[] = []
+
+			if (containerRef.current)
+				instance.render(containerRef.current)
+
+			disposables.push(
+				instance.onDidSelect(e => { onChangeSelection(options[e.index].value); })
+			)
+
+			if (onCreateInstance) {
+				const ds = onCreateInstance(instance) ?? []
+				disposables.push(...ds)
+			}
+			if (selectBoxRef)
+				selectBoxRef.current = instance;
+
 			return disposables;
-		}, [containerRef, selectBoxRef, options, onChangeSelection])}
+		}, [containerRef, onChangeSelection, options, onCreateInstance, selectBoxRef])}
 
 	/>;
 };

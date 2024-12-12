@@ -81,7 +81,7 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 		const modelSelection = this.voidConfigStateService.state.modelSelectionOfFeature[featureName]
 		if (modelSelection === null) {
 			this.notificationService.warn('Please add a Provider in Settings!')
-			setTimeout(() => onError({ error: 'Please add a Provider in Settings!' }), 100)
+			onError({ message: 'Please add a Provider in Settings!', fullError: null })
 			return null
 		}
 		const { providerName, modelName } = modelSelection

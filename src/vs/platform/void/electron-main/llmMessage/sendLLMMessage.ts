@@ -59,11 +59,12 @@ export const sendLLMMessage = ({
 		onFinalMessage_({ fullText })
 	}
 
-	const onError: OnError = ({ error }) => {
+	const onError: OnError = ({ message: error, fullError }) => {
 		if (_didAbort) return
+		console.log("ERROR!!!!!", error)
 		console.error('sendLLMMessage onError:', error)
 		captureChatEvent(`${loggingName} - Error`, { error })
-		onError_({ error })
+		onError_({ message: error, fullError })
 	}
 
 	const onAbort = () => {
@@ -96,14 +97,14 @@ export const sendLLMMessage = ({
 				sendGroqMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
-				onError({ error: `Error: Void provider was "${providerName}", which is not recognized.` })
+				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })
 				break;
 		}
 	}
 
 	catch (error) {
-		if (error instanceof Error) { onError({ error: error + '' }) }
-		else { onError({ error: `Unexpected Error in sendLLMMessage: ${error}` }); }
+		if (error instanceof Error) { onError({ message: error + '', fullError: error }) }
+		else { onError({ message: `Unexpected Error in sendLLMMessage: ${error}`, fullError: error }); }
 		// ; (_aborter as any)?.()
 		// _didAbort = true
 	}

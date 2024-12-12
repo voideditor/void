@@ -44,10 +44,10 @@ export const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, on
 		})
 		.catch((error) => {
 			if (error instanceof GoogleGenerativeAIFetchError && error.status === 400) {
-				onError({ error: 'Invalid API key.' });
+				onError({ message: 'Invalid API key.', fullError: null });
 			}
 			else {
-				onError({ error: error + '' });
+				onError({ message: error + '', fullError: error });
 			}
 		})
 }

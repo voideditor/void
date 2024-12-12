@@ -43,7 +43,7 @@ export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 			// 		return;
 			// 	}
 			// }
-			onError({ error })
+			onError({ message: error + '', fullError: error })
 		})
 
 };

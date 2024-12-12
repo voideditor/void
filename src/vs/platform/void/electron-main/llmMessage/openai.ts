@@ -58,10 +58,10 @@ export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, 
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
 			if (error instanceof OpenAI.APIError && error.status === 401) {
-				onError({ error: 'Invalid API key.' });
+				onError({ message: 'Invalid API key.', fullError: error });
 			}
 			else {
-				onError({ error: error + '' });
+				onError({ message: error, fullError: error });
 			}
 		})
 

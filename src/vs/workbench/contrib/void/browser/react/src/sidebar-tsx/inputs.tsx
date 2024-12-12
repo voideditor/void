@@ -58,9 +58,10 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 					inputBackground: 'transparent',
 				},
 				placeholder,
+				tooltip: '',
 				flexibleHeight: multiline,
 				flexibleMaxHeight: 500,
-				flexibleWidth: false,
+				flexibleWidth: true,
 			}
 		] as const, [contextViewProvider, placeholder, multiline])}
 		dispose={useCallback((instance: InputBox) => {
@@ -124,7 +125,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 				instance.render(containerRef.current)
 
 			disposables.push(
-				instance.onDidSelect(e => { onChangeSelection(options[e.index].value); })
+				instance.onDidSelect(e => { onChangeSelection(options[e.index].value ); })
 			)
 
 			if (onCreateInstance) {

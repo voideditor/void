@@ -32,6 +32,6 @@ module.exports = {
 		},
 	},
 	plugins: [],
-	prefix: 'prefix-'
+	prefix: 'void-'
 }
 

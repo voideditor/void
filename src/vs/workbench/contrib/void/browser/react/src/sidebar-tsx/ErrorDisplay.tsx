@@ -38,7 +38,7 @@ export const ErrorDisplay = ({
 			{/* Header */}
 			<div className="flex items-start justify-between">
 				<div className="flex gap-3">
-					<AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+					<AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
 					<div className="flex-1">
 						<h3 className="font-semibold text-red-800">
 							{/* eg Error */}
@@ -75,7 +75,7 @@ export const ErrorDisplay = ({
 
 			{/* Expandable Details */}
 			{isExpanded && details && (
-				<div className="mt-4 space-y-3 border-t border-red-200 pt-3">
+				<div className="mt-4 space-y-3 border-t border-red-200 pt-3 overflow-auto">
 					<div>
 						<span className="font-semibold text-red-800">Full Error: </span>
 						<pre className="text-red-700">{details}</pre>

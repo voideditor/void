@@ -20,34 +20,44 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 
 	const modelOptions: { text: string, value: [string, string] }[] = []
 
-	modelOptions.push({ text: 'Select a Provider', value: ['MyProvider', 'MyModel'] })
-
 	for (const providerName of providerNames) {
 		const providerConfig = voidConfigState[providerName]
 		if (providerConfig.enabled !== 'true') continue
 		providerConfig.models?.forEach(model => {
-			modelOptions.push({ text: `${providerName} - ${model}`, value: [providerName, model] })
+			modelOptions.push({ text: `${model} (${providerName})`, value: [providerName, model] })
 		})
 	}
 
 
+	const isDummy = modelOptions.length === 0
+	if (isDummy) {
+		modelOptions.push(
+			{ text: 'claude 3.5 (anthropic)', value: ['dummy', 'dummy'] as [string, string] },
+			{ text: 'gpt 4o (openai)', value: ['dummy', 'dummy'] as [string, string] },
+			{ text: 'llama 3.2 (ollama)', value: ['dummy', 'dummy'] as [string, string] },
+			{ text: 'qwen 2.5 (openrouter)', value: ['dummy', 'dummy'] as [string, string] },
+		)
+	}
 
 	return <>
 		<h2>{featureName}</h2>
 		{
 			<VoidSelectBox
 				options={modelOptions}
-				onChangeSelection={(newVal) => { voidConfigService.setModelSelectionOfFeature(featureName, { providerName: newVal[0] as ProviderName, modelName: newVal[1] }) }}
+				onChangeSelection={useCallback((newVal: [string, string]) => {
+					if (isDummy) return // don't set state to the dummy value
+					voidConfigService.setModelSelectionOfFeature(featureName, { providerName: newVal[0] as ProviderName, modelName: newVal[1] })
+				}, [voidConfigService, featureName, isDummy])}
 				// we are responsible for setting the initial state here
 				onCreateInstance={useCallback((instance: SelectBox) => {
-					const updateState = () => {
+					const updateInstance = () => {
 						const settingsAtProvider = voidConfigService.state.modelSelectionOfFeature[featureName]
 						const index = modelOptions.findIndex(v => v.value[0] === settingsAtProvider?.providerName && v.value[1] === settingsAtProvider?.modelName)
 						if (index !== -1)
 							instance.select(index)
 					}
-					updateState()
-					const disposable = voidConfigService.onDidGetInitState(updateState)
+					updateInstance()
+					const disposable = voidConfigService.onDidGetInitState(updateInstance)
 					return [disposable]
 				}, [voidConfigService, modelOptions, featureName])}
 			/>}

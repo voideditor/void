@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { titleOfProviderName, displayInfoOfSettingName, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
+import { titleOfProviderName, displayInfoOfSettingName, ProviderName, providerNames, featureNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
 import { VoidInputBox } from './inputs.js'
 import { useConfigState, useService } from '../util/services.js'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
@@ -23,18 +23,25 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 			placeholder={placeholder}
 			onChangeText={useCallback((newVal) => {
 				voidConfigService.setSettingOfProvider(providerName, settingName, newVal)
+				// if we just disabeld this provider, we should unselect all models that use it
+				if (settingName === 'enabled' && newVal !== 'true') {
+					for (let featureName of featureNames) {
+						if (voidConfigService.state.modelSelectionOfFeature[featureName]?.providerName === providerName)
+							voidConfigService.setModelSelectionOfFeature(featureName, null)
+					}
+				}
 			}, [voidConfigService, providerName, settingName])}
 
 			// we are responsible for setting the initial value here
 			onCreateInstance={useCallback((instance: InputBox) => {
-				const updateInstanceState = () => {
+				const updateInstance = () => {
 					const settingsAtProvider = voidConfigService.state.settingsOfProvider[providerName];
 					// @ts-ignore
 					const stateVal = settingsAtProvider[settingName]
 					instance.value = stateVal
 				}
-				updateInstanceState()
-				const disposable = voidConfigService.onDidGetInitState(updateInstanceState)
+				updateInstance()
+				const disposable = voidConfigService.onDidGetInitState(updateInstance)
 				return [disposable]
 			}, [voidConfigService, providerName, settingName])}
 			multiline={false}

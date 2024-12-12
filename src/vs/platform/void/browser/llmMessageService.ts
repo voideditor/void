@@ -12,7 +12,7 @@ import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { Event } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { IVoidConfigStateService } from '../common/voidConfigService.js';
-import { INotificationService } from '../../notification/common/notification.js';
+// import { INotificationService } from '../../notification/common/notification.js';
 
 
 // BROWSER IMPLEMENTATION OF SENDLLMMESSAGE
@@ -38,7 +38,7 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 	constructor(
 		@IMainProcessService private readonly mainProcessService: IMainProcessService, // used as a renderer (only usable on client side)
 		@IVoidConfigStateService private readonly voidConfigStateService: IVoidConfigStateService,
-		@INotificationService private readonly notificationService: INotificationService,
+		// @INotificationService private readonly notificationService: INotificationService,
 	) {
 		super()
 
@@ -80,7 +80,6 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 		// end early if no provider
 		const modelSelection = this.voidConfigStateService.state.modelSelectionOfFeature[featureName]
 		if (modelSelection === null) {
-			this.notificationService.warn('Please add a Provider in Settings!')
 			onError({ message: 'Please add a Provider in Settings!', fullError: null })
 			return null
 		}

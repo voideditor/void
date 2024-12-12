@@ -34,7 +34,7 @@ export const voidProviderDefaults = {
 	},
 	openAICompatible: {
 		apiKey: '',
-		endpoint: 'https://my-website.com/v1',
+		endpoint: '',
 	},
 	gemini: {
 		apiKey: '',
@@ -262,24 +262,24 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 		return {
 			title: 'API Key',
 			type: 'string',
-			placeholder: providerName === 'anthropic' ? 'sk-ant-abc123...' : // sk-ant-api03-abc123
-				providerName === 'openAI' ? 'sk-proj-abc123...' :
-					providerName === 'openRouter' ? 'sk-or-abc123...' : // sk-or-v1-abc123
-						providerName === 'gemini' ? 'abc123...' :
-							providerName === 'groq' ? 'gsk_abc123...' :
-								providerName === 'openAICompatible' ? 'sk-abc123...' :
+			placeholder: providerName === 'anthropic' ? 'sk-ant-key...' : // sk-ant-api03-key
+				providerName === 'openAI' ? 'sk-proj-key...' :
+					providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
+						providerName === 'gemini' ? 'key...' :
+							providerName === 'groq' ? 'gsk_key...' :
+								providerName === 'openAICompatible' ? 'sk-key...' :
 									'(never)',
 		}
 	}
 	else if (settingName === 'endpoint') {
 		return {
 			title: providerName === 'ollama' ? 'Your Ollama endpoint' :
-				providerName === 'openAICompatible' ? 'Endpoint compatible with OpenAI API' // (do not include /chat/completions)
+				providerName === 'openAICompatible' ? 'baseURL' // (do not include /chat/completions)
 					: '(never)',
 			type: 'string',
-			placeholder: providerName === 'ollama' || providerName === 'openAICompatible' ?
-				voidProviderDefaults[providerName].endpoint
-				: '(never)',
+			placeholder: providerName === 'ollama' ? voidProviderDefaults.ollama.endpoint
+				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
+					: '(never)',
 		}
 	}
 	else if (settingName === 'maxTokens') {

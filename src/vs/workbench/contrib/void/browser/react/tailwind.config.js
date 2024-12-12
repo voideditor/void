@@ -8,9 +8,9 @@ module.exports = {
 	content: ['./src2/**/*.{jsx,tsx}'], // uses these files to decide how to transform the css file
 	theme: {
 		extend: {
-			// inject user's vscode theme colors: https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content
 			colors: {
 				vscode: {
+					// see https://code.visualstudio.com/api/references/theme-color
 					"sidebar-bg": "var(--vscode-sideBar-background)",
 					"editor-bg": "var(--vscode-editor-background)",
 					"editor-fg": "var(--vscode-editor-foreground)",

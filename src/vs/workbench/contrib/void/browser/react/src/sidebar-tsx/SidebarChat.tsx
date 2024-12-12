@@ -32,7 +32,7 @@ const IconX = ({ size, className = '' }: { size: number, className?: string }) =
 			height={size}
 			viewBox='0 0 24 24'
 			fill='none'
-			stroke='currentColor'
+			stroke='black'
 			className={className}
 		>
 			<path
@@ -56,7 +56,7 @@ const IconArrowUp = ({ size, className = '' }: { size: number, className?: strin
 			xmlns="http://www.w3.org/2000/svg"
 		>
 			<path
-				fill="currentColor"
+				fill="black"
 				fill-rule="evenodd"
 				clip-rule="evenodd"
 				d="M15.1918 8.90615C15.6381 8.45983 16.3618 8.45983 16.8081 8.90615L21.9509 14.049C22.3972 14.4953 22.3972 15.2189 21.9509 15.6652C21.5046 16.1116 20.781 16.1116 20.3347 15.6652L17.1428 12.4734V22.2857C17.1428 22.9169 16.6311 23.4286 15.9999 23.4286C15.3688 23.4286 14.8571 22.9169 14.8571 22.2857V12.4734L11.6652 15.6652C11.2189 16.1116 10.4953 16.1116 10.049 15.6652C9.60265 15.2189 9.60265 14.4953 10.049 14.049L15.1918 8.90615Z"
@@ -71,8 +71,8 @@ const IconSquare = ({ size, className = '' }: { size: number, className?: string
 	return (
 		<svg
 			className={className}
-			stroke="currentColor"
-			fill="currentColor"
+			stroke="black"
+			fill="black"
 			strokeWidth="0"
 			viewBox="0 0 24 24"
 			width={size}
@@ -111,41 +111,42 @@ export const SelectedFiles = (
 
 	return (
 		!!selections && selections.length !== 0 && (
-			<div className='flex flex-wrap -mx-1 -mb-1'>
+			<div className='flex flex-wrap'>
 				{selections.map((selection, i) => (
 					<Fragment key={i}>
-						{/* selection summary */}
+						{/* selected file summary */}
 						<div
-							className={`relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default border-vscode-input-border`}
+							// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
+							className={`grid grid-rows-2 gap-1 relative
+									select-none
+									bg-vscode-badge-bg border border-vscode-button-border rounded-md
+									w-fit h-fit min-w-[80px] p-1
+							`}
+							onClick={() => {
+								setSelectionIsOpened(s => {
+									const newS = [...s]
+									newS[i] = !newS[i]
+									return newS
+								});
+							}}
 						>
-							<div
-								className="grid grid-rows-2 gap-2 border border-white rounded-sm bg-vscode-button-secondary-bg"
-								onClick={() => {
-									setSelectionIsOpened(s => {
-										const newS = [...s]
-										newS[i] = !newS[i]
-										return newS
-									});
-								}}
-							>
 
-								{/* file name */}
-								<span className='truncate'>{getBasename(selection.fileURI.fsPath)}</span>
+							{/* file name */}
+							<span className='truncate'>{getBasename(selection.fileURI.fsPath)}</span>
 
-								{/* type of selection */}
-								<span className='truncate text-opacity-75'>{selection.selectionStr ? 'Selection' : 'File'}</span>
+							{/* type of selection */}
+							<span className='truncate text-opacity-75'>{selection.selectionStr ? 'Selection' : 'File'}</span>
 
-							</div>
 
 							{/* X button */}
 							{type === 'staging' && // hoveredIdx === i
-								<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border-2 border-black'
+								<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-widget-border'
 									onClick={() => {
 										if (type !== 'staging') return;
 										setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
 									}}
 								>
-									<IconX size={20} className="p-[3px] stroke-[2]" />
+									<IconX size={16} className="p-[2px] stroke-[3]" />
 								</span>
 							}
 						</div>
@@ -167,7 +168,8 @@ export const SelectedFiles = (
 							/>
 						}
 					</Fragment>
-				))}
+				))
+				}
 			</div>
 		)
 	)
@@ -361,71 +363,78 @@ export const SidebarChat = () => {
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
 		</div>
 
-		{/* user input box */}
-		<div className="shrink-0 py-4">
-			<div className="text-left">
-				<div className="relative">
-					<div className="input">
-						{/* selections */}
-						{(selections && selections.length !== 0) &&
-							<div className="p-2 pb-0 space-y-2">
-								<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
-							</div>
-						}
+		{/* input box */}
+		<form
+			ref={formRef}
+			className={`flex flex-col gap-2 p-2 relative input text-left shrink-0
+				bg-vscode-input-bg
+				border border-vscode-input-border rounded-md
+			`}
+			onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
 
-						{/* error message */}
-						{latestError === null ? null :
-							<ErrorDisplay
-								message={latestError.message}
-								fullError={latestError.fullError}
-								onDismiss={() => { setLatestError(null) }}
-							/>
-						}
+			onSubmit={(e) => {
+				console.log('submit!')
+				onSubmit(e)
+			}}
+		>
+			{/* top row */}
+			<div className=''>
+				{/* selections */}
+				{(selections && selections.length !== 0) &&
+					<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
+				}
 
-						<form
-							ref={formRef}
-							className={`flex flex-row items-center rounded-md p-2`}
-							onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
-
-							onSubmit={(e) => {
-								console.log('submit!')
-								onSubmit(e)
-							}}
-						>
-
-							{/* text input */}
-							<VoidInputBox
-								placeholder={`${getCmdKey()}+L to select`}
-								onChangeText={onChangeText}
-								inputBoxRef={inputBoxRef}
-								multiline={true}
-							/>
-
-							{/* submit/stop button */}
-							{isLoading ?
-								// stop button
-								<button
-									className="p-[5px] bg-white rounded-full cursor-pointer"
-									onClick={onAbort}
-									type='button'
-								>
-									<IconSquare size={24} className="stroke-[2]" />
-								</button>
-								:
-								// submit button (up arrow)
-								<button
-									className="bg-white rounded-full cursor-pointer"
-									disabled={isDisabled}
-									type='submit'
-								>
-									<IconArrowUp size={24} className="stroke-[2]" />
-								</button>
-							}
-						</form>
-					</div>
-				</div>
+				{/* error message */}
+				{latestError === null ? null :
+					<ErrorDisplay
+						message={latestError.message}
+						fullError={latestError.fullError}
+						onDismiss={() => { setLatestError(null) }}
+					/>
+				}
 			</div>
-		</div>
+
+			{/* middle row */}
+			<div className=''>
+				{/* text input */}
+				<VoidInputBox
+					placeholder={`${getCmdKey()}+L to select`}
+					onChangeText={onChangeText}
+					inputBoxRef={inputBoxRef}
+					multiline={true}
+				/>
+			</div>
+
+			{/* bottom row */}
+			<div className=''>
+				{/* submit / stop button */}
+				{isLoading ?
+					// stop button
+					<button
+						className="p-[5px] bg-white rounded-full cursor-pointer"
+						onClick={onAbort}
+						type='button'
+					>
+						<IconSquare size={24} className="stroke-[2]" />
+					</button>
+					:
+					// submit button (up arrow)
+					<button
+						className={`${isDisabled ? 'prefix-bg-vscode-disabled-fg' : 'bg-white'}
+							rounded-full cursor-pointer`}
+						disabled={isDisabled}
+						type='submit'
+					>
+						<IconArrowUp size={24} className="stroke-[2]" />
+					</button>
+				}
+			</div>
+
+
+
+
+
+		</form>
 	</>
 }
 

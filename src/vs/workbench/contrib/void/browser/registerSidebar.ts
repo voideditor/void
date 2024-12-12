@@ -27,8 +27,6 @@ import { IContextKeyService } from '../../../../platform/contextkey/common/conte
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
@@ -37,8 +35,6 @@ import { IKeybindingService } from '../../../../platform/keybinding/common/keybi
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-// import { IVoidConfigService } from './registerSettings.js';
-// import { IEditorService } from '../../../services/editor/common/editorService.js';
 
 import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 
@@ -48,9 +44,8 @@ import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
-
-
-// import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
+import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 
 
 // compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
@@ -136,7 +131,7 @@ const voidViewIcon = registerIcon('void-view-icon', voidThemeIcon, localize('voi
 
 // called VIEWLET_ID in other places for some reason
 export const VOID_VIEW_CONTAINER_ID = 'workbench.view.void'
-export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID // not sure if we can change this
+export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID // simplicity
 
 // Register view container
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
@@ -186,13 +181,14 @@ export interface IVoidSidebarStateService {
 	fireFocusChat(): void;
 	fireBlurChat(): void;
 
-	openView(): void;
+	openSidebarView(): void;
 }
-
 
 export const IVoidSidebarStateService = createDecorator<IVoidSidebarStateService>('voidSidebarStateService');
 class VoidSidebarStateService extends Disposable implements IVoidSidebarStateService {
 	_serviceBrand: undefined;
+
+	static readonly ID = 'voidSidebarStateService';
 
 	private readonly _onDidChangeState = new Emitter<void>();
 	readonly onDidChangeState: Event<void> = this._onDidChangeState.event;
@@ -207,11 +203,20 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 	// state
 	state: VoidSidebarState
 
+	constructor(
+		@IViewsService private readonly _viewsService: IViewsService,
+	) {
+		super()
+
+		// initial state
+		this.state = { isHistoryOpen: false, currentTab: 'chat', }
+	}
+
 
 	setState(newState: Partial<VoidSidebarState>) {
 		// make sure view is open if the tab changes
 		if ('currentTab' in newState) {
-			this.openView()
+			this.openSidebarView()
 		}
 
 		this.state = { ...this.state, ...newState }
@@ -226,25 +231,9 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 		this._onBlurChat.fire()
 	}
 
-	openView() {
+	openSidebarView() {
 		this._viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
 		this._viewsService.openView(VOID_VIEW_ID);
-	}
-
-	constructor(
-		@IViewsService private readonly _viewsService: IViewsService,
-		// @IThreadHistoryService private readonly _threadHistoryService: IThreadHistoryService,
-	) {
-		super()
-		// auto open the view on mount (if it bothers you this is here, this is technically just initializing the state of the view)
-		this.openView()
-
-		// initial state
-		this.state = {
-			isHistoryOpen: false,
-			currentTab: 'chat',
-		}
-
 	}
 
 }

@@ -19,6 +19,7 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
 import { IVoidSidebarStateService, VOID_VIEW_ID } from './registerSidebar.js';
+import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 // import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 
@@ -60,8 +61,11 @@ registerAction2(class extends Action2 {
 		if (!model)
 			return
 
-
 		const stateService = accessor.get(IVoidSidebarStateService)
+		const metricsService = accessor.get(IMetricsService)
+
+		metricsService.capture('Chat Navigation', { type: 'Ctrl+L' })
+
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.fireFocusChat()
 
@@ -109,9 +113,12 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const stateService = accessor.get(IVoidSidebarStateService)
+		const metricsService = accessor.get(IMetricsService)
+
+		metricsService.capture('Chat Navigation', { type: 'New Chat' })
+
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.fireFocusChat()
-
 		const historyService = accessor.get(IThreadHistoryService)
 		historyService.startNewThread()
 	}
@@ -129,6 +136,10 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const stateService = accessor.get(IVoidSidebarStateService)
+		const metricsService = accessor.get(IMetricsService)
+
+		metricsService.capture('Chat Navigation', { type: 'History' })
+
 		stateService.setState({ isHistoryOpen: !stateService.state.isHistoryOpen, currentTab: 'chat' })
 		stateService.fireBlurChat()
 	}
@@ -146,6 +157,10 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const stateService = accessor.get(IVoidSidebarStateService)
+		const metricsService = accessor.get(IMetricsService)
+
+		metricsService.capture('Chat Navigation', { type: 'Settings' })
+
 		stateService.setState({ isHistoryOpen: false, currentTab: stateService.state.currentTab === 'settings' ? 'chat' : 'settings' })
 		stateService.fireBlurChat()
 	}

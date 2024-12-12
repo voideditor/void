@@ -4,7 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { useCallback, useEffect, useRef } from 'react'
-import { dummyModelData, FeatureName, featureNames, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
+import { FeatureName, featureNames, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
+import { dummyModelData } from '../../../../../../../platform/void/common/voidConfigModelDefaults.js'
 import { useConfigState, useService } from '../util/services.js'
 import { VoidSelectBox } from './inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'

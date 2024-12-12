@@ -60,6 +60,15 @@ export const VoidInputBox = ({ onChangeText, initVal, placeholder, inputBoxRef, 
 	}, [inputBoxRef, contextViewProvider, placeholder, multiline, initVal, onChangeText]);
 
 	return <div ref={containerRef} className="w-full" />;
+
+	// return <textarea
+	// 	ref={chatInputRef}
+	// 	placeholder={`Press ${getCmdKey()}+L to select.`}
+	// 	onChange={(e) => { setInstructions(e.target.value) }}
+	// 	className={`w-full p-2 leading-tight resize-none max-h-[50vh] overflow-auto bg-transparent border-none !outline-none`}
+	// 	rows={1}
+	// 	onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
+
 };
 
 

@@ -12,13 +12,13 @@ import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IAutocompleteService } from './registerAutocomplete.js';
 
-// if selectionStr is null, it means just send the whole file
 export type CodeSelection = {
 	selectionStr: string | null;
 	fileURI: URI;
-	content: string;
+	content: string; // TODO remove this
 }
 
+// if selectionStr is null, it means to use the entire file at send time
 export type CodeStagingSelection = {
 	selectionStr: string | null;
 	fileURI: URI;

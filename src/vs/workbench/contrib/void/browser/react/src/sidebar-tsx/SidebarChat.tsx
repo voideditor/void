@@ -6,9 +6,9 @@
 import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
-import { useConfigState, useService, useThreadsState } from '../util/services.js';
+import { useConfigState, useService, useSidebarState, useThreadsState } from '../util/services.js';
 import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
-import { userInstructionsStr } from '../../../prompt/stringifyFiles.js';
+import { userInstructionsStr } from '../../../prompt/stringifySelections.js';
 import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
@@ -22,6 +22,68 @@ import { LLMMessageServiceParams, OnError } from '../../../../../../../platform/
 import { getCmdKey } from '../../../getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from './inputs.js';
+
+
+const IconX = ({ size, className = '' }: { size: number, className?: string }) => {
+	return (
+		<svg
+			xmlns='http://www.w3.org/2000/svg'
+			width={size}
+			height={size}
+			viewBox='0 0 24 24'
+			fill='none'
+			stroke='black'
+			className={className}
+		>
+			<path
+				strokeLinecap='round'
+				strokeLinejoin='round'
+				d='M6 18 18 6M6 6l12 12'
+			/>
+		</svg>
+	);
+};
+
+
+const IconArrowUp = ({ size, className = '' }: { size: number, className?: string }) => {
+	return (
+		<svg
+			width={size}
+			height={size}
+			className={className}
+			viewBox="0 0 32 32"
+			fill="none"
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<path
+				fill="black"
+				fill-rule="evenodd"
+				clip-rule="evenodd"
+				d="M15.1918 8.90615C15.6381 8.45983 16.3618 8.45983 16.8081 8.90615L21.9509 14.049C22.3972 14.4953 22.3972 15.2189 21.9509 15.6652C21.5046 16.1116 20.781 16.1116 20.3347 15.6652L17.1428 12.4734V22.2857C17.1428 22.9169 16.6311 23.4286 15.9999 23.4286C15.3688 23.4286 14.8571 22.9169 14.8571 22.2857V12.4734L11.6652 15.6652C11.2189 16.1116 10.4953 16.1116 10.049 15.6652C9.60265 15.2189 9.60265 14.4953 10.049 14.049L15.1918 8.90615Z"
+			></path>
+		</svg>
+
+	);
+};
+
+
+const IconSquare = ({ size, className = '' }: { size: number, className?: string }) => {
+	return (
+		<svg
+			className={className}
+			stroke="black"
+			fill="black"
+			strokeWidth="0"
+			viewBox="0 0 24 24"
+			width={size}
+			height={size}
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<rect x="2" y="2" width="20" height="20" rx="4" ry="4" />
+		</svg>
+	);
+};
+
 
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
@@ -43,51 +105,71 @@ export const SelectedFiles = (
 		| { type: 'past', selections: CodeSelection[] | null; setStaging?: undefined }
 		| { type: 'staging', selections: CodeStagingSelection[] | null; setStaging: ((files: CodeStagingSelection[]) => void) }
 ) => {
+
+	// index -> isOpened
+	const [selectionIsOpened, setSelectionIsOpened] = useState<(boolean)[]>(selections?.map(() => false) ?? [])
+
 	return (
 		!!selections && selections.length !== 0 && (
-			<div className='flex flex-wrap -mx-1 -mb-1'>
+			<div className='flex flex-wrap'>
 				{selections.map((selection, i) => (
 					<Fragment key={i}>
-
-						<button
-							disabled={!setStaging}
-							className={`btn btn-secondary btn-sm border border-vscode-input-border rounded flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default`}
-							type='button'
+						{/* selected file summary */}
+						<div
+							// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
+							className={`grid grid-rows-2 gap-1 relative
+									select-none
+									bg-vscode-badge-bg border border-vscode-button-border rounded-md
+									w-fit h-fit min-w-[80px] p-1
+							`}
 							onClick={() => {
-								if (type !== 'staging') return
-								setStaging([...selections.slice(0, i), ...selections.slice(i + 1, Infinity)])
+								setSelectionIsOpened(s => {
+									const newS = [...s]
+									newS[i] = !newS[i]
+									return newS
+								});
 							}}
 						>
-							<span>{getBasename(selection.fileURI.fsPath)}</span>
+
+							{/* file name */}
+							<span className='truncate'>{getBasename(selection.fileURI.fsPath)}</span>
+
+							{/* type of selection */}
+							<span className='truncate text-opacity-75'>{selection.selectionStr ? 'Selection' : 'File'}</span>
+
 
 							{/* X button */}
-							{type === 'staging' && <span className=''>
-								<svg
-									xmlns='http://www.w3.org/2000/svg'
-									fill='none'
-									viewBox='0 0 24 24'
-									stroke='currentColor'
-									className='size-4'
+							{type === 'staging' && // hoveredIdx === i
+								<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-widget-border'
+									onClick={() => {
+										if (type !== 'staging') return;
+										setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
+									}}
 								>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										d='M6 18 18 6M6 6l12 12'
-									/>
-								</svg>
-							</span>}
-						</button>
-						{/* selection text */}
-						{type === 'staging' && selection.selectionStr && <BlockCode text={selection.selectionStr}
-							buttonsOnHover={(<button
-								onClick={() => {
-									setStaging([...selections.slice(0, i), { ...selection, selectionStr: null }, ...selections.slice(i + 1, Infinity)])
-								}}
-								className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-							>Remove</button>
-							)} />}
+									<IconX size={16} className="p-[2px] stroke-[3]" />
+								</span>
+							}
+						</div>
+						{/* selection full text */}
+						{type === 'staging' && selection.selectionStr && selectionIsOpened[i] &&
+							<BlockCode
+								text={selection.selectionStr}
+							// buttonsOnHover={(<button
+							// 	// onClick={() => { // clear the selection string but keep the file
+							// 	// 	setStaging([...selections.slice(0, i), { ...selection, selectionStr: null }, ...selections.slice(i + 1, Infinity)])
+							// 	// }}
+							// 	onClick={() => {
+							// 		if (type !== 'staging') return
+							// 		setStaging([...selections.slice(0, i), ...selections.slice(i + 1, Infinity)])
+							// 	}}
+							// 	className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+							// >Remove</button>
+							// )}
+							/>
+						}
 					</Fragment>
-				))}
+				))
+				}
 			</div>
 		)
 	)
@@ -99,9 +181,8 @@ const ChatBubble = ({ chatMessage }: {
 }) => {
 
 	const role = chatMessage.role
-	const children = chatMessage.displayContent
 
-	if (!children)
+	if (!chatMessage.displayContent)
 		return null
 
 	let chatbubbleContents: React.ReactNode
@@ -109,11 +190,11 @@ const ChatBubble = ({ chatMessage }: {
 	if (role === 'user') {
 		chatbubbleContents = <>
 			<SelectedFiles type='past' selections={chatMessage.selections} />
-			{children}
+			{chatMessage.displayContent}
 		</>
 	}
 	else if (role === 'assistant') {
-		chatbubbleContents = <ChatMarkdownRender string={children} /> // sectionsHTML
+		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent} /> // sectionsHTML
 	}
 
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
@@ -146,7 +227,6 @@ export const SidebarChat = () => {
 	// config state
 	const voidConfigState = useConfigState()
 
-
 	// threads state
 	const threadsState = useThreadsState()
 	const threadsStateService = useService('threadsStateService')
@@ -176,19 +256,33 @@ export const SidebarChat = () => {
 		if (isLoading) return
 
 
-		const currSelns = threadsStateService.state._currentStagingSelections
+
+		const currSelns = threadsStateService.state._currentStagingSelections ?? []
 		const selections = !currSelns ? null : await Promise.all(
 			currSelns.map(async (sel) => ({ ...sel, content: await VSReadFile(modelService, sel.fileURI) }))
 		).then(
 			(files) => files.filter(file => file.content !== null) as CodeSelection[]
 		)
 
+
+		// // TODO don't save files to the thread history
+		// const selectedSnippets = currSelns.filter(sel => sel.selectionStr !== null)
+		// const selectedFiles = await Promise.all(  // do not add these to the context history
+		// 	currSelns.filter(sel => sel.selectionStr === null)
+		// 		.map(async (sel) => ({ ...sel, content: await VSReadFile(modelService, sel.fileURI) }))
+		// ).then(
+		// 	(files) => files.filter(file => file.content !== null) as CodeSelection[]
+		// )
+		// const contextToSendToLLM = ''
+		// const contextToAddToHistory = ''
+
+
 		// add system message to chat history
 		const systemPromptElt: ChatMessage = { role: 'system', content: generateDiffInstructions }
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
-		const userContent = userInstructionsStr(instructions, selections)
-		const userHistoryElt: ChatMessage = { role: 'user', content: userContent, displayContent: instructions, selections }
+		// add user's message to chat history
+		const userHistoryElt: ChatMessage = { role: 'user', content: userInstructionsStr(instructions, selections), displayContent: instructions, selections: selections }
 		threadsStateService.addMessageToCurrentThread(userHistoryElt)
 
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
@@ -239,7 +333,7 @@ export const SidebarChat = () => {
 	}
 
 	const onAbort = () => {
-		// abort the LLM
+		// abort the LLM call
 		if (latestRequestIdRef.current)
 			sendLLMMessageService.abort(latestRequestIdRef.current)
 
@@ -264,87 +358,84 @@ export const SidebarChat = () => {
 			{currentThread !== null && currentThread?.messages.map((message, i) =>
 				<ChatBubble key={i} chatMessage={message} />
 			)}
+
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
 		</div>
-		{/* chatbar */}
-		<div className="shrink-0 py-4">
-			{/* selection */}
-			<div className="text-left">
-				<div className="relative">
-					<div className="input">
-						{/* selections */}
-						{(selections && selections.length !== 0) && <div className="p-2 pb-0 space-y-2">
-							<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
-						</div>}
 
-						{/* error message */}
-						{latestError === null ? null :
-							<ErrorDisplay
-								message={latestError.message}
-								fullError={latestError.fullError}
-								onDismiss={() => { setLatestError(null) }}
-								showDismiss={true}
-							/>}
+		{/* input box */}
+		<form
+			ref={formRef}
+			className={`flex flex-col gap-2 p-2 relative input text-left shrink-0
+				bg-vscode-input-bg
+				border border-vscode-input-border rounded-md
+			`}
+			onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
 
-						<form
-							ref={formRef}
-							className={`flex flex-row items-center rounded-md p-2`}
-							onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
+			onSubmit={(e) => {
+				console.log('submit!')
+				onSubmit(e)
+			}}
+		>
+			{/* top row */}
+			<div className=''>
+				{/* selections */}
+				{(selections && selections.length !== 0) &&
+					<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
+				}
 
-							onSubmit={(e) => {
-								console.log('submit!')
-								onSubmit(e)
-							}}>
-
-							{/* input */}
-							<VoidInputBox
-								placeholder={`${getCmdKey()}+L to select`}
-								onChangeText={onChangeText}
-								inputBoxRef={inputBoxRef}
-								multiline={true}
-							/>
-
-							{/* <textarea
-								ref={chatInputRef}
-								placeholder={`Press ${getCmdKey()}+L to select.`}
-								onChange={(e) => { setInstructions(e.target.value) }}
-								className={`w-full p-2 leading-tight resize-none max-h-[50vh] overflow-auto bg-transparent border-none !outline-none`}
-								rows={1}
-								onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }} // Adjust height dynamically
-							/> */}
-
-							{isLoading ?
-								// stop button
-								<button
-									onClick={onAbort}
-									type='button'
-									className="font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
-								>
-									<svg
-										className='scale-50'
-										stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 24 24" height="24" width="24" xmlns="http://www.w3.org/2000/svg">
-										<path d="M24 24H0V0h24v24z"></path>
-									</svg>
-								</button>
-								:
-								// submit button (up arrow)
-								<button
-									className="font-bold size-8 flex justify-center items-center rounded-full p-2 max-h-10"
-									disabled={isDisabled}
-									type='submit'
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-										<line x1="12" y1="19" x2="12" y2="5"></line>
-										<polyline points="5 12 12 5 19 12"></polyline>
-									</svg>
-								</button>
-							}
-						</form>
-					</div>
-				</div>
+				{/* error message */}
+				{latestError === null ? null :
+					<ErrorDisplay
+						message={latestError.message}
+						fullError={latestError.fullError}
+						onDismiss={() => { setLatestError(null) }}
+						showDismiss={true}
+					/>
+				}
 			</div>
-		</div>
+
+			{/* middle row */}
+			<div className=''>
+				{/* text input */}
+				<VoidInputBox
+					placeholder={`${getCmdKey()}+L to select`}
+					onChangeText={onChangeText}
+					inputBoxRef={inputBoxRef}
+					multiline={true}
+				/>
+			</div>
+
+			{/* bottom row */}
+			<div className=''>
+				{/* submit / stop button */}
+				{isLoading ?
+					// stop button
+					<button
+						className="p-[5px] bg-white rounded-full cursor-pointer"
+						onClick={onAbort}
+						type='button'
+					>
+						<IconSquare size={24} className="stroke-[2]" />
+					</button>
+					:
+					// submit button (up arrow)
+					<button
+						className={`${isDisabled ? 'prefix-bg-vscode-disabled-fg' : 'bg-white'}
+							rounded-full cursor-pointer`}
+						disabled={isDisabled}
+						type='submit'
+					>
+						<IconArrowUp size={24} className="stroke-[2]" />
+					</button>
+				}
+			</div>
+
+
+
+
+
+		</form>
 	</>
 }
 

@@ -6,7 +6,7 @@ The Void team put together this list of links to get up and running with VSCode'
 
 - [How VSCode's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. This is the most important read on this whole list! We recommend reading the whole thing.
 
-- [Built-in VSCode Styles](https://code.visualstudio.com/api/references/theme-color) - CSS variables that are built into VSCode. Use `var(--vscode-{theme but replacing . with -})`. You can also see the [Webview Theming Guide](https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content).
+- [Built-in VSCode styles](https://code.visualstudio.com/api/references/theme-color) - CSS variables that are built into VSCode. Use `var(--vscode-{theme but replacing . with -})`. You can also see their [Webview theming guide](https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content).
 
 ## Beginners / Getting started
 

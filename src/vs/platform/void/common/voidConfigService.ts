@@ -28,8 +28,8 @@ type SetModelSelectionOfFeature = <K extends FeatureName>(
 
 
 type VoidConfigState = {
-	settingsOfProvider: SettingsOfProvider; // optionsOfProvider
-	modelSelectionOfFeature: ModelSelectionOfFeature; // stateOfFeature
+	readonly settingsOfProvider: SettingsOfProvider; // optionsOfProvider
+	readonly modelSelectionOfFeature: ModelSelectionOfFeature; // stateOfFeature
 }
 
 export interface IVoidConfigStateService {

@@ -3,19 +3,12 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { ModelResponse, Ollama } from 'ollama';
+import { Ollama } from 'ollama';
 import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
 import { parseMaxTokensStr } from './util.js';
-import { SettingsOfProvider } from '../../common/voidConfigTypes.js';
+import { OllamaListFnParams } from '../../common/ollamaListService.js';
 
-
-type GetOllamaModelsFnType = (args: {
-	settingsOfProvider: SettingsOfProvider;
-	onSuccess: (param: { models: ModelResponse[] }) => void;
-	onError: (param: { error: any }) => void;
-}) => void
-
-export const getDefaultOllamaModels: GetOllamaModelsFnType = async ({ onSuccess, onError, settingsOfProvider }) => {
+export const getDefaultOllamaModels = async ({ onSuccess, onError, settingsOfProvider }: OllamaListFnParams) => {
 	const thisConfig = settingsOfProvider.ollama
 	const ollama = new Ollama({ host: thisConfig.endpoint })
 	ollama.list()

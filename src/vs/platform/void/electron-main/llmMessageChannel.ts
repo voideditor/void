@@ -31,8 +31,7 @@ export class LLMMessageChannel implements IServerChannel {
 	// stupidly, channels can't take in @IService
 	constructor(
 		private readonly metricsService: IMetricsService,
-	) {
-	}
+	) { }
 
 	// browser uses this to listen for changes
 	listen(_: unknown, event: string): Event<any> {

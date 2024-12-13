@@ -15,8 +15,10 @@ export const mountFnGenerator = (Component: React.FC) => (rootElement: HTMLEleme
 		return
 	}
 
-	_registerServices(services)
+	const disposables = _registerServices(services)
 
 	const root = ReactDOM.createRoot(rootElement)
 	root.render(<Component />);
+
+	return disposables
 }

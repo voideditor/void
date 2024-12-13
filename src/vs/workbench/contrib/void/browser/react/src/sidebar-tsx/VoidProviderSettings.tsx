@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { titleOfProviderName, displayInfoOfSettingName, ProviderName, providerNames, featureNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
+import { titleOfProviderName, displayInfoOfSettingName, ProviderName, providerNames, featureNames, SettingsOfProvider, SettingName, defaultVoidProviderState } from '../../../../../../../platform/void/common/voidConfigTypes.js'
 import { VoidInputBox } from './inputs.js'
 import { useConfigState, useService } from '../util/services.js'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
 import ErrorBoundary from './ErrorBoundary.js'
 
 
-const Setting = ({ providerName, settingName }: { providerName: ProviderName, settingName: any }) => {
+const Setting = ({ providerName, settingName }: { providerName: ProviderName, settingName: SettingName }) => {
 
 	const { title, type, placeholder } = displayInfoOfSettingName(providerName, settingName)
 	const voidConfigService = useService('configStateService')
@@ -22,6 +22,7 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 		<VoidInputBox
 			placeholder={placeholder}
 			onChangeText={useCallback((newVal) => {
+
 				voidConfigService.setSettingOfProvider(providerName, settingName, newVal)
 				// if we just disabeld this provider, we should unselect all models that use it
 				if (settingName === 'enabled' && newVal !== 'true') {
@@ -54,10 +55,12 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
 	const voidConfigState = useConfigState()
 	const { models, ...others } = voidConfigState[providerName]
+
 	return <>
 		<h1 className='text-xl'>{titleOfProviderName(providerName)}</h1>
 		{/* settings besides models (e.g. api key) */}
-		{Object.keys(others).map((settingName, i) => {
+		{Object.keys(others).map((sName, i) => {
+			const settingName = sName as keyof typeof others
 			return <Setting key={settingName} providerName={providerName} settingName={settingName} />
 		})}
 	</>

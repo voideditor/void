@@ -25,7 +25,7 @@ import { IViewPaneOptions, ViewPane } from '../../../browser/parts/views/viewPan
 
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { Disposable } from '../../../../base/common/lifecycle.js';
+import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
@@ -42,10 +42,11 @@ import { IVoidConfigStateService } from '../../../../platform/void/common/voidCo
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
+import { IRefreshModelService } from '../../../../platform/void/common/refreshModelService.js';
 
 
 // compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
@@ -64,6 +65,7 @@ export type ReactServicesType = {
 	inlineDiffService: IInlineDiffsService;
 	llmMessageService: ILLMMessageService;
 	clipboardService: IClipboardService;
+	refreshModelService: IRefreshModelService;
 
 	themeService: IThemeService,
 	hoverService: IHoverService,
@@ -113,10 +115,14 @@ class VoidSidebarViewPane extends ViewPane {
 				clipboardService: accessor.get(IClipboardService),
 				themeService: accessor.get(IThemeService),
 				hoverService: accessor.get(IHoverService),
+				refreshModelService: accessor.get(IRefreshModelService),
 				contextViewService: accessor.get(IContextViewService),
 				contextMenuService: accessor.get(IContextMenuService),
 			}
-			mountFn(parent, services);
+
+			// mount react
+			const disposables: IDisposable[] | undefined = mountFn(parent, services);
+			disposables?.forEach(d => this._register(d))
 		});
 	}
 

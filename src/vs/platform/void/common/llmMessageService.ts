@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainLLMMessageParams, MainLLMMessageAbortParams, ServiceOllamaListParams, EventOllamaListOnSuccessParams, EventOllamaListOnErrorParams, MainOllamaListParams } from '../common/llmMessageTypes.js';
+import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainLLMMessageParams, MainLLMMessageAbortParams, ServiceOllamaListParams, EventOllamaListOnSuccessParams, EventOllamaListOnErrorParams, MainOllamaListParams } from './llmMessageTypes.js';
 import { IChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
@@ -11,20 +11,18 @@ import { generateUuid } from '../../../base/common/uuid.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { Event } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
-import { IVoidConfigStateService } from '../common/voidConfigService.js';
+import { IVoidConfigStateService } from './voidConfigService.js';
 // import { INotificationService } from '../../notification/common/notification.js';
 
-
-// BROWSER IMPLEMENTATION
+// calls channel to implement features
 export const ILLMMessageService = createDecorator<ILLMMessageService>('llmMessageService');
 
-// defines an interface that node/ creates and browser/ uses
 export interface ILLMMessageService {
 	readonly _serviceBrand: undefined;
 	sendLLMMessage: (params: ServiceSendLLMMessageParams) => string | null;
 	abort: (requestId: string) => void;
+	ollamaList: (params: ServiceOllamaListParams) => void;
 }
-
 
 export class LLMMessageService extends Disposable implements ILLMMessageService {
 
@@ -52,8 +50,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service
 		this.channel = this.mainProcessService.getChannel('void-channel-llmMessageService')
 
-		// this sets up an IPC channel and takes a few ms, so we set up listeners immediately and add hooks to them instead
-
+		// .listen sets up an IPC channel and takes a few ms, so we set up listeners immediately and add hooks to them instead
 		// llm
 		this._register((this.channel.listen('onText_llm') satisfies Event<EventLLMMessageOnTextParams>)(e => {
 			this.onTextHooks_llm[e.requestId]?.(e)
@@ -74,6 +71,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this._register((this.channel.listen('onError_ollama') satisfies Event<EventOllamaListOnErrorParams>)(e => {
 			this.onError_ollama[e.requestId]?.(e)
 		}))
+
 	}
 
 	sendLLMMessage(params: ServiceSendLLMMessageParams) {
@@ -114,6 +112,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this._onRequestIdDone(requestId)
 	}
 
+
 	ollamaList = (params: ServiceOllamaListParams) => {
 		const { onSuccess, onError, ...proxyParams } = params
 
@@ -132,6 +131,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 	}
 
 
+
 	_onRequestIdDone(requestId: string) {
 		delete this.onTextHooks_llm[requestId]
 		delete this.onFinalMessageHooks_llm[requestId]
@@ -142,5 +142,5 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 	}
 }
 
-registerSingleton(ILLMMessageService, LLMMessageService, InstantiationType.Delayed);
+registerSingleton(ILLMMessageService, LLMMessageService, InstantiationType.Eager);
 

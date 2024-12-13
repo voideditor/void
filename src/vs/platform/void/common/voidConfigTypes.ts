@@ -42,7 +42,7 @@ export const voidInitModelOptions = {
 		models: defaultOpenAIModels,
 	},
 	ollama: {
-		models: [],//getDefaultOllamaModels,
+		models: [],
 	},
 	openRouter: {
 		models: [], // any string
@@ -164,7 +164,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 }
 
 
-
+// used when waiting and for a type reference
 export const defaultVoidProviderState: SettingsOfProvider = {
 	anthropic: {
 		...voidProviderDefaults.anthropic,

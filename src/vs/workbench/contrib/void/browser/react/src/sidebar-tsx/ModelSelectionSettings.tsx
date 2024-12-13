@@ -3,10 +3,10 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FeatureName, featureNames, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
 import { dummyModelData } from '../../../../../../../platform/void/common/voidConfigModelDefaults.js'
-import { useConfigState, useService } from '../util/services.js'
+import { useConfigState, useRefreshModelState, useService } from '../util/services.js'
 import { VoidSelectBox } from './inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 
@@ -59,8 +59,18 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 				}, [voidConfigService, modelOptions, featureName])}
 			/>}
 
-		{/* <h1>Settings - {featureName}</h1> */}
-		{/* {models.map(([providerName, model], i) => <p key={i}>{providerName} - {model}</p>)} */}
+	</>
+}
+
+const RefreshModels = () => {
+	const refreshModelState = useRefreshModelState()
+	const refreshModelService = useService('refreshModelService')
+
+	return <>
+		<button onClick={() => refreshModelService.refreshOllamaModels()}>
+			refresh
+		</button>
+		{refreshModelState === 'loading' ? 'loading...' : '✅'}
 	</>
 }
 
@@ -70,6 +80,8 @@ export const ModelSelectionSettings = () => {
 			key={featureName}
 			featureName={featureName}
 		/>)}
+
+		<RefreshModels />
 	</>
 }
 

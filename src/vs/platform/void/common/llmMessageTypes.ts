@@ -106,7 +106,7 @@ interface ModelDetails {
 	quantization_level: string;
 }
 
-type ModelResponse = {
+export type ModelResponse = {
 	name: string;
 	modified_at: Date;
 	size: number;
@@ -121,7 +121,7 @@ type ModelResponse = {
 export type OllamaListParams = {
 	settingsOfProvider: SettingsOfProvider;
 	onSuccess: (param: { models: ModelResponse[] }) => void;
-	onError: (param: { error: any }) => void;
+	onError: (param: { error: string }) => void;
 }
 
 export type ServiceOllamaListParams = {

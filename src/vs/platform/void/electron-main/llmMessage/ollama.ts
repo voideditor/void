@@ -4,21 +4,35 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Ollama } from 'ollama';
-import { _InternalOllamaListFnType, _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
+import { _InternalOllamaListFnType, _InternalSendLLMMessageFnType, ModelResponse } from '../../common/llmMessageTypes.js';
 import { parseMaxTokensStr } from './util.js';
 
-export const ollamaList: _InternalOllamaListFnType = async ({ onSuccess, onError, settingsOfProvider }) => {
-	const thisConfig = settingsOfProvider.ollama
-	const ollama = new Ollama({ host: thisConfig.endpoint })
-	ollama.list()
-		.then((response) => {
-			const { models } = response
-			onSuccess({ models })
-		})
-		.catch((error) => {
-			console.error('getDefaultOllamaModels: error:', error)
-			onError(error)
-		})
+export const ollamaList: _InternalOllamaListFnType = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
+
+	const onSuccess = ({ models }: { models: ModelResponse[] }) => {
+		onSuccess_({ models })
+	}
+
+	const onError = ({ error }: { error: string }) => {
+		onError_({ error })
+	}
+
+
+	try {
+		const thisConfig = settingsOfProvider.ollama
+		const ollama = new Ollama({ host: thisConfig.endpoint })
+		ollama.list()
+			.then((response) => {
+				const { models } = response
+				onSuccess({ models })
+			})
+			.catch((error) => {
+				onError({ error: error + '' })
+			})
+	}
+	catch (error) {
+		onError({ error: error + '' })
+	}
 }
 
 

@@ -5,7 +5,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { parseMaxTokensStr } from './util.js';
-import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
+import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
 import { displayInfoOfSettingName } from '../../common/voidConfigTypes.js';
 
 // Anthropic
@@ -13,7 +13,7 @@ type LLMMessageAnthropic = {
 	role: 'user' | 'assistant';
 	content: string;
 }
-export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendAnthropicMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	const thisConfig = settingsOfProvider.anthropic
 

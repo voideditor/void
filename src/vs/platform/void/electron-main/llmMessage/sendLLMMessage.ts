@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { SendLLMMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
+import { LLMMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 
 import { sendAnthropicMsg } from './anthropic.js';
@@ -22,7 +22,7 @@ export const sendLLMMessage = ({
 	settingsOfProvider,
 	providerName,
 	modelName,
-}: SendLLMMMessageParams,
+}: LLMMMessageParams,
 
 	metricsService: IMetricsService
 ) => {

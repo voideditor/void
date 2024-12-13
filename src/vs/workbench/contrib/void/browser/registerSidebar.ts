@@ -46,7 +46,6 @@ import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMes
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { IOllamaListService } from '../../../../platform/void/common/ollamaListService.js';
 
 
 // compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
@@ -89,20 +88,9 @@ class VoidSidebarViewPane extends ViewPane {
 		@IOpenerService openerService: IOpenerService,
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IHoverService hoverService: IHoverService,
-		@IVoidConfigStateService configStateService: IVoidConfigStateService,
-		@IOllamaListService ollamaListService: IOllamaListService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService)
 
-		console.log('calling Ollama list!!!')
-		ollamaListService.list({
-			onSuccess: ({ models }) => {
-				console.log('ollama models:', models)
-			}, onError: ({ error }) => {
-				console.error('ollama error:', error)
-			},
-			settingsOfProvider: configStateService.state.settingsOfProvider,
-		})
 	}
 
 

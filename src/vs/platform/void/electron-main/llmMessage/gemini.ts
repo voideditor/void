@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
-import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
+import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
 
 // Gemini
-export const sendGeminiMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendGeminiMsg: _InternalSendLLMMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	let fullText = ''
 

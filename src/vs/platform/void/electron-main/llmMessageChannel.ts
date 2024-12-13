@@ -8,43 +8,55 @@
 
 import { IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { Emitter, Event } from '../../../base/common/event.js';
-import { BlockedProxyParams, ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, ProxyLLMMessageParams, AbortRef, SendLLMMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
+import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, MainLLMMessageParams, AbortRef, LLMMMessageParams, MainLLMMessageAbortParams, MainOllamaListParams, OllamaListParams, EventOllamaListOnSuccessParams, EventOllamaListOnErrorParams } from '../common/llmMessageTypes.js';
 import { sendLLMMessage } from './llmMessage/sendLLMMessage.js'
 import { IMetricsService } from '../common/metricsService.js';
+import { ollamaList } from './llmMessage/ollama.js';
 
 // NODE IMPLEMENTATION - calls actual sendLLMMessage() and returns listeners to it
 
 export class LLMMessageChannel implements IServerChannel {
-	private readonly _onText = new Emitter<ProxyOnTextPayload>();
-	readonly onText = this._onText.event;
+	// sendLLMMessage
+	private readonly _onText_llm = new Emitter<EventLLMMessageOnTextParams>();
+	private readonly onText_llm = this._onText_llm.event;
 
-	private readonly _onFinalMessage = new Emitter<ProxyOnFinalMessagePayload>();
-	readonly onFinalMessage = this._onFinalMessage.event;
+	private readonly _onFinalMessage_llm = new Emitter<EventLLMMessageOnFinalMessageParams>();
+	private readonly onFinalMessage_llm = this._onFinalMessage_llm.event;
 
-	private readonly _onError = new Emitter<ProxyOnErrorPayload>();
-	readonly onError = this._onError.event;
+	private readonly _onError_llm = new Emitter<EventLLMMessageOnErrorParams>();
+	private readonly onError_llm = this._onError_llm.event;
 
+	private readonly _abortRefOfRequestId_llm: Record<string, AbortRef> = {}
 
-	private readonly _abortRefOfRequestId: Record<string, AbortRef> = {}
+	// ollamaList
+	private readonly _onSuccess_ollama = new Emitter<EventOllamaListOnSuccessParams>();
+	private readonly onSuccess_ollama = this._onSuccess_ollama.event;
 
+	private readonly _onError_ollama = new Emitter<EventOllamaListOnErrorParams>();
+	private readonly onError_ollama = this._onError_ollama.event;
 
 	// stupidly, channels can't take in @IService
 	constructor(
 		private readonly metricsService: IMetricsService,
 	) {
-
 	}
 
 	// browser uses this to listen for changes
-	listen(_: unknown, event: BlockedProxyParams): Event<any> {
-		if (event === 'onText') {
-			return this.onText;
+	listen(_: unknown, event: string): Event<any> {
+		if (event === 'onText_llm') {
+			return this.onText_llm;
 		}
-		else if (event === 'onFinalMessage') {
-			return this.onFinalMessage;
+		else if (event === 'onFinalMessage_llm') {
+			return this.onFinalMessage_llm;
 		}
-		else if (event === 'onError') {
-			return this.onError;
+		else if (event === 'onError_llm') {
+			return this.onError_llm;
+		}
+		else if (event === 'onSuccess_ollama') {
+			return this.onSuccess_ollama;
+		}
+		else if (event === 'onError_ollama') {
+			return this.onError_ollama;
 		}
 		else {
 			throw new Error(`Event not found: ${event}`);
@@ -61,6 +73,9 @@ export class LLMMessageChannel implements IServerChannel {
 			else if (command === 'abort') {
 				this._callAbort(params)
 			}
+			else if (command === 'ollamaList') {
+				this._callOllamaList(params)
+			}
 			else {
 				throw new Error(`Void sendLLM: command "${command}" not recognized.`)
 			}
@@ -71,27 +86,38 @@ export class LLMMessageChannel implements IServerChannel {
 	}
 
 	// the only place sendLLMMessage is actually called
-	private async _callSendLLMMessage(params: ProxyLLMMessageParams) {
+	private async _callSendLLMMessage(params: MainLLMMessageParams) {
 		const { requestId } = params;
 
-		if (!(requestId in this._abortRefOfRequestId))
-			this._abortRefOfRequestId[requestId] = { current: null }
+		if (!(requestId in this._abortRefOfRequestId_llm))
+			this._abortRefOfRequestId_llm[requestId] = { current: null }
 
-		const mainThreadParams: SendLLMMMessageParams = {
+		const mainThreadParams: LLMMMessageParams = {
 			...params,
-			onText: ({ newText, fullText }) => { this._onText.fire({ requestId, newText, fullText }); },
-			onFinalMessage: ({ fullText }) => { this._onFinalMessage.fire({ requestId, fullText }); },
-			onError: ({ message: error, fullError }) => { console.log('sendLLM: firing err'); this._onError.fire({ requestId, message: error, fullError }); },
-			abortRef: this._abortRefOfRequestId[requestId],
+			onText: ({ newText, fullText }) => { this._onText_llm.fire({ requestId, newText, fullText }); },
+			onFinalMessage: ({ fullText }) => { this._onFinalMessage_llm.fire({ requestId, fullText }); },
+			onError: ({ message: error, fullError }) => { console.log('sendLLM: firing err'); this._onError_llm.fire({ requestId, message: error, fullError }); },
+			abortRef: this._abortRefOfRequestId_llm[requestId],
 		}
 		sendLLMMessage(mainThreadParams, this.metricsService);
 	}
 
-	private _callAbort(params: ProxyLLMMessageAbortParams) {
+	private _callAbort(params: MainLLMMessageAbortParams) {
 		const { requestId } = params;
-		if (!(requestId in this._abortRefOfRequestId)) return
-		this._abortRefOfRequestId[requestId].current?.()
-		delete this._abortRefOfRequestId[requestId]
+		if (!(requestId in this._abortRefOfRequestId_llm)) return
+		this._abortRefOfRequestId_llm[requestId].current?.()
+		delete this._abortRefOfRequestId_llm[requestId]
+	}
+
+	private _callOllamaList(params: MainOllamaListParams) {
+		const { requestId } = params;
+
+		const mainThreadParams: OllamaListParams = {
+			...params,
+			onSuccess: ({ models }) => { this._onSuccess_ollama.fire({ requestId, models }); },
+			onError: ({ error }) => { this._onError_ollama.fire({ requestId, error }); },
+		}
+		ollamaList(mainThreadParams)
 	}
 
 

@@ -4,11 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Ollama } from 'ollama';
-import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
+import { _InternalOllamaListFnType, _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
 import { parseMaxTokensStr } from './util.js';
-import { OllamaListFnParams } from '../../common/ollamaListService.js';
 
-export const getDefaultOllamaModels = async ({ onSuccess, onError, settingsOfProvider }: OllamaListFnParams) => {
+export const ollamaList: _InternalOllamaListFnType = async ({ onSuccess, onError, settingsOfProvider }) => {
 	const thisConfig = settingsOfProvider.ollama
 	const ollama = new Ollama({ host: thisConfig.endpoint })
 	ollama.list()
@@ -24,7 +23,7 @@ export const getDefaultOllamaModels = async ({ onSuccess, onError, settingsOfPro
 
 
 // Ollama
-export const sendOllamaMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendOllamaMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	const thisConfig = settingsOfProvider.ollama
 

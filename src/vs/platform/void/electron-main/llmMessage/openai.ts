@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import OpenAI from 'openai';
-import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
+import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
 import { parseMaxTokensStr } from './util.js';
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
+export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
 
 	let fullText = ''
 

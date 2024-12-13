@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import Groq from 'groq-sdk';
-import { SendLLMMessageFnTypeInternal } from '../../common/llmMessageTypes.js';
+import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
 import { parseMaxTokensStr } from './util.js';
 
 // Groq
-export const sendGroqMsg: SendLLMMessageFnTypeInternal = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendGroqMsg: _InternalSendLLMMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 	let fullText = '';
 
 	const thisConfig = settingsOfProvider.groq

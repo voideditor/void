@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { ProxyOnTextPayload, ProxyOnErrorPayload, ProxyOnFinalMessagePayload, LLMMessageServiceParams, ProxyLLMMessageParams, ProxyLLMMessageAbortParams } from '../common/llmMessageTypes.js';
+import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainLLMMessageParams, MainLLMMessageAbortParams, ServiceOllamaListParams, EventOllamaListOnSuccessParams, EventOllamaListOnErrorParams, MainOllamaListParams } from '../common/llmMessageTypes.js';
 import { IChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
@@ -21,7 +21,7 @@ export const ISendLLMMessageService = createDecorator<ISendLLMMessageService>('s
 // defines an interface that node/ creates and browser/ uses
 export interface ISendLLMMessageService {
 	readonly _serviceBrand: undefined;
-	sendLLMMessage: (params: LLMMessageServiceParams) => string | null;
+	sendLLMMessage: (params: ServiceSendLLMMessageParams) => string | null;
 	abort: (requestId: string) => void;
 }
 
@@ -31,9 +31,16 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 	readonly _serviceBrand: undefined;
 	private readonly channel: IChannel // LLMMessageChannel
 
-	private readonly onTextHooks: { [eventId: string]: ((params: ProxyOnTextPayload) => void) } = {}
-	private readonly onFinalMessageHooks: { [eventId: string]: ((params: ProxyOnFinalMessagePayload) => void) } = {}
-	private readonly onErrorHooks: { [eventId: string]: ((params: ProxyOnErrorPayload) => void) } = {}
+	// llmMessage
+	private readonly onTextHooks_llm: { [eventId: string]: ((params: EventLLMMessageOnTextParams) => void) } = {}
+	private readonly onFinalMessageHooks_llm: { [eventId: string]: ((params: EventLLMMessageOnFinalMessageParams) => void) } = {}
+	private readonly onErrorHooks_llm: { [eventId: string]: ((params: EventLLMMessageOnErrorParams) => void) } = {}
+
+
+	// ollamaList
+	private readonly onSuccess_ollama: { [eventId: string]: ((params: EventOllamaListOnSuccessParams) => void) } = {}
+	private readonly onError_ollama: { [eventId: string]: ((params: EventOllamaListOnErrorParams) => void) } = {}
+
 
 	constructor(
 		@IMainProcessService private readonly mainProcessService: IMainProcessService, // used as a renderer (only usable on client side)
@@ -43,22 +50,22 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 		super()
 
 		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service
-		this.channel = this.mainProcessService.getChannel('void-channel-sendLLMMessage')
+		this.channel = this.mainProcessService.getChannel('void-channel-llmMessageService')
 
 		// this sets up an IPC channel and takes a few ms, so we set up listeners immediately and add hooks to them instead
-		const onTextEvent: Event<ProxyOnTextPayload> = this.channel.listen('onText')
-		const onFinalMessageEvent: Event<ProxyOnFinalMessagePayload> = this.channel.listen('onFinalMessage')
-		const onErrorEvent: Event<ProxyOnErrorPayload> = this.channel.listen('onError')
+		const onTextEvent: Event<EventLLMMessageOnTextParams> = this.channel.listen('onText')
+		const onFinalMessageEvent: Event<EventLLMMessageOnFinalMessageParams> = this.channel.listen('onFinalMessage')
+		const onErrorEvent: Event<EventLLMMessageOnErrorParams> = this.channel.listen('onError')
 
 		this._register(
 			onTextEvent(e => {
-				this.onTextHooks[e.requestId]?.(e)
+				this.onTextHooks_llm[e.requestId]?.(e)
 			})
 		)
 
 		this._register(
 			onFinalMessageEvent(e => {
-				this.onFinalMessageHooks[e.requestId]?.(e)
+				this.onFinalMessageHooks_llm[e.requestId]?.(e)
 				this._onRequestIdDone(e.requestId)
 			})
 		)
@@ -66,14 +73,13 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 		this._register(
 			onErrorEvent(e => {
 				console.log('Error in SendLLMMessageService:', JSON.stringify(e))
-				this.onErrorHooks[e.requestId]?.(e)
+				this.onErrorHooks_llm[e.requestId]?.(e)
 				this._onRequestIdDone(e.requestId)
 			})
 		)
 	}
 
-
-	sendLLMMessage(params: LLMMessageServiceParams) {
+	sendLLMMessage(params: ServiceSendLLMMessageParams) {
 		const { onText, onFinalMessage, onError, ...proxyParams } = params;
 		const { featureName } = proxyParams
 
@@ -87,9 +93,9 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 
 		// add state for request id
 		const requestId_ = generateUuid();
-		this.onTextHooks[requestId_] = onText
-		this.onFinalMessageHooks[requestId_] = onFinalMessage
-		this.onErrorHooks[requestId_] = onError
+		this.onTextHooks_llm[requestId_] = onText
+		this.onFinalMessageHooks_llm[requestId_] = onFinalMessage
+		this.onErrorHooks_llm[requestId_] = onError
 
 		const { settingsOfProvider } = this.voidConfigStateService.state
 
@@ -100,21 +106,42 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 			providerName,
 			modelName,
 			settingsOfProvider,
-		} satisfies ProxyLLMMessageParams);
+		} satisfies MainLLMMessageParams);
 
 		return requestId_
 	}
 
 
 	abort(requestId: string) {
-		this.channel.call('abort', { requestId } satisfies ProxyLLMMessageAbortParams);
+		this.channel.call('abort', { requestId } satisfies MainLLMMessageAbortParams);
 		this._onRequestIdDone(requestId)
 	}
 
+	ollamaList = (params: ServiceOllamaListParams) => {
+		const { onSuccess, onError, ...proxyParams } = params
+
+		const { settingsOfProvider } = this.voidConfigStateService.state
+
+		// add state for request id
+		const requestId_ = generateUuid();
+		this.onSuccess_ollama[requestId_] = onSuccess
+		this.onError_ollama[requestId_] = onError
+
+		this.channel.call('ollamaList', {
+			...proxyParams,
+			settingsOfProvider,
+			requestId: requestId_,
+		} satisfies MainOllamaListParams)
+	}
+
+
 	_onRequestIdDone(requestId: string) {
-		delete this.onTextHooks[requestId]
-		delete this.onFinalMessageHooks[requestId]
-		delete this.onErrorHooks[requestId]
+		delete this.onTextHooks_llm[requestId]
+		delete this.onFinalMessageHooks_llm[requestId]
+		delete this.onErrorHooks_llm[requestId]
+
+		delete this.onSuccess_ollama[requestId]
+		delete this.onError_ollama[requestId]
 	}
 }
 

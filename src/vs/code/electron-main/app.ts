@@ -124,8 +124,6 @@ import { ExtensionSignatureVerificationService, IExtensionSignatureVerificationS
 import { LLMMessageChannel } from '../../platform/void/electron-main/llmMessageChannel.js';
 import { IMetricsService } from '../../platform/void/common/metricsService.js';
 import { MetricsMainService } from '../../platform/void/electron-main/metricsMainService.js';
-import { OllamaListMainService } from '../../platform/void/electron-main/ollamaListMainService.js';
-import { IOllamaListService } from '../../platform/void/common/ollamaListService.js';
 
 /**
  * The main VS Code application. There will only ever be one instance,
@@ -1109,7 +1107,6 @@ export class CodeApplication extends Disposable {
 
 		// Void main process services (required for services with a channel for comm between browser and electron-main (node))
 		services.set(IMetricsService, new SyncDescriptor(MetricsMainService, undefined, false));
-		services.set(IOllamaListService, new SyncDescriptor(OllamaListMainService, undefined, false));
 
 		// Default Extensions Profile Init
 		services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService, undefined, true));
@@ -1245,13 +1242,11 @@ export class CodeApplication extends Disposable {
 		mainProcessElectronServer.registerChannel('logger', loggerChannel);
 		sharedProcessClient.then(client => client.registerChannel('logger', loggerChannel));
 
-		// Void
+		// Void - use loggerChannel as reference
 		const metricsChannel = ProxyChannel.fromService(accessor.get(IMetricsService), disposables);
 		mainProcessElectronServer.registerChannel('void-channel-metrics', metricsChannel);
-		const ollamaListChannel = ProxyChannel.fromService(accessor.get(IOllamaListService), disposables);
-		mainProcessElectronServer.registerChannel('void-channel-ollama-list', ollamaListChannel);
-		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
-		mainProcessElectronServer.registerChannel('void-channel-sendLLMMessage', sendLLMMessageChannel);
+		const llmMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
+		mainProcessElectronServer.registerChannel('void-channel-llmMessageService', llmMessageChannel);
 
 		// Extension Host Debug Broadcasting
 		const electronExtensionHostDebugBroadcastChannel = new ElectronExtensionHostDebugBroadcastChannel(accessor.get(IWindowsMainService));

@@ -28,7 +28,7 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
-import { LLMFeatureSelection, LLMMessageServiceParams } from '../../../../platform/void/common/llmMessageTypes.js';
+import { LLMFeatureSelection, ServiceSendLLMMessageParams } from '../../../../platform/void/common/llmMessageTypes.js';
 import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
 
 
@@ -709,7 +709,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 			let streamRequestId: string | null = null
 
-			const object: LLMMessageServiceParams = {
+			const object: ServiceSendLLMMessageParams = {
 				logging: { loggingName: 'streamChunk' },
 				messages: [
 					{ role: 'system', content: writeFileWithDiffInstructions, },

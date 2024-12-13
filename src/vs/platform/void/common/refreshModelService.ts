@@ -13,6 +13,14 @@ import { Disposable } from '../../../base/common/lifecycle.js';
 
 export type RefreshModelState = 'done' | 'loading'
 
+// element-wise equals
+function eq<T>(a: T[], b: T[]): boolean {
+	if (a.length !== b.length) return false
+	for (let i = 0; i < a.length; i++) {
+		if (a[i] !== b[i]) return false
+	}
+	return true
+}
 export interface IRefreshModelService {
 	readonly _serviceBrand: undefined;
 	refreshOllamaModels(): void;
@@ -39,13 +47,15 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 		this.refreshOllamaModels()
 
 		// every time ollama.enabled changes, refresh ollama models
-		let prevVal: string = this.voidConfigStateService.state.settingsOfProvider.ollama.enabled
+		let relevantVals = () => [this.voidConfigStateService.state.settingsOfProvider.ollama.enabled, this.voidConfigStateService.state.settingsOfProvider.ollama.endpoint]
+		let prevVals = relevantVals()
 		this._register(
-			this.voidConfigStateService.onDidChangeState(() => {
-				const newVal = this.voidConfigStateService.state.settingsOfProvider.ollama.enabled
-				if (prevVal !== newVal)
+			this.voidConfigStateService.onDidChangeState(() => { // we might want to debounce this
+				const newVals = relevantVals()
+				if (!eq(prevVals, newVals)) {
 					this.refreshOllamaModels()
-				prevVal = newVal
+					prevVals = newVals
+				}
 			})
 		)
 

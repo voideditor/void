@@ -15,18 +15,18 @@ import { IVoidConfigStateService } from '../common/voidConfigService.js';
 // import { INotificationService } from '../../notification/common/notification.js';
 
 
-// BROWSER IMPLEMENTATION OF SENDLLMMESSAGE
-export const ISendLLMMessageService = createDecorator<ISendLLMMessageService>('sendLLMMessageService');
+// BROWSER IMPLEMENTATION
+export const ILLMMessageService = createDecorator<ILLMMessageService>('llmMessageService');
 
 // defines an interface that node/ creates and browser/ uses
-export interface ISendLLMMessageService {
+export interface ILLMMessageService {
 	readonly _serviceBrand: undefined;
 	sendLLMMessage: (params: ServiceSendLLMMessageParams) => string | null;
 	abort: (requestId: string) => void;
 }
 
 
-export class SendLLMMessageService extends Disposable implements ISendLLMMessageService {
+export class LLMMessageService extends Disposable implements ILLMMessageService {
 
 	readonly _serviceBrand: undefined;
 	private readonly channel: IChannel // LLMMessageChannel
@@ -53,30 +53,27 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 		this.channel = this.mainProcessService.getChannel('void-channel-llmMessageService')
 
 		// this sets up an IPC channel and takes a few ms, so we set up listeners immediately and add hooks to them instead
-		const onTextEvent: Event<EventLLMMessageOnTextParams> = this.channel.listen('onText')
-		const onFinalMessageEvent: Event<EventLLMMessageOnFinalMessageParams> = this.channel.listen('onFinalMessage')
-		const onErrorEvent: Event<EventLLMMessageOnErrorParams> = this.channel.listen('onError')
 
-		this._register(
-			onTextEvent(e => {
-				this.onTextHooks_llm[e.requestId]?.(e)
-			})
-		)
-
-		this._register(
-			onFinalMessageEvent(e => {
-				this.onFinalMessageHooks_llm[e.requestId]?.(e)
-				this._onRequestIdDone(e.requestId)
-			})
-		)
-
-		this._register(
-			onErrorEvent(e => {
-				console.log('Error in SendLLMMessageService:', JSON.stringify(e))
-				this.onErrorHooks_llm[e.requestId]?.(e)
-				this._onRequestIdDone(e.requestId)
-			})
-		)
+		// llm
+		this._register((this.channel.listen('onText_llm') satisfies Event<EventLLMMessageOnTextParams>)(e => {
+			this.onTextHooks_llm[e.requestId]?.(e)
+		}))
+		this._register((this.channel.listen('onFinalMessage_llm') satisfies Event<EventLLMMessageOnFinalMessageParams>)(e => {
+			this.onFinalMessageHooks_llm[e.requestId]?.(e)
+			this._onRequestIdDone(e.requestId)
+		}))
+		this._register((this.channel.listen('onError_llm') satisfies Event<EventLLMMessageOnErrorParams>)(e => {
+			console.log('Error in LLMMessageService:', JSON.stringify(e))
+			this.onErrorHooks_llm[e.requestId]?.(e)
+			this._onRequestIdDone(e.requestId)
+		}))
+		// ollama
+		this._register((this.channel.listen('onSuccess_ollama') satisfies Event<EventOllamaListOnSuccessParams>)(e => {
+			this.onSuccess_ollama[e.requestId]?.(e)
+		}))
+		this._register((this.channel.listen('onError_ollama') satisfies Event<EventOllamaListOnErrorParams>)(e => {
+			this.onError_ollama[e.requestId]?.(e)
+		}))
 	}
 
 	sendLLMMessage(params: ServiceSendLLMMessageParams) {
@@ -145,5 +142,5 @@ export class SendLLMMessageService extends Disposable implements ISendLLMMessage
 	}
 }
 
-registerSingleton(ISendLLMMessageService, SendLLMMessageService, InstantiationType.Delayed);
+registerSingleton(ILLMMessageService, LLMMessageService, InstantiationType.Delayed);
 

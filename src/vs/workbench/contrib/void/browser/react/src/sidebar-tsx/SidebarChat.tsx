@@ -18,7 +18,7 @@ import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { LLMMessageServiceParams, OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
+import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from './inputs.js';
@@ -240,7 +240,7 @@ export const SidebarChat = () => {
 
 	const [latestError, setLatestError] = useState<Parameters<OnError>[0] | null>(null)
 
-	const sendLLMMessageService = useService('sendLLMMessageService')
+	const llmMessageService = useService('llmMessageService')
 
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
@@ -295,7 +295,7 @@ export const SidebarChat = () => {
 			inputBoxRef.current.blur();
 		}
 
-		const object: LLMMessageServiceParams = {
+		const object: ServiceSendLLMMessageParams = {
 			logging: { loggingName: 'Chat' },
 			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content || '(null)' })),],
 			onText: ({ newText, fullText }) => setMessageStream(fullText),
@@ -325,7 +325,7 @@ export const SidebarChat = () => {
 
 		}
 
-		const latestRequestId = sendLLMMessageService.sendLLMMessage(object)
+		const latestRequestId = llmMessageService.sendLLMMessage(object)
 		latestRequestIdRef.current = latestRequestId
 
 		threadsStateService.setStaging([]) // clear staging
@@ -335,7 +335,7 @@ export const SidebarChat = () => {
 	const onAbort = () => {
 		// abort the LLM call
 		if (latestRequestIdRef.current)
-			sendLLMMessageService.abort(latestRequestIdRef.current)
+			llmMessageService.abort(latestRequestIdRef.current)
 
 		// if messageStream was not empty, add it to the history
 		const llmContent = messageStream ?? ''

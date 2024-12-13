@@ -12,7 +12,7 @@ import { Position } from '../../../../editor/common/core/position.js';
 import { InlineCompletion, InlineCompletionContext } from '../../../../editor/common/languages.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Range } from '../../../../editor/common/core/range.js';
-import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+import { ILLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
@@ -527,7 +527,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				MAX_CACHE_SIZE,
 				(autocompletion: Autocompletion) => {
 					if (autocompletion.requestId)
-						this._sendLLMMessageService.abort(autocompletion.requestId)
+						this._llmMessageService.abort(autocompletion.requestId)
 				}
 			)
 		}
@@ -644,7 +644,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		// set parameters of `newAutocompletion` appropriately
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
-			const requestId = this._sendLLMMessageService.sendLLMMessage({
+			const requestId = this._llmMessageService.sendLLMMessage({
 				logging: { loggingName: 'Autocomplete' },
 				messages: [],
 				onText: async ({ newText, fullText }) => {
@@ -713,7 +713,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 	constructor(
 		@ILanguageFeaturesService private _langFeatureService: ILanguageFeaturesService,
-		@ISendLLMMessageService private readonly _sendLLMMessageService: ISendLLMMessageService,
+		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IModelService private readonly _modelService: IModelService,
 	) {

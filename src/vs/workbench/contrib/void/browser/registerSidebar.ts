@@ -42,7 +42,7 @@ import { IVoidConfigStateService } from '../../../../platform/void/common/voidCo
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
-import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+import { ILLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
@@ -62,7 +62,7 @@ export type ReactServicesType = {
 	fileService: IFileService;
 	modelService: IModelService;
 	inlineDiffService: IInlineDiffsService;
-	sendLLMMessageService: ISendLLMMessageService;
+	llmMessageService: ILLMMessageService;
 	clipboardService: IClipboardService;
 
 	themeService: IThemeService,
@@ -109,7 +109,7 @@ class VoidSidebarViewPane extends ViewPane {
 				fileService: accessor.get(IFileService),
 				modelService: accessor.get(IModelService),
 				inlineDiffService: accessor.get(IInlineDiffsService),
-				sendLLMMessageService: accessor.get(ISendLLMMessageService),
+				llmMessageService: accessor.get(ILLMMessageService),
 				clipboardService: accessor.get(IClipboardService),
 				themeService: accessor.get(IThemeService),
 				hoverService: accessor.get(IHoverService),

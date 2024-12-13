@@ -29,7 +29,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { LLMFeatureSelection, ServiceSendLLMMessageParams } from '../../../../platform/void/common/llmMessageTypes.js';
-import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+import { ILLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
 
 
 // gets converted to --vscode-void-greenBG, see void.css
@@ -149,7 +149,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IModelService private readonly _modelService: IModelService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 		@ILanguageService private readonly _langService: ILanguageService,
-		@ISendLLMMessageService private readonly _sendLLMMessageService: ISendLLMMessageService,
+		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 	) {
 		super();
 
@@ -732,7 +732,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 					console.error('Error rewriting file with diff', e);
 					// TODO indicate there was an error
 					if (streamRequestId)
-						this._sendLLMMessageService.abort(streamRequestId)
+						this._llmMessageService.abort(streamRequestId)
 
 					diffArea._sweepState = { isStreaming: false, line: null }
 					resolve();
@@ -740,7 +740,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 				...opts
 			}
 
-			streamRequestId = this._sendLLMMessageService.sendLLMMessage(object)
+			streamRequestId = this._llmMessageService.sendLLMMessage(object)
 		})
 
 		onFinishEdit()

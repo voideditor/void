@@ -18,22 +18,15 @@ import { ollamaList } from './llmMessage/ollama.js';
 export class LLMMessageChannel implements IServerChannel {
 	// sendLLMMessage
 	private readonly _onText_llm = new Emitter<EventLLMMessageOnTextParams>();
-	private readonly onText_llm = this._onText_llm.event;
-
 	private readonly _onFinalMessage_llm = new Emitter<EventLLMMessageOnFinalMessageParams>();
-	private readonly onFinalMessage_llm = this._onFinalMessage_llm.event;
-
 	private readonly _onError_llm = new Emitter<EventLLMMessageOnErrorParams>();
-	private readonly onError_llm = this._onError_llm.event;
 
+	// abort
 	private readonly _abortRefOfRequestId_llm: Record<string, AbortRef> = {}
 
 	// ollamaList
 	private readonly _onSuccess_ollama = new Emitter<EventOllamaListOnSuccessParams>();
-	private readonly onSuccess_ollama = this._onSuccess_ollama.event;
-
 	private readonly _onError_ollama = new Emitter<EventOllamaListOnErrorParams>();
-	private readonly onError_ollama = this._onError_ollama.event;
 
 	// stupidly, channels can't take in @IService
 	constructor(
@@ -44,19 +37,19 @@ export class LLMMessageChannel implements IServerChannel {
 	// browser uses this to listen for changes
 	listen(_: unknown, event: string): Event<any> {
 		if (event === 'onText_llm') {
-			return this.onText_llm;
+			return this._onText_llm.event;
 		}
 		else if (event === 'onFinalMessage_llm') {
-			return this.onFinalMessage_llm;
+			return this._onFinalMessage_llm.event;
 		}
 		else if (event === 'onError_llm') {
-			return this.onError_llm;
+			return this._onError_llm.event;
 		}
 		else if (event === 'onSuccess_ollama') {
-			return this.onSuccess_ollama;
+			return this._onSuccess_ollama.event;
 		}
 		else if (event === 'onError_ollama') {
-			return this.onError_ollama;
+			return this._onError_ollama.event;
 		}
 		else {
 			throw new Error(`Event not found: ${event}`);
@@ -65,7 +58,6 @@ export class LLMMessageChannel implements IServerChannel {
 
 	// browser uses this to call
 	async call(_: unknown, command: string, params: any): Promise<any> {
-
 		try {
 			if (command === 'sendLLMMessage') {
 				this._callSendLLMMessage(params)

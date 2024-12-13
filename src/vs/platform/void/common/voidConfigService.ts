@@ -36,7 +36,6 @@ export interface IVoidConfigStateService {
 	readonly _serviceBrand: undefined;
 	readonly state: VoidConfigState;
 	onDidChangeState: Event<void>;
-	onDidGetInitState: Event<void>;
 	setSettingOfProvider: SetSettingOfProviderFn;
 	setModelSelectionOfFeature: SetModelSelectionOfFeature;
 }
@@ -58,9 +57,6 @@ class VoidConfigService extends Disposable implements IVoidConfigStateService {
 	private readonly _onDidChangeState = new Emitter<void>();
 	readonly onDidChangeState: Event<void> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
-	private readonly _onDidGetInitState = new Emitter<void>();
-	readonly onDidGetInitState: Event<void> = this._onDidGetInitState.event;
-
 	state: VoidConfigState;
 
 	constructor(
@@ -77,7 +73,6 @@ class VoidConfigService extends Disposable implements IVoidConfigStateService {
 		// read and update the actual state immediately
 		this._readVoidConfigState().then(voidConfigState => {
 			this._setState(voidConfigState)
-			this._onDidGetInitState.fire()
 		})
 
 	}

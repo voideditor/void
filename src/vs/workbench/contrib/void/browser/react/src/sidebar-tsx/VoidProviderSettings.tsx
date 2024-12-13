@@ -17,11 +17,14 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 	const voidConfigService = useService('configStateService')
 
 
+	let weChangedText = false
+
 	return <><ErrorBoundary>
 		<label>{title}</label>
 		<VoidInputBox
 			placeholder={placeholder}
 			onChangeText={useCallback((newVal) => {
+				if (weChangedText) return
 
 				voidConfigService.setSettingOfProvider(providerName, settingName, newVal)
 				// if we just disabeld this provider, we should unselect all models that use it
@@ -39,10 +42,12 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 					const settingsAtProvider = voidConfigService.state.settingsOfProvider[providerName];
 					// @ts-ignore
 					const stateVal = settingsAtProvider[settingName]
+					weChangedText = true
 					instance.value = stateVal
+					weChangedText = false
 				}
 				updateInstance()
-				const disposable = voidConfigService.onDidGetInitState(updateInstance)
+				const disposable = voidConfigService.onDidChangeState(updateInstance)
 				return [disposable]
 			}, [voidConfigService, providerName, settingName])}
 			multiline={false}

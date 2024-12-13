@@ -36,6 +36,8 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 		}
 	}
 
+	let weChangedText = false
+
 	return <>
 		<h2>{featureName}</h2>
 		{
@@ -43,6 +45,8 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 				options={modelOptions}
 				onChangeSelection={useCallback((newVal: [string, string]) => {
 					if (isDummy) return // don't set state to the dummy value
+					if (weChangedText) return
+
 					voidConfigService.setModelSelectionOfFeature(featureName, { providerName: newVal[0] as ProviderName, modelName: newVal[1] })
 				}, [voidConfigService, featureName, isDummy])}
 				// we are responsible for setting the initial state here
@@ -50,11 +54,14 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 					const updateInstance = () => {
 						const settingsAtProvider = voidConfigService.state.modelSelectionOfFeature[featureName]
 						const index = modelOptions.findIndex(v => v.value[0] === settingsAtProvider?.providerName && v.value[1] === settingsAtProvider?.modelName)
-						if (index !== -1)
+						if (index !== -1) {
+							weChangedText = true
 							instance.select(index)
+							weChangedText = false
+						}
 					}
 					updateInstance()
-					const disposable = voidConfigService.onDidGetInitState(updateInstance)
+					const disposable = voidConfigService.onDidChangeState(updateInstance)
 					return [disposable]
 				}, [voidConfigService, modelOptions, featureName])}
 			/>}

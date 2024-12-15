@@ -108,10 +108,10 @@ module.exports = {
 					"editor-bg": "var(--vscode-editor-background)",
 					"editor-fg": "var(--vscode-editor-foreground)",
 
-					// editorWidget colors
-					"editor-widget-fg": "var(--vscode-editorWidget-foreground)",
-					"editor-widget-bg": "var(--vscode-editorWidget-background)",
-					"editor-widget-border": "var(--vscode-editorWidget-border)",
+					// editorwidget colors
+					"editorwidget-fg": "var(--vscode-editorWidget-foreground)",
+					"editorwidget-bg": "var(--vscode-editorWidget-background)",
+					"editorwidget-border": "var(--vscode-editorWidget-border)",
 
 
 				},

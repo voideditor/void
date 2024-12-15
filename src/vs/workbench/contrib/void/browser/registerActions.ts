@@ -106,7 +106,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'void.newChatAction',
-			title: 'View past chats',
+			title: 'New Chat',
 			icon: { id: 'add' },
 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
 		});
@@ -129,7 +129,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'void.historyAction',
-			title: 'View past chats',
+			title: 'View Past Chats',
 			icon: { id: 'history' },
 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
 		});
@@ -150,7 +150,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'void.viewSettings',
-			title: 'Void settings',
+			title: 'Void Settings',
 			icon: { id: 'settings-gear' },
 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
 		});

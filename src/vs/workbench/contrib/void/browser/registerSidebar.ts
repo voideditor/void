@@ -12,9 +12,9 @@ import {
 
 import * as nls from '../../../../nls.js';
 
-import { Codicon } from '../../../../base/common/codicons.js';
-import { localize } from '../../../../nls.js';
-import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
+// import { Codicon } from '../../../../base/common/codicons.js';
+// import { localize } from '../../../../nls.js';
+// import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
 
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
@@ -132,8 +132,8 @@ class VoidSidebarViewPane extends ViewPane {
 
 // ---------- Register viewpane inside the void container ----------
 
-const voidThemeIcon = Codicon.symbolObject;
-const voidViewIcon = registerIcon('void-view-icon', voidThemeIcon, localize('voidViewIcon', 'View icon of the Void chat view.'));
+// const voidThemeIcon = Codicon.symbolObject;
+// const voidViewIcon = registerIcon('void-view-icon', voidThemeIcon, localize('voidViewIcon', 'View icon of the Void chat view.'));
 
 // called VIEWLET_ID in other places for some reason
 export const VOID_VIEW_CONTAINER_ID = 'workbench.view.void'
@@ -143,10 +143,10 @@ export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID // simplicity
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 const viewContainer = viewContainerRegistry.registerViewContainer({
 	id: VOID_VIEW_CONTAINER_ID,
-	title: nls.localize2('void', 'Void'), // this is used to say "Void" (Ctrl + L)
+	title: nls.localize2('void', 'Void Chat'), // this is used to say "Void" (Ctrl + L)
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [VOID_VIEW_CONTAINER_ID, { mergeViewWithContainerWhenSingleView: true }]),
 	hideIfEmpty: false,
-	icon: voidViewIcon,
+	// icon: voidViewIcon,
 	order: 1,
 }, ViewContainerLocation.AuxiliaryBar, { doNotRegisterOpenCommand: true, });
 
@@ -157,7 +157,7 @@ const viewsRegistry = Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry);
 viewsRegistry.registerViews([{
 	id: VOID_VIEW_ID,
 	hideByDefault: false, // start open
-	containerIcon: voidViewIcon,
+	// containerIcon: voidViewIcon,
 	name: nls.localize2('void chat', "Chat"), // this says ... : CHAT
 	ctorDescriptor: new SyncDescriptor(VoidSidebarViewPane),
 	canToggleVisibility: false,

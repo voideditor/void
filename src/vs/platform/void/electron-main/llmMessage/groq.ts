@@ -5,7 +5,6 @@
 
 import Groq from 'groq-sdk';
 import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
-import { parseMaxTokensStr } from './util.js';
 
 // Groq
 export const sendGroqMsg: _InternalSendLLMMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
@@ -24,7 +23,7 @@ export const sendGroqMsg: _InternalSendLLMMessageFnType = async ({ messages, onT
 			model: modelName,
 			stream: true,
 			temperature: 0.7,
-			max_tokens: parseMaxTokensStr(thisConfig.maxTokens),
+			// max_tokens: parseMaxTokensStr(thisConfig.maxTokens),
 		})
 		.then(async response => {
 			_setAborter(() => response.controller.abort())

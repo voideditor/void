@@ -5,7 +5,7 @@
 
 import OpenAI from 'openai';
 import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
-import { parseMaxTokensStr } from './util.js';
+// import { parseMaxTokensStr } from './util.js';
 
 
 // OpenAI, OpenRouter, OpenAICompatible
@@ -20,7 +20,7 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 	if (providerName === 'openAI') {
 		const thisConfig = settingsOfProvider.openAI
 		openai = new OpenAI({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
-		options = { model: modelName, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
+		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
 	}
 	else if (providerName === 'openRouter') {
 		const thisConfig = settingsOfProvider.openRouter
@@ -31,12 +31,12 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 				'X-Title': 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
 			},
 		});
-		options = { model: modelName, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
+		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
 	}
 	else if (providerName === 'openAICompatible') {
 		const thisConfig = settingsOfProvider.openAICompatible
 		openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true })
-		options = { model: modelName, messages: messages, stream: true, max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens) }
+		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
 	}
 	else {
 		console.error(`sendOpenAIMsg: invalid providerName: ${providerName}`)

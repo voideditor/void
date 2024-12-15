@@ -4,7 +4,84 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { defaultAnthropicModels, defaultGeminiModels, defaultGroqModels, defaultOpenAIModels } from './voidConfigModelDefaults.js'
+
+// https://docs.anthropic.com/en/docs/about-claude/models
+export const defaultAnthropicModels = [
+	'claude-3-5-sonnet-20241022',
+	'claude-3-5-haiku-20241022',
+	'claude-3-opus-20240229',
+	'claude-3-sonnet-20240229',
+	// 'claude-3-haiku-20240307',
+]
+
+
+export const defaultOpenAIModels = [
+	'o1-preview',
+	'o1-mini',
+	'gpt-4o',
+	'gpt-4o-mini',
+	// 'gpt-4o-2024-05-13',
+	// 'gpt-4o-2024-08-06',
+	// 'gpt-4o-mini-2024-07-18',
+	// 'gpt-4-turbo',
+	// 'gpt-4-turbo-2024-04-09',
+	// 'gpt-4-turbo-preview',
+	// 'gpt-4-0125-preview',
+	// 'gpt-4-1106-preview',
+	// 'gpt-4',
+	// 'gpt-4-0613',
+	// 'gpt-3.5-turbo-0125',
+	// 'gpt-3.5-turbo',
+	// 'gpt-3.5-turbo-1106',
+]
+
+
+
+export const defaultGroqModels = [
+	"mixtral-8x7b-32768",
+	"llama2-70b-4096",
+	"gemma-7b-it"
+]
+
+
+export const defaultGeminiModels = [
+	'gemini-1.5-flash',
+	'gemini-1.5-pro',
+	'gemini-1.5-flash-8b',
+	'gemini-1.0-pro'
+]
+
+
+
+// export const parseMaxTokensStr = (maxTokensStr: string) => {
+// 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
+// 	const int = isNaN(Number(maxTokensStr)) ? undefined : parseInt(maxTokensStr)
+// 	if (Number.isNaN(int))
+// 		return undefined
+// 	return int
+// }
+
+
+
+
+export const anthropicMaxPossibleTokens = (modelName: string) => {
+	if (modelName === 'claude-3-5-sonnet-20241022'
+		|| modelName === 'claude-3-5-haiku-20241022')
+		return 8192
+	if (modelName === 'claude-3-opus-20240229'
+		|| modelName === 'claude-3-sonnet-20240229'
+		|| modelName === 'claude-3-haiku-20240307')
+		return 4096
+	return 1024 // return a reasonably small number if they're using a different model
+}
+
+
+export const dummyModelData = {
+	anthropic: ['claude 3.5'],
+	openAI: ['gpt 4o'],
+	ollama: ['llama 3.2', 'codestral'],
+	openRouter: ['qwen 2.5'],
+}
 
 
 
@@ -74,7 +151,6 @@ export type SettingsOfProvider = {
 		&
 		{
 			enabled: string, // 'true' | 'false'
-			maxTokens: string,
 
 			models: string[], // if null, user can type in any string as a model
 		})
@@ -137,13 +213,6 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 					: '(never)',
 		}
 	}
-	else if (settingName === 'maxTokens') {
-		return {
-			title: 'Max Tokens',
-			type: 'number',
-			placeholder: '1024',
-		}
-	}
 	else if (settingName === 'enabled') {
 		return {
 			title: 'Enabled?',
@@ -170,43 +239,36 @@ export const defaultVoidProviderState: SettingsOfProvider = {
 		...voidProviderDefaults.anthropic,
 		...voidInitModelOptions.anthropic,
 		enabled: 'false',
-		maxTokens: '',
 	},
 	openAI: {
 		...voidProviderDefaults.openAI,
 		...voidInitModelOptions.openAI,
 		enabled: 'false',
-		maxTokens: '',
 	},
 	ollama: {
 		...voidProviderDefaults.ollama,
 		...voidInitModelOptions.ollama,
 		enabled: 'false',
-		maxTokens: '',
 	},
 	openRouter: {
 		...voidProviderDefaults.openRouter,
 		...voidInitModelOptions.openRouter,
 		enabled: 'false',
-		maxTokens: '',
 	},
 	openAICompatible: {
 		...voidProviderDefaults.openAICompatible,
 		...voidInitModelOptions.openAICompatible,
 		enabled: 'false',
-		maxTokens: '',
 	},
 	gemini: {
 		...voidProviderDefaults.gemini,
 		...voidInitModelOptions.gemini,
 		enabled: 'false',
-		maxTokens: '',
 	},
 	groq: {
 		...voidProviderDefaults.groq,
 		...voidInitModelOptions.groq,
 		enabled: 'false',
-		maxTokens: '',
 	}
 }
 

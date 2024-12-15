@@ -5,7 +5,6 @@
 
 import { Ollama } from 'ollama';
 import { _InternalOllamaListFnType, _InternalSendLLMMessageFnType, ModelResponse } from '../../common/llmMessageTypes.js';
-import { parseMaxTokensStr } from './util.js';
 
 export const ollamaList: _InternalOllamaListFnType = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
 
@@ -49,7 +48,7 @@ export const sendOllamaMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 		model: modelName,
 		messages: messages,
 		stream: true,
-		options: { num_predict: parseMaxTokensStr(thisConfig.maxTokens) } // this is max_tokens
+		// options: { num_predict: parseMaxTokensStr(thisConfig.maxTokens) } // this is max_tokens
 	})
 		.then(async stream => {
 			_setAborter(() => stream.abort())

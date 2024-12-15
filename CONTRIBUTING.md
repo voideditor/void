@@ -10,6 +10,13 @@ There are a few ways to contribute:
 
 Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`. 
 
+## Roadmap
+
+- Refer to our [Issues](https://github.com/voideditor/void/issues) page for the latest issues!
+- ⭐️ If you want to build your AI tool into Void, feel free to get in touch! It's very easy to extend Void, and the UX you create will be much more natural than a VSCode Extension.
+
+
+
 ## Building the full IDE
 
 ### a. Build Prerequisites - Mac
@@ -95,29 +102,20 @@ We don't usually recommend bundling. Instead, you should probably just build. If
 - `npm run gulp vscode-linux-arm`
 - `npm run gulp vscode-linux-ia32`
 
-## Roadmap
 
-Please refer to our [Issues](https://github.com/voideditor/void/issues) page for the latest issues.
-
-
-## ⭐⭐⭐ Creative.
-
-Examples: creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
-
-Eventually, we want to build a convenient API for creating AI tools. The API will provide methods for creating the UI (showing an autocomplete suggestion, or creating a new diff), detecting event changes (like `onKeystroke` or `onFileOpen`), and modifying the user's file-system (storing indexes associated with each file), making it much easier to make your own AI plugin. We plan on building these features further along in timeline, but we wanted to list them for completeness.
 
 # Guidelines
 
-We're always glad to talk about new ideas, help you get set up, and make sure your changes align with our vision for the project. Feel free to shoot us a message in the #general channel of the [Discord](https://discord.gg/RSNjgaugJs) for any reason. Please check in especially if you want to make a lot of changes or build a large new feature.
-
+We're always glad to talk about new ideas, help you get set up, and make sure your changes align with our vision for the project! Feel free to shoot Mat or Andrew a message, or start chatting with us in the `#contributing` channel of our [Discord](https://discord.gg/RSNjgaugJs). 
 
 
 ## Submitting a Pull Request
 
-Please submit a pull request once you've made a change. You don't need to submit an issue.
+- Please submit a pull request once you've made a change. You don't need to submit an issue.
+- Please don't use AI to write your PR 🙂.
 
-Please don't use AI to write your PR 🙂.
 
+<!--
 # Relevant files
 
 We keep track of all the files we've changed with Void so it's easy to rebase:
@@ -141,7 +139,7 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 - build/npm/dirs.js
 
 - vscode.proposed.editorInsets.d.ts - not modified, but code copied
-
+-->
 
 ## References
 

@@ -18,7 +18,7 @@ import * as nls from '../../../../nls.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
 
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
-import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
+// import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 
 
 import { IViewPaneOptions, ViewPane } from '../../../browser/parts/views/viewPane.js';
@@ -27,51 +27,26 @@ import { IContextKeyService } from '../../../../platform/contextkey/common/conte
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { IContextMenuService, IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
+import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 
-import mountFn from './react/out/sidebar-tsx/Sidebar.js';
+import { mountSidebar } from './react/out/sidebar-tsx/index.js';
 
-import { IVoidConfigStateService } from '../../../../platform/void/common/voidConfigService.js';
-import { IFileService } from '../../../../platform/files/common/files.js';
-import { IInlineDiffsService } from './registerInlineDiffs.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
-import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { IRefreshModelService } from '../../../../platform/void/common/refreshModelService.js';
+import { getReactServices } from './reactServices.js';
 
 
 // compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
 
 export type VoidSidebarState = {
 	isHistoryOpen: boolean;
-	currentTab: 'chat' | 'settings';
-}
-
-export type ReactServicesType = {
-	sidebarStateService: IVoidSidebarStateService;
-	configStateService: IVoidConfigStateService;
-	threadsStateService: IThreadHistoryService;
-	fileService: IFileService;
-	modelService: IModelService;
-	inlineDiffService: IInlineDiffsService;
-	llmMessageService: ILLMMessageService;
-	clipboardService: IClipboardService;
-	refreshModelService: IRefreshModelService;
-
-	themeService: IThemeService,
-	hoverService: IHoverService,
-
-	contextViewService: IContextViewService;
-	contextMenuService: IContextMenuService;
+	currentTab: 'chat';
 }
 
 // ---------- Define viewpane ----------
@@ -104,24 +79,10 @@ class VoidSidebarViewPane extends ViewPane {
 
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
-			const services: ReactServicesType = {
-				configStateService: accessor.get(IVoidConfigStateService),
-				sidebarStateService: accessor.get(IVoidSidebarStateService),
-				threadsStateService: accessor.get(IThreadHistoryService),
-				fileService: accessor.get(IFileService),
-				modelService: accessor.get(IModelService),
-				inlineDiffService: accessor.get(IInlineDiffsService),
-				llmMessageService: accessor.get(ILLMMessageService),
-				clipboardService: accessor.get(IClipboardService),
-				themeService: accessor.get(IThemeService),
-				hoverService: accessor.get(IHoverService),
-				refreshModelService: accessor.get(IRefreshModelService),
-				contextViewService: accessor.get(IContextViewService),
-				contextMenuService: accessor.get(IContextMenuService),
-			}
+			const services = getReactServices(accessor)
 
 			// mount react
-			const disposables: IDisposable[] | undefined = mountFn(parent, services);
+			const disposables: IDisposable[] | undefined = mountSidebar(parent, services);
 			disposables?.forEach(d => this._register(d))
 		});
 	}
@@ -143,12 +104,12 @@ export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID // simplicity
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 const viewContainer = viewContainerRegistry.registerViewContainer({
 	id: VOID_VIEW_CONTAINER_ID,
-	title: nls.localize2('void', 'Void Chat'), // this is used to say "Void" (Ctrl + L)
+	title: nls.localize2('void chat', 'Void Chat'), // this is used to say "Void" (Ctrl + L)
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [VOID_VIEW_CONTAINER_ID, { mergeViewWithContainerWhenSingleView: true }]),
 	hideIfEmpty: false,
 	// icon: voidViewIcon,
 	order: 1,
-}, ViewContainerLocation.AuxiliaryBar, { doNotRegisterOpenCommand: true, });
+}, ViewContainerLocation.AuxiliaryBar, { doNotRegisterOpenCommand: true, isDefault: true });
 
 
 
@@ -158,17 +119,17 @@ viewsRegistry.registerViews([{
 	id: VOID_VIEW_ID,
 	hideByDefault: false, // start open
 	// containerIcon: voidViewIcon,
-	name: nls.localize2('void chat', "Chat"), // this says ... : CHAT
+	name: nls.localize2('chat', 'Chat'), // this says ... : CHAT
 	ctorDescriptor: new SyncDescriptor(VoidSidebarViewPane),
 	canToggleVisibility: false,
 	canMoveView: true,
-	openCommandActionDescriptor: {
-		id: viewContainer.id,
-		keybindings: {
-			primary: KeyMod.CtrlCmd | KeyCode.KeyL,
-		},
-		order: 1
-	},
+	// openCommandActionDescriptor: {
+	// 	id: viewContainer.id,
+	// 	keybindings: {
+	// 		primary: KeyMod.CtrlCmd | KeyCode.KeyL,
+	// 	},
+	// 	order: 1
+	// },
 }], viewContainer);
 
 

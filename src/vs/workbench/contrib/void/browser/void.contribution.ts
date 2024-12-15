@@ -20,3 +20,6 @@ import './registerAutocomplete.js'
 
 // register css
 import './media/void.css'
+
+// settings pane
+import './voidSettingsEditorPane.js'

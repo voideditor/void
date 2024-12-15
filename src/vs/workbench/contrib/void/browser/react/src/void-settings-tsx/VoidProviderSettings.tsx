@@ -5,10 +5,10 @@
 
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { titleOfProviderName, displayInfoOfSettingName, ProviderName, providerNames, featureNames, SettingsOfProvider, SettingName, defaultVoidProviderState } from '../../../../../../../platform/void/common/voidConfigTypes.js'
-import { VoidInputBox } from './inputs.js'
+import { VoidInputBox } from '../sidebar-tsx/inputs.js'
 import { useConfigState, useService } from '../util/services.js'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import ErrorBoundary from './ErrorBoundary.js'
+import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 
 
 const Setting = ({ providerName, settingName }: { providerName: ProviderName, settingName: SettingName }) => {

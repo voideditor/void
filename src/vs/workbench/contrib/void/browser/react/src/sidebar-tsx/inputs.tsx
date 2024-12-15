@@ -5,9 +5,9 @@
 
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useService } from '../util/services.js';
-import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles, defaultToggleStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
-import { SelectBox, unthemedSelectBoxStyles } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
+import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
+import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 
 
@@ -125,7 +125,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 				instance.render(containerRef.current)
 
 			disposables.push(
-				instance.onDidSelect(e => { onChangeSelection(options[e.index].value ); })
+				instance.onDidSelect(e => { onChangeSelection(options[e.index].value); })
 			)
 
 			if (onCreateInstance) {

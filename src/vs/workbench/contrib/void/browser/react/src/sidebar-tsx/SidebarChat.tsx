@@ -22,7 +22,7 @@ import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platf
 import { getCmdKey } from '../../../getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from './inputs.js';
-import { ModelSelectionOfFeature } from './ModelSelectionSettings.js';
+import { ModelSelectionOfFeature } from '../void-settings-tsx/ModelSelectionSettings.js';
 
 
 const IconX = ({ size, className = '' }: { size: number, className?: string }) => {
@@ -202,7 +202,7 @@ const ChatBubble = ({ chatMessage }: {
 	}
 
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
-		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full`}>
+		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}>
 			{chatbubbleContents}
 		</div>
 	</div>

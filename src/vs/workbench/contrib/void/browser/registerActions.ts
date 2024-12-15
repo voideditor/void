@@ -150,23 +150,23 @@ registerAction2(class extends Action2 {
 	}
 })
 
-// Settings (API config) menu button
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'void.viewSettings',
-			title: 'Void Settings',
-			icon: { id: 'settings-gear' },
-			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
-		});
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
-		const metricsService = accessor.get(IMetricsService)
+// // Settings (API config) menu button
+// registerAction2(class extends Action2 {
+// 	constructor() {
+// 		super({
+// 			id: 'void.viewSettings',
+// 			title: 'Void Settings',
+// 			icon: { id: 'settings-gear' },
+// 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
+// 		});
+// 	}
+// 	async run(accessor: ServicesAccessor): Promise<void> {
+// 		const stateService = accessor.get(IVoidSidebarStateService)
+// 		const metricsService = accessor.get(IMetricsService)
 
-		metricsService.capture('Chat Navigation', { type: 'Settings' })
+// 		metricsService.capture('Chat Navigation', { type: 'Settings' })
 
-		stateService.setState({ isHistoryOpen: false, currentTab: stateService.state.currentTab === 'settings' ? 'chat' : 'settings' })
-		stateService.fireBlurChat()
-	}
-})
+// 		stateService.setState({ isHistoryOpen: false, currentTab: stateService.state.currentTab === 'settings' ? 'chat' : 'settings' })
+// 		stateService.fireBlurChat()
+// 	}
+// })

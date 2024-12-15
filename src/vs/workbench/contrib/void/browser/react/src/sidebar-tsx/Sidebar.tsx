@@ -15,11 +15,11 @@ import { useSidebarState } from '../util/services.js';
 import '../styles.css'
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { SidebarChat } from './SidebarChat.js';
-import { ModelSelectionSettings } from './ModelSelectionSettings.js';
-import { VoidProviderSettings } from './VoidProviderSettings.js';
+import { ModelSelectionSettings } from '../void-settings-tsx/ModelSelectionSettings.js';
+import { VoidProviderSettings } from '../void-settings-tsx/VoidProviderSettings.js';
 import ErrorBoundary from './ErrorBoundary.js';
 
-const Sidebar = () => {
+export const Sidebar = () => {
 	const sidebarState = useSidebarState()
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
@@ -43,16 +43,6 @@ const Sidebar = () => {
 				<ErrorBoundary>
 					<SidebarChat />
 				</ErrorBoundary>
-
-				<ErrorBoundary>
-					<ModelSelectionSettings />
-				</ErrorBoundary>
-			</div>
-
-			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>
-				<ErrorBoundary>
-					<VoidProviderSettings />
-				</ErrorBoundary>
 			</div>
 
 		</div>
@@ -60,8 +50,4 @@ const Sidebar = () => {
 
 
 }
-
-
-const mountFn = mountFnGenerator(Sidebar)
-export default mountFn
 

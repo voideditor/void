@@ -4,11 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { useState, useEffect } from 'react'
-import { VoidSidebarState, ReactServicesType } from '../../../registerSidebar.js'
+import { VoidSidebarState } from '../../../registerSidebar.js'
 import { ThreadsState } from '../../../registerThreads.js'
 import { SettingsOfProvider } from '../../../../../../../platform/void/common/voidConfigTypes.js'
 import { RefreshModelState } from '../../../../../../../platform/void/common/refreshModelService.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
+import { ReactServicesType } from '../../../reactServices.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes

@@ -11,17 +11,20 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IAutocompleteService } from './registerAutocomplete.js';
+import { IRange } from '../../../../editor/common/core/range.js';
 
 export type CodeSelection = {
-	selectionStr: string | null;
 	fileURI: URI;
-	content: string; // TODO remove this
+	selectionStr: string | null;
+	content: string; // TODO remove this (replace `selectionStr` with `content`)
+	range: IRange;
 }
 
 // if selectionStr is null, it means to use the entire file at send time
 export type CodeStagingSelection = {
-	selectionStr: string | null;
 	fileURI: URI;
+	selectionStr: string | null;
+	range: IRange;
 }
 
 

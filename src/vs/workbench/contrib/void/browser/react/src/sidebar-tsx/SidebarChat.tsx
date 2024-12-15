@@ -22,6 +22,7 @@ import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platf
 import { getCmdKey } from '../../../getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from './inputs.js';
+import { ModelSelectionOfFeature } from './ModelSelectionSettings.js';
 
 
 const IconX = ({ size, className = '' }: { size: number, className?: string }) => {
@@ -111,7 +112,7 @@ export const SelectedFiles = (
 
 	return (
 		!!selections && selections.length !== 0 && (
-			<div className='flex flex-wrap'>
+			<div className='flex flex-wrap gap-4'>
 				{selections.map((selection, i) => (
 					<Fragment key={i}>
 						{/* selected file summary */}
@@ -131,16 +132,19 @@ export const SelectedFiles = (
 							}}
 						>
 
-							{/* file name */}
-							<span className='truncate'>{getBasename(selection.fileURI.fsPath)}</span>
+							<span className='truncate'>
+								{/* file name */}
+								{getBasename(selection.fileURI.fsPath)}
+								{/* selection range */}
+								{selection.selectionStr !== null ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
+							</span>
 
 							{/* type of selection */}
-							<span className='truncate text-opacity-75'>{selection.selectionStr ? 'Selection' : 'File'}</span>
-
+							<span className='truncate text-opacity-75'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span>
 
 							{/* X button */}
 							{type === 'staging' && // hoveredIdx === i
-								<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-widget-border'
+								<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-input-border z-1'
 									onClick={() => {
 										if (type !== 'staging') return;
 										setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
@@ -151,7 +155,7 @@ export const SelectedFiles = (
 							}
 						</div>
 						{/* selection full text */}
-						{type === 'staging' && selection.selectionStr && selectionIsOpened[i] &&
+						{selection.selectionStr && selectionIsOpened[i] &&
 							<BlockCode
 								text={selection.selectionStr}
 							// buttonsOnHover={(<button
@@ -245,7 +249,7 @@ export const SidebarChat = () => {
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
 	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
-	const isDisabled = !instructions
+	const isDisabled = !instructions.trim()
 	const formRef = useRef<HTMLFormElement | null>(null)
 
 
@@ -352,10 +356,12 @@ export const SidebarChat = () => {
 
 	const selections = threadsState._currentStagingSelections
 
+	const previousMessages = currentThread?.messages ?? []
+
 	return <>
 		<div className="overflow-x-hidden space-y-4">
 			{/* previous messages */}
-			{currentThread !== null && currentThread?.messages.map((message, i) =>
+			{previousMessages.map((message, i) =>
 				<ChatBubble key={i} chatMessage={message} />
 			)}
 
@@ -363,79 +369,95 @@ export const SidebarChat = () => {
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
 		</div>
 
+
 		{/* input box */}
-		<form
-			ref={formRef}
-			className={`flex flex-col gap-2 p-2 relative input text-left shrink-0
-				bg-vscode-input-bg
-				border border-vscode-input-border rounded-md
+		<div // this div is used to position the input box properly
+			className={`right-0 left-0 m-2
+				${previousMessages.length === 0 ? '' : 'absolute bottom-0'}
 			`}
-			onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) onSubmit(e) }}
-
-			onSubmit={(e) => {
-				console.log('submit!')
-				onSubmit(e)
-			}}
 		>
-			{/* top row */}
-			<div className=''>
-				{/* selections */}
-				{(selections && selections.length !== 0) &&
-					<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
-				}
+			<form
+				ref={formRef}
+				className={`flex flex-col gap-2 p-2 relative input text-left shrink-0
+				transition-all duration-200
+				rounded-md
+				bg-vscode-input-bg
+				border border-vscode-commandcenter-border hover:border-vscode-commandcenter-active-border
+			`}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' && !e.shiftKey) {
+						onSubmit(e)
+					}
+				}}
+				onSubmit={(e) => {
+					console.log('submit!')
+					onSubmit(e)
+				}}
+			>
+				{/* top row */}
+				<div className=''>
+					{/* selections */}
+					{(selections && selections.length !== 0) &&
+						<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
+					}
 
-				{/* error message */}
-				{latestError === null ? null :
-					<ErrorDisplay
-						message={latestError.message}
-						fullError={latestError.fullError}
-						onDismiss={() => { setLatestError(null) }}
-						showDismiss={true}
+					{/* error message */}
+					{latestError === null ? null :
+						<ErrorDisplay
+							message={latestError.message}
+							fullError={latestError.fullError}
+							onDismiss={() => { setLatestError(null) }}
+							showDismiss={true}
+						/>
+					}
+				</div>
+
+				{/* middle row */}
+				<div className=''>
+					{/* text input */}
+					<VoidInputBox
+						placeholder={`${getCmdKey()}+L to select`}
+						onChangeText={onChangeText}
+						inputBoxRef={inputBoxRef}
+						multiline={true}
 					/>
-				}
-			</div>
+				</div>
 
-			{/* middle row */}
-			<div className=''>
-				{/* text input */}
-				<VoidInputBox
-					placeholder={`${getCmdKey()}+L to select`}
-					onChangeText={onChangeText}
-					inputBoxRef={inputBoxRef}
-					multiline={true}
-				/>
-			</div>
+				{/* bottom row */}
+				<div className='flex flex-row justify-between items-end'>
+					{/* submit options */}
+					<div>
+						<ModelSelectionOfFeature featureName='Ctrl+L' />
+					</div>
 
-			{/* bottom row */}
-			<div className=''>
-				{/* submit / stop button */}
-				{isLoading ?
-					// stop button
-					<button
-						className="p-[5px] bg-white rounded-full cursor-pointer"
-						onClick={onAbort}
-						type='button'
-					>
-						<IconSquare size={24} className="stroke-[2]" />
-					</button>
-					:
-					// submit button (up arrow)
-					<button
-						className={`${isDisabled ? 'prefix-bg-vscode-disabled-fg' : 'bg-white'}
-							rounded-full cursor-pointer`}
-						disabled={isDisabled}
-						type='submit'
-					>
-						<IconArrowUp size={24} className="stroke-[2]" />
-					</button>
-				}
-			</div>
+					{/* submit / stop button */}
+					{isLoading ?
+						// stop button
+						<button
+							className="p-[5px] bg-white rounded-full cursor-pointer"
+							onClick={onAbort}
+							type='button'
+						>
+							<IconSquare size={24} className="stroke-[2]" />
+						</button>
+						:
+						// submit button (up arrow)
+						<button
+							className={`${isDisabled ? 'bg-vscode-disabled-fg cursor-not-allowed' : 'bg-white cursor-pointer'}
+							rounded-full
+							shrink-0 grow-0
+						`}
+							disabled={isDisabled}
+							type='submit'
+						>
+							<IconArrowUp size={24} className="stroke-[2]" />
+						</button>
+					}
+				</div>
 
 
-
-
-
-		</form>
+			</form>
+		</div>
 	</>
 }
 

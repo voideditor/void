@@ -69,22 +69,27 @@ registerAction2(class extends Action2 {
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.fireFocusChat()
 
+		const selectionRange = roundRangeToLines(
+			accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+		)
+
 		// add selection
 		const threadHistoryService = accessor.get(IThreadHistoryService)
 		const currentStaging = threadHistoryService.state._currentStagingSelections
-		const currentStagingEltIdx = currentStaging?.findIndex(s => s.fileURI.fsPath === model.uri.fsPath)
-
-		// if there exists a selection with this URI, replace it
-		const selectionRange = roundRangeToLines(
-			accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+		const currentStagingEltIdx = currentStaging?.findIndex(s =>
+			s.fileURI.fsPath === model.uri.fsPath
+			&& s.range?.startLineNumber === selectionRange?.startLineNumber
+			&& s.range?.endLineNumber === selectionRange?.endLineNumber
 		)
 
 		if (selectionRange) {
 			const selection: CodeStagingSelection = {
 				selectionStr: getContentInRange(model, selectionRange),
-				fileURI: model.uri
+				fileURI: model.uri,
+				range: selectionRange,
 			}
 
+			// overwrite selections that match with this one (compares by `fileURI` and  line numbers in `range`)
 			if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
 				threadHistoryService.setStaging([
 					...currentStaging!.slice(0, currentStagingEltIdx),

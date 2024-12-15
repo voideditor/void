@@ -10,7 +10,7 @@ module.exports = {
 		extend: {
 			colors: {
 				vscode: {
-					// see https://code.visualstudio.com/api/references/theme-color
+					// see: https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content
 
 					// base colors
 					"fg": "var(--vscode-foreground)",
@@ -52,6 +52,17 @@ module.exports = {
 					"input-validation-warning-bg": "inputValidation-var(--vscode-warningBackground)",
 					"input-validation-warning-fg": "inputValidation-var(--vscode-warningForeground)",
 					"input-validation-warning-border": "inputValidation-var(--vscode-warningBorder)",
+
+					// command center colors (the top bar)
+					"commandcenter-fg": "commandCenter.foreground",
+					"commandcenter-active-fg": "commandCenter.activeForeground",
+					"commandcenter-bg": "commandCenter.background",
+					"commandcenter-active-bg": "commandCenter.activeBackground",
+					"commandcenter-border": "commandCenter.border",
+					"commandcenter-inactive-fg": "commandCenter.inactiveForeground",
+					"commandcenter-inactive-border": "commandCenter.inactiveBorder",
+					"commandcenter-active-border": "commandCenter.activeBorder",
+					"commandcenter-debugging-bg": "commandCenter.debuggingBackground",
 
 					// badge colors
 					"badge-fg": "var(--vscode-badge-foreground)",

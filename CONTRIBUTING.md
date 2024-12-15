@@ -27,9 +27,9 @@ Go to the "Workloads" tab and select:
 - `Node.js build tools`
 
 Go to the "Individual Components" tab and select:
-- `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)`,
-- `C++ ATL for latest build tools with Spectre Mitigations`,
-- `C++ MFC for latest build tools with Spectre Mitigations`.
+- `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)`
+- `C++ ATL for latest build tools with Spectre Mitigations`
+- `C++ MFC for latest build tools with Spectre Mitigations`
 
 Finally, click Install.
 

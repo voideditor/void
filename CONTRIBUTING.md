@@ -10,9 +10,6 @@ There are a few ways to contribute:
 
 Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`. 
 
-## Roadmap
-
-
 
 
 ## Building the full IDE

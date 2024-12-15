@@ -4,16 +4,14 @@ Welcome! 👋 This is the official guide on how to contribute to Void. We want t
 
 There are a few ways to contribute:
 
-- Suggest New Features ([Discord](https://discord.gg/RSNjgaugJs))
-- Build New Features ([Project](https://github.com/orgs/voideditor/projects/2/views/3))
-- Submit Issues/Docs/Bugs ([Issues](https://github.com/voideditor/void/issues))
+- 👨‍💻 Refer to our [Issues](https://github.com/voideditor/void/issues) page for the latest issues!
+- 💡 Suggest New Features in our [Discord](https://discord.gg/RSNjgaugJs).
+- ⭐️ If you want to build your AI tool into Void, feel free to get in touch! It's very easy to extend Void, and the UX you create will be much more natural than a VSCode Extension.
 
 Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`. 
 
 ## Roadmap
 
-- Refer to our [Issues](https://github.com/voideditor/void/issues) page for the latest issues!
-- ⭐️ If you want to build your AI tool into Void, feel free to get in touch! It's very easy to extend Void, and the UX you create will be much more natural than a VSCode Extension.
 
 
 

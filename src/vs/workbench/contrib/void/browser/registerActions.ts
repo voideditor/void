@@ -83,9 +83,18 @@ registerAction2(class extends Action2 {
 		)
 
 		if (selectionRange) {
-			const selection: CodeStagingSelection = {
-				selectionStr: getContentInRange(model, selectionRange),
+
+			const selectionStr = getContentInRange(model, selectionRange)
+
+			const selection: CodeStagingSelection = selectionStr === null ? {
+				type: 'File',
 				fileURI: model.uri,
+				selectionStr: null,
+				range: null,
+			} : {
+				type: 'Selection',
+				fileURI: model.uri,
+				selectionStr: selectionStr,
 				range: selectionRange,
 			}
 

@@ -86,6 +86,52 @@ const IconSquare = ({ size, className = '' }: { size: number, className?: string
 };
 
 
+const ScrollToBottomContainer = ({ children, height, className }: { children: React.ReactNode, height: React.CSSProperties['height'], className?: string }) => {
+	const [isAtBottom, setIsAtBottom] = useState(true); // Start at bottom
+	const divRef = useRef<HTMLDivElement>(null);
+
+	const scrollToBottom = () => {
+		if (divRef.current) {
+			divRef.current.scrollTop = divRef.current.scrollHeight;
+		}
+	};
+
+	const onScroll = () => {
+		const div = divRef.current;
+		if (!div) return;
+
+		const isBottom = Math.abs(
+			div.scrollHeight - div.clientHeight - div.scrollTop
+		) < 1;
+
+		setIsAtBottom(isBottom);
+	};
+
+	// When children change (new messages added)
+	useEffect(() => {
+		if (isAtBottom) {
+			scrollToBottom();
+		}
+	}, [children, isAtBottom]); // Dependency on children to detect new messages
+
+	// Initial scroll to bottom
+	useEffect(() => {
+		scrollToBottom();
+	}, []);
+
+	return (
+		<div
+			ref={divRef}
+			onScroll={onScroll}
+			style={{ height: height }}
+			className={className}
+		>
+			{children}
+		</div>
+	);
+};
+
+
 // read files from VSCode
 const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
 	const model = modelService.getModel(uri)
@@ -112,7 +158,7 @@ export const SelectedFiles = (
 
 	return (
 		!!selections && selections.length !== 0 && (
-			<div className='flex flex-wrap gap-4'>
+			<div className='flex flex-wrap gap-4 p-2'>
 				{selections.map((selection, i) => (
 					<Fragment key={i}>
 						{/* selected file summary */}
@@ -122,6 +168,7 @@ export const SelectedFiles = (
 									select-none
 									bg-vscode-badge-bg border border-vscode-button-border rounded-md
 									w-fit h-fit min-w-[80px] p-1
+									text-left
 							`}
 							onClick={() => {
 								setSelectionIsOpened(s => {
@@ -145,9 +192,11 @@ export const SelectedFiles = (
 							{/* X button */}
 							{type === 'staging' && // hoveredIdx === i
 								<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-input-border z-1'
-									onClick={() => {
+									onClick={(e) => {
+										e.stopPropagation();
 										if (type !== 'staging') return;
 										setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
+										setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
 									}}
 								>
 									<IconX size={16} className="p-[2px] stroke-[3]" />
@@ -251,7 +300,6 @@ export const SidebarChat = () => {
 	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
 	const isDisabled = !instructions.trim()
 	const formRef = useRef<HTMLFormElement | null>(null)
-
 
 	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
@@ -359,7 +407,10 @@ export const SidebarChat = () => {
 	const previousMessages = currentThread?.messages ?? []
 
 	return <>
-		<div className="overflow-x-hidden space-y-4">
+		<ScrollToBottomContainer
+			height={`calc(100%-${formRef.current?.height ?? 0}px)`}
+			className='overflow-x-hidden overflow-y-auto space-y-4'
+		>
 			{/* previous messages */}
 			{previousMessages.map((message, i) =>
 				<ChatBubble key={i} chatMessage={message} />
@@ -367,23 +418,22 @@ export const SidebarChat = () => {
 
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
-		</div>
+		</ScrollToBottomContainer>
 
 
 		{/* input box */}
 		<div // this div is used to position the input box properly
-			className={`right-0 left-0 m-2
-				${previousMessages.length === 0 ? '' : 'absolute bottom-0'}
-			`}
+			className={`right-0 left-0 m-2 z-[999] ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
 		>
 			<form
 				ref={formRef}
-				className={`flex flex-col gap-2 p-2 relative input text-left shrink-0
-				transition-all duration-200
-				rounded-md
-				bg-vscode-input-bg
-				border border-vscode-commandcenter-border hover:border-vscode-commandcenter-active-border
-			`}
+				className={`
+					flex flex-col gap-2 px-2 py-0.5 relative input text-left shrink-0
+					transition-all duration-200
+					rounded-md
+					bg-vscode-input-bg
+					border border-vscode-commandcenter-inactive-border focus-within:border-vscode-commandcenter-active-border hover:border-vscode-commandcenter-active-border
+				`}
 				onKeyDown={(e) => {
 					if (e.key === 'Enter' && !e.shiftKey) {
 						onSubmit(e)
@@ -434,19 +484,21 @@ export const SidebarChat = () => {
 					{isLoading ?
 						// stop button
 						<button
-							className="p-[5px] bg-white rounded-full cursor-pointer"
+							className={`size-[24px] rounded-full bg-white cursor-pointer`}
 							onClick={onAbort}
 							type='button'
 						>
-							<IconSquare size={24} className="stroke-[2]" />
+							<IconSquare size={16} className="stroke-[2]" />
 						</button>
 						:
 						// submit button (up arrow)
 						<button
-							className={`${isDisabled ? 'bg-vscode-disabled-fg cursor-not-allowed' : 'bg-white cursor-pointer'}
-							rounded-full
-							shrink-0 grow-0
-						`}
+							className={`size-[24px] rounded-full shrink-0 grow-0 cursor-pointer
+								${isDisabled ?
+									'bg-vscode-disabled-fg' // cursor-not-allowed
+									: 'bg-white' // cursor-pointer
+								}
+							`}
 							disabled={isDisabled}
 							type='submit'
 						>

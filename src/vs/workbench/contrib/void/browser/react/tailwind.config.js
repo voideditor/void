@@ -38,31 +38,31 @@ module.exports = {
 					"input-bg": "var(--vscode-input-background)",
 					"input-border": "var(--vscode-input-border)",
 					"input-fg": "var(--vscode-input-foreground)",
-					"input-placeholder-fg": "input-var(--vscode-placeholderForeground)",
-					"input-active-bg": "inputOption-var(--vscode-activeBackground)",
-					"input-option-active-border": "inputOption-var(--vscode-activeBorder)",
-					"input-option-active-fg": "inputOption-var(--vscode-activeForeground)",
-					"input-option-hover-bg": "inputOption-var(--vscode-hoverBackground)",
-					"input-validation-error-bg": "inputValidation-var(--vscode-errorBackground)",
-					"input-validation-error-fg": "inputValidation-var(--vscode-errorForeground)",
-					"input-validation-error-border": "inputValidation-var(--vscode-errorBorder)",
-					"input-validation-info-bg": "inputValidation-var(--vscode-infoBackground)",
-					"input-validation-info-fg": "inputValidation-var(--vscode-infoForeground)",
-					"input-validation-info-border": "inputValidation-var(--vscode-infoBorder)",
-					"input-validation-warning-bg": "inputValidation-var(--vscode-warningBackground)",
-					"input-validation-warning-fg": "inputValidation-var(--vscode-warningForeground)",
-					"input-validation-warning-border": "inputValidation-var(--vscode-warningBorder)",
+					"input-placeholder-fg": "var(--vscode-placeholderForeground)",
+					"input-active-bg": "var(--vscode-activeBackground)",
+					"input-option-active-border": "var(--vscode-activeBorder)",
+					"input-option-active-fg": "var(--vscode-activeForeground)",
+					"input-option-hover-bg": "var(--vscode-hoverBackground)",
+					"input-validation-error-bg": "var(--vscode-errorBackground)",
+					"input-validation-error-fg": "var(--vscode-errorForeground)",
+					"input-validation-error-border": "var(--vscode-errorBorder)",
+					"input-validation-info-bg": "var(--vscode-infoBackground)",
+					"input-validation-info-fg": "var(--vscode-infoForeground)",
+					"input-validation-info-border": "var(--vscode-infoBorder)",
+					"input-validation-warning-bg": "var(--vscode-warningBackground)",
+					"input-validation-warning-fg": "var(--vscode-warningForeground)",
+					"input-validation-warning-border": "var(--vscode-warningBorder)",
 
 					// command center colors (the top bar)
-					"commandcenter-fg": "commandCenter.foreground",
-					"commandcenter-active-fg": "commandCenter.activeForeground",
-					"commandcenter-bg": "commandCenter.background",
-					"commandcenter-active-bg": "commandCenter.activeBackground",
-					"commandcenter-border": "commandCenter.border",
-					"commandcenter-inactive-fg": "commandCenter.inactiveForeground",
-					"commandcenter-inactive-border": "commandCenter.inactiveBorder",
-					"commandcenter-active-border": "commandCenter.activeBorder",
-					"commandcenter-debugging-bg": "commandCenter.debuggingBackground",
+					"commandcenter-fg": "var(--vscode-commandCenter-foreground)",
+					"commandcenter-active-fg": "var(--vscode-commandCenter-activeForeground)",
+					"commandcenter-bg": "var(--vscode-commandCenter-background)",
+					"commandcenter-active-bg": "var(--vscode-commandCenter-activeBackground)",
+					"commandcenter-border": "var(--vscode-commandCenter-border)",
+					"commandcenter-inactive-fg": "var(--vscode-commandCenter-inactiveForeground)",
+					"commandcenter-inactive-border": "var(--vscode-commandCenter-inactiveBorder)",
+					"commandcenter-active-border": "var(--vscode-commandCenter-activeBorder)",
+					"commandcenter-debugging-bg": "var(--vscode-commandCenter-debuggingBackground)",
 
 					// badge colors
 					"badge-fg": "var(--vscode-badge-foreground)",
@@ -84,7 +84,6 @@ module.exports = {
 					"checkbox-border": "var(--vscode-checkbox-border)",
 					"checkbox-select-bg": "var(--vscode-checkbox-selectBackground)",
 
-
 					// sidebar colors
 					"sidebar-bg": "var(--vscode-sideBar-background)",
 					"sidebar-fg": "var(--vscode-sideBar-foreground)",
@@ -101,7 +100,6 @@ module.exports = {
 					"sidebar-stickyscroll-border": "var(--vscode-sideBarStickyScroll-border)",
 					"sidebar-stickyscroll-shadow": "var(--vscode-sideBarStickyScroll-shadow)",
 
-
 					// other colors (these are partially complete)
 
 					// editor colors
@@ -112,7 +110,6 @@ module.exports = {
 					"editorwidget-fg": "var(--vscode-editorWidget-foreground)",
 					"editorwidget-bg": "var(--vscode-editorWidget-background)",
 					"editorwidget-border": "var(--vscode-editorWidget-border)",
-
 
 				},
 			},

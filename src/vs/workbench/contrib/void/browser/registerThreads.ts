@@ -22,9 +22,15 @@ export type CodeSelection = {
 
 // if selectionStr is null, it means to use the entire file at send time
 export type CodeStagingSelection = {
-	fileURI: URI;
-	selectionStr: string | null;
-	range: IRange;
+	type: 'Selection',
+	fileURI: URI,
+	selectionStr: string,
+	range: IRange
+} | {
+	type: 'File',
+	fileURI: URI,
+	selectionStr: null,
+	range: null
 }
 
 

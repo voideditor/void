@@ -24,8 +24,8 @@ export const Sidebar = () => {
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
 	// className='@@void-scope'
-	return <div className='@@void-scope'>
-		<div className={`flex flex-col w-full px-2 py-2`}>
+	return <div className='@@void-scope w-full h-full'>
+		<div className={`flex flex-col px-2 py-2 w-full h-full`}>
 
 			{/* <span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']
@@ -33,17 +33,27 @@ export const Sidebar = () => {
 				sidebarStateService.setState({ currentTab: tabs[(index + 1) % tabs.length] as any })
 			}}>clickme {tab}</span> */}
 
-			<div className={`mb-2 ${isHistoryOpen ? '' : 'hidden'}`}>
+			<div className={`mb-2 w-full h-full ${isHistoryOpen ? '' : 'hidden'}`}>
 				<ErrorBoundary>
 					<SidebarThreadSelector />
 				</ErrorBoundary>
 			</div>
 
-			<div className={`${tab === 'chat' ? '' : 'hidden'}`}>
+			<div className={`w-full h-full ${tab === 'chat' ? '' : 'hidden'}`}>
 				<ErrorBoundary>
 					<SidebarChat />
 				</ErrorBoundary>
+
+				{/* <ErrorBoundary>
+					<ModelSelectionSettings />
+				</ErrorBoundary> */}
 			</div>
+
+			{/* <div className={`w-full h-full ${tab === 'settings' ? '' : 'hidden'}`}>
+				<ErrorBoundary>
+					<VoidProviderSettings />
+				</ErrorBoundary>
+			</div> */}
 
 		</div>
 	</div>

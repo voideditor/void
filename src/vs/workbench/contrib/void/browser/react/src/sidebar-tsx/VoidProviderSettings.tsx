@@ -36,18 +36,17 @@ const Setting = ({ providerName, settingName }: { providerName: ProviderName, se
 				}
 			}, [voidConfigService, providerName, settingName])}
 
-			// we are responsible for setting the initial value here
+			// we are responsible for setting the initial value. always sync the instance whenever there's a change to state.
 			onCreateInstance={useCallback((instance: InputBox) => {
-				const updateInstance = () => {
+				const syncInstance = () => {
 					const settingsAtProvider = voidConfigService.state.settingsOfProvider[providerName];
-					// @ts-ignore
-					const stateVal = settingsAtProvider[settingName]
+					const stateVal = settingsAtProvider[settingName as keyof typeof settingsAtProvider]
 					weChangedText = true
-					instance.value = stateVal
+					instance.value = stateVal as string
 					weChangedText = false
 				}
-				updateInstance()
-				const disposable = voidConfigService.onDidChangeState(updateInstance)
+				syncInstance()
+				const disposable = voidConfigService.onDidChangeState(syncInstance)
 				return [disposable]
 			}, [voidConfigService, providerName, settingName])}
 			multiline={false}

@@ -49,9 +49,9 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 
 					voidConfigService.setModelSelectionOfFeature(featureName, { providerName: newVal[0] as ProviderName, modelName: newVal[1] })
 				}, [voidConfigService, featureName, isDummy])}
-				// we are responsible for setting the initial state here
+				// we are responsible for setting the initial state here. always sync instance when state changes.
 				onCreateInstance={useCallback((instance: SelectBox) => {
-					const updateInstance = () => {
+					const syncInstance = () => {
 						const settingsAtProvider = voidConfigService.state.modelSelectionOfFeature[featureName]
 						const index = modelOptions.findIndex(v => v.value[0] === settingsAtProvider?.providerName && v.value[1] === settingsAtProvider?.modelName)
 						if (index !== -1) {
@@ -60,8 +60,8 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 							weChangedText = false
 						}
 					}
-					updateInstance()
-					const disposable = voidConfigService.onDidChangeState(updateInstance)
+					syncInstance()
+					const disposable = voidConfigService.onDidChangeState(syncInstance)
 					return [disposable]
 				}, [voidConfigService, modelOptions, featureName])}
 			/>}

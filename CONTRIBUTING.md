@@ -84,7 +84,7 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 ## Bundling
 
-We don't usually recommend bundling - instead, usually you should just build (above). To bundle Void into an executable app, run one of the following commands. This will create a folder named `VSCode-darwin-arm64` (or similar) in the repo's parent's directory. Be patient - compiling can take ~25 minutes.
+We don't usually recommend bundling. Instead, you should probably just build (above). If you're sure you want to bundle Void into an executable app, run one of the following commands. This will create a folder named `VSCode-darwin-arm64` (or similar) in the repo's parent's directory. Be patient - compiling can take ~25 minutes.
 
 ### Mac
 - `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)

@@ -1,17 +1,29 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import Anthropic from '@anthropic-ai/sdk';
-import { SendLLMMessageFnTypeInternal } from './_types.js';
-import { parseMaxTokensStr } from '../../../registerConfig.js';
+import { parseMaxTokensStr } from './util.js';
+import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
+import { displayInfoOfSettingName } from '../../common/voidConfigTypes.js';
 
 // Anthropic
 type LLMMessageAnthropic = {
 	role: 'user' | 'assistant';
 	content: string;
 }
-export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onText, onFinalMessage, onError, voidConfig, _setAborter }) => {
+export const sendAnthropicMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
-	const thisConfig = voidConfig.anthropic
+	const thisConfig = settingsOfProvider.anthropic
 
-	const anthropic = new Anthropic({ apiKey: thisConfig.apikey, dangerouslyAllowBrowser: true }); // defaults to process.env["ANTHROPIC_API_KEY"]
+	const maxTokens = parseMaxTokensStr(thisConfig.maxTokens)
+	if (maxTokens === undefined) {
+		onError({ message: `Please set a value for ${displayInfoOfSettingName('anthropic', 'maxTokens').title}.`, fullError: null })
+		return
+	}
+
+	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 
 	// find system messages and concatenate them
 	const systemMessage = messages
@@ -22,11 +34,13 @@ export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onTex
 	// remove system messages for Anthropic
 	const anthropicMessages = messages.filter(msg => msg.role !== 'system') as LLMMessageAnthropic[]
 
+
+
 	const stream = anthropic.messages.stream({
 		system: systemMessage,
 		messages: anthropicMessages,
-		model: thisConfig.model,
-		max_tokens: parseMaxTokensStr(voidConfig.default.maxTokens)!, // this might be undefined, but it will just throw an error for the user
+		model: modelName,
+		max_tokens: maxTokens,
 	});
 
 
@@ -45,10 +59,10 @@ export const sendAnthropicMsg: SendLLMMessageFnTypeInternal = ({ messages, onTex
 	stream.on('error', (error) => {
 		// the most common error will be invalid API key (401), so we handle this with a nice message
 		if (error instanceof Anthropic.APIError && error.status === 401) {
-			onError({ error: 'Invalid API key.' })
+			onError({ message: 'Invalid API key.', fullError: error })
 		}
 		else {
-			onError({ error })
+			onError({ message: error + '', fullError: error }) // anthropic errors can be stringified nicely like this
 		}
 	})
 

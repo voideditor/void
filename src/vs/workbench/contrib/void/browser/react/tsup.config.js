@@ -1,10 +1,13 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
 	entry: [
 		'./src2/sidebar-tsx/Sidebar.tsx',
-		'./src2/sendLLMMessage/sendLLMMessage.tsx',
-		'./src2/util/posthog.tsx',
 		'./src2/util/diffLines.tsx',
 	],
 	outDir: './out',

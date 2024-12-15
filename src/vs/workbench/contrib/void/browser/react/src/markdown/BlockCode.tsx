@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import React, { ReactNode } from "react"
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { atomOneDarkReasonable } from "react-syntax-highlighter/dist/esm/styles/hljs";

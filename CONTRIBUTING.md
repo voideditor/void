@@ -13,6 +13,7 @@ There are a few ways to contribute:
 
 Please follow the steps below to build the IDE. If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new) with any build errors, or refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
+Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`.
 
 ### a. Build Prerequisites - Mac
 
@@ -69,7 +70,7 @@ If you ran `npm run watch`, the build is done when you see something like this:
 
 <!-- 3. Press <kbd>Ctrl+Shift+B</kbd> to start the build process. -->
 
-4. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `./scripts/code.bat` (Windows). This should open up the built IDE!
+4. In a new terminal, run `./scripts/code.sh` (Mac/Linux) or `./scripts/code.bat` (Windows). This should open up the built IDE.
 You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building.
 
 Now that you're set up, feel free to check out our [Issues](https://github.com/voideditor/void/issues) page.
@@ -83,32 +84,31 @@ Now that you're set up, feel free to check out our [Issues](https://github.com/v
 
 ## Bundling
 
-To bundle the IDE into an executable, run `npm run gulp vscode-darwin-arm64`.
+We don't usually recommend bundling. Instead, you should probably just build (above). If you're sure you want to bundle Void into an executable app, run one of the following commands. This will create a folder named `VSCode-darwin-arm64` (or similar) in the repo's parent's directory. Be patient - compiling can take ~25 minutes.
 
-Here are the full options: `vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)`
+### Mac
+- `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)
+- `npm run gulp vscode-darwin-x64` (Intel)
 
+### Windows
+- `npm run gulp vscode-win32-x64` - most common
+- `npm run gulp vscode-win32-ia32`
+
+### Linux
+- `npm run gulp vscode-linux-x64` - most common
+- `npm run gulp vscode-linux-arm`
+- `npm run gulp vscode-linux-ia32`
 
 ## Roadmap
 
-Here are the most important topics on our Roadmap. More ⭐'s = more important. Please refer to our [Issues](https://github.com/voideditor/void/issues) page for the latest issues.
+Please refer to our [Issues](https://github.com/voideditor/void/issues) page for the latest issues.
 
-## ⭐⭐⭐ Make History work well.
-
-When the user submits a response or presses the apply/accept/reject button, we should add these events to the history, allowing the user to undo/redo them. Right now there is unexpected behavior if the user tries to undo or redo their changes.
-
-## ⭐⭐⭐ Build Cursor-style quick edits (Ctrl+K).
-
-When the user presses Ctrl+K, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
 
 ## ⭐⭐⭐ Creative.
 
 Examples: creating better code search, or supporting AI agents that can edit across files and make multiple LLM calls.
 
 Eventually, we want to build a convenient API for creating AI tools. The API will provide methods for creating the UI (showing an autocomplete suggestion, or creating a new diff), detecting event changes (like `onKeystroke` or `onFileOpen`), and modifying the user's file-system (storing indexes associated with each file), making it much easier to make your own AI plugin. We plan on building these features further along in timeline, but we wanted to list them for completeness.
-
-## ⭐ One-stars.
-
-⭐ Let the user Accept / Reject all Diffs in an entire file via the sidebar.
 
 # Guidelines
 

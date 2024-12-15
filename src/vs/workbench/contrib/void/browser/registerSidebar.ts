@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
 import { Registry } from '../../../../platform/registry/common/platform.js';
@@ -11,7 +11,6 @@ import {
 } from '../../../common/views.js';
 
 import * as nls from '../../../../nls.js';
-import * as dom from '../../../../base/browser/dom.js';
 
 import { Codicon } from '../../../../base/common/codicons.js';
 import { localize } from '../../../../nls.js';
@@ -26,35 +25,31 @@ import { IViewPaneOptions, ViewPane } from '../../../browser/parts/views/viewPan
 
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { Disposable } from '../../../../base/common/lifecycle.js';
+import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IThreadHistoryService } from './registerThreads.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
+import { IContextMenuService, IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-// import { IVoidConfigService } from './registerSettings.js';
-// import { IEditorService } from '../../../services/editor/common/editorService.js';
 
 import mountFn from './react/out/sidebar-tsx/Sidebar.js';
 
-import { IVoidConfigStateService } from './registerConfig.js';
+import { IVoidConfigStateService } from '../../../../platform/void/common/voidConfigService.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInlineDiffsService } from './registerInlineDiffs.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
-import { ISendLLMMessageService } from '../../../../platform/void/browser/llmMessageService.js';
+import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
+import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
+import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
+import { IRefreshModelService } from '../../../../platform/void/common/refreshModelService.js';
 
 
-// import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
-
-
-// compare against search.contribution.ts and https://app.greptile.com/chat/w1nsmt3lauwzculipycpn?repo=github%3Amain%3Amicrosoft%2Fvscode
-// and debug.contribution.ts, scm.contribution.ts (source control)
+// compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
 
 export type VoidSidebarState = {
 	isHistoryOpen: boolean;
@@ -68,7 +63,15 @@ export type ReactServicesType = {
 	fileService: IFileService;
 	modelService: IModelService;
 	inlineDiffService: IInlineDiffsService;
-	sendLLMMessageService: ISendLLMMessageService;
+	llmMessageService: ILLMMessageService;
+	clipboardService: IClipboardService;
+	refreshModelService: IRefreshModelService;
+
+	themeService: IThemeService,
+	hoverService: IHoverService,
+
+	contextViewService: IContextViewService;
+	contextMenuService: IContextMenuService;
 }
 
 // ---------- Define viewpane ----------
@@ -87,10 +90,6 @@ class VoidSidebarViewPane extends ViewPane {
 		@IOpenerService openerService: IOpenerService,
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IHoverService hoverService: IHoverService,
-		// Void:
-		// @IVoidSidebarStateService private readonly _voidSidebarStateService: IVoidSidebarStateService,
-		// @IThreadHistoryService private readonly _threadHistoryService: IThreadHistoryService,
-		// TODO chat service
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService)
 
@@ -100,9 +99,8 @@ class VoidSidebarViewPane extends ViewPane {
 
 	protected override renderBody(parent: HTMLElement): void {
 		super.renderBody(parent);
-
-		const { root } = dom.h('div@root')
-		dom.append(parent, root);
+		parent.style.overflow = 'auto'
+		parent.style.userSelect = 'text'
 
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
@@ -113,9 +111,18 @@ class VoidSidebarViewPane extends ViewPane {
 				fileService: accessor.get(IFileService),
 				modelService: accessor.get(IModelService),
 				inlineDiffService: accessor.get(IInlineDiffsService),
-				sendLLMMessageService: accessor.get(ISendLLMMessageService),
+				llmMessageService: accessor.get(ILLMMessageService),
+				clipboardService: accessor.get(IClipboardService),
+				themeService: accessor.get(IThemeService),
+				hoverService: accessor.get(IHoverService),
+				refreshModelService: accessor.get(IRefreshModelService),
+				contextViewService: accessor.get(IContextViewService),
+				contextMenuService: accessor.get(IContextMenuService),
 			}
-			mountFn(root, services);
+
+			// mount react
+			const disposables: IDisposable[] | undefined = mountFn(parent, services);
+			disposables?.forEach(d => this._register(d))
 		});
 	}
 
@@ -130,7 +137,7 @@ const voidViewIcon = registerIcon('void-view-icon', voidThemeIcon, localize('voi
 
 // called VIEWLET_ID in other places for some reason
 export const VOID_VIEW_CONTAINER_ID = 'workbench.view.void'
-export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID // not sure if we can change this
+export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID // simplicity
 
 // Register view container
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
@@ -180,13 +187,14 @@ export interface IVoidSidebarStateService {
 	fireFocusChat(): void;
 	fireBlurChat(): void;
 
-	openView(): void;
+	openSidebarView(): void;
 }
-
 
 export const IVoidSidebarStateService = createDecorator<IVoidSidebarStateService>('voidSidebarStateService');
 class VoidSidebarStateService extends Disposable implements IVoidSidebarStateService {
 	_serviceBrand: undefined;
+
+	static readonly ID = 'voidSidebarStateService';
 
 	private readonly _onDidChangeState = new Emitter<void>();
 	readonly onDidChangeState: Event<void> = this._onDidChangeState.event;
@@ -201,11 +209,20 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 	// state
 	state: VoidSidebarState
 
+	constructor(
+		@IViewsService private readonly _viewsService: IViewsService,
+	) {
+		super()
+
+		// initial state
+		this.state = { isHistoryOpen: false, currentTab: 'chat', }
+	}
+
 
 	setState(newState: Partial<VoidSidebarState>) {
 		// make sure view is open if the tab changes
 		if ('currentTab' in newState) {
-			this.openView()
+			this.openSidebarView()
 		}
 
 		this.state = { ...this.state, ...newState }
@@ -220,25 +237,9 @@ class VoidSidebarStateService extends Disposable implements IVoidSidebarStateSer
 		this._onBlurChat.fire()
 	}
 
-	openView() {
+	openSidebarView() {
 		this._viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
 		this._viewsService.openView(VOID_VIEW_ID);
-	}
-
-	constructor(
-		@IViewsService private readonly _viewsService: IViewsService,
-		// @IThreadHistoryService private readonly _threadHistoryService: IThreadHistoryService,
-	) {
-		super()
-		// auto open the view on mount (if it bothers you this is here, this is technically just initializing the state of the view)
-		this.openView()
-
-		// initial state
-		this.state = {
-			isHistoryOpen: false,
-			currentTab: 'chat',
-		}
-
 	}
 
 }

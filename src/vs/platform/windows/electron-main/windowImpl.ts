@@ -742,18 +742,6 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			cb({ cancel: false, requestHeaders: Object.assign(details.requestHeaders, headers) });
 		});
 
-
-		// // Void: send from https://
-		// this._win.webContents.session.webRequest.onBeforeSendHeaders({ urls }, async (details, cb) => {
-		// 	// const voidConfig = this.voidConfigStateService.state.voidConfig
-		// 	// const whichApi = voidConfig.default['whichApi']
-		// 	const endpoint = 'http://127.' //string | undefined = voidConfig[whichApi as VoidConfigField].endpoint
-
-		// 	if (endpoint && details.url.startsWith(endpoint)) {
-		// 		details.requestHeaders['Origin'] = 'https://app.voideditor.com'
-		// 	}
-		// 	cb({ cancel: false, requestHeaders: details.requestHeaders });
-		// });
 	}
 
 

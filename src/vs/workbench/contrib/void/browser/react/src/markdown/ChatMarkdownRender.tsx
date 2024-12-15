@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
@@ -16,6 +21,9 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
 	const inlineDiffService = useService('inlineDiffService')
 
+	const clipboardService = useService('clipboardService')
+
+
 	useEffect(() => {
 		if (copyButtonState !== CopyButtonState.Copy) {
 			setTimeout(() => {
@@ -25,15 +33,10 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 	}, [copyButtonState])
 
 	const onCopy = useCallback(() => {
-		navigator.clipboard.writeText(text).then(
-			() => {
-				setCopyButtonState(CopyButtonState.Copied)
-			},
-			() => {
-				setCopyButtonState(CopyButtonState.Error)
-			}
-		)
-	}, [text])
+		clipboardService.writeText(text)
+			.then(() => { setCopyButtonState(CopyButtonState.Copied) })
+			.catch(() => { setCopyButtonState(CopyButtonState.Error) })
+	}, [text, clipboardService])
 
 	return <>
 		<button
@@ -46,7 +49,7 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 			onClick={async () => {
 
-				inlineDiffService.startStreaming('ctrl+l', text)
+				inlineDiffService.startStreaming({ featureName: 'Ctrl+L' }, text)
 			}}
 		>
 			Apply
@@ -127,7 +130,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 						{item.task && (
 							<input type="checkbox" checked={item.checked} readOnly />
 						)}
-						<MarkdownRender string={item.text} nested={true} />
+						<ChatMarkdownRender string={item.text} nested={true} />
 					</li>
 				))}
 			</ListTag>
@@ -211,7 +214,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	)
 }
 
-export const MarkdownRender = ({ string, nested = false }: { string: string, nested?: boolean }) => {
+export const ChatMarkdownRender = ({ string, nested = false }: { string: string, nested?: boolean }) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>

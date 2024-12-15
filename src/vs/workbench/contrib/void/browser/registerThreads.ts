@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
@@ -10,30 +10,33 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
+import { IAutocompleteService } from './registerAutocomplete.js';
 
-// if selectionStr is null, it means just send the whole file
 export type CodeSelection = {
 	selectionStr: string | null;
 	fileURI: URI;
-	content: string;
+	content: string; // TODO remove this
 }
 
+// if selectionStr is null, it means to use the entire file at send time
 export type CodeStagingSelection = {
 	selectionStr: string | null;
 	fileURI: URI;
 }
 
+
+// WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
 	| {
 		role: 'user';
-		content: string; // content sent to the llm
-		displayContent: string; // content displayed to user
+		content: string | null; // content sent to the llm - allowed to be '', will be replaced with (empty)
+		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
 		selections: CodeSelection[] | null; // the user's selection
 	}
 	| {
 		role: 'assistant';
-		content: string; // content received from LLM
-		displayContent: string | undefined; // content displayed to user (this is the same as content for now)
+		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
+		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
 	}
 	| {
 		role: 'system';
@@ -97,8 +100,10 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
+		@IAutocompleteService private readonly _autocomplete: IAutocompleteService,
 	) {
 		super()
+		this._autocomplete
 
 		this.state = {
 			allThreads: this._readAllThreads(),
@@ -133,6 +138,8 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 	}
 
 	switchToThread(threadId: string) {
+		console.log('threadId', threadId)
+		console.log('messages', this.state.allThreads[threadId].messages)
 		this._setState({ _currentThreadId: threadId }, true)
 	}
 
@@ -194,3 +201,4 @@ class ThreadHistoryService extends Disposable implements IThreadHistoryService {
 }
 
 registerSingleton(IThreadHistoryService, ThreadHistoryService, InstantiationType.Eager);
+

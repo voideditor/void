@@ -18,8 +18,8 @@ import './threadHistoryService.js'
 // register Autocomplete
 import './autocompleteService.js'
 
-// register css
-import './media/void.css'
-
 // settings pane
 import './voidSettingsPane.js'
+
+// register css
+import './media/void.css'

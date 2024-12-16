@@ -37,6 +37,10 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { mountSidebar } from './react/out/sidebar-tsx/index.js';
 
 import { getReactServices } from './helpers/reactServicesHelper.js';
+import { Codicon } from '../../../../base/common/codicons.js';
+// import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
+// import { Codicon } from '../../../../base/common/codicons.js';
+// import { Codicon } from '../../../../base/common/codicons.js';
 
 
 // compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
@@ -90,17 +94,22 @@ class VoidSidebarViewPane extends ViewPane {
 
 // called VIEWLET_ID in other places for some reason
 export const VOID_VIEW_CONTAINER_ID = 'workbench.view.void'
-export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID // simplicity
+export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID
 
 // Register view container
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
-const viewContainer = viewContainerRegistry.registerViewContainer({
+const container = viewContainerRegistry.registerViewContainer({
 	id: VOID_VIEW_CONTAINER_ID,
-	title: nls.localize2('void chat', 'Void Chat'), // this is used to say "Void" (Ctrl + L)
+	title: nls.localize2('voidContainer', 'Void'), // this is used to say "Void" (Ctrl + L)
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [VOID_VIEW_CONTAINER_ID, { mergeViewWithContainerWhenSingleView: true }]),
 	hideIfEmpty: false,
-	// icon: voidViewIcon,
 	order: 1,
+
+	icon: Codicon.symbolMethod,
+	alwaysUseContainerInfo: true,
+	// alwaysUseContainerInfo: true,
+	// icon: ,
+
 }, ViewContainerLocation.AuxiliaryBar, { doNotRegisterOpenCommand: true, isDefault: true });
 
 
@@ -111,16 +120,19 @@ viewsRegistry.registerViews([{
 	id: VOID_VIEW_ID,
 	hideByDefault: false, // start open
 	// containerIcon: voidViewIcon,
-	name: nls.localize2('chat', 'Chat'), // this says ... : CHAT
+	name: nls.localize2('voidChat', 'Chat'), // this says ... : CHAT
 	ctorDescriptor: new SyncDescriptor(VoidSidebarViewPane),
 	canToggleVisibility: false,
-	canMoveView: true,
+	canMoveView: false, // can't move this out of its container
+
+	// singleViewPaneContainerTitle: 'hi',
+
 	// openCommandActionDescriptor: {
-	// 	id: viewContainer.id,
+	// 	id: VOID_VIEW_CONTAINER_ID,
 	// 	keybindings: {
 	// 		primary: KeyMod.CtrlCmd | KeyCode.KeyL,
 	// 	},
 	// 	order: 1
 	// },
-}], viewContainer);
+}], container);
 

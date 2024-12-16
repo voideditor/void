@@ -49,7 +49,11 @@ class VoidSettingsInput extends EditorInput {
 	}
 
 	override getName(): string {
-		return nls.localize('voidSettingsInputsName', "Void Settings");
+		return nls.localize('voidSettingsInputsName', 'Void Settings');
+	}
+
+	override getIcon() {
+		return Codicon.checklist // symbol for the actual editor pane
 	}
 
 }
@@ -90,7 +94,7 @@ class VoidSettingsPane extends EditorPane {
 }
 
 
-
+// register Settings pane
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(VoidSettingsPane, VoidSettingsPane.ID, nls.localize('VoidSettingsPane', "Void Settings Pane")),
 	[new SyncDescriptor(VoidSettingsInput)]
@@ -98,14 +102,14 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 
 
 const OPEN_VOID_SETTINGS_ID = 'workbench.action.openVoidSettings'
-// Register the gear
+// register the gear on the top right
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: OPEN_VOID_SETTINGS_ID,
 			title: nls.localize2('voidSettings', "Void: Settings"),
 			f1: true,
-			icon: Codicon.gear,
+			icon: Codicon.settingsGear,
 			menu: [
 				{
 					id: MenuId.LayoutControlMenuSubmenu,

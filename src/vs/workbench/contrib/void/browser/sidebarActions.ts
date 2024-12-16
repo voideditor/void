@@ -73,20 +73,12 @@ registerAction2(class extends Action2 {
 			accessor.get(IEditorService).activeTextEditorControl?.getSelection()
 		)
 
-		// add selection
-		const threadHistoryService = accessor.get(IThreadHistoryService)
-		const currentStaging = threadHistoryService.state._currentStagingSelections
-		const currentStagingEltIdx = currentStaging?.findIndex(s =>
-			s.fileURI.fsPath === model.uri.fsPath
-			&& s.range?.startLineNumber === selectionRange?.startLineNumber
-			&& s.range?.endLineNumber === selectionRange?.endLineNumber
-		)
 
 		if (selectionRange) {
 
 			const selectionStr = getContentInRange(model, selectionRange)
 
-			const selection: CodeStagingSelection = selectionStr === null ? {
+			const selection: CodeStagingSelection = selectionStr === null || selectionRange.startLineNumber > selectionRange.endLineNumber ? {
 				type: 'File',
 				fileURI: model.uri,
 				selectionStr: null,
@@ -98,7 +90,16 @@ registerAction2(class extends Action2 {
 				range: selectionRange,
 			}
 
-			// overwrite selections that match with this one (compares by `fileURI` and  line numbers in `range`)
+			// add selection to staging
+			const threadHistoryService = accessor.get(IThreadHistoryService)
+			const currentStaging = threadHistoryService.state._currentStagingSelections
+			const currentStagingEltIdx = currentStaging?.findIndex(s =>
+				s.fileURI.fsPath === model.uri.fsPath
+				&& s.range?.startLineNumber === selection.range?.startLineNumber
+				&& s.range?.endLineNumber === selection.range?.endLineNumber
+			)
+
+			// if matches with existing selection, overwrite
 			if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
 				threadHistoryService.setStaging([
 					...currentStaging!.slice(0, currentStagingEltIdx),
@@ -106,6 +107,7 @@ registerAction2(class extends Action2 {
 					...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
 				])
 			}
+			// if no match, add
 			else {
 				threadHistoryService.setStaging([...(currentStaging ?? []), selection])
 			}

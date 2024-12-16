@@ -297,8 +297,6 @@ export const SidebarChat = () => {
 	const isDisabled = !instructions.trim()
 	const [formHeight, setFormHeight] = useState(0)
 	const [sidebarHeight, setSidebarHeight] = useState(0)
-	const formRef = useCallback((node: HTMLFormElement | null) => { if (node) { setFormHeight(node.clientHeight); } }, [setFormHeight]);
-	const sidebarRef = useCallback((node: HTMLDivElement | null) => { if (node) { setSidebarHeight(node.clientHeight); } }, [setSidebarHeight]);
 	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
 
 
@@ -406,8 +404,14 @@ export const SidebarChat = () => {
 
 	const previousMessages = currentThread?.messages ?? []
 
+
+
+
+	const [_test, _setTest] = useState<string[]>([])
+
+
 	return <div
-		ref={sidebarRef}
+		ref={(ref) => { if (ref) { setSidebarHeight(ref.clientHeight); } }}
 		className={`w-full h-full`}
 	>
 		<ScrollToBottomContainer
@@ -420,7 +424,11 @@ export const SidebarChat = () => {
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
 
-			<div>{`text`}</div>
+			<button type='button' onClick={() => { _setTest(d => [...d, 'asdasdsadasd']) }}>more divs</button>
+			{_test.map((_, i) => <div key={i}>div {i}</div>)}
+			<div>{`totalHeight: ${sidebarHeight - formHeight - 30}`}</div>
+			<div>{`sidebarHeight: ${sidebarHeight}`}</div>
+			<div>{`formHeight: ${formHeight}`}</div>
 
 		</ScrollToBottomContainer>
 
@@ -430,7 +438,7 @@ export const SidebarChat = () => {
 			className={`right-0 left-0 m-2 z-[999] ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
 		>
 			<form
-				ref={formRef}
+				ref={(ref) => { if (ref) { setFormHeight(ref.clientHeight); } }}
 				className={`
 					flex flex-col gap-2 p-2 relative input text-left shrink-0
 					transition-all duration-200

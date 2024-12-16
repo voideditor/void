@@ -123,7 +123,7 @@ registerAction2(class extends Action2 {
 })
 
 
-
+// add to settings gear on bottom left
 MenuRegistry.appendMenuItem(MenuId.GlobalActivity, {
 	group: '0_command',
 	command: {

@@ -10,14 +10,14 @@ import { VoidSelectBox } from '../sidebar-tsx/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 
 
-const SelectBoxOfFeature = ({ featureName }: { featureName: FeatureName }) => {
+const ModelSelectBox = ({ featureName }: { featureName: FeatureName }) => {
 	const voidSettingsService = useService('settingsStateService')
 	const settingsState = useSettingsState()
 
 	let weChangedText = false
 
 	return <VoidSelectBox
-		options={settingsState._modelsList}
+		options={settingsState._modelOptions}
 		onChangeSelection={useCallback((newVal: ModelSelection) => {
 			if (weChangedText) return
 			voidSettingsService.setModelSelectionOfFeature(featureName, newVal)
@@ -25,7 +25,7 @@ const SelectBoxOfFeature = ({ featureName }: { featureName: FeatureName }) => {
 		// we are responsible for setting the initial state here. always sync instance when state changes.
 		onCreateInstance={useCallback((instance: SelectBox) => {
 			const syncInstance = () => {
-				const modelsListRef = voidSettingsService.state._modelsList // as a ref
+				const modelsListRef = voidSettingsService.state._modelOptions // as a ref
 				const settingsAtProvider = voidSettingsService.state.modelSelectionOfFeature[featureName]
 				const selectionIdx = settingsAtProvider === null ? -1 : modelsListRef.findIndex(v => modelSelectionsEqual(v.value, settingsAtProvider))
 				weChangedText = true
@@ -39,34 +39,17 @@ const SelectBoxOfFeature = ({ featureName }: { featureName: FeatureName }) => {
 	/>
 }
 
+const DummySelectBox = () => {
+	return <VoidSelectBox
+		options={[{ text: 'Please add a model!', value: null }]}
+		onChangeSelection={() => { }}
+		onCreateInstance={() => { }}
+	/>
+}
 
-export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureName }) => {
+export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
 	const settingsState = useSettingsState()
 	return <>
-		{settingsState._modelsList.length === 0 ? 'Please add a provider!' : <SelectBoxOfFeature featureName={featureName} />}
+		{settingsState._modelOptions.length === 0 ? <DummySelectBox /> : <ModelSelectBox featureName={featureName} />}
 	</>
 }
-
-const RefreshModels = () => {
-	const refreshModelState = useRefreshModelState()
-	const refreshModelService = useService('refreshModelService')
-
-	return <>
-		<button onClick={() => refreshModelService.refreshOllamaModels()}>
-			refresh
-		</button>
-		{refreshModelState === 'loading' ? 'loading...' : '✅'}
-	</>
-}
-
-export const ModelSelectionSettings = () => {
-	return <>
-		{featureNames.map(featureName => <ModelSelectionOfFeature
-			key={featureName}
-			featureName={featureName}
-		/>)}
-
-		<RefreshModels />
-	</>
-}
-

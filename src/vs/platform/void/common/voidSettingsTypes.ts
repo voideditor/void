@@ -5,17 +5,30 @@
  *--------------------------------------------------------------------------------------------*/
 
 
+export type ModelInfo = {
+	modelName: string,
+	isDefault: boolean, // whether or not it's a default for its provider
+	isHidden: boolean, // whether or not the user is hiding it
+}
+
+
+export const modelInfoOfDefaultNames = (modelNames: string[]): ModelInfo[] => {
+	const isHidden = modelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
+	return modelNames.map((modelName, i) => ({ modelName, isDefault: true, isHidden }))
+}
+
 // https://docs.anthropic.com/en/docs/about-claude/models
-export const defaultAnthropicModels = [
+export const defaultAnthropicModels = modelInfoOfDefaultNames([
 	'claude-3-5-sonnet-20241022',
 	'claude-3-5-haiku-20241022',
 	'claude-3-opus-20240229',
 	'claude-3-sonnet-20240229',
 	// 'claude-3-haiku-20240307',
-]
+])
 
 
-export const defaultOpenAIModels = [
+// https://platform.openai.com/docs/models/gp
+export const defaultOpenAIModels = modelInfoOfDefaultNames([
 	'o1-preview',
 	'o1-mini',
 	'gpt-4o',
@@ -33,23 +46,24 @@ export const defaultOpenAIModels = [
 	// 'gpt-3.5-turbo-0125',
 	// 'gpt-3.5-turbo',
 	// 'gpt-3.5-turbo-1106',
-]
+])
 
 
 
-export const defaultGroqModels = [
+// https://console.groq.com/docs/models
+export const defaultGroqModels = modelInfoOfDefaultNames([
 	"mixtral-8x7b-32768",
 	"llama2-70b-4096",
 	"gemma-7b-it"
-]
+])
 
 
-export const defaultGeminiModels = [
+export const defaultGeminiModels = modelInfoOfDefaultNames([
 	'gemini-1.5-flash',
 	'gemini-1.5-pro',
 	'gemini-1.5-flash-8b',
 	'gemini-1.0-pro'
-]
+])
 
 
 
@@ -152,7 +166,7 @@ export type SettingsOfProvider = {
 		{
 			enabled: string, // 'true' | 'false'
 
-			models: string[], // if null, user can type in any string as a model
+			models: ModelInfo[], // if null, user can type in any string as a model
 		})
 }
 
@@ -245,6 +259,16 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...voidInitModelOptions.openAI,
 		enabled: 'false',
 	},
+	gemini: {
+		...voidProviderDefaults.gemini,
+		...voidInitModelOptions.gemini,
+		enabled: 'false',
+	},
+	groq: {
+		...voidProviderDefaults.groq,
+		...voidInitModelOptions.groq,
+		enabled: 'false',
+	},
 	ollama: {
 		...voidProviderDefaults.ollama,
 		...voidInitModelOptions.ollama,
@@ -260,16 +284,6 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...voidInitModelOptions.openAICompatible,
 		enabled: 'false',
 	},
-	gemini: {
-		...voidProviderDefaults.gemini,
-		...voidInitModelOptions.gemini,
-		enabled: 'false',
-	},
-	groq: {
-		...voidProviderDefaults.groq,
-		...voidInitModelOptions.groq,
-		enabled: 'false',
-	}
 }
 
 

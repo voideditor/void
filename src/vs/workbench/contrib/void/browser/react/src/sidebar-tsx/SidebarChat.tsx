@@ -22,7 +22,7 @@ import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platf
 import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from './inputs.js';
-import { ModelSelectionOfFeature } from '../void-settings-tsx/ModelSelectionSettings.js';
+import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 
 
 const IconX = ({ size, className = '' }: { size: number, className?: string }) => {
@@ -487,7 +487,7 @@ export const SidebarChat = () => {
 				<div className='flex flex-row justify-between items-end'>
 					{/* submit options */}
 					<div>
-						<ModelSelectionOfFeature featureName='Ctrl+L' />
+						<ModelDropdown featureName='Ctrl+L' />
 					</div>
 
 					{/* submit / stop button */}

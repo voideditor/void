@@ -26,11 +26,12 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 import { mountVoidSettings } from './react/out/void-settings-tsx/index.js'
 import { getReactServices } from './helpers/reactServicesHelper.js';
 import { Codicon } from '../../../../base/common/codicons.js';
+import { IDisposable } from '../../../../base/common/lifecycle.js';
 
 
 // refer to preferences.contribution.ts keybindings editor
 
-class VoidEditorInput extends EditorInput {
+class VoidSettingsInput extends EditorInput {
 
 	static readonly ID: string = 'workbench.input.void.settings';
 
@@ -44,7 +45,7 @@ class VoidEditorInput extends EditorInput {
 	}
 
 	override get typeId(): string {
-		return VoidEditorInput.ID;
+		return VoidSettingsInput.ID;
 	}
 
 	override getName(): string {
@@ -54,7 +55,7 @@ class VoidEditorInput extends EditorInput {
 }
 
 
-class MyCustomPane extends EditorPane {
+class VoidSettingsPane extends EditorPane {
 	static readonly ID = 'workbench.test.myCustomPane';
 
 	constructor(
@@ -64,14 +65,18 @@ class MyCustomPane extends EditorPane {
 		@IStorageService storageService: IStorageService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService
 	) {
-		super(MyCustomPane.ID, group, telemetryService, themeService, storageService);
+		super(VoidSettingsPane.ID, group, telemetryService, themeService, storageService);
 	}
 
-	protected createEditor(container: HTMLElement): void {
+	protected createEditor(parent: HTMLElement): void {
+		parent.style.overflow = 'auto'
+		parent.style.userSelect = 'text'
 
+		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
 			const services = getReactServices(accessor)
-			mountVoidSettings(container, services);
+			const disposables: IDisposable[] | undefined = mountVoidSettings(parent, services);
+			disposables?.forEach(d => this._register(d))
 		})
 	}
 
@@ -87,8 +92,8 @@ class MyCustomPane extends EditorPane {
 
 
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
-	EditorPaneDescriptor.create(MyCustomPane, MyCustomPane.ID, nls.localize('MyCustomPane', "CustomPane")),
-	[new SyncDescriptor(VoidEditorInput)]
+	EditorPaneDescriptor.create(VoidSettingsPane, VoidSettingsPane.ID, nls.localize('VoidSettingsPane', "Void Settings Pane")),
+	[new SyncDescriptor(VoidSettingsInput)]
 );
 
 
@@ -117,7 +122,7 @@ registerAction2(class extends Action2 {
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const editorService = accessor.get(IEditorService);
 		const instantiationService = accessor.get(IInstantiationService);
-		const input = instantiationService.createInstance(VoidEditorInput);
+		const input = instantiationService.createInstance(VoidSettingsInput);
 		await editorService.openEditor(input);
 	}
 })

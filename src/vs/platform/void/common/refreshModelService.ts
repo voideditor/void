@@ -85,7 +85,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 		this.llmMessageService.ollamaList({
 			onSuccess: ({ models }) => {
-				this.voidSettingsService.setSettingOfProvider('ollama', 'models', models.map(model => model.name))
+				this.voidSettingsService.setDefaultModels('ollama', models.map(model => model.name))
 				this._setState('done')
 			},
 			onError: ({ error }) => {

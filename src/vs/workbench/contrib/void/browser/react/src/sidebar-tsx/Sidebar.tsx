@@ -24,7 +24,7 @@ export const Sidebar = () => {
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
 	// className='@@void-scope'
-	return <div className='@@void-scope w-full h-full'>
+	return <div className='@@void-scope' style={{ width: '100%', height: '100%' }}>
 		<div className={`flex flex-col px-2 py-2 w-full h-full`}>
 
 			{/* <span onClick={() => {

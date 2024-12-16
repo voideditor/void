@@ -86,7 +86,7 @@ const IconSquare = ({ size, className = '' }: { size: number, className?: string
 };
 
 
-const ScrollToBottomContainer = ({ children, height, className }: { children: React.ReactNode, height: React.CSSProperties['height'], className?: string }) => {
+const ScrollToBottomContainer = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => {
 	const [isAtBottom, setIsAtBottom] = useState(true); // Start at bottom
 	const divRef = useRef<HTMLDivElement>(null);
 
@@ -123,8 +123,8 @@ const ScrollToBottomContainer = ({ children, height, className }: { children: Re
 		<div
 			ref={divRef}
 			onScroll={onScroll}
-			style={{ height: height }}
 			className={className}
+			style={style}
 		>
 			{children}
 		</div>
@@ -294,9 +294,13 @@ export const SidebarChat = () => {
 
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
-	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
 	const isDisabled = !instructions.trim()
-	const formRef = useRef<HTMLFormElement | null>(null)
+	const [formHeight, setFormHeight] = useState(0)
+	const [sidebarHeight, setSidebarHeight] = useState(0)
+	const formRef = useCallback((node: HTMLFormElement | null) => { if (node) { setFormHeight(node.clientHeight); } }, [setFormHeight]);
+	const sidebarRef = useCallback((node: HTMLDivElement | null) => { if (node) { setSidebarHeight(node.clientHeight); } }, [setSidebarHeight]);
+	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
+
 
 	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
@@ -396,25 +400,28 @@ export const SidebarChat = () => {
 
 	}
 
-
 	const currentThread = threadsStateService.getCurrentThread(threadsState)
 
 	const selections = threadsState._currentStagingSelections
 
 	const previousMessages = currentThread?.messages ?? []
 
-	return <>
+	return <div
+		ref={sidebarRef}
+		className={`w-full h-full`}
+	>
 		<ScrollToBottomContainer
-			height={`calc(100%-${formRef.current?.height ?? 0}px)`}
-			className='overflow-x-hidden overflow-y-auto space-y-4'
+			className={`overflow-x-hidden overflow-y-auto space-y-4`}
+			style={{ height: sidebarHeight - formHeight - 30 }}
 		>
 			{/* previous messages */}
-			{previousMessages.map((message, i) =>
-				<ChatBubble key={i} chatMessage={message} />
-			)}
+			{previousMessages.map((message, i) => <ChatBubble key={i} chatMessage={message} />)}
 
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
+
+			<div>{`text`}</div>
+
 		</ScrollToBottomContainer>
 
 
@@ -425,7 +432,7 @@ export const SidebarChat = () => {
 			<form
 				ref={formRef}
 				className={`
-					flex flex-col gap-2 px-2 py-0.5 relative input text-left shrink-0
+					flex flex-col gap-2 p-2 relative input text-left shrink-0
 					transition-all duration-200
 					rounded-md
 					bg-vscode-input-bg
@@ -507,7 +514,7 @@ export const SidebarChat = () => {
 
 			</form>
 		</div>
-	</>
+	</div>
 }
 
 

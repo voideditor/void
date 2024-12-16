@@ -4,66 +4,44 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FeatureName, featureNames, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidConfigTypes.js'
-import { dummyModelData } from '../../../../../../../platform/void/common/voidConfigTypes.js'
-import { useConfigState, useRefreshModelState, useService } from '../util/services.js'
+import { FeatureName, featureNames, ModelSelection, modelSelectionsEqual, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { useSettingsState, useRefreshModelState, useService } from '../util/services.js'
 import { VoidSelectBox } from '../sidebar-tsx/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 
 
 export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureName }) => {
 
-	const voidConfigService = useService('configStateService')
-	const voidConfigState = useConfigState()
-
-	const modelOptions: { text: string, value: [string, string] }[] = []
-
-	for (const providerName of providerNames) {
-		const providerConfig = voidConfigState[providerName]
-		if (providerConfig.enabled !== 'true') continue
-		providerConfig.models?.forEach(model => {
-			modelOptions.push({ text: `${model} (${providerName})`, value: [providerName, model] })
-		})
-	}
-
-
-	const isDummy = modelOptions.length === 0
-	if (isDummy) {
-		for (const [providerName, models] of Object.entries(dummyModelData)) {
-			for (let model of models) {
-				modelOptions.push({ text: `${model} (${providerName})`, value: ['dummy', 'dummy'] })
-			}
-		}
-	}
+	const voidSettingsService = useService('settingsStateService')
+	const settingsState = useSettingsState()
 
 	let weChangedText = false
-
 	return <>
 		<h2>{featureName}</h2>
 		{
 			<VoidSelectBox
-				options={modelOptions}
-				onChangeSelection={useCallback((newVal: [string, string]) => {
-					if (isDummy) return // don't set state to the dummy value
+				options={settingsState._modelsList}
+				onChangeSelection={useCallback((newVal: ModelSelection) => {
 					if (weChangedText) return
 
-					voidConfigService.setModelSelectionOfFeature(featureName, { providerName: newVal[0] as ProviderName, modelName: newVal[1] })
-				}, [voidConfigService, featureName, isDummy])}
+					voidSettingsService.setModelSelectionOfFeature(featureName, newVal)
+				}, [voidSettingsService, featureName])}
 				// we are responsible for setting the initial state here. always sync instance when state changes.
 				onCreateInstance={useCallback((instance: SelectBox) => {
 					const syncInstance = () => {
-						const settingsAtProvider = voidConfigService.state.modelSelectionOfFeature[featureName]
-						const index = modelOptions.findIndex(v => v.value[0] === settingsAtProvider?.providerName && v.value[1] === settingsAtProvider?.modelName)
-						if (index !== -1) {
+						const modelsListRef = voidSettingsService.state._modelsList // as a ref
+						const settingsAtProvider = voidSettingsService.state.modelSelectionOfFeature[featureName]
+						const selectionIdx = settingsAtProvider === null ? -1 : modelsListRef.findIndex(v => modelSelectionsEqual(v.value, settingsAtProvider))
+						if (selectionIdx !== -1) {
 							weChangedText = true
-							instance.select(index)
+							instance.select(selectionIdx)
 							weChangedText = false
 						}
 					}
 					syncInstance()
-					const disposable = voidConfigService.onDidChangeState(syncInstance)
+					const disposable = voidSettingsService.onDidChangeState(syncInstance)
 					return [disposable]
-				}, [voidConfigService, modelOptions, featureName])}
+				}, [voidSettingsService, featureName])}
 			/>}
 
 	</>

@@ -5,8 +5,8 @@
 // llmMessage
 import '../common/llmMessageService.js'
 
-// voidConfig
-import '../common/voidConfigService.js'
+// voidSettings
+import '../common/voidSettingsService.js'
 
 // refreshModel
 import '../common/refreshModelService.js'

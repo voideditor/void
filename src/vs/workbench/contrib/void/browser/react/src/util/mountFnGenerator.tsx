@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import * as ReactDOM from 'react-dom/client'
 import { _registerServices } from './services.js';
-import { ReactServicesType } from '../../../reactServices.js';
+import { ReactServicesType } from '../../../helpers/reactServicesHelper.js';
 
 
 export const mountFnGenerator = (Component: React.FC) => (rootElement: HTMLElement, services: ReactServicesType) => {

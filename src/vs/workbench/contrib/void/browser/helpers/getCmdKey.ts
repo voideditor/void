@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { isMacintosh } from '../../../../base/common/platform.js';
+import { isMacintosh } from '../../../../../base/common/platform.js';
 
 // import { OperatingSystem, OS } from '../../../../base/common/platform.js';
 // OS === OperatingSystem.Macintosh

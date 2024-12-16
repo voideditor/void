@@ -24,9 +24,8 @@ import { SyncDescriptor } from '../../../../platform/instantiation/common/descri
 import { IViewPaneOptions, ViewPane } from '../../../browser/parts/views/viewPane.js';
 
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
-import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
-import { Emitter, Event } from '../../../../base/common/event.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
+import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
@@ -37,17 +36,10 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 
 import { mountSidebar } from './react/out/sidebar-tsx/index.js';
 
-import { IViewsService } from '../../../services/views/common/viewsService.js';
-import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { getReactServices } from './reactServices.js';
+import { getReactServices } from './helpers/reactServicesHelper.js';
 
 
 // compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
-
-export type VoidSidebarState = {
-	isHistoryOpen: boolean;
-	currentTab: 'chat';
-}
 
 // ---------- Define viewpane ----------
 
@@ -132,77 +124,3 @@ viewsRegistry.registerViews([{
 	// },
 }], viewContainer);
 
-
-
-// ---------- Register service that manages sidebar's state ----------
-
-export interface IVoidSidebarStateService {
-	readonly _serviceBrand: undefined;
-
-	readonly state: VoidSidebarState; // readonly to the user
-	setState(newState: Partial<VoidSidebarState>): void;
-	onDidChangeState: Event<void>;
-
-	onDidFocusChat: Event<void>;
-	onDidBlurChat: Event<void>;
-	fireFocusChat(): void;
-	fireBlurChat(): void;
-
-	openSidebarView(): void;
-}
-
-export const IVoidSidebarStateService = createDecorator<IVoidSidebarStateService>('voidSidebarStateService');
-class VoidSidebarStateService extends Disposable implements IVoidSidebarStateService {
-	_serviceBrand: undefined;
-
-	static readonly ID = 'voidSidebarStateService';
-
-	private readonly _onDidChangeState = new Emitter<void>();
-	readonly onDidChangeState: Event<void> = this._onDidChangeState.event;
-
-	private readonly _onFocusChat = new Emitter<void>();
-	readonly onDidFocusChat: Event<void> = this._onFocusChat.event;
-
-	private readonly _onBlurChat = new Emitter<void>();
-	readonly onDidBlurChat: Event<void> = this._onBlurChat.event;
-
-
-	// state
-	state: VoidSidebarState
-
-	constructor(
-		@IViewsService private readonly _viewsService: IViewsService,
-	) {
-		super()
-
-		// initial state
-		this.state = { isHistoryOpen: false, currentTab: 'chat', }
-	}
-
-
-	setState(newState: Partial<VoidSidebarState>) {
-		// make sure view is open if the tab changes
-		if ('currentTab' in newState) {
-			this.openSidebarView()
-		}
-
-		this.state = { ...this.state, ...newState }
-		this._onDidChangeState.fire()
-	}
-
-	fireFocusChat() {
-		this._onFocusChat.fire()
-	}
-
-	fireBlurChat() {
-		this._onBlurChat.fire()
-	}
-
-	openSidebarView() {
-		this._viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
-		this._viewsService.openView(VOID_VIEW_ID);
-	}
-
-}
-
-registerSingleton(IVoidSidebarStateService, VoidSidebarStateService, InstantiationType.Eager);

@@ -15,10 +15,8 @@ import { IStorageService } from '../../../../platform/storage/common/storage.js'
 import { Dimension } from '../../../../base/browser/dom.js';
 import { EditorPaneDescriptor, IEditorPaneRegistry } from '../../../browser/editor.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
-import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
-import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
+import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
-import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -26,12 +24,13 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 
 
 import { mountVoidSettings } from './react/out/void-settings-tsx/index.js'
-import { getReactServices } from './reactServices.js';
+import { getReactServices } from './helpers/reactServicesHelper.js';
+import { Codicon } from '../../../../base/common/codicons.js';
 
 
 // refer to preferences.contribution.ts keybindings editor
 
-export class VoidEditorInput extends EditorInput {
+class VoidEditorInput extends EditorInput {
 
 	static readonly ID: string = 'workbench.input.void.settings';
 
@@ -93,17 +92,25 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 );
 
 
-// Register the action
+// Register the gear
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
-			id: 'workbench.action.openVoidEditor',
-			title: 'Open Void Settings',
-			keybinding: {
-				when: ContextKeyExpr.true(),
-				primary: KeyMod.CtrlCmd | KeyCode.KeyE,
-				weight: KeybindingWeight.WorkbenchContrib
-			}
+			id: 'workbench.action.openVoidSettings',
+			title: nls.localize2('voidSettings', "Void: Settings"),
+			f1: true,
+			icon: Codicon.gear,
+			menu: [
+				{
+					id: MenuId.LayoutControlMenuSubmenu,
+					group: 'z_end',
+				},
+				{
+					id: MenuId.LayoutControlMenu,
+					when: ContextKeyExpr.equals('config.workbench.layoutControl.type', 'both'),
+					group: 'z_end'
+				}
+			]
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
@@ -112,5 +119,4 @@ registerAction2(class extends Action2 {
 		const input = instantiationService.createInstance(VoidEditorInput);
 		await editorService.openEditor(input);
 	}
-});
-
+})

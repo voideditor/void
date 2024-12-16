@@ -5,7 +5,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
-import { anthropicMaxPossibleTokens } from '../../common/voidConfigTypes.js';
+import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
 
 // Anthropic
 type LLMMessageAnthropic = {

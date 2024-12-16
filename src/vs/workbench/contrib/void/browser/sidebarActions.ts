@@ -11,16 +11,16 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { CodeStagingSelection, IThreadHistoryService } from './registerThreads.js';
+import { CodeStagingSelection, IThreadHistoryService } from './threadHistoryService.js';
 // import { IEditorService } from '../../../services/editor/common/editorService.js';
 
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
-import { IVoidSidebarStateService, VOID_VIEW_ID } from './registerSidebar.js';
+import { VOID_VIEW_ID } from './sidebarViewPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
-// import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
+import { ISidebarStateService } from './sidebarStateService.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -61,7 +61,7 @@ registerAction2(class extends Action2 {
 		if (!model)
 			return
 
-		const stateService = accessor.get(IVoidSidebarStateService)
+		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
 
 		metricsService.capture('Chat Navigation', { type: 'Ctrl+L' })
@@ -126,7 +126,7 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
+		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
 
 		metricsService.capture('Chat Navigation', { type: 'New Chat' })
@@ -149,7 +149,7 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
+		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
 
 		metricsService.capture('Chat Navigation', { type: 'History' })
@@ -159,7 +159,6 @@ registerAction2(class extends Action2 {
 	}
 })
 
-// // Settings (API config) menu button
 // registerAction2(class extends Action2 {
 // 	constructor() {
 // 		super({

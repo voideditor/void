@@ -76,12 +76,12 @@ export const anthropicMaxPossibleTokens = (modelName: string) => {
 }
 
 
-export const dummyModelData = {
-	anthropic: ['claude 3.5'],
-	openAI: ['gpt 4o'],
-	ollama: ['llama 3.2', 'codestral'],
-	openRouter: ['qwen 2.5'],
-}
+// export const dummyModelData = {
+// 	anthropic: ['claude 3.5'],
+// 	openAI: ['gpt 4o'],
+// 	ollama: ['llama 3.2', 'codestral'],
+// 	openRouter: ['qwen 2.5'],
+// }
 
 
 
@@ -234,7 +234,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 
 
 // used when waiting and for a type reference
-export const defaultVoidProviderState: SettingsOfProvider = {
+export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
 		...voidProviderDefaults.anthropic,
 		...voidInitModelOptions.anthropic,
@@ -273,21 +273,17 @@ export const defaultVoidProviderState: SettingsOfProvider = {
 }
 
 
+export type ModelSelection = { providerName: ProviderName, modelName: string }
+
+export const modelSelectionsEqual = (m1: ModelSelection, m2: ModelSelection) => {
+	return m1.modelName === m2.modelName && m1.providerName === m2.providerName
+}
 
 // this is a state
 export type ModelSelectionOfFeature = {
-	'Ctrl+L': {
-		providerName: ProviderName,
-		modelName: string,
-	} | null,
-	'Ctrl+K': {
-		providerName: ProviderName,
-		modelName: string,
-	} | null,
-	'Autocomplete': {
-		providerName: ProviderName,
-		modelName: string,
-	} | null,
+	'Ctrl+L': ModelSelection | null,
+	'Ctrl+K': ModelSelection | null,
+	'Autocomplete': ModelSelection | null,
 }
 export type FeatureName = keyof ModelSelectionOfFeature
 export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete'] as const

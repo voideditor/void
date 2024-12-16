@@ -6,10 +6,10 @@
 import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
-import { useConfigState, useService, useSidebarState, useThreadsState } from '../util/services.js';
+import { useSettingsState, useService, useSidebarState, useThreadsState } from '../util/services.js';
 import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
 import { userInstructionsStr } from '../../../prompt/stringifySelections.js';
-import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../registerThreads.js';
+import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../threadHistoryService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
@@ -19,7 +19,7 @@ import { EndOfLinePreference } from '../../../../../../../editor/common/model.js
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
-import { getCmdKey } from '../../../getCmdKey.js'
+import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from './inputs.js';
 import { ModelSelectionOfFeature } from '../void-settings-tsx/ModelSelectionSettings.js';
@@ -276,9 +276,6 @@ export const SidebarChat = () => {
 		)
 		return () => disposables.forEach(d => d.dispose())
 	}, [sidebarStateService, inputBoxRef])
-
-	// config state
-	const voidConfigState = useConfigState()
 
 	// threads state
 	const threadsState = useThreadsState()

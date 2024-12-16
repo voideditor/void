@@ -10,7 +10,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { IAutocompleteService } from './registerAutocomplete.js';
+import { IAutocompleteService } from './autocompleteService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 
 export type CodeSelection = {
@@ -80,7 +80,7 @@ const newThreadObject = () => {
 	}
 }
 
-const THREAD_STORAGE_KEY = 'void.threadsHistory'
+const THREAD_STORAGE_KEY = 'void.threadHistory'
 
 export interface IThreadHistoryService {
 	readonly _serviceBrand: undefined;

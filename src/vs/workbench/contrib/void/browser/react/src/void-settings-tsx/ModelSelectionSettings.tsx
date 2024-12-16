@@ -17,13 +17,13 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 
 	let weChangedText = false
 	return <>
-		<h2>{featureName}</h2>
-		{
-			<VoidSelectBox
+		{settingsState._modelsList.length === 0 ?
+
+			'Please add a provider!'
+			: <VoidSelectBox
 				options={settingsState._modelsList}
 				onChangeSelection={useCallback((newVal: ModelSelection) => {
 					if (weChangedText) return
-
 					voidSettingsService.setModelSelectionOfFeature(featureName, newVal)
 				}, [voidSettingsService, featureName])}
 				// we are responsible for setting the initial state here. always sync instance when state changes.
@@ -32,18 +32,15 @@ export const ModelSelectionOfFeature = ({ featureName }: { featureName: FeatureN
 						const modelsListRef = voidSettingsService.state._modelsList // as a ref
 						const settingsAtProvider = voidSettingsService.state.modelSelectionOfFeature[featureName]
 						const selectionIdx = settingsAtProvider === null ? -1 : modelsListRef.findIndex(v => modelSelectionsEqual(v.value, settingsAtProvider))
-						if (selectionIdx !== -1) {
-							weChangedText = true
-							instance.select(selectionIdx)
-							weChangedText = false
-						}
+						weChangedText = true
+						instance.select(selectionIdx === -1 ? 0 : selectionIdx)
+						weChangedText = false
 					}
 					syncInstance()
 					const disposable = voidSettingsService.onDidChangeState(syncInstance)
 					return [disposable]
 				}, [voidSettingsService, featureName])}
 			/>}
-
 	</>
 }
 

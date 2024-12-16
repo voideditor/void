@@ -29,7 +29,7 @@ type SetModelSelectionOfFeature = <K extends FeatureName>(
 
 
 
-type ModelOption = { text: string, value: ModelSelection }
+export type ModelOption = { text: string, value: ModelSelection }
 
 
 

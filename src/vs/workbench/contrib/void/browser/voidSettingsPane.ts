@@ -15,7 +15,7 @@ import { IStorageService } from '../../../../platform/storage/common/storage.js'
 import { Dimension } from '../../../../base/browser/dom.js';
 import { EditorPaneDescriptor, IEditorPaneRegistry } from '../../../browser/editor.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
-import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
@@ -92,11 +92,12 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 );
 
 
+const OPEN_VOID_SETTINGS_ID = 'workbench.action.openVoidSettings'
 // Register the gear
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
-			id: 'workbench.action.openVoidSettings',
+			id: OPEN_VOID_SETTINGS_ID,
 			title: nls.localize2('voidSettings', "Void: Settings"),
 			f1: true,
 			icon: Codicon.gear,
@@ -120,3 +121,14 @@ registerAction2(class extends Action2 {
 		await editorService.openEditor(input);
 	}
 })
+
+
+
+MenuRegistry.appendMenuItem(MenuId.GlobalActivity, {
+	group: '0_command',
+	command: {
+		id: OPEN_VOID_SETTINGS_ID,
+		title: nls.localize('voidSettings', "Void Settings")
+	},
+	order: 1
+});

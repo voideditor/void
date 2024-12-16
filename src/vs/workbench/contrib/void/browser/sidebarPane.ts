@@ -38,6 +38,7 @@ import { mountSidebar } from './react/out/sidebar-tsx/index.js';
 
 import { getReactServices } from './helpers/reactServicesHelper.js';
 import { Codicon } from '../../../../base/common/codicons.js';
+import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
 // import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
 // import { Codicon } from '../../../../base/common/codicons.js';
 // import { Codicon } from '../../../../base/common/codicons.js';
@@ -47,7 +48,7 @@ import { Codicon } from '../../../../base/common/codicons.js';
 
 // ---------- Define viewpane ----------
 
-class VoidSidebarViewPane extends ViewPane {
+class SidebarViewPane extends ViewPane {
 
 	constructor(
 		options: IViewPaneOptions,
@@ -83,6 +84,14 @@ class VoidSidebarViewPane extends ViewPane {
 		});
 	}
 
+	override layoutBody(height: number, width: number): void {
+		super.layoutBody(height, width)
+		this.element.style.height = `${height}px`
+		this.element.style.width = `${width}px`
+
+
+	}
+
 }
 
 
@@ -100,15 +109,17 @@ export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 const container = viewContainerRegistry.registerViewContainer({
 	id: VOID_VIEW_CONTAINER_ID,
-	title: nls.localize2('voidContainer', 'Void'), // this is used to say "Void" (Ctrl + L)
-	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [VOID_VIEW_CONTAINER_ID, { mergeViewWithContainerWhenSingleView: true }]),
+	title: nls.localize2('voidContainer', 'Void Chat'), // this is used to say "Void" (Ctrl + L)
+	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [VOID_VIEW_CONTAINER_ID, {
+		mergeViewWithContainerWhenSingleView: true,
+		orientation: Orientation.HORIZONTAL,
+	}]),
 	hideIfEmpty: false,
 	order: 1,
 
+	rejectAddedViews: true,
 	icon: Codicon.symbolMethod,
-	alwaysUseContainerInfo: true,
-	// alwaysUseContainerInfo: true,
-	// icon: ,
+
 
 }, ViewContainerLocation.AuxiliaryBar, { doNotRegisterOpenCommand: true, isDefault: true });
 
@@ -120,11 +131,12 @@ viewsRegistry.registerViews([{
 	id: VOID_VIEW_ID,
 	hideByDefault: false, // start open
 	// containerIcon: voidViewIcon,
-	name: nls.localize2('voidChat', 'Chat'), // this says ... : CHAT
-	ctorDescriptor: new SyncDescriptor(VoidSidebarViewPane),
+	name: nls.localize2('voidChat', ''), // this says ... : CHAT
+	ctorDescriptor: new SyncDescriptor(SidebarViewPane),
 	canToggleVisibility: false,
 	canMoveView: false, // can't move this out of its container
-
+	weight: 80,
+	order: 1,
 	// singleViewPaneContainerTitle: 'hi',
 
 	// openCommandActionDescriptor: {

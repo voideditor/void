@@ -40,7 +40,11 @@ export const _registerServices = (services_: ReactServicesType) => {
 
 	const disposables: IDisposable[] = []
 
-	if (wasCalled) console.error(`⚠️ Void _registerServices was called again! It should only be called once.`)
+	// don't register services twice
+	if (wasCalled) {
+		return
+		// console.error(`⚠️ Void _registerServices was called again! It should only be called once.`)
+	}
 	wasCalled = true
 
 	services = services_

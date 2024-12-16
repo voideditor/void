@@ -3,7 +3,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
-import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarViewPane.js';
+import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarPane.js';
 
 
 // service that manages sidebar's state

@@ -18,7 +18,7 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
-import { VOID_VIEW_ID } from './sidebarViewPane.js';
+import { VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
 

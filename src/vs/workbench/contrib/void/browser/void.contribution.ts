@@ -9,7 +9,7 @@ import './inlineDiffsService.js'
 
 // register Sidebar pane, state, actions (keybinds, menus)
 import './sidebarActions.js'
-import './sidebarViewPane.js'
+import './sidebarPane.js'
 import './sidebarStateService.js'
 
 // register Thread History

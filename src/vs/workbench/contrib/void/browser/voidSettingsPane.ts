@@ -76,6 +76,7 @@ class VoidSettingsPane extends EditorPane {
 		// parent.style.overflow = 'auto'
 		parent.style.userSelect = 'text'
 
+
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
 			const services = getReactServices(accessor)
@@ -91,6 +92,9 @@ class VoidSettingsPane extends EditorPane {
 		container.style.width = `${dimension.width}px`;
 		container.style.height = `${dimension.height}px`;
 	}
+
+	override get minimumWidth() { return 512 }
+
 }
 
 

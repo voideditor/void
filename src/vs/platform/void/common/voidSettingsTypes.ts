@@ -177,11 +177,6 @@ export type SettingName = UnionOfKeys<SettingsOfProvider[ProviderName]>
 
 
 
-type DisplayInfo = {
-	title: string,
-	type: string,
-	placeholder: string,
-}
 
 export const titleOfProviderName = (providerName: ProviderName) => {
 	if (providerName === 'anthropic')
@@ -202,11 +197,14 @@ export const titleOfProviderName = (providerName: ProviderName) => {
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
 }
 
+type DisplayInfo = {
+	title: string,
+	placeholder: string,
+}
 export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
 	if (settingName === 'apiKey') {
 		return {
 			title: 'API Key',
-			type: 'string',
 			placeholder: providerName === 'anthropic' ? 'sk-ant-key...' : // sk-ant-api03-key
 				providerName === 'openAI' ? 'sk-proj-key...' :
 					providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
@@ -221,7 +219,6 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			title: providerName === 'ollama' ? 'Your Ollama endpoint' :
 				providerName === 'openAICompatible' ? 'baseURL' // (do not include /chat/completions)
 					: '(never)',
-			type: 'string',
 			placeholder: providerName === 'ollama' ? voidProviderDefaults.ollama.endpoint
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
@@ -229,15 +226,13 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	}
 	else if (settingName === 'enabled') {
 		return {
-			title: 'Enabled?',
-			type: 'boolean',
+			title: '(never)',
 			placeholder: '(never)',
 		}
 	}
 	else if (settingName === 'models') {
 		return {
-			title: 'Available Models',
-			type: '(never)',
+			title: '(never)',
 			placeholder: '(never)',
 		}
 	}

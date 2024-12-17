@@ -11,6 +11,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { ReactServicesType } from '../../../helpers/reactServicesHelper.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
+import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -31,7 +32,8 @@ const settingsStateListeners: Set<(s: VoidSettingsState) => void> = new Set()
 let refreshModelState: RefreshModelState
 const refreshModelStateListeners: Set<(s: RefreshModelState) => void> = new Set()
 
-
+let colorThemeState: ColorScheme
+const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
@@ -48,7 +50,7 @@ export const _registerServices = (services_: ReactServicesType) => {
 	wasCalled = true
 
 	services = services_
-	const { sidebarStateService, settingsStateService, threadsStateService, refreshModelService } = services
+	const { sidebarStateService, settingsStateService, threadsStateService, refreshModelService, themeService } = services
 
 	sidebarState = sidebarStateService.state
 	disposables.push(
@@ -79,6 +81,14 @@ export const _registerServices = (services_: ReactServicesType) => {
 		refreshModelService.onDidChangeState(() => {
 			refreshModelState = refreshModelService.state
 			refreshModelStateListeners.forEach(l => l(refreshModelState))
+		})
+	)
+
+	colorThemeState = themeService.getColorTheme().type
+	disposables.push(
+		themeService.onDidColorThemeChange(theme => {
+			colorThemeState = theme.type
+			colorThemeStateListeners.forEach(l => l(colorThemeState))
 		})
 	)
 
@@ -139,3 +149,18 @@ export const useRefreshModelState = () => {
 
 
 
+
+
+export const useIsDark = () => {
+	const [s, ss] = useState(colorThemeState)
+	useEffect(() => {
+		ss(colorThemeState)
+		colorThemeStateListeners.add(ss)
+		return () => { colorThemeStateListeners.delete(ss) }
+	}, [ss])
+
+	// s is the theme, return isDark instead of s
+	const isDark = s === ColorScheme.DARK || s === ColorScheme.HIGH_CONTRAST_DARK
+	return isDark
+
+}

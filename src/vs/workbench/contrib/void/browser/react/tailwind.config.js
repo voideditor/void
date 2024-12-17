@@ -5,6 +5,7 @@
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+	darkMode: 'selector', // '{prefix-}dark' className is used to identify `dark:`
 	content: ['./src2/**/*.{jsx,tsx}'], // uses these files to decide how to transform the css file
 	theme: {
 		extend: {

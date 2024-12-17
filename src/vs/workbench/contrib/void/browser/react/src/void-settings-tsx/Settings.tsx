@@ -3,7 +3,7 @@ import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox
 import { ProviderName, SettingName, displayInfoOfSettingName, titleOfProviderName, providerNames, ModelInfo } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidInputBox } from '../util/inputs.js'
-import { useRefreshModelState, useService, useSettingsState } from '../util/services.js'
+import { useIsDark, useRefreshModelState, useService, useSettingsState } from '../util/services.js'
 
 
 
@@ -44,7 +44,7 @@ export const ModelMenu = () => {
 		{modelDump.map(m => {
 			const { isHidden, isDefault, modelName, providerName } = m
 
-			return <div key={`${modelName}${providerName}`} className='flex items-center justify-between gap-4'>
+			return <div key={`${modelName}${providerName}`} className='flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-white/10'>
 				<span>{modelName} {isDefault ? '' : '(custom)'}</span>
 				<span>{providerName}</span>
 				<span onClick={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}>{isHidden ? 'hidden' : '✅'}</span>
@@ -59,7 +59,7 @@ export const ModelMenu = () => {
 
 const ProviderSetting = ({ providerName, settingName }: { providerName: ProviderName, settingName: SettingName }) => {
 
-	const { title, type, placeholder } = displayInfoOfSettingName(providerName, settingName)
+	const { title, placeholder } = displayInfoOfSettingName(providerName, settingName)
 	const voidSettingsService = useService('settingsStateService')
 
 
@@ -110,7 +110,6 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 
 
 export const VoidProviderSettings = () => {
-
 	return <>
 		{providerNames.map(providerName =>
 			<SettingsForProvider key={providerName} providerName={providerName} />
@@ -123,7 +122,8 @@ export const VoidProviderSettings = () => {
 // full settings
 
 export const Settings = () => {
-	return <div className='@@void-scope'>
+	const isDark = useIsDark()
+	return <div className={`@@void-scope ${isDark ? 'dark' : ''} px-2 lg:px-10`}>
 		<div className='w-full h-full'>
 
 			<div className='max-w-3xl mx-auto'>

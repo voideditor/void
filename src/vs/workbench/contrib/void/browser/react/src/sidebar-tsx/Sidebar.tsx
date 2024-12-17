@@ -8,7 +8,7 @@ import { mountFnGenerator } from '../util/mountFnGenerator.js'
 // import { SidebarSettings } from './SidebarSettings.js';
 
 
-import { useSidebarState } from '../util/services.js';
+import { useIsDark, useSidebarState } from '../util/services.js';
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 // import { SidebarChat } from './SidebarChat.js';
 
@@ -17,12 +17,12 @@ import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { SidebarChat } from './SidebarChat.js';
 import ErrorBoundary from './ErrorBoundary.js';
 
-export const Sidebar = () => {
+export const Sidebar = ({ className }: { className: string }) => {
 	const sidebarState = useSidebarState()
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
-	// className='@@void-scope'
-	return <div className='@@void-scope' style={{ width: '100%', height: '100%' }}>
+	const isDark = useIsDark()
+	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
 		<div className={`flex flex-col px-2 py-2 w-full h-full`}>
 
 			{/* <span onClick={() => {

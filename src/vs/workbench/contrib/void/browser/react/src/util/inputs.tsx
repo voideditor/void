@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useService } from './services.js';
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
@@ -145,21 +145,32 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 };
 
 
-export const VoidScrollableElt = ({ options, children }: { options: ScrollableElementCreationOptions, children: React.ReactNode }) => {
+// export const VoidScrollableElt = ({ options, children }: { options: ScrollableElementCreationOptions, children: React.ReactNode }) => {
+// 	const instanceRef = useRef<DomScrollableElement | null>(null);
+// 	const [childrenPortal, setChildrenPortal] = useState<React.ReactNode | null>(null)
 
-	return <WidgetComponent
-		ctor={DomScrollableElement}
-		propsFn={useCallback((container) => {
-			return [container, options] as const;
-		}, [options])}
-		onCreateInstance={useCallback(() => { return [] }, [])}
-		dispose={useCallback((instance: DomScrollableElement) => {
-			console.log('calling dispose!!!!')
-			// instance.dispose();
-			// instance.getDomNode().remove()
-		}, [])}
-	>abcdefg</WidgetComponent>
-}
+// 	return <>
+// 		<WidgetComponent
+// 			ctor={DomScrollableElement}
+// 			propsFn={useCallback((container) => {
+// 				return [container, options] as const;
+// 			}, [options])}
+// 			onCreateInstance={useCallback((instance: DomScrollableElement) => {
+// 				instanceRef.current = instance;
+// 				setChildrenPortal(createPortal(children, instance.getDomNode()))
+// 				return []
+// 			}, [setChildrenPortal, children])}
+// 			dispose={useCallback((instance: DomScrollableElement) => {
+// 				console.log('calling dispose!!!!')
+// 				// instance.dispose();
+// 				// instance.getDomNode().remove()
+// 			}, [])}
+// 		>{children}</WidgetComponent>
+
+// 		{childrenPortal}
+
+// 	</>
+// }
 
 // export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, options }: {
 // 	initVal: T;

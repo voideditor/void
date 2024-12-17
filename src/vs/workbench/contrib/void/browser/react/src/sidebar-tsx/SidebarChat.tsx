@@ -102,7 +102,7 @@ const ScrollToBottomContainer = ({ children, className, style }: { children: Rea
 
 		const isBottom = Math.abs(
 			div.scrollHeight - div.clientHeight - div.scrollTop
-		) < 1;
+		) < 4;
 
 		setIsAtBottom(isBottom);
 	};
@@ -159,71 +159,66 @@ export const SelectedFiles = (
 
 	return (
 		!!selections && selections.length !== 0 && (
-			<div className='flex flex-wrap gap-4 p-2'>
-				{selections.map((selection, i) => (
-					<Fragment key={i}>
-						{/* selected file summary */}
-						<div
-							// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
-							className={`grid grid-rows-2 gap-1 relative
+			<div
+				className='flex flex-wrap gap-4 p-2 text-left'
+			>
+				{selections.map((selection, i) => {
+
+					const showSelectionText = selection.selectionStr && selectionIsOpened[i]
+
+					return (
+						<div key={i} // container for `selectionSummary` and `selectionText`
+							className={`${showSelectionText ? 'w-full' : ''}`}
+						>
+							{/* selection summary */}
+							<div
+								// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
+								className={`grid grid-rows-2 gap-1 relative
 									select-none
 									bg-vscode-badge-bg border border-vscode-button-border rounded-md
-									w-fit h-fit min-w-[80px] p-1
-									text-left
+									w-fit h-fit min-w-[81px] p-1
 							`}
-							onClick={() => {
-								setSelectionIsOpened(s => {
-									const newS = [...s]
-									newS[i] = !newS[i]
-									return newS
-								});
-							}}
-						>
-
-							<span className='truncate'>
-								{/* file name */}
-								{getBasename(selection.fileURI.fsPath)}
-								{/* selection range */}
-								{selection.selectionStr !== null ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
-							</span>
-
-							{/* type of selection */}
-							<span className='truncate text-opacity-75'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span>
-
-							{/* X button */}
-							{type === 'staging' && // hoveredIdx === i
-								<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-input-border z-1'
-									onClick={(e) => {
-										e.stopPropagation();
-										if (type !== 'staging') return;
-										setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
-										setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
-									}}
-								>
-									<IconX size={16} className="p-[2px] stroke-[3]" />
+								onClick={() => {
+									setSelectionIsOpened(s => {
+										const newS = [...s]
+										newS[i] = !newS[i]
+										return newS
+									});
+								}}
+							>
+								<span className='truncate'>
+									{/* file name */}
+									{getBasename(selection.fileURI.fsPath)}
+									{/* selection range */}
+									{selection.selectionStr !== null ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
 								</span>
+
+								{/* type of selection */}
+								<span className='truncate text-opacity-75'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span>
+
+								{/* X button */}
+								{type === 'staging' && // hoveredIdx === i
+									<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-input-border z-1'
+										onClick={(e) => {
+											e.stopPropagation();
+											if (type !== 'staging') return;
+											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
+											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
+										}}
+									>
+										<IconX size={16} className="p-[2px] stroke-[3]" />
+									</span>
+								}
+							</div>
+							{/* selection text */}
+							{showSelectionText &&
+								<div className='w-full'>
+									<BlockCode text={selection.selectionStr!} />
+								</div>
 							}
 						</div>
-						{/* selection full text */}
-						{selection.selectionStr && selectionIsOpened[i] &&
-							<BlockCode
-								text={selection.selectionStr}
-							// buttonsOnHover={(<button
-							// 	// onClick={() => { // clear the selection string but keep the file
-							// 	// 	setStaging([...selections.slice(0, i), { ...selection, selectionStr: null }, ...selections.slice(i + 1, Infinity)])
-							// 	// }}
-							// 	onClick={() => {
-							// 		if (type !== 'staging') return
-							// 		setStaging([...selections.slice(0, i), ...selections.slice(i + 1, Infinity)])
-							// 	}}
-							// 	className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-							// >Remove</button>
-							// )}
-							/>
-						}
-					</Fragment>
-				))
-				}
+					)
+				})}
 			</div>
 		)
 	)
@@ -296,7 +291,7 @@ export const SidebarChat = () => {
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
 	const isDisabled = !instructions.trim()
-	const [formHeight, setFormHeight] = useState(0)
+	const [formHeight, setFormHeight] = useState(0) // TODO should use resize observer instead
 	const [sidebarHeight, setSidebarHeight] = useState(0)
 	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
 
@@ -405,8 +400,7 @@ export const SidebarChat = () => {
 
 	const previousMessages = currentThread?.messages ?? []
 
-
-	const [_test, _setTest] = useState<string[]>([])
+	// const [_test_messages, _set_test_messages] = useState<string[]>([])
 
 	return <div
 		ref={(ref) => { if (ref) { setSidebarHeight(ref.clientHeight); } }}
@@ -414,7 +408,7 @@ export const SidebarChat = () => {
 	>
 		<ScrollToBottomContainer
 			className={`overflow-x-hidden overflow-y-auto space-y-4`}
-			style={{ height: sidebarHeight - formHeight - 30 }}
+			style={{ maxHeight: sidebarHeight - formHeight - 30 }}
 		>
 			{/* previous messages */}
 			{previousMessages.map((message, i) => <ChatBubble key={i} chatMessage={message} />)}
@@ -422,12 +416,11 @@ export const SidebarChat = () => {
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
 
-			<button type='button' onClick={() => { _setTest(d => [...d, 'asdasdsadasd']) }}>more divs</button>
-			{_test.map((_, i) => <div key={i}>div {i}</div>)}
-			<div>{`totalHeight: ${sidebarHeight - formHeight - 30}`}</div>
-			<div>{`sidebarHeight: ${sidebarHeight}`}</div>
-			<div>{`formHeight: ${formHeight}`}</div>
-			<button type='button' onClick={() => { _setTest(d => [...d, 'asdasdsadasd']) }}>more divs</button>
+			{/* {_test_messages.map((_, i) => <div key={i}>div {i}</div>)}
+				<div>{`totalHeight: ${sidebarHeight - formHeight - 30}`}</div>
+				<div>{`sidebarHeight: ${sidebarHeight}`}</div>
+				<div>{`formHeight: ${formHeight}`}</div>
+				<button type='button' onClick={() => { _set_test_messages(d => [...d, 'asdasdsadasd']) }}>add div</button> */}
 
 		</ScrollToBottomContainer>
 
@@ -454,9 +447,14 @@ export const SidebarChat = () => {
 					console.log('submit!')
 					onSubmit(e)
 				}}
+				onClick={(e) => {
+					if (e.currentTarget === e.target) {
+						inputBoxRef.current?.focus()
+					}
+				}}
 			>
 				{/* top row */}
-				<div className=''>
+				<>
 					{/* selections */}
 					{(selections && selections.length !== 0) &&
 						<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
@@ -471,10 +469,24 @@ export const SidebarChat = () => {
 							showDismiss={true}
 						/>
 					}
-				</div>
+				</>
 
 				{/* middle row */}
-				<div className=''>
+				<div
+					className={
+						//   // overwrite vscode styles (generated with this code):
+						//   `bg-transparent outline-none text-vscode-input-fg min-h-[81px] max-h-[500px]`
+						//     .split(' ')
+						//     .map(style => `@@[&_textarea]:!void-${style}`) // apply styles to ancestor input and textarea elements
+						//     .join(' ') +
+						//   ` outline-none`
+						//     .split(' ')
+						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`) // apply styles to ancestor input and textarea elements
+						//     .join(' ');
+						`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_textarea]:!void-min-h-[81px] @@[&_textarea]:!void-max-h-[500px]@@[&_div.monaco-inputbox]:!void- @@[&_div.monaco-inputbox]:!void-outline-none`
+					}
+				>
+
 					{/* text input */}
 					<VoidInputBox
 						placeholder={`${getCmdKey()}+L to select`}
@@ -485,7 +497,9 @@ export const SidebarChat = () => {
 				</div>
 
 				{/* bottom row */}
-				<div className='flex flex-row justify-between items-end'>
+				<div
+					className='flex flex-row justify-between items-end'
+				>
 					{/* submit options */}
 					<div>
 						<ModelDropdown featureName='Ctrl+L' />
@@ -495,7 +509,7 @@ export const SidebarChat = () => {
 					{isLoading ?
 						// stop button
 						<button
-							className={`size-[24px] rounded-full bg-white cursor-pointer`}
+							className={`size-[20px] rounded-full bg-white cursor-pointer flex items-center justify-center`}
 							onClick={onAbort}
 							type='button'
 						>
@@ -504,7 +518,7 @@ export const SidebarChat = () => {
 						:
 						// submit button (up arrow)
 						<button
-							className={`size-[24px] rounded-full shrink-0 grow-0 cursor-pointer
+							className={`size-[20px] rounded-full shrink-0 grow-0 cursor-pointer
 								${isDisabled ?
 									'bg-vscode-disabled-fg' // cursor-not-allowed
 									: 'bg-white' // cursor-pointer
@@ -513,15 +527,15 @@ export const SidebarChat = () => {
 							disabled={isDisabled}
 							type='submit'
 						>
-							<IconArrowUp size={24} className="stroke-[2]" />
+							<IconArrowUp size={20} className="stroke-[2]" />
 						</button>
 					}
 				</div>
 
 
 			</form>
-		</div>
-	</div>
+		</div >
+	</div >
 }
 
 

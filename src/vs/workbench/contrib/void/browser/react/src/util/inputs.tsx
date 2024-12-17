@@ -3,9 +3,9 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useService } from './services.js';
-import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { useService } from '../util/services.js';
+import { , InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
@@ -39,14 +39,14 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 
 
 
-export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, multiline }: {
+export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, multiline, styles }: {
 	onChangeText: (value: string) => void;
+	styles?: Partial<IInputBoxStyles>,
 	onCreateInstance?: (instance: InputBox) => void | IDisposable[];
 	inputBoxRef?: { current: InputBox | null };
 	placeholder: string;
 	multiline: boolean;
 }) => {
-
 
 	const contextViewProvider = useService('contextViewService');
 
@@ -58,7 +58,9 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 			{
 				inputBoxStyles: {
 					...defaultInputBoxStyles,
-					inputBackground: 'transparent',
+					// inputBackground: 'transparent',
+					// inputBorder: 'none',
+					...styles,
 				},
 				placeholder,
 				tooltip: '',

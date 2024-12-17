@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
 import { ProviderName, SettingName, displayInfoOfSettingName, titleOfProviderName, providerNames, ModelInfo } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
@@ -36,7 +36,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 
 	const [errorString, setErrorString] = useState('')
 
-	const providerOptions = providerNames.map(providerName => ({ text: titleOfProviderName(providerName), value: providerName }))
+	const providerOptions = useMemo(() => providerNames.map(providerName => ({ text: titleOfProviderName(providerName), value: providerName })), [providerNames])
 
 	return <>
 		<div className='flex justify-center items-center gap-4'>
@@ -44,7 +44,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 			<div className='max-w-40 w-full'>
 				<VoidInputBox
 					placeholder='Model Name'
-					onChangeText={(modelName) => { modelNameRef.current = modelName }}
+					onChangeText={useCallback((modelName) => { modelNameRef.current = modelName }, [])}
 					multiline={false}
 				/>
 			</div>
@@ -52,8 +52,8 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 			{/* provider */}
 			<div className='max-w-40 w-full'>
 				<VoidSelectBox
-					onCreateInstance={(instance) => { providerNameRef.current = providerOptions[0].value }} // initialize state
-					onChangeSelection={(providerName: ProviderName) => { console.log('selecting provider', providerName); providerNameRef.current = providerName }}
+					onCreateInstance={useCallback(() => { providerNameRef.current = providerOptions[0].value }, [providerOptions])} // initialize state
+					onChangeSelection={useCallback((providerName: ProviderName) => { providerNameRef.current = providerName }, [])}
 					options={providerOptions}
 				/>
 			</div>

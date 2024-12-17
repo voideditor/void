@@ -27,7 +27,7 @@ export const SidebarThreadSelector = () => {
 	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
 
 	return (
-		<div className="flex flex-col gap-y-1 overflow-y-auto h-[30vh]">
+		<div className="flex flex-col gap-y-1 overflow-y-auto">
 
 			{/* X button at top right */}
 			<div className="text-right">
@@ -49,7 +49,7 @@ export const SidebarThreadSelector = () => {
 			</div>
 
 			{/* a list of all the past threads */}
-			<div className='flex flex-col gap-y-1 max-h-80 overflow-y-auto'>
+			<div className='flex flex-col gap-y-1 overflow-y-auto'>
 				{sortedThreadIds.map((threadId) => {
 					if (!allThreads)
 						return <>Error: Threads not found.</>

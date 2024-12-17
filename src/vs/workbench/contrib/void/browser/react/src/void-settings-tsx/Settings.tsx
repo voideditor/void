@@ -37,55 +37,58 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 
 	const providerOptions = providerNames.map(providerName => ({ text: titleOfProviderName(providerName), value: providerName }))
 
-	return <div className='flex justify-center items-center gap-20'>
-		{/* model */}
-		<div className='max-w-xl w-full'>
-			<VoidInputBox
-				placeholder='Model Name'
-				onChangeText={(modelName) => { modelNameRef.current = modelName }}
-				multiline={false}
-			/>
+	return <>
+		<div className='flex justify-center items-center gap-4'>
+			{/* model */}
+			<div className='max-w-40 w-full'>
+				<VoidInputBox
+					placeholder='Model Name'
+					onChangeText={(modelName) => { modelNameRef.current = modelName }}
+					multiline={false}
+				/>
+			</div>
+
+			{/* provider */}
+			<div className='max-w-40 w-full'>
+				<VoidSelectBox
+					onCreateInstance={(instance) => { providerNameRef.current = providerOptions[0].value }} // initialize state
+					onChangeSelection={(providerName: ProviderName) => { console.log('selecting provider', providerName); providerNameRef.current = providerName }}
+					options={providerOptions}
+				/>
+			</div>
+
+			{/* button */}
+			<div className='max-w-40 w-full'>
+				<button
+					onClick={() => {
+						const providerName = providerNameRef.current
+						const modelName = modelNameRef.current
+
+						if (providerName === null) {
+							setErrorString('Please select a provider.')
+							return
+						}
+						if (!modelName) {
+							setErrorString('Please enter a model name.')
+							return
+						}
+						// if model already exists here
+						if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
+							setErrorString(`This model already exists under ${providerName}.`)
+							return
+						}
+
+						settingsStateService.addModel(providerName, modelName)
+						onSubmit()
+
+					}}>Add model</button>
+			</div>
 		</div>
 
-		{/* provider */}
-		<div className='w-fit'>
-			<VoidSelectBox
-				onCreateInstance={(instance) => { providerNameRef.current = providerOptions[0].value }} // initialize state
-				onChangeSelection={(providerName: ProviderName) => { console.log('selecting provider', providerName); providerNameRef.current = providerName }}
-				options={providerOptions}
-			/>
-		</div>
-
-		{/* button */}
-		<div className='w-80'>
-			<button onClick={() => {
-				const providerName = providerNameRef.current
-				const modelName = modelNameRef.current
-
-				if (providerName === null) {
-					setErrorString('Please select a provider.')
-					return
-				}
-				if (!modelName) {
-					setErrorString('Please enter a model name.')
-					return
-				}
-				// if model already exists here
-				if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
-					setErrorString(`This model already exists under ${providerName}.`)
-					return
-				}
-
-				settingsStateService.addModel(providerName, modelName)
-				onSubmit()
-
-			}}>Add model</button>
-		</div>
-
-		{!errorString ? null : <>
+		{!errorString ? null : <div className='text-center text-red-500'>
 			{errorString}
-		</>}
-	</div>
+		</div>}
+	</>
 
 }
 
@@ -114,7 +117,7 @@ export const ModelDump = () => {
 		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName })))
 	}
 
-	return <div className='max-h-80 overflow-y-auto'>
+	return <div className=''>
 		{modelDump.map(m => {
 			const { isHidden, isDefault, modelName, providerName } = m
 
@@ -212,21 +215,57 @@ export const VoidProviderSettings = () => {
 
 export const Settings = () => {
 	const isDark = useIsDark()
+
+	const [tab, setTab] = useState<'models' | 'providers'>('models')
+
 	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`}>
-		<div className='w-full h-full px-10 py-10'>
+		<div className='w-full h-full px-10 py-10 select-none'>
 
-			<div className='max-w-3xl mx-auto'>
-				<h2 className='text-3xl'>Models</h2>
-				<ErrorBoundary>
-					<ModelDump />
-					<AddModelButton />
-					<RefreshableModels />
-				</ErrorBoundary>
+			<div className='max-w-5xl mx-auto'>
 
-				<h2 className='text-3xl'>Providers</h2>
-				<ErrorBoundary>
-					<VoidProviderSettings />
-				</ErrorBoundary>
+				<h1 className='text-2xl w-full'>Void Settings</h1>
+
+				{/* separator */}
+				<div className='w-full h-[1px] my-4' />
+
+				<div className='flex items-stretch'>
+
+					{/* tabs */}
+					<div className='flex flex-col w-full max-w-32'>
+						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-vscode-button-hover-bg' : 'bg-vscode-button-active-bg'} hover:bg-vscode-button-hover-bg active:bg-vscode-button-active-bg`}
+							onClick={() => { setTab('models') }}
+						>Models</button>
+						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'providers' ? 'bg-vscode-button-hover-bg' : 'bg-vscode-button-active-bg'} hover:bg-vscode-button-hover-bg active:bg-vscode-button-active-bg`}
+							onClick={() => { setTab('providers') }}
+						>Providers</button>
+					</div>
+
+					{/* separator */}
+					<div className='w-[1px] mx-4' />
+
+
+					{/* content */}
+					<div className='w-full overflow-y-auto'>
+
+						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
+							<h2 className={`text-3xl`}>Models</h2>
+							<ErrorBoundary>
+								<ModelDump />
+								<AddModelButton />
+								<RefreshableModels />
+							</ErrorBoundary>
+						</div>
+
+						<div className={`${tab !== 'providers' ? 'hidden' : ''}`}>
+							<h2 className={`text-3xl`} onClick={() => { setTab('providers') }}>Providers</h2>
+							<ErrorBoundary>
+								<VoidProviderSettings />
+							</ErrorBoundary>
+						</div>
+
+					</div>
+				</div>
+
 			</div>
 		</div>
 

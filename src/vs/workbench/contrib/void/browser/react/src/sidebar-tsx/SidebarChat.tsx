@@ -498,10 +498,10 @@ export const SidebarChat = () => {
 
 				{/* bottom row */}
 				<div
-					className='flex flex-row justify-between items-end'
+					className='flex flex-row justify-between items-end gap-1'
 				>
 					{/* submit options */}
-					<div>
+					<div className='w-[250px]'>
 						<ModelDropdown featureName='Ctrl+L' />
 					</div>
 

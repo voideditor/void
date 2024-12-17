@@ -5,7 +5,7 @@
 
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useService } from '../util/services.js';
-import { , InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
@@ -14,13 +14,14 @@ import { ScrollableElementCreationOptions } from '../../../../../../../base/brow
 
 
 
-export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, propsFn, dispose, onCreateInstance, children }
+export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, propsFn, dispose, onCreateInstance, children, className }
 	: {
 		ctor: { new(...params: CtorParams): Instance },
 		propsFn: (container: HTMLDivElement) => CtorParams,
 		onCreateInstance: (instance: Instance) => IDisposable[],
 		dispose: (instance: Instance) => void,
 		children?: React.ReactNode,
+		className?: string
 	}
 ) => {
 	const containerRef = useRef<HTMLDivElement | null>(null);
@@ -34,7 +35,7 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 		}
 	}, [ctor, propsFn, dispose, onCreateInstance, containerRef])
 
-	return <div ref={containerRef} className='w-full'>{children}</div>
+	return <div ref={containerRef} className={className === undefined ? `w-full` : className}>{children}</div>
 }
 
 
@@ -105,6 +106,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
 	return <WidgetComponent
+		className='text-ellipsis whitespace-nowrap pr-6'
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container

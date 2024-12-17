@@ -27,6 +27,7 @@ import { mountVoidSettings } from './react/out/void-settings-tsx/index.js'
 import { getReactServices } from './helpers/reactServicesHelper.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
+import { DomScrollableElement } from '../../../../base/browser/ui/scrollbar/scrollableElement.js';
 
 
 // refer to preferences.contribution.ts keybindings editor
@@ -62,6 +63,8 @@ class VoidSettingsInput extends EditorInput {
 class VoidSettingsPane extends EditorPane {
 	static readonly ID = 'workbench.test.myCustomPane';
 
+	private _scrollbar: DomScrollableElement | undefined;
+
 	constructor(
 		group: IEditorGroup,
 		@ITelemetryService telemetryService: ITelemetryService,
@@ -73,30 +76,42 @@ class VoidSettingsPane extends EditorPane {
 	}
 
 	protected createEditor(parent: HTMLElement): void {
-		// parent.style.overflow = 'auto'
-		parent.style.userSelect = 'text'
+		parent.style.height = '100%';
+		parent.style.width = '100%';
 
+		const scrollableContent = document.createElement('div');
+		scrollableContent.style.height = '100%';
+		scrollableContent.style.width = '100%';
 
-		// gets set immediately
+		this._scrollbar = this._register(new DomScrollableElement(scrollableContent, {}));
+		parent.appendChild(this._scrollbar.getDomNode());
+		this._scrollbar.scanDomNode();
+
+		// Mount React into the scrollable content
 		this.instantiationService.invokeFunction(accessor => {
-			const services = getReactServices(accessor)
-			const disposables: IDisposable[] | undefined = mountVoidSettings(parent, services);
-			disposables?.forEach(d => this._register(d))
-		})
+			const services = getReactServices(accessor);
+			const disposables: IDisposable[] | undefined = mountVoidSettings(scrollableContent, services);
+
+			setTimeout(() => { // this is a complete hack and I don't really understand how scrollbar works here
+				this._scrollbar?.scanDomNode();
+			}, 1000)
+			disposables?.forEach(d => this._register(d));
+		});
 	}
 
 	layout(dimension: Dimension): void {
-		const container = this.getContainer();
-		if (!container) return;
+		if (!this._scrollbar) return;
 
-		container.style.width = `${dimension.width}px`;
-		container.style.height = `${dimension.height}px`;
+		this._scrollbar.getDomNode().style.height = `${dimension.height}px`;
+		this._scrollbar.getDomNode().style.width = `${dimension.width}px`;
+		this._scrollbar.scanDomNode();
+
 	}
 
-	override get minimumWidth() { return 512 }
+
+	override get minimumWidth() { return 700 }
 
 }
-
 
 // register Settings pane
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(

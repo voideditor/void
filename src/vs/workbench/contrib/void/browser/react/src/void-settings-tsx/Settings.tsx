@@ -4,6 +4,7 @@ import { ProviderName, SettingName, displayInfoOfSettingName, titleOfProviderNam
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidInputBox, VoidSelectBox } from '../util/inputs.js'
 import { useIsDark, useRefreshModelState, useService, useSettingsState } from '../util/services.js'
+import { X } from 'lucide-react'
 
 
 
@@ -18,10 +19,10 @@ const RefreshableModels = () => {
 	if (!settingsState.settingsOfProvider.ollama.enabled)
 		return null
 
-	return <>
+	return <div>
 		<button onClick={() => refreshModelService.refreshOllamaModels()}>refresh Ollama built-in models</button>
 		{refreshModelState === 'loading' ? 'loading...' : 'good!'}
-	</>
+	</div>
 }
 
 
@@ -110,16 +111,16 @@ export const ModelDump = () => {
 	const settingsState = useSettingsState()
 
 	// a dump of all the enabled providers' models
-	const modelDump: (ModelInfo & { providerName: ProviderName })[] = []
+	const modelDump: (ModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
 	for (let providerName of providerNames) {
 		const providerSettings = settingsState.settingsOfProvider[providerName]
-		if (!providerSettings.enabled) continue
-		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName })))
+		// if (!providerSettings.enabled) continue
+		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName, providerEnabled: providerSettings.enabled })))
 	}
 
 	return <div className=''>
 		{modelDump.map(m => {
-			const { isHidden, isDefault, modelName, providerName } = m
+			const { isHidden, isDefault, modelName, providerName, providerEnabled } = m
 
 			return <div key={`${modelName}${providerName}`} className='flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-200/10 py-1 px-3 rounded-sm overflow-hidden cursor-default'>
 				{/* left part is width:full */}
@@ -129,9 +130,9 @@ export const ModelDump = () => {
 				{/* right part is anything that fits */}
 				<div className='w-fit flex items-center gap-4'>
 					<span className='opacity-50 whitespace-nowrap'>{isDefault ? '' : '(custom model)'}</span>
-					<div onClick={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}>{isHidden ? '❌' : '✅'}</div>
-					<div className='w-10'>
-						{isDefault ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}>x</button>}
+					<button disabled={!providerEnabled} onClick={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}>{(!providerEnabled || isHidden) ? '❌' : '✅'}</button>
+					<div className='w-5 flex items-center justify-center'>
+						{isDefault ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
 					</div>
 				</div>
 			</div>
@@ -190,7 +191,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 
 		<div className='flex items-center gap-4'>
 			<h3 className='text-xl'>{titleOfProviderName(providerName)}</h3>
-			<span onClick={() => { voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabled) }}>{enabled ? '✅' : '❌'}</span>
+			<button onClick={() => { voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabled) }}>{enabled ? '✅' : '❌'}</button>
 		</div>
 		{/* settings besides models (e.g. api key) */}
 		{Object.keys(others).map((sName, i) => {
@@ -248,7 +249,7 @@ export const Settings = () => {
 					<div className='w-full overflow-y-auto'>
 
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
-							<h2 className={`text-3xl`}>Models</h2>
+							<h2 className={`text-3xl mb-2`}>Models</h2>
 							<ErrorBoundary>
 								<ModelDump />
 								<AddModelButton />
@@ -257,7 +258,7 @@ export const Settings = () => {
 						</div>
 
 						<div className={`${tab !== 'providers' ? 'hidden' : ''}`}>
-							<h2 className={`text-3xl`} onClick={() => { setTab('providers') }}>Providers</h2>
+							<h2 className={`text-3xl mb-2`} onClick={() => { setTab('providers') }}>Providers</h2>
 							<ErrorBoundary>
 								<VoidProviderSettings />
 							</ErrorBoundary>

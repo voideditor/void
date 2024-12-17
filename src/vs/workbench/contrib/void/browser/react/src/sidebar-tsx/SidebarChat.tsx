@@ -21,8 +21,9 @@ import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { VoidInputBox } from './inputs.js';
+import { VoidInputBox, VoidScrollableElt } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
+import { ScrollbarVisibility } from '../../../../../../../base/common/scrollable.js';
 
 
 const IconX = ({ size, className = '' }: { size: number, className?: string }) => {
@@ -121,6 +122,7 @@ const ScrollToBottomContainer = ({ children, className, style }: { children: Rea
 
 	return (
 		<div
+			// options={{ vertical: ScrollbarVisibility.Auto, horizontal: ScrollbarVisibility.Auto }}
 			ref={divRef}
 			onScroll={onScroll}
 			className={className}

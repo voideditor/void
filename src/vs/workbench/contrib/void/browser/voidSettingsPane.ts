@@ -73,7 +73,7 @@ class VoidSettingsPane extends EditorPane {
 	}
 
 	protected createEditor(parent: HTMLElement): void {
-		parent.style.overflow = 'auto'
+		// parent.style.overflow = 'auto'
 		parent.style.userSelect = 'text'
 
 		// gets set immediately

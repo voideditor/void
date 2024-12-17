@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FeatureName, featureNames, ModelSelection, modelSelectionsEqual, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import { useSettingsState, useRefreshModelState, useService } from '../util/services.js'
-import { VoidSelectBox } from '../sidebar-tsx/inputs.js'
+import { VoidSelectBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 
 

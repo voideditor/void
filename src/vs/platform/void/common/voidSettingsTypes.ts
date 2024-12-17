@@ -5,6 +5,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 
+
+
 export type ModelInfo = {
 	modelName: string,
 	isDefault: boolean, // whether or not it's a default for its provider
@@ -90,16 +92,11 @@ export const anthropicMaxPossibleTokens = (modelName: string) => {
 }
 
 
-// export const dummyModelData = {
-// 	anthropic: ['claude 3.5'],
-// 	openAI: ['gpt 4o'],
-// 	ollama: ['llama 3.2', 'codestral'],
-// 	openRouter: ['qwen 2.5'],
-// }
+type UnionOfKeys<T> = T extends T ? keyof T : never;
 
 
 
-export const voidProviderDefaults = {
+export const customProviderSettingsDefaults = {
 	anthropic: {
 		apiKey: '',
 	},
@@ -124,57 +121,30 @@ export const voidProviderDefaults = {
 	}
 } as const
 
+export type ProviderName = keyof typeof customProviderSettingsDefaults
+export const providerNames = Object.keys(customProviderSettingsDefaults) as ProviderName[]
 
-export const voidInitModelOptions = {
-	anthropic: {
-		models: defaultAnthropicModels,
-	},
-	openAI: {
-		models: defaultOpenAIModels,
-	},
-	ollama: {
-		models: [],
-	},
-	openRouter: {
-		models: [], // any string
-	},
-	openAICompatible: {
-		models: [],
-	},
-	gemini: {
-		models: defaultGeminiModels,
-	},
-	groq: {
-		models: defaultGroqModels,
-	},
+
+type CustomSettingName = UnionOfKeys<typeof customProviderSettingsDefaults[ProviderName]>
+
+type CustomProviderSettings<providerName extends ProviderName> = {
+	[k in CustomSettingName]: k extends keyof typeof customProviderSettingsDefaults[providerName] ? string : undefined
 }
 
+type CommonProviderSettings = {
+	enabled: boolean,
+	models: ModelInfo[], // if null, user can type in any string as a model
+}
 
+type SettingsForProvider<providerName extends ProviderName> = CustomProviderSettings<providerName> & CommonProviderSettings
 
-export type ProviderName = keyof typeof voidProviderDefaults
-export const providerNames = Object.keys(voidProviderDefaults) as ProviderName[]
-
-
-
-// state
+// part of state
 export type SettingsOfProvider = {
-	[providerName in ProviderName]: (
-		{
-			[optionName in keyof typeof voidProviderDefaults[providerName]]: string
-		}
-		&
-		{
-			enabled: string, // 'true' | 'false'
-
-			models: ModelInfo[], // if null, user can type in any string as a model
-		})
+	[providerName in ProviderName]: SettingsForProvider<providerName>
 }
 
 
-type UnionOfKeys<T> = T extends T ? keyof T : never;
-
-export type SettingName = UnionOfKeys<SettingsOfProvider[ProviderName]>
-
+export type SettingName = keyof SettingsForProvider<ProviderName>
 
 
 
@@ -219,7 +189,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			title: providerName === 'ollama' ? 'Your Ollama endpoint' :
 				providerName === 'openAICompatible' ? 'baseURL' // (do not include /chat/completions)
 					: '(never)',
-			placeholder: providerName === 'ollama' ? voidProviderDefaults.ollama.endpoint
+			placeholder: providerName === 'ollama' ? customProviderSettingsDefaults.ollama.endpoint
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
 		}
@@ -242,42 +212,81 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 }
 
 
+
+
+const defaultCustomSettings: Record<CustomSettingName, undefined> = {
+	apiKey: undefined,
+	endpoint: undefined,
+}
+
+export const voidInitModelOptions = {
+	anthropic: {
+		models: defaultAnthropicModels,
+	},
+	openAI: {
+		models: defaultOpenAIModels,
+	},
+	ollama: {
+		models: [],
+	},
+	openRouter: {
+		models: [], // any string
+	},
+	openAICompatible: {
+		models: [],
+	},
+	gemini: {
+		models: defaultGeminiModels,
+	},
+	groq: {
+		models: defaultGroqModels,
+	},
+}
+
+
 // used when waiting and for a type reference
 export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
-		...voidProviderDefaults.anthropic,
+		...defaultCustomSettings,
+		...customProviderSettingsDefaults.anthropic,
 		...voidInitModelOptions.anthropic,
-		enabled: 'false',
+		enabled: false,
 	},
 	openAI: {
-		...voidProviderDefaults.openAI,
+		...defaultCustomSettings,
+		...customProviderSettingsDefaults.openAI,
 		...voidInitModelOptions.openAI,
-		enabled: 'false',
+		enabled: false,
 	},
 	gemini: {
-		...voidProviderDefaults.gemini,
+		...defaultCustomSettings,
+		...customProviderSettingsDefaults.gemini,
 		...voidInitModelOptions.gemini,
-		enabled: 'false',
+		enabled: false,
 	},
 	groq: {
-		...voidProviderDefaults.groq,
+		...defaultCustomSettings,
+		...customProviderSettingsDefaults.groq,
 		...voidInitModelOptions.groq,
-		enabled: 'false',
+		enabled: false,
 	},
 	ollama: {
-		...voidProviderDefaults.ollama,
+		...defaultCustomSettings,
+		...customProviderSettingsDefaults.ollama,
 		...voidInitModelOptions.ollama,
-		enabled: 'false',
+		enabled: false,
 	},
 	openRouter: {
-		...voidProviderDefaults.openRouter,
+		...defaultCustomSettings,
+		...customProviderSettingsDefaults.openRouter,
 		...voidInitModelOptions.openRouter,
-		enabled: 'false',
+		enabled: false,
 	},
 	openAICompatible: {
-		...voidProviderDefaults.openAICompatible,
+		...defaultCustomSettings,
+		...customProviderSettingsDefaults.openAICompatible,
 		...voidInitModelOptions.openAICompatible,
-		enabled: 'false',
+		enabled: false,
 	},
 }
 

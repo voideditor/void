@@ -75,7 +75,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 		this._cancelTimeout()
 
 		// if ollama is disabled, obivously done
-		if (this.voidSettingsService.state.settingsOfProvider.ollama.enabled !== 'true') {
+		if (!this.voidSettingsService.state.settingsOfProvider.ollama.enabled) {
 			this._setState('done')
 			return
 		}

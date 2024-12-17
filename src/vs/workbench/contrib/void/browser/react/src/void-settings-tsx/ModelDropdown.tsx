@@ -43,7 +43,6 @@ const DummySelectBox = () => {
 	return <VoidSelectBox
 		options={[{ text: 'Please add a model!', value: null }]}
 		onChangeSelection={() => { }}
-		onCreateInstance={() => { }}
 	/>
 }
 

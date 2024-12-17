@@ -13,7 +13,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../storage/comm
 import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultNames, ModelInfo } from './voidSettingsTypes.js';
 
 
-const STORAGE_KEY = 'void.voidSettings'
+const STORAGE_KEY = 'void.voidSettingsI'
 
 type SetSettingOfProviderFn = <S extends SettingName>(
 	providerName: ProviderName,
@@ -60,7 +60,7 @@ let _computeModelOptions = (settingsOfProvider: SettingsOfProvider) => {
 	let modelOptions: ModelOption[] = []
 	for (const providerName of providerNames) {
 		const providerConfig = settingsOfProvider[providerName]
-		if (providerConfig.enabled !== 'true') continue
+		if (!providerConfig.enabled) continue // if disabled, don't display model options
 		for (const { modelName, isHidden } of providerConfig.models) {
 			if (isHidden) continue
 			modelOptions.push({ text: `${modelName} (${providerName})`, value: { providerName, modelName } })

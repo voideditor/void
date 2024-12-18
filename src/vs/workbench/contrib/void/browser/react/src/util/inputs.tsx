@@ -9,8 +9,6 @@ import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/
 import { defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
-import { DomScrollableElement } from '../../../../../../../base/browser/ui/scrollbar/scrollableElement.js';
-import { ScrollableElementCreationOptions } from '../../../../../../../base/browser/ui/scrollbar/scrollableElementOptions.js';
 
 
 
@@ -106,7 +104,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
 	return <WidgetComponent
-		className='text-ellipsis whitespace-nowrap pr-6'
+		className='@@select-ellipsis'
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container

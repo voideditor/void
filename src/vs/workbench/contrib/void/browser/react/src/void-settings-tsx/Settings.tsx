@@ -146,38 +146,39 @@ export const ModelDump = () => {
 
 const ProviderSetting = ({ providerName, settingName }: { providerName: ProviderName, settingName: SettingName }) => {
 
-	const { title, placeholder } = displayInfoOfSettingName(providerName, settingName)
+	const { title, placeholder, } = displayInfoOfSettingName(providerName, settingName)
 	const voidSettingsService = useService('settingsStateService')
 
 
 	let weChangedTextRef = false
 
-	return <><ErrorBoundary>
-		<label>{title}</label>
-		<VoidInputBox
-			placeholder={placeholder}
-			onChangeText={useCallback((newVal) => {
-				if (weChangedTextRef) return
-				voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
-			}, [voidSettingsService, providerName, settingName])}
+	return <ErrorBoundary>
+		<div className='my-1'>
+			<VoidInputBox
+				placeholder={`Enter your ${title} here (${placeholder}).`}
+				onChangeText={useCallback((newVal) => {
+					if (weChangedTextRef) return
+					voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
+				}, [voidSettingsService, providerName, settingName])}
 
-			// we are responsible for setting the initial value. always sync the instance whenever there's a change to state.
-			onCreateInstance={useCallback((instance: InputBox) => {
-				const syncInstance = () => {
-					const settingsAtProvider = voidSettingsService.state.settingsOfProvider[providerName];
-					const stateVal = settingsAtProvider[settingName as SettingName]
-					// console.log('SYNCING TO', providerName, settingName, stateVal)
-					weChangedTextRef = true
-					instance.value = stateVal as string
-					weChangedTextRef = false
-				}
-				syncInstance()
-				const disposable = voidSettingsService.onDidChangeState(syncInstance)
-				return [disposable]
-			}, [voidSettingsService, providerName, settingName])}
-			multiline={false}
-		/>
-	</ErrorBoundary></>
+				// we are responsible for setting the initial value. always sync the instance whenever there's a change to state.
+				onCreateInstance={useCallback((instance: InputBox) => {
+					const syncInstance = () => {
+						const settingsAtProvider = voidSettingsService.state.settingsOfProvider[providerName];
+						const stateVal = settingsAtProvider[settingName as SettingName]
+						// console.log('SYNCING TO', providerName, settingName, stateVal)
+						weChangedTextRef = true
+						instance.value = stateVal as string
+						weChangedTextRef = false
+					}
+					syncInstance()
+					const disposable = voidSettingsService.onDidChangeState(syncInstance)
+					return [disposable]
+				}, [voidSettingsService, providerName, settingName])}
+				multiline={false}
+			/>
+		</div>
+	</ErrorBoundary>
 
 }
 
@@ -255,6 +256,7 @@ export const Settings = () => {
 								<AddModelButton />
 								<RefreshableModels />
 							</ErrorBoundary>
+							<h2 className={`text-3xl mt-4 mb-2`}>Providers</h2>
 							<ErrorBoundary>
 								<VoidProviderSettings />
 							</ErrorBoundary>

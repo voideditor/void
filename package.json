@@ -10,6 +10,7 @@
   "private": true,
   "scripts": {
     "buildreact": "cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../../",
+    "watchreact": "cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js --watch && cd ../../../../../../../",
     "test": "echo Please run any of the test scripts from the scripts folder.",
     "test-browser": "npx playwright install && node test/unit/browser/index.js",
     "test-browser-amd": "npx playwright install && node test/unit/browser/index.amd.js",
@@ -218,6 +219,7 @@
     "mocha": "^10.2.0",
     "mocha-junit-reporter": "^2.2.1",
     "mocha-multi-reporters": "^1.5.1",
+    "nodemon": "^3.1.9",
     "npm-run-all": "^4.1.5",
     "opn": "^6.0.0",
     "original-fs": "^1.2.0",

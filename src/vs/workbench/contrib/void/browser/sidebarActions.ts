@@ -21,6 +21,8 @@ import { ITextModel } from '../../../../editor/common/model.js';
 import { VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
+import { OPEN_VOID_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -161,3 +163,19 @@ registerAction2(class extends Action2 {
 	}
 })
 
+
+// Settings gear
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'void.settingsAction',
+			title: 'Void Settings',
+			icon: { id: 'settings-gear' },
+			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
+		});
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandService = accessor.get(ICommandService)
+		commandService.executeCommand(OPEN_VOID_SETTINGS_ACTION_ID)
+	}
+})

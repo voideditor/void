@@ -31,7 +31,7 @@ export const Sidebar = ({ className }: { className: string }) => {
 				sidebarStateService.setState({ currentTab: tabs[(index + 1) % tabs.length] as any })
 			}}>clickme {tab}</span> */}
 
-			<div className={`mb-2 w-full h-full ${isHistoryOpen ? '' : 'hidden'}`}>
+			<div className={`mb-2 w-full ${isHistoryOpen ? '' : 'hidden'}`}>
 				<ErrorBoundary>
 					<SidebarThreadSelector />
 				</ErrorBoundary>

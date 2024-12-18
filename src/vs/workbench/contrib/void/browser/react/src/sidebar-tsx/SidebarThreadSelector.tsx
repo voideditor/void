@@ -27,7 +27,7 @@ export const SidebarThreadSelector = () => {
 	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
 
 	return (
-		<div className="flex flex-col gap-y-1 overflow-y-auto">
+		<div className="flex flex-col gap-y-1 max-h-[400px] overflow-y-auto">
 
 			{/* X button at top right */}
 			<div className="text-right">

@@ -217,7 +217,7 @@ export const VoidProviderSettings = () => {
 export const Settings = () => {
 	const isDark = useIsDark()
 
-	const [tab, setTab] = useState<'models' | 'providers'>('models')
+	const [tab, setTab] = useState<'models' | 'features'>('models')
 
 	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`}>
 		<div className='w-full h-full px-10 py-10 select-none'>
@@ -236,9 +236,9 @@ export const Settings = () => {
 						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-vscode-button-hover-bg' : 'bg-vscode-button-active-bg'} hover:bg-vscode-button-hover-bg active:bg-vscode-button-active-bg`}
 							onClick={() => { setTab('models') }}
 						>Models</button>
-						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'providers' ? 'bg-vscode-button-hover-bg' : 'bg-vscode-button-active-bg'} hover:bg-vscode-button-hover-bg active:bg-vscode-button-active-bg`}
-							onClick={() => { setTab('providers') }}
-						>Providers</button>
+						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'features' ? 'bg-vscode-button-hover-bg' : 'bg-vscode-button-active-bg'} hover:bg-vscode-button-hover-bg active:bg-vscode-button-active-bg`}
+							onClick={() => { setTab('features') }}
+						>Features</button>
 					</div>
 
 					{/* separator */}
@@ -255,13 +255,13 @@ export const Settings = () => {
 								<AddModelButton />
 								<RefreshableModels />
 							</ErrorBoundary>
-						</div>
-
-						<div className={`${tab !== 'providers' ? 'hidden' : ''}`}>
-							<h2 className={`text-3xl mb-2`} onClick={() => { setTab('providers') }}>Providers</h2>
 							<ErrorBoundary>
 								<VoidProviderSettings />
 							</ErrorBoundary>
+						</div>
+
+						<div className={`${tab !== 'features' ? 'hidden' : ''}`}>
+							<h2 className={`text-3xl mb-2`} onClick={() => { setTab('features') }}>Features</h2>
 						</div>
 
 					</div>

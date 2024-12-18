@@ -407,7 +407,7 @@ export const SidebarChat = () => {
 		className={`w-full h-full`}
 	>
 		<ScrollToBottomContainer
-			className={`overflow-x-hidden overflow-y-auto space-y-4`}
+			className={`overflow-x-hidden overflow-y-auto`}
 			style={{ maxHeight: sidebarHeight - formHeight - 30 }}
 		>
 			{/* previous messages */}

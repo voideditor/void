@@ -11,16 +11,18 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { CodeStagingSelection, IThreadHistoryService } from './registerThreads.js';
+import { CodeStagingSelection, IThreadHistoryService } from './threadHistoryService.js';
 // import { IEditorService } from '../../../services/editor/common/editorService.js';
 
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
-import { IVoidSidebarStateService, VOID_VIEW_ID } from './registerSidebar.js';
+import { VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
-// import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
+import { ISidebarStateService } from './sidebarStateService.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
+import { OPEN_VOID_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -61,7 +63,7 @@ registerAction2(class extends Action2 {
 		if (!model)
 			return
 
-		const stateService = accessor.get(IVoidSidebarStateService)
+		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
 
 		metricsService.capture('Chat Navigation', { type: 'Ctrl+L' })
@@ -73,23 +75,33 @@ registerAction2(class extends Action2 {
 			accessor.get(IEditorService).activeTextEditorControl?.getSelection()
 		)
 
-		// add selection
-		const threadHistoryService = accessor.get(IThreadHistoryService)
-		const currentStaging = threadHistoryService.state._currentStagingSelections
-		const currentStagingEltIdx = currentStaging?.findIndex(s =>
-			s.fileURI.fsPath === model.uri.fsPath
-			&& s.range?.startLineNumber === selectionRange?.startLineNumber
-			&& s.range?.endLineNumber === selectionRange?.endLineNumber
-		)
 
 		if (selectionRange) {
-			const selection: CodeStagingSelection = {
-				selectionStr: getContentInRange(model, selectionRange),
+
+			const selectionStr = getContentInRange(model, selectionRange)
+
+			const selection: CodeStagingSelection = selectionStr === null || selectionRange.startLineNumber > selectionRange.endLineNumber ? {
+				type: 'File',
 				fileURI: model.uri,
+				selectionStr: null,
+				range: null,
+			} : {
+				type: 'Selection',
+				fileURI: model.uri,
+				selectionStr: selectionStr,
 				range: selectionRange,
 			}
 
-			// overwrite selections that match with this one (compares by `fileURI` and  line numbers in `range`)
+			// add selection to staging
+			const threadHistoryService = accessor.get(IThreadHistoryService)
+			const currentStaging = threadHistoryService.state._currentStagingSelections
+			const currentStagingEltIdx = currentStaging?.findIndex(s =>
+				s.fileURI.fsPath === model.uri.fsPath
+				&& s.range?.startLineNumber === selection.range?.startLineNumber
+				&& s.range?.endLineNumber === selection.range?.endLineNumber
+			)
+
+			// if matches with existing selection, overwrite
 			if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
 				threadHistoryService.setStaging([
 					...currentStaging!.slice(0, currentStagingEltIdx),
@@ -97,6 +109,7 @@ registerAction2(class extends Action2 {
 					...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
 				])
 			}
+			// if no match, add
 			else {
 				threadHistoryService.setStaging([...(currentStaging ?? []), selection])
 			}
@@ -117,7 +130,7 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
+		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
 
 		metricsService.capture('Chat Navigation', { type: 'New Chat' })
@@ -140,7 +153,7 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
+		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
 
 		metricsService.capture('Chat Navigation', { type: 'History' })
@@ -150,23 +163,19 @@ registerAction2(class extends Action2 {
 	}
 })
 
-// Settings (API config) menu button
+
+// Settings gear
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
-			id: 'void.viewSettings',
+			id: 'void.settingsAction',
 			title: 'Void Settings',
 			icon: { id: 'settings-gear' },
 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(IVoidSidebarStateService)
-		const metricsService = accessor.get(IMetricsService)
-
-		metricsService.capture('Chat Navigation', { type: 'Settings' })
-
-		stateService.setState({ isHistoryOpen: false, currentTab: stateService.state.currentTab === 'settings' ? 'chat' : 'settings' })
-		stateService.fireBlurChat()
+		const commandService = accessor.get(ICommandService)
+		commandService.executeCommand(OPEN_VOID_SETTINGS_ACTION_ID)
 	}
 })

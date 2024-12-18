@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IRange } from '../../../editor/common/core/range'
-import { ProviderName, SettingsOfProvider } from './voidConfigTypes'
+import { ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
 export type OnText = (p: { newText: string, fullText: string }) => void

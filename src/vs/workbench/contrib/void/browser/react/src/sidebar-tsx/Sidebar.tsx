@@ -8,24 +8,22 @@ import { mountFnGenerator } from '../util/mountFnGenerator.js'
 // import { SidebarSettings } from './SidebarSettings.js';
 
 
-import { useSidebarState } from '../util/services.js';
+import { useIsDark, useSidebarState } from '../util/services.js';
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 // import { SidebarChat } from './SidebarChat.js';
 
 import '../styles.css'
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { SidebarChat } from './SidebarChat.js';
-import { ModelSelectionSettings } from './ModelSelectionSettings.js';
-import { VoidProviderSettings } from './VoidProviderSettings.js';
 import ErrorBoundary from './ErrorBoundary.js';
 
-const Sidebar = () => {
+export const Sidebar = ({ className }: { className: string }) => {
 	const sidebarState = useSidebarState()
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
-	// className='@@void-scope'
-	return <div className='@@void-scope'>
-		<div className={`flex flex-col w-full px-2 py-2`}>
+	const isDark = useIsDark()
+	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
+		<div className={`flex flex-col px-2 py-2 w-full h-full`}>
 
 			{/* <span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']
@@ -33,35 +31,31 @@ const Sidebar = () => {
 				sidebarStateService.setState({ currentTab: tabs[(index + 1) % tabs.length] as any })
 			}}>clickme {tab}</span> */}
 
-			<div className={`mb-2 ${isHistoryOpen ? '' : 'hidden'}`}>
+			<div className={`mb-2 w-full ${isHistoryOpen ? '' : 'hidden'}`}>
 				<ErrorBoundary>
 					<SidebarThreadSelector />
 				</ErrorBoundary>
 			</div>
 
-			<div className={`${tab === 'chat' ? '' : 'hidden'}`}>
+			<div className={`w-full h-full ${tab === 'chat' ? '' : 'hidden'}`}>
 				<ErrorBoundary>
 					<SidebarChat />
 				</ErrorBoundary>
 
-				<ErrorBoundary>
+				{/* <ErrorBoundary>
 					<ModelSelectionSettings />
-				</ErrorBoundary>
+				</ErrorBoundary> */}
 			</div>
 
-			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>
+			{/* <div className={`w-full h-full ${tab === 'settings' ? '' : 'hidden'}`}>
 				<ErrorBoundary>
 					<VoidProviderSettings />
 				</ErrorBoundary>
-			</div>
+			</div> */}
 
 		</div>
 	</div>
 
 
 }
-
-
-const mountFn = mountFnGenerator(Sidebar)
-export default mountFn
 

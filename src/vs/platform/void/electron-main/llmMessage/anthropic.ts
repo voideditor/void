@@ -4,9 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import Anthropic from '@anthropic-ai/sdk';
-import { parseMaxTokensStr } from './util.js';
 import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
-import { displayInfoOfSettingName } from '../../common/voidConfigTypes.js';
+import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
 
 // Anthropic
 type LLMMessageAnthropic = {
@@ -17,9 +16,9 @@ export const sendAnthropicMsg: _InternalSendLLMMessageFnType = ({ messages, onTe
 
 	const thisConfig = settingsOfProvider.anthropic
 
-	const maxTokens = parseMaxTokensStr(thisConfig.maxTokens)
+	const maxTokens = anthropicMaxPossibleTokens(modelName)
 	if (maxTokens === undefined) {
-		onError({ message: `Please set a value for ${displayInfoOfSettingName('anthropic', 'maxTokens').title}.`, fullError: null })
+		onError({ message: `Please set a value for Max Tokens.`, fullError: null })
 		return
 	}
 

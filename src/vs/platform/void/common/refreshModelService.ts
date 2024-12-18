@@ -5,7 +5,7 @@
 
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
-import { IVoidConfigStateService } from './voidConfigService.js';
+import { IVoidSettingsService } from './voidSettingsService.js';
 import { ILLMMessageService } from './llmMessageService.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
@@ -38,7 +38,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 	readonly onDidChangeState: Event<void> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
 	constructor(
-		@IVoidConfigStateService private readonly voidConfigStateService: IVoidConfigStateService,
+		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		@ILLMMessageService private readonly llmMessageService: ILLMMessageService,
 	) {
 		super()
@@ -46,11 +46,11 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 		// on mount, refresh ollama models
 		this.refreshOllamaModels()
 
-		// every time ollama.enabled changes, refresh ollama models
-		let relevantVals = () => [this.voidConfigStateService.state.settingsOfProvider.ollama.enabled, this.voidConfigStateService.state.settingsOfProvider.ollama.endpoint]
+		// every time ollama.enabled changes, refresh ollama models, like useEffect
+		let relevantVals = () => [this.voidSettingsService.state.settingsOfProvider.ollama.enabled, this.voidSettingsService.state.settingsOfProvider.ollama.endpoint]
 		let prevVals = relevantVals()
 		this._register(
-			this.voidConfigStateService.onDidChangeState(() => { // we might want to debounce this
+			this.voidSettingsService.onDidChangeState(() => { // we might want to debounce this
 				const newVals = relevantVals()
 				if (!eq(prevVals, newVals)) {
 					this.refreshOllamaModels()
@@ -75,7 +75,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 		this._cancelTimeout()
 
 		// if ollama is disabled, obivously done
-		if (this.voidConfigStateService.state.settingsOfProvider.ollama.enabled !== 'true') {
+		if (!this.voidSettingsService.state.settingsOfProvider.ollama.enabled) {
 			this._setState('done')
 			return
 		}
@@ -85,7 +85,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 		this.llmMessageService.ollamaList({
 			onSuccess: ({ models }) => {
-				this.voidConfigStateService.setSettingOfProvider('ollama', 'models', models.map(model => model.name))
+				this.voidSettingsService.setDefaultModels('ollama', models.map(model => model.name))
 				this._setState('done')
 			},
 			onError: ({ error }) => {

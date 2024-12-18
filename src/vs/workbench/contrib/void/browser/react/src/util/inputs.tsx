@@ -5,19 +5,23 @@
 
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useService } from '../util/services.js';
-import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles, defaultToggleStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
-import { SelectBox, unthemedSelectBoxStyles } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
+import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
+import { defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
+import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
+import { DomScrollableElement } from '../../../../../../../base/browser/ui/scrollbar/scrollableElement.js';
+import { ScrollableElementCreationOptions } from '../../../../../../../base/browser/ui/scrollbar/scrollableElementOptions.js';
 
 
 
-export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, propsFn, dispose, onCreateInstance }
+export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, propsFn, dispose, onCreateInstance, children, className }
 	: {
 		ctor: { new(...params: CtorParams): Instance },
 		propsFn: (container: HTMLDivElement) => CtorParams,
 		onCreateInstance: (instance: Instance) => IDisposable[],
 		dispose: (instance: Instance) => void,
+		children?: React.ReactNode,
+		className?: string
 	}
 ) => {
 	const containerRef = useRef<HTMLDivElement | null>(null);
@@ -31,19 +35,19 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 		}
 	}, [ctor, propsFn, dispose, onCreateInstance, containerRef])
 
-	return <div ref={containerRef} className='w-full' />
+	return <div ref={containerRef} className={className === undefined ? `w-full` : className}>{children}</div>
 }
 
 
 
-export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, multiline }: {
+export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, multiline, styles }: {
 	onChangeText: (value: string) => void;
+	styles?: Partial<IInputBoxStyles>,
 	onCreateInstance?: (instance: InputBox) => void | IDisposable[];
 	inputBoxRef?: { current: InputBox | null };
 	placeholder: string;
 	multiline: boolean;
 }) => {
-
 
 	const contextViewProvider = useService('contextViewService');
 
@@ -55,7 +59,9 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 			{
 				inputBoxStyles: {
 					...defaultInputBoxStyles,
-					inputBackground: 'transparent',
+					// inputBackground: 'transparent',
+					// inputBorder: 'none',
+					...styles,
 				},
 				placeholder,
 				tooltip: '',
@@ -100,6 +106,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
 	return <WidgetComponent
+		className='text-ellipsis whitespace-nowrap pr-6'
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container
@@ -125,7 +132,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 				instance.render(containerRef.current)
 
 			disposables.push(
-				instance.onDidSelect(e => { onChangeSelection(options[e.index].value ); })
+				instance.onDidSelect(e => { onChangeSelection(options[e.index].value); })
 			)
 
 			if (onCreateInstance) {
@@ -142,6 +149,32 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 };
 
 
+// export const VoidScrollableElt = ({ options, children }: { options: ScrollableElementCreationOptions, children: React.ReactNode }) => {
+// 	const instanceRef = useRef<DomScrollableElement | null>(null);
+// 	const [childrenPortal, setChildrenPortal] = useState<React.ReactNode | null>(null)
+
+// 	return <>
+// 		<WidgetComponent
+// 			ctor={DomScrollableElement}
+// 			propsFn={useCallback((container) => {
+// 				return [container, options] as const;
+// 			}, [options])}
+// 			onCreateInstance={useCallback((instance: DomScrollableElement) => {
+// 				instanceRef.current = instance;
+// 				setChildrenPortal(createPortal(children, instance.getDomNode()))
+// 				return []
+// 			}, [setChildrenPortal, children])}
+// 			dispose={useCallback((instance: DomScrollableElement) => {
+// 				console.log('calling dispose!!!!')
+// 				// instance.dispose();
+// 				// instance.getDomNode().remove()
+// 			}, [])}
+// 		>{children}</WidgetComponent>
+
+// 		{childrenPortal}
+
+// 	</>
+// }
 
 // export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, options }: {
 // 	initVal: T;

@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { CodeSelection } from '../registerThreads.js';
+import { CodeSelection } from '../threadHistoryService.js';
 
 export const stringifySelections = (selections: CodeSelection[]) => {
 

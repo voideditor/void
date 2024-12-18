@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { diffLines } from './react/out/util/diffLines.js'
+import { diffLines } from '../react/out/diff/index.js'
 
 export type ComputedDiff = {
 	type: 'edit';

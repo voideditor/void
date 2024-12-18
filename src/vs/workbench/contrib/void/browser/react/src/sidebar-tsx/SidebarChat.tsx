@@ -7,7 +7,7 @@ import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } 
 
 
 import { useSettingsState, useService, useSidebarState, useThreadsState } from '../util/services.js';
-import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
+import { generateCtrlLInstructions, generateDiffInstructions } from '../../../prompt/systemPrompts.js';
 import { userInstructionsStr } from '../../../prompt/stringifySelections.js';
 import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../threadHistoryService.js';
 
@@ -325,7 +325,7 @@ export const SidebarChat = () => {
 
 
 		// add system message to chat history
-		const systemPromptElt: ChatMessage = { role: 'system', content: generateDiffInstructions }
+		const systemPromptElt: ChatMessage = { role: 'system', content: generateCtrlLInstructions }
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
 		// add user's message to chat history

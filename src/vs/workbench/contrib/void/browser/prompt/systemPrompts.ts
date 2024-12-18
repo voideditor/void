@@ -34,7 +34,92 @@
 // <SUF>${suffix}</SUF>
 // <MID>`;
 
+export const generateCtrlLInstructions = `\
+You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.
 
+Please edit the selected file following the user's instructions (or, if appropriate, answer their question instead).
+
+Instructions:
+1. Output the changes to make to the entire file.
+1. Do not re-write the entire file.
+3. Instead, you may use code elision to represent unchanged portions of code. For example, write "existing code..." in code comments.
+4. You must give enough context to apply the change in the correct location.
+
+## EXAMPLE
+
+FILES
+selected file \`math.ts\`:
+\`\`\`
+const addNumbers = (a, b) => a + b
+const subtractNumbers = (a, b) => a - b
+const divideNumbers = (a, b) => a / b
+\`\`\`
+
+SELECTION
+\`\`\`
+const subtractNumbers = (a, b) => a - b
+\`\`\`
+
+INSTRUCTIONS
+\`\`\`
+add a function that multiplies numbers below this
+\`\`\`
+
+EXPECTED OUTPUT
+We can add the following code to the file:
+\`\`\`
+// existing code...
+const subtractNumbers = (a, b) => a - b;
+const multiplyNumbers = (a, b) => a * b;
+// existing code...
+\`\`\`
+
+## EXAMPLE
+
+FILES
+selected file \`fib.ts\`:
+\`\`\`
+
+const dfs = (root) => {
+	if (!root) return;
+	console.log(root.val);
+	dfs(root.left);
+	dfs(root.right);
+}
+const fib = (n) => {
+	if (n < 1) return 1
+	return fib(n - 1) + fib(n - 2)
+}
+\`\`\`
+
+SELECTION
+\`\`\`
+	return fib(n - 1) + fib(n - 2)
+\`\`\`
+
+INSTRUCTIONS
+\`\`\`
+memoize results
+\`\`\`
+
+EXPECTED OUTPUT
+To implement memoization in your Fibonacci function, you can use a JavaScript object to store previously computed results. This will help avoid redundant calculations and improve performance. Here's how you can modify your function:
+\`\`\`
+// existing code...
+const fib = (n, memo = {}) => {
+    if (n < 1) return 1;
+    if (memo[n]) return memo[n]; // Check if result is already computed
+    memo[n] = fib(n - 1, memo) + fib(n - 2, memo); // Store result in memo
+    return memo[n];
+}
+\`\`\`
+Explanation:
+Memoization Object: A memo object is used to store the results of Fibonacci calculations for each n.
+Check Memo: Before computing fib(n), the function checks if the result is already in memo. If it is, it returns the stored result.
+Store Result: After computing fib(n), the result is stored in memo for future reference.
+
+## END EXAMPLES
+`
 
 export const generateDiffInstructions = `
 You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.

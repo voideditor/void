@@ -3,20 +3,23 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-// register keybinds
-import './registerActions.js'
 
 // register inline diffs
-import './registerInlineDiffs.js'
+import './inlineDiffsService.js'
 
-// register Sidebar chat
-import './registerSidebar.js'
+// register Sidebar pane, state, actions (keybinds, menus)
+import './sidebarActions.js'
+import './sidebarPane.js'
+import './sidebarStateService.js'
 
 // register Thread History
-import './registerThreads.js'
+import './threadHistoryService.js'
 
 // register Autocomplete
-import './registerAutocomplete.js'
+import './autocompleteService.js'
+
+// settings pane
+import './voidSettingsPane.js'
 
 // register css
 import './media/void.css'

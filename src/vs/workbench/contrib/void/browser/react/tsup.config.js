@@ -7,8 +7,9 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
 	entry: [
-		'./src2/sidebar-tsx/Sidebar.tsx',
-		'./src2/util/diffLines.tsx',
+		'./src2/sidebar-tsx/index.tsx',
+		'./src2/void-settings-tsx/index.tsx',
+		'./src2/diff/index.tsx',
 	],
 	outDir: './out',
 	format: ['esm'],

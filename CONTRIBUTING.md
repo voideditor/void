@@ -8,7 +8,7 @@ There are a few ways to contribute:
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
 - ⭐️ If you want to build your AI tool into Void, feel free to get in touch! It's very easy to extend Void, and the UX you create will be much more natural than a VSCode Extension.
 
-Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`. 
+Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`.
 
 
 
@@ -75,6 +75,7 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 - Make sure you follow the prerequisite steps.
 - Make sure you have the same NodeJS version as `.nvmrc`.
 - If you make any React changes, you must re-run `npm run buildreact` and re-build.
+- If you get `"TypeError: Failed to fetch dynamically imported module: vscode-file://vscode-app/.../workbench.desktop.main.js", source: file:///.../bootstrap-window.js`, make sure all imports end with `.js`.
 - If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). For building questions, you can also refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
 
@@ -101,7 +102,7 @@ We don't usually recommend bundling. Instead, you should probably just build. If
 
 # Guidelines
 
-We're always glad to talk about new ideas, help you get set up, and make sure your changes align with our vision for the project! Feel free to shoot Mat or Andrew a message, or start chatting with us in the `#contributing` channel of our [Discord](https://discord.gg/RSNjgaugJs). 
+We're always glad to talk about new ideas, help you get set up, and make sure your changes align with our vision for the project! Feel free to shoot Mat or Andrew a message, or start chatting with us in the `#contributing` channel of our [Discord](https://discord.gg/RSNjgaugJs).
 
 
 ## Submitting a Pull Request

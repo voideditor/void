@@ -4,43 +4,53 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { useState, useEffect } from 'react'
-import { VoidSidebarState, ReactServicesType } from '../../../registerSidebar.js'
-import { ThreadsState } from '../../../registerThreads.js'
-import { SettingsOfProvider } from '../../../../../../../platform/void/common/voidConfigTypes.js'
+import { ThreadsState } from '../../../threadHistoryService.js'
+import { SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import { RefreshModelState } from '../../../../../../../platform/void/common/refreshModelService.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
+import { ReactServicesType } from '../../../helpers/reactServicesHelper.js'
+import { VoidSidebarState } from '../../../sidebarStateService.js'
+import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
+import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
 
 let services: ReactServicesType
 
-// even if React hasn't mounted yet, these variables are always updated to the latest state:
+// even if React hasn't mounted yet, the variables are always updated to the latest state.
+// React listens by adding a setState function to these listeners.
 let sidebarState: VoidSidebarState
-let threadsState: ThreadsState
-let settingsOfProvider: SettingsOfProvider
-let refreshModelState: RefreshModelState
-
-// React listens by adding a setState function to these:
 const sidebarStateListeners: Set<(s: VoidSidebarState) => void> = new Set()
+
+let threadsState: ThreadsState
 const threadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
-const settingsOfProviderListeners: Set<(s: SettingsOfProvider) => void> = new Set()
+
+let settingsState: VoidSettingsState
+const settingsStateListeners: Set<(s: VoidSettingsState) => void> = new Set()
+
+let refreshModelState: RefreshModelState
 const refreshModelStateListeners: Set<(s: RefreshModelState) => void> = new Set()
+
+let colorThemeState: ColorScheme
+const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
-
 let wasCalled = false
-
 export const _registerServices = (services_: ReactServicesType) => {
 
 	const disposables: IDisposable[] = []
 
-	if (wasCalled) console.error(`⚠️ Void _registerServices was called again! It should only be called once.`)
+	// don't register services twice
+	if (wasCalled) {
+		return
+		// console.error(`⚠️ Void _registerServices was called again! It should only be called once.`)
+	}
 	wasCalled = true
 
 	services = services_
-	const { sidebarStateService, configStateService, threadsStateService, refreshModelService } = services
+	const { sidebarStateService, settingsStateService, threadsStateService, refreshModelService, themeService } = services
 
 	sidebarState = sidebarStateService.state
 	disposables.push(
@@ -58,11 +68,11 @@ export const _registerServices = (services_: ReactServicesType) => {
 		})
 	)
 
-	settingsOfProvider = configStateService.state.settingsOfProvider
+	settingsState = settingsStateService.state
 	disposables.push(
-		configStateService.onDidChangeState(() => {
-			settingsOfProvider = configStateService.state.settingsOfProvider
-			settingsOfProviderListeners.forEach(l => l(settingsOfProvider))
+		settingsStateService.onDidChangeState(() => {
+			settingsState = settingsStateService.state
+			settingsStateListeners.forEach(l => l(settingsState))
 		})
 	)
 
@@ -71,6 +81,14 @@ export const _registerServices = (services_: ReactServicesType) => {
 		refreshModelService.onDidChangeState(() => {
 			refreshModelState = refreshModelService.state
 			refreshModelStateListeners.forEach(l => l(refreshModelState))
+		})
+	)
+
+	colorThemeState = themeService.getColorTheme().type
+	disposables.push(
+		themeService.onDidColorThemeChange(theme => {
+			colorThemeState = theme.type
+			colorThemeStateListeners.forEach(l => l(colorThemeState))
 		})
 	)
 
@@ -98,12 +116,12 @@ export const useSidebarState = () => {
 	return s
 }
 
-export const useConfigState = () => {
-	const [s, ss] = useState(settingsOfProvider)
+export const useSettingsState = () => {
+	const [s, ss] = useState(settingsState)
 	useEffect(() => {
-		ss(settingsOfProvider)
-		settingsOfProviderListeners.add(ss)
-		return () => { settingsOfProviderListeners.delete(ss) }
+		ss(settingsState)
+		settingsStateListeners.add(ss)
+		return () => { settingsStateListeners.delete(ss) }
 	}, [ss])
 	return s
 }
@@ -127,4 +145,22 @@ export const useRefreshModelState = () => {
 		return () => { refreshModelStateListeners.delete(ss) }
 	}, [ss])
 	return s
+}
+
+
+
+
+
+export const useIsDark = () => {
+	const [s, ss] = useState(colorThemeState)
+	useEffect(() => {
+		ss(colorThemeState)
+		colorThemeStateListeners.add(ss)
+		return () => { colorThemeStateListeners.delete(ss) }
+	}, [ss])
+
+	// s is the theme, return isDark instead of s
+	const isDark = s === ColorScheme.DARK || s === ColorScheme.HIGH_CONTRAST_DARK
+	return isDark
+
 }

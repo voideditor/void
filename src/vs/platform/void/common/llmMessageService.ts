@@ -11,7 +11,7 @@ import { generateUuid } from '../../../base/common/uuid.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { Event } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
-import { IVoidConfigStateService } from './voidConfigService.js';
+import { IVoidSettingsService } from './voidSettingsService.js';
 // import { INotificationService } from '../../notification/common/notification.js';
 
 // calls channel to implement features
@@ -42,7 +42,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 	constructor(
 		@IMainProcessService private readonly mainProcessService: IMainProcessService, // used as a renderer (only usable on client side)
-		@IVoidConfigStateService private readonly voidConfigStateService: IVoidConfigStateService,
+		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		// @INotificationService private readonly notificationService: INotificationService,
 	) {
 		super()
@@ -79,7 +79,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		const { featureName } = proxyParams
 
 		// end early if no provider
-		const modelSelection = this.voidConfigStateService.state.modelSelectionOfFeature[featureName]
+		const modelSelection = this.voidSettingsService.state.modelSelectionOfFeature[featureName]
 		if (modelSelection === null) {
 			onError({ message: 'Please add a Provider in Settings!', fullError: null })
 			return null
@@ -92,7 +92,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this.onFinalMessageHooks_llm[requestId_] = onFinalMessage
 		this.onErrorHooks_llm[requestId_] = onError
 
-		const { settingsOfProvider } = this.voidConfigStateService.state
+		const { settingsOfProvider } = this.voidSettingsService.state
 
 		// params will be stripped of all its functions over the IPC channel
 		this.channel.call('sendLLMMessage', {
@@ -116,7 +116,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 	ollamaList = (params: ServiceOllamaListParams) => {
 		const { onSuccess, onError, ...proxyParams } = params
 
-		const { settingsOfProvider } = this.voidConfigStateService.state
+		const { settingsOfProvider } = this.voidSettingsService.state
 
 		// add state for request id
 		const requestId_ = generateUuid();

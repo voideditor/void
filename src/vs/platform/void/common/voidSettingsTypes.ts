@@ -170,6 +170,9 @@ export const titleOfProviderName = (providerName: ProviderName) => {
 type DisplayInfo = {
 	title: string,
 	placeholder: string,
+
+	helpfulUrl?: string,
+	urlPurpose?: string,
 }
 export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
 	if (settingName === 'apiKey') {
@@ -182,6 +185,16 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 							providerName === 'groq' ? 'gsk_key...' :
 								providerName === 'openAICompatible' ? 'sk-key...' :
 									'(never)',
+
+			helpfulUrl: providerName === 'anthropic' ? 'https://console.anthropic.com/settings/keys' :
+				providerName === 'openAI' ? 'https://platform.openai.com/api-keys' :
+					providerName === 'openRouter' ? 'https://openrouter.ai/settings/keys' :
+						providerName === 'gemini' ? 'https://aistudio.google.com/apikey' :
+							providerName === 'groq' ? 'https://console.groq.com/keys' :
+								providerName === 'openAICompatible' ? undefined :
+									undefined,
+
+			urlPurpose: 'to get your API key.',
 		}
 	}
 	else if (settingName === 'endpoint') {
@@ -189,9 +202,16 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			title: providerName === 'ollama' ? 'Your Ollama endpoint' :
 				providerName === 'openAICompatible' ? 'baseURL' // (do not include /chat/completions)
 					: '(never)',
+
 			placeholder: providerName === 'ollama' ? customProviderSettingsDefaults.ollama.endpoint
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
+
+			helpfulUrl: providerName === 'ollama' ? 'https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network'
+				: providerName === 'openAICompatible' ? undefined
+					: undefined,
+
+			urlPurpose: 'for more information.',
 		}
 	}
 	else if (settingName === 'enabled') {

@@ -110,8 +110,8 @@ export const customProviderSettings = {
 		apiKey: '',
 	},
 	openAICompatible: {
-		apiKey: '',
 		endpoint: '',
+		apiKey: '',
 	},
 	gemini: {
 		apiKey: '',

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
 import { ProviderName, SettingName, displayInfoOfSettingName, titleOfProviderName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { VoidInputBox, VoidSelectBox } from '../util/inputs.js'
+import { VoidCheckBox, VoidInputBox, VoidSelectBox, VoidSwitch } from '../util/inputs.js'
 import { useIsDark, useRefreshModelListener, useRefreshModelState, useService, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check } from 'lucide-react'
 import { RefreshableProviderName, refreshableProviderNames } from '../../../../../../../platform/void/common/refreshModelService.js'
@@ -226,7 +226,29 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 	return <>
 		<div className='flex items-center gap-4'>
 			<h3 className='text-xl'>{titleOfProviderName(providerName)}</h3>
-			<button onClick={() => { voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabled) }}>{enabled ? '✅' : '❌'}</button>
+			<VoidSwitch
+				value={!!enabled}
+				onChange={
+					useCallback(() => {
+						const enabledRef = voidSettingsService.state.settingsOfProvider[providerName].enabled
+						voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabledRef)
+					}, [voidSettingsService, providerName])}
+				size='xs'
+				disabled={false}
+				label=''
+			/>
+			{/* <VoidCheckBox
+				checked={!!enabled}
+				onChange={
+					useCallback(() => {
+						const enabledRef = voidSettingsService.state.settingsOfProvider[providerName].enabled
+						voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabledRef)
+					}, [voidSettingsService, providerName])}
+			/> */}
+
+			{/* <button className='flex items-center'
+				onClick={() => { voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabled) }}
+			>{enabled ? '✅' : '❌'}</button> */}
 		</div>
 		{/* settings besides models (e.g. api key) */}
 		{settingNames.map((settingName, i) => {
@@ -254,10 +276,12 @@ export const VoidFeatureFlagSettings = () => {
 			const value = voidSettingsState.featureFlagSettings[flagName]
 			const { description } = displayInfoOfFeatureFlag(flagName)
 			return <div key={flagName} className='hover:bg-black/10 hover:dark:bg-gray-200/10 rounded-sm overflow-hidden py-1 px-3 my-1'>
-				<div className='flex items-center gap-4'>
-					<button onClick={() => { voidSettingsService.setFeatureFlag(flagName, !value) }}>
-						{value ? '✅' : '❌'}
-					</button>
+				<div className='flex items-center'>
+					<VoidCheckBox
+						label=''
+						value={value}
+						onClick={() => { voidSettingsService.setFeatureFlag(flagName, !value) }}
+					/>
 					<h4 className='text-sm'>{description}</h4>
 				</div>
 			</div>

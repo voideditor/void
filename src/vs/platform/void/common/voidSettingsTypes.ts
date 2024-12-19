@@ -7,14 +7,14 @@
 
 
 
-export type ModelInfo = {
+export type VoidModelInfo = {
 	modelName: string,
 	isDefault: boolean, // whether or not it's a default for its provider
 	isHidden: boolean, // whether or not the user is hiding it
 }
 
 
-export const modelInfoOfDefaultNames = (modelNames: string[]): ModelInfo[] => {
+export const modelInfoOfDefaultNames = (modelNames: string[]): VoidModelInfo[] => {
 	const isHidden = modelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
 	return modelNames.map((modelName, i) => ({ modelName, isDefault: true, isHidden }))
 }
@@ -96,7 +96,7 @@ type UnionOfKeys<T> = T extends T ? keyof T : never;
 
 
 
-export const customProviderSettingsDefaults = {
+export const customProviderSettings = {
 	anthropic: {
 		apiKey: '',
 	},
@@ -121,19 +121,20 @@ export const customProviderSettingsDefaults = {
 	}
 } as const
 
-export type ProviderName = keyof typeof customProviderSettingsDefaults
-export const providerNames = Object.keys(customProviderSettingsDefaults) as ProviderName[]
+
+export type ProviderName = keyof typeof customProviderSettings
+export const providerNames = Object.keys(customProviderSettings) as ProviderName[]
 
 
-type CustomSettingName = UnionOfKeys<typeof customProviderSettingsDefaults[ProviderName]>
 
+type CustomSettingName = UnionOfKeys<typeof customProviderSettings[ProviderName]>
 type CustomProviderSettings<providerName extends ProviderName> = {
-	[k in CustomSettingName]: k extends keyof typeof customProviderSettingsDefaults[providerName] ? string : undefined
+	[k in CustomSettingName]: k extends keyof typeof customProviderSettings[providerName] ? string : undefined
 }
 
 type CommonProviderSettings = {
-	enabled: boolean,
-	models: ModelInfo[], // if null, user can type in any string as a model
+	enabled: boolean | undefined, // undefined initially
+	models: VoidModelInfo[],
 }
 
 export type SettingsForProvider<providerName extends ProviderName> = CustomProviderSettings<providerName> & CommonProviderSettings
@@ -145,6 +146,14 @@ export type SettingsOfProvider = {
 
 
 export type SettingName = keyof SettingsForProvider<ProviderName>
+
+
+
+
+export const customSettingNamesOfProvider = (providerName: ProviderName) => {
+	return Object.keys(customProviderSettings[providerName]) as CustomSettingName[]
+}
+
 
 
 
@@ -203,7 +212,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				providerName === 'openAICompatible' ? 'baseURL' // (do not include /chat/completions)
 					: '(never)',
 
-			placeholder: providerName === 'ollama' ? customProviderSettingsDefaults.ollama.endpoint
+			placeholder: providerName === 'ollama' ? customProviderSettings.ollama.endpoint
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
 
@@ -267,46 +276,46 @@ export const voidInitModelOptions = {
 // used when waiting and for a type reference
 export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
+		enabled: undefined,
 		...defaultCustomSettings,
-		...customProviderSettingsDefaults.anthropic,
+		...customProviderSettings.anthropic,
 		...voidInitModelOptions.anthropic,
-		enabled: false,
 	},
 	openAI: {
+		enabled: undefined,
 		...defaultCustomSettings,
-		...customProviderSettingsDefaults.openAI,
+		...customProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
-		enabled: false,
 	},
 	gemini: {
 		...defaultCustomSettings,
-		...customProviderSettingsDefaults.gemini,
+		...customProviderSettings.gemini,
 		...voidInitModelOptions.gemini,
-		enabled: false,
+		enabled: undefined,
 	},
 	groq: {
 		...defaultCustomSettings,
-		...customProviderSettingsDefaults.groq,
+		...customProviderSettings.groq,
 		...voidInitModelOptions.groq,
-		enabled: false,
+		enabled: undefined,
 	},
 	ollama: {
 		...defaultCustomSettings,
-		...customProviderSettingsDefaults.ollama,
+		...customProviderSettings.ollama,
 		...voidInitModelOptions.ollama,
-		enabled: false,
+		enabled: undefined,
 	},
 	openRouter: {
 		...defaultCustomSettings,
-		...customProviderSettingsDefaults.openRouter,
+		...customProviderSettings.openRouter,
 		...voidInitModelOptions.openRouter,
-		enabled: false,
+		enabled: undefined,
 	},
 	openAICompatible: {
 		...defaultCustomSettings,
-		...customProviderSettingsDefaults.openAICompatible,
+		...customProviderSettings.openAICompatible,
 		...voidInitModelOptions.openAICompatible,
-		enabled: false,
+		enabled: undefined,
 	},
 }
 
@@ -325,4 +334,36 @@ export type ModelSelectionOfFeature = {
 }
 export type FeatureName = keyof ModelSelectionOfFeature
 export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete'] as const
+
+
+
+
+
+
+
+
+
+
+export type FeatureFlagSettings = {
+	autoRefreshModels: boolean; // automatically scan for local models and enable when found
+}
+export const defaultFeatureFlagSettings: FeatureFlagSettings = {
+	autoRefreshModels: true,
+}
+
+export type FeatureFlagName = keyof FeatureFlagSettings
+export const featureFlagNames = Object.keys(defaultFeatureFlagSettings) as FeatureFlagName[]
+
+type FeatureFlagDisplayInfo = {
+	description: string,
+}
+export const displayInfoOfFeatureFlag = (featureFlag: FeatureFlagName): FeatureFlagDisplayInfo => {
+	if (featureFlag === 'autoRefreshModels') {
+		return {
+			description: 'Automatically scan for and enable local models.',
+		}
+	}
+	throw new Error(`featureFlagInfo: Unknown feature flag: "${featureFlag}"`)
+}
+
 

@@ -18,7 +18,7 @@ export default defineConfig({
 	// dts: true,
 	// sourcemap: true,
 
-	clean: true,
+	clean: false,
 	platform: 'browser', // 'node'
 	target: 'esnext',
 	injectStyle: true, // bundle css into the output file

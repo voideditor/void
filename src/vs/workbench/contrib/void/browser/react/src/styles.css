@@ -16,6 +16,11 @@
 	}
 }
 
+* {
+	outline: none !important;
+}
+
+
 
 /* html {
 	font-size: var(--vscode-font-size);

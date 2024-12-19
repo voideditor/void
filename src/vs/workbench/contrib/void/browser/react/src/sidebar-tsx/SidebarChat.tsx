@@ -483,7 +483,7 @@ export const SidebarChat = () => {
 						//     .split(' ')
 						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`) // apply styles to ancestor input and textarea elements
 						//     .join(' ');
-						`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_textarea]:!void-min-h-[81px] @@[&_textarea]:!void-max-h-[500px]@@[&_div.monaco-inputbox]:!void- @@[&_div.monaco-inputbox]:!void-outline-none`
+						`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_textarea]:!void-min-h-[81px] @@[&_textarea]:!void-max-h-[500px] @@[&_div.monaco-inputbox]:!void-outline-none`
 					}
 				>
 

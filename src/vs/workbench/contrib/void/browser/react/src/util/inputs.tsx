@@ -96,15 +96,15 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 export const VoidSwitch = ({
 	value,
 	onChange,
+	size = 'md',
 	label,
 	disabled = false,
-	size = 'md'
 }: {
 	value: boolean;
 	onChange: (value: boolean) => void;
 	label?: string;
 	disabled?: boolean;
-	size?: 'xs' | 'sm' | 'msm' | 'md';
+	size?: 'xs' | 'sm' | 'sm+' | 'md';
 }) => {
 	return (
 		<label className="inline-flex items-center cursor-pointer">
@@ -113,10 +113,10 @@ export const VoidSwitch = ({
 				className={`
 			relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out
 			${value ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'}
-			${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+			${disabled ? 'opacity-25' : ''}
 			${size === 'xs' ? 'h-4 w-7' : ''}
 			${size === 'sm' ? 'h-5 w-9' : ''}
-			${size === 'msm' ? 'h-5 w-10' : ''}
+			${size === 'sm+' ? 'h-5 w-10' : ''}
 			${size === 'md' ? 'h-6 w-11' : ''}
 		  `}
 			>
@@ -125,11 +125,11 @@ export const VoidSwitch = ({
 			  inline-block transform rounded-full bg-white dark:bg-gray-900 shadow transition-transform duration-200 ease-in-out
 			  ${size === 'xs' ? 'h-2.5 w-2.5' : ''}
 			  ${size === 'sm' ? 'h-3 w-3' : ''}
-			  ${size === 'msm' ? 'h-3.5 w-3.5' : ''}
+			  ${size === 'sm+' ? 'h-3.5 w-3.5' : ''}
 			  ${size === 'md' ? 'h-4 w-4' : ''}
 			  ${size === 'xs' ? (value ? 'translate-x-3.5' : 'translate-x-0.5') : ''}
 			  ${size === 'sm' ? (value ? 'translate-x-5' : 'translate-x-1') : ''}
-			  ${size === 'msm' ? (value ? 'translate-x-6' : 'translate-x-1') : ''}
+			  ${size === 'sm+' ? (value ? 'translate-x-6' : 'translate-x-1') : ''}
 			  ${size === 'md' ? (value ? 'translate-x-6' : 'translate-x-1') : ''}
 			`}
 				/>

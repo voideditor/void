@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, titleOfProviderName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, titleOfProviderName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidCheckBox, VoidInputBox, VoidSelectBox, VoidSwitch } from '../util/inputs.js'
 import { useIsDark, useRefreshModelListener, useRefreshModelState, useService, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check } from 'lucide-react'
-import { RefreshableProviderName, refreshableProviderNames } from '../../../../../../../platform/void/common/refreshModelService.js'
 
 
 
@@ -69,7 +68,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 	const providerOptions = useMemo(() => providerNames.map(providerName => ({ text: titleOfProviderName(providerName), value: providerName })), [providerNames])
 
 	return <>
-		<div className='flex justify-center items-center gap-4'>
+		<div className='flex items-center gap-4'>
 			{/* model */}
 			<div className='max-w-40 w-full'>
 				<VoidInputBox
@@ -89,8 +88,9 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 			</div>
 
 			{/* button */}
-			<div className='max-w-40 w-full'>
+			<div className='max-w-40'>
 				<button
+					className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
 					onClick={() => {
 						const providerName = providerNameRef.current
 						const modelName = modelNameRef.current
@@ -114,11 +114,14 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 
 					}}>Add model</button>
 			</div>
+
+			{!errorString ? null : <div className='text-red-500 truncate whitespace-nowrap'>
+				{errorString}
+			</div>}
+
+
 		</div>
 
-		{!errorString ? null : <div className='text-center text-red-500'>
-			{errorString}
-		</div>}
 	</>
 
 }
@@ -129,7 +132,10 @@ const AddModelMenuFull = () => {
 	return <div className='my-2 hover:bg-black/10 dark:hover:bg-gray-200/10 py-1 px-3 rounded-sm overflow-hidden '>
 		{open ?
 			<AddModelMenu onSubmit={() => { setOpen(false) }} />
-			: <button className='' onClick={() => setOpen(true)}>Add Model</button>
+			: <button
+				className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
+				onClick={() => setOpen(true)}
+			>Add Model</button>
 		}
 	</div>
 }
@@ -148,24 +154,32 @@ export const ModelDump = () => {
 		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName, providerEnabled: !!providerSettings.enabled })))
 	}
 
+	// sort by hidden
+	modelDump.sort((a, b) => {
+		return Number(b.providerEnabled) - Number(a.providerEnabled)
+	})
+
 	return <div className=''>
 		{modelDump.map(m => {
 			const { isHidden, isDefault, modelName, providerName, providerEnabled } = m
 
 			return <div key={`${modelName}${providerName}`} className='flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-200/10 py-1 px-3 rounded-sm overflow-hidden cursor-default'>
 				{/* left part is width:full */}
-				<div className='w-full flex items-center gap-4'>
+				<div className={`w-full flex items-center gap-4`}>
 					<span>{`${modelName} (${providerName})`}</span>
 				</div>
 				{/* right part is anything that fits */}
 				<div className='w-fit flex items-center gap-4'>
 					<span className='opacity-50 whitespace-nowrap'>{isDefault ? '' : '(custom model)'}</span>
-					<button disabled={!providerEnabled} onClick={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}>
-						{!providerEnabled ? '🌑' // provider disabled
-							: isHidden ? '❌' // model is disabled
-								: '✅'}
-					</button>
-					<div className='w-5 flex items-center justify-center'>
+
+					<VoidSwitch
+						value={!isHidden}
+						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}
+						disabled={!providerEnabled}
+						size='sm'
+					/>
+
+					<div className={`w-5 flex items-center justify-center`}>
 						{isDefault ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
 					</div>
 				</div>
@@ -180,16 +194,16 @@ export const ModelDump = () => {
 
 const ProviderSetting = ({ providerName, settingName }: { providerName: ProviderName, settingName: SettingName }) => {
 
-	const { title, placeholder, } = displayInfoOfSettingName(providerName, settingName)
+	const providerTitle = titleOfProviderName(providerName)
+	const { title: settingTitle, placeholder, } = displayInfoOfSettingName(providerName, settingName)
 	const voidSettingsService = useService('settingsStateService')
-
 
 	let weChangedTextRef = false
 
 	return <ErrorBoundary>
 		<div className='my-1'>
 			<VoidInputBox
-				placeholder={`Enter your ${title} here (${placeholder}).`}
+				placeholder={`Enter your ${providerTitle} ${settingTitle} (${placeholder}).`}
 				onChangeText={useCallback((newVal) => {
 					if (weChangedTextRef) return
 					voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
@@ -213,7 +227,6 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 			/>
 		</div>
 	</ErrorBoundary>
-
 }
 
 const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
@@ -223,9 +236,10 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 	const { enabled } = voidSettingsState.settingsOfProvider[providerName]
 	const settingNames = customSettingNamesOfProvider(providerName)
 
-	return <>
-		<div className='flex items-center gap-4'>
-			<h3 className='text-xl'>{titleOfProviderName(providerName)}</h3>
+	return <div className='my-4'>
+		<div className='flex items-center w-full gap-4'>
+			<h3 className='text-xl truncate'>{titleOfProviderName(providerName)}</h3>
+			{/* enable provider switch */}
 			<VoidSwitch
 				value={!!enabled}
 				onChange={
@@ -233,28 +247,16 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 						const enabledRef = voidSettingsService.state.settingsOfProvider[providerName].enabled
 						voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabledRef)
 					}, [voidSettingsService, providerName])}
-				size='xs'
-				disabled={false}
-				label=''
+				size='sm+'
 			/>
-			{/* <VoidCheckBox
-				checked={!!enabled}
-				onChange={
-					useCallback(() => {
-						const enabledRef = voidSettingsService.state.settingsOfProvider[providerName].enabled
-						voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabledRef)
-					}, [voidSettingsService, providerName])}
-			/> */}
-
-			{/* <button className='flex items-center'
-				onClick={() => { voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabled) }}
-			>{enabled ? '✅' : '❌'}</button> */}
 		</div>
-		{/* settings besides models (e.g. api key) */}
-		{settingNames.map((settingName, i) => {
-			return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
-		})}
-	</>
+		<div className='px-0'>
+			{/* settings besides models (e.g. api key) */}
+			{settingNames.map((settingName, i) => {
+				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
+			})}
+		</div>
+	</div>
 }
 
 
@@ -311,10 +313,10 @@ export const Settings = () => {
 
 					{/* tabs */}
 					<div className='flex flex-col w-full max-w-32'>
-						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
+						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
 							onClick={() => { setTab('models') }}
 						>Models</button>
-						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'features' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
+						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'features' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
 							onClick={() => { setTab('features') }}
 						>Features</button>
 					</div>
@@ -327,18 +329,17 @@ export const Settings = () => {
 					<div className='w-full overflow-y-auto'>
 
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
-							<h2 className={`text-3xl mb-2`}>Models</h2>
+							<h2 className={`text-3xl mb-2`}>Providers</h2>
+							<ErrorBoundary>
+								<VoidProviderSettings />
+							</ErrorBoundary>
+
+							<h2 className={`text-3xl mb-2 mt-4`}>Models</h2>
 							<ErrorBoundary>
 								<ModelDump />
 								<AddModelMenuFull />
 								<RefreshableModels />
 							</ErrorBoundary>
-							<h2 className={`text-3xl mt-4 mb-2`}>Providers</h2>
-							<div className='px-3'>
-								<ErrorBoundary>
-									<VoidProviderSettings />
-								</ErrorBoundary>
-							</div>
 						</div>
 
 						<div className={`${tab !== 'features' ? 'hidden' : ''}`}>

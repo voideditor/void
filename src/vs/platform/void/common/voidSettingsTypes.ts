@@ -96,7 +96,7 @@ type UnionOfKeys<T> = T extends T ? keyof T : never;
 
 
 
-export const customProviderSettings = {
+export const defaultProviderSettings = {
 	anthropic: {
 		apiKey: '',
 	},
@@ -122,15 +122,19 @@ export const customProviderSettings = {
 } as const
 
 
-export type ProviderName = keyof typeof customProviderSettings
-export const providerNames = Object.keys(customProviderSettings) as ProviderName[]
+export type ProviderName = keyof typeof defaultProviderSettings
+export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
 
 
-type CustomSettingName = UnionOfKeys<typeof customProviderSettings[ProviderName]>
+type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
 type CustomProviderSettings<providerName extends ProviderName> = {
-	[k in CustomSettingName]: k extends keyof typeof customProviderSettings[providerName] ? string : undefined
+	[k in CustomSettingName]: k extends keyof typeof defaultProviderSettings[providerName] ? string : undefined
 }
+export const customSettingNamesOfProvider = (providerName: ProviderName) => {
+	return Object.keys(defaultProviderSettings[providerName]) as CustomSettingName[]
+}
+
 
 type CommonProviderSettings = {
 	enabled: boolean | undefined, // undefined initially
@@ -148,11 +152,6 @@ export type SettingsOfProvider = {
 export type SettingName = keyof SettingsForProvider<ProviderName>
 
 
-
-
-export const customSettingNamesOfProvider = (providerName: ProviderName) => {
-	return Object.keys(customProviderSettings[providerName]) as CustomSettingName[]
-}
 
 
 
@@ -208,11 +207,11 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	}
 	else if (settingName === 'endpoint') {
 		return {
-			title: providerName === 'ollama' ? 'Your Ollama endpoint' :
+			title: providerName === 'ollama' ? 'Endpoint' :
 				providerName === 'openAICompatible' ? 'baseURL' // (do not include /chat/completions)
 					: '(never)',
 
-			placeholder: providerName === 'ollama' ? customProviderSettings.ollama.endpoint
+			placeholder: providerName === 'ollama' ? defaultProviderSettings.ollama.endpoint
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
 
@@ -278,42 +277,42 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
 		enabled: undefined,
 		...defaultCustomSettings,
-		...customProviderSettings.anthropic,
+		...defaultProviderSettings.anthropic,
 		...voidInitModelOptions.anthropic,
 	},
 	openAI: {
 		enabled: undefined,
 		...defaultCustomSettings,
-		...customProviderSettings.openAI,
+		...defaultProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
 	},
 	gemini: {
 		...defaultCustomSettings,
-		...customProviderSettings.gemini,
+		...defaultProviderSettings.gemini,
 		...voidInitModelOptions.gemini,
 		enabled: undefined,
 	},
 	groq: {
 		...defaultCustomSettings,
-		...customProviderSettings.groq,
+		...defaultProviderSettings.groq,
 		...voidInitModelOptions.groq,
 		enabled: undefined,
 	},
 	ollama: {
 		...defaultCustomSettings,
-		...customProviderSettings.ollama,
+		...defaultProviderSettings.ollama,
 		...voidInitModelOptions.ollama,
 		enabled: undefined,
 	},
 	openRouter: {
 		...defaultCustomSettings,
-		...customProviderSettings.openRouter,
+		...defaultProviderSettings.openRouter,
 		...voidInitModelOptions.openRouter,
 		enabled: undefined,
 	},
 	openAICompatible: {
 		...defaultCustomSettings,
-		...customProviderSettings.openAICompatible,
+		...defaultProviderSettings.openAICompatible,
 		...voidInitModelOptions.openAICompatible,
 		enabled: undefined,
 	},
@@ -341,11 +340,19 @@ export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete'] as const
 
 
 
+// the models of these can be refreshed (in theory all can, but not all should)
+export const refreshableProviderNames = ['ollama', 'openAICompatible'] satisfies ProviderName[]
+export type RefreshableProviderName = typeof refreshableProviderNames[number]
+
+
+
+
+
 
 
 
 export type FeatureFlagSettings = {
-	autoRefreshModels: boolean; // automatically scan for local models and enable when found
+	autoRefreshModels: boolean;
 }
 export const defaultFeatureFlagSettings: FeatureFlagSettings = {
 	autoRefreshModels: true,
@@ -360,7 +367,7 @@ type FeatureFlagDisplayInfo = {
 export const displayInfoOfFeatureFlag = (featureFlag: FeatureFlagName): FeatureFlagDisplayInfo => {
 	if (featureFlag === 'autoRefreshModels') {
 		return {
-			description: 'Automatically scan for and enable local models.',
+			description: `Automatically scan for and enable local models.`, // ${`refreshableProviderNames.map(providerName => titleOfProviderName(providerName)).join(', ')`}
 		}
 	}
 	throw new Error(`featureFlagInfo: Unknown feature flag: "${featureFlag}"`)

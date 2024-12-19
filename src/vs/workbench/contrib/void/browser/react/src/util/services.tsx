@@ -5,13 +5,13 @@
 
 import { useState, useEffect } from 'react'
 import { ThreadsState } from '../../../threadHistoryService.js'
-import { SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { ReactServicesType } from '../../../helpers/reactServicesHelper.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
-import { RefreshableProviderName, RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
+import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes

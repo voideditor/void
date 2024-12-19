@@ -3,7 +3,7 @@ import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox
 import { ProviderName, SettingName, displayInfoOfSettingName, titleOfProviderName, providerNames, ModelInfo } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidInputBox, VoidSelectBox } from '../util/inputs.js'
-import { useIsDark, useRefreshModelState, useService, useSettingsState } from '../util/services.js'
+import { useIsDark, useRefreshModelListener, useRefreshModelState, useService, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check } from 'lucide-react'
 import { RefreshableProviderName, refreshableProviderNames } from '../../../../../../../platform/void/common/refreshModelService.js'
 
@@ -14,17 +14,21 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 	const refreshModelState = useRefreshModelState()
 	const refreshModelService = useService('refreshModelService')
 
+	const [justFinished, setJustSucceeded] = useState(false)
 
-	const [justFinished, setJustFinished] = useState(false)
+	useRefreshModelListener(
+		useCallback((providerName2, refreshModelState) => {
+			if (providerName2 !== providerName) return
+			const { state } = refreshModelState[providerName]
+			if (state !== 'success') return
+			// now we know we just entered 'success' state for this providerName
+			setJustSucceeded(true)
+			const tid = setTimeout(() => { setJustSucceeded(false) }, 2000)
+			return () => clearTimeout(tid)
+		}, [providerName])
+	)
+
 	const { state } = refreshModelState[providerName]
-	useEffect(() => {
-		if (state !== 'success') return
-		// if no longer refreshing
-		setJustFinished(true)
-		const tid = setTimeout(() => { setJustFinished(false) }, 2000)
-		return () => clearTimeout(tid)
-	}, [state])
-
 	const isRefreshing = state === 'refreshing'
 
 	const providerTitle = titleOfProviderName(providerName)
@@ -283,9 +287,11 @@ export const Settings = () => {
 								<RefreshableModels />
 							</ErrorBoundary>
 							<h2 className={`text-3xl mt-4 mb-2`}>Providers</h2>
-							<ErrorBoundary>
-								<VoidProviderSettings />
-							</ErrorBoundary>
+							<div className='px-3'>
+								<ErrorBoundary>
+									<VoidProviderSettings />
+								</ErrorBoundary>
+							</div>
 						</div>
 
 						<div className={`${tab !== 'features' ? 'hidden' : ''}`}>

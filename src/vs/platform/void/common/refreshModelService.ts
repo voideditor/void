@@ -36,7 +36,7 @@ function eq<T>(a: T[], b: T[]): boolean {
 export interface IRefreshModelService {
 	readonly _serviceBrand: undefined;
 	refreshModels: (providerName: RefreshableProviderName) => Promise<void>;
-	onDidChangeState: Event<void>;
+	onDidChangeState: Event<RefreshableProviderName>;
 	state: RefreshModelStateOfProvider;
 }
 
@@ -46,8 +46,8 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 	readonly _serviceBrand: undefined;
 
-	private readonly _onDidChangeState = new Emitter<void>();
-	readonly onDidChangeState: Event<void> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
+	private readonly _onDidChangeState = new Emitter<RefreshableProviderName>();
+	readonly onDidChangeState: Event<RefreshableProviderName> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
 	constructor(
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
@@ -67,7 +67,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 			// every time providerName.enabled changes, refresh models too, like useEffect
 			let relevantVals = () => refreshables[providerName].map(settingName => this.voidSettingsService.state.settingsOfProvider[providerName][settingName])
-			let prevVals = relevantVals()
+			let prevVals = relevantVals() // each iteration of a for loop has its own context and vars, so this is ok
 			this._register(
 				this.voidSettingsService.onDidChangeState(() => { // we might want to debounce this
 					const newVals = relevantVals()
@@ -78,9 +78,6 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 				})
 			)
 		}
-
-
-
 
 	}
 
@@ -133,7 +130,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 	private _setIsRefreshing(providerName: RefreshableProviderName, state: ModelRefreshState) {
 		this.state[providerName].state = state
-		this._onDidChangeState.fire()
+		this._onDidChangeState.fire(providerName)
 	}
 }
 

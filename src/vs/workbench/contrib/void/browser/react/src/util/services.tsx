@@ -11,7 +11,7 @@ import { ReactServicesType } from '../../../helpers/reactServicesHelper.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
-import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
+import { RefreshableProviderName, RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -31,6 +31,7 @@ const settingsStateListeners: Set<(s: VoidSettingsState) => void> = new Set()
 
 let refreshModelState: RefreshModelStateOfProvider
 const refreshModelStateListeners: Set<(s: RefreshModelStateOfProvider) => void> = new Set()
+const refreshModelProviderListeners: Set<(p: RefreshableProviderName, s: RefreshModelStateOfProvider) => void> = new Set()
 
 let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
@@ -78,9 +79,10 @@ export const _registerServices = (services_: ReactServicesType) => {
 
 	refreshModelState = refreshModelService.state
 	disposables.push(
-		refreshModelService.onDidChangeState(() => {
+		refreshModelService.onDidChangeState((providerName) => {
 			refreshModelState = refreshModelService.state
 			refreshModelStateListeners.forEach(l => l(refreshModelState))
+			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState))
 		})
 	)
 
@@ -148,7 +150,12 @@ export const useRefreshModelState = () => {
 }
 
 
-
+export const useRefreshModelListener = (listener: (providerName: RefreshableProviderName, s: RefreshModelStateOfProvider) => void) => {
+	useEffect(() => {
+		refreshModelProviderListeners.add(listener)
+		return () => { refreshModelProviderListeners.delete(listener) }
+	}, [listener])
+}
 
 
 export const useIsDark = () => {

@@ -46,7 +46,7 @@ First, run `npm install -g node-gyp`. Then:
 To build Void, open `void/` inside VSCode. Then:
 
 1. `npm install` to install all dependencies.
-2. `npm run buildreact` to build Void's browser dependencies like React.
+2. `npm run watchreact` to build Void's browser dependencies like React.
 3. Build.
 	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
    - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
@@ -74,7 +74,7 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 
 - Make sure you follow the prerequisite steps.
 - Make sure you have the same NodeJS version as `.nvmrc`.
-- If you make any React changes, you must re-run `npm run buildreact` and re-build.
+- Make sure your `npm run watchreact` is running if you change any React files, or else you'll need to re-build.
 - If you get `"TypeError: Failed to fetch dynamically imported module: vscode-file://vscode-app/.../workbench.desktop.main.js", source: file:///.../bootstrap-window.js`, make sure all imports end with `.js`.
 - If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). For building questions, you can also refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
@@ -83,7 +83,7 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 
 ## Bundling
 
-We don't usually recommend bundling. Instead, you should probably just build. If you're sure you want to bundle Void into an executable app, run one of the following commands. This will create a folder named `VSCode-darwin-arm64` (or similar) in the repo's parent's directory. Be patient - compiling can take ~25 minutes.
+We don't usually recommend bundling. Instead, you should probably just build. If you're sure you want to bundle Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` (or similar) in the repo's parent's directory. Be patient - compiling can take ~25 minutes.
 
 ### Mac
 - `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)

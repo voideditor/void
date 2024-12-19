@@ -136,7 +136,7 @@ type CommonProviderSettings = {
 	models: ModelInfo[], // if null, user can type in any string as a model
 }
 
-type SettingsForProvider<providerName extends ProviderName> = CustomProviderSettings<providerName> & CommonProviderSettings
+export type SettingsForProvider<providerName extends ProviderName> = CustomProviderSettings<providerName> & CommonProviderSettings
 
 // part of state
 export type SettingsOfProvider = {

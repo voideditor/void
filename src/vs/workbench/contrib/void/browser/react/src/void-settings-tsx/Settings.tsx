@@ -4,25 +4,51 @@ import { ProviderName, SettingName, displayInfoOfSettingName, titleOfProviderNam
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidInputBox, VoidSelectBox } from '../util/inputs.js'
 import { useIsDark, useRefreshModelState, useService, useSettingsState } from '../util/services.js'
-import { X } from 'lucide-react'
+import { X, RefreshCw, Loader2, Check } from 'lucide-react'
+import { RefreshableProviderName, refreshableProviderNames } from '../../../../../../../platform/void/common/refreshModelService.js'
 
 
 
 // models
+const RefreshModelButton = ({ providerName }: { providerName: RefreshableProviderName }) => {
+	const refreshModelState = useRefreshModelState()
+	const refreshModelService = useService('refreshModelService')
+
+
+	const [justFinished, setJustFinished] = useState(false)
+	const { state } = refreshModelState[providerName]
+	useEffect(() => {
+		if (state !== 'success') return
+		// if no longer refreshing
+		setJustFinished(true)
+		const tid = setTimeout(() => { setJustFinished(false) }, 2000)
+		return () => clearTimeout(tid)
+	}, [state])
+
+	const isRefreshing = state === 'refreshing'
+
+	const providerTitle = titleOfProviderName(providerName)
+	return <div className='flex items-center py-1 px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-200/10'>
+		<button className='flex items-center' disabled={isRefreshing || justFinished} onClick={() => { refreshModelService.refreshModels(providerName) }}>
+			{isRefreshing ? <Loader2 className='size-3 animate-spin' /> : (justFinished ? <Check className='stroke-green-500 size-3' /> : <RefreshCw className='size-3' />)}
+		</button>
+		<span className='opacity-50'>Refresh Default Models for {providerTitle}.</span>
+	</div>
+}
 
 const RefreshableModels = () => {
 	const settingsState = useSettingsState()
 
-	const refreshModelState = useRefreshModelState()
-	const refreshModelService = useService('refreshModelService')
 
-	if (!settingsState.settingsOfProvider.ollama.enabled)
-		return null
+	const buttons = refreshableProviderNames.map(providerName => {
+		if (!settingsState.settingsOfProvider[providerName].enabled) return null
+		return <RefreshModelButton key={providerName} providerName={providerName} />
+	})
 
-	return <div>
-		<button onClick={() => refreshModelService.refreshOllamaModels()}>refresh Ollama built-in models</button>
-		{refreshModelState === 'loading' ? 'loading...' : 'good!'}
-	</div>
+	return <>
+		{buttons}
+	</>
+
 }
 
 
@@ -234,10 +260,10 @@ export const Settings = () => {
 
 					{/* tabs */}
 					<div className='flex flex-col w-full max-w-32'>
-						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-vscode-button-hover-bg' : 'bg-vscode-button-active-bg'} hover:bg-vscode-button-hover-bg active:bg-vscode-button-active-bg`}
+						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
 							onClick={() => { setTab('models') }}
 						>Models</button>
-						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'features' ? 'bg-vscode-button-hover-bg' : 'bg-vscode-button-active-bg'} hover:bg-vscode-button-hover-bg active:bg-vscode-button-active-bg`}
+						<button className={`text-left p-1 my-0.5 rounded-sm overflow-hidden ${tab === 'features' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
 							onClick={() => { setTab('features') }}
 						>Features</button>
 					</div>

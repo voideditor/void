@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainLLMMessageParams, MainLLMMessageAbortParams, ServiceOllamaListParams, EventOllamaListOnSuccessParams, EventOllamaListOnErrorParams, MainOllamaListParams } from './llmMessageTypes.js';
+import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainLLMMessageParams, MainLLMMessageAbortParams, ServiceModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, MainModelListParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from './llmMessageTypes.js';
 import { IChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
@@ -21,7 +21,8 @@ export interface ILLMMessageService {
 	readonly _serviceBrand: undefined;
 	sendLLMMessage: (params: ServiceSendLLMMessageParams) => string | null;
 	abort: (requestId: string) => void;
-	ollamaList: (params: ServiceOllamaListParams) => void;
+	ollamaList: (params: ServiceModelListParams<OllamaModelResponse>) => void;
+	openAICompatibleList: (params: ServiceModelListParams<OpenaiCompatibleModelResponse>) => void;
 }
 
 export class LLMMessageService extends Disposable implements ILLMMessageService {
@@ -36,9 +37,12 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 
 	// ollamaList
-	private readonly onSuccess_ollama: { [eventId: string]: ((params: EventOllamaListOnSuccessParams) => void) } = {}
-	private readonly onError_ollama: { [eventId: string]: ((params: EventOllamaListOnErrorParams) => void) } = {}
+	private readonly onSuccess_ollama: { [eventId: string]: ((params: EventModelListOnSuccessParams<OllamaModelResponse>) => void) } = {}
+	private readonly onError_ollama: { [eventId: string]: ((params: EventModelListOnErrorParams<OllamaModelResponse>) => void) } = {}
 
+	// openAICompatibleList
+	private readonly onSuccess_openAICompatible: { [eventId: string]: ((params: EventModelListOnSuccessParams<OpenaiCompatibleModelResponse>) => void) } = {}
+	private readonly onError_openAICompatible: { [eventId: string]: ((params: EventModelListOnErrorParams<OpenaiCompatibleModelResponse>) => void) } = {}
 
 	constructor(
 		@IMainProcessService private readonly mainProcessService: IMainProcessService, // used as a renderer (only usable on client side)
@@ -65,11 +69,18 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			this._onRequestIdDone(e.requestId)
 		}))
 		// ollama
-		this._register((this.channel.listen('onSuccess_ollama') satisfies Event<EventOllamaListOnSuccessParams>)(e => {
+		this._register((this.channel.listen('onSuccess_ollama') satisfies Event<EventModelListOnSuccessParams<OllamaModelResponse>>)(e => {
 			this.onSuccess_ollama[e.requestId]?.(e)
 		}))
-		this._register((this.channel.listen('onError_ollama') satisfies Event<EventOllamaListOnErrorParams>)(e => {
+		this._register((this.channel.listen('onError_ollama') satisfies Event<EventModelListOnErrorParams<OllamaModelResponse>>)(e => {
 			this.onError_ollama[e.requestId]?.(e)
+		}))
+		// openaiCompatible
+		this._register((this.channel.listen('onSuccess_openAICompatible') satisfies Event<EventModelListOnSuccessParams<OpenaiCompatibleModelResponse>>)(e => {
+			this.onSuccess_openAICompatible[e.requestId]?.(e)
+		}))
+		this._register((this.channel.listen('onError_openAICompatible') satisfies Event<EventModelListOnErrorParams<OpenaiCompatibleModelResponse>>)(e => {
+			this.onError_openAICompatible[e.requestId]?.(e)
 		}))
 
 	}
@@ -113,7 +124,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 	}
 
 
-	ollamaList = (params: ServiceOllamaListParams) => {
+	ollamaList = (params: ServiceModelListParams<OllamaModelResponse>) => {
 		const { onSuccess, onError, ...proxyParams } = params
 
 		const { settingsOfProvider } = this.voidSettingsService.state
@@ -127,7 +138,24 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			...proxyParams,
 			settingsOfProvider,
 			requestId: requestId_,
-		} satisfies MainOllamaListParams)
+		} satisfies MainModelListParams<OllamaModelResponse>)
+	}
+
+	openAICompatibleList = (params: ServiceModelListParams<OpenaiCompatibleModelResponse>) => {
+		const { onSuccess, onError, ...proxyParams } = params
+
+		const { settingsOfProvider } = this.voidSettingsService.state
+
+		// add state for request id
+		const requestId_ = generateUuid();
+		this.onSuccess_openAICompatible[requestId_] = onSuccess
+		this.onError_openAICompatible[requestId_] = onError
+
+		this.channel.call('openAICompatibleList', {
+			...proxyParams,
+			settingsOfProvider,
+			requestId: requestId_,
+		} satisfies MainModelListParams<OpenaiCompatibleModelResponse>)
 	}
 
 

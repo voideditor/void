@@ -6,12 +6,12 @@
 import { useState, useEffect } from 'react'
 import { ThreadsState } from '../../../threadHistoryService.js'
 import { SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
-import { RefreshModelState } from '../../../../../../../platform/void/common/refreshModelService.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { ReactServicesType } from '../../../helpers/reactServicesHelper.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
+import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -29,8 +29,8 @@ const threadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
 let settingsState: VoidSettingsState
 const settingsStateListeners: Set<(s: VoidSettingsState) => void> = new Set()
 
-let refreshModelState: RefreshModelState
-const refreshModelStateListeners: Set<(s: RefreshModelState) => void> = new Set()
+let refreshModelState: RefreshModelStateOfProvider
+const refreshModelStateListeners: Set<(s: RefreshModelStateOfProvider) => void> = new Set()
 
 let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()

@@ -4,8 +4,44 @@
  *--------------------------------------------------------------------------------------------*/
 
 import OpenAI from 'openai';
-import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
+import { _InternalModelListFnType, _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
+import { Model } from 'openai/resources/models.js';
 // import { parseMaxTokensStr } from './util.js';
+
+
+
+export const openaiCompatibleList: _InternalModelListFnType<Model> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
+	const onSuccess = ({ models }: { models: Model[] }) => {
+		onSuccess_({ models })
+	}
+
+	const onError = ({ error }: { error: string }) => {
+		onError_({ error })
+	}
+
+	try {
+		const thisConfig = settingsOfProvider.openAICompatible
+		const openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true })
+
+		openai.models.list()
+			.then(async (response) => {
+				const models: Model[] = []
+				models.push(...response.data)
+				while (response.hasNextPage()) {
+					models.push(...(await response.getNextPage()).data)
+				}
+				onSuccess({ models })
+			})
+			.catch((error) => {
+				onError({ error: error + '' })
+			})
+	}
+	catch (error) {
+		onError({ error: error + '' })
+	}
+}
+
+
 
 
 // OpenAI, OpenRouter, OpenAICompatible
@@ -43,6 +79,7 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 		throw new Error(`providerName was invalid: ${providerName}`)
 	}
 
+	openai.models.list()
 	openai.chat.completions
 		.create(options)
 		.then(async response => {

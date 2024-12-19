@@ -12,6 +12,7 @@ import { ReactServicesType } from '../../../helpers/reactServicesHelper.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
+import { VoidQuickEditState } from '../../../quickEditStateService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -20,6 +21,9 @@ let services: ReactServicesType
 
 // even if React hasn't mounted yet, the variables are always updated to the latest state.
 // React listens by adding a setState function to these listeners.
+let quickEditState: VoidQuickEditState
+const quickEditStateListeners: Set<(s: VoidQuickEditState) => void> = new Set()
+
 let sidebarState: VoidSidebarState
 const sidebarStateListeners: Set<(s: VoidSidebarState) => void> = new Set()
 
@@ -50,7 +54,15 @@ export const _registerServices = (services_: ReactServicesType) => {
 	wasCalled = true
 
 	services = services_
-	const { sidebarStateService, settingsStateService, threadsStateService, refreshModelService, themeService } = services
+	const { sidebarStateService, quickEditStateService, settingsStateService, threadsStateService, refreshModelService, themeService, } = services
+
+	quickEditState = quickEditStateService.state
+	disposables.push(
+		quickEditStateService.onDidChangeState(() => {
+			quickEditState = quickEditStateService.state
+			quickEditStateListeners.forEach(l => l(quickEditState))
+		})
+	)
 
 	sidebarState = sidebarStateService.state
 	disposables.push(
@@ -105,6 +117,16 @@ export const useService = <T extends keyof ReactServicesType,>(serviceName: T): 
 }
 
 // -- state of services --
+
+export const useQuickEditState = () => {
+	const [s, ss] = useState(quickEditState)
+	useEffect(() => {
+		ss(quickEditState)
+		quickEditStateListeners.add(ss)
+		return () => { quickEditStateListeners.delete(ss) }
+	}, [ss])
+	return s
+}
 
 export const useSidebarState = () => {
 	const [s, ss] = useState(sidebarState)

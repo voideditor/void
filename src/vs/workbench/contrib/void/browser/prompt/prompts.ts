@@ -3,38 +3,36 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-// // used for ctrl+l
-// const partialGenerationInstructions = ``
+
+import { CodeSelection } from '../threadHistoryService.js';
+
+const stringifySelections = (selections: CodeSelection[]) => {
+
+	return selections.map(({ fileURI, content, selectionStr }) =>
+		`\
+File: ${fileURI.fsPath}
+\`\`\`
+${content // this was the enite file which is foolish
+		}
+\`\`\`${selectionStr === null ? '' : `
+Selection: ${selectionStr}`}
+`).join('\n')
+}
 
 
-// // used for ctrl+k, autocomplete
-// const fimInstructions = ``
+export const generateCtrlLPrompt = (instructions: string, selections: CodeSelection[] | null) => {
+	let str = '';
+	if (selections && selections.length > 0) {
+		str += stringifySelections(selections);
+		str += `Please edit the selected code following these instructions:\n`
+	}
+	str += `${instructions}`;
+	return str;
+};
 
 
-// CTRL+K prompt:
-// const promptContent = `Here is the user's original selection:
-// \`\`\`
-// <MID>${selection}</MID>
-// \`\`\`
 
-// The user wants to apply the following instructions to the selection:
-// ${instructions}
-
-// Please rewrite the selection following the user's instructions.
-
-// Instructions to follow:
-// 1. Follow the user's instructions
-// 2. You may ONLY CHANGE the selection, and nothing else in the file
-// 3. Make sure all brackets in the new selection are balanced the same was as in the original selection
-// 3. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
-
-// Complete the following:
-// \`\`\`
-// <PRE>${prefix}</PRE>
-// <SUF>${suffix}</SUF>
-// <MID>`;
-
-export const generateCtrlLInstructions = `\
+export const ctrlLSystem = `\
 You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.
 
 Please edit the selected file following the user's instructions (or, if appropriate, answer their question instead).
@@ -118,8 +116,32 @@ Memoization Object: A memo object is used to store the results of Fibonacci calc
 Check Memo: Before computing fib(n), the function checks if the result is already in memo. If it is, it returns the stored result.
 Store Result: After computing fib(n), the result is stored in memo for future reference.
 
-## END EXAMPLES
+## END EXAMPLES\
 `
+
+export const generateCtrlKPrompt = ({ selection, prefix, suffix, instructions, }: { selection: string, prefix: string, suffix: string, instructions: string, }) => `\
+Here is the user's original selection:
+\`\`\`
+<MID>${selection}</MID>
+\`\`\`
+
+The user wants to apply the following instructions to the selection:
+${instructions}
+
+Please rewrite the selection following the user's instructions.
+
+Instructions to follow:
+1. Follow the user's instructions
+2. You may ONLY CHANGE the selection, and nothing else in the file
+3. Make sure all brackets in the new selection are balanced the same was as in the original selection
+3. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
+
+Complete the following:
+\`\`\`
+<PRE>${prefix}</PRE>
+<SUF>${suffix}</SUF>
+<MID>`;
+
 
 export const generateDiffInstructions = `
 You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.

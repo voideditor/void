@@ -4,18 +4,17 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Ollama } from 'ollama';
-import { _InternalOllamaListFnType, _InternalSendLLMMessageFnType, ModelResponse } from '../../common/llmMessageTypes.js';
+import { _InternalModelListFnType, _InternalSendLLMMessageFnType, OllamaModelResponse } from '../../common/llmMessageTypes.js';
 
-export const ollamaList: _InternalOllamaListFnType = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
+export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
 
-	const onSuccess = ({ models }: { models: ModelResponse[] }) => {
+	const onSuccess = ({ models }: { models: OllamaModelResponse[] }) => {
 		onSuccess_({ models })
 	}
 
 	const onError = ({ error }: { error: string }) => {
 		onError_({ error })
 	}
-
 
 	try {
 		const thisConfig = settingsOfProvider.ollama

@@ -10,7 +10,7 @@ import { IEncryptionService } from '../../encryption/common/encryptionService.js
 import { registerSingleton, InstantiationType } from '../../instantiation/common/extensions.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultNames, ModelInfo } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultNames, VoidModelInfo, FeatureFlagSettings, FeatureFlagName, defaultFeatureFlagSettings } from './voidSettingsTypes.js';
 
 
 const STORAGE_KEY = 'void.voidSettingsI'
@@ -21,13 +21,13 @@ type SetSettingOfProviderFn = <S extends SettingName>(
 	newVal: SettingsOfProvider[ProviderName][S extends keyof SettingsOfProvider[ProviderName] ? S : never],
 ) => Promise<void>;
 
-type SetModelSelectionOfFeature = <K extends FeatureName>(
+type SetModelSelectionOfFeatureFn = <K extends FeatureName>(
 	featureName: K,
 	newVal: ModelSelectionOfFeature[K],
 	options?: { doNotApplyEffects?: true }
 ) => Promise<void>;
 
-
+type SetFeatureFlagFn = (flagName: FeatureFlagName, newVal: boolean) => void;
 
 export type ModelOption = { text: string, value: ModelSelection }
 
@@ -36,18 +36,24 @@ export type ModelOption = { text: string, value: ModelSelection }
 export type VoidSettingsState = {
 	readonly settingsOfProvider: SettingsOfProvider; // optionsOfProvider
 	readonly modelSelectionOfFeature: ModelSelectionOfFeature; // stateOfFeature
+	readonly featureFlagSettings: FeatureFlagSettings;
 
 	readonly _modelOptions: ModelOption[] // computed based on the two above items
 }
 
+type EventProp = Exclude<keyof VoidSettingsState, '_modelOptions'> | 'all'
 
 
 export interface IVoidSettingsService {
 	readonly _serviceBrand: undefined;
-	readonly state: VoidSettingsState;
-	onDidChangeState: Event<void>;
+	readonly state: VoidSettingsState; // in order to play nicely with react, you should immutably change state
+	readonly waitForInitState: Promise<void>;
+
+	onDidChangeState: Event<EventProp>;
+
 	setSettingOfProvider: SetSettingOfProviderFn;
-	setModelSelectionOfFeature: SetModelSelectionOfFeature;
+	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn;
+	setFeatureFlag: SetFeatureFlagFn;
 
 	setDefaultModels(providerName: ProviderName, modelNames: string[]): void;
 	toggleModelHidden(providerName: ProviderName, modelName: string): void;
@@ -74,6 +80,7 @@ const defaultState = () => {
 	const d: VoidSettingsState = {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
 		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null },
+		featureFlagSettings: deepClone(defaultFeatureFlagSettings),
 		_modelOptions: _computeModelOptions(defaultSettingsOfProvider), // computed
 	}
 	return d
@@ -84,10 +91,11 @@ export const IVoidSettingsService = createDecorator<IVoidSettingsService>('VoidS
 class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	_serviceBrand: undefined;
 
-	private readonly _onDidChangeState = new Emitter<void>();
-	readonly onDidChangeState: Event<void> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
+	private readonly _onDidChangeState = new Emitter<EventProp>();
+	readonly onDidChangeState: Event<EventProp> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
 	state: VoidSettingsState;
+	waitForInitState: Promise<void> // await this if you need a valid state initially
 
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
@@ -100,10 +108,14 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		// at the start, we haven't read the partial config yet, but we need to set state to something
 		this.state = defaultState()
 
+		let resolver: () => void = () => { }
+		this.waitForInitState = new Promise((res, rej) => resolver = res)
+
 		// read and update the actual state immediately
 		this._readState().then(s => {
 			this.state = s
-			this._onDidChangeState.fire()
+			resolver()
+			this._onDidChangeState.fire('all')
 		})
 	}
 
@@ -136,6 +148,8 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			}
 		}
 
+		const newFeatureFlags = this.state.featureFlagSettings
+
 		// if changed models or enabled a provider, recompute models list
 		const modelsListChanged = settingName === 'models' || settingName === 'enabled'
 		const newModelsList = modelsListChanged ? _computeModelOptions(newSettingsOfProvider) : this.state._modelOptions
@@ -143,6 +157,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const newState: VoidSettingsState = {
 			modelSelectionOfFeature: newModelSelectionOfFeature,
 			settingsOfProvider: newSettingsOfProvider,
+			featureFlagSettings: newFeatureFlags,
 			_modelOptions: newModelsList,
 		}
 
@@ -166,11 +181,26 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		}
 
 		await this._storeState()
-		this._onDidChangeState.fire()
+		this._onDidChangeState.fire('settingsOfProvider')
 	}
 
 
-	setModelSelectionOfFeature: SetModelSelectionOfFeature = async (featureName, newVal, options) => {
+	setFeatureFlag: SetFeatureFlagFn = async (flagName, newVal) => {
+		const newState = {
+			...this.state,
+			featureFlagSettings: {
+				...this.state.featureFlagSettings,
+				[flagName]: newVal
+			}
+		}
+		this.state = newState
+		await this._storeState()
+		this._onDidChangeState.fire('featureFlagSettings')
+
+	}
+
+
+	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn = async (featureName, newVal, options) => {
 		const newState: VoidSettingsState = {
 			...this.state,
 			modelSelectionOfFeature: {
@@ -185,7 +215,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			return
 
 		await this._storeState()
-		this._onDidChangeState.fire()
+		this._onDidChangeState.fire('modelSelectionOfFeature')
 	}
 
 
@@ -203,7 +233,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const { models } = this.state.settingsOfProvider[providerName]
 		const modelIdx = models.findIndex(m => m.modelName === modelName)
 		if (modelIdx === -1) return
-		const newModels: ModelInfo[] = [
+		const newModels: VoidModelInfo[] = [
 			...models.slice(0, modelIdx),
 			{ ...models[modelIdx], isHidden: !models[modelIdx].isHidden },
 			...models.slice(modelIdx + 1, Infinity)

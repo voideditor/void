@@ -53,9 +53,10 @@ const getContentInRange = (model: ITextModel, range: IRange | null) => {
 }
 
 // Action: when press ctrl+L, show the sidebar chat and add to the selection
+export const VOID_CTRL_L_ACTION_ID = 'void.ctrlLAction'
 registerAction2(class extends Action2 {
 	constructor() {
-		super({ id: 'void.ctrl+l', title: 'Show Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
+		super({ id: VOID_CTRL_L_ACTION_ID, title: 'Void: Show Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 
@@ -66,7 +67,7 @@ registerAction2(class extends Action2 {
 		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
 
-		metricsService.capture('Chat Navigation', { type: 'Ctrl+L' })
+		metricsService.capture('User Action', { type: 'Ctrl+L' })
 
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.fireFocusChat()

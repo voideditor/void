@@ -7,10 +7,13 @@
 // register inline diffs
 import './inlineDiffsService.js'
 
-// register Sidebar pane, state, actions (keybinds, menus)
+// register Sidebar pane, state, actions (keybinds, menus) (Ctrl+L)
 import './sidebarActions.js'
 import './sidebarPane.js'
 import './sidebarStateService.js'
+
+// register quick edit (Ctrl+K)
+import './quickEditActions.js'
 
 // register Thread History
 import './threadHistoryService.js'

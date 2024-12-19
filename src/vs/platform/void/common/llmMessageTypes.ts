@@ -97,7 +97,7 @@ export type _InternalSendLLMMessageFnType = (params: {
 
 
 // These are from 'ollama' SDK
-interface ModelDetails {
+interface OllamaModelDetails {
 	parent_model: string;
 	format: string;
 	family: string;
@@ -106,35 +106,44 @@ interface ModelDetails {
 	quantization_level: string;
 }
 
-export type ModelResponse = {
+export type OllamaModelResponse = {
 	name: string;
 	modified_at: Date;
 	size: number;
 	digest: string;
-	details: ModelDetails;
+	details: OllamaModelDetails;
 	expires_at: Date;
 	size_vram: number;
 }
 
+export type OpenaiCompatibleModelResponse = {
+	id: string;
+	created: number;
+	object: 'model';
+	owned_by: string;
+}
+
 
 // params to the true list fn
-export type OllamaListParams = {
+export type ModelListParams<modelResponse> = {
 	settingsOfProvider: SettingsOfProvider;
-	onSuccess: (param: { models: ModelResponse[] }) => void;
+	onSuccess: (param: { models: modelResponse[] }) => void;
 	onError: (param: { error: string }) => void;
 }
 
-export type ServiceOllamaListParams = {
-	onSuccess: (param: { models: ModelResponse[] }) => void;
+// params to the service
+export type ServiceModelListParams<modelResponse> = {
+	onSuccess: (param: { models: modelResponse[] }) => void;
 	onError: (param: { error: any }) => void;
 }
 
-type BlockedMainOllamaListParams = 'onSuccess' | 'onError'
-export type MainOllamaListParams = Omit<OllamaListParams, BlockedMainOllamaListParams> & { requestId: string }
+type BlockedMainModelListParams = 'onSuccess' | 'onError'
+export type MainModelListParams<modelResponse> = Omit<ModelListParams<modelResponse>, BlockedMainModelListParams> & { requestId: string }
 
-export type EventOllamaListOnSuccessParams = Parameters<OllamaListParams['onSuccess']>[0] & { requestId: string }
-export type EventOllamaListOnErrorParams = Parameters<OllamaListParams['onError']>[0] & { requestId: string }
+export type EventModelListOnSuccessParams<modelResponse> = Parameters<ModelListParams<modelResponse>['onSuccess']>[0] & { requestId: string }
+export type EventModelListOnErrorParams<modelResponse> = Parameters<ModelListParams<modelResponse>['onError']>[0] & { requestId: string }
 
 
 
-export type _InternalOllamaListFnType = (params: OllamaListParams) => void
+
+export type _InternalModelListFnType<modelResponse> = (params: ModelListParams<modelResponse>) => void

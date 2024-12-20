@@ -8,17 +8,16 @@
 @tailwind utilities;
 
 
-@layer components {
-	.select-ellipsis select {
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		padding-right: 24px;
-	}
+.select-child-restyle select {
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	padding-right: 24px;
 }
 
 * {
 	outline: none !important;
 }
+
 
 
 

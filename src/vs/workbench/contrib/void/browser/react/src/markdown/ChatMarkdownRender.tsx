@@ -169,7 +169,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 
 	if (t.type === "link") {
 		return (
-			<a href={t.href} title={t.title ?? undefined}>
+			<a className='underline' onClick={() => { window.open(t.href) }} href={t.href} title={t.title ?? undefined}>
 				{t.text}
 			</a>
 		)

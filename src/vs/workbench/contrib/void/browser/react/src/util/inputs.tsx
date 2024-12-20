@@ -194,7 +194,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
 	return <WidgetComponent
-		className='@@select-ellipsis'
+		className='@@select-child-restyle'
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container

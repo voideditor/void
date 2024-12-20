@@ -155,22 +155,47 @@ export type SettingName = keyof SettingsForProvider<ProviderName>
 
 
 
+type DisplayInfoForProviderName = {
+	title: string,
+}
 
-export const titleOfProviderName = (providerName: ProviderName) => {
-	if (providerName === 'anthropic')
-		return 'Anthropic'
-	else if (providerName === 'openAI')
-		return 'OpenAI'
-	else if (providerName === 'ollama')
-		return 'Ollama'
-	else if (providerName === 'openRouter')
-		return 'OpenRouter'
-	else if (providerName === 'openAICompatible')
-		return 'OpenAI-Compatible'
-	else if (providerName === 'gemini')
-		return 'Gemini'
-	else if (providerName === 'groq')
-		return 'Groq'
+export const displayInfoOfProviderName = (providerName: ProviderName): DisplayInfoForProviderName => {
+	if (providerName === 'anthropic') {
+		return {
+			title: 'Anthropic',
+		}
+	}
+	else if (providerName === 'openAI') {
+		return {
+			title: 'OpenAI',
+		}
+	}
+	else if (providerName === 'openRouter') {
+		return {
+			title: 'OpenRouter',
+		}
+	}
+	else if (providerName === 'ollama') {
+		return {
+			title: 'Ollama',
+
+		}
+	}
+	else if (providerName === 'openAICompatible') {
+		return {
+			title: 'OpenAI-Compatible',
+		}
+	}
+	else if (providerName === 'gemini') {
+		return {
+			title: 'Gemini',
+		}
+	}
+	else if (providerName === 'groq') {
+		return {
+			title: 'Groq',
+		}
+	}
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -178,9 +203,7 @@ export const titleOfProviderName = (providerName: ProviderName) => {
 type DisplayInfo = {
 	title: string,
 	placeholder: string,
-
-	helpfulUrl?: string,
-	urlPurpose?: string,
+	subTextMd?: string,
 }
 export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
 	if (settingName === 'apiKey') {
@@ -194,15 +217,13 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 								providerName === 'openAICompatible' ? 'sk-key...' :
 									'(never)',
 
-			helpfulUrl: providerName === 'anthropic' ? 'https://console.anthropic.com/settings/keys' :
-				providerName === 'openAI' ? 'https://platform.openai.com/api-keys' :
-					providerName === 'openRouter' ? 'https://openrouter.ai/settings/keys' :
-						providerName === 'gemini' ? 'https://aistudio.google.com/apikey' :
-							providerName === 'groq' ? 'https://console.groq.com/keys' :
+			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
+				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
+					providerName === 'openRouter' ? 'Get your [API Key here](https://openrouter.ai/settings/keys).' :
+						providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
+							providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
 								providerName === 'openAICompatible' ? undefined :
 									undefined,
-
-			urlPurpose: 'to get your API key.',
 		}
 	}
 	else if (settingName === 'endpoint') {
@@ -215,11 +236,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
 
-			helpfulUrl: providerName === 'ollama' ? 'https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network'
-				: providerName === 'openAICompatible' ? undefined
-					: undefined,
-
-			urlPurpose: 'for more information.',
+			subTextMd: providerName === 'ollama' ? 'Read about Ollama [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
+				undefined,
 		}
 	}
 	else if (settingName === 'enabled') {

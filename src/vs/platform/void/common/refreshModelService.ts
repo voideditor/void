@@ -36,7 +36,7 @@ const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvide
 	openAICompatible: ['enabled', 'endpoint', 'apiKey'],
 }
 const REFRESH_INTERVAL = 5_000
-const COOLDOWN_TIMEOUT = 300
+// const COOLDOWN_TIMEOUT = 300
 
 // element-wise equals
 function eq<T>(a: T[], b: T[]): boolean {
@@ -92,18 +92,23 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 					this.voidSettingsService.onDidChangeState(() => { // we might want to debounce this
 						const newVals = relevantVals()
 						if (!eq(prevVals, newVals)) {
-							prevVals = newVals
 
-							const { enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
-							if (enabled) {
+							const prevEnabled = prevVals[0] as boolean
+							const enabled = newVals[0] as boolean
+
+							// if it was just enabled, or there was a change and it wasn't to the enabled state, refresh
+							if ((enabled && !prevEnabled) || (!enabled && !prevEnabled)) {
 								// if user just clicked enable, refresh
 								this.refreshModels(providerName, !enabled)
 							}
 							else {
-								// else if user just clicked disable, give cooldown before re-enabling (or at least re-fetching)
-								const timeoutId = setTimeout(() => this.refreshModels(providerName, !enabled), COOLDOWN_TIMEOUT)
-								this._setTimeoutId(providerName, timeoutId)
+								// else if user just clicked disable, don't refresh
+
+								// //give cooldown before re-enabling (or at least re-fetching)
+								// const timeoutId = setTimeout(() => this.refreshModels(providerName, !enabled), COOLDOWN_TIMEOUT)
+								// this._setTimeoutId(providerName, timeoutId)
 							}
+							prevVals = newVals
 						}
 					})
 				)

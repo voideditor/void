@@ -9,25 +9,22 @@ import { IVoidSettingsService } from './voidSettingsService.js';
 import { ILLMMessageService } from './llmMessageService.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { Disposable, IDisposable } from '../../../base/common/lifecycle.js';
-import { ProviderName, SettingsOfProvider } from './voidSettingsTypes.js';
+import { RefreshableProviderName, refreshableProviderNames, SettingsOfProvider } from './voidSettingsTypes.js';
 import { OllamaModelResponse, OpenaiCompatibleModelResponse } from './llmMessageTypes.js';
 
 
-export const refreshableProviderNames = ['ollama', 'openAICompatible'] satisfies ProviderName[]
-
-export type RefreshableProviderName = typeof refreshableProviderNames[number]
 
 
-type RefreshableState = {
+type RefreshableState = ({
 	state: 'init',
 	timeoutId: null,
 } | {
 	state: 'refreshing',
-	timeoutId: NodeJS.Timeout | null,
+	timeoutId: NodeJS.Timeout | null, // the timeoutId of the most recent call to refreshModels
 } | {
 	state: 'success',
 	timeoutId: null,
-}
+})
 
 
 export type RefreshModelStateOfProvider = Record<RefreshableProviderName, RefreshableState>
@@ -38,7 +35,8 @@ const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvide
 	ollama: ['enabled', 'endpoint'],
 	openAICompatible: ['enabled', 'endpoint', 'apiKey'],
 }
-const REFRESH_INTERVAL = 5000
+const REFRESH_INTERVAL = 5_000
+// const COOLDOWN_TIMEOUT = 300
 
 // element-wise equals
 function eq<T>(a: T[], b: T[]): boolean {
@@ -64,6 +62,8 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 	private readonly _onDidChangeState = new Emitter<RefreshableProviderName>();
 	readonly onDidChangeState: Event<RefreshableProviderName> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
+	private readonly _onDidAutoEnable = new Emitter<RefreshableProviderName>();
+
 	constructor(
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		@ILLMMessageService private readonly llmMessageService: ILLMMessageService,
@@ -73,8 +73,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 		const disposables: Set<IDisposable> = new Set()
 
-
-		const startRefreshing = () => {
+		const initializePollingAndOnChange = () => {
 			this._clearAllTimeouts()
 			disposables.forEach(d => d.dispose())
 			disposables.clear()
@@ -83,12 +82,8 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 			for (const providerName of refreshableProviderNames) {
 
-				const refresh = () => {
-					// const { enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
-					this.refreshModels(providerName, { enableProviderOnSuccess: true }) // enable the provider on success
-				}
-
-				refresh()
+				const { enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
+				this.refreshModels(providerName, !enabled)
 
 				// every time providerName.enabled changes, refresh models too, like a useEffect
 				let relevantVals = () => refreshBasedOn[providerName].map(settingName => this.voidSettingsService.state.settingsOfProvider[providerName][settingName])
@@ -97,7 +92,22 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 					this.voidSettingsService.onDidChangeState(() => { // we might want to debounce this
 						const newVals = relevantVals()
 						if (!eq(prevVals, newVals)) {
-							refresh()
+
+							const prevEnabled = prevVals[0] as boolean
+							const enabled = newVals[0] as boolean
+
+							// if it was just enabled, or there was a change and it wasn't to the enabled state, refresh
+							if ((enabled && !prevEnabled) || (!enabled && !prevEnabled)) {
+								// if user just clicked enable, refresh
+								this.refreshModels(providerName, !enabled)
+							}
+							else {
+								// else if user just clicked disable, don't refresh
+
+								// //give cooldown before re-enabling (or at least re-fetching)
+								// const timeoutId = setTimeout(() => this.refreshModels(providerName, !enabled), COOLDOWN_TIMEOUT)
+								// this._setTimeoutId(providerName, timeoutId)
+							}
 							prevVals = newVals
 						}
 					})
@@ -107,9 +117,9 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 		// on mount (when get init settings state), and if a relevant feature flag changes (detected natively right now by refreshing if any flag changes), start refreshing models
 		voidSettingsService.waitForInitState.then(() => {
-			startRefreshing()
+			initializePollingAndOnChange()
 			this._register(
-				voidSettingsService.onDidChangeState((type) => { if (type === 'featureFlagSettings') startRefreshing() })
+				voidSettingsService.onDidChangeState((type) => { if (type === 'featureFlagSettings') initializePollingAndOnChange() })
 			)
 		})
 
@@ -122,7 +132,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 
 	// start listening for models (and don't stop until success)
-	async refreshModels(providerName: RefreshableProviderName, options?: { enableProviderOnSuccess?: boolean }) {
+	async refreshModels(providerName: RefreshableProviderName, enableProviderOnSuccess?: boolean) {
 		this._clearProviderTimeout(providerName)
 
 		// start loading models
@@ -140,15 +150,17 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 					else throw new Error('refreshMode fn: unknown provider', providerName)
 				}))
 
-				if (options?.enableProviderOnSuccess)
+				if (enableProviderOnSuccess) {
 					this.voidSettingsService.setSettingOfProvider(providerName, 'enabled', true)
+					this._onDidAutoEnable.fire(providerName)
+				}
 
 				this._setRefreshState(providerName, 'success')
 			},
 			onError: ({ error }) => {
 				// poll
 				console.log('retrying list models:', providerName, error)
-				const timeoutId = setTimeout(() => this.refreshModels(providerName, options), REFRESH_INTERVAL)
+				const timeoutId = setTimeout(() => this.refreshModels(providerName, enableProviderOnSuccess), REFRESH_INTERVAL)
 				this._setTimeoutId(providerName, timeoutId)
 			}
 		})

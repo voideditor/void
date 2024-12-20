@@ -4,11 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { useCallback, useEffect, useRef } from 'react';
-import { useService } from '../util/services.js';
+import { useIsDark, useService } from '../util/services.js';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
+import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
+import { Checkbox } from '../../../../../../../base/browser/ui/toggle/toggle.js';
 
 
 
@@ -48,7 +49,6 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 }) => {
 
 	const contextViewProvider = useService('contextViewService');
-
 	return <WidgetComponent
 		ctor={InputBox}
 		propsFn={useCallback((container) => [
@@ -93,6 +93,96 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 
 
 
+export const VoidSwitch = ({
+	value,
+	onChange,
+	size = 'md',
+	label,
+	disabled = false,
+}: {
+	value: boolean;
+	onChange: (value: boolean) => void;
+	label?: string;
+	disabled?: boolean;
+	size?: 'xs' | 'sm' | 'sm+' | 'md';
+}) => {
+	return (
+		<label className="inline-flex items-center cursor-pointer">
+			<div
+				onClick={() => !disabled && onChange(!value)}
+				className={`
+			relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out
+			${value ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'}
+			${disabled ? 'opacity-25' : ''}
+			${size === 'xs' ? 'h-4 w-7' : ''}
+			${size === 'sm' ? 'h-5 w-9' : ''}
+			${size === 'sm+' ? 'h-5 w-10' : ''}
+			${size === 'md' ? 'h-6 w-11' : ''}
+		  `}
+			>
+				<span
+					className={`
+			  inline-block transform rounded-full bg-white dark:bg-gray-900 shadow transition-transform duration-200 ease-in-out
+			  ${size === 'xs' ? 'h-2.5 w-2.5' : ''}
+			  ${size === 'sm' ? 'h-3 w-3' : ''}
+			  ${size === 'sm+' ? 'h-3.5 w-3.5' : ''}
+			  ${size === 'md' ? 'h-4 w-4' : ''}
+			  ${size === 'xs' ? (value ? 'translate-x-3.5' : 'translate-x-0.5') : ''}
+			  ${size === 'sm' ? (value ? 'translate-x-5' : 'translate-x-1') : ''}
+			  ${size === 'sm+' ? (value ? 'translate-x-6' : 'translate-x-1') : ''}
+			  ${size === 'md' ? (value ? 'translate-x-6' : 'translate-x-1') : ''}
+			`}
+				/>
+			</div>
+			{label && (
+				<span className={`
+			ml-3 font-medium text-gray-900 dark:text-gray-100
+			${size === 'xs' ? 'text-xs' : 'text-sm'}
+		  `}>
+					{label}
+				</span>
+			)}
+		</label>
+	);
+};
+
+
+
+
+
+export const VoidCheckBox = ({ label, value, onClick, className }: { label: string, value: boolean, onClick: (checked: boolean) => void, className?: string }) => {
+	const divRef = useRef<HTMLDivElement | null>(null)
+	const instanceRef = useRef<Checkbox | null>(null)
+
+	useEffect(() => {
+		if (!instanceRef.current) return
+		instanceRef.current.checked = value
+	}, [value])
+
+
+	return <WidgetComponent
+		className={className ?? ''}
+		ctor={Checkbox}
+		propsFn={useCallback((container: HTMLDivElement) => {
+			divRef.current = container
+			return [label, value, defaultCheckboxStyles] as const
+		}, [label, value])}
+		onCreateInstance={useCallback((instance: Checkbox) => {
+			instanceRef.current = instance;
+			divRef.current?.append(instance.domNode)
+			const d = instance.onChange(() => onClick(instance.checked))
+			return [d]
+		}, [onClick])}
+		dispose={useCallback((instance: Checkbox) => {
+			instance.dispose()
+			instance.domNode.remove()
+		}, [])}
+
+	/>
+
+}
+
+
 export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options }: {
 	onChangeSelection: (value: T) => void;
 	onCreateInstance?: ((instance: SelectBox) => void | IDisposable[]);
@@ -104,7 +194,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
 	return <WidgetComponent
-		className='@@select-ellipsis'
+		className='@@select-child-restyle'
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container

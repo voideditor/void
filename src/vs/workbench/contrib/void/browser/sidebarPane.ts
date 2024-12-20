@@ -84,7 +84,7 @@ class SidebarViewPane extends ViewPane {
 		});
 	}
 
-	override layoutBody(height: number, width: number): void {
+	protected override layoutBody(height: number, width: number): void {
 		super.layoutBody(height, width)
 		this.element.style.height = `${height}px`
 		this.element.style.width = `${width}px`

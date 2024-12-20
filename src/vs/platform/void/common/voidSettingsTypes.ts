@@ -96,7 +96,7 @@ type UnionOfKeys<T> = T extends T ? keyof T : never;
 
 
 
-export const customProviderSettings = {
+export const defaultProviderSettings = {
 	anthropic: {
 		apiKey: '',
 	},
@@ -110,8 +110,8 @@ export const customProviderSettings = {
 		apiKey: '',
 	},
 	openAICompatible: {
-		apiKey: '',
 		endpoint: '',
+		apiKey: '',
 	},
 	gemini: {
 		apiKey: '',
@@ -122,15 +122,19 @@ export const customProviderSettings = {
 } as const
 
 
-export type ProviderName = keyof typeof customProviderSettings
-export const providerNames = Object.keys(customProviderSettings) as ProviderName[]
+export type ProviderName = keyof typeof defaultProviderSettings
+export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
 
 
-type CustomSettingName = UnionOfKeys<typeof customProviderSettings[ProviderName]>
+type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
 type CustomProviderSettings<providerName extends ProviderName> = {
-	[k in CustomSettingName]: k extends keyof typeof customProviderSettings[providerName] ? string : undefined
+	[k in CustomSettingName]: k extends keyof typeof defaultProviderSettings[providerName] ? string : undefined
 }
+export const customSettingNamesOfProvider = (providerName: ProviderName) => {
+	return Object.keys(defaultProviderSettings[providerName]) as CustomSettingName[]
+}
+
 
 type CommonProviderSettings = {
 	enabled: boolean | undefined, // undefined initially
@@ -150,28 +154,48 @@ export type SettingName = keyof SettingsForProvider<ProviderName>
 
 
 
-export const customSettingNamesOfProvider = (providerName: ProviderName) => {
-	return Object.keys(customProviderSettings[providerName]) as CustomSettingName[]
+
+type DisplayInfoForProviderName = {
+	title: string,
 }
 
+export const displayInfoOfProviderName = (providerName: ProviderName): DisplayInfoForProviderName => {
+	if (providerName === 'anthropic') {
+		return {
+			title: 'Anthropic',
+		}
+	}
+	else if (providerName === 'openAI') {
+		return {
+			title: 'OpenAI',
+		}
+	}
+	else if (providerName === 'openRouter') {
+		return {
+			title: 'OpenRouter',
+		}
+	}
+	else if (providerName === 'ollama') {
+		return {
+			title: 'Ollama',
 
-
-
-export const titleOfProviderName = (providerName: ProviderName) => {
-	if (providerName === 'anthropic')
-		return 'Anthropic'
-	else if (providerName === 'openAI')
-		return 'OpenAI'
-	else if (providerName === 'ollama')
-		return 'Ollama'
-	else if (providerName === 'openRouter')
-		return 'OpenRouter'
-	else if (providerName === 'openAICompatible')
-		return 'OpenAI-Compatible'
-	else if (providerName === 'gemini')
-		return 'Gemini'
-	else if (providerName === 'groq')
-		return 'Groq'
+		}
+	}
+	else if (providerName === 'openAICompatible') {
+		return {
+			title: 'OpenAI-Compatible',
+		}
+	}
+	else if (providerName === 'gemini') {
+		return {
+			title: 'Gemini',
+		}
+	}
+	else if (providerName === 'groq') {
+		return {
+			title: 'Groq',
+		}
+	}
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -179,9 +203,7 @@ export const titleOfProviderName = (providerName: ProviderName) => {
 type DisplayInfo = {
 	title: string,
 	placeholder: string,
-
-	helpfulUrl?: string,
-	urlPurpose?: string,
+	subTextMd?: string,
 }
 export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
 	if (settingName === 'apiKey') {
@@ -195,32 +217,27 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 								providerName === 'openAICompatible' ? 'sk-key...' :
 									'(never)',
 
-			helpfulUrl: providerName === 'anthropic' ? 'https://console.anthropic.com/settings/keys' :
-				providerName === 'openAI' ? 'https://platform.openai.com/api-keys' :
-					providerName === 'openRouter' ? 'https://openrouter.ai/settings/keys' :
-						providerName === 'gemini' ? 'https://aistudio.google.com/apikey' :
-							providerName === 'groq' ? 'https://console.groq.com/keys' :
+			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
+				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
+					providerName === 'openRouter' ? 'Get your [API Key here](https://openrouter.ai/settings/keys).' :
+						providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
+							providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
 								providerName === 'openAICompatible' ? undefined :
 									undefined,
-
-			urlPurpose: 'to get your API key.',
 		}
 	}
 	else if (settingName === 'endpoint') {
 		return {
-			title: providerName === 'ollama' ? 'Your Ollama endpoint' :
+			title: providerName === 'ollama' ? 'Endpoint' :
 				providerName === 'openAICompatible' ? 'baseURL' // (do not include /chat/completions)
 					: '(never)',
 
-			placeholder: providerName === 'ollama' ? customProviderSettings.ollama.endpoint
+			placeholder: providerName === 'ollama' ? defaultProviderSettings.ollama.endpoint
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
 
-			helpfulUrl: providerName === 'ollama' ? 'https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network'
-				: providerName === 'openAICompatible' ? undefined
-					: undefined,
-
-			urlPurpose: 'for more information.',
+			subTextMd: providerName === 'ollama' ? 'Read about Ollama [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
+				undefined,
 		}
 	}
 	else if (settingName === 'enabled') {
@@ -278,42 +295,42 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
 		enabled: undefined,
 		...defaultCustomSettings,
-		...customProviderSettings.anthropic,
+		...defaultProviderSettings.anthropic,
 		...voidInitModelOptions.anthropic,
 	},
 	openAI: {
 		enabled: undefined,
 		...defaultCustomSettings,
-		...customProviderSettings.openAI,
+		...defaultProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
 	},
 	gemini: {
 		...defaultCustomSettings,
-		...customProviderSettings.gemini,
+		...defaultProviderSettings.gemini,
 		...voidInitModelOptions.gemini,
 		enabled: undefined,
 	},
 	groq: {
 		...defaultCustomSettings,
-		...customProviderSettings.groq,
+		...defaultProviderSettings.groq,
 		...voidInitModelOptions.groq,
 		enabled: undefined,
 	},
 	ollama: {
 		...defaultCustomSettings,
-		...customProviderSettings.ollama,
+		...defaultProviderSettings.ollama,
 		...voidInitModelOptions.ollama,
 		enabled: undefined,
 	},
 	openRouter: {
 		...defaultCustomSettings,
-		...customProviderSettings.openRouter,
+		...defaultProviderSettings.openRouter,
 		...voidInitModelOptions.openRouter,
 		enabled: undefined,
 	},
 	openAICompatible: {
 		...defaultCustomSettings,
-		...customProviderSettings.openAICompatible,
+		...defaultProviderSettings.openAICompatible,
 		...voidInitModelOptions.openAICompatible,
 		enabled: undefined,
 	},
@@ -341,11 +358,19 @@ export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete'] as const
 
 
 
+// the models of these can be refreshed (in theory all can, but not all should)
+export const refreshableProviderNames = ['ollama', 'openAICompatible'] satisfies ProviderName[]
+export type RefreshableProviderName = typeof refreshableProviderNames[number]
+
+
+
+
+
 
 
 
 export type FeatureFlagSettings = {
-	autoRefreshModels: boolean; // automatically scan for local models and enable when found
+	autoRefreshModels: boolean;
 }
 export const defaultFeatureFlagSettings: FeatureFlagSettings = {
 	autoRefreshModels: true,
@@ -360,7 +385,7 @@ type FeatureFlagDisplayInfo = {
 export const displayInfoOfFeatureFlag = (featureFlag: FeatureFlagName): FeatureFlagDisplayInfo => {
 	if (featureFlag === 'autoRefreshModels') {
 		return {
-			description: 'Automatically scan for and enable local models.',
+			description: `Automatically scan for and enable local models.`, // ${`refreshableProviderNames.map(providerName => titleOfProviderName(providerName)).join(', ')`}
 		}
 	}
 	throw new Error(`featureFlagInfo: Unknown feature flag: "${featureFlag}"`)

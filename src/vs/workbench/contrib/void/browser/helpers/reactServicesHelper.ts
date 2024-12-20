@@ -9,10 +9,12 @@ import { ILLMMessageService } from '../../../../../platform/void/common/llmMessa
 import { IRefreshModelService } from '../../../../../platform/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../platform/void/common/voidSettingsService.js';
 import { IInlineDiffsService } from '../inlineDiffsService.js';
+import { IQuickEditStateService } from '../quickEditStateService.js';
 import { ISidebarStateService } from '../sidebarStateService.js';
 import { IThreadHistoryService } from '../threadHistoryService.js';
 
 export type ReactServicesType = {
+	quickEditStateService: IQuickEditStateService;
 	sidebarStateService: ISidebarStateService;
 	settingsStateService: IVoidSettingsService;
 	threadsStateService: IThreadHistoryService;
@@ -33,6 +35,7 @@ export type ReactServicesType = {
 
 export const getReactServices = (accessor: ServicesAccessor): ReactServicesType => {
 	return {
+		quickEditStateService: accessor.get(IQuickEditStateService),
 		settingsStateService: accessor.get(IVoidSettingsService),
 		sidebarStateService: accessor.get(ISidebarStateService),
 		threadsStateService: accessor.get(IThreadHistoryService),

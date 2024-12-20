@@ -13,7 +13,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../storage/comm
 import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultNames, VoidModelInfo, FeatureFlagSettings, FeatureFlagName, defaultFeatureFlagSettings } from './voidSettingsTypes.js';
 
 
-const STORAGE_KEY = 'void.voidSettingsI'
+const STORAGE_KEY = 'void.voidSettingsStorage'
 
 type SetSettingOfProviderFn = <S extends SettingName>(
 	providerName: ProviderName,

@@ -8,8 +8,7 @@ import * as ReactDOM from 'react-dom/client'
 import { _registerServices } from './services.js';
 import { ReactServicesType } from '../../../helpers/reactServicesHelper.js';
 
-
-export const mountFnGenerator = (Component: (params: any) => React.ReactNode) => (rootElement: HTMLElement, services: ReactServicesType) => {
+export const mountFnGenerator = (Component: (params: any) => React.ReactNode) => (rootElement: HTMLElement, services: ReactServicesType, props?: any) => {
 	if (typeof document === 'undefined') {
 		console.error('index.tsx error: document was undefined')
 		return
@@ -19,7 +18,7 @@ export const mountFnGenerator = (Component: (params: any) => React.ReactNode) =>
 
 
 	const root = ReactDOM.createRoot(rootElement)
-	root.render(<Component />); // tailwind dark theme indicator
+	root.render(<Component {...props} />); // tailwind dark theme indicator
 
 	return disposables
 }

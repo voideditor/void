@@ -36,7 +36,7 @@ const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvide
 	openAICompatible: ['enabled', 'endpoint', 'apiKey'],
 }
 const REFRESH_INTERVAL = 5_000
-const COOLDOWN_TIMEOUT = 1_000
+const COOLDOWN_TIMEOUT = 300
 
 // element-wise equals
 function eq<T>(a: T[], b: T[]): boolean {

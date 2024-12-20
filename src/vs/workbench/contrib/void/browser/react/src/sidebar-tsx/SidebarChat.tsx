@@ -3,12 +3,10 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import React, { FormEvent, Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
 import { useSettingsState, useService, useSidebarState, useThreadsState } from '../util/services.js';
-import { generateDiffInstructions } from '../../../prompt/systemPrompts.js';
-import { userInstructionsStr } from '../../../prompt/stringifySelections.js';
 import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../threadHistoryService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
@@ -23,6 +21,7 @@ import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
+import { ctrlLSystem, generateCtrlLPrompt } from '../../../prompt/prompts.js';
 
 
 const IconX = ({ size, className = '' }: { size: number, className?: string }) => {
@@ -84,6 +83,33 @@ const IconSquare = ({ size, className = '' }: { size: number, className?: string
 		</svg>
 	);
 };
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
+export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
+	return <button
+		className={`size-[20px] rounded-full shrink-0 grow-0 cursor-pointer
+			${disabled ? 'bg-vscode-disabled-fg' : 'bg-white'}
+			${className}
+		`}
+		type='submit'
+		{...props}
+	>
+		<IconArrowUp size={20} className="stroke-[2]" />
+	</button>
+}
+
+export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
+
+	return <button
+		className={`size-[20px] rounded-full bg-white cursor-pointer flex items-center justify-center
+			${className}
+		`}
+		type='button'
+		{...props}
+	>
+		<IconSquare size={16} className="stroke-[2]" />
+	</button>
+}
 
 
 const ScrollToBottomContainer = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => {
@@ -277,6 +303,8 @@ export const SidebarChat = () => {
 	const threadsState = useThreadsState()
 	const threadsStateService = useService('threadsStateService')
 
+	const llmMessageService = useService('llmMessageService')
+
 	// ----- SIDEBAR CHAT state (local) -----
 
 	// state of chat
@@ -286,7 +314,6 @@ export const SidebarChat = () => {
 
 	const [latestError, setLatestError] = useState<Parameters<OnError>[0] | null>(null)
 
-	const llmMessageService = useService('llmMessageService')
 
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
@@ -325,11 +352,11 @@ export const SidebarChat = () => {
 
 
 		// add system message to chat history
-		const systemPromptElt: ChatMessage = { role: 'system', content: generateDiffInstructions }
+		const systemPromptElt: ChatMessage = { role: 'system', content: ctrlLSystem }
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
 		// add user's message to chat history
-		const userHistoryElt: ChatMessage = { role: 'user', content: userInstructionsStr(instructions, selections), displayContent: instructions, selections: selections }
+		const userHistoryElt: ChatMessage = { role: 'user', content: generateCtrlLPrompt(instructions, selections), displayContent: instructions, selections: selections }
 		threadsStateService.addMessageToCurrentThread(userHistoryElt)
 
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
@@ -474,14 +501,14 @@ export const SidebarChat = () => {
 				{/* middle row */}
 				<div
 					className={
-						//   // overwrite vscode styles (generated with this code):
+						// // hack to overwrite vscode styles (generated with this code):
 						//   `bg-transparent outline-none text-vscode-input-fg min-h-[81px] max-h-[500px]`
 						//     .split(' ')
-						//     .map(style => `@@[&_textarea]:!void-${style}`) // apply styles to ancestor input and textarea elements
+						//     .map(style => `@@[&_textarea]:!void-${style}`) // apply styles to ancestor textarea elements
 						//     .join(' ') +
 						//   ` outline-none`
 						//     .split(' ')
-						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`) // apply styles to ancestor input and textarea elements
+						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`)
 						//     .join(' ');
 						`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_textarea]:!void-min-h-[81px] @@[&_textarea]:!void-max-h-[500px] @@[&_div.monaco-inputbox]:!void-outline-none`
 					}
@@ -508,27 +535,14 @@ export const SidebarChat = () => {
 					{/* submit / stop button */}
 					{isLoading ?
 						// stop button
-						<button
-							className={`size-[20px] rounded-full bg-white cursor-pointer flex items-center justify-center`}
+						<ButtonStop
 							onClick={onAbort}
-							type='button'
-						>
-							<IconSquare size={16} className="stroke-[2]" />
-						</button>
+						/>
 						:
 						// submit button (up arrow)
-						<button
-							className={`size-[20px] rounded-full shrink-0 grow-0 cursor-pointer
-								${isDisabled ?
-									'bg-vscode-disabled-fg' // cursor-not-allowed
-									: 'bg-white' // cursor-pointer
-								}
-							`}
+						<ButtonSubmit
 							disabled={isDisabled}
-							type='submit'
-						>
-							<IconArrowUp size={20} className="stroke-[2]" />
-						</button>
+						/>
 					}
 				</div>
 

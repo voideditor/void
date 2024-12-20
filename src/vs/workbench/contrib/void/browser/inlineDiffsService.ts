@@ -11,7 +11,7 @@ import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/brows
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 // import { throttle } from '../../../../base/common/decorators.js';
-import { writeFileWithDiffInstructions } from './prompt/systemPrompts.js';
+import { writeFileWithDiffInstructions } from './prompt/prompts.js';
 import { ComputedDiff, findDiffs } from './helpers/findDiffs.js';
 import { EndOfLinePreference, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';

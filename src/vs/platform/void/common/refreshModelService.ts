@@ -100,7 +100,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 								this.refreshModels(providerName, !enabled)
 							}
 							else {
-								// else if user just clicked disable, give 5 seconds cooldown before re-enabling (or at least re-fetching)
+								// else if user just clicked disable, give cooldown before re-enabling (or at least re-fetching)
 								const timeoutId = setTimeout(() => this.refreshModels(providerName, !enabled), COOLDOWN_TIMEOUT)
 								this._setTimeoutId(providerName, timeoutId)
 							}

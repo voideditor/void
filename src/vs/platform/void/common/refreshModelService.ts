@@ -62,7 +62,6 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 	private readonly _onDidChangeState = new Emitter<RefreshableProviderName>();
 	readonly onDidChangeState: Event<RefreshableProviderName> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
-	private readonly _onDidAutoEnable = new Emitter<RefreshableProviderName>();
 
 	constructor(
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
@@ -152,7 +151,6 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 				if (enableProviderOnSuccess) {
 					this.voidSettingsService.setSettingOfProvider(providerName, 'enabled', true)
-					this._onDidAutoEnable.fire(providerName)
 				}
 
 				this._setRefreshState(providerName, 'success')

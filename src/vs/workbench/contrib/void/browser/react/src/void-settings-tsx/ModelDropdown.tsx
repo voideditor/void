@@ -5,13 +5,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FeatureName, featureNames, ModelSelection, modelSelectionsEqual, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
-import { useSettingsState, useRefreshModelState, useService } from '../util/services.js'
+import { useSettingsState, useRefreshModelState, useAccessor } from '../util/services.js'
 import { VoidSelectBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 
 
 const ModelSelectBox = ({ featureName }: { featureName: FeatureName }) => {
-	const voidSettingsService = useService('settingsStateService')
+	const accessor = useAccessor()
+
+	const voidSettingsService = accessor.get('IVoidSettingsService')
 	const settingsState = useSettingsState()
 
 	let weChangedText = false

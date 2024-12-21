@@ -6,7 +6,7 @@
 import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
-import { useService } from '../util/services.js'
+import { useAccessor } from '../util/services.js'
 
 
 enum CopyButtonState {
@@ -18,13 +18,13 @@ enum CopyButtonState {
 const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
 const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
+	const accessor = useAccessor()
+
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
-	const inlineDiffService = useService('inlineDiffService')
-
-	const clipboardService = useService('clipboardService')
-
-
+	const inlineDiffService = accessor.get('IInlineDiffsService')
+	const clipboardService = accessor.get('IClipboardService')
 	useEffect(() => {
+
 		if (copyButtonState !== CopyButtonState.Copy) {
 			setTimeout(() => {
 				setCopyButtonState(CopyButtonState.Copy)

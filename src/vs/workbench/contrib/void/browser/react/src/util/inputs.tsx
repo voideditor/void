@@ -4,19 +4,26 @@
  *--------------------------------------------------------------------------------------------*/
 
 import React, { useCallback, useEffect, useRef } from 'react';
-import { useIsDark, useService } from '../util/services.js';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { Checkbox } from '../../../../../../../base/browser/ui/toggle/toggle.js';
 
+import { CodeEditorWidget } from '../../../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js'
+import { useAccessor } from './services.js';
 
+
+// type guard
+const isConstructor = (f: any)
+	: f is { new(...params: any[]): any } => {
+	return !!f.prototype && f.prototype.constructor === f;
+}
 
 export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, propsFn, dispose, onCreateInstance, children, className }
 	: {
-		ctor: { new(...params: CtorParams): Instance },
-		propsFn: (container: HTMLDivElement) => CtorParams,
+		ctor: { new(...params: CtorParams): Instance } | ((container: HTMLDivElement) => Instance),
+		propsFn: (container: HTMLDivElement) => CtorParams, // unused if fn
 		onCreateInstance: (instance: Instance) => IDisposable[],
 		dispose: (instance: Instance) => void,
 		children?: React.ReactNode,
@@ -26,7 +33,7 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 	const containerRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
-		const instance = new ctor(...propsFn(containerRef.current!));
+		const instance = isConstructor(ctor) ? new ctor(...propsFn(containerRef.current!)) : ctor(containerRef.current!)
 		const disposables = onCreateInstance(instance);
 		return () => {
 			disposables.forEach(d => d.dispose());
@@ -48,7 +55,9 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 	multiline: boolean;
 }) => {
 
-	const contextViewProvider = useService('contextViewService');
+	const accessor = useAccessor()
+
+	const contextViewProvider = accessor.get('IContextViewService')
 	return <WidgetComponent
 		ctor={InputBox}
 		propsFn={useCallback((container) => [
@@ -189,7 +198,8 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	selectBoxRef?: React.MutableRefObject<SelectBox | null>;
 	options: readonly { text: string, value: T }[];
 }) => {
-	const contextViewProvider = useService('contextViewService');
+	const accessor = useAccessor()
+	const contextViewProvider = accessor.get('IContextViewService')
 
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -237,6 +247,61 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 };
 
 
+
+export const VoidCodeEditor = ({ initValue, language }: { initValue: string, language: string | undefined }) => {
+	const divRef = useRef<HTMLDivElement | null>(null)
+
+	const accessor = useAccessor()
+	const instantiationService = accessor.get('IInstantiationService')
+	const modelService = accessor.get('IModelService')
+
+	return <div ref={divRef}>
+		<WidgetComponent
+			ctor={useCallback((container) =>
+				instantiationService.createInstance(
+					CodeEditorWidget,
+					container,
+					{
+						automaticLayout: true,
+						wordWrap: 'on',
+						scrollbar: {
+							vertical: 'hidden',
+							horizontal: 'auto',
+						}
+					},
+					{
+						isSimpleWidget: true,
+					})
+				, [instantiationService])
+			}
+
+			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
+
+				const model = modelService.createModel(initValue, null)
+				editor.setModel(model);
+				model.setLanguage(language ?? 'plaintext')
+
+				const container = editor.getDomNode()
+				const parentNode = container?.parentElement
+				if (parentNode)
+					parentNode.style.height = `${editor.getScrollHeight() + 1}px` // the +1 is if there's a half pixel issue
+
+				return []
+			}, [modelService, initValue, language])}
+
+			dispose={useCallback((editor: CodeEditorWidget) => {
+				editor.dispose();
+			}, [])}
+
+			// ignored
+			propsFn={useCallback(() => { return [] }, [])}
+
+		/>
+	</div>
+
+}
+
+
 // export const VoidScrollableElt = ({ options, children }: { options: ScrollableElementCreationOptions, children: React.ReactNode }) => {
 // 	const instanceRef = useRef<DomScrollableElement | null>(null);
 // 	const [childrenPortal, setChildrenPortal] = useState<React.ReactNode | null>(null)
@@ -270,8 +335,6 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 // 	options: readonly { text: string, value: T }[];
 // 	onChangeSelection: (value: T) => void;
 // }) => {
-// 	const contextViewProvider = useService('contextViewService');
-// 	const contextMenuProvider = useService('contextMenuService');
 
 
 // 	return <WidgetComponent
@@ -317,9 +380,6 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 // }) => {
 // 	const containerRef = useRef<HTMLDivElement>(null);
 
-// 	const themeService = useService('themeService');
-// 	const contextViewService = useService('contextViewService');
-// 	const hoverService = useService('hoverService');
 
 // 	useEffect(() => {
 // 		if (!containerRef.current) return;

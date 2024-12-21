@@ -3,7 +3,7 @@ import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidCheckBox, VoidInputBox, VoidSelectBox, VoidSwitch } from '../util/inputs.js'
-import { useIsDark, useRefreshModelListener, useRefreshModelState, useService, useSettingsState } from '../util/services.js'
+import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check } from 'lucide-react'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 
@@ -12,7 +12,9 @@ import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 // models
 const RefreshModelButton = ({ providerName }: { providerName: RefreshableProviderName }) => {
 	const refreshModelState = useRefreshModelState()
-	const refreshModelService = useService('refreshModelService')
+
+	const accessor = useAccessor()
+	const refreshModelService = accessor.get('IRefreshModelService')
 
 	const [justFinished, setJustSucceeded] = useState(false)
 
@@ -60,7 +62,10 @@ const RefreshableModels = () => {
 
 
 const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
-	const settingsStateService = useService('settingsStateService')
+
+	const accessor = useAccessor()
+	const settingsStateService = accessor.get('IVoidSettingsService')
+
 	const settingsState = useSettingsState()
 
 	const providerNameRef = useRef<ProviderName | null>(null)
@@ -147,7 +152,9 @@ const AddModelMenuFull = () => {
 
 export const ModelDump = () => {
 
-	const settingsStateService = useService('settingsStateService')
+	const accessor = useAccessor()
+	const settingsStateService = accessor.get('IVoidSettingsService')
+
 	const settingsState = useSettingsState()
 
 	// a dump of all the enabled providers' models
@@ -204,7 +211,9 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 	const { title: providerTitle, } = displayInfoOfProviderName(providerName)
 
 	const { title: settingTitle, placeholder, subTextMd } = displayInfoOfSettingName(providerName, settingName)
-	const voidSettingsService = useService('settingsStateService')
+
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
 
 	let weChangedTextRef = false
 
@@ -243,7 +252,8 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 
 const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
 	const voidSettingsState = useSettingsState()
-	const voidSettingsService = useService('settingsStateService')
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
 
 	const { enabled } = voidSettingsState.settingsOfProvider[providerName]
 	const settingNames = customSettingNamesOfProvider(providerName)
@@ -286,7 +296,9 @@ export const VoidProviderSettings = () => {
 
 
 export const VoidFeatureFlagSettings = () => {
-	const voidSettingsService = useService('settingsStateService')
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+
 	const voidSettingsState = useSettingsState()
 
 	return <>

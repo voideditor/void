@@ -3,11 +3,10 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ThreadsState } from '../../../threadHistoryService.js'
 import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
-import { ReactServicesType } from '../../../helpers/reactServicesHelper.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
@@ -15,9 +14,35 @@ import { VoidQuickEditState } from '../../../quickEditStateService.js'
 import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
 
 
-// normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
 
-let services: ReactServicesType
+
+
+import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
+import { IModelService } from '../../../../../../../editor/common/services/model.js';
+import { IClipboardService } from '../../../../../../../platform/clipboard/common/clipboardService.js';
+import { IContextViewService, IContextMenuService } from '../../../../../../../platform/contextview/browser/contextView.js';
+import { IFileService } from '../../../../../../../platform/files/common/files.js';
+import { IHoverService } from '../../../../../../../platform/hover/browser/hover.js';
+import { IThemeService } from '../../../../../../../platform/theme/common/themeService.js';
+import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
+import { IRefreshModelService } from '../../../../../../../platform/void/common/refreshModelService.js';
+import { IVoidSettingsService } from '../../../../../../../platform/void/common/voidSettingsService.js';
+import { IInlineDiffsService } from '../../../inlineDiffsService.js';
+import { IQuickEditStateService } from '../../../quickEditStateService.js';
+import { ISidebarStateService } from '../../../sidebarStateService.js';
+import { IThreadHistoryService } from '../../../threadHistoryService.js';
+import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
+import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
+import { ICommandService } from '../../../../../../../platform/commands/common/commands.js'
+import { IContextKeyService } from '../../../../../../../platform/contextkey/common/contextkey.js'
+import { INotificationService } from '../../../../../../../platform/notification/common/notification.js'
+import { IAccessibilityService } from '../../../../../../../platform/accessibility/common/accessibility.js'
+import { ILanguageConfigurationService } from '../../../../../../../editor/common/languages/languageConfigurationRegistry.js'
+import { ILanguageFeaturesService } from '../../../../../../../editor/common/services/languageFeatures.js'
+
+
+
+// normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
 
 // even if React hasn't mounted yet, the variables are always updated to the latest state.
 // React listens by adding a setState function to these listeners.
@@ -43,7 +68,7 @@ const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
 let wasCalled = false
-export const _registerServices = (services_: ReactServicesType) => {
+export const _registerServices = (accessor: ServicesAccessor) => {
 
 	const disposables: IDisposable[] = []
 
@@ -54,8 +79,18 @@ export const _registerServices = (services_: ReactServicesType) => {
 	}
 	wasCalled = true
 
-	services = services_
-	const { sidebarStateService, quickEditStateService, settingsStateService, threadsStateService, refreshModelService, themeService, } = services
+	_registerAccessor(accessor)
+
+	const stateServices = {
+		quickEditStateService: accessor.get(IQuickEditStateService),
+		sidebarStateService: accessor.get(ISidebarStateService),
+		threadsStateService: accessor.get(IThreadHistoryService),
+		settingsStateService: accessor.get(IVoidSettingsService),
+		refreshModelService: accessor.get(IRefreshModelService),
+		themeService: accessor.get(IThemeService),
+	}
+
+	const { sidebarStateService, quickEditStateService, settingsStateService, threadsStateService, refreshModelService, themeService, } = stateServices
 
 	quickEditState = quickEditStateService.state
 	disposables.push(
@@ -110,13 +145,55 @@ export const _registerServices = (services_: ReactServicesType) => {
 }
 
 
-// -- services --
-export const useService = <T extends keyof ReactServicesType,>(serviceName: T): ReactServicesType[T] => {
-	if (services === null) {
-		throw new Error('useAccessor must be used within an AccessorProvider')
-	}
-	return services[serviceName]
+const getReactAccessor = (accessor: ServicesAccessor) => {
+	const reactAccessor = {
+		IModelService: accessor.get(IModelService),
+		IClipboardService: accessor.get(IClipboardService),
+		IContextViewService: accessor.get(IContextViewService),
+		IContextMenuService: accessor.get(IContextMenuService),
+		IFileService: accessor.get(IFileService),
+		IHoverService: accessor.get(IHoverService),
+		IThemeService: accessor.get(IThemeService),
+		ILLMMessageService: accessor.get(ILLMMessageService),
+		IRefreshModelService: accessor.get(IRefreshModelService),
+		IVoidSettingsService: accessor.get(IVoidSettingsService),
+		IInlineDiffsService: accessor.get(IInlineDiffsService),
+		IQuickEditStateService: accessor.get(IQuickEditStateService),
+		ISidebarStateService: accessor.get(ISidebarStateService),
+		IThreadHistoryService: accessor.get(IThreadHistoryService),
+
+		IInstantiationService: accessor.get(IInstantiationService),
+		ICodeEditorService: accessor.get(ICodeEditorService),
+		ICommandService: accessor.get(ICommandService),
+		IContextKeyService: accessor.get(IContextKeyService),
+		INotificationService: accessor.get(INotificationService),
+		IAccessibilityService: accessor.get(IAccessibilityService),
+		ILanguageConfigurationService: accessor.get(ILanguageConfigurationService),
+		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
+
+	} as const
+	return reactAccessor
 }
+
+type ReactAccessor = ReturnType<typeof getReactAccessor>
+
+
+let reactAccessor_: ReactAccessor | null = null
+const _registerAccessor = (accessor: ServicesAccessor) => {
+	const reactAccessor = getReactAccessor(accessor)
+	reactAccessor_ = reactAccessor
+}
+
+// -- services --
+export const useAccessor = () => {
+	if (!reactAccessor_) {
+		throw new Error(`⚠️ Void useAccessor was called before _registerServices!`)
+	}
+
+	return { get: <S extends keyof ReactAccessor,>(service: S): ReactAccessor[S] => reactAccessor_![service] }
+}
+
+
 
 // -- state of services --
 

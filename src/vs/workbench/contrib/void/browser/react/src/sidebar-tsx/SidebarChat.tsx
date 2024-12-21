@@ -6,12 +6,11 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
-import { useSettingsState, useService, useSidebarState, useThreadsState } from '../util/services.js';
-import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../threadHistoryService.js';
+import { useAccessor, useThreadsState } from '../util/services.js';
+import { ChatMessage, CodeSelection, CodeStagingSelection, IThreadHistoryService } from '../../../threadHistoryService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
-import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
@@ -19,9 +18,12 @@ import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { VoidInputBox } from '../util/inputs.js';
+import { VoidCodeEditor, VoidInputBox } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { ctrlLSystem, generateCtrlLPrompt } from '../../../prompt/prompts.js';
+import { ISidebarStateService } from '../../../sidebarStateService.js';
+import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
+import { IModelService } from '../../../../../../../editor/common/services/model.js';
 
 
 const IconX = ({ size, className = '' }: { size: number, className?: string }) => {
@@ -285,11 +287,12 @@ export const SidebarChat = () => {
 
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
-	const modelService = useService('modelService')
+	const accessor = useAccessor()
+	const modelService = accessor.get('IModelService')
 
 	// ----- HIGHER STATE -----
 	// sidebar state
-	const sidebarStateService = useService('sidebarStateService')
+	const sidebarStateService = accessor.get('ISidebarStateService')
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
@@ -301,9 +304,9 @@ export const SidebarChat = () => {
 
 	// threads state
 	const threadsState = useThreadsState()
-	const threadsStateService = useService('threadsStateService')
+	const threadsStateService = accessor.get('IThreadHistoryService')
 
-	const llmMessageService = useService('llmMessageService')
+	const llmMessageService = accessor.get('ILLMMessageService')
 
 	// ----- SIDEBAR CHAT state (local) -----
 

@@ -10,7 +10,6 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { mountCtrlK } from './react/out/ctrl-k-tsx/index.js';
-import { getReactServices } from './helpers/reactServicesHelper.js';
 import { URI } from '../../../../base/common/uri.js';
 
 
@@ -83,12 +82,10 @@ class VoidQuickEditService extends Disposable implements IQuickEditService {
 				accessor.addZone(viewZone)
 
 				this._instantiationService.invokeFunction(accessor => {
-					const services = getReactServices(accessor)
-
 					const props: QuickEditPropsType = {
 						quickEditId: this.quickEditId++,
 					}
-					mountCtrlK(domNode, services, props)
+					mountCtrlK(domNode, accessor, props)
 				})
 
 				// disposeInThisEditorFns.push(() => { editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) }) })

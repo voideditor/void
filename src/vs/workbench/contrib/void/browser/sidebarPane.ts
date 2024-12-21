@@ -25,7 +25,7 @@ import { IViewPaneOptions, ViewPane } from '../../../browser/parts/views/viewPan
 
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { IDisposable } from '../../../../base/common/lifecycle.js';
+// import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
@@ -33,16 +33,12 @@ import { IKeybindingService } from '../../../../platform/keybinding/common/keybi
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-
 import { mountSidebar } from './react/out/sidebar-tsx/index.js';
 
-import { getReactServices } from './helpers/reactServicesHelper.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
-// import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
-// import { Codicon } from '../../../../base/common/codicons.js';
-// import { Codicon } from '../../../../base/common/codicons.js';
-
+// import { IDisposable } from '../../../../base/common/lifecycle.js';
+import { IDisposable } from '../../../../base/common/lifecycle.js';
 
 // compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
 
@@ -62,6 +58,8 @@ class SidebarViewPane extends ViewPane {
 		@IOpenerService openerService: IOpenerService,
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IHoverService hoverService: IHoverService,
+		// @ICodeEditorService private readonly editorService: ICodeEditorService,
+		// @IContextKeyService private readonly editorContextKeyService: IContextKeyService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService)
 
@@ -76,10 +74,8 @@ class SidebarViewPane extends ViewPane {
 
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
-			const services = getReactServices(accessor)
-
 			// mount react
-			const disposables: IDisposable[] | undefined = mountSidebar(parent, services);
+			const disposables: IDisposable[] | undefined = mountSidebar(parent, accessor);
 			disposables?.forEach(d => this._register(d))
 		});
 	}
@@ -88,8 +84,6 @@ class SidebarViewPane extends ViewPane {
 		super.layoutBody(height, width)
 		this.element.style.height = `${height}px`
 		this.element.style.width = `${width}px`
-
-
 	}
 
 }

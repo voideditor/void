@@ -6,6 +6,7 @@
 import React, { ReactNode } from "react"
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { atomOneDarkReasonable } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { VoidCodeEditor } from '../util/inputs.js';
 
 
 export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, buttonsOnHover?: ReactNode, language?: string }) => {
@@ -27,7 +28,11 @@ export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, bu
 				</div>
 			)}
 
-			<div
+			<VoidCodeEditor
+				initValue={text}
+				language={language}
+			/>
+			{/* <div
 				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg`}
 			>
 				<SyntaxHighlighter
@@ -38,7 +43,7 @@ export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, bu
 					{text}
 				</SyntaxHighlighter>
 
-			</div>
+			</div> */}
 		</div>
 	</>
 	)

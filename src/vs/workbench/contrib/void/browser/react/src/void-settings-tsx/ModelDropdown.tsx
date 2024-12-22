@@ -8,6 +8,7 @@ import { FeatureName, featureNames, ModelSelection, modelSelectionsEqual, Provid
 import { useSettingsState, useRefreshModelState, useAccessor } from '../util/services.js'
 import { VoidSelectBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
+import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
 
 
 const ModelSelectBox = ({ featureName }: { featureName: FeatureName }) => {
@@ -42,10 +43,18 @@ const ModelSelectBox = ({ featureName }: { featureName: FeatureName }) => {
 }
 
 const DummySelectBox = () => {
-	return <VoidSelectBox
-		options={[{ text: 'Please add a model!', value: null }]}
-		onChangeSelection={() => { }}
-	/>
+
+	return <div>
+		<IconWarning
+			size={24}
+			className='text-orange-900'
+		/>
+		<span className='text-orange-900'>Add a model</span>
+	</div>
+	// return <VoidSelectBox
+	// 	options={[{ text: 'Please add a model!', value: null }]}
+	// 	onChangeSelection={() => { }}
+	// />
 }
 
 export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => {

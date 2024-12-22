@@ -9,7 +9,7 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, u
 import { useAccessor, useThreadsState } from '../util/services.js';
 import { ChatMessage, CodeSelection, CodeStagingSelection, IThreadHistoryService } from '../../../threadHistoryService.js';
 
-import { BlockCode } from '../markdown/BlockCode.js';
+import { BlockCode, getLanguageFromFileName } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
@@ -86,6 +86,29 @@ const IconSquare = ({ size, className = '' }: { size: number, className?: string
 	);
 };
 
+
+export const IconWarning = ({ size, className = '' }: { size: number, className?: string }) => {
+	return (
+		<svg
+			className={className}
+			stroke="currentColor"
+			fill="currentColor"
+			strokeWidth="0"
+			viewBox="0 0 24 24"
+			width={size}
+			height={size}
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			{/* Warning triangle */}
+			<path d="M12 3L2 21h20L12 3zm0 3.3L19.3 19H4.7L12 6.3z" />
+
+			{/* Exclamation mark */}
+			<rect x="11" y="10" width="2" height="6" />
+			<circle cx="12" cy="18" r="1" />
+		</svg>
+	);
+};
+
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
 export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
 	return <button
@@ -109,7 +132,7 @@ export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLBut
 		type='button'
 		{...props}
 	>
-		<IconSquare size={16} className="stroke-[2]" />
+		<IconSquare size={10} className="stroke-[2]" />
 	</button>
 }
 
@@ -192,7 +215,7 @@ export const SelectedFiles = (
 			>
 				{selections.map((selection, i) => {
 
-					const showSelectionText = selection.selectionStr && selectionIsOpened[i]
+					const showSelectionText = !!(selection.selectionStr && selectionIsOpened[i])
 
 					return (
 						<div key={i} // container for `selectionSummary` and `selectionText`
@@ -201,9 +224,11 @@ export const SelectedFiles = (
 							{/* selection summary */}
 							<div
 								// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
-								className={`grid grid-rows-2 gap-1 relative
+								className={`grid grid-rows-2 gap-1 relative p-1
 									select-none
-									bg-vscode-badge-bg border border-vscode-button-border rounded-md
+									bg-vscode-editor-bg hover:brightness-90
+									border border-vscode-button-border rounded-md
+									text-vscode-commandcenter-inactive-fg
 									w-fit h-fit min-w-[81px] p-1
 							`}
 								onClick={() => {
@@ -222,7 +247,7 @@ export const SelectedFiles = (
 								</span>
 
 								{/* type of selection */}
-								<span className='truncate text-opacity-75'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span>
+								<span className='truncate'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span>
 
 								{/* X button */}
 								{type === 'staging' && // hoveredIdx === i
@@ -241,7 +266,7 @@ export const SelectedFiles = (
 							{/* selection text */}
 							{showSelectionText &&
 								<div className='w-full'>
-									<BlockCode text={selection.selectionStr!} />
+									<BlockCode text={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
 								</div>
 							}
 						</div>

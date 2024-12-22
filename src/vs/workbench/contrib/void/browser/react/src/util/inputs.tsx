@@ -286,6 +286,9 @@ const normalizeIndentation = (code: string): string => {
 }
 
 export const VoidCodeEditor = ({ initValue, language }: { initValue: string, language: string | undefined }) => {
+
+	const MAX_HEIGHT = 200;
+
 	const divRef = useRef<HTMLDivElement | null>(null)
 
 	const accessor = useAccessor()
@@ -302,10 +305,11 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 					container,
 					{
 						automaticLayout: true,
-						wordWrap: 'on',
+						wordWrap: 'off',
 						scrollbar: {
-							vertical: 'hidden',
+							vertical: 'auto',
 							horizontal: 'auto',
+							alwaysConsumeMouseWheel: false
 						},
 						lineNumbers: 'off',
 						folding: false,
@@ -326,26 +330,35 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 			}
 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
-
 				const model = modelService.createModel(initValue, null)
 				editor.setModel(model);
 				model.setLanguage(language ?? 'plaintext')
 
 				const container = editor.getDomNode()
 				const parentNode = container?.parentElement
-				if (parentNode)
-					parentNode.style.height = `${editor.getScrollHeight() + 1}px` // the +1 is if there's a half pixel issue
+				if (parentNode) {
+					const height = Math.min(editor.getScrollHeight() + 1, MAX_HEIGHT);
+					parentNode.style.height = `${height}px`;
+					editor.layout();
+				}
 
-				return []
+				// Listen for content changes and update height
+				const disposable = editor.onDidContentSizeChange(() => {
+					if (parentNode) {
+						const height = Math.min(editor.getScrollHeight() + 1, MAX_HEIGHT);
+						parentNode.style.height = `${height}px`;
+						editor.layout();
+					}
+				});
+
+				return [disposable]
 			}, [modelService, initValue, language])}
 
 			dispose={useCallback((editor: CodeEditorWidget) => {
 				editor.dispose();
 			}, [])}
 
-			// ignored
 			propsFn={useCallback(() => { return [] }, [])}
-
 		/>
 	</div>
 

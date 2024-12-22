@@ -531,7 +531,7 @@ export const SidebarChat = () => {
 					className='flex flex-row justify-between items-end gap-1'
 				>
 					{/* submit options */}
-					<div className='w-[250px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none @@[&_select]:!void-w-fit'>
+					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none'>
 						<ModelDropdown featureName='Ctrl+L' />
 					</div>
 

@@ -246,7 +246,44 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	/>;
 };
 
+// makes it so that code in the sidebar isnt too tabbed out
+const normalizeIndentation = (code: string): string => {
+	const lines = code.split('\n')
 
+	let minLeadingSpaces = Infinity
+
+	// find the minimum number of leading spaces
+	for (const line of lines) {
+		if (line.trim() === '') continue;
+		let leadingSpaces = 0;
+		for (let i = 0; i < line.length; i++) {
+			const char = line[i];
+			if (char === '\t' || char === ' ') {
+				leadingSpaces += 1;
+			} else { break; }
+		}
+		minLeadingSpaces = Math.min(minLeadingSpaces, leadingSpaces)
+	}
+
+	// remove the leading spaces
+	return lines.map(line => {
+		if (line.trim() === '') return line;
+
+		let spacesToRemove = minLeadingSpaces;
+		let i = 0;
+		while (spacesToRemove > 0 && i < line.length) {
+			const char = line[i];
+			if (char === '\t' || char === ' ') {
+				spacesToRemove -= 1;
+				i++;
+			} else { break; }
+		}
+
+		return line.slice(i);
+
+	}).join('\n')
+
+}
 
 export const VoidCodeEditor = ({ initValue, language }: { initValue: string, language: string | undefined }) => {
 	const divRef = useRef<HTMLDivElement | null>(null)
@@ -254,6 +291,8 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 	const accessor = useAccessor()
 	const instantiationService = accessor.get('IInstantiationService')
 	const modelService = accessor.get('IModelService')
+
+	initValue = normalizeIndentation(initValue)
 
 	return <div ref={divRef}>
 		<WidgetComponent
@@ -267,7 +306,18 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 						scrollbar: {
 							vertical: 'hidden',
 							horizontal: 'auto',
-						}
+						},
+						lineNumbers: 'off',
+						folding: false,
+						lineDecorationsWidth: 0,
+						scrollBeyondLastLine: false,
+						minimap: { enabled: false },
+						overviewRulerLanes: 0,
+						hideCursorInOverviewRuler: true,
+						overviewRulerBorder: false,
+						renderLineHighlight: 'none',
+						glyphMargin: false,
+						readOnly: true,
 					},
 					{
 						isSimpleWidget: true,

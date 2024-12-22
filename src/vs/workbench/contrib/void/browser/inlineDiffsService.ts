@@ -11,9 +11,9 @@ import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/brows
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 // import { throttle } from '../../../../base/common/decorators.js';
-import { writeFileWithDiffInstructions } from './prompt/prompts.js';
+import { inlineDiff_systemMessage } from './prompt/prompts.js';
 import { ComputedDiff, findDiffs } from './helpers/findDiffs.js';
-import { EndOfLinePreference, ITextModel } from '../../../../editor/common/model.js';
+import { EndOfLinePreference, IModelDecorationOptions, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
 import { Color, RGBA } from '../../../../base/common/color.js';
@@ -31,33 +31,24 @@ import { LLMFeatureSelection, ServiceSendLLMMessageParams } from '../../../../pl
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 
 
+const configOfBG = (color: Color) => {
+	return { dark: color, light: color, hcDark: color, hcLight: color, }
+}
 // gets converted to --vscode-void-greenBG, see void.css
 const greenBG = new Color(new RGBA(155, 185, 85, .3)); // default is RGBA(155, 185, 85, .2)
-registerColor('void.greenBG', {
-	dark: greenBG,
-	light: greenBG, hcDark: null, hcLight: null
-}, '', true);
+registerColor('void.greenBG', configOfBG(greenBG), '', true);
 
 const redBG = new Color(new RGBA(255, 0, 0, .3)); // default is RGBA(255, 0, 0, .2)
-registerColor('void.redBG', {
-	dark: redBG,
-	light: redBG, hcDark: null, hcLight: null
-}, '', true);
+registerColor('void.redBG', configOfBG(redBG), '', true);
 
 const sweepBG = new Color(new RGBA(100, 100, 100, .2));
-registerColor('void.sweepBG', {
-	dark: sweepBG,
-	light: sweepBG, hcDark: null, hcLight: null
-}, '', true);
+registerColor('void.sweepBG', configOfBG(sweepBG), '', true);
+
+const highlightBG = new Color(new RGBA(100, 100, 100, .1));
+registerColor('void.highlightBG', configOfBG(highlightBG), '', true);
 
 const sweepIdxBG = new Color(new RGBA(100, 100, 100, .5));
-registerColor('void.sweepIdxBG', {
-	dark: sweepIdxBG,
-	light: sweepIdxBG, hcDark: null, hcLight: null
-}, '', true);
-
-
-
+registerColor('void.sweepIdxBG', configOfBG(sweepIdxBG), '', true);
 
 
 export type Diff = {
@@ -73,9 +64,11 @@ type DiffArea = {
 	originalCode: string;
 	startLine: number;
 	endLine: number;
+	shouldHighlight: boolean; // should visually highlight this DiffArea
 
 	_URI: URI; // typically we get the URI from model
 	_diffOfId: Record<string, Diff>; // diffid -> diff in this DiffArea
+
 } & ({
 	_sweepState: {
 		isStreaming: true;
@@ -91,6 +84,7 @@ const diffAreaSnapshotKeys = [
 	'originalCode',
 	'startLine',
 	'endLine',
+	'shouldHighlight',
 ] as const satisfies (keyof DiffArea)[]
 
 type DiffAreaSnapshot = Pick<DiffArea, typeof diffAreaSnapshotKeys[number]>
@@ -120,9 +114,9 @@ export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineD
 class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	_serviceBrand: undefined;
 
-	// state of each document
 
-	removeStylesFnsOfUri: Record<string, Set<Function>> = {} // functions that remove the styles of this uri
+	// URI <--> model
+	removeStylesFnsOfURI: Record<string, Set<Function>> = {} // functions that remove the styles of this uri
 	diffAreasOfURI: Record<string, Set<string>> = {}
 
 	diffAreaOfId: Record<string, DiffArea> = {};
@@ -130,16 +124,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	_diffareaidPool = 0 // each diffarea has an id
 	_diffidPool = 0 // each diff has an id
-
-	/*
-	Picture of all the data structures:
-	() -modelid-> {originalFileStr, Set(diffareaid), state}
-		^  				     	|
-			\________________   diffareaid -> diffarea -> diff[]
-													^		|
-													\____ diff
-	*/
-
 
 	constructor(
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
@@ -156,8 +140,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (!(model.uri.fsPath in this.diffAreasOfURI)) {
 				this.diffAreasOfURI[model.uri.fsPath] = new Set();
 			}
-			if (!(model.uri.fsPath in this.removeStylesFnsOfUri)) {
-				this.removeStylesFnsOfUri[model.uri.fsPath] = new Set();
+			if (!(model.uri.fsPath in this.removeStylesFnsOfURI)) {
+				this.removeStylesFnsOfURI[model.uri.fsPath] = new Set();
 			}
 
 			// when the user types, realign diff areas and re-render them
@@ -185,7 +169,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const uri = editor.getModel()?.uri ?? null
 			if (uri) this._refreshDiffsInURI(uri)
 
-			// called when the user switches tabs (typically there's only 1 editor on the screen, make sure you understand this)
+			// called when the user switches tabs (typically there's only 1 editor on the screen, it switches between models, make sure you understand this)
 			this._register(editor.onDidChangeModel((e) => {
 				if (e.oldModelUrl) this._refreshDiffsInURI(e.oldModelUrl)
 				if (e.newModelUrl) this._refreshDiffsInURI(e.newModelUrl)
@@ -202,50 +186,45 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-
-
-
-
-
-
-
-	private _addSweepStylesToURI = (uri: URI, sweepLine: number, endLine: number) => {
-
-		const decorationIds: (string | null)[] = []
-
-		const model = this._getModel(uri)
+	// highlight the region
+	private _addLineDecoration = (model: ITextModel | null, startLine: number, endLine: number, className: string, options?: Partial<IModelDecorationOptions>) => {
 		if (model === null) return
-
-		// sweepLine ... sweepLine
-		decorationIds.push(
-			model.changeDecorations(accessor => accessor.addDecoration(
-				{ startLineNumber: sweepLine, startColumn: 1, endLineNumber: sweepLine, endColumn: Number.MAX_SAFE_INTEGER },
-				{
-					className: 'void-sweepIdxBG',
-					description: 'void-sweepIdxBG',
-					isWholeLine: true
-				}))
-		)
-
-		// sweepLine+1 ... endLine
-		decorationIds.push(
-			model.changeDecorations(accessor => accessor.addDecoration(
-				{ startLineNumber: sweepLine + 1, startColumn: 1, endLineNumber: endLine, endColumn: Number.MAX_SAFE_INTEGER },
-				{
-					className: 'void-sweepBG',
-					description: 'void-sweepBG',
-					isWholeLine: true
-				}))
-		)
-		const disposeSweepStyles = () => {
-			for (const id of decorationIds) {
-				if (id) model.changeDecorations(accessor => accessor.removeDecoration(id))
-			}
+		const id = model.changeDecorations(accessor => accessor.addDecoration(
+			{ startLineNumber: startLine, startColumn: 1, endLineNumber: endLine, endColumn: Number.MAX_SAFE_INTEGER },
+			{
+				className: className,
+				description: className,
+				isWholeLine: true,
+				...options
+			}))
+		const disposeHighlight = () => {
+			if (id) model.changeDecorations(accessor => accessor.removeDecoration(id))
 		}
-		return disposeSweepStyles
+		return disposeHighlight
 	}
 
 
+
+	private _addDiffAreaStylesToURI = (uri: URI) => {
+		const model = this._getModel(uri)
+
+		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			// add sweep styles to the diffArea
+			if (diffArea._sweepState.isStreaming) {
+				// sweepLine ... sweepLine
+				const fn1 = this._addLineDecoration(model, diffArea._sweepState.line, diffArea._sweepState.line, 'void-sweepIdxBG')
+				// sweepLine+1 ... endLine
+				const fn2 = this._addLineDecoration(model, diffArea._sweepState.line + 1, diffArea.endLine, 'void-sweepBG')
+				this.removeStylesFnsOfURI[uri.fsPath].add(() => { fn1?.(); fn2?.(); })
+			}
+			// highlight the diffArea
+			if (diffArea.shouldHighlight) {
+				const fn = this._addLineDecoration(model, diffArea.startLine, diffArea.endLine, 'void-highlightBG')
+				this.removeStylesFnsOfURI[uri.fsPath].add(() => fn?.());
+			}
+		}
+	}
 
 
 	private _addDiffStylesToEditor = (editor: ICodeEditor, diff: Diff) => {
@@ -254,57 +233,48 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const disposeInThisEditorFns: (() => void)[] = []
 
 		// green decoration and minimap decoration
-		editor.changeDecorations(accessor => {
-			if (type === 'deletion') return;
-
-			const greenRange = { startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
-			const decorationId = accessor.addDecoration(greenRange, {
-				className: 'void-greenBG', // .monaco-editor .line-insert
-				description: 'Void added this code',
-				isWholeLine: true,
-				minimap: {
-					color: { id: 'minimapGutter.addedBackground' },
-					position: 2
-				},
-				overviewRuler: {
-					color: { id: 'editorOverviewRuler.addedForeground' },
-					position: 7
-				}
+		if (type !== 'deletion') {
+			const fn = this._addLineDecoration(editor.getModel(), diff.startLine, diff.endLine, 'void-greenBG', {
+				minimap: { color: { id: 'minimapGutter.addedBackground' }, position: 2 },
+				overviewRuler: { color: { id: 'editorOverviewRuler.addedForeground' }, position: 7 }
 			})
-			disposeInThisEditorFns.push(() => { editor.changeDecorations(accessor => { if (decorationId) accessor.removeDecoration(decorationId) }) })
-		})
+			disposeInThisEditorFns.push(() => { fn?.() })
+		}
+
 
 		// red in a view zone
-		editor.changeViewZones(accessor => {
-			if (type === 'insertion') return;
+		if (type !== 'insertion') {
+			editor.changeViewZones(accessor => {
 
-			const domNode = document.createElement('div');
-			domNode.className = 'void-redBG'
+				const domNode = document.createElement('div');
+				domNode.className = 'void-redBG'
 
-			const renderOptions = RenderOptions.fromEditor(editor);
-			// applyFontInfo(domNode, renderOptions.fontInfo)
+				const renderOptions = RenderOptions.fromEditor(editor);
+				// applyFontInfo(domNode, renderOptions.fontInfo)
 
-			// Compute view-lines based on redText
-			const redText = diff.originalCode
-			const lines = redText.split('\n');
-			const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
-			const source = new LineSource(lineTokens, lines.map(() => null), false, false)
-			const result = renderLines(source, renderOptions, [], domNode);
+				// Compute view-lines based on redText
+				const redText = diff.originalCode
+				const lines = redText.split('\n');
+				const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
+				const source = new LineSource(lineTokens, lines.map(() => null), false, false)
+				const result = renderLines(source, renderOptions, [], domNode);
 
-			const viewZone: IViewZone = {
-				// afterLineNumber: computedDiff.startLine - 1,
-				afterLineNumber: type === 'edit' ? diff.endLine : diff.startLine - 1,
-				heightInLines: result.heightInLines,
-				minWidthInPx: result.minWidthInPx,
-				domNode: domNode,
-				marginDomNode: document.createElement('div'), // displayed to left
-				suppressMouseDown: true,
-			};
+				const viewZone: IViewZone = {
+					// afterLineNumber: computedDiff.startLine - 1,
+					afterLineNumber: type === 'edit' ? diff.endLine : diff.startLine - 1,
+					heightInLines: result.heightInLines,
+					minWidthInPx: result.minWidthInPx,
+					domNode: domNode,
+					marginDomNode: document.createElement('div'), // displayed to left
+					suppressMouseDown: true,
+				};
 
-			const zoneId = accessor.addZone(viewZone)
-			disposeInThisEditorFns.push(() => { editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) }) })
+				const zoneId = accessor.addZone(viewZone)
+				disposeInThisEditorFns.push(() => { editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) }) })
 
-		});
+			});
+		}
+
 
 		// Accept | Reject widget
 		const buttonsWidget = new AcceptRejectWidget({
@@ -440,10 +410,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const diffArea = this.diffAreaOfId[diffareaid]
 			this._deleteDiffs(diffArea)
 		}
-		for (const removeStyleFn of this.removeStylesFnsOfUri[uri.fsPath]) {
+		for (const removeStyleFn of this.removeStylesFnsOfURI[uri.fsPath]) {
 			removeStyleFn()
 		}
-		this.removeStylesFnsOfUri[uri.fsPath].clear()
+		this.removeStylesFnsOfURI[uri.fsPath].clear()
 	}
 
 
@@ -552,17 +522,15 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 				for (let editor of editors) {
 					const fn = this._addDiffStylesToEditor(editor, newDiff)
-					this.removeStylesFnsOfUri[uri.fsPath].add(() => fn())
+					this.removeStylesFnsOfURI[uri.fsPath].add(() => fn())
 				}
 
 				this.diffOfId[diffid] = newDiff
 				diffArea._diffOfId[diffid] = newDiff
 			}
 
-			if (diffArea._sweepState.isStreaming) {
-				const fn = this._addSweepStylesToURI(uri, diffArea._sweepState.line, diffArea.endLine)
-				this.removeStylesFnsOfUri[uri.fsPath].add(() => fn?.())
-			}
+			// update styles on this DiffArea
+			this._addDiffAreaStylesToURI(uri)
 		}
 
 
@@ -674,6 +642,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			originalCode: originalCode,
 			startLine: beginLine,
 			endLine: endLine, // starts out the same as the current file
+			shouldHighlight: false,
 			_URI: uri,
 			_sweepState: {
 				isStreaming: true,
@@ -710,7 +679,7 @@ Please finish writing the new file by applying the diff to the original file. Re
 			const object: ServiceSendLLMMessageParams = {
 				logging: { loggingName: 'streamChunk' },
 				messages: [
-					{ role: 'system', content: writeFileWithDiffInstructions, },
+					{ role: 'system', content: inlineDiff_systemMessage, },
 					// TODO include more context too
 					{ role: 'user', content: promptContent, }
 				],
@@ -771,6 +740,29 @@ Please finish writing the new file by applying the diff to the original file. Re
 	}
 
 
+
+	addDiffArea({ uri, startLine, endLine, originalCode }: { uri: URI, startLine: number, endLine: number, originalCode: string }) {
+		const diffareaid = this._diffareaidPool++
+
+		const diffArea: DiffArea = {
+			diffareaid: diffareaid,
+			originalCode,
+			startLine,
+			endLine,
+			shouldHighlight: true,
+			_URI: uri,
+			_sweepState: {
+				isStreaming: false,
+				line: null,
+			},
+			_diffOfId: {},
+		}
+
+		this.diffAreasOfURI[uri.fsPath].add(diffArea.diffareaid.toString())
+		this.diffAreaOfId[diffArea.diffareaid] = diffArea
+
+		this._refreshDiffsInURI(uri)
+	}
 
 
 
@@ -1000,11 +992,5 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 	}
 
 }
-
-
-
-
-
-
 
 

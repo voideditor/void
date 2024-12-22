@@ -1,6 +1,6 @@
 
 import React, { FormEvent, useCallback, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useService } from '../util/services.js';
+import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState } from '../util/services.js';
 import { OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { getCmdKey } from '../../../helpers/getCmdKey.js';
@@ -12,19 +12,6 @@ export const CtrlKChat = (props: QuickEditPropsType) => {
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
 	// -- imported state --
-	// const threadsStateService = useService('service')
-	// const sidebarState = useSidebarState()
-
-	const quickEditState = useQuickEditState()
-
-
-	// -- local state --
-	// state of chat
-	const [messageStream, setMessageStream] = useState<string | null>(null)
-	const [isLoading, setIsLoading] = useState(false)
-	const latestRequestIdRef = useRef<string | null>(null)
-	const [latestError, setLatestError] = useState<Parameters<OnError>[0] | null>(null)
-
 
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions

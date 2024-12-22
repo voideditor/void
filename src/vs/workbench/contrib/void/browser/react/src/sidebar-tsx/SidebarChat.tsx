@@ -20,7 +20,7 @@ import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidCodeEditor, VoidInputBox } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
-import { ctrlLSystem, generateCtrlLPrompt } from '../../../prompt/prompts.js';
+import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
@@ -380,11 +380,11 @@ export const SidebarChat = () => {
 
 
 		// add system message to chat history
-		const systemPromptElt: ChatMessage = { role: 'system', content: ctrlLSystem }
+		const systemPromptElt: ChatMessage = { role: 'system', content: chat_systemMessage }
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
 		// add user's message to chat history
-		const userHistoryElt: ChatMessage = { role: 'user', content: generateCtrlLPrompt(instructions, selections), displayContent: instructions, selections: selections }
+		const userHistoryElt: ChatMessage = { role: 'user', content: chat_prompt(instructions, selections), displayContent: instructions, selections: selections }
 		threadsStateService.addMessageToCurrentThread(userHistoryElt)
 
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state

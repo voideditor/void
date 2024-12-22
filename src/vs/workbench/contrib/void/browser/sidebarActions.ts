@@ -22,7 +22,7 @@ import { VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { OPEN_VOID_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
+import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -177,6 +177,6 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const commandService = accessor.get(ICommandService)
-		commandService.executeCommand(OPEN_VOID_SETTINGS_ACTION_ID)
+		commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID)
 	}
 })

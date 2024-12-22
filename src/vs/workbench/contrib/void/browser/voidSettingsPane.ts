@@ -118,12 +118,12 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 );
 
 
-export const OPEN_VOID_SETTINGS_ACTION_ID = 'workbench.action.openVoidSettings'
+export const VOID_OPEN_SETTINGS_ACTION_ID = 'workbench.action.openVoidSettings'
 // register the gear on the top right
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
-			id: OPEN_VOID_SETTINGS_ACTION_ID,
+			id: VOID_OPEN_SETTINGS_ACTION_ID,
 			title: nls.localize2('voidSettings', "Void: Settings"),
 			f1: true,
 			icon: Codicon.settingsGear,
@@ -153,7 +153,7 @@ registerAction2(class extends Action2 {
 MenuRegistry.appendMenuItem(MenuId.GlobalActivity, {
 	group: '0_command',
 	command: {
-		id: OPEN_VOID_SETTINGS_ACTION_ID,
+		id: VOID_OPEN_SETTINGS_ACTION_ID,
 		title: nls.localize('voidSettings', "Void Settings")
 	},
 	order: 1

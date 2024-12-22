@@ -25,6 +25,7 @@ import { IWindowOpenable } from '../../../../platform/window/common/window.js';
 import { ILabelService, Verbosity } from '../../../../platform/label/common/label.js';
 import { splitRecentLabel } from '../../../../base/common/labels.js';
 import { IHostService } from '../../../services/host/browser/host.js';
+import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../contrib/void/browser/voidSettingsPane.js';
 // import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 
 registerColor('editorWatermark.foreground', { dark: transparent(editorForeground, 0.6), light: transparent(editorForeground, 0.68), hcDark: editorForeground, hcLight: editorForeground }, localize('editorLineHighlight', 'Foreground color for the labels in the editor watermark.'));
@@ -278,16 +279,14 @@ export class EditorGroupWatermark extends Disposable {
 
 				const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
 				const button3 = append(boxBelow, $('button'));
-				button3.textContent = 'Change Keybindings'
+				button3.textContent = 'Void Settings'
 				const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });
 				if (keys3)
 					label3.set(keys3);
 				button3.onclick = () => {
-					this.commandService.executeCommand('workbench.action.openGlobalKeybindings')
+					this.commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID)
 				}
 				this.currentDisposables.add(label3);
-
-
 
 			}
 

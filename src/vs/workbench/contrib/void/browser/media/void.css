@@ -11,6 +11,10 @@
 	background-color: var(--vscode-void-sweepBG);
 }
 
+.void-highlightBG {
+	background-color: var(--vscode-void-highlightBG);
+}
+
 .void-greenBG {
 	background-color: var(--vscode-void-greenBG);
 }

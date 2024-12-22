@@ -104,7 +104,7 @@ export class EditorGroupWatermark extends Disposable {
 			const isDark = theme === ColorScheme.DARK || theme === ColorScheme.HIGH_CONTRAST_DARK
 			elements.icon.style.maxWidth = '220px'
 			elements.icon.style.opacity = '50%'
-			elements.icon.style.filter = isDark ? 'brightness(.5)' : 'invert(1)'
+			elements.icon.style.filter = isDark ? '' : 'invert(1)' //brightness(.5)
 		}
 		updateTheme()
 		this._register(

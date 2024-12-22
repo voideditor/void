@@ -3,7 +3,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { VOID_OPEN_SIDEBAR_ACTION_ID } from './sidebarActions.js';
+import { VOID_OPEN_SIDEBAR_ACTION_ID } from './sidebarPane.js';
 
 
 // service that manages sidebar's state

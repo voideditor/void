@@ -39,6 +39,11 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
 // import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
+import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
+import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
 
 // compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
 
@@ -142,3 +147,28 @@ viewsRegistry.registerViews([{
 	// },
 }], container);
 
+
+// open sidebar
+export const VOID_OPEN_SIDEBAR_ACTION_ID = 'void.openSidebar'
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_OPEN_SIDEBAR_ACTION_ID,
+			title: 'Open Void Sidebar',
+		})
+	}
+	run(accessor: ServicesAccessor): void {
+		const viewsService = accessor.get(IViewsService)
+		viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
+	}
+});
+
+export class SidebarStartContribution implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.startupVoidSidebar';
+	constructor(
+		@ICommandService private readonly commandService: ICommandService,
+	) {
+		this.commandService.executeCommand(VOID_OPEN_SIDEBAR_ACTION_ID)
+	}
+}
+registerWorkbenchContribution2(SidebarStartContribution.ID, SidebarStartContribution, WorkbenchPhase.AfterRestored);

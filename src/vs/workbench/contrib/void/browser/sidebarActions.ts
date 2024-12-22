@@ -18,13 +18,11 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
-import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarPane.js';
+import { VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { OPEN_VOID_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
-import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
-import { IViewsService } from '../../../services/views/common/viewsService.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -182,32 +180,3 @@ registerAction2(class extends Action2 {
 		commandService.executeCommand(OPEN_VOID_SETTINGS_ACTION_ID)
 	}
 })
-
-
-export const VOID_OPEN_SIDEBAR_ACTION_ID = 'void.openSidebar'
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: VOID_OPEN_SIDEBAR_ACTION_ID,
-			title: 'Open Void Sidebar',
-		})
-	}
-	run(accessor: ServicesAccessor): void {
-		const viewsService = accessor.get(IViewsService)
-		viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
-		viewsService.openView(VOID_VIEW_ID);
-	}
-});
-
-// mount at start
-
-
-export class SidebarStartContribution implements IWorkbenchContribution {
-	static readonly ID = 'workbench.contrib.startupVoidSidebar';
-	constructor(
-		@ICommandService private readonly commandService: ICommandService,
-	) {
-		this.commandService.executeCommand(VOID_OPEN_SIDEBAR_ACTION_ID)
-	}
-}
-registerWorkbenchContribution2(SidebarStartContribution.ID, SidebarStartContribution, WorkbenchPhase.BlockRestore);

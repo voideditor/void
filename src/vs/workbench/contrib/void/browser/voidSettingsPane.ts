@@ -24,7 +24,6 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 
 
 import { mountVoidSettings } from './react/out/void-settings-tsx/index.js'
-import { getReactServices } from './helpers/reactServicesHelper.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { DomScrollableElement } from '../../../../base/browser/ui/scrollbar/scrollableElement.js';
@@ -89,8 +88,7 @@ class VoidSettingsPane extends EditorPane {
 
 		// Mount React into the scrollable content
 		this.instantiationService.invokeFunction(accessor => {
-			const services = getReactServices(accessor);
-			const disposables: IDisposable[] | undefined = mountVoidSettings(scrollableContent, services);
+			const disposables: IDisposable[] | undefined = mountVoidSettings(scrollableContent, accessor);
 
 			setTimeout(() => { // this is a complete hack and I don't really understand how scrollbar works here
 				this._scrollbar?.scanDomNode();

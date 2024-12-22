@@ -94,45 +94,46 @@ export const IconWarning = ({ size, className = '' }: { size: number, className?
 			stroke="currentColor"
 			fill="currentColor"
 			strokeWidth="0"
-			viewBox="0 0 24 24"
+			viewBox="0 0 16 16"
 			width={size}
 			height={size}
 			xmlns="http://www.w3.org/2000/svg"
 		>
-			{/* Warning triangle */}
-			<path d="M12 3L2 21h20L12 3zm0 3.3L19.3 19H4.7L12 6.3z" />
-
-			{/* Exclamation mark */}
-			<rect x="11" y="10" width="2" height="6" />
-			<circle cx="12" cy="18" r="1" />
+			<path
+				fillRule="evenodd"
+				clipRule="evenodd"
+				d="M7.56 1h.88l6.54 12.26-.44.74H1.44L1 13.26 7.56 1zM8 2.28L2.28 13H13.7L8 2.28zM8.625 12v-1h-1.25v1h1.25zm-1.25-2V6h1.25v4h-1.25z"
+			/>
 		</svg>
 	);
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
+const DEFAULT_BUTTON_SIZE = 20;
 export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
+
 	return <button
-		className={`size-[20px] rounded-full shrink-0 grow-0 cursor-pointer
+		className={`rounded-full shrink-0 grow-0 cursor-pointer
 			${disabled ? 'bg-vscode-disabled-fg' : 'bg-white'}
 			${className}
 		`}
 		type='submit'
 		{...props}
 	>
-		<IconArrowUp size={20} className="stroke-[2]" />
+		<IconArrowUp size={DEFAULT_BUTTON_SIZE} className="stroke-[2]" />
 	</button>
 }
 
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
 
 	return <button
-		className={`size-[20px] rounded-full bg-white cursor-pointer flex items-center justify-center
+		className={`rounded-full bg-white shrink-0 grow-0 cursor-pointer flex items-center justify-center
 			${className}
 		`}
 		type='button'
 		{...props}
 	>
-		<IconSquare size={10} className="stroke-[2]" />
+		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[7px]" />
 	</button>
 }
 

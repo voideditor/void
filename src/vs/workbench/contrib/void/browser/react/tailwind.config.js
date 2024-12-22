@@ -41,18 +41,18 @@ module.exports = {
 					"input-fg": "var(--vscode-input-foreground)",
 					"input-placeholder-fg": "var(--vscode-placeholderForeground)",
 					"input-active-bg": "var(--vscode-activeBackground)",
-					"input-option-active-border": "var(--vscode-activeBorder)",
-					"input-option-active-fg": "var(--vscode-activeForeground)",
-					"input-option-hover-bg": "var(--vscode-hoverBackground)",
-					"input-validation-error-bg": "var(--vscode-errorBackground)",
-					"input-validation-error-fg": "var(--vscode-errorForeground)",
-					"input-validation-error-border": "var(--vscode-errorBorder)",
-					"input-validation-info-bg": "var(--vscode-infoBackground)",
-					"input-validation-info-fg": "var(--vscode-infoForeground)",
-					"input-validation-info-border": "var(--vscode-infoBorder)",
-					"input-validation-warning-bg": "var(--vscode-warningBackground)",
-					"input-validation-warning-fg": "var(--vscode-warningForeground)",
-					"input-validation-warning-border": "var(--vscode-warningBorder)",
+					"input-option-active-border": "var(--vscode-inputOption-activeBorder)",
+					"input-option-active-fg": "var(--vscode-inputOption-activeForeground)",
+					"input-option-hover-bg": "var(--vscode-inputOption-hoverBackground)",
+					"input-validation-error-bg": "var(--vscode-inputValidation-errorBackground)",
+					"input-validation-error-fg": "var(--vscode-inputValidation-errorForeground)",
+					"input-validation-error-border": "var(--vscode-inputValidation-errorBorder)",
+					"input-validation-info-bg": "var(--vscode-inputValidation-infoBackground)",
+					"input-validation-info-fg": "var(--vscode-inputValidation-infoForeground)",
+					"input-validation-info-border": "var(--vscode-inputValidation-infoBorder)",
+					"input-validation-warning-bg": "var(--vscode-inputValidation-warningBackground)",
+					"input-validation-warning-fg": "var(--vscode-inputValidation-warningForeground)",
+					"input-validation-warning-border": "var(--vscode-inputValidation-warningBorder)",
 
 					// command center colors (the top bar)
 					"commandcenter-fg": "var(--vscode-commandCenter-foreground)",
@@ -107,11 +107,14 @@ module.exports = {
 					"editor-bg": "var(--vscode-editor-background)",
 					"editor-fg": "var(--vscode-editor-foreground)",
 
-					// editorwidget colors
+					// editor widget colors
 					"editorwidget-fg": "var(--vscode-editorWidget-foreground)",
 					"editorwidget-bg": "var(--vscode-editorWidget-background)",
 					"editorwidget-border": "var(--vscode-editorWidget-border)",
 
+					// other
+					"charts-orange": "var(--vscode-charts-orange)",
+					"charts-yellow": "var(--vscode-charts-yellow)",
 				},
 			},
 		},

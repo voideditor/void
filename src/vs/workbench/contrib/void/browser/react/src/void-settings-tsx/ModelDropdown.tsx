@@ -9,7 +9,7 @@ import { useSettingsState, useRefreshModelState, useAccessor } from '../util/ser
 import { VoidSelectBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
-import { OPEN_VOID_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
+import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
 
 const ModelSelectBox = ({ featureName }: { featureName: FeatureName }) => {
 	const accessor = useAccessor()
@@ -48,7 +48,7 @@ const DummySelectBox = () => {
 	const comandService = accessor.get('ICommandService')
 
 	const openSettings = () => {
-		comandService.executeCommand(OPEN_VOID_SETTINGS_ACTION_ID);
+		comandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID);
 	};
 
 	return <div
@@ -57,7 +57,6 @@ const DummySelectBox = () => {
 			flex-nowrap text-ellipsis
 			text-vscode-charts-yellow
 			hover:brightness-110 transition-all duration-200
-			min-w-[120px]
 			cursor-pointer
 		`}
 		onClick={openSettings}

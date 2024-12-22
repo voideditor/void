@@ -509,11 +509,11 @@ export const SidebarChat = () => {
 						//     .split(' ')
 						//     .map(style => `@@[&_textarea]:!void-${style}`) // apply styles to ancestor textarea elements
 						//     .join(' ') +
-						//   ` outline-none`
+						//   ` outline-none border-none`
 						//     .split(' ')
 						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`)
 						//     .join(' ');
-						`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_textarea]:!void-min-h-[81px] @@[&_textarea]:!void-max-h-[500px] @@[&_div.monaco-inputbox]:!void-outline-none`
+						`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_textarea]:!void-min-h-[81px] @@[&_textarea]:!void-max-h-[500px] @@[&_div.monaco-inputbox]:!void-border-none @@[&_div.monaco-inputbox]:!void-outline-none`
 					}
 				>
 
@@ -531,7 +531,7 @@ export const SidebarChat = () => {
 					className='flex flex-row justify-between items-end gap-1'
 				>
 					{/* submit options */}
-					<div className='w-[250px]'>
+					<div className='w-[250px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none @@[&_select]:!void-w-fit'>
 						<ModelDropdown featureName='Ctrl+L' />
 					</div>
 

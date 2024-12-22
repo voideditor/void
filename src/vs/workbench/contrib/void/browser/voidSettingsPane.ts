@@ -35,10 +35,11 @@ class VoidSettingsInput extends EditorInput {
 
 	static readonly ID: string = 'workbench.input.void.settings';
 
-	readonly resource = URI.from({
-		scheme: 'void-editor-settings',
-		path: 'void-settings'  // Give it a unique path
-	});
+	static readonly RESOURCE = URI.from({ // I think this scheme is invalid, it just shuts up TS
+		scheme: 'void',  // Custom scheme for our editor
+		path: 'settings'
+	})
+	readonly resource = VoidSettingsInput.RESOURCE;
 
 	constructor() {
 		super();
@@ -140,9 +141,20 @@ registerAction2(class extends Action2 {
 			]
 		});
 	}
+
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const editorService = accessor.get(IEditorService);
 		const instantiationService = accessor.get(IInstantiationService);
+
+		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE);
+
+		// close all instances if found
+		if (openEditors.length > 0) {
+			await editorService.closeEditors(openEditors);
+			return;
+		}
+
+		// else open it
 		const input = instantiationService.createInstance(VoidSettingsInput);
 		await editorService.openEditor(input);
 	}

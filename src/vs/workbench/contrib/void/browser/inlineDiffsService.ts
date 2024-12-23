@@ -11,7 +11,6 @@ import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/brows
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 // import { throttle } from '../../../../base/common/decorators.js';
-import { inlineDiff_systemMessage } from './prompt/prompts.js';
 import { ComputedDiff, findDiffs } from './helpers/findDiffs.js';
 import { EndOfLinePreference, IModelDecorationOptions, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
@@ -28,6 +27,8 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { LLMFeatureSelection, ServiceSendLLMMessageParams } from '../../../../platform/void/common/llmMessageTypes.js';
+import { IConsistentItemService } from './helperServices/consistentItemService.js';
+import { inlineDiff_systemMessage } from './prompt/prompts.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 
 
@@ -132,6 +133,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 		@ILanguageService private readonly _langService: ILanguageService,
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
+		@IConsistentItemService private readonly _zoneStyleService: IConsistentItemService,
 	) {
 		super();
 
@@ -150,18 +152,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					// it's as if we just called _write, now all we need to do is realign and refresh
 					if (this._weAreWriting) return
 					const uri = model.uri
-					// realign
 					for (const change of e.changes) { this._realignAllDiffAreasLines(uri, change.text, change.range) }
-					// refresh
 					this._refreshDiffsInURI(uri)
 				})
 			)
 		}
-		// initialize all existing models
+		// initialize all existing models + initialize when a new model mounts
 		for (let model of this._modelService.getModels()) { initializeModel(model) }
-		// initialize whenever a new model mounts
 		this._register(this._modelService.onModelAdded(model => initializeModel(model)));
-
 
 
 		// this function adds listeners to refresh styles when editor changes tab
@@ -169,17 +167,18 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const uri = editor.getModel()?.uri ?? null
 			if (uri) this._refreshDiffsInURI(uri)
 
+
+			// this isn't relevant anymore because consistentItemService takes care of it
 			// called when the user switches tabs (typically there's only 1 editor on the screen, it switches between models, make sure you understand this)
-			this._register(editor.onDidChangeModel((e) => {
-				if (e.oldModelUrl) this._refreshDiffsInURI(e.oldModelUrl)
-				if (e.newModelUrl) this._refreshDiffsInURI(e.newModelUrl)
-			}))
+			// this._register(editor.onDidChangeModel((e) => {
+			// 	if (e.newModelUrl) this._refreshDiffsInURI(e.newModelUrl)
+			// 	if (e.oldModelUrl) this._clearAllDiffsAndStyles(e.oldModelUrl)
+			// }))
 		}
-		// add listeners for all existing editors
+		// add listeners for all existing editors + listen for editor being added
 		for (let editor of this._editorService.listCodeEditors()) { initializeEditor(editor) }
-		// add listeners when an editor is created
-		this._register(this._editorService.onCodeEditorAdd(editor => { console.log('ADD EDITOR'); initializeEditor(editor) }))
-		this._register(this._editorService.onCodeEditorRemove(editor => { console.log('REMOVE EDITOR'); initializeEditor(editor) }))
+		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
+		// this._register(this._editorService.onCodeEditorRemove(editor => { console.log('REMOVE EDITOR'); initializeEditor(editor) }))
 
 	}
 
@@ -198,7 +197,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				...options
 			}))
 		const disposeHighlight = () => {
-			if (id) model.changeDecorations(accessor => accessor.removeDecoration(id))
+			if (id && !model.isDisposed()) model.changeDecorations(accessor => accessor.removeDecoration(id))
 		}
 		return disposeHighlight
 	}
@@ -227,14 +226,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	private _addDiffStylesToEditor = (editor: ICodeEditor, diff: Diff) => {
+	private _addDiffStylesToURI = (uri: URI, diff: Diff) => {
 		const { type, diffid } = diff
 
 		const disposeInThisEditorFns: (() => void)[] = []
 
+		const model = this._modelService.getModel(uri)
+
 		// green decoration and minimap decoration
 		if (type !== 'deletion') {
-			const fn = this._addLineDecoration(editor.getModel(), diff.startLine, diff.endLine, 'void-greenBG', {
+			const fn = this._addLineDecoration(model, diff.startLine, diff.endLine, 'void-greenBG', {
 				minimap: { color: { id: 'minimapGutter.addedBackground' }, position: 2 },
 				overviewRuler: { color: { id: 'editorOverviewRuler.addedForeground' }, position: 7 }
 			})
@@ -244,47 +245,65 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// red in a view zone
 		if (type !== 'insertion') {
-			editor.changeViewZones(accessor => {
+			const consistentZoneId = this._zoneStyleService.addConsistentItemToURI({
+				uri,
+				fn: (editor) => {
 
-				const domNode = document.createElement('div');
-				domNode.className = 'void-redBG'
+					const domNode = document.createElement('div');
+					domNode.className = 'void-redBG'
 
-				const renderOptions = RenderOptions.fromEditor(editor);
-				// applyFontInfo(domNode, renderOptions.fontInfo)
+					const renderOptions = RenderOptions.fromEditor(editor);
+					// applyFontInfo(domNode, renderOptions.fontInfo)
 
-				// Compute view-lines based on redText
-				const redText = diff.originalCode
-				const lines = redText.split('\n');
-				const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
-				const source = new LineSource(lineTokens, lines.map(() => null), false, false)
-				const result = renderLines(source, renderOptions, [], domNode);
+					// Compute view-lines based on redText
+					const redText = diff.originalCode
+					const lines = redText.split('\n');
+					const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
+					const source = new LineSource(lineTokens, lines.map(() => null), false, false)
+					const result = renderLines(source, renderOptions, [], domNode);
 
-				const viewZone: IViewZone = {
-					// afterLineNumber: computedDiff.startLine - 1,
-					afterLineNumber: type === 'edit' ? diff.endLine : diff.startLine - 1,
-					heightInLines: result.heightInLines,
-					minWidthInPx: result.minWidthInPx,
-					domNode: domNode,
-					marginDomNode: document.createElement('div'), // displayed to left
-					suppressMouseDown: true,
-				};
+					const viewZone: IViewZone = {
+						// afterLineNumber: computedDiff.startLine - 1,
+						afterLineNumber: type === 'edit' ? diff.endLine : diff.startLine - 1,
+						heightInLines: result.heightInLines,
+						minWidthInPx: result.minWidthInPx,
+						domNode: domNode,
+						marginDomNode: document.createElement('div'), // displayed to left
+						suppressMouseDown: true,
+					};
 
-				const zoneId = accessor.addZone(viewZone)
-				disposeInThisEditorFns.push(() => { editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) }) })
+					let zoneId: string | null = null
+					editor.changeViewZones(accessor => { zoneId = accessor.addZone(viewZone) })
+					return () => editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) })
+				},
+			})
 
-			});
+			console.log('added (Z)', consistentZoneId)
+
+			disposeInThisEditorFns.push(() => { console.log('removing (Z)', consistentZoneId); this._zoneStyleService.removeConsistentItemFromURI(consistentZoneId) })
+
 		}
 
 
+
 		// Accept | Reject widget
-		const buttonsWidget = new AcceptRejectWidget({
-			editor,
-			onAccept: () => { this.acceptDiff({ diffid }) },
-			onReject: () => { this.rejectDiff({ diffid }) },
-			diffid: diffid.toString(),
-			startLine: diff.startLine,
+		const consistentWidgetId = this._zoneStyleService.addConsistentItemToURI({
+			uri,
+			fn: (editor) => {
+				const buttonsWidget = new AcceptRejectWidget({
+					editor,
+					onAccept: () => { this.acceptDiff({ diffid }) },
+					onReject: () => { this.rejectDiff({ diffid }) },
+					diffid: diffid.toString(),
+					startLine: diff.startLine,
+				})
+				return () => { buttonsWidget.dispose() }
+			}
 		})
-		disposeInThisEditorFns.push(() => { buttonsWidget.dispose() })
+		console.log('added (O)', consistentWidgetId)
+		disposeInThisEditorFns.push(() => { console.log('removing (O)', consistentWidgetId); this._zoneStyleService.removeConsistentItemFromURI(consistentWidgetId) })
+
+
 
 		const disposeInEditor = () => { disposeInThisEditorFns.forEach(f => f()) }
 		return disposeInEditor;
@@ -499,7 +518,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this._clearAllDiffsAndStyles(uri)
 
 		// 2. recompute all diffs on each editor with this URI
-		const editors = this._editorService.listCodeEditors().filter(editor => editor.getModel()?.uri.fsPath === uri.fsPath)
 		const fullFileText = this._readURI(uri) ?? ''
 
 
@@ -520,10 +538,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					diffareaid: diffArea.diffareaid,
 				}
 
-				for (let editor of editors) {
-					const fn = this._addDiffStylesToEditor(editor, newDiff)
-					this.removeStylesFnsOfURI[uri.fsPath].add(() => fn())
-				}
+				const fn = this._addDiffStylesToURI(uri, newDiff)
+				this.removeStylesFnsOfURI[uri.fsPath].add(fn)
 
 				this.diffOfId[diffid] = newDiff
 				diffArea._diffOfId[diffid] = newDiff
@@ -651,7 +667,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_diffOfId: {}, // added later
 		}
 
-		console.log('adding uri.fspath', uri.fsPath, diffArea.diffareaid.toString())
+		// console.log('adding uri.fspath', uri.fsPath, diffArea.diffareaid.toString())
 		this.diffAreasOfURI[uri.fsPath].add(diffArea.diffareaid.toString())
 		this.diffAreaOfId[diffArea.diffareaid] = diffArea
 

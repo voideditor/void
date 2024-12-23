@@ -25,72 +25,71 @@ export class ZoneStyleService extends Disposable {
 	// the zones that are attached to each URI, completely independent from current state of editors
 	private readonly consistentZoneIdsOfURI: Record<string, Set<string> | undefined> = {}
 	private readonly infoOfConsistentZoneId: Record<string, {
+		uri: URI
 		iZoneFn: (editor: ICodeEditor) => IViewZone,
 		iOther?: (editor: ICodeEditor) => (() => void),
-		uri: URI
 	}> = {}
+	// listener disposables
+	private readonly disposablesOfEditorId: Record<string, Set<IDisposable> | undefined> = {}
+
 
 	// current state of zones on each editor, and the fns to call to remove them. A zone is the actual zone plus whatever iOther you put on it.
 	private readonly zoneIdsOfEditorId: Record<string, Set<string> | undefined> = {}
 	private readonly removeFnOfZoneId: Record<string, () => void> = {}
 	private readonly consistentZoneIdOfZoneId: Record<string, string> = {}
 
-	// current state on each consistent zone
-
-	// listener disposables
-	private readonly disposablesOfEditorId: Record<string, Set<IDisposable> | undefined> = {}
 
 	constructor(
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 	) {
 		super()
 
-		const addTabSwitchListeners = (editor: ICodeEditor) => {
+
+		const removeZonesFromEditor = (editor: ICodeEditor) => {
 			const editorId = editor.getId()
-
-			const d = editor.onDidChangeModel(e => {
-				const newURI = e.newModelUrl
-				// clear all the zones off of this editor
-				for (const zoneId of this.zoneIdsOfEditorId[editorId] ?? [])
-					this._removeZoneIdFromEditor(editor, zoneId)
-
-				// add all the zones it should have, judging by the new URI
-				if (newURI)
-					for (const consistentZoneId of this.consistentZoneIdsOfURI[newURI.fsPath] ?? [])
-						this._putZoneOnEditor(editor, consistentZoneId)
-			})
-
-			if (!(editorId in this.disposablesOfEditorId))
-				this.disposablesOfEditorId[editorId] = new Set()
-			this.disposablesOfEditorId[editorId]!.add(d)
+			for (const zoneId of this.zoneIdsOfEditorId[editorId] ?? [])
+				this._removeZoneIdFromEditor(editor, zoneId)
 		}
 
-		// initialize current editors
-		const initialEditors = this._editorService.listCodeEditors()
-		for (let editor of initialEditors)
-			addTabSwitchListeners(editor)
+		// put zones on the editor, based on the consistentZones for that URI
+		const putZonesOnEditor = (editor: ICodeEditor, uri: URI | null) => {
+			if (!uri) return
+			for (const consistentZoneId of this.consistentZoneIdsOfURI[uri.fsPath] ?? [])
+				this._putZoneOnEditor(editor, consistentZoneId)
+		}
 
-		// initialize any new editors - add tab switch listeners and add all zones it should have
-		this._register(this._editorService.onCodeEditorAdd(editor => {
-			addTabSwitchListeners(editor)
 
-			const uri = editor.getModel()?.uri
-			if (uri)
-				for (const consistentZoneId of this.consistentZoneIdsOfURI[uri.fsPath] ?? [])
-					this._putZoneOnEditor(editor, consistentZoneId)
-		}))
+
+		const addTabSwitchListeners = (editor: ICodeEditor) => {
+			const editorId = editor.getId()
+			if (!(editorId in this.disposablesOfEditorId))
+				this.disposablesOfEditorId[editorId] = new Set()
+
+			this.disposablesOfEditorId[editorId]!.add(
+				editor.onDidChangeModel(e => {
+					removeZonesFromEditor(editor)
+					putZonesOnEditor(editor, e.newModelUrl)
+				})
+			)
+		}
+
+		const initializeEditor = (editor: ICodeEditor) => {
+			addTabSwitchListeners(editor)
+			putZonesOnEditor(editor, editor.getModel()?.uri ?? null)
+		}
+
+		// initialize current editors + any new editors
+		for (let editor of this._editorService.listCodeEditors()) initializeEditor(editor)
+		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
 
 		// when an editor is deleted, remove its zones and call any disposables it has
 		this._register(this._editorService.onCodeEditorRemove(editor => {
 			const editorId = editor.getId()
 
-			for (const zoneId of this.zoneIdsOfEditorId[editorId] ?? [])
-				this._removeZoneIdFromEditor(editor, zoneId)
-
-			for (const d of this.disposablesOfEditorId[editorId] ?? []) {
+			removeZonesFromEditor(editor)
+			for (const d of this.disposablesOfEditorId[editorId] ?? [])
 				d.dispose()
-				this.disposablesOfEditorId[editorId]?.delete(d)
-			}
+			delete this.disposablesOfEditorId[editorId]
 
 		}))
 
@@ -100,43 +99,36 @@ export class ZoneStyleService extends Disposable {
 	_putZoneOnEditor(editor: ICodeEditor, consistentZoneId: string) {
 		const { iZoneFn, iOther } = this.infoOfConsistentZoneId[consistentZoneId]
 
-		const iZone = iZoneFn(editor)
-
-		const editorId = editor.getId()
-
 		editor.changeViewZones(accessor => {
 			// add zone + other
-			const zoneId = accessor.addZone(iZone)
+			const zoneId = accessor.addZone(iZoneFn(editor))
 			const rmFn = iOther?.(editor)
 
+			const editorId = editor.getId()
 			if (!(editorId in this.zoneIdsOfEditorId))
 				this.zoneIdsOfEditorId[editorId] = new Set()
 			this.zoneIdsOfEditorId[editorId]!.add(zoneId)
-
-			this.consistentZoneIdOfZoneId[zoneId] = consistentZoneId
 
 			// fn that describes how to remove zone + other
 			this.removeFnOfZoneId[zoneId] = () => {
 				editor.changeViewZones(accessor => accessor.removeZone(zoneId))
 				rmFn?.()
 			}
+
+			this.consistentZoneIdOfZoneId[zoneId] = consistentZoneId
 		})
 	}
 
 
 	_removeZoneIdFromEditor(editor: ICodeEditor, zoneId: string) {
 
+		const editorId = editor.getId()
+		this.zoneIdsOfEditorId[editorId]?.delete(zoneId)
+
 		this.removeFnOfZoneId[zoneId]?.()
 		delete this.removeFnOfZoneId[zoneId]
 
-
-		const editorId = editor.getId()
-		if (editorId in this.zoneIdsOfEditorId) {
-			this.zoneIdsOfEditorId[editorId]?.delete(zoneId)
-		}
-
-		if (zoneId in this.consistentZoneIdOfZoneId)
-			delete this.consistentZoneIdOfZoneId[zoneId]
+		delete this.consistentZoneIdOfZoneId[zoneId]
 	}
 
 

@@ -377,7 +377,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = structuredClone(snapshot) // don't want to destroy the snapshot
 
 			// delete all current decorations (diffs, sweep styles) so we don't have any unwanted leftover decorations
-			this._clearAllDiffsAndStyles(uri)
+			this._clearAllDiffsAndAllStyles(uri)
 
 			// restore diffAreaOfId and diffAreasOfModelId
 			this.diffAreaOfId = {}
@@ -436,7 +436,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 	}
 
-	private _clearAllDiffsAndStyles(uri: URI) {
+	// clears styles of DiffAreas too
+	private _clearAllDiffsAndAllStyles(uri: URI) {
 		for (let diffareaid of this.diffAreasOfURI[uri.fsPath]) {
 			const diffArea = this.diffAreaOfId[diffareaid]
 			this._deleteDiffs(diffArea)
@@ -529,7 +530,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		if (content === null) return
 
 		// 1. clear Diffs and styles
-		this._clearAllDiffsAndStyles(uri)
+		this._clearAllDiffsAndAllStyles(uri)
 
 		// 2. recompute all diffs on each editor with this URI
 		const fullFileText = this._readURI(uri) ?? ''

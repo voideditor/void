@@ -300,7 +300,7 @@ const ChatBubble = ({ chatMessage }: {
 	}
 
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
-		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}>
+		<div className={`text-left inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}>
 			{chatbubbleContents}
 		</div>
 	</div>

@@ -451,6 +451,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
 	private _realignAllDiffAreasLines(uri: URI, text: string, recentChange: { startLineNumber: number; endLineNumber: number }) {
 
+		console.log('recent change', recentChange)
+
 		const model = this._getModel(uri)
 		if (!model) return
 
@@ -525,6 +527,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		for (let diffareaid of this.diffAreasOfURI[uri.fsPath]) {
 			const diffArea = this.diffAreaOfId[diffareaid]
 
+			console.log('DA start and end:', diffArea.startLine, diffArea.endLine)
 			const newDiffAreaCode = fullFileText.split('\n').slice((diffArea.startLine - 1), (diffArea.endLine - 1) + 1).join('\n')
 			const computedDiffs = findDiffs(diffArea.originalCode, newDiffAreaCode)
 
@@ -900,8 +903,11 @@ Please finish writing the new file by applying the diff to the original file. Re
 			throw new Error(`Void error: ${diff}.type not recognized`)
 		}
 
+		console.log('REJECTION start, end:', diffArea.startLine, diffArea.endLine)
 		// update the file
 		this._writeText(uri, writeText, toRange)
+
+		console.log('2REJECTION start, end:', diffArea.startLine, diffArea.endLine)
 
 		// originalCode does not change!
 

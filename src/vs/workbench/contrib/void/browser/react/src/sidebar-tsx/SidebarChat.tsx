@@ -288,7 +288,7 @@ export const SelectedFiles = (
 							</div>
 							{/* selection text */}
 							{showSelectionText &&
-								<div className='w-full p-1 rounded-sm border-vscode-editor-border bg-vscode-editor-bg'>
+								<div className='w-full p-1 rounded-sm border-vscode-editor-border bg-vscode-sidebar-bg'>
 									<BlockCode text={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
 								</div>
 							}

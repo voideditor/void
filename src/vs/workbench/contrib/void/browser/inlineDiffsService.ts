@@ -150,14 +150,18 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					// it's as if we just called _write, now all we need to do is realign and refresh
 					if (this._weAreWriting) return
 					const uri = model.uri
+					// realign
 					for (const change of e.changes) { this._realignAllDiffAreasLines(uri, change.text, change.range) }
+					// refresh
 					this._refreshDiffsInURI(uri)
 				})
 			)
 		}
-		// initialize all existing models + initialize when a new model mounts
+		// initialize all existing models
 		for (let model of this._modelService.getModels()) { initializeModel(model) }
+		// initialize whenever a new model mounts
 		this._register(this._modelService.onModelAdded(model => initializeModel(model)));
+
 
 
 		// this function adds listeners to refresh styles when editor changes tab
@@ -171,12 +175,13 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				if (e.newModelUrl) this._refreshDiffsInURI(e.newModelUrl)
 			}))
 		}
-		// add listeners for all existing editors + listen for editor being added
+		// add listeners for all existing editors
 		for (let editor of this._editorService.listCodeEditors()) { initializeEditor(editor) }
-		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
+		// add listeners when an editor is created
+		this._register(this._editorService.onCodeEditorAdd(editor => { console.log('ADD EDITOR'); initializeEditor(editor) }))
+		this._register(this._editorService.onCodeEditorRemove(editor => { console.log('REMOVE EDITOR'); initializeEditor(editor) }))
 
 	}
-
 
 
 

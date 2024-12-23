@@ -299,7 +299,7 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 	return <div ref={divRef}>
 		<WidgetComponent
-			className='relative z-0'
+			className='relative z-0 text-sm'
 			ctor={useCallback((container) =>
 				instantiationService.createInstance(
 					CodeEditorWidget,
@@ -312,6 +312,8 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 							alwaysConsumeMouseWheel: false,
 							vertical: 'auto',
 							horizontal: 'auto',
+							// verticalScrollbarSize: 3,
+							// horizontalScrollbarSize: 3,
 						},
 						scrollBeyondLastLine: false,
 
@@ -335,6 +337,9 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 						hideCursorInOverviewRuler: true,
 						overviewRulerBorder: false,
 						glyphMargin: false,
+						stickyScroll: {
+							enabled: false
+						},
 					},
 					{
 						isSimpleWidget: true,

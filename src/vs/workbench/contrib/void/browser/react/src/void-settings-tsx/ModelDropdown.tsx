@@ -56,7 +56,7 @@ const DummySelectBox = () => {
 			flex items-center
 			flex-nowrap text-ellipsis
 			text-vscode-charts-yellow
-			hover:brightness-110 transition-all duration-200
+			hover:brightness-90 transition-all duration-200
 			cursor-pointer
 		`}
 		onClick={openSettings}

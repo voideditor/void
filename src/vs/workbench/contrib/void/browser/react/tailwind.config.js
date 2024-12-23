@@ -107,12 +107,16 @@ module.exports = {
 					"editor-bg": "var(--vscode-editor-background)",
 					"editor-fg": "var(--vscode-editor-foreground)",
 
-					// editor widget colors
-					"editorwidget-fg": "var(--vscode-editorWidget-foreground)",
-					"editorwidget-bg": "var(--vscode-editorWidget-background)",
-					"editorwidget-border": "var(--vscode-editorWidget-border)",
+
 
 					// other
+					"editorwidget-bg": "var(--vscode-editorWidget-background)",
+					"toolbar-hover-bg": "var(--vscode-toolbar-hoverBackground)",
+					"toolbar-foreground": "var(--vscode-editorActionList-foreground)",
+
+					"editorwidget-fg": "var(--vscode-editorWidget-foreground)",
+					"editorwidget-border": "var(--vscode-editorWidget-border)",
+
 					"charts-orange": "var(--vscode-charts-orange)",
 					"charts-yellow": "var(--vscode-charts-yellow)",
 				},

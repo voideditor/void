@@ -220,7 +220,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 	return <ErrorBoundary>
 		<div className='my-1'>
 			<VoidInputBox
-				placeholder={`Enter your ${providerTitle} ${settingTitle} (${placeholder}).`}
+				placeholder={`${providerTitle} ${settingTitle} (${placeholder}).`}
 				onChangeText={useCallback((newVal) => {
 					if (weChangedTextRef) return
 					voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)

@@ -154,6 +154,18 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					const uri = model.uri
 					for (const change of e.changes) { this._realignAllDiffAreasLines(uri, change.text, change.range) }
 					this._refreshDiffsInURI(uri)
+
+					// // diffArea should be removed if we just discovered it has no more diffs in it
+					// for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
+					// 	const diffArea = this.diffAreaOfId[diffareaid]
+					// 	if (Object.keys(diffArea._diffOfId).length === 0 && !diffArea._sweepState.isStreaming) {
+					// 		const { onFinishEdit } = this._addToHistory(uri)
+					// 		this._deleteDiffArea(diffArea)
+					// 		onFinishEdit()
+					// 	}
+					// }
+
+
 				})
 			)
 		}
@@ -470,7 +482,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const diffArea = this.diffAreaOfId[diffareaid]
 
 			// if the diffArea is above the range, it is not affected
-			if (diffArea.endLine < startLine) {
+			if (startLine > diffArea.endLine + 1) {
 				console.log('A')
 				continue
 			}

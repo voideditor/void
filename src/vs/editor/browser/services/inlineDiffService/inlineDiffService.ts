@@ -6,6 +6,8 @@ import { ICodeEditor, IViewZone } from '../../editorBrowser.js';
 import { IRange } from '../../../common/core/range.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
 
+
+// THIS FILE IS OLD!!!
 export interface IInlineDiffService {
 	readonly _serviceBrand: undefined;
 	addDiff(editor: ICodeEditor, originalText: string, modifiedRange: IRange): void;

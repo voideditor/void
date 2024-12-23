@@ -134,7 +134,7 @@ export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLBut
 		type='button'
 		{...props}
 	>
-		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[7px]" />
+		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[6px]" />
 	</button>
 }
 

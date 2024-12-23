@@ -32,8 +32,8 @@ export type RefreshModelStateOfProvider = Record<RefreshableProviderName, Refres
 
 
 const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvider[k])[] } = {
-	ollama: ['enabled', 'endpoint'],
-	openAICompatible: ['enabled', 'endpoint', 'apiKey'],
+	ollama: ['_enabled', 'endpoint'],
+	openAICompatible: ['_enabled', 'endpoint', 'apiKey'],
 }
 const REFRESH_INTERVAL = 5_000
 // const COOLDOWN_TIMEOUT = 300
@@ -81,7 +81,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 			for (const providerName of refreshableProviderNames) {
 
-				const { enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
+				const { _enabled: enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
 				this.refreshModels(providerName, !enabled)
 
 				// every time providerName.enabled changes, refresh models too, like a useEffect
@@ -150,7 +150,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 				}))
 
 				if (enableProviderOnSuccess) {
-					this.voidSettingsService.setSettingOfProvider(providerName, 'enabled', true)
+					this.voidSettingsService.setSettingOfProvider(providerName, '_enabled', true)
 				}
 
 				this._setRefreshState(providerName, 'success')

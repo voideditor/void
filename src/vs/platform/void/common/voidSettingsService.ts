@@ -66,7 +66,7 @@ let _computeModelOptions = (settingsOfProvider: SettingsOfProvider) => {
 	let modelOptions: ModelOption[] = []
 	for (const providerName of providerNames) {
 		const providerConfig = settingsOfProvider[providerName]
-		if (!providerConfig.enabled) continue // if disabled, don't display model options
+		if (!providerConfig._enabled) continue // if disabled, don't display model options
 		for (const { modelName, isHidden } of providerConfig.models) {
 			if (isHidden) continue
 			modelOptions.push({ text: `${modelName} (${providerName})`, value: { providerName, modelName } })
@@ -151,7 +151,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const newFeatureFlags = this.state.featureFlagSettings
 
 		// if changed models or enabled a provider, recompute models list
-		const modelsListChanged = settingName === 'models' || settingName === 'enabled'
+		const modelsListChanged = settingName === 'models' || settingName === '_enabled'
 		const newModelsList = modelsListChanged ? _computeModelOptions(newSettingsOfProvider) : this.state._modelOptions
 
 		const newState: VoidSettingsState = {

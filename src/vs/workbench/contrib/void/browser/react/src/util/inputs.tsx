@@ -312,8 +312,8 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 							alwaysConsumeMouseWheel: false,
 							vertical: 'auto',
 							horizontal: 'auto',
-							// verticalScrollbarSize: 3,
-							// horizontalScrollbarSize: 3,
+							verticalScrollbarSize: 0,
+							horizontalScrollbarSize: 0,
 						},
 						scrollBeyondLastLine: false,
 

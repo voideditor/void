@@ -14,8 +14,9 @@ import '../common/refreshModelService.js'
 // metrics
 import '../common/metricsService.js'
 
-// embeddings
-import '../common/embedderService.js'
+// // embeddings
+// import '../common/embedderService.js'
 
-// vector store
-import '../common/vectorStoreService.js'
+// // vector store
+// import '../common/vectorStoreService.js'
+

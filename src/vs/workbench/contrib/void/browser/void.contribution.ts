@@ -26,3 +26,8 @@ import './voidSettingsPane.js'
 
 // register css
 import './media/void.css'
+
+// import './vectorStoreService.js'
+
+import './embedderService.js'
+

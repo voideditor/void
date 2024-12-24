@@ -36,7 +36,6 @@ class VectorStoreService implements IVectorStoreService, IWorkbenchContribution 
 
 	constructor(
 	) {
-		console.error("Sarvesh got here")
 	}
 
 	createEmbeddings(tree: ITreeSitterParseResult, filename: string) {
@@ -90,7 +89,6 @@ export class EmbedderService implements IEmbedderService, IWorkbenchContribution
 		@ITreeSitterParserService private readonly treeSitterService: TreeSitterTextModelService,
 		@IModelService private readonly modelService: IModelService
 	) {
-		console.error("Sarvesh also got here")
 		this.modelService.onModelAdded((model: ITextModel) => {
 			this.createEmbeddings(model);
 		});
@@ -98,7 +96,6 @@ export class EmbedderService implements IEmbedderService, IWorkbenchContribution
 		this.treeSitterService.onDidUpdateTree((e: { textModel: ITextModel; ranges: Range[] }) => {
 			// TODO update Embeddings
 			// this.createEmbeddings(e.textModel);
-			console.error("Sarvesh also got here")
 
 		});
 	}

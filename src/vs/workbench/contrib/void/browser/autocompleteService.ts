@@ -165,20 +165,6 @@ const postprocessResult = (result: string) => {
 
 }
 
-const extractCodeFromResult = (result: string) => {
-	// Match either:
-	// 1. ```language\n<code>```
-	// 2. ```<code>```
-	const match = result.match(/```(?:\w+\n)?([\s\S]*?)```|```([\s\S]*?)```/);
-
-	if (!match) {
-		return result;
-	}
-
-	// Return whichever group matched (non-empty)
-	return match[1] ?? match[2] ?? result;
-}
-
 
 // trims the end of the prefix to improve cache hit rate
 const removeLeftTabsAndTrimEnd = (s: string): string => {
@@ -768,3 +754,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 
 registerSingleton(IAutocompleteService, AutocompleteService, InstantiationType.Eager);
+function extractCodeFromResult(fullText: string): string {
+	throw new Error('Function not implemented.');
+}
+

@@ -8,6 +8,22 @@ import { VoidCodeEditor } from '../util/inputs.js';
 import { ILanguageService } from '../../../../../../../editor/common/languages/language.js';
 
 
+export const extractCodeFromResult = (result: string) => {
+	// Match either:
+	// 1. ```language\n<code>```
+	// 2. ```<code>```
+	const match = result.match(/```(?:\w+\n)?([\s\S]*?)```|```([\s\S]*?)```/);
+
+	if (!match) {
+		return result;
+	}
+
+	// Return whichever group matched (non-empty)
+	return match[1] ?? match[2] ?? result;
+}
+
+
+
 const extensionMap: { [key: string]: string } = {
 	// Web
 	'html': 'html',
@@ -71,7 +87,7 @@ export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, bu
 
 			{buttonsOnHover === null ? null : (
 				<div className="z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200">
-					<div className="flex space-x-2 p-2">{buttonsOnHover}</div>
+					<div className={`flex space-x-2 p-2 ${text.includes('\n') ? 'p-2' : ''}`}>{buttonsOnHover}</div>
 				</div>
 			)}
 
@@ -79,18 +95,6 @@ export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, bu
 				initValue={text}
 				language={language}
 			/>
-			{/* <div
-				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg`}
-			>
-				<SyntaxHighlighter
-					language={language ?? 'plaintext'} // TODO must auto detect language
-					style={customStyle}
-					className={"rounded-sm"}
-				>
-					{text}
-				</SyntaxHighlighter>
-
-			</div> */}
 		</div>
 	</>
 	)

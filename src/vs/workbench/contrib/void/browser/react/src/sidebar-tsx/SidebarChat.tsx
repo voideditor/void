@@ -18,7 +18,7 @@ import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { VoidInputBox } from '../util/inputs.js';
+import { VoidCodeEditor, VoidInputBox } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
@@ -323,7 +323,7 @@ const ChatBubble = ({ chatMessage }: {
 	}
 
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
-		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}>
+		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'text-vscode-input-fg' : ''} max-w-full overflow-auto`}>
 			{chatbubbleContents}
 		</div>
 	</div>

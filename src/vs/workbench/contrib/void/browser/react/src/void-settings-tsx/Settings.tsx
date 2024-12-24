@@ -407,11 +407,11 @@ export const Settings = () => {
 							<h2 className={`text-3xl mb-2`}>Providers</h2>
 							<ErrorBoundary>
 								<VoidProviderSettings />
-								<VoidFeatureFlagSettings />
 							</ErrorBoundary>
 
 							<h2 className={`text-3xl mb-2 mt-4`}>Models</h2>
 							<ErrorBoundary>
+								<VoidFeatureFlagSettings />
 								<RefreshableModels />
 								<ModelDump />
 								<AddModelMenuFull />

@@ -294,6 +294,7 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 	const accessor = useAccessor()
 	const instantiationService = accessor.get('IInstantiationService')
 	const modelService = accessor.get('IModelService')
+	const languageDetectionService = accessor.get('ILanguageDetectionService')
 
 	initValue = normalizeIndentation(initValue)
 
@@ -312,7 +313,7 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 							alwaysConsumeMouseWheel: false,
 							vertical: 'auto',
 							horizontal: 'auto',
-							verticalScrollbarSize: 0,
+							// verticalScrollbarSize: 0,
 							horizontalScrollbarSize: 0,
 						},
 						scrollBeyondLastLine: false,
@@ -350,7 +351,19 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
 				const model = modelService.createModel(initValue, null)
 				editor.setModel(model);
-				model.setLanguage(language ?? 'plaintext')
+
+				if (language) {
+					model.setLanguage(language)
+				} else {
+					languageDetectionService.detectLanguage(model.uri).then(detectedLanguage => {
+
+						// TODOS:
+						// once the model has been detected, stop detecting it; currently we detect on every new token which is very slow
+						// dispose the model; i dont think editor.dispose() does this
+						model.setLanguage(detectedLanguage ?? 'plaintext')
+					})
+				}
+
 
 				const container = editor.getDomNode()
 				const parentNode = container?.parentElement
@@ -374,7 +387,7 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 			dispose={useCallback((editor: CodeEditorWidget) => {
 				editor.dispose();
-			}, [])}
+			}, [modelService, languageDetectionService])}
 
 			propsFn={useCallback(() => { return [] }, [])}
 		/>

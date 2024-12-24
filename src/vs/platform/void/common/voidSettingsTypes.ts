@@ -385,7 +385,7 @@ type FeatureFlagDisplayInfo = {
 export const displayInfoOfFeatureFlag = (featureFlag: FeatureFlagName): FeatureFlagDisplayInfo => {
 	if (featureFlag === 'autoRefreshModels') {
 		return {
-			description: `Automatically scan for and enable local models.`, // ${`refreshableProviderNames.map(providerName => titleOfProviderName(providerName)).join(', ')`}
+			description: `Automatically scan for and enable local providers like Ollama.`, // ${`refreshableProviderNames.map(providerName => titleOfProviderName(providerName)).join(', ')`}
 		}
 	}
 	throw new Error(`featureFlagInfo: Unknown feature flag: "${featureFlag}"`)

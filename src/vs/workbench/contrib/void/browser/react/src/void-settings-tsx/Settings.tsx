@@ -9,7 +9,7 @@ import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
-	return <div className='flex items-center py-1 px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-200/10'>
+	return <div className='flex items-center px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-200/10'>
 		<button className='flex items-center' disabled={disabled} onClick={onClick}>
 			{icon}
 		</button>
@@ -18,7 +18,6 @@ const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, 
 		</span>
 	</div>
 }
-
 
 // models
 const RefreshModelButton = ({ providerName }: { providerName: RefreshableProviderName }) => {
@@ -59,7 +58,9 @@ const RefreshableModels = () => {
 
 	const buttons = refreshableProviderNames.map(providerName => {
 		if (!settingsState.settingsOfProvider[providerName]._enabled) return null
-		return <RefreshModelButton key={providerName} providerName={providerName} />
+		return <div key={providerName} className='pb-4' >
+			<RefreshModelButton providerName={providerName} />
+		</div>
 	})
 
 	return <>
@@ -346,7 +347,6 @@ export const VoidProviderSettings = () => {
 // }
 export const VoidFeatureFlagSettings = () => {
 
-
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 
@@ -406,8 +406,8 @@ export const Settings = () => {
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
 							<h2 className={`text-3xl mb-2`}>Providers</h2>
 							<ErrorBoundary>
-								<VoidFeatureFlagSettings />
 								<VoidProviderSettings />
+								<VoidFeatureFlagSettings />
 							</ErrorBoundary>
 
 							<h2 className={`text-3xl mb-2 mt-4`}>Models</h2>

@@ -5,67 +5,64 @@
 
 import React, { ReactNode } from "react"
 import { VoidCodeEditor } from '../util/inputs.js';
+import { ILanguageService } from '../../../../../../../editor/common/languages/language.js';
 
 
+const extensionMap: { [key: string]: string } = {
+	// Web
+	'html': 'html',
+	'htm': 'html',
+	'css': 'css',
+	'scss': 'scss',
+	'less': 'less',
+	'js': 'javascript',
+	'jsx': 'javascript',
+	'ts': 'typescript',
+	'tsx': 'typescript',
+	'json': 'json',
+	'jsonc': 'json',
+
+	// Programming Languages
+	'py': 'python',
+	'java': 'java',
+	'cpp': 'cpp',
+	'cc': 'cpp',
+	'h': 'cpp',
+	'hpp': 'cpp',
+	'cs': 'csharp',
+	'go': 'go',
+	'rs': 'rust',
+	'rb': 'ruby',
+	'php': 'php',
+	'sh': 'shell',
+	'bash': 'shell',
+	'zsh': 'shell',
+
+	// Markup/Config
+	'md': 'markdown',
+	'markdown': 'markdown',
+	'xml': 'xml',
+	'svg': 'xml',
+	'yaml': 'yaml',
+	'yml': 'yaml',
+	'ini': 'ini',
+	'toml': 'ini',
+
+	// Other
+	'sql': 'sql',
+	'graphql': 'graphql',
+	'gql': 'graphql',
+	'dockerfile': 'dockerfile',
+	'docker': 'dockerfile'
+};
 
 export function getLanguageFromFileName(fileName: string): string {
-	if (!fileName) return 'plaintext';
 
 	const ext = fileName.toLowerCase().split('.').pop();
 	if (!ext) return 'plaintext';
 
-	const extensionMap: { [key: string]: string } = {
-		// Web
-		'html': 'html',
-		'htm': 'html',
-		'css': 'css',
-		'scss': 'scss',
-		'less': 'less',
-		'js': 'javascript',
-		'jsx': 'javascript',
-		'ts': 'typescript',
-		'tsx': 'typescript',
-		'json': 'json',
-		'jsonc': 'json',
-
-		// Programming Languages
-		'py': 'python',
-		'java': 'java',
-		'cpp': 'cpp',
-		'cc': 'cpp',
-		'h': 'cpp',
-		'hpp': 'cpp',
-		'cs': 'csharp',
-		'go': 'go',
-		'rs': 'rust',
-		'rb': 'ruby',
-		'php': 'php',
-		'sh': 'shell',
-		'bash': 'shell',
-		'zsh': 'shell',
-
-		// Markup/Config
-		'md': 'markdown',
-		'markdown': 'markdown',
-		'xml': 'xml',
-		'svg': 'xml',
-		'yaml': 'yaml',
-		'yml': 'yaml',
-		'ini': 'ini',
-		'toml': 'ini',
-
-		// Other
-		'sql': 'sql',
-		'graphql': 'graphql',
-		'gql': 'graphql',
-		'dockerfile': 'dockerfile',
-		'docker': 'dockerfile'
-	};
-
 	return extensionMap[ext] || 'plaintext';
 }
-
-
 
 export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, buttonsOnHover?: ReactNode, language?: string }) => {
 

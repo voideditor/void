@@ -39,6 +39,7 @@ import { INotificationService } from '../../../../../../../platform/notification
 import { IAccessibilityService } from '../../../../../../../platform/accessibility/common/accessibility.js'
 import { ILanguageConfigurationService } from '../../../../../../../editor/common/languages/languageConfigurationRegistry.js'
 import { ILanguageFeaturesService } from '../../../../../../../editor/common/services/languageFeatures.js'
+import { ILanguageDetectionService } from '../../../../../../services/languageDetection/common/languageDetectionWorkerService.js'
 
 
 
@@ -145,6 +146,7 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 }
 
 
+
 const getReactAccessor = (accessor: ServicesAccessor) => {
 	const reactAccessor = {
 		IModelService: accessor.get(IModelService),
@@ -169,6 +171,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		INotificationService: accessor.get(INotificationService),
 		IAccessibilityService: accessor.get(IAccessibilityService),
 		ILanguageConfigurationService: accessor.get(ILanguageConfigurationService),
+		ILanguageDetectionService: accessor.get(ILanguageDetectionService),
 		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
 
 	} as const

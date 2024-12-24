@@ -7,6 +7,17 @@ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase 
 import { generateUuid as uuid } from '../../../../base/common/uuid.js';
 import { TreeSitterTextModelService } from '../../../../editor/browser/services/treeSitter/treeSitterParserService.js';
 
+/*
+Instructions to run Tree-Sitter
+Using Tree-Sitter can be enabled with:
+
+  "editor.experimental.preferTreeSitter": [
+	"typescript"
+  ],
+
+There are still bugs.
+*/
+
 export interface IVectorStoreService {
 	readonly _serviceBrand: undefined;
 	createEmbeddings: (tree: ITreeSitterParseResult, filename: string) => any;

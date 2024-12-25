@@ -349,38 +349,29 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 			}
 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
-				const model = modelService.createModel(initValue, null)
+				const model = modelService.createModel(
+					initValue,
+					language ? {
+						languageId: language,
+						onDidChange: () => ({
+							dispose: () => { }
+						})
+					} : null
+				);
 				editor.setModel(model);
-
-				if (language) {
-					model.setLanguage(language)
-				} else {
-					languageDetectionService.detectLanguage(model.uri).then(detectedLanguage => {
-
-						// TODOS:
-						// once the model has been detected, stop detecting it; currently we detect on every new token which is very slow
-						// dispose the model; i dont think editor.dispose() does this
-						model.setLanguage(detectedLanguage ?? 'plaintext')
-					})
-				}
-
 
 				const container = editor.getDomNode()
 				const parentNode = container?.parentElement
-				if (parentNode) {
-					const height = Math.min(editor.getScrollHeight() + 1, MAX_HEIGHT);
-					parentNode.style.height = `${height}px`;
-					editor.layout();
-				}
-
-				// Listen for content changes and update height
-				const disposable = editor.onDidContentSizeChange(() => {
+				const resize = () => {
 					if (parentNode) {
 						const height = Math.min(editor.getScrollHeight() + 1, MAX_HEIGHT);
 						parentNode.style.height = `${height}px`;
 						editor.layout();
 					}
-				});
+				}
+
+				resize()
+				const disposable = editor.onDidContentSizeChange(() => { resize() });
 
 				return [disposable]
 			}, [modelService, initValue, language])}

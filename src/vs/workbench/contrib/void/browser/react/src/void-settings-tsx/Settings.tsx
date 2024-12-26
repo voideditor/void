@@ -32,7 +32,7 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 		useCallback((providerName2, refreshModelState) => {
 			if (providerName2 !== providerName) return
 			const { state } = refreshModelState[providerName]
-			if (state !== 'success') return
+			if (state !== 'finished') return
 			// now we know we just entered 'success' state for this providerName
 			setJustSucceeded(true)
 			const tid = setTimeout(() => { setJustSucceeded(false) }, 2000)
@@ -354,6 +354,7 @@ export const VoidFeatureFlagSettings = () => {
 
 	return featureFlagNames.map((flagName) => {
 
+		// right now this is just `enabled_autoRefreshModels`
 		const enabled = voidSettingsState.featureFlagSettings[flagName]
 		const { description } = displayInfoOfFeatureFlag(flagName)
 

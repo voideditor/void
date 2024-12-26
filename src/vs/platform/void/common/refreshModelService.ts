@@ -22,7 +22,7 @@ type RefreshableState = ({
 	state: 'refreshing',
 	timeoutId: NodeJS.Timeout | null, // the timeoutId of the most recent call to refreshModels
 } | {
-	state: 'success',
+	state: 'finished',
 	timeoutId: null,
 })
 
@@ -153,7 +153,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 					this.voidSettingsService.setSettingOfProvider(providerName, '_enabled', true)
 				}
 
-				this._setRefreshState(providerName, 'success')
+				this._setRefreshState(providerName, 'finished')
 			},
 			onError: ({ error }) => {
 				// poll

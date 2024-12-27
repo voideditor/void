@@ -1,7 +1,8 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
+
 import React from "react";
 import { useService, useThreadsState } from '../util/services.js';
 
@@ -23,10 +24,10 @@ export const SidebarThreadSelector = () => {
 	const { allThreads } = threadsState
 
 	// sorted by most recent to least recent
-	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? 1 : -1)
+	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
 
 	return (
-		<div className="flex flex-col gap-y-1">
+		<div className="flex flex-col gap-y-1 max-h-[400px] overflow-y-auto">
 
 			{/* X button at top right */}
 			<div className="text-right">
@@ -48,7 +49,7 @@ export const SidebarThreadSelector = () => {
 			</div>
 
 			{/* a list of all the past threads */}
-			<div className='flex flex-col gap-y-1 max-h-80 overflow-y-auto'>
+			<div className='flex flex-col gap-y-1 overflow-y-auto'>
 				{sortedThreadIds.map((threadId) => {
 					if (!allThreads)
 						return <>Error: Threads not found.</>
@@ -56,21 +57,26 @@ export const SidebarThreadSelector = () => {
 
 					let btnStringArr: string[] = []
 
-					let msg1 = truncate(allThreads[threadId].messages[0]?.displayContent ?? '(empty)')
-					btnStringArr.push(msg1)
+					const firstMsgIdx = allThreads[threadId].messages.findIndex(msg => msg.role !== 'system' && !!msg.displayContent) ?? ''
+					if (firstMsgIdx !== -1)
+						btnStringArr.push(truncate(allThreads[threadId].messages[firstMsgIdx].displayContent ?? ''))
+					else
+						btnStringArr.push('""')
 
-					let msg2 = truncate(allThreads[threadId].messages[1]?.displayContent ?? '')
-					if (msg2)
-						btnStringArr.push(msg2)
+					const secondMsgIdx = allThreads[threadId].messages.findIndex((msg, i) => msg.role !== 'system' && !!msg.displayContent && i > firstMsgIdx) ?? ''
+					if (secondMsgIdx !== -1)
+						btnStringArr.push(truncate(allThreads[threadId].messages[secondMsgIdx].displayContent ?? ''))
 
-					btnStringArr.push(allThreads[threadId].messages.length + '')
+					const numMessagesRemaining = allThreads[threadId].messages.filter((msg, i) => msg.role !== 'system' && !!msg.displayContent && i > secondMsgIdx).length
+					if (numMessagesRemaining > 0)
+						btnStringArr.push(numMessagesRemaining + '')
 
 					const btnString = btnStringArr.join(' / ')
 
 					return (
 						<button
 							key={pastThread.id}
-							className={`btn btn-sm rounded-sm ${pastThread.id === threadsStateService.getCurrentThread(threadsState)?.id ? "btn-primary" : "btn-secondary"}`}
+							className={`rounded-sm`}
 							onClick={() => threadsStateService.switchToThread(pastThread.id)}
 							title={new Date(pastThread.createdAt).toLocaleString()}
 						>

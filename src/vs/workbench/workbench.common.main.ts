@@ -17,7 +17,7 @@ import './browser/workbench.contribution.js';
 //#region --- Void
 // Void added this:
 import './contrib/void/browser/void.contribution.js';
-import '../platform/void/browser/llmMessageService.js';
+import '../platform/void/browser/void.contribution.js';
 //#endregion
 
 
@@ -334,7 +334,7 @@ import './contrib/surveys/browser/nps.contribution.js';
 import './contrib/surveys/browser/languageSurveys.contribution.js';
 
 // Welcome
-import './contrib/welcomeGettingStarted/browser/gettingStarted.contribution.js';
+// import './contrib/welcomeGettingStarted/browser/gettingStarted.contribution.js'; // Void commented this out (removes Welcome page on start)
 import './contrib/welcomeWalkthrough/browser/walkThrough.contribution.js';
 import './contrib/welcomeViews/common/viewsWelcome.contribution.js';
 import './contrib/welcomeViews/common/newFile.contribution.js';

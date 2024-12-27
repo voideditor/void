@@ -1,6 +1,24 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.select-child-restyle select {
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	padding-right: 24px;
+}
+
+* {
+	outline: none !important;
+}
+
+
 
 
 /* html {

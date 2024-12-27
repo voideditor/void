@@ -22,7 +22,7 @@ export class ExpandLineSelectionAction extends EditorAction {
 			kbOpts: {
 				weight: KeybindingWeight.EditorCore,
 				kbExpr: EditorContextKeys.textInputFocus,
-				primary: KeyMod.CtrlCmd | KeyCode.KeyL
+				primary: KeyMod.CtrlCmd | KeyCode.KeyM // Void changed this to Cmd+M
 			},
 		});
 	}

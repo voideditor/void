@@ -2,18 +2,22 @@
 
 The Void team put together this list of links to get up and running with VSCode's sourcecode. We hope it's helpful!
 
+## Contributing
+
+- [How VSCode's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. This is the most important read on this whole list! We recommend reading the whole thing.
+
+- [Built-in VSCode styles](https://code.visualstudio.com/api/references/theme-color) - CSS variables that are built into VSCode. Use `var(--vscode-{theme but replacing . with -})`. You can also see their [Webview theming guide](https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content).
+
 ## Beginners / Getting started
 
 - [VSCode UI guide](https://code.visualstudio.com/docs/getstarted/userinterface)  - covers auxbar, panels, etc.
 
 - [UX guide](https://code.visualstudio.com/api/ux-guidelines/overview) - covers Containers, Views, Items, etc.
 
-## Contributing
 
-- [How VSCode's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. This is the most important read on this whole list! We recommend reading the whole thing.
+## Misc
 
-
-- [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - sometimes useful to reference.
+- [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - not used often, but here for reference.
 
 
 ## VSCode's Extension API

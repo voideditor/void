@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Glass Devtools, Inc. All rights reserved.
  *  Void Editor additions licensed under the AGPL 3.0 License.
@@ -67,7 +66,18 @@ export const defaultGeminiModels = modelInfoOfDefaultNames([
 	'gemini-1.0-pro'
 ])
 
-
+export const defaultMistralModels = modelInfoOfDefaultNames([
+	"open-codestral-mamba",
+	"open-mistral-nemo",
+	"pixtral-12b-2409",
+	"mistral-large-latest",
+	"pixtral-large-latest",
+	"ministral-3b-latest",
+	"ministral-8b-latest",
+	"mistral-small-latest",
+	"codestral-latest",
+	"mistral-embed"
+])
 
 // export const parseMaxTokensStr = (maxTokensStr: string) => {
 // 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
@@ -117,6 +127,9 @@ export const defaultProviderSettings = {
 		apiKey: '',
 	},
 	groq: {
+		apiKey: '',
+	},
+	mistral: {
 		apiKey: ''
 	}
 } as const
@@ -196,6 +209,11 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 			title: 'Groq',
 		}
 	}
+	else if (providerName === 'mistral') {
+		return {
+			title: 'Mistral',
+		}
+	}
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -214,16 +232,18 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 					providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
 						providerName === 'gemini' ? 'key...' :
 							providerName === 'groq' ? 'gsk_key...' :
-								providerName === 'openAICompatible' ? 'sk-key...' :
-									'(never)',
+								providerName === 'mistral' ? 'api-key...' :
+									providerName === 'openAICompatible' ? 'sk-key...' :
+										'(never)',
 
 			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
 				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
 					providerName === 'openRouter' ? 'Get your [API Key here](https://openrouter.ai/settings/keys).' :
 						providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 							providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
-								providerName === 'openAICompatible' ? undefined :
-									undefined,
+								providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys/).' :
+									providerName === 'openAICompatible' ? undefined :
+										undefined,
 		}
 	}
 	else if (settingName === 'endpoint') {
@@ -265,6 +285,8 @@ const defaultCustomSettings: Record<CustomSettingName, undefined> = {
 	endpoint: undefined,
 }
 
+
+
 export const voidInitModelOptions = {
 	anthropic: {
 		models: defaultAnthropicModels,
@@ -287,6 +309,9 @@ export const voidInitModelOptions = {
 	groq: {
 		models: defaultGroqModels,
 	},
+	mistral: {
+		models: defaultMistralModels,
+	}
 }
 
 
@@ -334,6 +359,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...voidInitModelOptions.openAICompatible,
 		enabled: undefined,
 	},
+	mistral: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.mistral,
+		...voidInitModelOptions.mistral,
+		enabled: undefined,
+	}
 }
 
 

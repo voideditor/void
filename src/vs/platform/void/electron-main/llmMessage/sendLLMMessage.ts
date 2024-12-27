@@ -11,6 +11,7 @@ import { sendOllamaMsg } from './ollama.js';
 import { sendOpenAIMsg } from './openai.js';
 import { sendGeminiMsg } from './gemini.js';
 import { sendGroqMsg } from './groq.js';
+import { sendMistralMsg } from './mistral.js';
 
 export const sendLLMMessage = ({
 	messages,
@@ -95,6 +96,9 @@ export const sendLLMMessage = ({
 				break;
 			case 'groq':
 				sendGroqMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				break;
+			case 'mistral':
+				sendMistralMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
 				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })

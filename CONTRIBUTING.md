@@ -137,6 +137,13 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 - vscode.proposed.editorInsets.d.ts - not modified, but code copied
 -->
 
+
+## Installation
+
+### Linux
+- Arch Linux [AUR](https://aur.archlinux.org/packages/void-git): ```yay -S void-git```
+
+
 ## References
 
 For some useful links we've compiled on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).

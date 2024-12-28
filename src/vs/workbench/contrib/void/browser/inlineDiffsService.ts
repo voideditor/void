@@ -147,7 +147,7 @@ type HistorySnapshot = {
 
 export interface IInlineDiffsService {
 	readonly _serviceBrand: undefined;
-	startStreaming(params: , str: string): void;
+	startStreaming(opts: StartStreamingOpts, userMessage: string): Promise<number | undefined>;
 }
 
 export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffAreasService');
@@ -866,14 +866,15 @@ Please finish writing the new file by applying the diff to the original file. Re
 		if (!uri) return
 		// TODO reject all diffs in the diff area
 		// TODO deselect user's cursor
+		// TODO convert opts to opts
 		const addedDiffZone = this._initializeStream(opts, userMessage, uri)
 		return addedDiffZone?.diffareaid
 	}
 
 
-	private _stopIfStreaming(diffZone: DiffZone) {
+	// private _stopIfStreaming(diffZone: DiffZone) {
 
-	}
+	// }
 
 
 

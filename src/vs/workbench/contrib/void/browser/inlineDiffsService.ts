@@ -26,7 +26,6 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ServiceSendLLMFeatureParams } from '../../../../platform/void/common/llmMessageTypes.js';
 import { IConsistentItemService } from './helperServices/consistentItemService.js';
 import { inlineDiff_systemMessage } from './prompt/prompts.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
@@ -59,14 +58,22 @@ registerColor('void.sweepIdxBG', configOfBG(sweepIdxBG), '', true);
 // similar to ServiceLLM
 export type StartStreamingOpts = {
 	featureName: 'Ctrl+K';
-	diffareaid: string; // id of the CtrlK area
+	diffareaid: number; // id of the CtrlK area
+	userMessage?: undefined;
 } | {
 	featureName: 'Ctrl+L';
+	userMessage: string;
 } | {
 	featureName: 'Autocomplete';
 	range: IRange;
+	userMessage: string;
 }
 
+export type AddCtrlKOpts = {
+	startLine: number,
+	endLine: number,
+	uri: URI,
+}
 
 
 
@@ -95,7 +102,7 @@ type CommonZoneProps = {
 type CtrlKZone = {
 	type: 'CtrlKZone';
 	originalCode?: undefined;
-	userText: string;
+	userText: string | null;
 } & CommonZoneProps
 
 
@@ -103,7 +110,7 @@ type DiffZone = {
 	type: 'DiffZone',
 	originalCode: string;
 	_diffOfId: Record<string, Diff>; // diffid -> diff in this DiffArea
-	_sweepState: {
+	_streamState: {
 		isStreaming: true;
 		streamRequestIdRef: { current: string | null };
 		line: number;
@@ -147,7 +154,9 @@ type HistorySnapshot = {
 
 export interface IInlineDiffsService {
 	readonly _serviceBrand: undefined;
-	startStreaming(opts: StartStreamingOpts, userMessage: string): Promise<number | undefined>;
+	startStreaming(opts: StartStreamingOpts, userMessage: string): number | undefined;
+	interruptStreaming(diffareaid: number): void;
+	addCtrlKZone(opts: AddCtrlKOpts): number;
 }
 
 export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffAreasService');
@@ -164,7 +173,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	_diffareaidPool = 0 // each diffarea has an id
 	_diffidPool = 0 // each diff has an id
 
 	constructor(
@@ -253,11 +261,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const diffArea = this.diffAreaOfId[diffareaid]
 			if (diffArea.type === 'DiffZone') {
 				// add sweep styles to the diffZone
-				if (diffArea._sweepState.isStreaming) {
+				if (diffArea._streamState.isStreaming) {
 					// sweepLine ... sweepLine
-					const fn1 = this._addLineDecoration(model, diffArea._sweepState.line, diffArea._sweepState.line, 'void-sweepIdxBG')
+					const fn1 = this._addLineDecoration(model, diffArea._streamState.line, diffArea._streamState.line, 'void-sweepIdxBG')
 					// sweepLine+1 ... endLine
-					const fn2 = this._addLineDecoration(model, diffArea._sweepState.line + 1, diffArea.endLine, 'void-sweepBG')
+					const fn2 = this._addLineDecoration(model, diffArea._streamState.line + 1, diffArea.endLine, 'void-sweepBG')
 					diffArea._removeStylesFns.add(() => { fn1?.(); fn2?.(); })
 				}
 			}
@@ -273,7 +281,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						// domNode.className = 'void-redBG'
 						const viewZone: IViewZone = {
 							// afterLineNumber: computedDiff.startLine - 1,
-							afterLineNumber: 1,
+							afterLineNumber: diffArea.startLine,
+							// __TODO__ heightInPx update dynamically
 							heightInPx: 100,
 							// heightInLines: 1,
 							// minWidthInPx: 200,
@@ -286,17 +295,22 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						editor.changeViewZones(accessor => { zoneId = accessor.addZone(viewZone) })
 						const fn1 = () => editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) })
 
+
+						// __TODO fix this resize part
 						// on resize
 						domNode.onresize = () => {
+							console.log('RESIZING!!!!')
 							viewZone.heightInPx = domNode.clientHeight
 							editor.changeViewZones(accessor => { if (zoneId) accessor.layoutZone(zoneId) })
 						}
 
 						this._instantiationService.invokeFunction(accessor => {
 							const props: QuickEditPropsType = {
-								quickEditId: diffArea.diffareaid,
+								diffareaid: diffArea.diffareaid,
+								onUserUpdateText(text) { diffArea.userText = text; },
 							}
 							mountCtrlK(domNode, accessor, props)
+							// __TODO__ dismount
 						})
 
 						return () => { fn1(); }
@@ -410,7 +424,13 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	private _getNumLines(uri: URI): number | null {
 		return this._getModel(uri)?.getLineCount() ?? null
 	}
-
+	private _getActiveEditorURI(): URI | null {
+		const editor = this._editorService.getActiveCodeEditor()
+		if (!editor) return null
+		const uri = editor.getModel()?.uri
+		if (!uri) return null
+		return uri
+	}
 
 	_weAreWriting = false
 	private _writeText(uri: URI, text: string, range: IRange) {
@@ -452,9 +472,12 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			// delete all current decorations (diffs, sweep styles) so we don't have any unwanted leftover decorations
 			this._clearAllEffects(uri)
 
-			// __TODO__ stop streaming if currently streaming
-
-
+			// for each diffarea in this uri, stop streaming if currently streaming
+			for (const diffareaid in this.diffAreaOfId) {
+				const diffArea = this.diffAreaOfId[diffareaid]
+				if (diffArea.type === 'DiffZone')
+					this._stopIfStreaming(diffArea)
+			}
 
 			// restore diffAreaOfId and diffAreasOfModelId
 			this.diffAreaOfId = {}
@@ -469,7 +492,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						type: 'DiffZone',
 						_diffOfId: {},
 						_URI: uri,
-						_sweepState: {
+						_streamState: {
 							isStreaming: false,
 							line: null,
 						} as const,
@@ -555,6 +578,18 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// we had clear all diffs, but not really needed
 		delete this.diffAreaOfId[diffArea.diffareaid]
 		this.diffAreasOfURI[diffArea._URI.fsPath].delete(diffArea.diffareaid.toString())
+	}
+
+
+
+
+	private _diffareaidPool = 0 // each diffarea has an id
+	private _addDiffArea<T extends DiffArea>(diffArea: Omit<T, 'diffareaid'>): T {
+		const diffareaid = this._diffareaidPool++
+		const diffArea2 = { ...diffArea, diffareaid } as T
+		this.diffAreasOfURI[diffArea2._URI.fsPath].add(diffareaid.toString())
+		this.diffAreaOfId[diffareaid] = diffArea2
+		return diffArea2
 	}
 
 
@@ -683,7 +718,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const computedDiffs = findDiffs(diffArea.originalCode, llmText)
 
 		// if not streaming, just write the new code
-		if (!diffArea._sweepState.isStreaming) {
+		if (!diffArea._streamState.isStreaming) {
 			this._writeText(uri, llmText,
 				{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
 			)
@@ -719,7 +754,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				}
 			}
 
-			diffArea._sweepState.line = newFileEndLine
+			diffArea._streamState.line = newFileEndLine
 
 			// lines are 1-indexed
 			const newFileTop = llmText.split('\n').slice(0, (newFileEndLine - 1)).join('\n')
@@ -739,31 +774,77 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
+	private _initializeStream(opts: StartStreamingOpts): DiffZone | undefined {
 
-	private _initializeStream(featureParams: ServiceSendLLMFeatureParams, diffRepr: string, uri: URI,): DiffZone | undefined {
+		const { featureName } = opts
 
-		// diff area begin and end line
-		const numLines = this._getNumLines(uri)
-		if (numLines === null) return
+		let startLine: number
+		let endLine: number
+		let uri: URI
+		let userMessage: string
 
-		const beginLine = 1
-		const endLine = numLines
+		if (featureName === 'Ctrl+L') {
 
-		// check if there's overlap with any other diffAreas and return early if there is
-		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
-			const da2 = this.diffAreaOfId[diffareaid]
-			if (!da2) continue
-			const noOverlap = da2.startLine > endLine || da2.endLine < beginLine
-			if (!noOverlap) {
-				// TODO add a message here that says this to the user too
-				console.error('Not diffing because found overlap:', this.diffAreasOfURI[uri.fsPath], beginLine, endLine)
-				return
+			const uri_ = this._getActiveEditorURI()
+			if (!uri_) return
+			uri = uri_
+
+			// __TODO__ reject all diffs in the diff area
+			// __TODO__ deselect user's cursor
+
+			// in ctrl+L the start and end lines are the full document
+			const numLines = this._getNumLines(uri)
+			if (numLines === null) return
+			startLine = 1
+			endLine = numLines
+
+			// check if there's overlap with any other diffAreas and return early if there is
+			for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
+				const da2 = this.diffAreaOfId[diffareaid]
+				if (!da2) continue
+				const noOverlap = da2.startLine > endLine || da2.endLine < startLine
+				if (!noOverlap) {
+					// TODO add a message here that says this to the user too
+					console.error('Not diffing because found overlap:', this.diffAreasOfURI[uri.fsPath], startLine, endLine)
+					return
+				}
 			}
+
+			userMessage = opts.userMessage
 		}
+		else if (featureName === 'Ctrl+K') {
+
+			const { diffareaid } = opts
+
+			const ctrlKZone = this.diffAreaOfId[diffareaid]
+			const { startLine: startLine_, endLine: endLine_, _URI, userText } = ctrlKZone
+			uri = _URI
+
+			startLine = startLine_
+			endLine = endLine_
+
+			// check if there's overlap with any other ctrlKZones and if so, focus them
+			for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
+				const da2 = this.diffAreaOfId[diffareaid]
+				if (!da2) continue
+				const noOverlap = da2.startLine > endLine || da2.endLine < startLine
+				if (!noOverlap) {
+					// __TODO__ focus it
+					return
+				}
+			}
+
+			if (!userText) return
+			userMessage = userText
+		}
+		else {
+			throw new Error(`Void: diff.type not recognized on: ${featureName}`)
+		}
+
 
 		const currentFileStr = this._readURI(uri)
 		if (currentFileStr === null) return
-		const originalCode = currentFileStr.split('\n').slice((beginLine - 1), (endLine - 1) + 1).join('\n')
+		const originalCode = currentFileStr.split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
 
 
 		let streamRequestIdRef: { current: string | null } = { current: null }
@@ -772,20 +853,24 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// add to history
 		const { onFinishEdit } = this._addToHistory(uri)
 
-		// create a diffArea for the stream
-		const diffareaid = this._diffareaidPool++
 
-		// in ctrl+L the start and end lines are the full document
-		const diffArea: DiffZone = {
+		// for Ctrl+K, delete the current ctrlKZone, swapping it out for a diffZone
+		if (featureName === 'Ctrl+K') {
+			const { diffareaid } = opts
+			const ctrlKZone = this.diffAreaOfId[diffareaid]
+			this._deleteDiffArea(ctrlKZone)
+		}
+
+
+
+
+		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
-			diffareaid: diffareaid,
-			// originalStartLine: beginLine,
-			// originalEndLine: endLine,
 			originalCode: originalCode,
-			startLine: beginLine,
+			startLine: startLine,
 			endLine: endLine, // starts out the same as the current file
 			_URI: uri,
-			_sweepState: {
+			_streamState: {
 				isStreaming: true,
 				streamRequestIdRef,
 				line: 1,
@@ -793,13 +878,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_diffOfId: {}, // added later
 			_removeStylesFns: new Set(),
 		}
-
-		// console.log('adding uri.fspath', uri.fsPath, diffArea.diffareaid.toString())
-		this.diffAreasOfURI[uri.fsPath].add(diffArea.diffareaid.toString())
-		this.diffAreaOfId[diffArea.diffareaid] = diffArea
+		const diffZone = this._addDiffArea(adding)
 
 		// actually call the LLM
-		const promptContent = `\
+		const userContent = featureName === 'Ctrl+L' ? `\
 ORIGINAL_CODE
 \`\`\`
 ${originalCode}
@@ -807,33 +889,40 @@ ${originalCode}
 
 DIFF
 \`\`\`
-${diffRepr}
+${userMessage}
 \`\`\`
 
 INSTRUCTIONS
 Please finish writing the new file by applying the diff to the original file. Return ONLY the completion of the file, without any explanation.
 `
+			: `\
+CTRL K MESSAGE GOES HERE __TODO__!
+${userMessage}
+`
 
+
+		// __TODO__ make these only move forward
 
 		const latestCurrentFileEnd: IPosition = { lineNumber: 1, column: 1 }
 		const latestOriginalFileStart: IPosition = { lineNumber: 1, column: 1 }
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+			featureName,
 			logging: { loggingName: 'streamChunk' },
 			messages: [
 				{ role: 'system', content: inlineDiff_systemMessage, },
 				// TODO include more context too
-				{ role: 'user', content: promptContent, }
+				{ role: 'user', content: userContent, }
 			],
 			onText: ({ newText, fullText }) => {
-				this._writeDiffZoneLLMText(diffArea, fullText, latestCurrentFileEnd, latestOriginalFileStart)
+				this._writeDiffZoneLLMText(diffZone, fullText, latestCurrentFileEnd, latestOriginalFileStart)
 				this._refreshDiffsInURI(uri)
 			},
 			onFinalMessage: ({ fullText }) => {
 				this._writeText(uri, fullText,
-					{ startLineNumber: diffArea.startLine, startColumn: 1, endLineNumber: diffArea.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 				)
-				diffArea._sweepState = { isStreaming: false, line: null }
+				diffZone._streamState = { isStreaming: false, line: null }
 				this._refreshDiffsInURI(uri)
 				onFinishEdit()
 			},
@@ -843,68 +932,78 @@ Please finish writing the new file by applying the diff to the original file. Re
 				if (streamRequestIdRef.current)
 					this._llmMessageService.abort(streamRequestIdRef.current)
 
-				diffArea._sweepState = { isStreaming: false, line: null }
+				diffZone._streamState = { isStreaming: false, line: null }
 				onFinishEdit()
 			},
-			...featureParams
+
+			range: { startLineNumber: startLine, endLineNumber: endLine, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER },
 		})
 
-
-		return diffArea
+		return diffZone
 
 	}
 
 
 
 
+	public addCtrlKZone({ startLine, endLine, uri }: AddCtrlKOpts) {
+
+		const { onFinishEdit } = this._addToHistory(uri)
+
+		const adding: Omit<CtrlKZone, 'diffareaid'> = {
+			type: 'CtrlKZone',
+			startLine: startLine,
+			endLine: endLine,
+			_URI: uri,
+			userText: null,
+			_removeStylesFns: new Set(),
+		}
+		const ctrlKZone = this._addDiffArea(adding)
+
+		onFinishEdit()
+
+		this._refreshDiffsInURI(uri)
+		return ctrlKZone.diffareaid
+	}
 
 
-	async startStreaming(opts: StartStreamingOpts, userMessage: string) {
-		const editor = this._editorService.getActiveCodeEditor()
-		if (!editor) return
-		const uri = editor.getModel()?.uri
-		if (!uri) return
-		// TODO reject all diffs in the diff area
-		// TODO deselect user's cursor
-		// TODO convert opts to opts
-		const addedDiffZone = this._initializeStream(opts, userMessage, uri)
+
+	public startStreaming(opts: StartStreamingOpts) {
+		const addedDiffZone = this._initializeStream(opts)
 		return addedDiffZone?.diffareaid
 	}
 
 
-	// private _stopIfStreaming(diffZone: DiffZone) {
+	private _stopIfStreaming(diffZone: DiffZone) {
 
-	// }
+		const streamRequestId = diffZone._streamState.streamRequestIdRef?.current
+		if (!streamRequestId)
+			return
+
+		this._llmMessageService.abort(streamRequestId)
+
+		diffZone._streamState = {
+			isStreaming: false,
+			streamRequestIdRef: undefined,
+			line: null
+		}
+
+	}
 
 
-
-	interruptStreaming(diffareaid: string) {
+	// call this outside undo/redo (it calls undo)
+	interruptStreaming(diffareaid: number) {
 		const diffArea = this.diffAreaOfId[diffareaid]
 
 		if (!diffArea) return
 		if (diffArea.type !== 'DiffZone') return
-		if (!diffArea._sweepState.isStreaming) return
+		if (!diffArea._streamState.isStreaming) return
 
-		const streamRequestId = diffArea._sweepState.streamRequestIdRef.current
-		if (streamRequestId)
-			this._llmMessageService.abort(streamRequestId)
-
-		// __TODO__ update diffArea streamState here + don't elsewhere
-		// call undo - __TODO__ make this get called in undo and redo too
-
+		this._stopIfStreaming(diffArea)
 		this._undoRedoService.undo(diffArea._URI)
-
 	}
 
 
-
-
-
-	addCtrlK({ uri, range }: { uri: URI, range: IRange, }) {
-
-		// TODO check if intersects with a current ctrl K, if so focus it
-
-	}
 
 
 

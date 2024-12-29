@@ -4,10 +4,12 @@ import { ServicesAccessor } from '../../../../platform/instantiation/common/inst
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
+import { IInlineDiffsService } from './inlineDiffsService.js';
 
 
 export type QuickEditPropsType = {
-	quickEditId: number,
+	diffareaid: number,
+	onUserUpdateText: (text: string) => void;
 }
 
 export type QuickEdit = {
@@ -21,13 +23,21 @@ export type QuickEdit = {
 
 export const VOID_CTRL_K_ACTION_ID = 'void.ctrlKAction'
 registerAction2(class extends Action2 {
-	constructor() {
-		super({ id: VOID_CTRL_K_ACTION_ID, title: 'Void: Quick Edit', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyK, weight: KeybindingWeight.BuiltinExtension } });
+	constructor(
+	) {
+		super({
+			id: VOID_CTRL_K_ACTION_ID,
+			title: 'Void: Quick Edit',
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyCode.KeyK,
+				weight: KeybindingWeight.BuiltinExtension,
+			}
+		});
 	}
+
 	async run(accessor: ServicesAccessor): Promise<void> {
 
 		const editorService = accessor.get(ICodeEditorService)
-
 		const metricsService = accessor.get(IMetricsService)
 		metricsService.capture('User Action', { type: 'Open Ctrl+K' })
 
@@ -38,11 +48,11 @@ registerAction2(class extends Action2 {
 		const selection = editor.getSelection()
 		if (!selection) return;
 
-		// const uri = model.uri
-		// const startLine = selection.startLineNumber
-		// const selectedText = model.getValueInRange(selection)
 
-		// quickEditService.addZone({ uri, startLine, selectedText, })
+		const { startLineNumber: startLine, endLineNumber: endLine } = selection
+		const uri = model.uri
 
+		const inlineDiffsService = accessor.get(IInlineDiffsService)
+		inlineDiffsService.addCtrlKZone({ startLine, endLine, uri })
 	}
 });

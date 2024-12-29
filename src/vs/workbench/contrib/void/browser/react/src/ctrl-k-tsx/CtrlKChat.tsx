@@ -1,13 +1,18 @@
 
 import React, { FormEvent, useCallback, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState } from '../util/services.js';
+import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
 import { OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { getCmdKey } from '../../../helpers/getCmdKey.js';
 import { VoidInputBox } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 
-export const CtrlKChat = (props: QuickEditPropsType) => {
+export const CtrlKChat = ({ diffareaid, onUserUpdateText }: QuickEditPropsType) => {
+
+	const accessor = useAccessor()
+
+	const inlineDiffsService = accessor.get('IInlineDiffsService')
+
 
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
@@ -15,11 +20,24 @@ export const CtrlKChat = (props: QuickEditPropsType) => {
 
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
-	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
+	const onChangeText = useCallback((newStr: string) => {
+		setInstructions(newStr)
+		onUserUpdateText(newStr)
+	}, [setInstructions])
 	const isDisabled = !instructions.trim()
 
+	const currentlyStreamingRef = useRef<number | undefined>(undefined)
+
 	const onSubmit = useCallback((e: FormEvent) => {
-		// TODO
+		currentlyStreamingRef.current = inlineDiffsService.startStreaming({
+			featureName: 'Ctrl+K',
+			diffareaid: diffareaid,
+		}, instructions)
+	}, [inlineDiffsService, diffareaid, instructions])
+
+	const onInterrupt = useCallback(() => {
+		if (currentlyStreamingRef.current !== undefined)
+			inlineDiffsService.interruptStreaming(currentlyStreamingRef.current)
 	}, [])
 
 	return <form
@@ -34,9 +52,14 @@ export const CtrlKChat = (props: QuickEditPropsType) => {
 		onKeyDown={(e) => {
 			if (e.key === 'Enter' && !e.shiftKey) {
 				onSubmit(e)
+				return
 			}
 		}}
 		onSubmit={(e) => {
+			if (isDisabled) {
+				// __TODO__ show disabled
+				return
+			}
 			console.log('submit!')
 			onSubmit(e)
 		}}
@@ -62,6 +85,10 @@ export const CtrlKChat = (props: QuickEditPropsType) => {
 			/>
 		</div>
 
+
+		<button type='button' onClick={() => { onInterrupt() }}>
+			Stop
+		</button>
 
 	</form>
 

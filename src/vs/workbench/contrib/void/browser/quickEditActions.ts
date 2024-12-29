@@ -9,8 +9,8 @@ import { IInlineDiffsService } from './inlineDiffsService.js';
 
 export type QuickEditPropsType = {
 	diffareaid: number,
+	onChangeHeight: (height: number) => void;
 	onUserUpdateText: (text: string) => void;
-	onMount: () => void;
 }
 
 export type QuickEdit = {

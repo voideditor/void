@@ -298,39 +298,27 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						let zoneId: string | null = null
 						editor.changeViewZones(accessor => { zoneId = accessor.addZone(viewZone); })
 
+
+
 						// mount react
 						this._instantiationService.invokeFunction(accessor => {
 							const props: QuickEditPropsType = {
 								diffareaid: diffArea.diffareaid,
+								onChangeHeight(height) {
+									if (height === undefined) return
+									domNode.style.display = 'block'
+									viewZone.heightInPx = height
+									editor.changeViewZones(accessor => { if (zoneId) { accessor.layoutZone(zoneId) } })
+								},
 								onUserUpdateText(text) { diffArea.userText = text; },
-								onMount: () => onResize()
 							}
 							mountCtrlK(domNode, accessor, props)
 						})
 
-						// observe
-						const onResize = () => {
-							domNode.style.display = 'block'
-							console.log('resizing');
-							viewZone.heightInPx = domNode.clientHeight
-
-							editor.changeViewZones(accessor => {
-								if (zoneId) {
-									console.log('CALLING LAYOUT', viewZone.heightInPx);
-									accessor.layoutZone(zoneId)
-								}
-							})
-						}
-						const observer = new ResizeObserver(onResize)
-						console.log('observing...')
-						observer.observe(domNode)
-						onResize()
 
 						return () => {
 							editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) });
 							domNode.remove();
-							observer.disconnect();
-							// __TODO__ dismount
 						}
 					},
 				})

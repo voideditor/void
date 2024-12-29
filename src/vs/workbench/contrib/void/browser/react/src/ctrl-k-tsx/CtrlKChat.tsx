@@ -7,16 +7,31 @@ import { getCmdKey } from '../../../helpers/getCmdKey.js';
 import { VoidInputBox } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 
-export const CtrlKChat = ({ diffareaid, onUserUpdateText, onMount }: QuickEditPropsType) => {
+export const CtrlKChat = ({ diffareaid, onUserUpdateText, onChangeHeight }: QuickEditPropsType) => {
 
 	const accessor = useAccessor()
 
 	const inlineDiffsService = accessor.get('IInlineDiffsService')
 
+	const formRef = useRef<HTMLFormElement | null>(null)
 
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
-	useEffect(() => onMount(), [onMount])
+	useEffect(() => {
+		console.log('mounting resize observer')
+		const inputContainer = formRef.current
+		if (!inputContainer) return;
+
+		// only observing 1 element
+		const resizeObserver = new ResizeObserver((entries) => {
+			const height = entries[0].contentRect.height
+			console.log('NEW HEIGHT', height)
+			onChangeHeight(height)
+		});
+		resizeObserver.observe(inputContainer);
+		return () => { resizeObserver.disconnect(); };
+	}, [onChangeHeight]);
+
 
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
@@ -41,6 +56,7 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText, onMount }: QuickEditPr
 	}, [])
 
 	return <form
+		ref={formRef}
 		className={
 			// copied from SidebarChat.tsx
 			`flex flex-col gap-2 p-1 relative input text-left shrink-0
@@ -73,7 +89,7 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText, onMount }: QuickEditPr
 		<div
 			className={
 				// copied from SidebarChat.tsx
-				`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_textarea]:!void-max-h-[100px] @@[&_div.monaco-inputbox]:!void- @@[&_div.monaco-inputbox]:!void-outline-none`
+				`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_div.monaco-inputbox]:!void- @@[&_div.monaco-inputbox]:!void-outline-none`
 			}
 		>
 

@@ -8,7 +8,7 @@ export const CtrlK = (props: QuickEditPropsType) => {
 
 	const isDark = useIsDark()
 
-	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
+	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`}>
 		<ErrorBoundary>
 			<CtrlKChat {...props} />
 		</ErrorBoundary>

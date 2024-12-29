@@ -21,21 +21,22 @@ const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, 
 
 // models
 const RefreshModelButton = ({ providerName }: { providerName: RefreshableProviderName }) => {
+
 	const refreshModelState = useRefreshModelState()
 
 	const accessor = useAccessor()
 	const refreshModelService = accessor.get('IRefreshModelService')
 
-	const [justFinished, setJustSucceeded] = useState(false)
+	const [justFinished, setJustFinished] = useState(false)
 
 	useRefreshModelListener(
 		useCallback((providerName2, refreshModelState) => {
 			if (providerName2 !== providerName) return
 			const { state } = refreshModelState[providerName]
 			if (state !== 'finished') return
-			// now we know we just entered 'success' state for this providerName
-			setJustSucceeded(true)
-			const tid = setTimeout(() => { setJustSucceeded(false) }, 2000)
+			// now we know we just entered 'finished' state for this providerName
+			setJustFinished(true)
+			const tid = setTimeout(() => { setJustFinished(false) }, 2000)
 			return () => clearTimeout(tid)
 		}, [providerName])
 	)

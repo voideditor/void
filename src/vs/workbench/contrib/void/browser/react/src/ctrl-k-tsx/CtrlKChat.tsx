@@ -1,5 +1,5 @@
 
-import React, { FormEvent, useCallback, useRef, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
 import { OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
@@ -7,7 +7,7 @@ import { getCmdKey } from '../../../helpers/getCmdKey.js';
 import { VoidInputBox } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 
-export const CtrlKChat = ({ diffareaid, onUserUpdateText }: QuickEditPropsType) => {
+export const CtrlKChat = ({ diffareaid, onUserUpdateText, onMount }: QuickEditPropsType) => {
 
 	const accessor = useAccessor()
 
@@ -16,7 +16,7 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText }: QuickEditPropsType) 
 
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
-	// -- imported state --
+	useEffect(() => onMount(), [onMount])
 
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
@@ -47,7 +47,8 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText }: QuickEditPropsType) 
 			transition-all duration-200
 			rounded-md
 			bg-vscode-input-bg
-			border border-vscode-commandcenter-inactive-border focus-within:border-vscode-commandcenter-active-border hover:border-vscode-commandcenter-active-border`
+			border border-vscode-commandcenter-inactive-border focus-within:border-vscode-commandcenter-active-border hover:border-vscode-commandcenter-active-border
+			`
 		}
 		onKeyDown={(e) => {
 			if (e.key === 'Enter' && !e.shiftKey) {
@@ -83,12 +84,12 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText }: QuickEditPropsType) 
 				inputBoxRef={inputBoxRef}
 				multiline={true}
 			/>
+			<button type='button' onClick={() => { onInterrupt() }}>
+				Stop
+			</button>
 		</div>
 
 
-		<button type='button' onClick={() => { onInterrupt() }}>
-			Stop
-		</button>
 
 	</form>
 

@@ -8,14 +8,11 @@ import { VoidInputBox } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit } from '../sidebar-tsx/SidebarChat.js';
 
-export const CtrlKChat = ({ diffareaid, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
+export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
 
 	const accessor = useAccessor()
-
 	const inlineDiffsService = accessor.get('IInlineDiffsService')
-
 	const sizerRef = useRef<HTMLDivElement | null>(null)
-
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
 	useEffect(() => {
@@ -24,13 +21,16 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText, onChangeHeight, initTe
 		if (!inputContainer) return;
 
 		// only observing 1 element
-		const resizeObserver = new ResizeObserver((entries) => {
+		let resizeObserver: ResizeObserver | undefined
+
+		resizeObserver = new ResizeObserver((entries) => {
 			const height = entries[0].borderBoxSize[0].blockSize
 			console.log('NEW HEIGHT', height)
 			onChangeHeight(height)
-		});
+		})
 		resizeObserver.observe(inputContainer);
-		return () => { resizeObserver.disconnect(); };
+
+		return () => { resizeObserver?.disconnect(); };
 	}, [onChangeHeight]);
 
 	// state of current message
@@ -46,6 +46,8 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText, onChangeHeight, initTe
 
 	const onSubmit = useCallback((e: FormEvent) => {
 		if (currentlyStreamingIdRef.current !== undefined) return
+		inputBoxRef.current?.disable()
+
 		currentlyStreamingIdRef.current = inlineDiffsService.startApplying({
 			featureName: 'Ctrl+K',
 			diffareaid: diffareaid,
@@ -70,11 +72,11 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText, onChangeHeight, initTe
 		inputBoxRef.current.value = instructions
 	}, [initText, instructions])
 
-	return <div className='py-2' ref={sizerRef}>
+	return <div className='py-2 w-full max-w-xl' ref={sizerRef}>
 		<form
-			className={
-				// copied from SidebarChat.tsx
-				`flex flex-col gap-2 p-1 relative input text-left shrink-0
+			// copied from SidebarChat.tsx
+			className={`
+				flex flex-col gap-2 p-1 relative input text-left shrink-0
 				transition-all duration-200
 				rounded-md
 				bg-vscode-input-bg
@@ -103,7 +105,7 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText, onChangeHeight, initTe
 		>
 
 			<div // this div is used to position the input box properly
-				className={`right-0 left-0 m-2 z-[999]`}
+				className={`w-full m-2 z-[999]`}
 			>
 				<div className='flex flex-row justify-between items-end gap-1'>
 					{/* left (input) */}
@@ -114,13 +116,17 @@ export const CtrlKChat = ({ diffareaid, onUserUpdateText, onChangeHeight, initTe
 						<VoidInputBox
 							placeholder={`${getCmdKey()}+K to select`}
 							onChangeText={onChangeText}
-							inputBoxRef={inputBoxRef}
+							onCreateInstance={useCallback((instance: InputBox) => {
+								inputBoxRef.current = instance;
+								onGetInputBox(instance);
+								instance.focus()
+							}, [onGetInputBox])}
 							multiline={true}
 						/>
 					</div>
 
 					{/* right (button) */}
-					<div className='flex flex-row items-end'>
+					<div className='flex flex-row items-end w-10'>
 						{/* submit / stop button */}
 						{isStreaming ?
 							// stop button

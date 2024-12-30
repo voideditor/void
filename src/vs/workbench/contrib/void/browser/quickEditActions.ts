@@ -5,10 +5,12 @@ import { KeybindingWeight } from '../../../../platform/keybinding/common/keybind
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IInlineDiffsService } from './inlineDiffsService.js';
+import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
 
 
 export type QuickEditPropsType = {
 	diffareaid: number,
+	onGetInputBox: (i: InputBox) => void;
 	onChangeHeight: (height: number) => void;
 	onUserUpdateText: (text: string) => void;
 	initText: string | null;
@@ -53,6 +55,9 @@ registerAction2(class extends Action2 {
 
 		const { startLineNumber: startLine, endLineNumber: endLine } = selection
 		const uri = model.uri
+
+		// deselect - clear selection
+		editor.setSelection({ startLineNumber: startLine, endLineNumber: startLine, startColumn: 1, endColumn: 1 })
 
 		const inlineDiffsService = accessor.get(IInlineDiffsService)
 		inlineDiffsService.addCtrlKZone({ startLine, endLine, uri })

@@ -48,7 +48,10 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 		<button
 			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
 			onClick={() => {
-				inlineDiffService.startApplying({ featureName: 'Ctrl+L', userMessage: text })
+				inlineDiffService.startApplying({
+					featureName: 'Ctrl+L',
+					userMessage: text,
+				})
 			}}
 		>
 			Apply

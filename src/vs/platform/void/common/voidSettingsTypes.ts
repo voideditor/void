@@ -141,11 +141,11 @@ export const defaultProviderSettings = {
 	}
 } as const
 
-
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
-
+export const localProviderNames: ProviderName[] = ['ollama'] // all local names
+export const nonlocalProviderNames = providerNames.filter((name) => !localProviderNames.includes(name)) // all non-local names
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
 type CustomProviderSettings<providerName extends ProviderName> = {
@@ -203,7 +203,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'openAICompatible') {
 		return {
-			title: 'OpenAI-Compatible',
+			title: 'Other',
 		}
 	}
 	else if (providerName === 'gemini') {

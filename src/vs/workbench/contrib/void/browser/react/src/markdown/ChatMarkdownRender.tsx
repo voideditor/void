@@ -190,7 +190,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	// inline code
 	if (t.type === "codespan") {
 		return (
-			<code className="text-vscode-editor-fg bg-vscode-editor-bg px-1 rounded-sm font-mono">
+			<code className="text-vscode-text-preformat-fg bg-vscode-text-preformat-bg px-1 rounded-sm font-mono">
 				{t.text}
 			</code>
 		)

@@ -103,6 +103,10 @@ module.exports = {
 
 					// other colors (these are partially complete)
 
+					// text formatting
+					"text-preformat-bg": "var(--vscode-textPreformat-background)",
+					"text-preformat-fg": "var(--vscode-textPreformat-foreground)",
+
 					// editor colors
 					"editor-bg": "var(--vscode-editor-background)",
 					"editor-fg": "var(--vscode-editor-foreground)",

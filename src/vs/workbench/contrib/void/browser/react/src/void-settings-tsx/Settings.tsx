@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidCheckBox, VoidInputBox, VoidSelectBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -219,7 +219,7 @@ export const ModelDump = () => {
 const ProviderSetting = ({ providerName, settingName }: { providerName: ProviderName, settingName: SettingName }) => {
 
 
-	const { title: providerTitle, } = displayInfoOfProviderName(providerName)
+	// const { title: providerTitle, } = displayInfoOfProviderName(providerName)
 
 	const { title: settingTitle, placeholder, subTextMd } = displayInfoOfSettingName(providerName, settingName)
 
@@ -231,7 +231,8 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 	return <ErrorBoundary>
 		<div className='my-1'>
 			<VoidInputBox
-				placeholder={`${providerTitle} ${settingTitle} (${placeholder}).`}
+				// placeholder={`${providerTitle} ${settingTitle} (${placeholder}).`}
+				placeholder={`${settingTitle} (${placeholder}).`}
 				onChangeText={useCallback((newVal) => {
 					if (weChangedTextRef) return
 					voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
@@ -315,7 +316,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 }
 
 
-export const VoidProviderSettings = () => {
+export const VoidProviderSettings = ({ providerNames }: { providerNames: ProviderName[] }) => {
 	return <>
 		{providerNames.map(providerName =>
 			<SettingsForProvider key={providerName} providerName={providerName} />
@@ -406,12 +407,29 @@ export const Settings = () => {
 					<div className='w-full overflow-y-auto'>
 
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
-							<h2 className={`text-3xl mb-2`}>Providers</h2>
+							<h2 className={`text-3xl mb-2`}>Local Providers</h2>
+							<h3 className={`text-md opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3>
+							<h3 className={`text-md opacity-50 mb-2`}>{`Instructions:`}</h3>
+							<div className='pl-4 select-text'>
+								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
+								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
+								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This model has similar performance to GPT-type models and requires 5GB of memory.`} /></h4>
+								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This is a faster autocomplete model and requires 1GB of memory.`} /></h4>
+								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`5. Void will automatically detect your Ollama models, but you can customize your endpoint and manually enter models below.`} /></h4>
+								{/* TODO we should create UI for downloading models without user going into terminal */}
+							</div>
+
 							<ErrorBoundary>
-								<VoidProviderSettings />
+								<VoidProviderSettings providerNames={localProviderNames} />
 							</ErrorBoundary>
 
-							<h2 className={`text-3xl mb-2 mt-4`}>Models</h2>
+							<h2 className={`text-3xl mb-2 mt-16`}>More Providers</h2>
+							<h3 className={`text-md opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3>
+							<ErrorBoundary>
+								<VoidProviderSettings providerNames={nonlocalProviderNames} />
+							</ErrorBoundary>
+
+							<h2 className={`text-3xl mb-2 mt-16`}>Models</h2>
 							<ErrorBoundary>
 								<VoidFeatureFlagSettings />
 								<RefreshableModels />

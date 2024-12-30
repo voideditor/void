@@ -256,7 +256,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
 
-			subTextMd: providerName === 'ollama' ? 'Read about Ollama [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
+			subTextMd: providerName === 'ollama' ? 'Read about advanced [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
 				undefined,
 		}
 	}

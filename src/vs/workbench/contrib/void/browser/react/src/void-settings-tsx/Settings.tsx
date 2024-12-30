@@ -89,14 +89,6 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 
 	return <>
 		<div className='flex items-center gap-4'>
-			{/* model */}
-			<div className='max-w-40 w-full'>
-				<VoidInputBox
-					placeholder='Model Name'
-					onChangeText={useCallback((modelName) => { modelNameRef.current = modelName }, [])}
-					multiline={false}
-				/>
-			</div>
 
 			{/* provider */}
 			<div className='max-w-40 w-full'>
@@ -104,6 +96,15 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 					onCreateInstance={useCallback(() => { providerNameRef.current = providerOptions[0].value }, [providerOptions])} // initialize state
 					onChangeSelection={useCallback((providerName: ProviderName) => { providerNameRef.current = providerName }, [])}
 					options={providerOptions}
+				/>
+			</div>
+
+			{/* model */}
+			<div className='max-w-40 w-full'>
+				<VoidInputBox
+					placeholder='Model Name'
+					onChangeText={useCallback((modelName) => { modelNameRef.current = modelName }, [])}
+					multiline={false}
 				/>
 			</div>
 
@@ -181,16 +182,30 @@ export const ModelDump = () => {
 		return Number(b.providerEnabled) - Number(a.providerEnabled)
 	})
 
+	const longestProviderTitle = React.useMemo(() =>
+		providerNames.map(name => displayInfoOfProviderName(name).title).sort((a, b) => b.length - a.length)[0], []
+	)
+
 	return <div className=''>
-		{modelDump.map(m => {
+		{modelDump.map((m, i) => {
 			const { isHidden, isDefault, isAutodetected, modelName, providerName, providerEnabled } = m
+
+			const isNewProviderName = (i > 0 ? modelDump[i - 1] : undefined)?.providerName !== providerName
 
 			const disabled = !providerEnabled
 
-			return <div key={`${modelName}${providerName}`} className='flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-200/10 py-1 px-3 rounded-sm overflow-hidden cursor-default'>
+			return <div key={`${modelName}${providerName}`} className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-200/10 py-1 px-3 rounded-sm overflow-hidden cursor-default ${isNewProviderName ? 'mt-4' : ''}`}>
 				{/* left part is width:full */}
 				<div className={`w-full flex items-center gap-4`}>
-					<span>{`${modelName} (${providerName})`}</span>
+					<span className='relative'>
+						{/* use the longestProviderName as an invisible placeholder */}
+						<span className='opacity-0 mr-8'>{longestProviderTitle}</span>
+						{/* show the actual `providerTitle` it's not a duplicate */}
+						{isNewProviderName && <span className='absolute top-0 left-0'>{displayInfoOfProviderName(providerName).title}</span>}
+					</span>
+
+					<span>{`${modelName}`}</span>
+					{/* <span>{`${modelName} (${providerName})`}</span> */}
 				</div>
 				{/* right part is anything that fits */}
 				<div className='w-fit flex items-center gap-4'>
@@ -413,9 +428,9 @@ export const Settings = () => {
 							<div className='pl-4 select-text'>
 								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
 								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
-								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This model has similar performance to GPT-type models and requires 5GB of memory.`} /></h4>
+								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama model which is competitive with GPT-series models, and requires 5GB of memory.`} /></h4>
 								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This is a faster autocomplete model and requires 1GB of memory.`} /></h4>
-								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`5. Void will automatically detect your Ollama models, but you can customize your endpoint and manually enter models below.`} /></h4>
+								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`5. Void will automatically detect your Ollama models. You can customize the endpoint and models below.`} /></h4>
 								{/* TODO we should create UI for downloading models without user going into terminal */}
 							</div>
 

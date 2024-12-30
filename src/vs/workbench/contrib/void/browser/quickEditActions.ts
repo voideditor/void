@@ -11,6 +11,7 @@ export type QuickEditPropsType = {
 	diffareaid: number,
 	onChangeHeight: (height: number) => void;
 	onUserUpdateText: (text: string) => void;
+	initText: string | null;
 }
 
 export type QuickEdit = {

@@ -56,10 +56,10 @@ registerColor('void.sweepIdxBG', configOfBG(sweepIdxBG), '', true);
 
 
 // similar to ServiceLLM
-export type StartStreamingOpts = {
+export type StartApplyingOpts = {
 	featureName: 'Ctrl+K';
-	diffareaid: number; // id of the CtrlK area
-	userMessage?: undefined;
+	diffareaid: number; // id of the CtrlK area (contains text selection)
+	userMessage: string; // user message
 } | {
 	featureName: 'Ctrl+L';
 	userMessage: string;
@@ -103,6 +103,7 @@ type CtrlKZone = {
 	type: 'CtrlKZone';
 	originalCode?: undefined;
 	userText: string | null;
+	_alreadyMounted: boolean;
 } & CommonZoneProps
 
 
@@ -154,7 +155,7 @@ type HistorySnapshot = {
 
 export interface IInlineDiffsService {
 	readonly _serviceBrand: undefined;
-	startStreaming(opts: StartStreamingOpts, userMessage: string): number | undefined;
+	startApplying(opts: StartApplyingOpts): number | undefined;
 	interruptStreaming(diffareaid: number): void;
 	addCtrlKZone(opts: AddCtrlKOpts): number;
 }
@@ -199,7 +200,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					for (const change of e.changes) { this._realignAllDiffAreasLines(uri, change.text, change.range) }
 					this._refreshStylesAndDiffsInURI(uri)
 
-					// // diffArea should be removed if we just discovered it has no more diffs in it
+					// // TODO diffArea should be removed if we just discovered it has no more diffs in it
 					// for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
 					// 	const diffArea = this.diffAreaOfId[diffareaid]
 					// 	if (Object.keys(diffArea._diffOfId).length === 0 && !diffArea._sweepState.isStreaming) {
@@ -281,6 +282,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}
 			// highlight the ctrlK zone
 			if (diffArea.type === 'CtrlKZone') {
+				if (diffArea._alreadyMounted) continue
+				diffArea._alreadyMounted = true
+
 				const consistentZoneId = this._zoneStyleService.addConsistentItemToURI({
 					uri,
 					fn: (editor) => {
@@ -311,6 +315,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 									editor.changeViewZones(accessor => { if (zoneId) { accessor.layoutZone(zoneId) } })
 								},
 								onUserUpdateText(text) { diffArea.userText = text; },
+								initText: diffArea.userText,
 							}
 							mountCtrlK(domNode, accessor, props)
 						})
@@ -476,7 +481,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = structuredClone(snapshot) // don't want to destroy the snapshot
 
 			// delete all current decorations (diffs, sweep styles) so we don't have any unwanted leftover decorations
-			this._clearAllEffects(uri)
+			this._clearAllDiffZoneEffects(uri)
 
 			// for each diffarea in this uri, stop streaming if currently streaming
 			for (const diffareaid in this.diffAreaOfId) {
@@ -510,6 +515,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						...snapshottedDiffArea as DiffAreaSnapshot<CtrlKZone>,
 						_URI: uri,
 						_removeStylesFns: new Set(),
+						_alreadyMounted: false,
 					}
 				}
 				this.diffAreasOfURI[uri.fsPath].add(diffareaid)
@@ -561,27 +567,30 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// clear diffZone effects (diffs)
 		if (diffArea.type === 'DiffZone')
 			this._deleteDiffs(diffArea)
-		else if (diffArea.type === 'CtrlKZone') {
-
-		}
 
 		diffArea._removeStylesFns.forEach(removeStyles => removeStyles())
 	}
 
+
+
+	private _clearAllDiffAreaEffects(diffArea: DiffArea) {
+		this._deleteEffects(diffArea)
+		diffArea._removeStylesFns.clear()
+	}
+
 	// clears all Diffs (and their styles) and all styles of DiffAreas
-	private _clearAllEffects(uri: URI) {
+	private _clearAllDiffZoneEffects(uri: URI) {
 		for (let diffareaid of this.diffAreasOfURI[uri.fsPath]) {
 			const diffArea = this.diffAreaOfId[diffareaid]
-			this._deleteEffects(diffArea)
-			diffArea._removeStylesFns.clear()
+			if (diffArea.type !== 'DiffZone') continue
+			this._clearAllDiffAreaEffects(diffArea)
 		}
 	}
 
 
-
 	// delete all diffs, update diffAreaOfId, update diffAreasOfModelId
 	private _deleteDiffArea(diffArea: DiffArea) {
-		// we had clear all diffs, but not really needed
+		this._clearAllDiffAreaEffects(diffArea)
 		delete this.diffAreaOfId[diffArea.diffareaid]
 		this.diffAreasOfURI[diffArea._URI.fsPath].delete(diffArea.diffareaid.toString())
 	}
@@ -692,10 +701,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const content = this._readURI(uri)
 		if (content === null) return
 
-		// 1. clear Diffs and styles
-		this._clearAllEffects(uri)
+		// 1. clear Diffs and DiffZone styles
+		this._clearAllDiffZoneEffects(uri)
 
-		// 2. recompute all diffs on each editor with this URI
+		// 2. recompute all Diffs on each editor with this URI
 		this._addDiffAreaStylesToURI(uri)
 
 
@@ -768,7 +777,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	private _initializeStream(opts: StartStreamingOpts): DiffZone | undefined {
+	private _initializeApplyStream(opts: StartApplyingOpts): DiffZone | undefined {
 
 		const { featureName } = opts
 
@@ -807,6 +816,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			userMessage = opts.userMessage
 		}
 		else if (featureName === 'Ctrl+K') {
+			console.log('INIT APPLY STREAM CTRLK')
 
 			const { diffareaid } = opts
 
@@ -818,8 +828,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			endLine = endLine_
 
 			// check if there's overlap with any other ctrlKZones and if so, focus them
-			for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
-				const da2 = this.diffAreaOfId[diffareaid]
+			for (const diffareaid2 of this.diffAreasOfURI[uri.fsPath]) {
+				if (diffareaid.toString() === diffareaid2) continue
+				const da2 = this.diffAreaOfId[diffareaid2]
 				if (!da2) continue
 				const noOverlap = da2.startLine > endLine || da2.endLine < startLine
 				if (!noOverlap) {
@@ -827,6 +838,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					return
 				}
 			}
+			console.log('userTEXT', userText)
 
 			if (!userText) return
 			userMessage = userText
@@ -948,6 +960,7 @@ ${userMessage}
 			type: 'CtrlKZone',
 			startLine: startLine,
 			endLine: endLine,
+			_alreadyMounted: false,
 			_URI: uri,
 			userText: null,
 			_removeStylesFns: new Set(),
@@ -962,8 +975,8 @@ ${userMessage}
 
 
 
-	public startStreaming(opts: StartStreamingOpts) {
-		const addedDiffZone = this._initializeStream(opts)
+	public startApplying(opts: StartApplyingOpts) {
+		const addedDiffZone = this._initializeApplyStream(opts)
 		return addedDiffZone?.diffareaid
 	}
 

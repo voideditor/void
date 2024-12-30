@@ -112,11 +112,11 @@ export const IconWarning = ({ size, className = '' }: { size: number, className?
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
 export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
 	return <button
+		type='submit'
 		className={`size-[20px] rounded-full shrink-0 grow-0 cursor-pointer
 			${disabled ? 'bg-vscode-disabled-fg' : 'bg-white'}
 			${className}
 		`}
-		type='submit'
 		{...props}
 	>
 		<IconArrowUp size={20} className="stroke-[2]" />

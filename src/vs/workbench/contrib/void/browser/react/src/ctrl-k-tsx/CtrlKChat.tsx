@@ -1,3 +1,7 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
@@ -20,9 +24,13 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 		const inputContainer = sizerRef.current
 		if (!inputContainer) return;
 
+
+		// inputBoxRef.current?.onDidHeightChange(height => {
+		// 	console.log('NEW HEIGHT',height)
+		// 	onChangeHeight(height + 40)
+		// })
 		// only observing 1 element
 		let resizeObserver: ResizeObserver | undefined
-
 		resizeObserver = new ResizeObserver((entries) => {
 			const height = entries[0].borderBoxSize[0].blockSize
 			console.log('NEW HEIGHT', height)
@@ -105,7 +113,7 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 		>
 
 			<div // this div is used to position the input box properly
-				className={`w-full m-2 z-[999]`}
+				className={`w-full p-2 z-[999]`}
 			>
 				<div className='flex flex-row justify-between items-end gap-1'>
 					{/* left (input) */}
@@ -126,7 +134,7 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 					</div>
 
 					{/* right (button) */}
-					<div className='flex flex-row items-end w-10'>
+					<div className='flex flex-row items-end'>
 						{/* submit / stop button */}
 						{isStreaming ?
 							// stop button

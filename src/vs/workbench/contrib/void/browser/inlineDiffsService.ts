@@ -27,13 +27,14 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentItemService } from './helperServices/consistentItemService.js';
-import { inlineDiff_systemMessage } from './prompt/prompts.js';
+import { ctrlKStream_prefixAndSuffix, ctrlKStream_prompt, ctrlKStream_systemMessage, ctrlLStream_prompt, ctrlLStream_systemMessage } from './prompt/prompts.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 import { IPosition } from '../../../../editor/common/core/position.js';
 
 import { mountCtrlK } from '../browser/react/out/ctrl-k-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
+import { LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -302,6 +303,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				const viewZone: IViewZone = {
 					afterLineNumber: ctrlKZone.startLine - 1,
 					domNode: domNode,
+					heightInPx: 0,
 					suppressMouseDown: false,
 				};
 
@@ -640,7 +642,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
 	private _realignAllDiffAreasLines(uri: URI, text: string, recentChange: { startLineNumber: number; endLineNumber: number }) {
 
-		console.log('recent change', recentChange)
+		// console.log('recent change', recentChange)
 
 		const model = this._getModel(uri)
 		if (!model) return
@@ -930,9 +932,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
-			originalCode: originalCode,
-			startLine: startLine,
-			endLine: endLine, // starts out the same as the current file
+			originalCode,
+			startLine,
+			endLine,
 			_URI: uri,
 			_streamState: {
 				isStreaming: true,
@@ -944,40 +946,38 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		const diffZone = this._addDiffArea(adding)
 
-		// actually call the LLM
-		const userContent = featureName === 'Ctrl+L' ? `\
-ORIGINAL_CODE
-\`\`\`
-${originalCode}
-\`\`\`
+		let messages: LLMMessage[]
 
-DIFF
-\`\`\`
-${userMessage}
-\`\`\`
-
-INSTRUCTIONS
-Please finish writing the new file by applying the diff to the original file. Return ONLY the completion of the file, without any explanation.
-`
-			: `\
-CTRL K MESSAGE GOES HERE __TODO__!
-${userMessage}
-`
-
+		if (featureName === 'Ctrl+L') {
+			const userContent = ctrlLStream_prompt({ originalCode, userMessage })
+			messages = [
+				// TODO include more context too
+				{ role: 'system', content: ctrlLStream_systemMessage, },
+				{ role: 'user', content: userContent, }
+			]
+		}
+		else if (featureName === 'Ctrl+K') {
+			const { prefix, suffix } = ctrlKStream_prefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
+			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix })
+			console.log('PREFIX:\n', prefix)
+			console.log('SUFFIX:\n', suffix)
+			console.log('USER CONTENT:\n', userContent)
+			messages = [
+				// TODO include more context too (LSP, file history, etc)
+				{ role: 'system', content: ctrlKStream_systemMessage, },
+				{ role: 'user', content: userContent, }
+			]
+		}
+		else { throw new Error(`featureName ${featureName} is invalid`) }
 
 		// __TODO__ make these only move forward
-
 		const latestCurrentFileEnd: IPosition = { lineNumber: 1, column: 1 }
 		const latestOriginalFileStart: IPosition = { lineNumber: 1, column: 1 }
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			featureName,
 			logging: { loggingName: 'streamChunk' },
-			messages: [
-				{ role: 'system', content: inlineDiff_systemMessage, },
-				// TODO include more context too
-				{ role: 'user', content: userContent, }
-			],
+			messages,
 			onText: ({ newText, fullText }) => {
 				this._writeDiffZoneLLMText(diffZone, fullText, latestCurrentFileEnd, latestOriginalFileStart)
 				this._refreshStylesAndDiffsInURI(uri)

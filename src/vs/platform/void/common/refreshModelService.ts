@@ -85,7 +85,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			for (const providerName of refreshableProviderNames) {
 
 				const { _enabled: enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
-				this.refreshModels(providerName, !enabled, { shouldPoll: true, isInternal: true })
+				this.refreshModels(providerName, !enabled, { isPolling: true, isInternal: true })
 
 				// every time providerName.enabled changes, refresh models too, like a useEffect
 				let relevantVals = () => refreshBasedOn[providerName].map(settingName => this.voidSettingsService.state.settingsOfProvider[providerName][settingName])
@@ -101,7 +101,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 							// if it was just enabled, or there was a change and it wasn't to the enabled state, refresh
 							if ((enabled && !prevEnabled) || (!enabled && !prevEnabled)) {
 								// if user just clicked enable, refresh
-								this.refreshModels(providerName, !enabled, { shouldPoll: false, isInternal: true })
+								this.refreshModels(providerName, !enabled, { isPolling: false, isInternal: true })
 							}
 							else {
 								// else if user just clicked disable, don't refresh
@@ -134,11 +134,11 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 
 	// start listening for models (and don't stop until success)
-	async refreshModels(providerName: RefreshableProviderName, enableProviderOnSuccess?: boolean, options?: { shouldPoll?: boolean, isInternal?: boolean }) {
+	async refreshModels(providerName: RefreshableProviderName, enableProviderOnSuccess?: boolean, options?: { isPolling?: boolean, isInternal?: boolean }) {
 
-		const { shouldPoll, isInternal } = options ?? {}
+		const { isPolling, isInternal } = options ?? {}
 
-		console.log(`refreshModels, isInternal ${isInternal} shouldPoll ${shouldPoll}`)
+		console.log(`refreshModels, isInternal ${isInternal} isPolling ${isPolling}`)
 
 		this._clearProviderTimeout(providerName)
 
@@ -169,13 +169,11 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			}
 		})
 
-		if (isInternal) {
-			this._setRefreshState(providerName, 'finished_invisible')
-		}
+		if (isInternal) this._setRefreshState(providerName, 'finished_invisible')
 
 		// check if we should poll
-		// if it was originally called as `shouldPoll` and if the `autoRefreshModels` flag is enabled
-		if (shouldPoll && this.voidSettingsService.state.featureFlagSettings.autoRefreshModels) {
+		// if it was originally called as `isPolling` and if the `autoRefreshModels` flag is enabled
+		if (isPolling && this.voidSettingsService.state.featureFlagSettings.autoRefreshModels) {
 			const timeoutId = setTimeout(() => this.refreshModels(providerName, enableProviderOnSuccess, options), REFRESH_INTERVAL)
 			this._setTimeoutId(providerName, timeoutId)
 		}

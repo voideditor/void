@@ -14,9 +14,30 @@ export type VoidModelInfo = {
 }
 
 
-export const modelInfoOfDefaultNames = (modelNames: string[]): VoidModelInfo[] => {
+export const modelInfoOfDefaultNames = (modelNames: string[], existingModels?: VoidModelInfo[]): VoidModelInfo[] => {
+
 	const isHidden = modelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
-	return modelNames.map((modelName, i) => ({ modelName, isDefault: true, isHidden }))
+
+
+	if (!existingModels) {
+		return modelNames.map((modelName, i) => ({ modelName, isDefault: true, isHidden, }))
+	} else {
+		// merge `modelNames` with `existingModels`
+		// keep existing `isHidden` property
+
+		const existingModelsMap: Record<string, VoidModelInfo> = {}
+		for (const em of existingModels) {
+			existingModelsMap[em.modelName] = em
+		}
+
+		return modelNames.map((modelName, i) => ({
+			modelName,
+			isDefault: true,
+			isHidden: !!existingModelsMap[modelName]?.isHidden,
+		}))
+
+	}
+
 }
 
 // https://docs.anthropic.com/en/docs/about-claude/models
@@ -385,7 +406,7 @@ type FeatureFlagDisplayInfo = {
 export const displayInfoOfFeatureFlag = (featureFlag: FeatureFlagName): FeatureFlagDisplayInfo => {
 	if (featureFlag === 'autoRefreshModels') {
 		return {
-			description: `Automatically enable local providers and models (like Ollama).`, // ${`refreshableProviderNames.map(providerName => titleOfProviderName(providerName)).join(', ')`}
+			description: `Automatically detect local providers and models (like Ollama).`, // ${`refreshableProviderNames.map(providerName => titleOfProviderName(providerName)).join(', ')`}
 		}
 	}
 	throw new Error(`featureFlagInfo: Unknown feature flag: "${featureFlag}"`)

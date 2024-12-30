@@ -9,7 +9,7 @@ import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
-	return <div className='flex items-center px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-200/10'>
+	return <div className='flex items-center px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
 		<button className='flex items-center' disabled={disabled} onClick={onClick}>
 			{icon}
 		</button>
@@ -91,7 +91,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 		<div className='flex items-center gap-4'>
 
 			{/* provider */}
-			<div className='max-w-40 w-full'>
+			<div className='max-w-40 w-full border border-vscode-editorwidget-border'>
 				<VoidSelectBox
 					onCreateInstance={useCallback(() => { providerNameRef.current = providerOptions[0].value }, [providerOptions])} // initialize state
 					onChangeSelection={useCallback((providerName: ProviderName) => { providerNameRef.current = providerName }, [])}
@@ -100,7 +100,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 			</div>
 
 			{/* model */}
-			<div className='max-w-40 w-full'>
+			<div className='max-w-40 w-full border border-vscode-editorwidget-border'>
 				<VoidInputBox
 					placeholder='Model Name'
 					onChangeText={useCallback((modelName) => { modelNameRef.current = modelName }, [])}
@@ -150,7 +150,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 const AddModelMenuFull = () => {
 	const [open, setOpen] = useState(false)
 
-	return <div className='hover:bg-black/10 dark:hover:bg-gray-200/10 py-1 px-3 rounded-sm overflow-hidden '>
+	return <div className='hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 my-4 pb-1 px-3 rounded-sm overflow-hidden '>
 		{open ?
 			<AddModelMenu onSubmit={() => { setOpen(false) }} />
 			: <button
@@ -182,10 +182,6 @@ export const ModelDump = () => {
 		return Number(b.providerEnabled) - Number(a.providerEnabled)
 	})
 
-	const longestProviderTitle = React.useMemo(() =>
-		providerNames.map(name => displayInfoOfProviderName(name).title).sort((a, b) => b.length - a.length)[0], []
-	)
-
 	return <div className=''>
 		{modelDump.map((m, i) => {
 			const { isHidden, isDefault, isAutodetected, modelName, providerName, providerEnabled } = m
@@ -194,17 +190,11 @@ export const ModelDump = () => {
 
 			const disabled = !providerEnabled
 
-			return <div key={`${modelName}${providerName}`} className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-200/10 py-1 px-3 rounded-sm overflow-hidden cursor-default ${isNewProviderName ? 'mt-4' : ''}`}>
+			return <div key={`${modelName}${providerName}`} className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default ${isNewProviderName ? 'mt-4' : ''}`}>
 				{/* left part is width:full */}
 				<div className={`w-full flex items-center gap-4`}>
-					<span className='relative'>
-						{/* use the longestProviderName as an invisible placeholder */}
-						<span className='opacity-0 mr-8'>{longestProviderTitle}</span>
-						{/* show the actual `providerTitle` it's not a duplicate */}
-						{isNewProviderName && <span className='absolute top-0 left-0'>{displayInfoOfProviderName(providerName).title}</span>}
-					</span>
-
-					<span>{`${modelName}`}</span>
+					<span className='min-w-40'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
+					<span>{modelName}</span>
 					{/* <span>{`${modelName} (${providerName})`}</span> */}
 				</div>
 				{/* right part is anything that fits */}

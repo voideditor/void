@@ -183,7 +183,7 @@ export const ModelDump = () => {
 
 	return <div className=''>
 		{modelDump.map(m => {
-			const { isHidden, isDefault, modelName, providerName, providerEnabled } = m
+			const { isHidden, isDefault, isAutodetected, modelName, providerName, providerEnabled } = m
 
 			const disabled = !providerEnabled
 
@@ -194,7 +194,7 @@ export const ModelDump = () => {
 				</div>
 				{/* right part is anything that fits */}
 				<div className='w-fit flex items-center gap-4'>
-					<span className='opacity-50 whitespace-nowrap'>{isDefault ? '' : '(custom model)'}</span>
+					<span className='opacity-50 whitespace-nowrap'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
 
 					<VoidSwitch
 						value={disabled ? false : !isHidden}

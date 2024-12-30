@@ -222,7 +222,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 	setDefaultModels(providerName: ProviderName, newDefaultModelNames: string[]) {
 		const { models } = this.state.settingsOfProvider[providerName]
-		const newDefaultModels = modelInfoOfDefaultNames(newDefaultModelNames, models)
+		const newDefaultModels = modelInfoOfDefaultNames(newDefaultModelNames, { isAutodetected: true, existingModels: models })
 		const newModels = [
 			...newDefaultModels,
 			...models.filter(m => !m.isDefault), // keep any non-default models

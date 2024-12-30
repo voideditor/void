@@ -11,18 +11,21 @@ export type VoidModelInfo = {
 	modelName: string,
 	isDefault: boolean, // whether or not it's a default for its provider
 	isHidden: boolean, // whether or not the user is hiding it
+	isAutodetected?: boolean, // whether the model was autodetected by polling
 }
 
+type ModelInfoOfDefaultNamesOptions = { isAutodetected: true, existingModels: VoidModelInfo[] } // | { isOtherOption: true, ...otherOptions }
+export const modelInfoOfDefaultNames = (modelNames: string[], options?: ModelInfoOfDefaultNamesOptions): VoidModelInfo[] => {
 
-export const modelInfoOfDefaultNames = (modelNames: string[], existingModels?: VoidModelInfo[]): VoidModelInfo[] => {
-
+	const { isAutodetected, existingModels } = options ?? {}
+	const isDefault = true
 	const isHidden = modelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
 
-
 	if (!existingModels) {
-		return modelNames.map((modelName, i) => ({ modelName, isDefault: true, isHidden, }))
+
+		return modelNames.map((modelName, i) => ({ modelName, isDefault, isAutodetected, isHidden, }))
+
 	} else {
-		// merge `modelNames` with `existingModels`
 		// keep existing `isHidden` property
 
 		const existingModelsMap: Record<string, VoidModelInfo> = {}
@@ -30,11 +33,7 @@ export const modelInfoOfDefaultNames = (modelNames: string[], existingModels?: V
 			existingModelsMap[em.modelName] = em
 		}
 
-		return modelNames.map((modelName, i) => ({
-			modelName,
-			isDefault: true,
-			isHidden: !!existingModelsMap[modelName]?.isHidden,
-		}))
+		return modelNames.map((modelName, i) => ({ modelName, isDefault, isAutodetected, isHidden: !!existingModelsMap[modelName]?.isHidden, }))
 
 	}
 

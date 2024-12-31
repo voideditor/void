@@ -20,20 +20,13 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
 	useEffect(() => {
-		console.log('mounting resize observer')
 		const inputContainer = sizerRef.current
 		if (!inputContainer) return;
 
-
-		// inputBoxRef.current?.onDidHeightChange(height => {
-		// 	console.log('NEW HEIGHT',height)
-		// 	onChangeHeight(height + 40)
-		// })
 		// only observing 1 element
 		let resizeObserver: ResizeObserver | undefined
 		resizeObserver = new ResizeObserver((entries) => {
 			const height = entries[0].borderBoxSize[0].blockSize
-			console.log('NEW HEIGHT', height)
 			onChangeHeight(height)
 		})
 		resizeObserver.observe(inputContainer);

@@ -74,7 +74,7 @@ export type StartApplyingOpts = {
 export type AddCtrlKOpts = {
 	startLine: number,
 	endLine: number,
-	uri: URI,
+	editor: ICodeEditor,
 }
 
 
@@ -309,8 +309,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	private _addCtrlKZoneInput = async (editorId: string, ctrlKZone: CtrlKZone) => {
-
+	private _addCtrlKZoneInput = async (ctrlKZone: CtrlKZone) => {
+		const { editorId } = ctrlKZone
 		const editor = this._editorService.listCodeEditors().find(e => e.getId() === editorId)
 		if (!editor) {
 			console.error('editor not found')
@@ -390,7 +390,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const diffArea = this.diffAreaOfId[diffareaid]
 			if (diffArea.type !== 'CtrlKZone') continue
 			if (!diffArea._mountInfo) {
-				diffArea._mountInfo = await this._addCtrlKZoneInput(diffArea.editorId, diffArea)
+				diffArea._mountInfo = await this._addCtrlKZoneInput(diffArea)
 			}
 			else {
 				diffArea._mountInfo.refresh()
@@ -522,11 +522,13 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	private _addToHistory(uri: URI) {
 
 		const getCurrentSnapshot = (): HistorySnapshot => {
-			const diffAreaOfId = this.diffAreaOfId
-
 			const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
-			for (const diffareaid in diffAreaOfId) {
-				const diffArea = diffAreaOfId[diffareaid]
+
+			for (const diffareaid in this.diffAreaOfId) {
+				const diffArea = this.diffAreaOfId[diffareaid]
+
+				if (diffArea._URI.fsPath !== uri.fsPath) continue
+
 				snapshottedDiffAreaOfId[diffareaid] = structuredClone( // a structured clone must be on a JSON object
 					Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
 				) as DiffAreaSnapshot
@@ -539,7 +541,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 
 		const restoreDiffAreas = (snapshot: HistorySnapshot) => {
-			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = structuredClone(snapshot) // don't want to destroy the snapshot
 
 			// for each diffarea in this uri, stop streaming if currently streaming
 			for (const diffareaid in this.diffAreaOfId) {
@@ -550,6 +551,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 			// delete all diffareas on this uri (clearing their styles)
 			this._deleteAllDiffAreas(uri)
+			this.diffAreasOfURI[uri.fsPath].clear()
+
+			console.log("RESTORING FOR", uri)
+			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = structuredClone(snapshot) // don't want to destroy the snapshot
 
 			// restore diffAreaOfId and diffAreasOfModelId
 			for (const diffareaid in snapshottedDiffAreaOfId) {
@@ -857,10 +862,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// called first, then call startApplying
-	public addCtrlKZone({ startLine, endLine, uri }: AddCtrlKOpts) {
+	public addCtrlKZone({ startLine, endLine, editor }: AddCtrlKOpts) {
 
-		const editor = this._editorService.getActiveCodeEditor()
-		if (!editor) return
+		const uri = editor.getModel()?.uri
+		if (!uri) return
 
 		// check if there's overlap with any other ctrlKZones and if so, focus them
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {

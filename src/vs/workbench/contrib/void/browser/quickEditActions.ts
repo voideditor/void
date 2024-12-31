@@ -54,12 +54,11 @@ registerAction2(class extends Action2 {
 
 
 		const { startLineNumber: startLine, endLineNumber: endLine } = selection
-		const uri = model.uri
 
 		// deselect - clear selection
 		editor.setSelection({ startLineNumber: startLine, endLineNumber: startLine, startColumn: 1, endColumn: 1 })
 
 		const inlineDiffsService = accessor.get(IInlineDiffsService)
-		inlineDiffsService.addCtrlKZone({ startLine, endLine, uri })
+		inlineDiffsService.addCtrlKZone({ startLine, endLine, editor })
 	}
 });

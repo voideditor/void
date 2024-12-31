@@ -15,6 +15,7 @@ type AddItemInputs = { uri: URI; fn: (editor: ICodeEditor) => (() => void); }
 
 export interface IConsistentItemService {
 	readonly _serviceBrand: undefined;
+	getEditorsOnURI(uri: URI): ICodeEditor[];
 	addConsistentItemToURI(inputs: AddItemInputs): string;
 	removeConsistentItemFromURI(consistentItemId: string): void;
 }
@@ -127,6 +128,10 @@ export class ConsistentItemService extends Disposable {
 		delete this.consistentItemIdOfItemId[itemId]
 	}
 
+	getEditorsOnURI(uri: URI) {
+		const editors = this._editorService.listCodeEditors().filter(editor => editor.getModel()?.uri.fsPath === uri.fsPath)
+		return editors
+	}
 
 	consistentItemIdPool = 0
 	addConsistentItemToURI({ uri, fn }: AddItemInputs) {
@@ -138,7 +143,7 @@ export class ConsistentItemService extends Disposable {
 
 		this.infoOfConsistentItemId[consistentItemId] = { fn, uri }
 
-		const editors = this._editorService.listCodeEditors().filter(editor => editor.getModel()?.uri.fsPath === uri.fsPath)
+		const editors = this.getEditorsOnURI(uri)
 		for (const editor of editors)
 			this._putItemOnEditor(editor, consistentItemId)
 
@@ -152,7 +157,7 @@ export class ConsistentItemService extends Disposable {
 			return
 
 		const { uri } = this.infoOfConsistentItemId[consistentItemId]
-		const editors = this._editorService.listCodeEditors().filter(e => e.getModel()?.uri.fsPath === uri.fsPath)
+		const editors = this.getEditorsOnURI(uri)
 
 		for (const editor of editors) {
 			for (const itemId of this.itemIdsOfEditorId[editor.getId()] ?? []) {

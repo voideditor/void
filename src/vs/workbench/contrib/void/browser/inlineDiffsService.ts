@@ -98,7 +98,6 @@ type CommonZoneProps = {
 	_URI: URI; // typically we get the URI from model
 
 	_removeStylesFns: Set<Function>; // these don't remove diffs or this diffArea, only their styles
-
 }
 
 type CtrlKZone = {
@@ -106,7 +105,8 @@ type CtrlKZone = {
 	originalCode?: undefined;
 	userText: string | null;
 
-	_zoneAlreadyMounted: boolean; // we only want the input zone to mount once
+	_zoneId: string | null;
+	_zone: IViewZone | null;
 	_inputBox: InputBox | null;
 
 } & CommonZoneProps
@@ -125,6 +125,7 @@ type DiffZone = {
 		streamRequestIdRef?: undefined;
 		line: null;
 	};
+	editorId?: undefined;
 	userText?: undefined;
 } & CommonZoneProps
 
@@ -200,9 +201,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			this._register(
 				model.onDidChangeContent(e => {
 					// it's as if we just called _write, now all we need to do is realign and refresh
-					if (this._weAreWriting) return
+					// if (this._weAreWriting) return
 					const uri = model.uri
-					for (const change of e.changes) { this._realignAllDiffAreasLines(uri, change.text, change.range) }
+					for (const change of e.changes) {
+						this._realignAllDiffAreasLines(uri, change.text, change.range)
+					}
 					this._refreshStylesAndDiffsInURI(uri)
 
 					// // TODO diffArea should be removed if we just discovered it has no more diffs in it
@@ -254,21 +257,28 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	private _addDiffZoneStylesToURI = (uri: URI) => {
+	private _addDiffAreaStylesToURI = (uri: URI) => {
 		const model = this._getModel(uri)
 
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
 			const diffArea = this.diffAreaOfId[diffareaid]
 
-			if (diffArea.type !== 'DiffZone') continue
-			// add sweep styles to the diffZone
-			if (diffArea._streamState.isStreaming) {
-				// sweepLine ... sweepLine
-				const fn1 = this._addLineDecoration(model, diffArea._streamState.line, diffArea._streamState.line, 'void-sweepIdxBG')
-				// sweepLine+1 ... endLine
-				const fn2 = this._addLineDecoration(model, diffArea._streamState.line + 1, diffArea.endLine, 'void-sweepBG')
-				diffArea._removeStylesFns.add(() => { fn1?.(); fn2?.(); })
+			if (diffArea.type === 'DiffZone') {
+				// add sweep styles to the diffZone
+				if (diffArea._streamState.isStreaming) {
+					// sweepLine ... sweepLine
+					const fn1 = this._addLineDecoration(model, diffArea._streamState.line, diffArea._streamState.line, 'void-sweepIdxBG')
+					// sweepLine+1 ... endLine
+					const fn2 = this._addLineDecoration(model, diffArea._streamState.line + 1, diffArea.endLine, 'void-sweepBG')
+					diffArea._removeStylesFns.add(() => { fn1?.(); fn2?.(); })
 
+				}
+			}
+
+			else if (diffArea.type === 'CtrlKZone') {
+				// highlight zone's text
+				const fn = this._addLineDecoration(model, diffArea.startLine, diffArea.endLine, 'void-highlightBG')
+				diffArea._removeStylesFns.add(() => fn?.());
 			}
 		}
 	}
@@ -291,55 +301,60 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	private _addCtrlKZoneInputStyles = (ctrlKZone: CtrlKZone) => {
-		const { _URI: uri } = ctrlKZone
-		const consistentZoneId = this._zoneStyleService.addConsistentItemToURI({
-			uri,
-			fn: (editor) => {
-				const domNode = document.createElement('div');
-				domNode.style.zIndex = '1'
-				// domNode.style.display = 'hidden' // start hidden until mount and get computed size
+	private _addCtrlKZoneInput = (editor: ICodeEditor, ctrlKZone: CtrlKZone) => {
+		const domNode = document.createElement('div');
+		domNode.style.zIndex = '1'
+		// domNode.style.display = 'hidden' // start hidden until mount and get computed size
 
-				const viewZone: IViewZone = {
-					afterLineNumber: ctrlKZone.startLine - 1,
-					domNode: domNode,
-					heightInPx: 0,
-					suppressMouseDown: false,
-				};
+		const viewZone: IViewZone = {
+			afterLineNumber: ctrlKZone.startLine - 1,
+			domNode: domNode,
+			heightInPx: 0,
+			suppressMouseDown: false,
+		};
+		ctrlKZone._zone = viewZone
 
-				// mount zone
-				let zoneId: string | null = null
-				editor.changeViewZones(accessor => { zoneId = accessor.addZone(viewZone); })
-
-				// mount react
-				this._instantiationService.invokeFunction(accessor => {
-					const props: QuickEditPropsType = {
-						diffareaid: ctrlKZone.diffareaid,
-						onGetInputBox(inputBox) {
-							ctrlKZone._inputBox = inputBox
-							// __TODO__ not sure why this requries a timeout
-							setTimeout(() => inputBox.focus(), 0)
-						},
-						onChangeHeight(height) {
-							if (height === undefined) return
-							// domNode.style.display = 'block'
-							viewZone.heightInPx = height
-							editor.changeViewZones(accessor => { if (zoneId) { accessor.layoutZone(zoneId) } })
-						},
-						onUserUpdateText(text) { ctrlKZone.userText = text; },
-						initText: ctrlKZone.userText,
-					}
-					mountCtrlK(domNode, accessor, props)
-				})
-
-				return () => {
-					editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) });
-					domNode.remove();
-				}
-			},
+		// mount zone
+		editor.changeViewZones(accessor => {
+			ctrlKZone._zoneId = accessor.addZone(viewZone)
 		})
-		ctrlKZone._removeStylesFns.add(() => this._zoneStyleService.removeConsistentItemFromURI(consistentZoneId));
 
+		// mount react
+		this._instantiationService.invokeFunction(accessor => {
+			const props: QuickEditPropsType = {
+				diffareaid: ctrlKZone.diffareaid,
+				onGetInputBox(inputBox) {
+					ctrlKZone._inputBox = inputBox
+					// __TODO__ not sure why this requries a timeout
+					setTimeout(() => inputBox.focus(), 0)
+				},
+				onChangeHeight(height) {
+					if (height === undefined) return
+					// domNode.style.display = 'block'
+					viewZone.heightInPx = height
+					editor.changeViewZones(accessor => {
+						if (ctrlKZone._zoneId) {
+							// re-render with this new height
+							accessor.layoutZone(ctrlKZone._zoneId)
+						}
+					})
+				},
+				onUserUpdateText(text) { ctrlKZone.userText = text; },
+				initText: ctrlKZone.userText,
+			}
+			mountCtrlK(domNode, accessor, props)
+		})
+
+		// /// __TODO__ MOVE THIS!!!!!!!!!!!!!!!!!!
+		// return () => {
+		// 	editor.changeViewZones(accessor => {
+		// 		if (ctrlKZone._zoneId) {
+		// 			accessor.removeZone(ctrlKZone._zoneId)
+		// 			ctrlKZone._zoneId = null
+		// 		}
+		// 	});
+		// 	domNode.remove();
+		// }
 	}
 
 
@@ -459,7 +474,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		model.applyEdits([{ range, text }]) // applies edits without adding them to undo/redo stack
 		this._weAreWriting = false
 
-		this._realignAllDiffAreasLines(uri, text, range)
+		// triggers onDidChangeContent
 	}
 
 
@@ -488,7 +503,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = structuredClone(snapshot) // don't want to destroy the snapshot
 
 			// delete all current decorations (diffs, sweep styles) so we don't have any unwanted leftover decorations
-			this._clearAllDiffZoneEffects(uri)
+			this._clearAllEffects(uri)
 
 			// for each diffarea in this uri, stop streaming if currently streaming
 			for (const diffareaid in this.diffAreaOfId) {
@@ -522,7 +537,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						...snapshottedDiffArea as DiffAreaSnapshot<CtrlKZone>,
 						_URI: uri,
 						_removeStylesFns: new Set(),
-						_zoneAlreadyMounted: false,
+						_zoneId: null,
+						_zone: null,
 						_inputBox: null,
 					}
 				}
@@ -535,7 +551,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			this._writeText(uri, entireModelCode, { startColumn: 1, startLineNumber: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER })
 
 			// restore all the decorations
-			this._refreshStylesAndDiffsInURI(uri)
+			// this._refreshStylesAndDiffsInURI(uri)
 		}
 
 		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
@@ -571,26 +587,20 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 	}
 
-	private _deleteEffects(diffArea: DiffArea) {
+	private _clearAllDiffAreaEffects(diffArea: DiffArea) {
 		// clear diffZone effects (diffs)
 		if (diffArea.type === 'DiffZone')
 			this._deleteDiffs(diffArea)
 
 		diffArea._removeStylesFns.forEach(removeStyles => removeStyles())
-	}
-
-
-
-	private _clearAllDiffAreaEffects(diffArea: DiffArea) {
-		this._deleteEffects(diffArea)
 		diffArea._removeStylesFns.clear()
 	}
 
+
 	// clears all Diffs (and their styles) and all styles of DiffAreas
-	private _clearAllDiffZoneEffects(uri: URI) {
+	private _clearAllEffects(uri: URI) {
 		for (let diffareaid of this.diffAreasOfURI[uri.fsPath]) {
 			const diffArea = this.diffAreaOfId[diffareaid]
-			if (diffArea.type !== 'DiffZone') continue
 			this._clearAllDiffAreaEffects(diffArea)
 		}
 	}
@@ -650,54 +660,57 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// compute net number of newlines lines that were added/removed
 		const startLine = recentChange.startLineNumber
 		const endLine = recentChange.endLineNumber
-		const changeRangeHeight = endLine - startLine + 1
 
 		const newTextHeight = (text.match(/\n/g) || []).length + 1 // number of newlines is number of \n's + 1, e.g. "ab\ncd"
-
-		const deltaNewlines = newTextHeight - changeRangeHeight
 
 		// compute overlap with each diffArea and shrink/elongate each diffArea accordingly
 		for (const diffareaid of this.diffAreasOfURI[model.uri.fsPath] || []) {
 			const diffArea = this.diffAreaOfId[diffareaid]
 
-			// if the diffArea is above the range, it is not affected
-			if (startLine > diffArea.endLine + 1) {
-				console.log('A')
+			console.log('DA', diffArea.startLine, diffArea.endLine)
+			console.log('CHANGE', startLine, endLine)
+
+			// if the diffArea is entirely above the range, it is not affected
+			if (diffArea.endLine < startLine) {
+				// console.log('DA FULLY ABOVE (doing nothing)')
 				continue
 			}
-
-			// console.log('Changing DiffArea:', diffArea.startLine, diffArea.endLine)
-
+			// if a diffArea is entirely below the range, shift the diffArea up/down by the delta amount of newlines
+			else if (endLine < diffArea.startLine) {
+				// console.log('DA FULLY BELOW')
+				const changedRangeHeight = endLine - startLine + 1
+				const deltaNewlines = newTextHeight - changedRangeHeight
+				diffArea.startLine += deltaNewlines
+				diffArea.endLine += deltaNewlines
+			}
 			// if the diffArea fully contains the change, elongate it by the delta amount of newlines
-			if (startLine >= diffArea.startLine && endLine <= diffArea.endLine) {
+			else if (startLine >= diffArea.startLine && endLine <= diffArea.endLine) {
+				// console.log('DA FULLY CONTAINS CHANGE')
+				const changedRangeHeight = endLine - startLine + 1
+				const deltaNewlines = newTextHeight - changedRangeHeight
 				diffArea.endLine += deltaNewlines
 			}
 			// if the change fully contains the diffArea, make the diffArea have the same range as the change
 			else if (diffArea.startLine > startLine && diffArea.endLine < endLine) {
-
+				// console.log('CHANGE FULLY CONTAINS DA')
 				diffArea.startLine = startLine
 				diffArea.endLine = startLine + newTextHeight
-				console.log('B', diffArea.startLine, diffArea.endLine)
 			}
 			// if the change contains only the diffArea's top
-			else if (diffArea.startLine > startLine) {
-				// TODO fill in this case
-				console.log('C', diffArea.startLine, diffArea.endLine)
+			else if (startLine < diffArea.startLine && diffArea.startLine <= endLine) {
+				// console.log('TOP ONLY')
+				const numOverlappingLines = endLine - diffArea.startLine + 1
+				const numRemainingLinesInDA = diffArea.endLine - diffArea.startLine + 1 - numOverlappingLines
+				const newHeight = numRemainingLinesInDA + (newTextHeight - 1)
+				diffArea.startLine = startLine
+				diffArea.endLine = startLine + newHeight
 			}
 			// if the change contains only the diffArea's bottom
-			else if (diffArea.endLine < endLine) {
+			else if (startLine <= diffArea.endLine && diffArea.endLine < endLine) {
+				// console.log('BOTTOM ONLY')
 				const numOverlappingLines = diffArea.endLine - startLine + 1
-				diffArea.endLine += newTextHeight - numOverlappingLines // TODO double check this
-				console.log('D', diffArea.startLine, diffArea.endLine)
+				diffArea.endLine += newTextHeight - numOverlappingLines
 			}
-			// if a diffArea is below the last character of the change, shift the diffArea up/down by the delta amount of newlines
-			else if (diffArea.startLine > endLine) {
-				diffArea.startLine += deltaNewlines
-				diffArea.endLine += deltaNewlines
-				console.log('E', diffArea.startLine, diffArea.endLine)
-			}
-
-			// console.log('To:', diffArea.startLine, diffArea.endLine)
 		}
 
 	}
@@ -705,32 +718,35 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	private _refreshStylesAndDiffsInURI(uri: URI) {
 
-		// 1. clear DiffZone styles and Diffs
-		this._clearAllDiffZoneEffects(uri)
+		// 1. clear DiffArea styles and Diffs
+		this._clearAllEffects(uri)
 
-		// 2. style DiffZones (sweep, etc)
-		this._addDiffZoneStylesToURI(uri)
+		// 2. style DiffAreas (sweep, etc)
+		this._addDiffAreaStylesToURI(uri)
 
 		// 3. add Diffs
 		this._computeDiffsAndAddStylesToURI(uri)
 
-		// 4. style ctrl+K (add input zone and highlighting - only do this once)
+		// 4. refresh ctrlK zones
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
 			const diffArea = this.diffAreaOfId[diffareaid]
 			if (diffArea.type !== 'CtrlKZone') continue
 
-			const ctrlKZone: CtrlKZone = diffArea
-			const { _zoneAlreadyMounted: _alreadyMounted } = ctrlKZone
-			if (_alreadyMounted) continue
-			ctrlKZone._zoneAlreadyMounted = true
+			const editor = this._zoneStyleService.getEditorsOnURI(uri)[0]
+			if (!editor) continue
 
-			// add zone for input
-			this._addCtrlKZoneInputStyles(ctrlKZone)
+			if (!diffArea._zoneId) {
+				this._addCtrlKZoneInput(editor, diffArea)
+			}
+			else {
+				editor.changeViewZones(accessor => {
+					if (diffArea._zoneId && diffArea._zone) {
+						diffArea._zone.afterLineNumber = diffArea.startLine - 1
+						accessor.layoutZone(diffArea._zoneId)
+					}
+				})
 
-			// highlight
-			const model = this._getModel(uri)
-			const fn = this._addLineDecoration(model, ctrlKZone.startLine, ctrlKZone.endLine, 'void-highlightBG')
-			ctrlKZone._removeStylesFns.add(() => fn?.());
+			}
 
 		}
 	}
@@ -809,6 +825,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	// called first, then call startApplying
 	public addCtrlKZone({ startLine, endLine, uri }: AddCtrlKOpts) {
 
+		const editor = this._editorService.getActiveCodeEditor()
+		if (!editor) return
+
 		// check if there's overlap with any other ctrlKZones and if so, focus them
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
 			const diffArea = this.diffAreaOfId[diffareaid]
@@ -827,16 +846,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			type: 'CtrlKZone',
 			startLine: startLine,
 			endLine: endLine,
-			_zoneAlreadyMounted: false,
 			_URI: uri,
 			userText: null,
 			_removeStylesFns: new Set(),
+			_zoneId: null,
+			_zone: null,
 			_inputBox: null,
 		}
 		const ctrlKZone = this._addDiffArea(adding)
 
 		this._refreshStylesAndDiffsInURI(uri)
-
 
 		onFinishEdit()
 		return ctrlKZone.diffareaid
@@ -983,6 +1002,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				this._refreshStylesAndDiffsInURI(uri)
 			},
 			onFinalMessage: ({ fullText }) => {
+				// at the end, re-write whole thing to make sure no sync errors
 				this._writeText(uri, fullText,
 					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 				)

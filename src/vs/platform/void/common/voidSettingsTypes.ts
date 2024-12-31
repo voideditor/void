@@ -137,7 +137,7 @@ export const customSettingNamesOfProvider = (providerName: ProviderName) => {
 
 
 type CommonProviderSettings = {
-	enabled: boolean | undefined, // undefined initially
+	_enabled: boolean | undefined, // undefined initially, computed when user types in all fields
 	models: VoidModelInfo[],
 }
 
@@ -240,7 +240,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				undefined,
 		}
 	}
-	else if (settingName === 'enabled') {
+	else if (settingName === '_enabled') {
 		return {
 			title: '(never)',
 			placeholder: '(never)',
@@ -293,13 +293,13 @@ export const voidInitModelOptions = {
 // used when waiting and for a type reference
 export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
-		enabled: undefined,
+		_enabled: undefined,
 		...defaultCustomSettings,
 		...defaultProviderSettings.anthropic,
 		...voidInitModelOptions.anthropic,
 	},
 	openAI: {
-		enabled: undefined,
+		_enabled: undefined,
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
@@ -308,31 +308,31 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.gemini,
 		...voidInitModelOptions.gemini,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 	groq: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.groq,
 		...voidInitModelOptions.groq,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 	ollama: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.ollama,
 		...voidInitModelOptions.ollama,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 	openRouter: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openRouter,
 		...voidInitModelOptions.openRouter,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 	openAICompatible: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAICompatible,
 		...voidInitModelOptions.openAICompatible,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 }
 

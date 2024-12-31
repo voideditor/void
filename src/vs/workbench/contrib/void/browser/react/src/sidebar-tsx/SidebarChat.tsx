@@ -26,7 +26,7 @@ import { ILLMMessageService } from '../../../../../../../platform/void/common/ll
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 
 
-const IconX = ({ size, className = '' }: { size: number, className?: string }) => {
+const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
 	return (
 		<svg
 			xmlns='http://www.w3.org/2000/svg'
@@ -34,8 +34,9 @@ const IconX = ({ size, className = '' }: { size: number, className?: string }) =
 			height={size}
 			viewBox='0 0 24 24'
 			fill='none'
-			stroke='black'
+			stroke='currentColor'
 			className={className}
+			{...props}
 		>
 			<path
 				strokeLinecap='round'
@@ -94,23 +95,24 @@ export const IconWarning = ({ size, className = '' }: { size: number, className?
 			stroke="currentColor"
 			fill="currentColor"
 			strokeWidth="0"
-			viewBox="0 0 24 24"
+			viewBox="0 0 16 16"
 			width={size}
 			height={size}
 			xmlns="http://www.w3.org/2000/svg"
 		>
-			{/* Warning triangle */}
-			<path d="M12 3L2 21h20L12 3zm0 3.3L19.3 19H4.7L12 6.3z" />
-
-			{/* Exclamation mark */}
-			<rect x="11" y="10" width="2" height="6" />
-			<circle cx="12" cy="18" r="1" />
+			<path
+				fillRule="evenodd"
+				clipRule="evenodd"
+				d="M7.56 1h.88l6.54 12.26-.44.74H1.44L1 13.26 7.56 1zM8 2.28L2.28 13H13.7L8 2.28zM8.625 12v-1h-1.25v1h1.25zm-1.25-2V6h1.25v4h-1.25z"
+			/>
 		</svg>
 	);
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
+const DEFAULT_BUTTON_SIZE = 20;
 export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
+
 	return <button
 		type='submit'
 		className={`size-[20px] rounded-full shrink-0 grow-0 cursor-pointer
@@ -119,20 +121,20 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 		`}
 		{...props}
 	>
-		<IconArrowUp size={20} className="stroke-[2]" />
+		<IconArrowUp size={DEFAULT_BUTTON_SIZE} className="stroke-[2]" />
 	</button>
 }
 
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
 
 	return <button
-		className={`size-[20px] rounded-full bg-white cursor-pointer flex items-center justify-center
+		className={`rounded-full bg-white shrink-0 grow-0 cursor-pointer flex items-center justify-center
 			${className}
 		`}
 		type='button'
 		{...props}
 	>
-		<IconSquare size={10} className="stroke-[2]" />
+		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[6px]" />
 	</button>
 }
 
@@ -211,7 +213,7 @@ export const SelectedFiles = (
 	return (
 		!!selections && selections.length !== 0 && (
 			<div
-				className='flex flex-wrap gap-4 p-2 text-left'
+				className='flex flex-wrap gap-2 text-left'
 			>
 				{selections.map((selection, i) => {
 
@@ -224,13 +226,14 @@ export const SelectedFiles = (
 							{/* selection summary */}
 							<div
 								// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
-								className={`grid grid-rows-2 gap-1 relative p-1
+								className={`flex items-center gap-1 relative
+									rounded-md p-1
+									w-fit h-fit
 									select-none
-									bg-vscode-editor-bg hover:brightness-90
-									border border-vscode-button-border rounded-md
-									text-vscode-commandcenter-inactive-fg
-									w-fit h-fit min-w-[81px] p-1
-							`}
+									bg-vscode-editor-bg hover:brightness-95
+									border border-vscode-commandcenter-border rounded-xs
+									text-xs text-vscode-editor-fg text-nowrap
+								`}
 								onClick={() => {
 									setSelectionIsOpened(s => {
 										const newS = [...s]
@@ -239,18 +242,37 @@ export const SelectedFiles = (
 									});
 								}}
 							>
-								<span className='truncate'>
+								<span className=''>
 									{/* file name */}
 									{getBasename(selection.fileURI.fsPath)}
 									{/* selection range */}
 									{selection.selectionStr !== null ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
 								</span>
 
-								{/* type of selection */}
-								<span className='truncate'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span>
-
 								{/* X button */}
-								{type === 'staging' && // hoveredIdx === i
+								{type === 'staging' &&
+									<span
+										className='
+											cursor-pointer
+											bg-vscode-editorwidget-bg hover:bg-vscode-toolbar-hover-bg
+											rounded-md
+											z-1
+										'
+										onClick={(e) => {
+											e.stopPropagation();
+											if (type !== 'staging') return;
+											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
+											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
+										}}
+									>
+										<IconX size={16} className="p-[2px] stroke-[3] text-vscode-toolbar-foreground" />
+									</span>
+								}
+
+								{/* type of selection */}
+								{/* <span className='truncate'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span> */}
+								{/* X button */}
+								{/* {type === 'staging' && // hoveredIdx === i
 									<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-input-border z-1'
 										onClick={(e) => {
 											e.stopPropagation();
@@ -261,11 +283,12 @@ export const SelectedFiles = (
 									>
 										<IconX size={16} className="p-[2px] stroke-[3]" />
 									</span>
-								}
+								} */}
+
 							</div>
 							{/* selection text */}
 							{showSelectionText &&
-								<div className='w-full'>
+								<div className='w-full p-1 rounded-sm border-vscode-editor-border bg-vscode-sidebar-bg'>
 									<BlockCode text={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
 								</div>
 							}
@@ -482,7 +505,7 @@ export const SidebarChat = () => {
 
 		{/* input box */}
 		<div // this div is used to position the input box properly
-			className={`right-0 left-0 m-2 z-[999] ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
+			className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
 		>
 			<form
 				ref={(ref) => { if (ref) { setFormHeight(ref.clientHeight); } }}
@@ -538,7 +561,13 @@ export const SidebarChat = () => {
 						//     .split(' ')
 						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`)
 						//     .join(' ');
-						`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_textarea]:!void-min-h-[81px] @@[&_textarea]:!void-max-h-[500px] @@[&_div.monaco-inputbox]:!void-border-none @@[&_div.monaco-inputbox]:!void-outline-none`
+						`@@[&_textarea]:!void-bg-transparent
+						@@[&_textarea]:!void-outline-none
+						@@[&_textarea]:!void-text-vscode-input-fg
+						@@[&_textarea]:!void-min-h-[81px]
+						@@[&_textarea]:!void-max-h-[500px]
+						@@[&_div.monaco-inputbox]:!void-border-none
+						@@[&_div.monaco-inputbox]:!void-outline-none`
 					}
 				>
 
@@ -556,7 +585,10 @@ export const SidebarChat = () => {
 					className='flex flex-row justify-between items-end gap-1'
 				>
 					{/* submit options */}
-					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none'>
+					<div className='max-w-[150px]
+						@@[&_select]:!void-border-none
+						@@[&_select]:!void-outline-none'
+					>
 						<ModelDropdown featureName='Ctrl+L' />
 					</div>
 

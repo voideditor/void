@@ -9,7 +9,7 @@ import { useSettingsState, useRefreshModelState, useAccessor } from '../util/ser
 import { VoidSelectBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
-
+import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
 
 const ModelSelectBox = ({ featureName }: { featureName: FeatureName }) => {
 	const accessor = useAccessor()
@@ -44,12 +44,28 @@ const ModelSelectBox = ({ featureName }: { featureName: FeatureName }) => {
 
 const DummySelectBox = () => {
 
-	return <div>
+	const accessor = useAccessor()
+	const comandService = accessor.get('ICommandService')
+
+	const openSettings = () => {
+		comandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID);
+	};
+
+	return <div
+		className={`
+			flex items-center
+			flex-nowrap text-ellipsis
+			text-vscode-charts-yellow
+			hover:brightness-90 transition-all duration-200
+			cursor-pointer
+		`}
+		onClick={openSettings}
+	>
 		<IconWarning
-			size={24}
-			className='text-orange-900'
+			size={20}
+			className='mr-1 brightness-90'
 		/>
-		<span className='text-orange-900'>Add a model</span>
+		<span>Model required</span>
 	</div>
 	// return <VoidSelectBox
 	// 	options={[{ text: 'Please add a model!', value: null }]}

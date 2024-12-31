@@ -1,12 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidCheckBox, VoidInputBox, VoidSelectBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check } from 'lucide-react'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 
+const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
+
+	return <div className='flex items-center py-1 px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-200/10'>
+		<button className='flex items-center' disabled={disabled} onClick={onClick}>
+			{icon}
+		</button>
+		<span className='opacity-50'>
+			{text}
+		</span>
+	</div>
+}
 
 
 // models
@@ -34,14 +45,12 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 	const isRefreshing = state === 'refreshing'
 
 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
-	return <div className='flex items-center py-1 px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-200/10'>
-		<button className='flex items-center' disabled={isRefreshing || justFinished} onClick={() => { refreshModelService.refreshModels(providerName) }}>
-			{isRefreshing ? <Loader2 className='size-3 animate-spin' /> : (justFinished ? <Check className='stroke-green-500 size-3' /> : <RefreshCw className='size-3' />)}
-		</button>
-		<span className='opacity-50'>{
-			justFinished ? `${providerTitle} Models are up-to-date!` : `Refresh Models List for ${providerTitle}.`
-		}</span>
-	</div>
+	return <SubtleButton
+		onClick={() => { refreshModelService.refreshModels(providerName) }}
+		text={justFinished ? `${providerTitle} Models are up-to-date!` : `Refresh Models List for ${providerTitle}.`}
+		icon={isRefreshing ? <Loader2 className='size-3 animate-spin' /> : (justFinished ? <Check className='stroke-green-500 size-3' /> : <RefreshCw className='size-3' />)}
+		disabled={isRefreshing || justFinished}
+	/>
 }
 
 const RefreshableModels = () => {
@@ -49,7 +58,7 @@ const RefreshableModels = () => {
 
 
 	const buttons = refreshableProviderNames.map(providerName => {
-		if (!settingsState.settingsOfProvider[providerName].enabled) return null
+		if (!settingsState.settingsOfProvider[providerName]._enabled) return null
 		return <RefreshModelButton key={providerName} providerName={providerName} />
 	})
 
@@ -162,7 +171,7 @@ export const ModelDump = () => {
 	for (let providerName of providerNames) {
 		const providerSettings = settingsState.settingsOfProvider[providerName]
 		// if (!providerSettings.enabled) continue
-		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName, providerEnabled: !!providerSettings.enabled })))
+		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName, providerEnabled: !!providerSettings._enabled })))
 	}
 
 	// sort by hidden
@@ -220,7 +229,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 	return <ErrorBoundary>
 		<div className='my-1'>
 			<VoidInputBox
-				placeholder={`Enter your ${providerTitle} ${settingTitle} (${placeholder}).`}
+				placeholder={`${providerTitle} ${settingTitle} (${placeholder}).`}
 				onChangeText={useCallback((newVal) => {
 					if (weChangedTextRef) return
 					voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
@@ -231,10 +240,27 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 					const syncInstance = () => {
 						const settingsAtProvider = voidSettingsService.state.settingsOfProvider[providerName];
 						const stateVal = settingsAtProvider[settingName as SettingName]
+
 						// console.log('SYNCING TO', providerName, settingName, stateVal)
 						weChangedTextRef = true
 						instance.value = stateVal as string
 						weChangedTextRef = false
+
+						const isEverySettingPresent = Object.keys(defaultProviderSettings[providerName]).every(key => {
+							return !!settingsAtProvider[key as keyof typeof settingsAtProvider]
+						})
+
+						const shouldEnable = isEverySettingPresent && !settingsAtProvider._enabled // enable if all settings are present and not already enabled
+						const shouldDisable = !isEverySettingPresent && settingsAtProvider._enabled
+
+						if (shouldEnable) {
+							voidSettingsService.setSettingOfProvider(providerName, '_enabled', true)
+						}
+
+						if (shouldDisable) {
+							voidSettingsService.setSettingOfProvider(providerName, '_enabled', false)
+						}
+
 					}
 					syncInstance()
 					const disposable = voidSettingsService.onDidChangeState(syncInstance)
@@ -251,21 +277,22 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 }
 
 const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
-	const voidSettingsState = useSettingsState()
-	const accessor = useAccessor()
-	const voidSettingsService = accessor.get('IVoidSettingsService')
+	// const voidSettingsState = useSettingsState()
+	// const accessor = useAccessor()
+	// const voidSettingsService = accessor.get('IVoidSettingsService')
 
-	const { enabled } = voidSettingsState.settingsOfProvider[providerName]
+	// const { enabled } = voidSettingsState.settingsOfProvider[providerName]
 	const settingNames = customSettingNamesOfProvider(providerName)
 
 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
 
 	return <div className='my-4'>
+
 		<div className='flex items-center w-full gap-4'>
 			<h3 className='text-xl truncate'>{providerTitle}</h3>
 
 			{/* enable provider switch */}
-			<VoidSwitch
+			{/* <VoidSwitch
 				value={!!enabled}
 				onChange={
 					useCallback(() => {
@@ -273,7 +300,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 						voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabledRef)
 					}, [voidSettingsService, providerName])}
 				size='sm+'
-			/>
+			/> */}
 		</div>
 
 		<div className='px-0'>
@@ -282,7 +309,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
 			})}
 		</div>
-	</div>
+	</div >
 }
 
 
@@ -294,29 +321,49 @@ export const VoidProviderSettings = () => {
 	</>
 }
 
+// export const VoidFeatureFlagSettings = () => {
+// 	const accessor = useAccessor()
+// 	const voidSettingsService = accessor.get('IVoidSettingsService')
 
+// 	const voidSettingsState = useSettingsState()
+
+// 	return <>
+// 		{featureFlagNames.map((flagName) => {
+// 			const value = voidSettingsState.featureFlagSettings[flagName]
+// 			const { description } = displayInfoOfFeatureFlag(flagName)
+// 			return <div key={flagName} className='hover:bg-black/10 hover:dark:bg-gray-200/10 rounded-sm overflow-hidden py-1 px-3 my-1'>
+// 				<div className='flex items-center'>
+// 					<VoidCheckBox
+// 						label=''
+// 						value={value}
+// 						onClick={() => { voidSettingsService.setFeatureFlag(flagName, !value) }}
+// 					/>
+// 					<h4 className='text-sm'>{description}</h4>
+// 				</div>
+// 			</div>
+// 		})}
+// 	</>
+// }
 export const VoidFeatureFlagSettings = () => {
+
+
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 
 	const voidSettingsState = useSettingsState()
 
-	return <>
-		{featureFlagNames.map((flagName) => {
-			const value = voidSettingsState.featureFlagSettings[flagName]
-			const { description } = displayInfoOfFeatureFlag(flagName)
-			return <div key={flagName} className='hover:bg-black/10 hover:dark:bg-gray-200/10 rounded-sm overflow-hidden py-1 px-3 my-1'>
-				<div className='flex items-center'>
-					<VoidCheckBox
-						label=''
-						value={value}
-						onClick={() => { voidSettingsService.setFeatureFlag(flagName, !value) }}
-					/>
-					<h4 className='text-sm'>{description}</h4>
-				</div>
-			</div>
-		})}
-	</>
+	return featureFlagNames.map((flagName) => {
+
+		const enabled = voidSettingsState.featureFlagSettings[flagName]
+		const { description } = displayInfoOfFeatureFlag(flagName)
+
+		return <SubtleButton
+			onClick={() => { voidSettingsService.setFeatureFlag(flagName, !enabled) }}
+			text={description}
+			icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
+			disabled={false}
+		/>
+	})
 }
 
 
@@ -359,20 +406,21 @@ export const Settings = () => {
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
 							<h2 className={`text-3xl mb-2`}>Providers</h2>
 							<ErrorBoundary>
+								<VoidFeatureFlagSettings />
 								<VoidProviderSettings />
 							</ErrorBoundary>
 
 							<h2 className={`text-3xl mb-2 mt-4`}>Models</h2>
 							<ErrorBoundary>
+								<RefreshableModels />
 								<ModelDump />
 								<AddModelMenuFull />
-								<RefreshableModels />
 							</ErrorBoundary>
 						</div>
 
 						<div className={`${tab !== 'features' ? 'hidden' : ''}`}>
 							<h2 className={`text-3xl mb-2`} onClick={() => { setTab('features') }}>Features</h2>
-							<VoidFeatureFlagSettings />
+							{/* <VoidFeatureFlagSettings /> */}
 						</div>
 
 					</div>

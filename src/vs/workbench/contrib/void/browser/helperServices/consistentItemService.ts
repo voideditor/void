@@ -7,8 +7,7 @@ import { InstantiationType, registerSingleton } from '../../../../../platform/in
 import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
 
 
-// lets you add a "consistent" item to a Model (aka URI),
-// instead of just to a single editor
+// lets you add a "consistent" item to a Model (aka URI), instead of just to a single editor
 
 
 type AddItemInputs = { uri: URI; fn: (editor: ICodeEditor) => (() => void); }

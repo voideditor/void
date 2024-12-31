@@ -1215,14 +1215,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		//  C
 		if (diff.type === 'deletion') {
 			// if startLine is out of bounds (deleted lines past the diffarea), applyEdit will do a weird rounding thing, to account for that we apply the edit the line before
-			// if (diff.startLine - 1 === diffArea.endLine) {
-			// 	writeText = '\n' + diff.originalCode
-			// 	toRange = { startLineNumber: diff.startLine - 1, startColumn: Number.MAX_SAFE_INTEGER, endLineNumber: diff.startLine - 1, endColumn: Number.MAX_SAFE_INTEGER }
-			// }
-			// else {
-			writeText = diff.originalCode + '\n'
-			toRange = { startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.startLine, endColumn: 1 }
-			// }
+			if (diff.startLine - 1 === diffArea.endLine) {
+				writeText = '\n' + diff.originalCode
+				toRange = { startLineNumber: diff.startLine - 1, startColumn: Number.MAX_SAFE_INTEGER, endLineNumber: diff.startLine - 1, endColumn: Number.MAX_SAFE_INTEGER }
+			}
+			else {
+				writeText = diff.originalCode + '\n'
+				toRange = { startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.startLine, endColumn: 1 }
+			}
 		}
 		// if it was an insertion, need to delete all the lines
 		// (this image applies to writeText and toRange, not newOriginalCode)

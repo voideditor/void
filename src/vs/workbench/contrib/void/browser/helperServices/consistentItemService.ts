@@ -172,8 +172,6 @@ export class ConsistentItemService extends Disposable {
 
 	}
 
-
-
 }
 
 registerSingleton(IConsistentItemService, ConsistentItemService, InstantiationType.Eager);

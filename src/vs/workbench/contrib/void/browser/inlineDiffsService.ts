@@ -105,9 +105,13 @@ type CtrlKZone = {
 	originalCode?: undefined;
 	userText: string | null;
 
-	_zoneId: string | null;
-	_zone: IViewZone | null;
-	_inputBox: InputBox | null;
+	editorId: string; // the editor the input lives on
+
+	_mountInfo: null | {
+		inputBox: InputBox; // the input box that lives in the zone
+		dispose: () => void;
+		refresh: () => void;
+	}
 
 } & CommonZoneProps
 
@@ -141,6 +145,7 @@ const diffAreaSnapshotKeys = [
 	'startLine',
 	'endLine',
 	'userText',
+	'editorId',
 ] as const satisfies (keyof DiffArea)[]
 
 type DiffAreaSnapshot<DiffAreaType extends DiffArea = DiffArea> = Pick<DiffAreaType, typeof diffAreaSnapshotKeys[number]>
@@ -186,7 +191,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
 		@ILanguageService private readonly _langService: ILanguageService,
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
-		@IConsistentItemService private readonly _zoneStyleService: IConsistentItemService,
+		@IConsistentItemService private readonly _consistentItemService: IConsistentItemService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 	) {
 		super();
@@ -201,11 +206,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			this._register(
 				model.onDidChangeContent(e => {
 					// it's as if we just called _write, now all we need to do is realign and refresh
-					// if (this._weAreWriting) return
 					const uri = model.uri
-					for (const change of e.changes) {
-						this._realignAllDiffAreasLines(uri, change.text, change.range)
+
+					if (!this.doNotResize) {
+						for (const change of e.changes) {
+							this._realignAllDiffAreasLines(uri, change.text, change.range)
+						}
 					}
+
 					this._refreshStylesAndDiffsInURI(uri)
 
 					// // TODO diffArea should be removed if we just discovered it has no more diffs in it
@@ -301,41 +309,52 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	private _addCtrlKZoneInput = (editor: ICodeEditor, ctrlKZone: CtrlKZone) => {
+	private _addCtrlKZoneInput = async (editorId: string, ctrlKZone: CtrlKZone) => {
+
+		const editor = this._editorService.listCodeEditors().find(e => e.getId() === editorId)
+		if (!editor) {
+			console.error('editor not found')
+			return null
+		}
+
+		console.log('ADDING TO ', editorId)
+
 		const domNode = document.createElement('div');
 		domNode.style.zIndex = '1'
-		// domNode.style.display = 'hidden' // start hidden until mount and get computed size
-
 		const viewZone: IViewZone = {
 			afterLineNumber: ctrlKZone.startLine - 1,
 			domNode: domNode,
 			heightInPx: 0,
 			suppressMouseDown: false,
 		};
-		ctrlKZone._zone = viewZone
+
 
 		// mount zone
+		let zoneId: string | null = null
 		editor.changeViewZones(accessor => {
-			ctrlKZone._zoneId = accessor.addZone(viewZone)
+			zoneId = accessor.addZone(viewZone)
 		})
+
+
+		let res_: (inputBox: InputBox) => void
+		const inputBoxPromise: Promise<InputBox> = new Promise((res, rej) => { res_ = res })
 
 		// mount react
 		this._instantiationService.invokeFunction(accessor => {
 			const props: QuickEditPropsType = {
 				diffareaid: ctrlKZone.diffareaid,
 				onGetInputBox(inputBox) {
-					ctrlKZone._inputBox = inputBox
-					// __TODO__ not sure why this requries a timeout
+					res_(inputBox)
+					// not sure why this requries a timeout
 					setTimeout(() => inputBox.focus(), 0)
 				},
 				onChangeHeight(height) {
 					if (height === undefined) return
-					// domNode.style.display = 'block'
 					viewZone.heightInPx = height
+					// re-render with this new height
 					editor.changeViewZones(accessor => {
-						if (ctrlKZone._zoneId) {
-							// re-render with this new height
-							accessor.layoutZone(ctrlKZone._zoneId)
+						if (zoneId) {
+							accessor.layoutZone(zoneId)
 						}
 					})
 				},
@@ -345,16 +364,39 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			mountCtrlK(domNode, accessor, props)
 		})
 
-		// /// __TODO__ MOVE THIS!!!!!!!!!!!!!!!!!!
-		// return () => {
-		// 	editor.changeViewZones(accessor => {
-		// 		if (ctrlKZone._zoneId) {
-		// 			accessor.removeZone(ctrlKZone._zoneId)
-		// 			ctrlKZone._zoneId = null
-		// 		}
-		// 	});
-		// 	domNode.remove();
-		// }
+		const inputBox = await inputBoxPromise
+
+		return {
+			inputBox,
+			refresh: () => editor.changeViewZones(accessor => {
+				if (zoneId && viewZone) {
+					viewZone.afterLineNumber = ctrlKZone.startLine - 1
+					accessor.layoutZone(zoneId)
+				}
+			}),
+			dispose: () => {
+				editor.changeViewZones(accessor => {
+					if (zoneId)
+						accessor.removeZone(zoneId)
+				})
+			},
+		}
+	}
+
+
+
+	private _refreshCtrlKInputs = async (uri: URI) => {
+		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (diffArea.type !== 'CtrlKZone') continue
+			if (!diffArea._mountInfo) {
+				diffArea._mountInfo = await this._addCtrlKZoneInput(diffArea.editorId, diffArea)
+			}
+			else {
+				diffArea._mountInfo.refresh()
+			}
+
+		}
 	}
 
 
@@ -377,7 +419,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// red in a view zone
 		if (type !== 'insertion') {
-			const consistentZoneId = this._zoneStyleService.addConsistentItemToURI({
+			const consistentZoneId = this._consistentItemService.addConsistentItemToURI({
 				uri,
 				fn: (editor) => {
 
@@ -410,16 +452,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				},
 			})
 
-			console.log('added (Z)', consistentZoneId)
-
-			disposeInThisEditorFns.push(() => { console.log('removing (Z)', consistentZoneId); this._zoneStyleService.removeConsistentItemFromURI(consistentZoneId) })
+			disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(consistentZoneId) })
 
 		}
 
 
 
 		// Accept | Reject widget
-		const consistentWidgetId = this._zoneStyleService.addConsistentItemToURI({
+		const consistentWidgetId = this._consistentItemService.addConsistentItemToURI({
 			uri,
 			fn: (editor) => {
 				const buttonsWidget = new AcceptRejectWidget({
@@ -432,8 +472,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				return () => { buttonsWidget.dispose() }
 			}
 		})
-		console.log('added (O)', consistentWidgetId)
-		disposeInThisEditorFns.push(() => { console.log('removing (O)', consistentWidgetId); this._zoneStyleService.removeConsistentItemFromURI(consistentWidgetId) })
+		disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(consistentWidgetId) })
 
 
 
@@ -465,14 +504,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		return uri
 	}
 
-	_weAreWriting = false
-	private _writeText(uri: URI, text: string, range: IRange) {
+	doNotResize = false
+	private _writeText(uri: URI, text: string, range: IRange, doNotResizeDiffAreas?: boolean) {
 		const model = this._getModel(uri)
 		if (!model) return
 
-		this._weAreWriting = true
+		this.doNotResize = doNotResizeDiffAreas ?? false
 		model.applyEdits([{ range, text }]) // applies edits without adding them to undo/redo stack
-		this._weAreWriting = false
+		this.doNotResize = false
 
 		// triggers onDidChangeContent
 	}
@@ -502,9 +541,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const restoreDiffAreas = (snapshot: HistorySnapshot) => {
 			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = structuredClone(snapshot) // don't want to destroy the snapshot
 
-			// delete all current decorations (diffs, sweep styles) so we don't have any unwanted leftover decorations
-			this._clearAllEffects(uri)
-
 			// for each diffarea in this uri, stop streaming if currently streaming
 			for (const diffareaid in this.diffAreaOfId) {
 				const diffArea = this.diffAreaOfId[diffareaid]
@@ -512,9 +548,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					this._stopIfStreaming(diffArea)
 			}
 
+			// delete all diffareas on this uri (clearing their styles)
+			this._deleteAllDiffAreas(uri)
+
 			// restore diffAreaOfId and diffAreasOfModelId
-			this.diffAreaOfId = {}
-			this.diffAreasOfURI[uri.fsPath].clear()
 			for (const diffareaid in snapshottedDiffAreaOfId) {
 
 				const snapshottedDiffArea = snapshottedDiffAreaOfId[diffareaid]
@@ -537,9 +574,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						...snapshottedDiffArea as DiffAreaSnapshot<CtrlKZone>,
 						_URI: uri,
 						_removeStylesFns: new Set(),
-						_zoneId: null,
-						_zone: null,
-						_inputBox: null,
+						_mountInfo: null,
 					}
 				}
 				this.diffAreasOfURI[uri.fsPath].add(diffareaid)
@@ -548,7 +583,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			// restore file content
 			const numLines = this._getNumLines(uri)
 			if (numLines === null) return
-			this._writeText(uri, entireModelCode, { startColumn: 1, startLineNumber: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER })
+			this._writeText(uri, entireModelCode,
+				{ startColumn: 1, startLineNumber: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
+				true
+			)
 
 			// restore all the decorations
 			// this._refreshStylesAndDiffsInURI(uri)
@@ -607,12 +645,30 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// delete all diffs, update diffAreaOfId, update diffAreasOfModelId
-	private _deleteDiffArea(diffArea: DiffArea) {
-		this._clearAllDiffAreaEffects(diffArea)
-		delete this.diffAreaOfId[diffArea.diffareaid]
-		this.diffAreasOfURI[diffArea._URI.fsPath].delete(diffArea.diffareaid.toString())
+	private _deleteDiffZone(diffZone: DiffZone) {
+		this._clearAllDiffAreaEffects(diffZone)
+		delete this.diffAreaOfId[diffZone.diffareaid]
+		this.diffAreasOfURI[diffZone._URI.fsPath].delete(diffZone.diffareaid.toString())
 	}
 
+	private _deleteCtrlKZone(ctrlKZone: CtrlKZone) {
+		this._clearAllEffects(ctrlKZone._URI)
+		ctrlKZone._mountInfo?.dispose()
+		delete this.diffAreaOfId[ctrlKZone.diffareaid]
+		this.diffAreasOfURI[ctrlKZone._URI.fsPath].delete(ctrlKZone.diffareaid.toString())
+	}
+
+
+	private _deleteAllDiffAreas(uri: URI) {
+		const diffAreas = this.diffAreasOfURI[uri.fsPath]
+		diffAreas.forEach(diffareaid => {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (diffArea.type === 'DiffZone')
+				this._deleteDiffZone(diffArea)
+			else if (diffArea.type === 'CtrlKZone')
+				this._deleteCtrlKZone(diffArea)
+		})
+	}
 
 
 
@@ -728,27 +784,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this._computeDiffsAndAddStylesToURI(uri)
 
 		// 4. refresh ctrlK zones
-		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
-			const diffArea = this.diffAreaOfId[diffareaid]
-			if (diffArea.type !== 'CtrlKZone') continue
-
-			const editor = this._zoneStyleService.getEditorsOnURI(uri)[0]
-			if (!editor) continue
-
-			if (!diffArea._zoneId) {
-				this._addCtrlKZoneInput(editor, diffArea)
-			}
-			else {
-				editor.changeViewZones(accessor => {
-					if (diffArea._zoneId && diffArea._zone) {
-						diffArea._zone.afterLineNumber = diffArea.startLine - 1
-						accessor.layoutZone(diffArea._zoneId)
-					}
-				})
-
-			}
-
-		}
+		this._refreshCtrlKInputs(uri)
 	}
 
 
@@ -762,56 +798,54 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const uri = diffZone._URI
 		const computedDiffs = findDiffs(diffZone.originalCode, llmText)
 
-		// if not streaming, just write the new code
+		// should always be in streaming state here
 		if (!diffZone._streamState.isStreaming) {
-			this._writeText(uri, llmText,
-				{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
-			)
+			console.error('DiffZone was not in streaming state on _writeDiffZoneLLMText')
+			return
 		}
+
 		// if streaming, use diffs to figure out where to write new code
+		// these are two different coordinate systems - new and old line number
+		let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
+		let originalCodeStartLine: number // get original[oldStartingPoint...]
+
+		const lastDiff = computedDiffs.pop()
+
+		if (!lastDiff) {
+			// if the writing is identical so far, display no changes
+			newFileEndLine = diffZone.startLine
+			originalCodeStartLine = 1
+		}
 		else {
-			// these are two different coordinate systems - new and old line number
-			let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
-			let originalCodeStartLine: number // get original[oldStartingPoint...]
-
-			const lastDiff = computedDiffs.pop()
-
-			if (!lastDiff) {
-				// if the writing is identical so far, display no changes
-				newFileEndLine = diffZone.startLine
-				originalCodeStartLine = 1
+			if (lastDiff.type === 'insertion') {
+				newFileEndLine = lastDiff.endLine
+				originalCodeStartLine = lastDiff.originalStartLine
+			}
+			else if (lastDiff.type === 'deletion') {
+				newFileEndLine = lastDiff.startLine
+				originalCodeStartLine = lastDiff.originalStartLine
+			}
+			else if (lastDiff.type === 'edit') {
+				newFileEndLine = lastDiff.endLine
+				originalCodeStartLine = lastDiff.originalStartLine
 			}
 			else {
-				if (lastDiff.type === 'insertion') {
-					newFileEndLine = lastDiff.endLine
-					originalCodeStartLine = lastDiff.originalStartLine
-				}
-				else if (lastDiff.type === 'deletion') {
-					newFileEndLine = lastDiff.startLine
-					originalCodeStartLine = lastDiff.originalStartLine
-				}
-				else if (lastDiff.type === 'edit') {
-					newFileEndLine = lastDiff.endLine
-					originalCodeStartLine = lastDiff.originalStartLine
-				}
-				else {
-					throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
-				}
+				throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
 			}
-
-			diffZone._streamState.line = newFileEndLine
-
-			// lines are 1-indexed
-			const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1)).join('\n')
-			const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), Infinity).join('\n')
-
-			const newCode = `${newFileTop}\n${oldFileBottom}`
-
-			this._writeText(uri, newCode,
-				{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
-			)
-
 		}
+
+		diffZone._streamState.line = newFileEndLine
+
+		// lines are 1-indexed
+		const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1)).join('\n')
+		const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), Infinity).join('\n')
+
+		const newCode = `${newFileTop}\n${oldFileBottom}`
+
+		this._writeText(uri, newCode,
+			{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, } // 1-indexed
+		)
+
 
 		return computedDiffs
 
@@ -835,7 +869,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (diffArea.type !== 'CtrlKZone') continue
 			const noOverlap = diffArea.startLine > endLine || diffArea.endLine < startLine
 			if (!noOverlap) {
-				diffArea._inputBox?.focus()
+				diffArea._mountInfo?.inputBox.focus()
 				return
 			}
 		}
@@ -846,12 +880,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			type: 'CtrlKZone',
 			startLine: startLine,
 			endLine: endLine,
+			editorId: editor.getId(),
 			_URI: uri,
 			userText: null,
 			_removeStylesFns: new Set(),
-			_zoneId: null,
-			_zone: null,
-			_inputBox: null,
+			_mountInfo: null,
 		}
 		const ctrlKZone = this._addDiffArea(adding)
 
@@ -1005,6 +1038,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				// at the end, re-write whole thing to make sure no sync errors
 				this._writeText(uri, fullText,
 					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+					true
 				)
 				diffZone._streamState = { isStreaming: false, line: null }
 				this._refreshStylesAndDiffsInURI(uri)
@@ -1123,7 +1157,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// diffArea should be removed if it has no more diffs in it
 		if (Object.keys(diffArea._diffOfId).length === 0) {
-			this._deleteDiffArea(diffArea)
+			this._deleteDiffZone(diffArea)
 		}
 
 		this._refreshStylesAndDiffsInURI(uri)
@@ -1205,7 +1239,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// diffArea should be removed if it has no more diffs in it
 		if (Object.keys(diffArea._diffOfId).length === 0) {
-			this._deleteDiffArea(diffArea)
+			this._deleteDiffZone(diffArea)
 		}
 
 		this._refreshStylesAndDiffsInURI(uri)

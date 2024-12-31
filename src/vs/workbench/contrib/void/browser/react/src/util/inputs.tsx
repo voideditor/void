@@ -287,7 +287,7 @@ const normalizeIndentation = (code: string): string => {
 
 export const VoidCodeEditor = ({ initValue, language }: { initValue: string, language: string | undefined }) => {
 
-	const MAX_HEIGHT = 200;
+	const MAX_HEIGHT = Infinity;
 
 	const divRef = useRef<HTMLDivElement | null>(null)
 
@@ -311,9 +311,9 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 						scrollbar: {
 							alwaysConsumeMouseWheel: false,
-							vertical: 'auto',
-							horizontal: 'auto',
-							// verticalScrollbarSize: 0,
+							vertical: 'hidden',
+							horizontal: 'hidden',
+							verticalScrollbarSize: 0,
 							horizontalScrollbarSize: 0,
 						},
 						scrollBeyondLastLine: false,
@@ -338,8 +338,9 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 						hideCursorInOverviewRuler: true,
 						overviewRulerBorder: false,
 						glyphMargin: false,
+
 						stickyScroll: {
-							enabled: false
+							enabled: false,
 						},
 					},
 					{

@@ -12,9 +12,7 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 import { CodeStagingSelection, IThreadHistoryService } from './threadHistoryService.js';
-// import { IEditorService } from '../../../services/editor/common/editorService.js';
 
-import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
@@ -66,18 +64,23 @@ registerAction2(class extends Action2 {
 
 		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
+		const editorService = accessor.get(ICodeEditorService)
 
 		metricsService.capture('User Action', { type: 'Ctrl+L' })
 
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.fireFocusChat()
 
+		const editor = editorService.getActiveCodeEditor()
 		const selectionRange = roundRangeToLines(
-			accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+			// accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+			editor?.getSelection()
 		)
 
 
 		if (selectionRange) {
+			// select whole lines
+			editor?.setSelection({ startLineNumber: selectionRange.startLineNumber, endLineNumber: selectionRange.endLineNumber, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER })
 
 			const selectionStr = getContentInRange(model, selectionRange)
 

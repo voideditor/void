@@ -121,10 +121,7 @@ export const chat_prompt = (instructions: string, selections: CodeSelection[] | 
 
 
 
-
-
-
-export const inlineDiff_systemMessage = `
+export const ctrlLStream_systemMessage = `
 You are a coding assistant that applies a diff to a file. You are given the original file \`original_file\`, a diff \`diff\`, and a new file that you are applying the diff to \`new_file\`.
 
 Please finish writing the new file \`new_file\`, according to the diff \`diff\`. You must completely re-write the whole file, using the diff.
@@ -255,14 +252,106 @@ export default Sidebar;\`\`\`
 
 
 
-export const generateCtrlKPrompt = ({ selection, prefix, suffix, instructions, }: { selection: string, prefix: string, suffix: string, instructions: string, }) => `\
+export const ctrlLStream_prompt = ({ originalCode, userMessage }: { originalCode: string, userMessage: string }) => {
+	return `\
+ORIGINAL_CODE
+\`\`\`
+${originalCode}
+\`\`\`
+
+DIFF
+\`\`\`
+${userMessage}
+\`\`\`
+
+INSTRUCTIONS
+Please finish writing the new file by applying the diff to the original file. Return ONLY the completion of the file, without any explanation.
+`
+}
+
+
+
+export const ctrlKStream_systemMessage = `\
+`
+
+
+export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullFileStr: string, startLine: number, endLine: number }) => {
+
+	const fullFileLines = fullFileStr.split('\n')
+
+	// we can optimize this later
+	const MAX_CHARS = 1024
+	/*
+
+	a
+	a
+	a     <-- final i (prefix = a\na\n)
+	a
+	|b    <-- startLine-1 (middle = b\nc\nd\n)   <-- initial i (moves up)
+	c
+	d|    <-- endLine-1                          <-- initial j (moves down)
+	e
+	e     <-- final j (suffix = e\ne\n)
+	e
+	e
+	*/
+
+	let prefix = ''
+	let i = startLine - 1  // 0-indexed exclusive
+	// we'll include fullFileLines[i...(startLine-1)-1].join('\n') in the prefix.
+	while (i !== 0) {
+		const newLine = fullFileLines[i - 1]
+		if (newLine.length + 1 + prefix.length <= MAX_CHARS) { // +1 to include the \n
+			prefix = `${newLine}\n${prefix}`
+			i -= 1
+		}
+		else break
+	}
+
+	let suffix = ''
+	let j = endLine - 1
+	while (j !== fullFileLines.length - 1) {
+		const newLine = fullFileLines[j + 1]
+		if (newLine.length + 1 + suffix.length <= MAX_CHARS) { // +1 to include the \n
+			suffix = `${suffix}\n${newLine}`
+			j += 1
+		}
+		else break
+	}
+
+	return { prefix, suffix }
+
+}
+
+export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage }: { selection: string, prefix: string, suffix: string, userMessage: string, }) => {
+	const onlySpeaksFIM = false
+
+	if (onlySpeaksFIM) {
+		const preTag = 'PRE'
+		const sufTag = 'SUF'
+		const midTag = 'MID'
+		return `\
+<${preTag}>
+/* Original Selection:
+${selection}*/
+/* Instructions: ${userMessage}*/
+${prefix}</${preTag}>
+<${sufTag}>${suffix}</${sufTag}>
+<${midTag}>`
+	}
+	// prompt the model on how to do FIM
+	else {
+		const preTag = 'PRE'
+		const sufTag = 'SUF'
+		const midTag = 'MID'
+		return `\
 Here is the user's original selection:
 \`\`\`
-<MID>${selection}</MID>
+<${midTag}>${selection}</${midTag}>
 \`\`\`
 
 The user wants to apply the following instructions to the selection:
-${instructions}
+${userMessage}
 
 Please rewrite the selection following the user's instructions.
 
@@ -273,10 +362,11 @@ Instructions to follow:
 3. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
 
 Complete the following:
-\`\`\`
-<PRE>${prefix}</PRE>
-<SUF>${suffix}</SUF>
-<MID>`;
+<${preTag}>${prefix}</${preTag}>
+<${sufTag}>${suffix}</${sufTag}>
+<${midTag}>`
+	}
+};
 
 
 

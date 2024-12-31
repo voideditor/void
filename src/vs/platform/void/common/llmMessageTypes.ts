@@ -17,14 +17,14 @@ export type LLMMessage = {
 	content: string;
 }
 
-export type LLMFeatureSelection = {
-	featureName: 'Ctrl+K',
-	range: IRange
+export type ServiceSendLLMFeatureParams = {
+	featureName: 'Ctrl+K';
+	range: IRange;
 } | {
-	featureName: 'Ctrl+L',
+	featureName: 'Ctrl+L';
 } | {
-	featureName: 'Autocomplete',
-	range: IRange
+	featureName: 'Autocomplete';
+	range: IRange;
 }
 
 // params to the true sendLLMMessage function
@@ -54,7 +54,7 @@ export type ServiceSendLLMMessageParams = {
 	logging: {
 		loggingName: string,
 	};
-} & LLMFeatureSelection
+} & ServiceSendLLMFeatureParams
 
 // can't send functions across a proxy, use listeners instead
 export type BlockedMainLLMMessageParams = 'onText' | 'onFinalMessage' | 'onError' | 'abortRef'

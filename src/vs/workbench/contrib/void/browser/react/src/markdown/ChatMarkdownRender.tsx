@@ -46,10 +46,13 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 			{copyButtonState}
 		</button>
 		<button
-			className="btn btn-secondary btn-sm border text-xs text-vscode-input-fg border-vscode-input-border rounded"
-			onClick={async () => {
-
-				inlineDiffService.startStreaming({ featureName: 'Ctrl+L' }, text)
+			// btn btn-secondary btn-sm border text-xs text-vscode-input-fg border-vscode-input-border rounded
+			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+			onClick={() => {
+				inlineDiffService.startApplying({
+					featureName: 'Ctrl+L',
+					userMessage: text,
+				})
 			}}
 		>
 			Apply

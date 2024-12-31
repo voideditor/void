@@ -11,6 +11,7 @@ import { getCmdKey } from '../../../helpers/getCmdKey.js';
 import { VoidInputBox } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit } from '../sidebar-tsx/SidebarChat.js';
+import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 
 export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
 
@@ -60,6 +61,7 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 	const onInterrupt = useCallback(() => {
 		if (currentlyStreamingIdRef.current !== undefined)
 			inlineDiffsService.interruptStreaming(currentlyStreamingIdRef.current)
+		inputBoxRef.current?.enable()
 		setIsStreaming(false)
 	}, [inlineDiffsService])
 
@@ -126,22 +128,33 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 						/>
 					</div>
 
-					{/* right (button) */}
-					<div className='flex flex-row items-end'>
-						{/* submit / stop button */}
-						{isStreaming ?
-							// stop button
-							<ButtonStop
-								onClick={onInterrupt}
-							/>
-							:
-							// submit button (up arrow)
-							<ButtonSubmit
-								disabled={isDisabled}
-							/>
-						}
+				</div>
+
+
+					{/* bottom row */}
+					<div
+					className='flex flex-row justify-between items-end gap-1'
+				>
+					{/* submit options */}
+					<div className='max-w-[150px]
+						@@[&_select]:!void-border-none
+						@@[&_select]:!void-outline-none'
+					>
+						<ModelDropdown featureName='Ctrl+L' />
 					</div>
 
+					{/* submit / stop button */}
+					{isStreaming ?
+						// stop button
+						<ButtonStop
+							onClick={onInterrupt}
+						/>
+						:
+						// submit button (up arrow)
+						<ButtonSubmit
+							disabled={isDisabled}
+						/>
+					}
 				</div>
 			</div>
 

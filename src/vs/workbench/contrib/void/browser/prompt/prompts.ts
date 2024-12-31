@@ -334,7 +334,8 @@ export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage }: {
 <${preTag}>
 /* Original Selection:
 ${selection}*/
-/* Instructions: ${userMessage}*/
+/* Instructions:
+${userMessage}*/
 ${prefix}</${preTag}>
 <${sufTag}>${suffix}</${sufTag}>
 <${midTag}>`

@@ -26,7 +26,7 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IConsistentItemService } from './helperServices/consistentItemService.js';
+import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
 import { ctrlKStream_prefixAndSuffix, ctrlKStream_prompt, ctrlKStream_systemMessage, ctrlLStream_prompt, ctrlLStream_systemMessage } from './prompt/prompts.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 import { IPosition } from '../../../../editor/common/core/position.js';
@@ -117,7 +117,7 @@ type CtrlKZone = {
 	editorId: string; // the editor the input lives on
 
 	_mountInfo: null | {
-		inputBox: InputBox; // the input box that lives in the zone
+		inputBox: InputBox | null; // the input box that lives in the zone
 		dispose: () => void;
 		refresh: () => void;
 	}
@@ -195,6 +195,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IConsistentItemService private readonly _consistentItemService: IConsistentItemService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
+		@IConsistentEditorItemService private readonly _consistentEditorItemService: IConsistentEditorItemService,
 	) {
 		super();
 
@@ -319,74 +320,78 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	mostRecentTextOfCtrlKZoneId: Record<string, string | undefined> = {}
-	private _addCtrlKZoneInput = async (ctrlKZone: CtrlKZone) => {
+	private _addCtrlKZoneInput = (ctrlKZone: CtrlKZone) => {
+
 		const { editorId } = ctrlKZone
 		const editor = this._editorService.listCodeEditors().find(e => e.getId() === editorId)
-		if (!editor) {
-			console.error('editor not found')
-			return null
-		}
+		if (!editor) { return null }
 
-		const domNode = document.createElement('div');
-		domNode.style.zIndex = '1'
-		const viewZone: IViewZone = {
-			afterLineNumber: ctrlKZone.startLine - 1,
-			domNode: domNode,
-			heightInPx: 0,
-			suppressMouseDown: false,
-		};
-
-
-		// mount zone
 		let zoneId: string | null = null
-		editor.changeViewZones(accessor => {
-			zoneId = accessor.addZone(viewZone)
-		})
+		let viewZone_: IViewZone | null = null
+		let inputBox_: InputBox | null = null
 
+		const itemId = this._consistentEditorItemService.addToEditor(editor, () => {
+			const domNode = document.createElement('div');
+			domNode.style.zIndex = '1'
+			const viewZone: IViewZone = {
+				afterLineNumber: ctrlKZone.startLine - 1,
+				domNode: domNode,
+				heightInPx: 52,
+				suppressMouseDown: false,
+			};
+			viewZone_ = viewZone
 
-		let res_: (inputBox: InputBox) => void
-		const inputBoxPromise: Promise<InputBox> = new Promise((res, rej) => { res_ = res })
+			// mount zone
+			editor.changeViewZones(accessor => {
+				zoneId = accessor.addZone(viewZone)
+			})
 
-		// mount react
-		this._instantiationService.invokeFunction(accessor => {
-			const props: QuickEditPropsType = {
-				diffareaid: ctrlKZone.diffareaid,
-				onGetInputBox(inputBox) {
-					res_(inputBox)
-					// not sure why this requries a timeout
-					setTimeout(() => inputBox.focus(), 0)
-				},
-				onChangeHeight(height) {
-					if (height === undefined) return
-					viewZone.heightInPx = height
-					// re-render with this new height
-					editor.changeViewZones(accessor => {
-						if (zoneId) {
-							accessor.layoutZone(zoneId)
+			// mount react
+			this._instantiationService.invokeFunction(accessor => {
+				mountCtrlK(domNode, accessor, {
+					diffareaid: ctrlKZone.diffareaid,
+					onGetInputBox: (inputBox) => {
+						inputBox_ = inputBox
+						// if it's mounting for the first time, focus it
+						if (!(ctrlKZone.diffareaid in this.mostRecentTextOfCtrlKZoneId)) { // detect first mount this way (a hack)
+							this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = undefined
+							setTimeout(() => inputBox.focus(), 0)
 						}
-					})
-				},
-				onUserUpdateText: (text) => { this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = text; },
-				initText: this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] ?? null,
-			}
-			mountCtrlK(domNode, accessor, props)
+					},
+					onChangeHeight(height) {
+						if (height === undefined) return
+						viewZone.heightInPx = height
+						// re-render with this new height
+						editor.changeViewZones(accessor => {
+							if (zoneId) {
+								accessor.layoutZone(zoneId)
+							}
+						})
+					},
+					onUserUpdateText: (text) => { this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = text; },
+					initText: this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] ?? null,
+				} satisfies QuickEditPropsType)
+
+			})
+
+			return () => editor.changeViewZones(accessor => {
+				if (zoneId)
+					accessor.removeZone(zoneId)
+			})
 		})
 
-		const inputBox = await inputBoxPromise
+
 
 		return {
-			inputBox,
+			inputBox: inputBox_,
 			refresh: () => editor.changeViewZones(accessor => {
-				if (zoneId && viewZone) {
-					viewZone.afterLineNumber = ctrlKZone.startLine - 1
+				if (zoneId && viewZone_) {
+					viewZone_.afterLineNumber = ctrlKZone.startLine - 1
 					accessor.layoutZone(zoneId)
 				}
 			}),
 			dispose: () => {
-				editor.changeViewZones(accessor => {
-					if (zoneId)
-						accessor.removeZone(zoneId)
-				})
+				this._consistentEditorItemService.removeFromEditor(itemId)
 			},
 		}
 	}
@@ -398,12 +403,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const diffArea = this.diffAreaOfId[diffareaid]
 			if (diffArea.type !== 'CtrlKZone') continue
 			if (!diffArea._mountInfo) {
-				diffArea._mountInfo = await this._addCtrlKZoneInput(diffArea)
+				diffArea._mountInfo = this._addCtrlKZoneInput(diffArea)
 			}
 			else {
 				diffArea._mountInfo.refresh()
 			}
-
 		}
 	}
 
@@ -882,7 +886,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (diffArea.type !== 'CtrlKZone') continue
 			const noOverlap = diffArea.startLine > endLine || diffArea.endLine < startLine
 			if (!noOverlap) {
-				diffArea._mountInfo?.inputBox.focus()
+				setTimeout(() => diffArea._mountInfo?.inputBox?.focus(), 0)
 				return
 			}
 		}
@@ -967,8 +971,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			startLine = startLine_
 			endLine = endLine_
 
-			if (!_mountInfo) return
-			userMessage = _mountInfo.inputBox.value
+			if (!_mountInfo?.inputBox) return
+			userMessage = _mountInfo.inputBox?.value
 		}
 		else {
 			throw new Error(`Void: diff.type not recognized on: ${featureName}`)
@@ -1101,7 +1105,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	// call this outside undo/redo (it calls undo)
+	// call this outside undo/redo (it calls undo). this is only for aborting a diffzone stream
 	interruptStreaming(diffareaid: number) {
 		const diffArea = this.diffAreaOfId[diffareaid]
 

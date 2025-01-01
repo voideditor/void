@@ -526,9 +526,7 @@ export const SidebarChat = () => {
 					onSubmit(e)
 				}}
 				onClick={(e) => {
-					if (e.currentTarget === e.target) {
-						inputBoxRef.current?.focus()
-					}
+					inputBoxRef.current?.focus()
 				}}
 			>
 				{/* top row */}

@@ -774,7 +774,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				// console.log('TOP ONLY')
 				const numOverlappingLines = endLine - diffArea.startLine + 1
 				const numRemainingLinesInDA = diffArea.endLine - diffArea.startLine + 1 - numOverlappingLines
-				const newHeight = numRemainingLinesInDA + (newTextHeight - 1)
+				const newHeight = (numRemainingLinesInDA - 1) + (newTextHeight - 1) + 1
 				diffArea.startLine = startLine
 				diffArea.endLine = startLine + newHeight
 			}

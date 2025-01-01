@@ -76,11 +76,11 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 		inputBoxRef.current.value = instructions
 	}, [initText, instructions])
 
-	return <div className='py-2 w-full max-w-xl' ref={sizerRef}>
+	return <div ref={sizerRef} className='py-2 w-full max-w-xl'>
 		<form
 			// copied from SidebarChat.tsx
 			className={`
-				flex flex-col gap-2 p-1 relative input text-left shrink-0
+				flex flex-col gap-2 py-1 px-2 relative input text-left shrink-0
 				transition-all duration-200
 				rounded-md
 				bg-vscode-input-bg
@@ -102,19 +102,23 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 				onSubmit(e)
 			}}
 			onClick={(e) => {
-				if (e.currentTarget === e.target) {
-					inputBoxRef.current?.focus()
-				}
+				inputBoxRef.current?.focus()
 			}}
 		>
 
-			<div // this div is used to position the input box properly
-				className={`w-full p-2 z-[999] relative`}
+			{/* // this div is used to position the input box properly */}
+			<div
+				className={`w-full z-[999] relative
+					@@[&_textarea]:!void-bg-transparent
+					@@[&_textarea]:!void-outline-none
+					@@[&_textarea]:!void-text-vscode-input-fg
+					@@[&_div.monaco-inputbox]:!void-border-none
+					@@[&_div.monaco-inputbox]:!void-outline-none`}
 			>
 				<div className='flex flex-row justify-between items-end gap-1'>
-					<div className='absolute size-0.5 top-0 right-0 z-[1]'>
+					<div className='absolute size-0.5 top-0 right-4 z-[1]'>
 						<X
-						onClick={() => { inlineDiffsService.removeCtrlKZone({ diffareaid }) }}
+							onClick={() => { inlineDiffsService.removeCtrlKZone({ diffareaid }) }}
 						/>
 					</div>
 
@@ -147,7 +151,7 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 						@@[&_select]:!void-border-none
 						@@[&_select]:!void-outline-none'
 					>
-						<ModelDropdown featureName='Ctrl+L' />
+						<ModelDropdown featureName='Ctrl+K' />
 					</div>
 
 					{/* submit / stop button */}

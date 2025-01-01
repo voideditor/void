@@ -286,7 +286,7 @@ export class EditorGroupWatermark extends Disposable {
 				const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
 				const button3 = append(boxBelow, $('button'));
 				button3.textContent = 'Void Settings'
-				button3.classList.add('void-watermark-button')
+				button3.classList.add('void-settings-watermark-button')
 
 				const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });
 				if (keys3)

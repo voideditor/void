@@ -413,8 +413,9 @@ export const Settings = () => {
 
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
 							<h2 className={`text-3xl mb-2`}>Local Providers</h2>
-							<h3 className={`text-md opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3>
-							<h3 className={`text-md opacity-50 mb-2`}>{`Instructions:`}</h3>
+							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
+							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Instructions:`}</h3> */}
+							<h3 className={`text-md opacity-50 mb-2`}>{`Void can access any AI models that you host locally.`}</h3>
 							<div className='pl-4 select-text'>
 								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
 								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
@@ -429,7 +430,8 @@ export const Settings = () => {
 							</ErrorBoundary>
 
 							<h2 className={`text-3xl mb-2 mt-16`}>More Providers</h2>
-							<h3 className={`text-md opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3>
+							<h3 className={`text-md opacity-50 mb-2`}>{`Void can also access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI.`}</h3>
+							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3> */}
 							<ErrorBoundary>
 								<VoidProviderSettings providerNames={nonlocalProviderNames} />
 							</ErrorBoundary>

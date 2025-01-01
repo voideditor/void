@@ -22,3 +22,29 @@
 .void-redBG {
 	background-color: var(--vscode-void-redBG);
 }
+
+.void-watermark-button {
+    margin: 8px 0;
+    padding: 8px 20px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    outline: none !important;
+	box-shadow: none !important;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.void-watermark-button:hover {
+    background-color: #2563eb;
+}
+
+.void-watermark-button:active {
+    background-color: #2563eb;
+}
+
+.void-link {
+	color: #3b82f6;
+	cursor: pointer;
+}

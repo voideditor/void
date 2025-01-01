@@ -186,6 +186,7 @@ export class EditorGroupWatermark extends Disposable {
 
 				// Open Folder
 				const button = h('button')
+				button.root.classList.add('void-watermark-button')
 				button.root.textContent = 'Open Folder'
 				button.root.onclick = () => {
 					this.commandService.executeCommand(isMacintosh && isNative ? OpenFileFolderAction.ID : OpenFolderAction.ID)
@@ -197,11 +198,16 @@ export class EditorGroupWatermark extends Disposable {
 				}
 				box.appendChild(button.root);
 
+
 				// Recents
 				const recentlyOpened = await this.workspacesService.getRecentlyOpened()
 					.catch(() => ({ files: [], workspaces: [] })).then(w => w.workspaces);
 
 
+				const span = $('div')
+				span.textContent = 'Recent'
+				span.style.fontWeight = '500'
+				box.append(span)
 
 				box.append(
 					...recentlyOpened.map(w => {
@@ -219,11 +225,11 @@ export class EditorGroupWatermark extends Disposable {
 						}
 
 
-
 						const { name, parentPath } = splitRecentLabel(fullPath);
 
 						const li = $('li');
-						const link = $('button.button-link');
+						const link = $('span');
+						link.classList.add('void-link')
 
 						link.innerText = name;
 						link.title = fullPath;
@@ -239,12 +245,12 @@ export class EditorGroupWatermark extends Disposable {
 						li.appendChild(link);
 
 						const span = $('span');
+						span.style.paddingLeft = '4px';
 						span.classList.add('path');
 						span.classList.add('detail');
 						span.innerText = parentPath;
 						span.title = fullPath;
 						li.appendChild(span);
-
 
 						return li
 					}).filter(v => !!v)
@@ -280,6 +286,8 @@ export class EditorGroupWatermark extends Disposable {
 				const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
 				const button3 = append(boxBelow, $('button'));
 				button3.textContent = 'Void Settings'
+				button3.classList.add('void-watermark-button')
+
 				const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });
 				if (keys3)
 					label3.set(keys3);

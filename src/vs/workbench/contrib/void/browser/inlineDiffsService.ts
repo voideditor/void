@@ -1068,7 +1068,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			featureName,
-			logging: { loggingName: 'streamChunk' },
+			logging: { loggingName: `startApplying - ${featureName}` },
 			messages,
 			onText: ({ newText, fullText }) => {
 				this._writeDiffZoneLLMText(diffZone, fullText, latestCurrentFileEnd, latestOriginalFileStart)

@@ -365,7 +365,7 @@ export const VoidFeatureFlagSettings = () => {
 		const enabled = voidSettingsState.featureFlagSettings[flagName]
 		const { description } = displayInfoOfFeatureFlag(flagName)
 
-		return <SubtleButton
+		return <SubtleButton key={flagName}
 			onClick={() => { voidSettingsService.setFeatureFlag(flagName, !enabled) }}
 			text={description}
 			icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}

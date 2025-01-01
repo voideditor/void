@@ -242,7 +242,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 					providerName === 'openRouter' ? 'Get your [API Key here](https://openrouter.ai/settings/keys).' :
 						providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 							providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
-								providerName === 'openAICompatible' ? undefined :
+								providerName === 'openAICompatible' ? 'Add any OpenAI-Compatible endpoint.' :
 									undefined,
 		}
 	}

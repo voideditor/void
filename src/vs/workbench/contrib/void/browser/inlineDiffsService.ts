@@ -171,6 +171,7 @@ export interface IInlineDiffsService {
 	startApplying(opts: StartApplyingOpts): number | undefined;
 	interruptStreaming(diffareaid: number): void;
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
+	removeCtrlKZone(opts: { diffareaid: number }): void;
 }
 
 export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffAreasService');
@@ -908,6 +909,17 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		onFinishEdit()
 		return ctrlKZone.diffareaid
+	}
+
+	public removeCtrlKZone({ diffareaid }: { diffareaid: number }) {
+		const ctrlKZone = this.diffAreaOfId[diffareaid]
+		if (!ctrlKZone) return
+		if (ctrlKZone.type !== 'CtrlKZone') return
+
+		const uri = ctrlKZone._URI
+		const { onFinishEdit } = this._addToHistory(uri)
+		this._deleteCtrlKZone(ctrlKZone)
+		onFinishEdit()
 	}
 
 

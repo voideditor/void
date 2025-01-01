@@ -12,6 +12,7 @@ import { VoidInputBox } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
+import { X } from 'lucide-react';
 
 export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
 
@@ -108,10 +109,16 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 		>
 
 			<div // this div is used to position the input box properly
-				className={`w-full p-2 z-[999]`}
+				className={`w-full p-2 z-[999] relative`}
 			>
 				<div className='flex flex-row justify-between items-end gap-1'>
-					{/* left (input) */}
+					<div className='absolute size-0.5 top-0 right-0 z-[1]'>
+						<X
+						onClick={() => { inlineDiffsService.removeCtrlKZone({ diffareaid }) }}
+						/>
+					</div>
+
+					{/* input */}
 					<div // copied from SidebarChat.tsx
 						className={`w-full
 							@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_div.monaco-inputbox]:!void-outline-none`}>
@@ -131,8 +138,8 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 				</div>
 
 
-					{/* bottom row */}
-					<div
+				{/* bottom row */}
+				<div
 					className='flex flex-row justify-between items-end gap-1'
 				>
 					{/* submit options */}

@@ -184,10 +184,10 @@ export class EditorGroupWatermark extends Disposable {
 			// Void - if the workbench is empty, show open
 			if (this.contextService.getWorkbenchState() === WorkbenchState.EMPTY) {
 
-				// Open Folder
+				// Open a folder
 				const button = h('button')
 				button.root.classList.add('void-watermark-button')
-				button.root.textContent = 'Open Folder'
+				button.root.textContent = 'Open a folder'
 				button.root.onclick = () => {
 					this.commandService.executeCommand(isMacintosh && isNative ? OpenFileFolderAction.ID : OpenFolderAction.ID)
 					// if (this.contextKeyService.contextMatchesRules(ContextKeyExpr.and(WorkbenchStateContext.isEqualTo('workspace')))) {
@@ -204,57 +204,60 @@ export class EditorGroupWatermark extends Disposable {
 					.catch(() => ({ files: [], workspaces: [] })).then(w => w.workspaces);
 
 
-				const span = $('div')
-				span.textContent = 'Recent'
-				span.style.fontWeight = '500'
-				box.append(span)
+				if (recentlyOpened.length !== 0) {
 
-				box.append(
-					...recentlyOpened.map(w => {
+					const span = $('div')
+					span.textContent = 'Recent'
+					span.style.fontWeight = '500'
+					box.append(span)
 
-						let fullPath: string;
-						let windowOpenable: IWindowOpenable;
-						if (isRecentFolder(w)) {
-							windowOpenable = { folderUri: w.folderUri };
-							fullPath = w.label || this.labelService.getWorkspaceLabel(w.folderUri, { verbose: Verbosity.LONG });
-						}
-						else {
-							return null
-							// fullPath = w.label || this.labelService.getWorkspaceLabel(w.workspace, { verbose: Verbosity.LONG });
-							// windowOpenable = { workspaceUri: w.workspace.configPath };
-						}
+					box.append(
+						...recentlyOpened.map(w => {
+
+							let fullPath: string;
+							let windowOpenable: IWindowOpenable;
+							if (isRecentFolder(w)) {
+								windowOpenable = { folderUri: w.folderUri };
+								fullPath = w.label || this.labelService.getWorkspaceLabel(w.folderUri, { verbose: Verbosity.LONG });
+							}
+							else {
+								return null
+								// fullPath = w.label || this.labelService.getWorkspaceLabel(w.workspace, { verbose: Verbosity.LONG });
+								// windowOpenable = { workspaceUri: w.workspace.configPath };
+							}
 
 
-						const { name, parentPath } = splitRecentLabel(fullPath);
+							const { name, parentPath } = splitRecentLabel(fullPath);
 
-						const li = $('li');
-						const link = $('span');
-						link.classList.add('void-link')
+							const li = $('li');
+							const link = $('span');
+							link.classList.add('void-link')
 
-						link.innerText = name;
-						link.title = fullPath;
-						link.setAttribute('aria-label', localize('welcomePage.openFolderWithPath', "Open folder {0} with path {1}", name, parentPath));
-						link.addEventListener('click', e => {
-							this.hostService.openWindow([windowOpenable], {
-								forceNewWindow: e.ctrlKey || e.metaKey,
-								remoteAuthority: w.remoteAuthority || null // local window if remoteAuthority is not set or can not be deducted from the openable
+							link.innerText = name;
+							link.title = fullPath;
+							link.setAttribute('aria-label', localize('welcomePage.openFolderWithPath', "Open folder {0} with path {1}", name, parentPath));
+							link.addEventListener('click', e => {
+								this.hostService.openWindow([windowOpenable], {
+									forceNewWindow: e.ctrlKey || e.metaKey,
+									remoteAuthority: w.remoteAuthority || null // local window if remoteAuthority is not set or can not be deducted from the openable
+								});
+								e.preventDefault();
+								e.stopPropagation();
 							});
-							e.preventDefault();
-							e.stopPropagation();
-						});
-						li.appendChild(link);
+							li.appendChild(link);
 
-						const span = $('span');
-						span.style.paddingLeft = '4px';
-						span.classList.add('path');
-						span.classList.add('detail');
-						span.innerText = parentPath;
-						span.title = fullPath;
-						li.appendChild(span);
+							const span = $('span');
+							span.style.paddingLeft = '4px';
+							span.classList.add('path');
+							span.classList.add('detail');
+							span.innerText = parentPath;
+							span.title = fullPath;
+							li.appendChild(span);
 
-						return li
-					}).filter(v => !!v)
-				)
+							return li
+						}).filter(v => !!v)
+					)
+				}
 
 
 

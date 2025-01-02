@@ -159,7 +159,7 @@ export class InputBox extends Widget {
 			this.scrollableElement = new ScrollableElement(this.element, { vertical: ScrollbarVisibility.Auto });
 
 			if (this.options.flexibleWidth) {
-				this.input.setAttribute('wrap', 'off');
+				this.input.setAttribute('wrap', 'on');
 				this.mirror.style.whiteSpace = 'pre';
 				this.mirror.style.wordWrap = 'initial';
 			}

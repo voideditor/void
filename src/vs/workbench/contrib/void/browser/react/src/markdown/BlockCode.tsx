@@ -83,7 +83,7 @@ export function getLanguageFromFileName(fileName: string): string {
 export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, buttonsOnHover?: ReactNode, language?: string }) => {
 
 	return (<>
-		<div className={`relative group w-full bg-vscode-sidebar-bg overflow-hidden isolate`}>
+		<div className={`relative group w-full bg-vscode-editor-bg overflow-hidden isolate`}>
 
 			{buttonsOnHover === null ? null : (
 				<div className="z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200">

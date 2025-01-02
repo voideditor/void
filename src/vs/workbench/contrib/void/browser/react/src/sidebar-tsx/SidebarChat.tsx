@@ -109,6 +109,65 @@ export const IconWarning = ({ size, className = '' }: { size: number, className?
 	);
 };
 
+
+export const IconLoading = ({ className = '' }: { className?: string }) => {
+
+	const [loadingText, setLoadingText] = useState('.');
+
+	useEffect(() => {
+		let intervalId;
+
+		// Function to handle the animation
+		const toggleLoadingText = () => {
+			if (loadingText === '...') {
+				setLoadingText('.');
+			} else {
+				setLoadingText(loadingText + '.');
+			}
+		};
+
+		// Start the animation loop
+		intervalId = setInterval(toggleLoadingText, 300);
+
+		// Cleanup function to clear the interval when component unmounts
+		return () => clearInterval(intervalId);
+	}, [loadingText, setLoadingText]);
+
+	return <div className={`${className}`}>{loadingText}</div>;
+
+}
+
+const useResizeObserver = () => {
+	const ref = useRef(null);
+	const [dimensions, setDimensions] = useState({ height: 0, width: 0 });
+
+	useEffect(() => {
+		if (ref.current) {
+			const resizeObserver = new ResizeObserver((entries) => {
+				if (entries.length > 0) {
+					const entry = entries[0];
+					setDimensions({
+						height: entry.contentRect.height,
+						width: entry.contentRect.width
+					});
+				}
+			});
+
+			resizeObserver.observe(ref.current);
+
+			return () => {
+				if (ref.current)
+					resizeObserver.unobserve(ref.current);
+			};
+		}
+	}, []);
+
+	return [ref, dimensions] as const;
+};
+
+
+
+
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
 const DEFAULT_BUTTON_SIZE = 20;
 export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
@@ -301,8 +360,9 @@ export const SelectedFiles = (
 }
 
 
-const ChatBubble = ({ chatMessage }: {
-	chatMessage: ChatMessage
+const ChatBubble = ({ chatMessage, isLoading }: {
+	chatMessage: ChatMessage,
+	isLoading?: boolean,
 }) => {
 
 	const role = chatMessage.role
@@ -325,6 +385,7 @@ const ChatBubble = ({ chatMessage }: {
 	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
 		<div className={`text-left inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}>
 			{chatbubbleContents}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
 		</div>
 	</div>
 }
@@ -369,8 +430,12 @@ export const SidebarChat = () => {
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
 	const isDisabled = !instructions.trim()
-	const [formHeight, setFormHeight] = useState(0) // TODO should use resize observer instead
-	const [sidebarHeight, setSidebarHeight] = useState(0)
+
+	const [sidebarRef, sidebarDimensions] = useResizeObserver()
+	const [formRef, formDimensions] = useResizeObserver()
+
+	// const [formHeight, setFormHeight] = useState(0) // TODO should use resize observer instead
+	// const [sidebarHeight, setSidebarHeight] = useState(0)
 	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
 
 
@@ -455,6 +520,8 @@ export const SidebarChat = () => {
 
 		threadsStateService.setStaging([]) // clear staging
 
+		inputBoxRef.current?.focus() // focus input after submit
+
 	}
 
 	const onAbort = () => {
@@ -481,18 +548,18 @@ export const SidebarChat = () => {
 	// const [_test_messages, _set_test_messages] = useState<string[]>([])
 
 	return <div
-		ref={(ref) => { if (ref) { setSidebarHeight(ref.clientHeight); } }}
+		ref={sidebarRef}
 		className={`w-full h-full`}
 	>
 		<ScrollToBottomContainer
 			className={`overflow-x-hidden overflow-y-auto`}
-			style={{ maxHeight: sidebarHeight - formHeight - 30 }}
+			style={{ maxHeight: sidebarDimensions.height - formDimensions.height - 30 }}
 		>
 			{/* previous messages */}
 			{previousMessages.map((message, i) => <ChatBubble key={i} chatMessage={message} />)}
 
 			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
+			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} isLoading={isLoading} />
 
 			{/* {_test_messages.map((_, i) => <div key={i}>div {i}</div>)}
 				<div>{`totalHeight: ${sidebarHeight - formHeight - 30}`}</div>
@@ -508,7 +575,7 @@ export const SidebarChat = () => {
 			className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
 		>
 			<form
-				ref={(ref) => { if (ref) { setFormHeight(ref.clientHeight); } }}
+				ref={formRef}
 				className={`
 					flex flex-col gap-2 p-2 relative input text-left shrink-0
 					transition-all duration-200

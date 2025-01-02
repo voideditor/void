@@ -66,6 +66,7 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 			{
 				inputBoxStyles: {
 					...defaultInputBoxStyles,
+					inputForeground: "var(--vscode-foreground)",
 					// inputBackground: 'transparent',
 					// inputBorder: 'none',
 					...styles,
@@ -74,7 +75,7 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 				tooltip: '',
 				flexibleHeight: multiline,
 				flexibleMaxHeight: 500,
-				flexibleWidth: true,
+				flexibleWidth: false,
 			}
 		] as const, [contextViewProvider, placeholder, multiline])}
 		dispose={useCallback((instance: InputBox) => {

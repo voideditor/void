@@ -3,25 +3,8 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import React, { ReactNode } from "react"
+import { ReactNode } from "react"
 import { VoidCodeEditor } from '../util/inputs.js';
-import { ILanguageService } from '../../../../../../../editor/common/languages/language.js';
-
-
-export const extractCodeFromResult = (result: string) => {
-	// Match either:
-	// 1. ```language\n<code>```
-	// 2. ```<code>```
-	const match = result.match(/```(?:\w+\n)?([\s\S]*?)```|```([\s\S]*?)```/);
-
-	if (!match) {
-		return result;
-	}
-
-	// Return whichever group matched (non-empty)
-	return match[1] ?? match[2] ?? result;
-}
-
 
 
 const extensionMap: { [key: string]: string } = {
@@ -90,7 +73,7 @@ export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, bu
 
 			{buttonsOnHover === null ? null : (
 				<div className="z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200">
-					<div className={`flex space-x-2 ${isSingleLine ?'': 'p-2' }`}>{buttonsOnHover}</div>
+					<div className={`flex space-x-2 ${isSingleLine ? '' : 'p-2'}`}>{buttonsOnHover}</div>
 				</div>
 			)}
 

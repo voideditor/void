@@ -17,6 +17,7 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
+import { extractCodeFromResult } from './helpers/extractCodeFromResult.js';
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
 
@@ -754,7 +755,5 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 
 registerSingleton(IAutocompleteService, AutocompleteService, InstantiationType.Eager);
-function extractCodeFromResult(fullText: string): string {
-	throw new Error('Function not implemented.');
-}
+
 

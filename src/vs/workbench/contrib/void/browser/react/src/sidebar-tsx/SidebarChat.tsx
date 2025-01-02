@@ -382,8 +382,17 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent} /> // sectionsHTML
 	}
 
-	return <div className={`mx-2 flex flex-col ${role === 'user' ? 'items-end' : 'items-start'}`}>
-		<div className={`text-left p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}>
+	return <div
+		// align chatbubble accoridng to role
+		className={`
+			${role === 'user' ? 'self-end' : 'self-start'}
+			${role === 'assistant' ? 'w-full' : ''}
+		`}
+	>
+		<div
+			// style chatbubble
+			className={`p-2 mx-2 text-left space-y-2 rounded-lg ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}
+		>
 			{chatbubbleContents}
 			{isLoading && <IconLoading className='opacity-50 text-sm' />}
 		</div>
@@ -552,7 +561,12 @@ export const SidebarChat = () => {
 		className={`w-full h-full`}
 	>
 		<ScrollToBottomContainer
-			className={`overflow-x-hidden overflow-y-auto`}
+			className={`
+				w-full h-auto
+				flex flex-col gap-0
+				overflow-x-hidden
+				overflow-y-auto
+			`}
 			style={{ maxHeight: sidebarDimensions.height - formDimensions.height - 30 }}
 		>
 			{/* previous messages */}

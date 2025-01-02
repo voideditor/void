@@ -22,8 +22,9 @@ export const Sidebar = ({ className }: { className: string }) => {
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
 	const isDark = useIsDark()
-	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
-		<div className={`flex flex-col py-2 w-full h-full bg-vscode-sidebar-bg`}>
+	// ${isDark ? 'dark' : ''}
+	return <div className={`@@void-scope`} style={{ width: '100%', height: '100%' }}>
+		<div className={`w-full h-full flex flex-col py-2 bg-vscode-sidebar-bg`}>
 
 			{/* <span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']
@@ -31,7 +32,7 @@ export const Sidebar = ({ className }: { className: string }) => {
 				sidebarStateService.setState({ currentTab: tabs[(index + 1) % tabs.length] as any })
 			}}>clickme {tab}</span> */}
 
-			<div className={`mb-2 w-full ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow z-10`}>
+			<div className={`w-full h-auto mb-2 ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow z-10`}>
 				<ErrorBoundary>
 					<SidebarThreadSelector />
 				</ErrorBoundary>

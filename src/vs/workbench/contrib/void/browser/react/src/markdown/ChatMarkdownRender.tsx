@@ -38,22 +38,24 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 			.catch(() => { setCopyButtonState(CopyButtonState.Error) })
 	}, [text, clipboardService])
 
+	const onApply = useCallback(() => {
+		inlineDiffService.startApplying({
+			featureName: 'Ctrl+L',
+			userMessage: text,
+		})
+	}, [inlineDiffService])
+
 	return <>
 		<button
-			className="btn btn-secondary btn-sm border text-xs text-vscode-input-fg border-vscode-input-border rounded"
+			className="p-1 hover:brightness-110 bg-vscode-editor-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg"
 			onClick={onCopy}
 		>
 			{copyButtonState}
 		</button>
 		<button
 			// btn btn-secondary btn-sm border text-xs text-vscode-input-fg border-vscode-input-border rounded
-			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-			onClick={() => {
-				inlineDiffService.startApplying({
-					featureName: 'Ctrl+L',
-					userMessage: text,
-				})
-			}}
+			className="p-1 hover:brightness-110 bg-vscode-editor-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg"
+			onClick={onApply}
 		>
 			Apply
 		</button>

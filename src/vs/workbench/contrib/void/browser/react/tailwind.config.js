@@ -89,7 +89,7 @@ module.exports = {
 					"sidebar-bg": "var(--vscode-sideBar-background)",
 					"sidebar-fg": "var(--vscode-sideBar-foreground)",
 					"sidebar-border": "var(--vscode-sideBar-border)",
-					"sidebar-drop-backdrop": "var(--vscode-sideBar-dropBackground)",
+					"sidebar-drop-bg": "var(--vscode-sideBar-dropBackground)",
 					"sidebar-title-fg": "var(--vscode-sideBarTitle-foreground)",
 					"sidebar-header-bg": "var(--vscode-sideBarSectionHeader-background)",
 					"sidebar-header-fg": "var(--vscode-sideBarSectionHeader-foreground)",

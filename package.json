@@ -1,9 +1,9 @@
 {
-  "name": "code-oss-dev",
-  "version": "1.94.0",
-  "distro": "ffcc24343ac46468a625666e5b9e673971dd1a1f",
+  "name": "voideditor-dev",
+  "version": "1.0.0",
+  "distro": "this is a commit number if we want to publish on npm",
   "author": {
-    "name": "Microsoft Corporation"
+    "name": "Glass Devtools, Inc."
   },
   "license": "MIT",
   "main": "./out/main",

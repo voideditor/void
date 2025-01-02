@@ -187,6 +187,9 @@ export class EditorGroupWatermark extends Disposable {
 				// Open a folder
 				const button = h('button')
 				button.root.classList.add('void-watermark-button')
+				button.root.style.display = 'block'
+				button.root.style.marginLeft = 'auto'
+				button.root.style.marginRight = 'auto'
 				button.root.textContent = 'Open a folder'
 				button.root.onclick = () => {
 					this.commandService.executeCommand(isMacintosh && isNative ? OpenFileFolderAction.ID : OpenFolderAction.ID)
@@ -289,6 +292,9 @@ export class EditorGroupWatermark extends Disposable {
 				const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
 				const button3 = append(boxBelow, $('button'));
 				button3.textContent = 'Void Settings'
+				button3.style.display = 'block'
+				button3.style.marginLeft = 'auto'
+				button3.style.marginRight = 'auto'
 				button3.classList.add('void-settings-watermark-button')
 
 				const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });

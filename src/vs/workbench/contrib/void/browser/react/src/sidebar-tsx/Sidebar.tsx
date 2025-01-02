@@ -22,7 +22,7 @@ export const Sidebar = ({ className }: { className: string }) => {
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
 	const isDark = useIsDark()
-	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`}  style={{ width: '100%', height: '100%' }}>
+	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
 		<div className={`flex flex-col px-2 py-2 w-full h-full bg-vscode-sidebar-bg`}>
 
 			{/* <span onClick={() => {

@@ -17,7 +17,7 @@ enum CopyButtonState {
 
 const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
-const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
+const CodeButtonsOnHover = ({ text }: { text: string }) => {
 	const accessor = useAccessor()
 
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
@@ -45,16 +45,19 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 		})
 	}, [inlineDiffService])
 
+
+	const isSingleLine = !text.includes('\n')
+
 	return <>
 		<button
-			className="p-1 hover:brightness-110 bg-vscode-editor-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg"
+			className={`${isSingleLine ? '' : 'p-1'} text-xs hover:brightness-110 bg-vscode-editor-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg`}
 			onClick={onCopy}
 		>
 			{copyButtonState}
 		</button>
 		<button
 			// btn btn-secondary btn-sm border text-xs text-vscode-input-fg border-vscode-input-border rounded
-			className="p-1 hover:brightness-110 bg-vscode-editor-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg"
+			className={`${isSingleLine ? '' : 'p-1'} text-xs hover:brightness-110 bg-vscode-editor-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg`}
 			onClick={onApply}
 		>
 			Apply
@@ -76,7 +79,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 		return <BlockCode
 			text={t.text}
 			// language={t.lang} // instead use vscode to detect language
-			buttonsOnHover={<CodeButtonsOnHover diffRepr={t.text} />}
+			buttonsOnHover={<CodeButtonsOnHover text={t.text} />}
 		/>
 	}
 

@@ -170,6 +170,9 @@ export class EditorGroupWatermark extends Disposable {
 		this.clear();
 		const box = append(this.shortcuts, $('.watermark-box'));
 		const boxBelow = append(this.shortcuts, $(''))
+		boxBelow.style.display = 'flex'
+		boxBelow.style.flex = 'row'
+		boxBelow.style.justifyContent = 'center'
 
 
 		const update = async () => {

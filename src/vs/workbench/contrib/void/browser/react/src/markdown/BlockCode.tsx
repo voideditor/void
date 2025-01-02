@@ -82,12 +82,15 @@ export function getLanguageFromFileName(fileName: string): string {
 
 export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, buttonsOnHover?: ReactNode, language?: string }) => {
 
+
+	const isSingleLine = !text.includes('\n')
+
 	return (<>
 		<div className={`relative group w-full bg-vscode-editor-bg overflow-hidden isolate`}>
 
 			{buttonsOnHover === null ? null : (
 				<div className="z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200">
-					<div className={`flex space-x-2 p-2 ${text.includes('\n') ? 'p-2' : ''}`}>{buttonsOnHover}</div>
+					<div className={`flex space-x-2 ${isSingleLine ?'': 'p-2' }`}>{buttonsOnHover}</div>
 				</div>
 			)}
 

@@ -415,7 +415,7 @@ export const Settings = () => {
 							<h2 className={`text-3xl mb-2`}>Local Providers</h2>
 							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
 							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Instructions:`}</h3> */}
-							<h3 className={`text-md opacity-50 mb-2`}>{`Void can access models that you host locally.`}</h3>
+							<h3 className={`text-md opacity-50 mb-2`}>{`Void can access any model that you host locally.`}</h3>
 							<div className='pl-4 select-text'>
 								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
 								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>

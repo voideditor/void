@@ -84,6 +84,7 @@
     "@parcel/watcher": "2.1.0",
     "@rrweb/record": "^2.0.0-alpha.17",
     "@rrweb/types": "^2.0.0-alpha.17",
+    "@todesktop/runtime": "^2.0.0",
     "@vscode/deviceid": "^0.1.1",
     "@vscode/iconv-lite-umd": "0.7.0",
     "@vscode/policy-watcher": "^1.1.4",

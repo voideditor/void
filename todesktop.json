@@ -1,0 +1,8 @@
+{
+	"id": "2501027uxm8l3",
+	"icon": "./resources/darwin/code.icns",
+	"appPath": ".",
+	"schemaVersion": 1,
+	"nodeVersion": "20.16.0",
+	"uploadSizeLimit": 600
+  }

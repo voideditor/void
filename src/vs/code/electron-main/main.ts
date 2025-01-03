@@ -6,6 +6,7 @@
 import '../../platform/update/common/update.config.contribution.js';
 
 import { app, dialog } from 'electron';
+import todesktop from '@todesktop/runtime'
 import { unlinkSync, promises } from 'fs';
 import { URI } from '../../base/common/uri.js';
 import { coalesce, distinct } from '../../base/common/arrays.js';
@@ -93,6 +94,8 @@ class CodeMain {
 	}
 
 	private async startup(): Promise<void> {
+
+		todesktop.init();
 
 		// Set the error handler early enough so that we are not getting the
 		// default electron error dialog popping up

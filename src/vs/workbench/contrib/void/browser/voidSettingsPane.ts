@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';
@@ -24,7 +24,6 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 
 
 import { mountVoidSettings } from './react/out/void-settings-tsx/index.js'
-import { getReactServices } from './helpers/reactServicesHelper.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { DomScrollableElement } from '../../../../base/browser/ui/scrollbar/scrollableElement.js';
@@ -36,10 +35,11 @@ class VoidSettingsInput extends EditorInput {
 
 	static readonly ID: string = 'workbench.input.void.settings';
 
-	readonly resource = URI.from({
-		scheme: 'void-editor-settings',
-		path: 'void-settings'  // Give it a unique path
-	});
+	static readonly RESOURCE = URI.from({ // I think this scheme is invalid, it just shuts up TS
+		scheme: 'void',  // Custom scheme for our editor
+		path: 'settings'
+	})
+	readonly resource = VoidSettingsInput.RESOURCE;
 
 	constructor() {
 		super();
@@ -89,8 +89,7 @@ class VoidSettingsPane extends EditorPane {
 
 		// Mount React into the scrollable content
 		this.instantiationService.invokeFunction(accessor => {
-			const services = getReactServices(accessor);
-			const disposables: IDisposable[] | undefined = mountVoidSettings(scrollableContent, services);
+			const disposables: IDisposable[] | undefined = mountVoidSettings(scrollableContent, accessor);
 
 			setTimeout(() => { // this is a complete hack and I don't really understand how scrollbar works here
 				this._scrollbar?.scanDomNode();
@@ -120,12 +119,12 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 );
 
 
-export const OPEN_VOID_SETTINGS_ACTION_ID = 'workbench.action.openVoidSettings'
+export const VOID_OPEN_SETTINGS_ACTION_ID = 'workbench.action.openVoidSettings'
 // register the gear on the top right
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
-			id: OPEN_VOID_SETTINGS_ACTION_ID,
+			id: VOID_OPEN_SETTINGS_ACTION_ID,
 			title: nls.localize2('voidSettings', "Void: Settings"),
 			f1: true,
 			icon: Codicon.settingsGear,
@@ -142,9 +141,20 @@ registerAction2(class extends Action2 {
 			]
 		});
 	}
+
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const editorService = accessor.get(IEditorService);
 		const instantiationService = accessor.get(IInstantiationService);
+
+		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE);
+
+		// close all instances if found
+		if (openEditors.length > 0) {
+			await editorService.closeEditors(openEditors);
+			return;
+		}
+
+		// else open it
 		const input = instantiationService.createInstance(VoidSettingsInput);
 		await editorService.openEditor(input);
 	}
@@ -155,7 +165,7 @@ registerAction2(class extends Action2 {
 MenuRegistry.appendMenuItem(MenuId.GlobalActivity, {
 	group: '0_command',
 	command: {
-		id: OPEN_VOID_SETTINGS_ACTION_ID,
+		id: VOID_OPEN_SETTINGS_ACTION_ID,
 		title: nls.localize('voidSettings', "Void Settings")
 	},
 	order: 1

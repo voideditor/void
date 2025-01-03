@@ -1,9 +1,14 @@
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
+
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { IViewsService } from '../../../services/views/common/viewsService.js';
-import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarPane.js';
+import { VOID_OPEN_SIDEBAR_ACTION_ID } from './sidebarPane.js';
 
 
 // service that manages sidebar's state
@@ -23,8 +28,6 @@ export interface ISidebarStateService {
 	onDidBlurChat: Event<void>;
 	fireFocusChat(): void;
 	fireBlurChat(): void;
-
-	openSidebarView(): void;
 }
 
 export const ISidebarStateService = createDecorator<ISidebarStateService>('voidSidebarStateService');
@@ -47,7 +50,7 @@ class VoidSidebarStateService extends Disposable implements ISidebarStateService
 	state: VoidSidebarState
 
 	constructor(
-		@IViewsService private readonly _viewsService: IViewsService,
+		@ICommandService private readonly commandService: ICommandService,
 	) {
 		super()
 
@@ -59,7 +62,7 @@ class VoidSidebarStateService extends Disposable implements ISidebarStateService
 	setState(newState: Partial<VoidSidebarState>) {
 		// make sure view is open if the tab changes
 		if ('currentTab' in newState) {
-			this.openSidebarView()
+			this.commandService.executeCommand(VOID_OPEN_SIDEBAR_ACTION_ID)
 		}
 
 		this.state = { ...this.state, ...newState }
@@ -72,11 +75,6 @@ class VoidSidebarStateService extends Disposable implements ISidebarStateService
 
 	fireBlurChat() {
 		this._onBlurChat.fire()
-	}
-
-	openSidebarView() {
-		this._viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
-		this._viewsService.openView(VOID_VIEW_ID);
 	}
 
 }

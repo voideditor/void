@@ -1,10 +1,12 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 
 import React from "react";
-import { useService, useThreadsState } from '../util/services.js';
+import { useAccessor, useThreadsState } from '../util/services.js';
+import { IThreadHistoryService } from '../../../threadHistoryService.js';
+import { ISidebarStateService } from '../../../sidebarStateService.js';
 
 
 const truncate = (s: string) => {
@@ -18,8 +20,10 @@ const truncate = (s: string) => {
 
 export const SidebarThreadSelector = () => {
 	const threadsState = useThreadsState()
-	const threadsStateService = useService('threadsStateService')
-	const sidebarStateService = useService('sidebarStateService')
+
+	const accessor = useAccessor()
+	const threadsStateService = accessor.get('IThreadHistoryService')
+	const sidebarStateService = accessor.get('ISidebarStateService')
 
 	const { allThreads } = threadsState
 

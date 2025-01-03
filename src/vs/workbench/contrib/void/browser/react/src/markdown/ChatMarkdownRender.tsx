@@ -1,12 +1,12 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 
 import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
-import { useService } from '../util/services.js'
+import { useAccessor } from '../util/services.js'
 
 
 enum CopyButtonState {
@@ -17,14 +17,14 @@ enum CopyButtonState {
 
 const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
-const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
+const CodeButtonsOnHover = ({ text }: { text: string }) => {
+	const accessor = useAccessor()
+
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
-	const inlineDiffService = useService('inlineDiffService')
-
-	const clipboardService = useService('clipboardService')
-
-
+	const inlineDiffService = accessor.get('IInlineDiffsService')
+	const clipboardService = accessor.get('IClipboardService')
 	useEffect(() => {
+
 		if (copyButtonState !== CopyButtonState.Copy) {
 			setTimeout(() => {
 				setCopyButtonState(CopyButtonState.Copy)
@@ -38,19 +38,26 @@ const CodeButtonsOnHover = ({ diffRepr: text }: { diffRepr: string }) => {
 			.catch(() => { setCopyButtonState(CopyButtonState.Error) })
 	}, [text, clipboardService])
 
+	const onApply = useCallback(() => {
+		inlineDiffService.startApplying({
+			featureName: 'Ctrl+L',
+			userMessage: text,
+		})
+	}, [inlineDiffService])
+
+	const isSingleLine = !text.includes('\n')
+
 	return <>
 		<button
-			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
+			className={`${isSingleLine ? '' : 'p-1'} text-xs hover:brightness-110 bg-vscode-input-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg`}
 			onClick={onCopy}
 		>
 			{copyButtonState}
 		</button>
 		<button
-			className="btn btn-secondary btn-sm border border-vscode-input-border rounded"
-			onClick={async () => {
-
-				inlineDiffService.startStreaming({ featureName: 'Ctrl+L' }, text)
-			}}
+			// btn btn-secondary btn-sm border text-xs text-vscode-input-fg border-vscode-input-border rounded
+			className={`${isSingleLine ? '' : 'p-1'} text-xs hover:brightness-110 bg-vscode-input-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg`}
+			onClick={onApply}
 		>
 			Apply
 		</button>
@@ -70,8 +77,8 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	if (t.type === "code") {
 		return <BlockCode
 			text={t.text}
-			language={t.lang}
-			buttonsOnHover={<CodeButtonsOnHover diffRepr={t.text} />}
+			// language={t.lang} // instead use vscode to detect language
+			buttonsOnHover={<CodeButtonsOnHover text={t.text} />}
 		/>
 	}
 
@@ -190,7 +197,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	// inline code
 	if (t.type === "codespan") {
 		return (
-			<code className="text-vscode-editor-fg bg-vscode-editor-bg px-1 rounded-sm font-mono">
+			<code className="text-vscode-text-preformat-fg bg-vscode-text-preformat-bg px-1 rounded-sm font-mono">
 				{t.text}
 			</code>
 		)

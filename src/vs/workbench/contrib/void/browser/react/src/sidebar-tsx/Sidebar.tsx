@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 import React, { useEffect, useState } from 'react'
 import { mountFnGenerator } from '../util/mountFnGenerator.js'
 
@@ -22,8 +22,9 @@ export const Sidebar = ({ className }: { className: string }) => {
 	const { isHistoryOpen, currentTab: tab } = sidebarState
 
 	const isDark = useIsDark()
-	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
-		<div className={`flex flex-col px-2 py-2 w-full h-full`}>
+	// ${isDark ? 'dark' : ''}
+	return <div className={`@@void-scope`} style={{ width: '100%', height: '100%' }}>
+		<div className={`w-full h-full flex flex-col py-2 bg-vscode-sidebar-bg`}>
 
 			{/* <span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']
@@ -31,7 +32,7 @@ export const Sidebar = ({ className }: { className: string }) => {
 				sidebarStateService.setState({ currentTab: tabs[(index + 1) % tabs.length] as any })
 			}}>clickme {tab}</span> */}
 
-			<div className={`mb-2 w-full ${isHistoryOpen ? '' : 'hidden'}`}>
+			<div className={`w-full h-auto mb-2 ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow z-10`}>
 				<ErrorBoundary>
 					<SidebarThreadSelector />
 				</ErrorBoundary>

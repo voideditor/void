@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
@@ -22,7 +22,10 @@ type RefreshableState = ({
 	state: 'refreshing',
 	timeoutId: NodeJS.Timeout | null, // the timeoutId of the most recent call to refreshModels
 } | {
-	state: 'success',
+	state: 'finished',
+	timeoutId: null,
+} | {
+	state: 'finished_invisible',
 	timeoutId: null,
 })
 
@@ -32,8 +35,8 @@ export type RefreshModelStateOfProvider = Record<RefreshableProviderName, Refres
 
 
 const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvider[k])[] } = {
-	ollama: ['enabled', 'endpoint'],
-	openAICompatible: ['enabled', 'endpoint', 'apiKey'],
+	ollama: ['_enabled', 'endpoint'],
+	openAICompatible: ['_enabled', 'endpoint', 'apiKey'],
 }
 const REFRESH_INTERVAL = 5_000
 // const COOLDOWN_TIMEOUT = 300
@@ -62,7 +65,6 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 	private readonly _onDidChangeState = new Emitter<RefreshableProviderName>();
 	readonly onDidChangeState: Event<RefreshableProviderName> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
-	private readonly _onDidAutoEnable = new Emitter<RefreshableProviderName>();
 
 	constructor(
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
@@ -82,8 +84,8 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 			for (const providerName of refreshableProviderNames) {
 
-				const { enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
-				this.refreshModels(providerName, !enabled)
+				const { _enabled: enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
+				this.refreshModels(providerName, !enabled, { isPolling: true, isInternal: true })
 
 				// every time providerName.enabled changes, refresh models too, like a useEffect
 				let relevantVals = () => refreshBasedOn[providerName].map(settingName => this.voidSettingsService.state.settingsOfProvider[providerName][settingName])
@@ -99,7 +101,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 							// if it was just enabled, or there was a change and it wasn't to the enabled state, refresh
 							if ((enabled && !prevEnabled) || (!enabled && !prevEnabled)) {
 								// if user just clicked enable, refresh
-								this.refreshModels(providerName, !enabled)
+								this.refreshModels(providerName, !enabled, { isPolling: false, isInternal: true })
 							}
 							else {
 								// else if user just clicked disable, don't refresh
@@ -132,11 +134,16 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 
 	// start listening for models (and don't stop until success)
-	async refreshModels(providerName: RefreshableProviderName, enableProviderOnSuccess?: boolean) {
+	async refreshModels(providerName: RefreshableProviderName, enableProviderOnSuccess?: boolean, options?: { isPolling?: boolean, isInternal?: boolean }) {
+
+		const { isPolling, isInternal } = options ?? {}
+
+		console.log(`refreshModels, isInternal ${isInternal} isPolling ${isPolling}`)
+
 		this._clearProviderTimeout(providerName)
 
 		// start loading models
-		this._setRefreshState(providerName, 'refreshing')
+		if (!isInternal) this._setRefreshState(providerName, 'refreshing')
 
 		const fn = providerName === 'ollama' ? this.llmMessageService.ollamaList
 			: providerName === 'openAICompatible' ? this.llmMessageService.openAICompatibleList
@@ -151,19 +158,25 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 				}))
 
 				if (enableProviderOnSuccess) {
-					this.voidSettingsService.setSettingOfProvider(providerName, 'enabled', true)
-					this._onDidAutoEnable.fire(providerName)
+					this.voidSettingsService.setSettingOfProvider(providerName, '_enabled', true)
 				}
 
-				this._setRefreshState(providerName, 'success')
+				if (!isInternal) this._setRefreshState(providerName, 'finished')
+
 			},
 			onError: ({ error }) => {
-				// poll
 				console.log('retrying list models:', providerName, error)
-				const timeoutId = setTimeout(() => this.refreshModels(providerName, enableProviderOnSuccess), REFRESH_INTERVAL)
-				this._setTimeoutId(providerName, timeoutId)
 			}
 		})
+
+		if (isInternal) this._setRefreshState(providerName, 'finished_invisible')
+
+		// check if we should poll
+		// if it was originally called as `isPolling` and if the `autoRefreshModels` flag is enabled
+		if (isPolling && this.voidSettingsService.state.featureFlagSettings.autoRefreshModels) {
+			const timeoutId = setTimeout(() => this.refreshModels(providerName, enableProviderOnSuccess, options), REFRESH_INTERVAL)
+			this._setTimeoutId(providerName, timeoutId)
+		}
 	}
 
 	_clearAllTimeouts() {

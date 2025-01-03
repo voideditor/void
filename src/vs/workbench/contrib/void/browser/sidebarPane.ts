@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import {
@@ -25,7 +25,7 @@ import { IViewPaneOptions, ViewPane } from '../../../browser/parts/views/viewPan
 
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { IDisposable } from '../../../../base/common/lifecycle.js';
+// import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
@@ -33,16 +33,17 @@ import { IKeybindingService } from '../../../../platform/keybinding/common/keybi
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-
 import { mountSidebar } from './react/out/sidebar-tsx/index.js';
 
-import { getReactServices } from './helpers/reactServicesHelper.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
-// import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
-// import { Codicon } from '../../../../base/common/codicons.js';
-// import { Codicon } from '../../../../base/common/codicons.js';
-
+// import { IDisposable } from '../../../../base/common/lifecycle.js';
+import { IDisposable } from '../../../../base/common/lifecycle.js';
+import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
+import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
 
 // compare against search.contribution.ts and debug.contribution.ts, scm.contribution.ts (source control)
 
@@ -62,6 +63,8 @@ class SidebarViewPane extends ViewPane {
 		@IOpenerService openerService: IOpenerService,
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IHoverService hoverService: IHoverService,
+		// @ICodeEditorService private readonly editorService: ICodeEditorService,
+		// @IContextKeyService private readonly editorContextKeyService: IContextKeyService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService)
 
@@ -76,10 +79,8 @@ class SidebarViewPane extends ViewPane {
 
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
-			const services = getReactServices(accessor)
-
 			// mount react
-			const disposables: IDisposable[] | undefined = mountSidebar(parent, services);
+			const disposables: IDisposable[] | undefined = mountSidebar(parent, accessor);
 			disposables?.forEach(d => this._register(d))
 		});
 	}
@@ -88,8 +89,6 @@ class SidebarViewPane extends ViewPane {
 		super.layoutBody(height, width)
 		this.element.style.height = `${height}px`
 		this.element.style.width = `${width}px`
-
-
 	}
 
 }
@@ -148,3 +147,28 @@ viewsRegistry.registerViews([{
 	// },
 }], container);
 
+
+// open sidebar
+export const VOID_OPEN_SIDEBAR_ACTION_ID = 'void.openSidebar'
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_OPEN_SIDEBAR_ACTION_ID,
+			title: 'Open Void Sidebar',
+		})
+	}
+	run(accessor: ServicesAccessor): void {
+		const viewsService = accessor.get(IViewsService)
+		viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
+	}
+});
+
+export class SidebarStartContribution implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.startupVoidSidebar';
+	constructor(
+		@ICommandService private readonly commandService: ICommandService,
+	) {
+		this.commandService.executeCommand(VOID_OPEN_SIDEBAR_ACTION_ID)
+	}
+}
+registerWorkbenchContribution2(SidebarStartContribution.ID, SidebarStartContribution, WorkbenchPhase.AfterRestored);

@@ -8,7 +8,7 @@ There are a few ways to contribute:
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
 - ⭐️ If you want to build your AI tool into Void, feel free to get in touch! It's very easy to extend Void, and the UX you create will be much more natural than a VSCode Extension.
 
-Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`.
+Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`.
 
 
 
@@ -43,19 +43,19 @@ First, run `npm install -g node-gyp`. Then:
 
 ### Building Void
 
-To build Void, open `void/` inside VSCode. Then:
+To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
 1. `npm install` to install all dependencies.
 2. `npm run watchreact` to build Void's browser dependencies like React.
-3. Build.
+3. Build Void.
 	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
    - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
    - This step can take ~5 min. The build is done when you see two check marks.
-4. Run.
+4. Run Void.
 	 - Run `./scripts/code.sh` (Mac/Linux).
    - Run `./scripts/code.bat` (Windows).
-   - This command should open up the built IDE. You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building, unless they're React changes.
-
+   - This command should open up the built IDE. You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>)  inside the new window to see changes without re-building, or press or <kbd>Ctrl+Shift+P</kbd> in the new window and run "Reload Window".
+	- If you are actively developing Void, we strongly recommend adding the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command (just append them at the end of the string). This will save all data and extensions to the `.tmp` folder. You can delete this folder to reset any IDE changes you made when testing.
 
 #### Building Void from Terminal
 
@@ -75,9 +75,9 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 - Make sure you follow the prerequisite steps.
 - Make sure you have the same NodeJS version as `.nvmrc`.
 - Make sure your `npm run watchreact` is running if you change any React files, or else you'll need to re-build.
+- If you see missing styles, go to `src2/styles.css` and re-save the file.
 - If you get `"TypeError: Failed to fetch dynamically imported module: vscode-file://vscode-app/.../workbench.desktop.main.js", source: file:///.../bootstrap-window.js`, make sure all imports end with `.js`.
 - If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). For building questions, you can also refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
-
 
 
 
@@ -140,31 +140,3 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 ## References
 
 For some useful links we've compiled on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
-
-
-### Advanced Builder shortcuts (if you are here, you RTFM till the end so you deserve it 😉)
-1. Install dependencies and build the react components
-`npm install && cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../..`
-
-2. Develop the things you want then :
-`npm run watch`
-Wait for the watch task to be done
-While the watch task is running open a new terminal then build
-
-NOTE : It's even possible to combine the 1. and 2. commands :
-`npm install && cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../.. && npm run watch`
-But you allready knew it 🤓. This is just useless because the watch task will need to be done again if you are not recloning the repo and building the react components.
-
-3. Build
-### On Mac
-`./scripts/code.sh`
-Using <kbd>⌘ + ⇥ (tab)</kbd> to get focus to the editor window or by clic on it
-<kbd>⌘ + R</kbd> is reloading the window to see changes
-
-### On Windows
-`./scripts/code.bat`
-- Press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes
-
-### On Linux
-`./scripts/code.sh`
-Press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes

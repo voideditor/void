@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 
  .monaco-editor .void-sweepIdxBG {
 	background-color: var(--vscode-void-sweepIdxBG);
@@ -11,10 +11,63 @@
 	background-color: var(--vscode-void-sweepBG);
 }
 
+.void-highlightBG {
+	background-color: var(--vscode-void-highlightBG);
+}
+
 .void-greenBG {
 	background-color: var(--vscode-void-greenBG);
 }
 
 .void-redBG {
 	background-color: var(--vscode-void-redBG);
+}
+
+.void-watermark-button {
+    margin: 8px 0;
+    padding: 8px 20px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    outline: none !important;
+	box-shadow: none !important;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.void-watermark-button:hover {
+    background-color: #2563eb;
+}
+.void-watermark-button:active {
+    background-color: #2563eb;
+}
+
+
+
+
+.void-settings-watermark-button {
+    margin: 8px 0;
+    padding: 8px 20px;
+    background-color: var(--vscode-input-background);
+	color: var(--vscode-input-foreground);
+    border: none;
+    border-radius: 4px;
+    outline: none !important;
+	box-shadow: none !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.void-settings-watermark-button:hover {
+	filter: brightness(1.1);
+}
+.void-settings-watermark-button:active {
+	filter: brightness(1.1);
+}
+
+
+
+
+.void-link {
+	color: #3b82f6;
+	cursor: pointer;
 }

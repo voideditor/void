@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 
 import { Emitter, Event } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
@@ -66,7 +66,7 @@ let _computeModelOptions = (settingsOfProvider: SettingsOfProvider) => {
 	let modelOptions: ModelOption[] = []
 	for (const providerName of providerNames) {
 		const providerConfig = settingsOfProvider[providerName]
-		if (!providerConfig.enabled) continue // if disabled, don't display model options
+		if (!providerConfig._enabled) continue // if disabled, don't display model options
 		for (const { modelName, isHidden } of providerConfig.models) {
 			if (isHidden) continue
 			modelOptions.push({ text: `${modelName} (${providerName})`, value: { providerName, modelName } })
@@ -151,7 +151,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const newFeatureFlags = this.state.featureFlagSettings
 
 		// if changed models or enabled a provider, recompute models list
-		const modelsListChanged = settingName === 'models' || settingName === 'enabled'
+		const modelsListChanged = settingName === 'models' || settingName === '_enabled'
 		const newModelsList = modelsListChanged ? _computeModelOptions(newSettingsOfProvider) : this.state._modelOptions
 
 		const newState: VoidSettingsState = {
@@ -222,7 +222,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 	setDefaultModels(providerName: ProviderName, newDefaultModelNames: string[]) {
 		const { models } = this.state.settingsOfProvider[providerName]
-		const newDefaultModels = modelInfoOfDefaultNames(newDefaultModelNames)
+		const newDefaultModels = modelInfoOfDefaultNames(newDefaultModelNames, { isAutodetected: true, existingModels: models })
 		const newModels = [
 			...newDefaultModels,
 			...models.filter(m => !m.isDefault), // keep any non-default models

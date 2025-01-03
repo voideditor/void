@@ -20,6 +20,17 @@
 
 
 
+.inherit-bg-all-restyle > * {
+	background-color: inherit !important;
+}
+
+
+/* redefine sidebar background to editor background */
+.my-code-editor {
+	--vscode-sideBar-background: var(--vscode-editor-background);
+}
+
+
 
 /* html {
 	font-size: var(--vscode-font-size);

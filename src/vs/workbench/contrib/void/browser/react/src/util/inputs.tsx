@@ -303,14 +303,15 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 	const instantiationService = accessor.get('IInstantiationService')
 	const modelService = accessor.get('IModelService')
 	const languageDetectionService = accessor.get('ILanguageDetectionService')
+	const themeService = accessor.get('IThemeService')
 
 	initValue = normalizeIndentation(initValue)
 
 	return <div ref={divRef}>
 		<WidgetComponent
-			className='relative z-0 bg-void-bg-3' // text-sm
-			ctor={useCallback((container) =>
-				instantiationService.createInstance(
+			className='relative z-0 bg-red-500 @@my-code-editor' // text-sm
+			ctor={useCallback((container) => {
+				return instantiationService.createInstance(
 					CodeEditorWidget,
 					container,
 					{
@@ -354,7 +355,7 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 					{
 						isSimpleWidget: true,
 					})
-				, [instantiationService])
+			}, [instantiationService])
 			}
 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {

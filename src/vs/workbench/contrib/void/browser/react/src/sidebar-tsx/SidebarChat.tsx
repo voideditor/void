@@ -285,12 +285,12 @@ export const SelectedFiles = (
 							{/* selection summary */}
 							<div
 								// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
-								className={`flex items-center gap-1 relative
-									rounded-md p-1
+								className={`flex items-center gap-0.5 relative
+									rounded-md px-1
 									w-fit h-fit
 									select-none
 									bg-void-bg-3 hover:brightness-95
-									text-void-fg-3 text-xs text-nowrap
+									text-void-fg-1 text-xs text-nowrap
 									border border-vscode-commandcenter-border rounded-xs
 								`}
 								onClick={() => {
@@ -347,7 +347,7 @@ export const SelectedFiles = (
 							</div>
 							{/* selection text */}
 							{isThisSelectionOpened &&
-								<div className='w-full p-1 rounded-sm border-vscode-editor-border'>
+								<div className='w-full px-1 rounded-sm border-vscode-editor-border'>
 									<BlockCode text={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
 								</div>
 							}

@@ -404,9 +404,9 @@ export const Settings = () => {
 						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
 							onClick={() => { setTab('models') }}
 						>Models</button>
-						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'features' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
+						{/* <button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'features' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
 							onClick={() => { setTab('features') }}
-						>Features</button>
+						>Features</button> */}
 					</div>
 
 					{/* separator */}

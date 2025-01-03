@@ -1066,6 +1066,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			onFinishEdit()
 		}
 
+		// refresh now in case onText takes a while to get 1st message
+		this._refreshStylesAndDiffsInURI(uri)
+
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			featureName,
 			logging: { loggingName: `startApplying - ${featureName}` },

@@ -75,6 +75,7 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 - Make sure you follow the prerequisite steps.
 - Make sure you have the same NodeJS version as `.nvmrc`.
 - Make sure your `npm run watchreact` is running if you change any React files, or else you'll need to re-build.
+- If you see missing styles, go to `src2/styles.css` and re-save the file.
 - If you get `"TypeError: Failed to fetch dynamically imported module: vscode-file://vscode-app/.../workbench.desktop.main.js", source: file:///.../bootstrap-window.js`, make sure all imports end with `.js`.
 - If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). For building questions, you can also refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 

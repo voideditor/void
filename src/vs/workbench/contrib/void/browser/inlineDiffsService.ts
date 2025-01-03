@@ -210,9 +210,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			this._register(
 				model.onDidChangeContent(e => {
 					// it's as if we just called _write, now all we need to do is realign and refresh
-					const uri = model.uri
-
 					if (this.weAreWriting) return
+					const uri = model.uri
 					this._onUserChangeContent(uri, e)
 				})
 			)
@@ -244,6 +243,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	private _onInternalChangeContent(uri: URI, { shouldRealign }: { shouldRealign: false | { newText: string, oldRange: IRange } }) {
 		if (shouldRealign) {
 			const { newText, oldRange } = shouldRealign
+			console.log('realiging', newText, oldRange)
 			this._realignAllDiffAreasLines(uri, newText, oldRange)
 		}
 		this._refreshStylesAndDiffsInURI(uri)
@@ -816,49 +816,93 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// if streaming, use diffs to figure out where to write new code
 		// these are two different coordinate systems - new and old line number
-		let newFileEndLine: number // get file[diffArea.startLine...newFileEndLine] with line=newFileEndLine highlighted (line in the file, so starts at diffZone.startLine)
+		let newCodeEndLine: number // get file[diffArea.startLine...newFileEndLine] with line=newFileEndLine highlighted
 		let originalCodeStartLine: number // get original[oldStartingPoint...] (line in the original code, so starts at 1)
 
 		const lastDiff = computedDiffs.pop()
 
 		if (!lastDiff) {
+			console.log('!lastDiff')
 			// if the writing is identical so far, display no changes
 			originalCodeStartLine = 1
-			newFileEndLine = diffZone.startLine
+			newCodeEndLine = 1
 		}
 		else {
-			// add diffZone.startLine to convert to right coordinate system (line in file, not in diffarea)
 			originalCodeStartLine = lastDiff.originalStartLine
-			if (lastDiff.type === 'insertion')
-				newFileEndLine = (diffZone.startLine - 1) + lastDiff.endLine
+			if (lastDiff.type === 'insertion' || lastDiff.type === 'edit')
+				newCodeEndLine = lastDiff.endLine
 			else if (lastDiff.type === 'deletion')
-				newFileEndLine = (diffZone.startLine - 1) + lastDiff.startLine
-			else if (lastDiff.type === 'edit')
-				newFileEndLine = (diffZone.startLine - 1) + lastDiff.endLine
+				newCodeEndLine = lastDiff.startLine
 			else
 				throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
 		}
 
 
 		// lines are 1-indexed
-		const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1) + 1).join('\n')
-		const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), Infinity).join('\n')
+		const newCodeTop = llmText.split('\n').slice(0, (newCodeEndLine - 1) + 1).join('\n')
+		const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1) + 1, Infinity).join('\n')
 
-		const newCode = `${newFileTop}\n${oldFileBottom}`
+		const newCode = `${newCodeTop}\n${oldFileBottom}`
 
 		this._writeText(uri, newCode,
 			{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
 			{ shouldRealignDiffAreas: true }
 		)
 
-		diffZone._streamState.line = newFileEndLine
-
-
-		console.log('new DIFFZONE', diffZone.startLine, diffZone.endLine)
+		// add diffZone.startLine to convert to right coordinate system (line in file, not in diffarea)
+		diffZone._streamState.line = (diffZone.startLine - 1) + newCodeEndLine
 
 		return computedDiffs
 
 	}
+
+
+
+	// // if streaming, use diffs to figure out where to write new code
+	// 	// these are two different coordinate systems - new and old line number
+	// 	let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
+	// 	let originalCodeStartLine: number // get original[oldStartingPoint...]
+
+	// 	const lastDiff = computedDiffs.pop()
+
+	// 	if (!lastDiff) {
+	// 		// if the writing is identical so far, display no changes
+	// 		newFileEndLine = diffZone.startLine
+	// 		originalCodeStartLine = 1
+	// 	}
+	// 	else {
+	// 		if (lastDiff.type === 'insertion') {
+	// 			newFileEndLine = lastDiff.endLine
+	// 			originalCodeStartLine = lastDiff.originalStartLine
+	// 		}
+	// 		else if (lastDiff.type === 'deletion') {
+	// 			newFileEndLine = lastDiff.startLine
+	// 			originalCodeStartLine = lastDiff.originalStartLine
+	// 		}
+	// 		else if (lastDiff.type === 'edit') {
+	// 			newFileEndLine = lastDiff.endLine
+	// 			originalCodeStartLine = lastDiff.originalStartLine
+	// 		}
+	// 		else {
+	// 			throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
+	// 		}
+	// 	}
+
+	// 	diffZone._streamState.line = newFileEndLine
+
+	// 	// lines are 1-indexed
+	// 	const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1)).join('\n')
+	// 	const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), Infinity).join('\n')
+
+	// 	const newCode = `${newFileTop}\n${oldFileBottom}`
+
+	// 	this._writeText(uri, newCode,
+	// 		{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
+	// 		{ shouldRealignDiffAreas: true }
+	// 	)
+
+
+	// 	return computedDiffs
 
 
 
@@ -933,8 +977,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let endLine: number
 		let uri: URI
 		let userMessage: string
-
-		console.log('AA')
 
 		if (featureName === 'Ctrl+L') {
 

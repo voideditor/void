@@ -195,7 +195,7 @@ export const ModelDump = () => {
 
 			const disabled = !providerEnabled
 
-			return <div key={`${modelName}${providerName}`} className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default ${isNewProviderName ? 'mt-4' : ''}`}>
+			return <div key={`${modelName}${providerName}`} className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate ${isNewProviderName ? 'mt-4' : ''}`}>
 				{/* left part is width:full */}
 				<div className={`w-full flex items-center gap-4`}>
 					<span className='min-w-40'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
@@ -204,7 +204,7 @@ export const ModelDump = () => {
 				</div>
 				{/* right part is anything that fits */}
 				<div className='w-fit flex items-center gap-4'>
-					<span className='opacity-50 whitespace-nowrap'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
+				<span className='opacity-50'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
 
 					<VoidSwitch
 						value={disabled ? false : !isHidden}

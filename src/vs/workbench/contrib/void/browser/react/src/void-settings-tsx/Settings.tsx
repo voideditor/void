@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
@@ -420,7 +420,7 @@ export const Settings = () => {
 							<h2 className={`text-3xl mb-2`}>Local Providers</h2>
 							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
 							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Instructions:`}</h3> */}
-							<h3 className={`text-md mb-2`}>{`Void can access any model that you host locally. By default, we automatically detect your local models.`}</h3>
+							<h3 className={`text-md mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
 							<div className='pl-4 select-text opacity-50'>
 								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
 								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>

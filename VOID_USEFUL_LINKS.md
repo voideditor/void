@@ -32,6 +32,6 @@ Void is no longer an extension, so these links are no longer required, but they 
 
 - [The Full VSCode Extension API](https://code.visualstudio.com/api/references/vscode-api) - look on the right side for organization. The [bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page is easy to miss but is useful - cancellation tokens, events, disposables.
 
-- [Activation events](https://code.visualstudio.com/api/references/activation-events) you can define in `package.json` (not the most useful)
+- [Activation events](https://code.visualstudio.com/api/references/activation-events) you can define in `package.json` (not the most useful).
 
 

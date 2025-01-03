@@ -25,8 +25,7 @@
 }
 
 
-/* redefine sidebar background to editor background */
-.my-code-editor {
+.bg-editor-override {
 	--vscode-sideBar-background: var(--vscode-editor-background);
 }
 

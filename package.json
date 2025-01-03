@@ -6,7 +6,7 @@
   "author": {
     "name": "Glass Devtools, Inc."
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "main": "./out/main",
   "private": true,
   "scripts": {

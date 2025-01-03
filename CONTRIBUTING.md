@@ -43,19 +43,19 @@ First, run `npm install -g node-gyp`. Then:
 
 ### Building Void
 
-To build Void, open `void/` inside VSCode. Then:
+To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
 1. `npm install` to install all dependencies.
 2. `npm run watchreact` to build Void's browser dependencies like React.
-3. Build.
+3. Build Void.
 	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
    - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
    - This step can take ~5 min. The build is done when you see two check marks.
-4. Run.
+4. Run Void.
 	 - Run `./scripts/code.sh` (Mac/Linux).
    - Run `./scripts/code.bat` (Windows).
    - This command should open up the built IDE. You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>)  inside the new window to see changes without re-building, or press or <kbd>Ctrl+Shift+P</kbd> in the new window and run "Reload Window".
-
+	- If you would like to reset Void back to its default settings, you can run `./scripts/code.sh --user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` (mac). This will save all data and extensions to the `.tmp` folder. You can delete this folder to reset your settings.
 
 #### Building Void from Terminal
 

@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------*/
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
@@ -822,7 +822,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const lastDiff = computedDiffs.pop()
 
 		if (!lastDiff) {
-			console.log('!lastDiff')
 			// if the writing is identical so far, display no changes
 			originalCodeStartLine = 1
 			newCodeEndLine = 1

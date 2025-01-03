@@ -309,7 +309,7 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 	return <div ref={divRef}>
 		<WidgetComponent
-			className='relative z-0 @@bg-editor-override' // text-sm
+			className='relative z-0 @@bg-editor-style-override' // text-sm
 			ctor={useCallback((container) => {
 				return instantiationService.createInstance(
 					CodeEditorWidget,

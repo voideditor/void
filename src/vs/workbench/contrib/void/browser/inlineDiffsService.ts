@@ -739,9 +739,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		for (const diffareaid of this.diffAreasOfURI[model.uri.fsPath] || []) {
 			const diffArea = this.diffAreaOfId[diffareaid]
 
-			console.log('DA', diffArea.startLine, diffArea.endLine)
-			console.log('CHANGE', startLine, endLine)
-
 			// if the diffArea is entirely above the range, it is not affected
 			if (diffArea.endLine < startLine) {
 				// console.log('DA FULLY ABOVE (doing nothing)')
@@ -822,8 +819,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// if streaming, use diffs to figure out where to write new code
 		// these are two different coordinate systems - new and old line number
-		let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
-		let originalCodeStartLine: number // get original[oldStartingPoint...]
+		let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted (line in the file, so starts at diffZone.startLine)
+		let originalCodeStartLine: number // get original[oldStartingPoint...] (line in the original code, so starts at 1)
 
 		const lastDiff = computedDiffs.pop()
 
@@ -834,16 +831,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		else {
 			if (lastDiff.type === 'insertion') {
-				newFileEndLine = lastDiff.endLine
-				originalCodeStartLine = lastDiff.originalStartLine
+				newFileEndLine = (lastDiff.endLine - 1) + (diffZone.startLine - 1) + 1 // add diffZone.startLine to convert to right coordinate system (line in file, not in diffarea)
+				originalCodeStartLine = (lastDiff.originalStartLine - 1) + 1
 			}
 			else if (lastDiff.type === 'deletion') {
-				newFileEndLine = lastDiff.startLine
-				originalCodeStartLine = lastDiff.originalStartLine
+				newFileEndLine = (lastDiff.startLine - 1) + (diffZone.startLine - 1) + 1
+				originalCodeStartLine = (lastDiff.originalStartLine - 1) + 1
 			}
 			else if (lastDiff.type === 'edit') {
-				newFileEndLine = lastDiff.endLine
-				originalCodeStartLine = lastDiff.originalStartLine
+				newFileEndLine = (lastDiff.endLine) + (diffZone.startLine - 1) + 1
+				originalCodeStartLine = (lastDiff.originalStartLine - 1) + 1
 			}
 			else {
 				throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)

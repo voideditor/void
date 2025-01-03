@@ -144,8 +144,8 @@ export const defaultProviderSettings = {
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
-export const localProviderNames: ProviderName[] = ['ollama'] // all local names
-export const nonlocalProviderNames = providerNames.filter((name) => !localProviderNames.includes(name)) // all non-local names
+export const localProviderNames = ['ollama', 'openAICompatible'] satisfies ProviderName[] // all local names
+export const nonlocalProviderNames = providerNames.filter((name) => !(localProviderNames as string[]).includes(name)) // all non-local names
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
 type CustomProviderSettings<providerName extends ProviderName> = {
@@ -379,7 +379,7 @@ export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete'] as const
 
 
 // the models of these can be refreshed (in theory all can, but not all should)
-export const refreshableProviderNames = ['ollama', 'openAICompatible'] satisfies ProviderName[]
+export const refreshableProviderNames = localProviderNames
 export type RefreshableProviderName = typeof refreshableProviderNames[number]
 
 
@@ -405,7 +405,7 @@ type FeatureFlagDisplayInfo = {
 export const displayInfoOfFeatureFlag = (featureFlag: FeatureFlagName): FeatureFlagDisplayInfo => {
 	if (featureFlag === 'autoRefreshModels') {
 		return {
-			description: `Automatically detect local providers and models (like Ollama).`, // ${`refreshableProviderNames.map(providerName => titleOfProviderName(providerName)).join(', ')`}
+			description: `Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`,
 		}
 	}
 	throw new Error(`featureFlagInfo: Unknown feature flag: "${featureFlag}"`)

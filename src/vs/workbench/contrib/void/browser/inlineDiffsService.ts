@@ -117,7 +117,7 @@ type CtrlKZone = {
 	editorId: string; // the editor the input lives on
 
 	_mountInfo: null | {
-		inputBox: InputBox | null; // the input box that lives in the zone
+		inputBoxRef: { current: InputBox | null }; // the input box that lives in the zone
 		dispose: () => void;
 		refresh: () => void;
 	}
@@ -329,7 +329,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		let zoneId: string | null = null
 		let viewZone_: IViewZone | null = null
-		let inputBox_: InputBox | null = null
+		const inputBoxRef: { current: InputBox | null } = { current: null }
 
 		const itemId = this._consistentEditorItemService.addToEditor(editor, () => {
 			const domNode = document.createElement('div');
@@ -352,7 +352,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				mountCtrlK(domNode, accessor, {
 					diffareaid: ctrlKZone.diffareaid,
 					onGetInputBox: (inputBox) => {
-						inputBox_ = inputBox
+						inputBoxRef.current = inputBox
 						// if it's mounting for the first time, focus it
 						if (!(ctrlKZone.diffareaid in this.mostRecentTextOfCtrlKZoneId)) { // detect first mount this way (a hack)
 							this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = undefined
@@ -381,10 +381,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			})
 		})
 
-
-
 		return {
-			inputBox: inputBox_,
+			inputBoxRef,
 			refresh: () => editor.changeViewZones(accessor => {
 				if (zoneId && viewZone_) {
 					viewZone_.afterLineNumber = ctrlKZone.startLine - 1
@@ -394,7 +392,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			dispose: () => {
 				this._consistentEditorItemService.removeFromEditor(itemId)
 			},
-		}
+		} satisfies CtrlKZone['_mountInfo']
 	}
 
 
@@ -405,6 +403,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (diffArea.type !== 'CtrlKZone') continue
 			if (!diffArea._mountInfo) {
 				diffArea._mountInfo = this._addCtrlKZoneInput(diffArea)
+				console.log('MOUNTED', diffArea.diffareaid)
 			}
 			else {
 				diffArea._mountInfo.refresh()
@@ -887,7 +886,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (diffArea.type !== 'CtrlKZone') continue
 			const noOverlap = diffArea.startLine > endLine || diffArea.endLine < startLine
 			if (!noOverlap) {
-				setTimeout(() => diffArea._mountInfo?.inputBox?.focus(), 0)
+				setTimeout(() => diffArea._mountInfo?.inputBoxRef.current?.focus(), 0)
 				return
 			}
 		}
@@ -943,6 +942,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let uri: URI
 		let userMessage: string
 
+		console.log('AA')
+
 		if (featureName === 'Ctrl+L') {
 
 			const uri_ = this._getActiveEditorURI()
@@ -983,13 +984,12 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			startLine = startLine_
 			endLine = endLine_
 
-			if (!_mountInfo?.inputBox) return
-			userMessage = _mountInfo.inputBox?.value
+			if (!_mountInfo?.inputBoxRef.current) return
+			userMessage = _mountInfo.inputBoxRef.current?.value
 		}
 		else {
 			throw new Error(`Void: diff.type not recognized on: ${featureName}`)
 		}
-
 
 		const currentFileStr = this._readURI(uri)
 		if (currentFileStr === null) return

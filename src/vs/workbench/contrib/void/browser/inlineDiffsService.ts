@@ -136,7 +136,7 @@ type DiffZone = {
 	} | {
 		isStreaming: false;
 		streamRequestIdRef?: undefined;
-		line: null;
+		line?: undefined;
 	};
 	editorId?: undefined;
 } & CommonZoneProps
@@ -578,10 +578,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						type: 'DiffZone',
 						_diffOfId: {},
 						_URI: uri,
-						_streamState: {
-							isStreaming: false,
-							line: null,
-						} as const,
+						_streamState: { isStreaming: false },
 						_removeStylesFns: new Set(),
 					}
 				}
@@ -741,12 +738,12 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 			// if the diffArea is entirely above the range, it is not affected
 			if (diffArea.endLine < startLine) {
-				// console.log('DA FULLY ABOVE (doing nothing)')
+				// console.log('CHANGE FULLY BELOW DA (doing nothing)')
 				continue
 			}
 			// if a diffArea is entirely below the range, shift the diffArea up/down by the delta amount of newlines
 			else if (endLine < diffArea.startLine) {
-				// console.log('DA FULLY BELOW')
+				// console.log('CHANGE FULLY ABOVE DA')
 				const changedRangeHeight = endLine - startLine + 1
 				const deltaNewlines = newTextHeight - changedRangeHeight
 				diffArea.startLine += deltaNewlines
@@ -767,7 +764,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}
 			// if the change contains only the diffArea's top
 			else if (startLine < diffArea.startLine && diffArea.startLine <= endLine) {
-				// console.log('TOP ONLY')
+				// console.log('CHANGE CONTAINS TOP OF DA ONLY')
 				const numOverlappingLines = endLine - diffArea.startLine + 1
 				const numRemainingLinesInDA = diffArea.endLine - diffArea.startLine + 1 - numOverlappingLines
 				const newHeight = (numRemainingLinesInDA - 1) + (newTextHeight - 1) + 1
@@ -776,7 +773,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}
 			// if the change contains only the diffArea's bottom
 			else if (startLine <= diffArea.endLine && diffArea.endLine < endLine) {
-				// console.log('BOTTOM ONLY')
+				// console.log('CHANGE CONTAINS BOTTOM OF DA ONLY')
 				const numOverlappingLines = diffArea.endLine - startLine + 1
 				diffArea.endLine += newTextHeight - numOverlappingLines
 			}
@@ -819,38 +816,32 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// if streaming, use diffs to figure out where to write new code
 		// these are two different coordinate systems - new and old line number
-		let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted (line in the file, so starts at diffZone.startLine)
+		let newFileEndLine: number // get file[diffArea.startLine...newFileEndLine] with line=newFileEndLine highlighted (line in the file, so starts at diffZone.startLine)
 		let originalCodeStartLine: number // get original[oldStartingPoint...] (line in the original code, so starts at 1)
 
 		const lastDiff = computedDiffs.pop()
 
 		if (!lastDiff) {
 			// if the writing is identical so far, display no changes
-			newFileEndLine = diffZone.startLine
 			originalCodeStartLine = 1
+			newFileEndLine = diffZone.startLine
 		}
 		else {
-			if (lastDiff.type === 'insertion') {
-				newFileEndLine = (lastDiff.endLine - 1) + (diffZone.startLine - 1) + 1 // add diffZone.startLine to convert to right coordinate system (line in file, not in diffarea)
-				originalCodeStartLine = (lastDiff.originalStartLine - 1) + 1
-			}
-			else if (lastDiff.type === 'deletion') {
-				newFileEndLine = (lastDiff.startLine - 1) + (diffZone.startLine - 1) + 1
-				originalCodeStartLine = (lastDiff.originalStartLine - 1) + 1
-			}
-			else if (lastDiff.type === 'edit') {
-				newFileEndLine = (lastDiff.endLine) + (diffZone.startLine - 1) + 1
-				originalCodeStartLine = (lastDiff.originalStartLine - 1) + 1
-			}
-			else {
+			// add diffZone.startLine to convert to right coordinate system (line in file, not in diffarea)
+			originalCodeStartLine = lastDiff.originalStartLine
+			if (lastDiff.type === 'insertion')
+				newFileEndLine = (diffZone.startLine - 1) + lastDiff.endLine
+			else if (lastDiff.type === 'deletion')
+				newFileEndLine = (diffZone.startLine - 1) + lastDiff.startLine
+			else if (lastDiff.type === 'edit')
+				newFileEndLine = (diffZone.startLine - 1) + lastDiff.endLine
+			else
 				throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
-			}
 		}
 
-		diffZone._streamState.line = newFileEndLine
 
 		// lines are 1-indexed
-		const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1)).join('\n')
+		const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1) + 1).join('\n')
 		const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), Infinity).join('\n')
 
 		const newCode = `${newFileTop}\n${oldFileBottom}`
@@ -860,6 +851,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			{ shouldRealignDiffAreas: true }
 		)
 
+		diffZone._streamState.line = newFileEndLine
+
+
+		console.log('new DIFFZONE', diffZone.startLine, diffZone.endLine)
 
 		return computedDiffs
 
@@ -900,7 +895,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_mountInfo: null,
 		}
 		const ctrlKZone = this._addDiffArea(adding)
-
 		this._refreshStylesAndDiffsInURI(uri)
 
 		onFinishEdit()
@@ -915,6 +909,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const uri = ctrlKZone._URI
 		const { onFinishEdit } = this._addToHistory(uri)
 		this._deleteCtrlKZone(ctrlKZone)
+		this._refreshStylesAndDiffsInURI(uri)
 		onFinishEdit()
 	}
 
@@ -1052,7 +1047,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const latestOriginalFileStart: IPosition = { lineNumber: 1, column: 1 }
 
 		const onDone = () => {
-			diffZone._streamState = { isStreaming: false, line: null }
+			diffZone._streamState = { isStreaming: false, }
 
 			if (featureName === 'Ctrl+K') {
 				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
@@ -1108,11 +1103,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		this._llmMessageService.abort(streamRequestId)
 
-		diffZone._streamState = {
-			isStreaming: false,
-			streamRequestIdRef: undefined,
-			line: null
-		}
+		diffZone._streamState = { isStreaming: false, }
 
 	}
 

@@ -385,12 +385,6 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultProviderSettings.mistral,
 		...voidInitModelOptions.mistral,
 		_enabled: undefined,
-	},
-	mistral: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.mistral,
-		...voidInitModelOptions.mistral,
-		_enabled: undefined,
 	}
 }
 

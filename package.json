@@ -3,8 +3,10 @@
   "productName": "Void",
   "version": "1.94.0",
   "distro": "this is a commit number if we want to publish on npm",
+  "homepage": "https://voideditor.com",
   "author": {
-    "name": "Glass Devtools, Inc."
+    "name": "Glass Devtools, Inc.",
+    "email": "andrew@voideditor.com"
   },
   "license": "MIT",
   "main": "./out/main",

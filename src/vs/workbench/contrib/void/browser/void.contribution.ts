@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------------------------
+ *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
+ *  Void Editor licensed under the AGPL 3.0 License. See LICENSE.txt in the project root for more information.
+ *-----------------------------------------------------------------------------------------------------------*/
 
 
 // register inline diffs

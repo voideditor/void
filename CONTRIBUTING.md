@@ -140,31 +140,3 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 ## References
 
 For some useful links we've compiled on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
-
-
-### Advanced Builder shortcuts (if you are here, you RTFM till the end so you deserve it 😉)
-1. Install dependencies and build the react components
-`npm install && cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../..`
-
-2. Develop the things you want then :
-`npm run watch`
-Wait for the watch task to be done
-While the watch task is running open a new terminal then build
-
-NOTE : It's even possible to combine the 1. and 2. commands :
-`npm install && cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../.. && npm run watch`
-But you allready knew it 🤓. This is just useless because the watch task will need to be done again if you are not recloning the repo and building the react components.
-
-3. Build
-### On Mac
-`./scripts/code.sh`
-Using <kbd>⌘ + ⇥ (tab)</kbd> to get focus to the editor window or by clic on it
-<kbd>⌘ + R</kbd> is reloading the window to see changes
-
-### On Windows
-`./scripts/code.bat`
-- Press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes
-
-### On Linux
-`./scripts/code.sh`
-Press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes

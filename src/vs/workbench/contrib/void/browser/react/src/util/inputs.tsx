@@ -301,7 +301,7 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 	return <div ref={divRef}>
 		<WidgetComponent
-			className='relative z-0 text-sm !bg-vscode-editor-bg'
+			className='relative z-0 text-sm bg-vscode-editor-bg'
 			ctor={useCallback((container) =>
 				instantiationService.createInstance(
 					CodeEditorWidget,

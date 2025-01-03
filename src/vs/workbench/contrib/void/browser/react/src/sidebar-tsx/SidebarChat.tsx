@@ -276,11 +276,11 @@ export const SelectedFiles = (
 			>
 				{selections.map((selection, i) => {
 
-					const showSelectionText = !!(selection.selectionStr && selectionIsOpened[i])
+					const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
 
 					return (
 						<div key={i} // container for `selectionSummary` and `selectionText`
-							className={`${showSelectionText ? 'w-full' : ''}`}
+							className={`${isThisSelectionOpened ? 'w-full' : ''}`}
 						>
 							{/* selection summary */}
 							<div
@@ -346,8 +346,8 @@ export const SelectedFiles = (
 
 							</div>
 							{/* selection text */}
-							{showSelectionText &&
-								<div className='w-full p-1 rounded-sm border-vscode-editor-border bg-vscode-sidebar-bg'>
+							{isThisSelectionOpened &&
+								<div className='w-full p-1 rounded-sm border-vscode-editor-border'>
 									<BlockCode text={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
 								</div>
 							}
@@ -383,19 +383,15 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 	}
 
 	return <div
-		// align chatbubble accoridng to role
-		className={`
-			${role === 'user' ? 'self-end' : 'self-start'}
-			${role === 'assistant' ? 'w-full' : ''}
-		`}
+		// style + align chatbubble accoridng to role
+		className={`p-2 mx-2 text-left space-y-2 rounded-lg max-w-full
+				${role === 'user' ? 'self-end' : 'self-start'}
+				${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''}
+				${role === 'assistant' ? 'w-full' : ''}
+			`}
 	>
-		<div
-			// style chatbubble
-			className={`p-2 mx-2 text-left space-y-2 rounded-lg ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}
-		>
-			{chatbubbleContents}
-			{isLoading && <IconLoading className='opacity-50 text-sm' />}
-		</div>
+		{chatbubbleContents}
+		{isLoading && <IconLoading className='opacity-50 text-sm' />}
 	</div>
 }
 

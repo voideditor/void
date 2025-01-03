@@ -195,7 +195,7 @@ export const ModelDump = () => {
 
 			const disabled = !providerEnabled
 
-			return <div key={`${modelName}${providerName}`} className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default ${isNewProviderName ? 'mt-4' : ''}`}>
+			return <div key={`${modelName}${providerName}`} className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate ${isNewProviderName ? 'mt-4' : ''}`}>
 				{/* left part is width:full */}
 				<div className={`w-full flex items-center gap-4`}>
 					<span className='min-w-40'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
@@ -204,7 +204,7 @@ export const ModelDump = () => {
 				</div>
 				{/* right part is anything that fits */}
 				<div className='w-fit flex items-center gap-4'>
-					<span className='opacity-50 whitespace-nowrap'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
+				<span className='opacity-50'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
 
 					<VoidSwitch
 						value={disabled ? false : !isHidden}
@@ -420,13 +420,12 @@ export const Settings = () => {
 							<h2 className={`text-3xl mb-2`}>Local Providers</h2>
 							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
 							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Instructions:`}</h3> */}
-							<h3 className={`text-md opacity-50 mb-2`}>{`Void can access any model that you host locally.`}</h3>
-							<div className='pl-4 select-text'>
-								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
-								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
-								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama model which is competitive with GPT-series models, and requires 5GB of memory.`} /></h4>
-								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This is a faster autocomplete model and requires 1GB of memory.`} /></h4>
-								<h4 className={`text-xs opacity-50 mb-2`}><ChatMarkdownRender string={`5. Void will automatically detect your Ollama models. You can customize the endpoint and models below.`} /></h4>
+							<h3 className={`text-md mb-2`}>{`Void can access any model that you host locally. By default, we automatically detect your local models.`}</h3>
+							<div className='pl-4 select-text opacity-50'>
+								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
+								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
+								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama model which is competitive with GPT-series models. It requires 5GB of memory.`} /></h4>
+								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This is a faster autocomplete model and requires 1GB of memory.`} /></h4>
 								{/* TODO we should create UI for downloading models without user going into terminal */}
 							</div>
 
@@ -435,7 +434,7 @@ export const Settings = () => {
 							</ErrorBoundary>
 
 							<h2 className={`text-3xl mb-2 mt-16`}>More Providers</h2>
-							<h3 className={`text-md opacity-50 mb-2`}>{`Void can also access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI.`}</h3>
+							<h3 className={`text-md mb-2`}>{`Void can also access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI.`}</h3>
 							{/* <h3 className={`text-md opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3> */}
 							<ErrorBoundary>
 								<VoidProviderSettings providerNames={nonlocalProviderNames} />

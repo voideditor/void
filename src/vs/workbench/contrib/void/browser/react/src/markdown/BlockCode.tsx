@@ -70,7 +70,6 @@ export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, bu
 
 	return (<>
 		<div className={`relative group w-full bg-vscode-editor-bg overflow-hidden isolate`}>
-
 			{buttonsOnHover === null ? null : (
 				<div className="z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200">
 					<div className={`flex space-x-2 ${isSingleLine ? '' : 'p-2'}`}>{buttonsOnHover}</div>

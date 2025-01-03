@@ -117,7 +117,7 @@ type CtrlKZone = {
 	editorId: string; // the editor the input lives on
 
 	_mountInfo: null | {
-		inputBox: InputBox | null; // the input box that lives in the zone
+		inputBoxRef: { current: InputBox | null }; // the input box that lives in the zone
 		dispose: () => void;
 		refresh: () => void;
 	}
@@ -136,7 +136,7 @@ type DiffZone = {
 	} | {
 		isStreaming: false;
 		streamRequestIdRef?: undefined;
-		line: null;
+		line?: undefined;
 	};
 	editorId?: undefined;
 } & CommonZoneProps
@@ -210,9 +210,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			this._register(
 				model.onDidChangeContent(e => {
 					// it's as if we just called _write, now all we need to do is realign and refresh
-					const uri = model.uri
-
 					if (this.weAreWriting) return
+					const uri = model.uri
 					this._onUserChangeContent(uri, e)
 				})
 			)
@@ -244,6 +243,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	private _onInternalChangeContent(uri: URI, { shouldRealign }: { shouldRealign: false | { newText: string, oldRange: IRange } }) {
 		if (shouldRealign) {
 			const { newText, oldRange } = shouldRealign
+			console.log('realiging', newText, oldRange)
 			this._realignAllDiffAreasLines(uri, newText, oldRange)
 		}
 		this._refreshStylesAndDiffsInURI(uri)
@@ -329,7 +329,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		let zoneId: string | null = null
 		let viewZone_: IViewZone | null = null
-		let inputBox_: InputBox | null = null
+		const inputBoxRef: { current: InputBox | null } = { current: null }
 
 		const itemId = this._consistentEditorItemService.addToEditor(editor, () => {
 			const domNode = document.createElement('div');
@@ -352,7 +352,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				mountCtrlK(domNode, accessor, {
 					diffareaid: ctrlKZone.diffareaid,
 					onGetInputBox: (inputBox) => {
-						inputBox_ = inputBox
+						inputBoxRef.current = inputBox
 						// if it's mounting for the first time, focus it
 						if (!(ctrlKZone.diffareaid in this.mostRecentTextOfCtrlKZoneId)) { // detect first mount this way (a hack)
 							this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = undefined
@@ -381,10 +381,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			})
 		})
 
-
-
 		return {
-			inputBox: inputBox_,
+			inputBoxRef,
 			refresh: () => editor.changeViewZones(accessor => {
 				if (zoneId && viewZone_) {
 					viewZone_.afterLineNumber = ctrlKZone.startLine - 1
@@ -394,7 +392,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			dispose: () => {
 				this._consistentEditorItemService.removeFromEditor(itemId)
 			},
-		}
+		} satisfies CtrlKZone['_mountInfo']
 	}
 
 
@@ -405,6 +403,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (diffArea.type !== 'CtrlKZone') continue
 			if (!diffArea._mountInfo) {
 				diffArea._mountInfo = this._addCtrlKZoneInput(diffArea)
+				console.log('MOUNTED', diffArea.diffareaid)
 			}
 			else {
 				diffArea._mountInfo.refresh()
@@ -579,10 +578,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						type: 'DiffZone',
 						_diffOfId: {},
 						_URI: uri,
-						_streamState: {
-							isStreaming: false,
-							line: null,
-						} as const,
+						_streamState: { isStreaming: false },
 						_removeStylesFns: new Set(),
 					}
 				}
@@ -740,17 +736,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		for (const diffareaid of this.diffAreasOfURI[model.uri.fsPath] || []) {
 			const diffArea = this.diffAreaOfId[diffareaid]
 
-			console.log('DA', diffArea.startLine, diffArea.endLine)
-			console.log('CHANGE', startLine, endLine)
-
 			// if the diffArea is entirely above the range, it is not affected
 			if (diffArea.endLine < startLine) {
-				// console.log('DA FULLY ABOVE (doing nothing)')
+				// console.log('CHANGE FULLY BELOW DA (doing nothing)')
 				continue
 			}
 			// if a diffArea is entirely below the range, shift the diffArea up/down by the delta amount of newlines
 			else if (endLine < diffArea.startLine) {
-				// console.log('DA FULLY BELOW')
+				// console.log('CHANGE FULLY ABOVE DA')
 				const changedRangeHeight = endLine - startLine + 1
 				const deltaNewlines = newTextHeight - changedRangeHeight
 				diffArea.startLine += deltaNewlines
@@ -771,7 +764,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}
 			// if the change contains only the diffArea's top
 			else if (startLine < diffArea.startLine && diffArea.startLine <= endLine) {
-				// console.log('TOP ONLY')
+				// console.log('CHANGE CONTAINS TOP OF DA ONLY')
 				const numOverlappingLines = endLine - diffArea.startLine + 1
 				const numRemainingLinesInDA = diffArea.endLine - diffArea.startLine + 1 - numOverlappingLines
 				const newHeight = (numRemainingLinesInDA - 1) + (newTextHeight - 1) + 1
@@ -780,7 +773,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}
 			// if the change contains only the diffArea's bottom
 			else if (startLine <= diffArea.endLine && diffArea.endLine < endLine) {
-				// console.log('BOTTOM ONLY')
+				// console.log('CHANGE CONTAINS BOTTOM OF DA ONLY')
 				const numOverlappingLines = diffArea.endLine - startLine + 1
 				diffArea.endLine += newTextHeight - numOverlappingLines
 			}
@@ -823,51 +816,93 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// if streaming, use diffs to figure out where to write new code
 		// these are two different coordinate systems - new and old line number
-		let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
-		let originalCodeStartLine: number // get original[oldStartingPoint...]
+		let newCodeEndLine: number // get file[diffArea.startLine...newFileEndLine] with line=newFileEndLine highlighted
+		let originalCodeStartLine: number // get original[oldStartingPoint...] (line in the original code, so starts at 1)
 
 		const lastDiff = computedDiffs.pop()
 
 		if (!lastDiff) {
+			console.log('!lastDiff')
 			// if the writing is identical so far, display no changes
-			newFileEndLine = diffZone.startLine
 			originalCodeStartLine = 1
+			newCodeEndLine = 1
 		}
 		else {
-			if (lastDiff.type === 'insertion') {
-				newFileEndLine = lastDiff.endLine
-				originalCodeStartLine = lastDiff.originalStartLine
-			}
-			else if (lastDiff.type === 'deletion') {
-				newFileEndLine = lastDiff.startLine
-				originalCodeStartLine = lastDiff.originalStartLine
-			}
-			else if (lastDiff.type === 'edit') {
-				newFileEndLine = lastDiff.endLine
-				originalCodeStartLine = lastDiff.originalStartLine
-			}
-			else {
+			originalCodeStartLine = lastDiff.originalStartLine
+			if (lastDiff.type === 'insertion' || lastDiff.type === 'edit')
+				newCodeEndLine = lastDiff.endLine
+			else if (lastDiff.type === 'deletion')
+				newCodeEndLine = lastDiff.startLine
+			else
 				throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
-			}
 		}
 
-		diffZone._streamState.line = newFileEndLine
 
 		// lines are 1-indexed
-		const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1)).join('\n')
-		const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), Infinity).join('\n')
+		const newCodeTop = llmText.split('\n').slice(0, (newCodeEndLine - 1) + 1).join('\n')
+		const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1) + 1, Infinity).join('\n')
 
-		const newCode = `${newFileTop}\n${oldFileBottom}`
+		const newCode = `${newCodeTop}\n${oldFileBottom}`
 
 		this._writeText(uri, newCode,
 			{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
 			{ shouldRealignDiffAreas: true }
 		)
 
+		// add diffZone.startLine to convert to right coordinate system (line in file, not in diffarea)
+		diffZone._streamState.line = (diffZone.startLine - 1) + newCodeEndLine
 
 		return computedDiffs
 
 	}
+
+
+
+	// // if streaming, use diffs to figure out where to write new code
+	// 	// these are two different coordinate systems - new and old line number
+	// 	let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
+	// 	let originalCodeStartLine: number // get original[oldStartingPoint...]
+
+	// 	const lastDiff = computedDiffs.pop()
+
+	// 	if (!lastDiff) {
+	// 		// if the writing is identical so far, display no changes
+	// 		newFileEndLine = diffZone.startLine
+	// 		originalCodeStartLine = 1
+	// 	}
+	// 	else {
+	// 		if (lastDiff.type === 'insertion') {
+	// 			newFileEndLine = lastDiff.endLine
+	// 			originalCodeStartLine = lastDiff.originalStartLine
+	// 		}
+	// 		else if (lastDiff.type === 'deletion') {
+	// 			newFileEndLine = lastDiff.startLine
+	// 			originalCodeStartLine = lastDiff.originalStartLine
+	// 		}
+	// 		else if (lastDiff.type === 'edit') {
+	// 			newFileEndLine = lastDiff.endLine
+	// 			originalCodeStartLine = lastDiff.originalStartLine
+	// 		}
+	// 		else {
+	// 			throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
+	// 		}
+	// 	}
+
+	// 	diffZone._streamState.line = newFileEndLine
+
+	// 	// lines are 1-indexed
+	// 	const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1)).join('\n')
+	// 	const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), Infinity).join('\n')
+
+	// 	const newCode = `${newFileTop}\n${oldFileBottom}`
+
+	// 	this._writeText(uri, newCode,
+	// 		{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
+	// 		{ shouldRealignDiffAreas: true }
+	// 	)
+
+
+	// 	return computedDiffs
 
 
 
@@ -887,7 +922,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (diffArea.type !== 'CtrlKZone') continue
 			const noOverlap = diffArea.startLine > endLine || diffArea.endLine < startLine
 			if (!noOverlap) {
-				setTimeout(() => diffArea._mountInfo?.inputBox?.focus(), 0)
+				setTimeout(() => diffArea._mountInfo?.inputBoxRef.current?.focus(), 0)
 				return
 			}
 		}
@@ -904,7 +939,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_mountInfo: null,
 		}
 		const ctrlKZone = this._addDiffArea(adding)
-
 		this._refreshStylesAndDiffsInURI(uri)
 
 		onFinishEdit()
@@ -919,6 +953,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const uri = ctrlKZone._URI
 		const { onFinishEdit } = this._addToHistory(uri)
 		this._deleteCtrlKZone(ctrlKZone)
+		this._refreshStylesAndDiffsInURI(uri)
 		onFinishEdit()
 	}
 
@@ -983,13 +1018,12 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			startLine = startLine_
 			endLine = endLine_
 
-			if (!_mountInfo?.inputBox) return
-			userMessage = _mountInfo.inputBox?.value
+			if (!_mountInfo?.inputBoxRef.current) return
+			userMessage = _mountInfo.inputBoxRef.current?.value
 		}
 		else {
 			throw new Error(`Void: diff.type not recognized on: ${featureName}`)
 		}
-
 
 		const currentFileStr = this._readURI(uri)
 		if (currentFileStr === null) return
@@ -1055,7 +1089,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const latestOriginalFileStart: IPosition = { lineNumber: 1, column: 1 }
 
 		const onDone = () => {
-			diffZone._streamState = { isStreaming: false, line: null }
+			diffZone._streamState = { isStreaming: false, }
 
 			if (featureName === 'Ctrl+K') {
 				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
@@ -1111,11 +1145,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		this._llmMessageService.abort(streamRequestId)
 
-		diffZone._streamState = {
-			isStreaming: false,
-			streamRequestIdRef: undefined,
-			line: null
-		}
+		diffZone._streamState = { isStreaming: false, }
 
 	}
 

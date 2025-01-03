@@ -4,7 +4,7 @@
 	"applicationName": "void",
 	"dataFolderName": ".void-editor",
 	"win32MutexName": "voideditor",
-	"licenseName": "MIT",
+	"licenseName": "AGPL 3.0",
 	"licenseUrl": "https://github.com/voideditor/void/blob/main/LICENSE.txt",
 	"serverLicenseUrl": "https://github.com/voideditor/void/blob/main/LICENSE.txt",
 	"serverGreeting": [],

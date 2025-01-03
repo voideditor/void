@@ -1,3 +1,9 @@
+Void is a fork of VS Code, which is licensed under the MIT License (below).
+Void's additions and modifications are licensed under the AGPL 3.0 License
+(see LICENSE.txt).
+
+--------------------
+
 MIT License
 
 Copyright (c) 2015 - present Microsoft Corporation

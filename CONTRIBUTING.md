@@ -83,13 +83,13 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 
 ## Bundling
 
-We don't usually recommend bundling. Instead, you should probably just build. If you're sure you want to bundle Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` (or similar) in the repo's parent's directory(Refer the Folder structure below). Be patient - compiling can take ~25 minutes.
+We don't usually recommend bundling. Instead, you should probably just build. If you're sure you want to bundle Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). Be patient - compiling can take ~25 minutes.
 
 ```bash
 workspace/
 ├── void/   # Your Void Fork
 ├── VSCode-linux-x64/ # Build folder generated outside of void for Linux
-└── VSCode-darwin-arm64/ # Build folder generated outside of void for MacOs
+└── VSCode-darwin-arm64/ # Build folder generated outside of void for Mac
 
 ```
 

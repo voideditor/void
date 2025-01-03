@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Glass Devtools, Inc. All rights reserved.
+ *  Void Editor additions licensed under the AGPL 3.0 License.
+ *--------------------------------------------------------------------------------------------*/
+
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
@@ -45,7 +50,6 @@ class VoidQuickEditStateService extends Disposable implements IQuickEditStateSer
 	state: VoidQuickEditState
 
 	constructor(
-		// @IViewsService private readonly _viewsService: IViewsService,
 	) {
 		super()
 
@@ -55,10 +59,6 @@ class VoidQuickEditStateService extends Disposable implements IQuickEditStateSer
 
 
 	setState(newState: Partial<VoidQuickEditState>) {
-		// make sure view is open if the tab changes
-		// if ('currentTab' in newState) {
-		// 	this.addQuickEdit()
-		// }
 
 		this.state = { ...this.state, ...newState }
 		this._onDidChangeState.fire()
@@ -71,11 +71,6 @@ class VoidQuickEditStateService extends Disposable implements IQuickEditStateSer
 	fireBlurChat() {
 		this._onBlurChat.fire()
 	}
-
-	// addQuickEdit() {
-	// 	this._viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID);
-	// 	this._viewsService.openView(VOID_VIEW_ID);
-	// }
 
 }
 

@@ -54,7 +54,7 @@ To build Void, open `void/` inside VSCode. Then:
 4. Run.
 	 - Run `./scripts/code.sh` (Mac/Linux).
    - Run `./scripts/code.bat` (Windows).
-   - This command should open up the built IDE. You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building, unless they're React changes.
+   - This command should open up the built IDE. You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>)  inside the new window to see changes without re-building, or press or <kbd>Ctrl+Shift+P</kbd> in the new window and run "Reload Window".
 
 
 #### Building Void from Terminal
@@ -77,7 +77,6 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 - Make sure your `npm run watchreact` is running if you change any React files, or else you'll need to re-build.
 - If you get `"TypeError: Failed to fetch dynamically imported module: vscode-file://vscode-app/.../workbench.desktop.main.js", source: file:///.../bootstrap-window.js`, make sure all imports end with `.js`.
 - If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). For building questions, you can also refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
-
 
 
 

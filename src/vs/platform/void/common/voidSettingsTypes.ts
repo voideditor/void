@@ -11,12 +11,32 @@ export type VoidModelInfo = {
 	modelName: string,
 	isDefault: boolean, // whether or not it's a default for its provider
 	isHidden: boolean, // whether or not the user is hiding it
+	isAutodetected?: boolean, // whether the model was autodetected by polling
 }
 
+type ModelInfoOfDefaultNamesOptions = { isAutodetected: true, existingModels: VoidModelInfo[] } // | { isOtherOption: true, ...otherOptions }
+export const modelInfoOfDefaultNames = (modelNames: string[], options?: ModelInfoOfDefaultNamesOptions): VoidModelInfo[] => {
 
-export const modelInfoOfDefaultNames = (modelNames: string[]): VoidModelInfo[] => {
+	const { isAutodetected, existingModels } = options ?? {}
+	const isDefault = true
 	const isHidden = modelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
-	return modelNames.map((modelName, i) => ({ modelName, isDefault: true, isHidden }))
+
+	if (!existingModels) {
+
+		return modelNames.map((modelName, i) => ({ modelName, isDefault, isAutodetected, isHidden, }))
+
+	} else {
+		// keep existing `isHidden` property
+
+		const existingModelsMap: Record<string, VoidModelInfo> = {}
+		for (const em of existingModels) {
+			existingModelsMap[em.modelName] = em
+		}
+
+		return modelNames.map((modelName, i) => ({ modelName, isDefault, isAutodetected, isHidden: !!existingModelsMap[modelName]?.isHidden, }))
+
+	}
+
 }
 
 // https://docs.anthropic.com/en/docs/about-claude/models
@@ -121,11 +141,11 @@ export const defaultProviderSettings = {
 	}
 } as const
 
-
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
-
+export const localProviderNames: ProviderName[] = ['ollama'] // all local names
+export const nonlocalProviderNames = providerNames.filter((name) => !localProviderNames.includes(name)) // all non-local names
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
 type CustomProviderSettings<providerName extends ProviderName> = {
@@ -137,7 +157,7 @@ export const customSettingNamesOfProvider = (providerName: ProviderName) => {
 
 
 type CommonProviderSettings = {
-	enabled: boolean | undefined, // undefined initially
+	_enabled: boolean | undefined, // undefined initially, computed when user types in all fields
 	models: VoidModelInfo[],
 }
 
@@ -183,7 +203,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'openAICompatible') {
 		return {
-			title: 'OpenAI-Compatible',
+			title: 'Other',
 		}
 	}
 	else if (providerName === 'gemini') {
@@ -222,7 +242,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 					providerName === 'openRouter' ? 'Get your [API Key here](https://openrouter.ai/settings/keys).' :
 						providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 							providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
-								providerName === 'openAICompatible' ? undefined :
+								providerName === 'openAICompatible' ? 'Add any OpenAI-Compatible endpoint.' :
 									undefined,
 		}
 	}
@@ -236,11 +256,11 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
 
-			subTextMd: providerName === 'ollama' ? 'Read about Ollama [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
+			subTextMd: providerName === 'ollama' ? 'Read about advanced [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
 				undefined,
 		}
 	}
-	else if (settingName === 'enabled') {
+	else if (settingName === '_enabled') {
 		return {
 			title: '(never)',
 			placeholder: '(never)',
@@ -293,13 +313,13 @@ export const voidInitModelOptions = {
 // used when waiting and for a type reference
 export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
-		enabled: undefined,
+		_enabled: undefined,
 		...defaultCustomSettings,
 		...defaultProviderSettings.anthropic,
 		...voidInitModelOptions.anthropic,
 	},
 	openAI: {
-		enabled: undefined,
+		_enabled: undefined,
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
@@ -308,31 +328,31 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.gemini,
 		...voidInitModelOptions.gemini,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 	groq: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.groq,
 		...voidInitModelOptions.groq,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 	ollama: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.ollama,
 		...voidInitModelOptions.ollama,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 	openRouter: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openRouter,
 		...voidInitModelOptions.openRouter,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 	openAICompatible: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAICompatible,
 		...voidInitModelOptions.openAICompatible,
-		enabled: undefined,
+		_enabled: undefined,
 	},
 }
 
@@ -385,7 +405,7 @@ type FeatureFlagDisplayInfo = {
 export const displayInfoOfFeatureFlag = (featureFlag: FeatureFlagName): FeatureFlagDisplayInfo => {
 	if (featureFlag === 'autoRefreshModels') {
 		return {
-			description: `Automatically scan for and enable local models.`, // ${`refreshableProviderNames.map(providerName => titleOfProviderName(providerName)).join(', ')`}
+			description: `Automatically detect local providers and models (like Ollama).`, // ${`refreshableProviderNames.map(providerName => titleOfProviderName(providerName)).join(', ')`}
 		}
 	}
 	throw new Error(`featureFlagInfo: Unknown feature flag: "${featureFlag}"`)

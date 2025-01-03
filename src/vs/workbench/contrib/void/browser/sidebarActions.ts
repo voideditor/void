@@ -12,9 +12,7 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 import { CodeStagingSelection, IThreadHistoryService } from './threadHistoryService.js';
-// import { IEditorService } from '../../../services/editor/common/editorService.js';
 
-import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
@@ -22,7 +20,7 @@ import { VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { OPEN_VOID_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
+import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -66,18 +64,23 @@ registerAction2(class extends Action2 {
 
 		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
+		const editorService = accessor.get(ICodeEditorService)
 
 		metricsService.capture('User Action', { type: 'Ctrl+L' })
 
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.fireFocusChat()
 
+		const editor = editorService.getActiveCodeEditor()
 		const selectionRange = roundRangeToLines(
-			accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+			// accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+			editor?.getSelection()
 		)
 
 
 		if (selectionRange) {
+			// select whole lines
+			editor?.setSelection({ startLineNumber: selectionRange.startLineNumber, endLineNumber: selectionRange.endLineNumber, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER })
 
 			const selectionStr = getContentInRange(model, selectionRange)
 
@@ -177,6 +180,6 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const commandService = accessor.get(ICommandService)
-		commandService.executeCommand(OPEN_VOID_SETTINGS_ACTION_ID)
+		commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID)
 	}
 })

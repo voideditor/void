@@ -6,12 +6,11 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
-import { useSettingsState, useService, useSidebarState, useThreadsState } from '../util/services.js';
-import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../threadHistoryService.js';
+import { useAccessor, useThreadsState } from '../util/services.js';
+import { ChatMessage, CodeSelection, CodeStagingSelection, IThreadHistoryService } from '../../../threadHistoryService.js';
 
-import { BlockCode } from '../markdown/BlockCode.js';
+import { BlockCode, getLanguageFromFileName } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
-import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
@@ -21,10 +20,13 @@ import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
-import { ctrlLSystem, generateCtrlLPrompt } from '../../../prompt/prompts.js';
+import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
+import { ISidebarStateService } from '../../../sidebarStateService.js';
+import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
+import { IModelService } from '../../../../../../../editor/common/services/model.js';
 
 
-const IconX = ({ size, className = '' }: { size: number, className?: string }) => {
+const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
 	return (
 		<svg
 			xmlns='http://www.w3.org/2000/svg'
@@ -32,8 +34,9 @@ const IconX = ({ size, className = '' }: { size: number, className?: string }) =
 			height={size}
 			viewBox='0 0 24 24'
 			fill='none'
-			stroke='black'
+			stroke='currentColor'
 			className={className}
+			{...props}
 		>
 			<path
 				strokeLinecap='round'
@@ -84,30 +87,113 @@ const IconSquare = ({ size, className = '' }: { size: number, className?: string
 	);
 };
 
+
+export const IconWarning = ({ size, className = '' }: { size: number, className?: string }) => {
+	return (
+		<svg
+			className={className}
+			stroke="currentColor"
+			fill="currentColor"
+			strokeWidth="0"
+			viewBox="0 0 16 16"
+			width={size}
+			height={size}
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<path
+				fillRule="evenodd"
+				clipRule="evenodd"
+				d="M7.56 1h.88l6.54 12.26-.44.74H1.44L1 13.26 7.56 1zM8 2.28L2.28 13H13.7L8 2.28zM8.625 12v-1h-1.25v1h1.25zm-1.25-2V6h1.25v4h-1.25z"
+			/>
+		</svg>
+	);
+};
+
+
+export const IconLoading = ({ className = '' }: { className?: string }) => {
+
+	const [loadingText, setLoadingText] = useState('.');
+
+	useEffect(() => {
+		let intervalId;
+
+		// Function to handle the animation
+		const toggleLoadingText = () => {
+			if (loadingText === '...') {
+				setLoadingText('.');
+			} else {
+				setLoadingText(loadingText + '.');
+			}
+		};
+
+		// Start the animation loop
+		intervalId = setInterval(toggleLoadingText, 300);
+
+		// Cleanup function to clear the interval when component unmounts
+		return () => clearInterval(intervalId);
+	}, [loadingText, setLoadingText]);
+
+	return <div className={`${className}`}>{loadingText}</div>;
+
+}
+
+const useResizeObserver = () => {
+	const ref = useRef(null);
+	const [dimensions, setDimensions] = useState({ height: 0, width: 0 });
+
+	useEffect(() => {
+		if (ref.current) {
+			const resizeObserver = new ResizeObserver((entries) => {
+				if (entries.length > 0) {
+					const entry = entries[0];
+					setDimensions({
+						height: entry.contentRect.height,
+						width: entry.contentRect.width
+					});
+				}
+			});
+
+			resizeObserver.observe(ref.current);
+
+			return () => {
+				if (ref.current)
+					resizeObserver.unobserve(ref.current);
+			};
+		}
+	}, []);
+
+	return [ref, dimensions] as const;
+};
+
+
+
+
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
+const DEFAULT_BUTTON_SIZE = 20;
 export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
+
 	return <button
+		type='submit'
 		className={`size-[20px] rounded-full shrink-0 grow-0 cursor-pointer
 			${disabled ? 'bg-vscode-disabled-fg' : 'bg-white'}
 			${className}
 		`}
-		type='submit'
 		{...props}
 	>
-		<IconArrowUp size={20} className="stroke-[2]" />
+		<IconArrowUp size={DEFAULT_BUTTON_SIZE} className="stroke-[2]" />
 	</button>
 }
 
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
 
 	return <button
-		className={`size-[20px] rounded-full bg-white cursor-pointer flex items-center justify-center
+		className={`rounded-full bg-white shrink-0 grow-0 cursor-pointer flex items-center justify-center
 			${className}
 		`}
 		type='button'
 		{...props}
 	>
-		<IconSquare size={16} className="stroke-[2]" />
+		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[6px]" />
 	</button>
 }
 
@@ -186,11 +272,11 @@ export const SelectedFiles = (
 	return (
 		!!selections && selections.length !== 0 && (
 			<div
-				className='flex flex-wrap gap-4 p-2 text-left'
+				className='flex flex-wrap gap-2 text-left'
 			>
 				{selections.map((selection, i) => {
 
-					const showSelectionText = selection.selectionStr && selectionIsOpened[i]
+					const showSelectionText = !!(selection.selectionStr && selectionIsOpened[i])
 
 					return (
 						<div key={i} // container for `selectionSummary` and `selectionText`
@@ -199,11 +285,14 @@ export const SelectedFiles = (
 							{/* selection summary */}
 							<div
 								// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
-								className={`grid grid-rows-2 gap-1 relative
+								className={`flex items-center gap-1 relative
+									rounded-md p-1
+									w-fit h-fit
 									select-none
-									bg-vscode-badge-bg border border-vscode-button-border rounded-md
-									w-fit h-fit min-w-[81px] p-1
-							`}
+									bg-vscode-editor-bg hover:brightness-95
+									border border-vscode-commandcenter-border rounded-xs
+									text-xs text-vscode-editor-fg text-nowrap
+								`}
 								onClick={() => {
 									setSelectionIsOpened(s => {
 										const newS = [...s]
@@ -212,18 +301,37 @@ export const SelectedFiles = (
 									});
 								}}
 							>
-								<span className='truncate'>
+								<span className=''>
 									{/* file name */}
 									{getBasename(selection.fileURI.fsPath)}
 									{/* selection range */}
 									{selection.selectionStr !== null ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
 								</span>
 
-								{/* type of selection */}
-								<span className='truncate text-opacity-75'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span>
-
 								{/* X button */}
-								{type === 'staging' && // hoveredIdx === i
+								{type === 'staging' &&
+									<span
+										className='
+											cursor-pointer
+											bg-vscode-editorwidget-bg hover:bg-vscode-toolbar-hover-bg
+											rounded-md
+											z-1
+										'
+										onClick={(e) => {
+											e.stopPropagation();
+											if (type !== 'staging') return;
+											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
+											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
+										}}
+									>
+										<IconX size={16} className="p-[2px] stroke-[3] text-vscode-toolbar-foreground" />
+									</span>
+								}
+
+								{/* type of selection */}
+								{/* <span className='truncate'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span> */}
+								{/* X button */}
+								{/* {type === 'staging' && // hoveredIdx === i
 									<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-input-border z-1'
 										onClick={(e) => {
 											e.stopPropagation();
@@ -234,12 +342,13 @@ export const SelectedFiles = (
 									>
 										<IconX size={16} className="p-[2px] stroke-[3]" />
 									</span>
-								}
+								} */}
+
 							</div>
 							{/* selection text */}
 							{showSelectionText &&
-								<div className='w-full'>
-									<BlockCode text={selection.selectionStr!} />
+								<div className='w-full p-1 rounded-sm border-vscode-editor-border bg-vscode-sidebar-bg'>
+									<BlockCode text={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
 								</div>
 							}
 						</div>
@@ -251,8 +360,9 @@ export const SelectedFiles = (
 }
 
 
-const ChatBubble = ({ chatMessage }: {
-	chatMessage: ChatMessage
+const ChatBubble = ({ chatMessage, isLoading }: {
+	chatMessage: ChatMessage,
+	isLoading?: boolean,
 }) => {
 
 	const role = chatMessage.role
@@ -272,9 +382,19 @@ const ChatBubble = ({ chatMessage }: {
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent} /> // sectionsHTML
 	}
 
-	return <div className={`${role === 'user' ? 'text-right' : 'text-left'}`}>
-		<div className={`inline-block p-2 rounded-lg space-y-2 ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}>
+	return <div
+		// align chatbubble accoridng to role
+		className={`
+			${role === 'user' ? 'self-end' : 'self-start'}
+			${role === 'assistant' ? 'w-full' : ''}
+		`}
+	>
+		<div
+			// style chatbubble
+			className={`p-2 mx-2 text-left space-y-2 rounded-lg ${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''} max-w-full overflow-auto`}
+		>
 			{chatbubbleContents}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
 		</div>
 	</div>
 }
@@ -285,11 +405,12 @@ export const SidebarChat = () => {
 
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
 
-	const modelService = useService('modelService')
+	const accessor = useAccessor()
+	const modelService = accessor.get('IModelService')
 
 	// ----- HIGHER STATE -----
 	// sidebar state
-	const sidebarStateService = useService('sidebarStateService')
+	const sidebarStateService = accessor.get('ISidebarStateService')
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
@@ -301,9 +422,9 @@ export const SidebarChat = () => {
 
 	// threads state
 	const threadsState = useThreadsState()
-	const threadsStateService = useService('threadsStateService')
+	const threadsStateService = accessor.get('IThreadHistoryService')
 
-	const llmMessageService = useService('llmMessageService')
+	const llmMessageService = accessor.get('ILLMMessageService')
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -318,8 +439,12 @@ export const SidebarChat = () => {
 	// state of current message
 	const [instructions, setInstructions] = useState('') // the user's instructions
 	const isDisabled = !instructions.trim()
-	const [formHeight, setFormHeight] = useState(0) // TODO should use resize observer instead
-	const [sidebarHeight, setSidebarHeight] = useState(0)
+
+	const [sidebarRef, sidebarDimensions] = useResizeObserver()
+	const [formRef, formDimensions] = useResizeObserver()
+
+	// const [formHeight, setFormHeight] = useState(0) // TODO should use resize observer instead
+	// const [sidebarHeight, setSidebarHeight] = useState(0)
 	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
 
 
@@ -352,11 +477,11 @@ export const SidebarChat = () => {
 
 
 		// add system message to chat history
-		const systemPromptElt: ChatMessage = { role: 'system', content: ctrlLSystem }
+		const systemPromptElt: ChatMessage = { role: 'system', content: chat_systemMessage }
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
 		// add user's message to chat history
-		const userHistoryElt: ChatMessage = { role: 'user', content: generateCtrlLPrompt(instructions, selections), displayContent: instructions, selections: selections }
+		const userHistoryElt: ChatMessage = { role: 'user', content: chat_prompt(instructions, selections), displayContent: instructions, selections: selections }
 		threadsStateService.addMessageToCurrentThread(userHistoryElt)
 
 		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
@@ -404,6 +529,8 @@ export const SidebarChat = () => {
 
 		threadsStateService.setStaging([]) // clear staging
 
+		inputBoxRef.current?.focus() // focus input after submit
+
 	}
 
 	const onAbort = () => {
@@ -430,18 +557,23 @@ export const SidebarChat = () => {
 	// const [_test_messages, _set_test_messages] = useState<string[]>([])
 
 	return <div
-		ref={(ref) => { if (ref) { setSidebarHeight(ref.clientHeight); } }}
+		ref={sidebarRef}
 		className={`w-full h-full`}
 	>
 		<ScrollToBottomContainer
-			className={`overflow-x-hidden overflow-y-auto`}
-			style={{ maxHeight: sidebarHeight - formHeight - 30 }}
+			className={`
+				w-full h-auto
+				flex flex-col gap-0
+				overflow-x-hidden
+				overflow-y-auto
+			`}
+			style={{ maxHeight: sidebarDimensions.height - formDimensions.height - 30 }}
 		>
 			{/* previous messages */}
 			{previousMessages.map((message, i) => <ChatBubble key={i} chatMessage={message} />)}
 
 			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} />
+			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} isLoading={isLoading} />
 
 			{/* {_test_messages.map((_, i) => <div key={i}>div {i}</div>)}
 				<div>{`totalHeight: ${sidebarHeight - formHeight - 30}`}</div>
@@ -454,10 +586,10 @@ export const SidebarChat = () => {
 
 		{/* input box */}
 		<div // this div is used to position the input box properly
-			className={`right-0 left-0 m-2 z-[999] ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
+			className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
 		>
 			<form
-				ref={(ref) => { if (ref) { setFormHeight(ref.clientHeight); } }}
+				ref={formRef}
 				className={`
 					flex flex-col gap-2 p-2 relative input text-left shrink-0
 					transition-all duration-200
@@ -475,9 +607,7 @@ export const SidebarChat = () => {
 					onSubmit(e)
 				}}
 				onClick={(e) => {
-					if (e.currentTarget === e.target) {
-						inputBoxRef.current?.focus()
-					}
+					inputBoxRef.current?.focus()
 				}}
 			>
 				{/* top row */}
@@ -506,11 +636,17 @@ export const SidebarChat = () => {
 						//     .split(' ')
 						//     .map(style => `@@[&_textarea]:!void-${style}`) // apply styles to ancestor textarea elements
 						//     .join(' ') +
-						//   ` outline-none`
+						//   ` outline-none border-none`
 						//     .split(' ')
 						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`)
 						//     .join(' ');
-						`@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_textarea]:!void-min-h-[81px] @@[&_textarea]:!void-max-h-[500px] @@[&_div.monaco-inputbox]:!void-outline-none`
+						`@@[&_textarea]:!void-bg-transparent
+						@@[&_textarea]:!void-outline-none
+						@@[&_textarea]:!void-text-vscode-input-fg
+						@@[&_textarea]:!void-min-h-[81px]
+						@@[&_textarea]:!void-max-h-[500px]
+						@@[&_div.monaco-inputbox]:!void-border-none
+						@@[&_div.monaco-inputbox]:!void-outline-none`
 					}
 				>
 
@@ -528,7 +664,10 @@ export const SidebarChat = () => {
 					className='flex flex-row justify-between items-end gap-1'
 				>
 					{/* submit options */}
-					<div className='w-[250px]'>
+					<div className='max-w-[150px]
+						@@[&_select]:!void-border-none
+						@@[&_select]:!void-outline-none'
+					>
 						<ModelDropdown featureName='Ctrl+L' />
 					</div>
 

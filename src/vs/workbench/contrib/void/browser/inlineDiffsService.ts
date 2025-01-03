@@ -822,7 +822,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const lastDiff = computedDiffs.pop()
 
 		if (!lastDiff) {
-			console.log('!lastDiff')
 			// if the writing is identical so far, display no changes
 			originalCodeStartLine = 1
 			newCodeEndLine = 1

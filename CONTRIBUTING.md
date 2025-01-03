@@ -55,7 +55,7 @@ To build Void, open `void/` inside VSCode. Then open your terminal and run:
 	 - Run `./scripts/code.sh` (Mac/Linux).
    - Run `./scripts/code.bat` (Windows).
    - This command should open up the built IDE. You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>)  inside the new window to see changes without re-building, or press or <kbd>Ctrl+Shift+P</kbd> in the new window and run "Reload Window".
-	- If you are actively developing Void, we strongly recommend adding the flags  `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command (just append them at the end of the string). This will save all data and extensions to the `.tmp` folder. You can delete this folder to reset any IDE changes you made when testing.
+	- If you are actively developing Void, we strongly recommend adding the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command (just append them at the end of the string). This will save all data and extensions to the `.tmp` folder. You can delete this folder to reset any IDE changes you made when testing.
 
 #### Building Void from Terminal
 

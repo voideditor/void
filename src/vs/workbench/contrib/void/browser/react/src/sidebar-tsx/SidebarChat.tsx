@@ -289,9 +289,9 @@ export const SelectedFiles = (
 									rounded-md p-1
 									w-fit h-fit
 									select-none
-									bg-vscode-editor-bg hover:brightness-95
+									bg-void-bg-3 hover:brightness-95
+									text-void-fg-3 text-xs text-nowrap
 									border border-vscode-commandcenter-border rounded-xs
-									text-xs text-vscode-editor-fg text-nowrap
 								`}
 								onClick={() => {
 									setSelectionIsOpened(s => {
@@ -636,13 +636,13 @@ export const SidebarChat = () => {
 						//     .split(' ')
 						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`)
 						//     .join(' ');
-						`@@[&_textarea]:!void-bg-transparent
+						`
 						@@[&_textarea]:!void-outline-none
-						@@[&_textarea]:!void-text-vscode-input-fg
 						@@[&_textarea]:!void-min-h-[81px]
 						@@[&_textarea]:!void-max-h-[500px]
 						@@[&_div.monaco-inputbox]:!void-border-none
-						@@[&_div.monaco-inputbox]:!void-outline-none`
+						@@[&_div.monaco-inputbox]:!void-outline-none
+						`
 					}
 				>
 

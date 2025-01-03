@@ -24,7 +24,14 @@ export const Sidebar = ({ className }: { className: string }) => {
 	const isDark = useIsDark()
 	// ${isDark ? 'dark' : ''}
 	return <div className={`@@void-scope`} style={{ width: '100%', height: '100%' }}>
-		<div className={`w-full h-full flex flex-col py-2 bg-vscode-sidebar-bg`}>
+		<div
+			// default background + text styles for sidebar
+			className={`
+				w-full h-full py-2
+				bg-void-bg-2
+				text-void-fg-1
+			`}
+		>
 
 			{/* <span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']

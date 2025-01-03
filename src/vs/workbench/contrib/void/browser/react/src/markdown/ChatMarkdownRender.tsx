@@ -49,14 +49,14 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 
 	return <>
 		<button
-			className={`${isSingleLine ? '' : 'p-1'} text-xs hover:brightness-110 bg-vscode-input-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg`}
+			className={`${isSingleLine ? '' : 'p-1'} text-xs bg-void-bg-1 text-void-fg-3 hover:brightness-110 border border-vscode-input-border rounded text-xs`}
 			onClick={onCopy}
 		>
 			{copyButtonState}
 		</button>
 		<button
-			// btn btn-secondary btn-sm border text-xs text-vscode-input-fg border-vscode-input-border rounded
-			className={`${isSingleLine ? '' : 'p-1'} text-xs hover:brightness-110 bg-vscode-input-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg`}
+			// btn btn-secondary btn-sm border text-xs border-vscode-input-border rounded
+			className={`${isSingleLine ? '' : 'p-1'} text-xs bg-void-bg-1 hover:brightness-110 border border-vscode-input-border rounded text-xs`}
 			onClick={onApply}
 		>
 			Apply

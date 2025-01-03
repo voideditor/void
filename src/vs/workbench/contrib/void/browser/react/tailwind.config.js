@@ -9,7 +9,33 @@ module.exports = {
 	content: ['./src2/**/*.{jsx,tsx}'], // uses these files to decide how to transform the css file
 	theme: {
 		extend: {
+			fontSize: {
+				xs: '10px',
+				sm: '12px',
+				root: '13px',
+				lg: '14px',
+				xl: '16px',
+				'2xl': '18px',
+				'3xl': '20px',
+				'4xl': '24px',
+				'5xl': '30px',
+				'6xl': '36px',
+				'7xl': '48px',
+				'8xl': '64px',
+				'9xl': '72px',
+			},
+			// common colors to use, ordered light to dark
+
 			colors: {
+				"void-bg-1": "var(--vscode-input-background)",
+				"void-bg-2": "var(--vscode-sideBar-background)",
+				"void-bg-3": "var(--vscode-editor-background)",
+
+				"void-fg-1": "var(--vscode-editor-foreground)",
+				"void-fg-2": "var(--vscode-input-foreground)",
+				"void-fg-3": "var(--vscode-input-placeholderForeground)",
+
+
 				vscode: {
 					// see: https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content
 
@@ -39,8 +65,8 @@ module.exports = {
 					"input-bg": "var(--vscode-input-background)",
 					"input-border": "var(--vscode-input-border)",
 					"input-fg": "var(--vscode-input-foreground)",
-					"input-placeholder-fg": "var(--vscode-placeholderForeground)",
-					"input-active-bg": "var(--vscode-activeBackground)",
+					"input-placeholder-fg": "var(--vscode-input-placeholderForeground)",
+					"input-active-bg": "var(--vscode-input-activeBackground)",
 					"input-option-active-border": "var(--vscode-inputOption-activeBorder)",
 					"input-option-active-fg": "var(--vscode-inputOption-activeForeground)",
 					"input-option-hover-bg": "var(--vscode-inputOption-hoverBackground)",

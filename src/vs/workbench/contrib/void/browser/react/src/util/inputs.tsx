@@ -60,6 +60,10 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 	const contextViewProvider = accessor.get('IContextViewService')
 	return <WidgetComponent
 		ctor={InputBox}
+		className='
+			bg-void-bg-1
+			@@[&_::placeholder]:!void-text-void-fg-3
+		'
 		propsFn={useCallback((container) => [
 			container,
 			contextViewProvider,
@@ -205,7 +209,10 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
 	return <WidgetComponent
-		className='@@select-child-restyle'
+		className='@@select-child-restyle
+			@@[&_select]:!void-text-void-fg-3
+			@@[&_select]:!void-text-xs
+		'
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container
@@ -301,7 +308,7 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 	return <div ref={divRef}>
 		<WidgetComponent
-			className='relative z-0 text-sm bg-vscode-editor-bg'
+			className='relative z-0 bg-void-bg-3' // text-sm
 			ctor={useCallback((container) =>
 				instantiationService.createInstance(
 					CodeEditorWidget,

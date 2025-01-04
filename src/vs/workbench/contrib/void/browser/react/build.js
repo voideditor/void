@@ -11,19 +11,49 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const __void_name = 'void'
+
+function isFileExists(filePath) {
+	try {
+		const stats = fs.statSync(filePath);
+
+		return stats.isFile();
+	} catch (err) {
+		if (err.code === 'ENOENT') {
+			return false;
+		}
+		throw err;
+	}
+}
+
+function findFullPathContainingPath(relativePath) {
+	let dir = __dirname;
+
+	while (!isFileExists(path.join(dir, relativePath))) {
+		const parentDir = path.dirname(dir);
+
+		if (parentDir === dir) {
+			return undefined;
+		}
+
+		dir = parentDir;
+	}
+
+	return path.join(dir, relativePath);
+}
 
 // hack to refresh styles automatically
 function saveStylesFile() {
 	setTimeout(() => {
 		try {
 			// Find "void" in __dirname and use that as our base:
-			const voidIdx = __dirname.indexOf(__void_name);
-			const baseDir = __dirname.substring(0, voidIdx + __void_name.length);
-			const target = path.join(
-				baseDir,
-				'src/vs/workbench/contrib/void/browser/react/src2/styles.css'
+			const target = findFullPathContainingPath(
+				'./src/vs/workbench/contrib/void/browser/react/src2/styles.css'
 			);
+
+			if(target === undefined) {
+				console.error('[scope-tailwind] Error finding styles.css');
+				return;
+			}
 
 			// Or re-write with the same content:
 			const content = fs.readFileSync(target, 'utf8');

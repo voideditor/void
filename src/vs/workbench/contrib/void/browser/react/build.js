@@ -45,7 +45,6 @@ function findFullPathContainingPath(relativePath) {
 function saveStylesFile() {
 	setTimeout(() => {
 		try {
-			// Find "void" in __dirname and use that as our base:
 			const target = findFullPathContainingPath(
 				'./src/vs/workbench/contrib/void/browser/react/src2/styles.css'
 			);

@@ -424,7 +424,7 @@ export const Settings = () => {
 							<div className='pl-4 select-text opacity-50'>
 								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
 								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
-								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama model which is competitive with GPT-series models. It requires 5GB of memory.`} /></h4>
+								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama model which is an alternative to GPT and Claude models. It requires 5GB of memory.`} /></h4>
 								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This is a faster autocomplete model and requires 1GB of memory.`} /></h4>
 								{/* TODO we should create UI for downloading models without user going into terminal */}
 							</div>

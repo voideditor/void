@@ -325,9 +325,9 @@ export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }:
 }
 
 export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage }: { selection: string, prefix: string, suffix: string, userMessage: string, }) => {
-	const onlySpeaksFIM = false
+	const modelWasTrainedOnFIM = false
 
-	if (onlySpeaksFIM) {
+	if (modelWasTrainedOnFIM) {
 		const preTag = 'PRE'
 		const sufTag = 'SUF'
 		const midTag = 'MID'
@@ -341,32 +341,34 @@ ${prefix}</${preTag}>
 <${sufTag}>${suffix}</${sufTag}>
 <${midTag}>`
 	}
-	// prompt the model on how to do FIM
+	// prompt the model artifically on how to do FIM
 	else {
-		const preTag = 'PRE'
-		const sufTag = 'SUF'
-		const midTag = 'MID'
+		const preTag = 'BEFORE'
+		const sufTag = 'AFTER'
+		const midTag = 'SELECTION'
 		return `\
-Here is the user's original selection:
+The user is selecting this code as their SELECTION:
 \`\`\`
 <${midTag}>${selection}</${midTag}>
 \`\`\`
 
-The user wants to apply the following instructions to the selection:
+The user wants to apply the following INSTRUCTIONS to the SELECTION:
 ${userMessage}
 
-Please rewrite the selection following the user's instructions.
+Please edit the SELECTION following the user's INSTRUCTIONS, and return the new SELECTION.
 
-Instructions to follow:
-1. Follow the user's instructions
-2. You may ONLY CHANGE the selection, and nothing else in the file
-3. Make sure all brackets in the new selection are balanced the same was as in the original selection
-3. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
+Note that the SELECTION has code that comes before it. This code is indicated with <${preTag}>...before<${preTag}/>.
+Note also that the SELECTION has code that comes after it. This code is indicated with <${sufTag}>...after<${sufTag}/>.
+
+Instructions:
+1. Your OUTPUT should be a SINGLE PIECE OF CODE of the form <${midTag}>...new_selection<${midTag}/>
+2. You may ONLY CHANGE the original SELECTION, and NOT the content in the <${preTag}>...<${preTag}/> or <${sufTag}>...<${sufTag}/> tags
+3. Make sure all brackets in the new selection are balanced the same as in the original selection
+4. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
 
 Complete the following:
 <${preTag}>${prefix}</${preTag}>
-<${sufTag}>${suffix}</${sufTag}>
-<${midTag}>`
+<${sufTag}>${suffix}</${sufTag}>`
 	}
 };
 

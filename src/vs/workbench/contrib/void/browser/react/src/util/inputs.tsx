@@ -303,7 +303,6 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 	const instantiationService = accessor.get('IInstantiationService')
 	const modelService = accessor.get('IModelService')
 	const languageDetectionService = accessor.get('ILanguageDetectionService')
-	const themeService = accessor.get('IThemeService')
 
 	initValue = normalizeIndentation(initValue)
 

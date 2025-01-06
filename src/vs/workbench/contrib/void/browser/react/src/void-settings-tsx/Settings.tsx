@@ -14,7 +14,7 @@ import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
-	return <div className='flex items-center px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
+	return <div className='flex items-center text-void-fg-3 text-root px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
 		<button className='flex items-center' disabled={disabled} onClick={onClick}>
 			{icon}
 		</button>
@@ -202,7 +202,7 @@ export const ModelDump = () => {
 			>
 				{/* left part is width:full */}
 				<div className={`w-full flex items-center gap-4`}>
-					<span className='min-w-40'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
+					<span className='min-w-20'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
 					<span>{modelName}</span>
 					{/* <span>{`${modelName} (${providerName})`}</span> */}
 				</div>
@@ -431,7 +431,7 @@ export const Settings = () => {
 								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
 								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama3.1 model which is an alternative to GPT and Claude models. Requires 5GB of memory.`} /></h4>
 								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></h4>
-								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models.`} /></h4>
+								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} /></h4>
 								{/* TODO we should create UI for downloading models without user going into terminal */}
 							</div>
 

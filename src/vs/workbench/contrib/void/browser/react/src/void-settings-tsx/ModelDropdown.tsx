@@ -84,8 +84,10 @@ const DummySelectBox = () => {
 		className={`
 			flex items-center
 			flex-nowrap text-ellipsis
-			text-vscode-charts-yellow
-			hover:brightness-90 transition-all duration-200
+
+			text-void-warning brightness-90 opacity-90
+
+			hover:brightness-75 transition-all duration-200
 			cursor-pointer
 			text-xs
 		`}

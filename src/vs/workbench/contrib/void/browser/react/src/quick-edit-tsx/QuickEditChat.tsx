@@ -120,12 +120,7 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 					@@[&_div.monaco-inputbox]:!void-border-none
 					@@[&_div.monaco-inputbox]:!void-outline-none`}
 			>
-				<div className='flex flex-row justify-between items-end gap-1'>
-					<div className='absolute size-[4px] top-0 right-4 z-[1]'>
-						<X
-							onClick={onX}
-						/>
-					</div>
+				<div className='flex flex-row items-center justify-between items-end gap-1'>
 
 					{/* input */}
 					<div // copied from SidebarChat.tsx
@@ -149,6 +144,16 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 							multiline={true}
 						/>
 					</div>
+
+					<div className='absolute pt-1 -top-1 -right-1'>
+						<span className='cursor-pointer hover:bg-red-500 rounded-md z-1'>
+							<X
+								className='size-3 text-vscode-toolbar-foreground'
+								onClick={onX}
+							/>
+						</span>
+					</div>
+
 
 				</div>
 

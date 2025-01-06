@@ -197,7 +197,6 @@ export const ModelDump = () => {
 
 			return <div key={`${modelName}${providerName}`}
 				className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate
-					${isNewProviderName ? 'border-void-bg-1 border-t' : ''}
 				`}
 			>
 				{/* left part is width:full */}
@@ -285,7 +284,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 				}, [voidSettingsService, providerName, settingName])}
 				multiline={false}
 			/>
-			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-xs'>
+			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-sm'>
 				<ChatMarkdownRender string={subTextMd} />
 			</div>}
 
@@ -425,13 +424,13 @@ export const Settings = () => {
 							{/* <h3 className={`opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
 							{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
 							{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
-							<h3 className={`text-void-fg-3 mb-2`}>{`Host a model locally and use it in Void. Instructions:`}</h3>
+							<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
 							<div className='pl-4 select-text opacity-50'>
-								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
-								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
-								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></h4>
-								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></h4>
-								<h4 className={`text-xs mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} /></h4>
+								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
+								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
+								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></h4>
+								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></h4>
+								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} /></h4>
 								{/* TODO we should create UI for downloading models without user going into terminal */}
 							</div>
 
@@ -440,7 +439,7 @@ export const Settings = () => {
 							</ErrorBoundary>
 
 							<h2 className={`text-3xl mb-2 mt-16`}>More Providers</h2>
-							<h3 className={`text-void-fg-3 mb-2`}>{`Get access to frontier models. We recommend Anthropic or OpenAI.`}</h3>
+							<h3 className={`text-void-fg-3 mb-2`}>{`Void can also access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
 							{/* <h3 className={`opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3> */}
 							<ErrorBoundary>
 								<VoidProviderSettings providerNames={nonlocalProviderNames} />

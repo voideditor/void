@@ -272,7 +272,7 @@ export const SelectedFiles = (
 	return (
 		!!selections && selections.length !== 0 && (
 			<div
-				className='flex flex-wrap gap-2 text-left'
+				className='flex flex-wrap gap-0.5 text-left'
 			>
 				{selections.map((selection, i) => {
 
@@ -311,12 +311,7 @@ export const SelectedFiles = (
 								{/* X button */}
 								{type === 'staging' &&
 									<span
-										className='
-											cursor-pointer
-											bg-vscode-editorwidget-bg hover:bg-vscode-toolbar-hover-bg
-											rounded-md
-											z-1
-										'
+										className='cursor-pointer hover:bg-vscode-toolbar-hover-bg rounded-md z-1'
 										onClick={(e) => {
 											e.stopPropagation();
 											if (type !== 'staging') return;

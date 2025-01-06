@@ -49,14 +49,14 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 
 	return <>
 		<button
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-xs bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded text-xs`}
+			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
 			onClick={onCopy}
 		>
 			{copyButtonState}
 		</button>
 		<button
-			// btn btn-secondary btn-sm border text-xs border-vscode-input-border rounded
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-xs bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded text-xs`}
+			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
+			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
 			onClick={onApply}
 		>
 			Apply
@@ -215,7 +215,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	// default
 	return (
 		<div className="bg-orange-50 rounded-sm overflow-hidden">
-			<span className="text-xs text-orange-500">Unknown type:</span>
+			<span className="text-sm text-orange-500">Unknown type:</span>
 			{t.raw}
 		</div>
 	)

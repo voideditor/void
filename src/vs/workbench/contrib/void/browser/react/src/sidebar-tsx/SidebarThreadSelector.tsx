@@ -53,7 +53,7 @@ export const SidebarThreadSelector = () => {
 			</div>
 
 			{/* a list of all the past threads */}
-			<div className='flex flex-col gap-y-1 overflow-y-auto'>
+			<div className='px-1'><div className='flex flex-col gap-y-1 overflow-y-auto'>
 				{sortedThreadIds.map((threadId) => {
 					if (!allThreads)
 						return <>Error: Threads not found.</>
@@ -88,7 +88,7 @@ export const SidebarThreadSelector = () => {
 						</button>
 					)
 				})}
-			</div>
+			</div></div>
 
 		</div>
 	)

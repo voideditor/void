@@ -35,7 +35,7 @@ export const extractArtificialFIMCodeFromResult = ({ text, preTag, sufTag, midTa
 		[optional strings here]
 		[required <MID> tag]
 		(match the stuff between mid tags)
-		[required <MID/> tag]
+		[optional <MID/> tag]
 		[optional ` | `` | ```]
 	*/
 

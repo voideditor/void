@@ -177,6 +177,7 @@ export type SettingName = keyof SettingsForProvider<ProviderName>
 
 type DisplayInfoForProviderName = {
 	title: string,
+	desc?: string,
 }
 
 export const displayInfoOfProviderName = (providerName: ProviderName): DisplayInfoForProviderName => {
@@ -256,7 +257,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
 
-			subTextMd: providerName === 'ollama' ? 'Read about advanced [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
+			subTextMd: providerName === 'ollama' ? 'If you would like to change this endpoint, please read more about [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
 				undefined,
 		}
 	}

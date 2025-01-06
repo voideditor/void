@@ -87,11 +87,12 @@ const DummySelectBox = () => {
 			text-vscode-charts-yellow
 			hover:brightness-90 transition-all duration-200
 			cursor-pointer
+			text-xs
 		`}
 		onClick={openSettings}
 	>
 		<IconWarning
-			size={20}
+			size={14}
 			className='mr-1 brightness-90'
 		/>
 		<span>Model required</span>

@@ -29,6 +29,11 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 const roundRangeToLines = (range: IRange | null | undefined) => {
 	if (!range)
 		return null
+
+	// treat as no selection if selection is empty
+	if (range.endColumn === range.startColumn && range.endLineNumber === range.startLineNumber)
+		return null
+
 	// IRange is 1-indexed
 	const endLine = range.endColumn === 1 ? range.endLineNumber - 1 : range.endLineNumber // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
 	const newRange: IRange = {

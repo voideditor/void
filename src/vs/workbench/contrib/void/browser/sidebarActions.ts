@@ -26,13 +26,17 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 // ---------- Register commands and keybindings ----------
 
 
-const roundRangeToLines = (range: IRange | null | undefined) => {
+export const roundRangeToLines = (range: IRange | null | undefined, options: { emptySelectionBehavior: 'null' | 'line' }) => {
 	if (!range)
 		return null
 
 	// treat as no selection if selection is empty
-	if (range.endColumn === range.startColumn && range.endLineNumber === range.startLineNumber)
-		return null
+	if (range.endColumn === range.startColumn && range.endLineNumber === range.startLineNumber) {
+		if (options.emptySelectionBehavior === 'null')
+			return null
+		else if (options.emptySelectionBehavior === 'line')
+			return { startLineNumber: range.startLineNumber, startColumn: 1, endLineNumber: range.startLineNumber, endColumn: 1 }
+	}
 
 	// IRange is 1-indexed
 	const endLine = range.endColumn === 1 ? range.endLineNumber - 1 : range.endLineNumber // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
@@ -77,10 +81,8 @@ registerAction2(class extends Action2 {
 		stateService.fireFocusChat()
 
 		const editor = editorService.getActiveCodeEditor()
-		const selectionRange = roundRangeToLines(
-			// accessor.get(IEditorService).activeTextEditorControl?.getSelection()
-			editor?.getSelection()
-		)
+		// accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+		const selectionRange = roundRangeToLines(editor?.getSelection(), { emptySelectionBehavior: 'null' })
 
 
 		// select whole lines

@@ -146,9 +146,9 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 					</div>
 
 					<div className='absolute pt-1 -top-1 -right-1'>
-						<span className='cursor-pointer hover:bg-red-500 rounded-md z-1'>
+						<span className='cursor-pointer rounded-md z-1'>
 							<X
-								className='size-3 text-vscode-toolbar-foreground'
+								className='size-4 text-vscode-toolbar-foreground'
 								onClick={onX}
 							/>
 						</span>

@@ -197,11 +197,12 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 }
 
 
-export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options }: {
+export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options, className }: {
 	onChangeSelection: (value: T) => void;
 	onCreateInstance?: ((instance: SelectBox) => void | IDisposable[]);
 	selectBoxRef?: React.MutableRefObject<SelectBox | null>;
 	options: readonly { text: string, value: T }[];
+	className?:string;
 }) => {
 	const accessor = useAccessor()
 	const contextViewProvider = accessor.get('IContextViewService')
@@ -209,10 +210,9 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
 	return <WidgetComponent
-		className='@@select-child-restyle
+		className={`@@select-child-restyle
 			@@[&_select]:!void-text-void-fg-3
-			@@[&_select]:!void-text-xs
-		'
+			${className ?? ''}`}
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container

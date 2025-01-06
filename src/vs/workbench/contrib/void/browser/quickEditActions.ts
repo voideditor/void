@@ -11,6 +11,7 @@ import { IMetricsService } from '../../../../platform/void/common/metricsService
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IInlineDiffsService } from './inlineDiffsService.js';
 import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
+import { roundRangeToLines } from './sidebarActions.js';
 
 
 export type QuickEditPropsType = {
@@ -54,7 +55,7 @@ registerAction2(class extends Action2 {
 		if (!editor) return;
 		const model = editor.getModel()
 		if (!model) return;
-		const selection = editor.getSelection()
+		const selection = roundRangeToLines(editor.getSelection(), { emptySelectionBehavior: 'line' })
 		if (!selection) return;
 
 

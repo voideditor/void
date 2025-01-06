@@ -823,6 +823,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const lastDiff = computedDiffs.pop()
 
 		if (!lastDiff) {
+			// console.log('!lastDiff')
 			// if the writing is identical so far, display no changes
 			originalCodeStartLine = 1
 			newCodeEndLine = 1
@@ -842,7 +843,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const newCodeTop = llmText.split('\n').slice(0, (newCodeEndLine - 1) + 1).join('\n')
 		const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1) + 1, Infinity).join('\n')
 
-		const newCode = `${newCodeTop}\n${oldFileBottom}`
+		// oriignalCode[1 + line...Infinity]. Must make sure 1 + line < originalCode.length. This is another way to check:
+		const newCode = (newCodeTop && oldFileBottom) ? `${newCodeTop}\n${oldFileBottom}` : (oldFileBottom || newCodeTop)
 
 		this._writeText(uri, newCode,
 			{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
@@ -1128,6 +1130,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				this._refreshStylesAndDiffsInURI(uri)
 			},
 			onFinalMessage: ({ fullText }) => {
+				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
 				// at the end, re-write whole thing to make sure no sync errors
 				this._writeText(uri, extractText(fullText),
 					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed

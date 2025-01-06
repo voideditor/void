@@ -27,7 +27,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { ctrlKStream_prefixAndSuffix, ctrlKStream_prompt, ctrlKStream_systemMessage, ctrlLStream_prompt, ctrlLStream_systemMessage } from './prompt/prompts.js';
+import { ctrlKStream_prefixAndSuffix, ctrlKStream_prompt, ctrlKStream_systemMessage, ctrlLStream_prompt, ctrlLStream_systemMessage, defaultFimTags } from './prompt/prompts.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 import { IPosition } from '../../../../editor/common/core/position.js';
 
@@ -36,6 +36,7 @@ import { QuickEditPropsType } from './quickEditActions.js';
 import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
 import { LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
+import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -1043,6 +1044,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// 	this._deleteDiffArea(ctrlKZone)
 		// }
 
+		// TODO ctrl+K case should be replaced with an actual check for model.isFIM
+		const modelWasTrainedOnFIM = featureName === 'Ctrl+K' ? false : false
+		const modelFimTags = defaultFimTags
+
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
 			originalCode,
@@ -1071,7 +1076,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		else if (featureName === 'Ctrl+K') {
 			const { prefix, suffix } = ctrlKStream_prefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix })
+			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix, modelWasTrainedOnFIM, fimTags: modelFimTags })
 			console.log('PREFIX:\n', prefix)
 			console.log('SUFFIX:\n', suffix)
 			console.log('USER CONTENT:\n', userContent)
@@ -1102,17 +1107,29 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// refresh now in case onText takes a while to get 1st message
 		this._refreshStylesAndDiffsInURI(uri)
 
+
+		const extractText = (fullText: string) => {
+			if (featureName === 'Ctrl+K') {
+				const [_, textSoFar] = extractCodeFromFIM({ text: fullText, midTag: modelFimTags.midTag, modelWasTrainedOnFIM })
+				return textSoFar
+			}
+			else if (featureName === 'Ctrl+L') {
+				return extractCodeFromRegular(fullText)
+			}
+			throw 1
+		}
+
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			featureName,
 			logging: { loggingName: `startApplying - ${featureName}` },
 			messages,
 			onText: ({ newText, fullText }) => {
-				this._writeDiffZoneLLMText(diffZone, fullText, latestCurrentFileEnd, latestOriginalFileStart)
+				this._writeDiffZoneLLMText(diffZone, extractText(fullText), latestCurrentFileEnd, latestOriginalFileStart)
 				this._refreshStylesAndDiffsInURI(uri)
 			},
 			onFinalMessage: ({ fullText }) => {
 				// at the end, re-write whole thing to make sure no sync errors
-				this._writeText(uri, fullText,
+				this._writeText(uri, extractText(fullText),
 					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 					{ shouldRealignDiffAreas: false }
 				)

@@ -9,7 +9,7 @@ import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, Voi
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidCheckBox, VoidInputBox, VoidSelectBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
-import { X, RefreshCw, Loader2, Check } from 'lucide-react'
+import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
@@ -360,6 +360,7 @@ export const VoidProviderSettings = ({ providerNames }: { providerNames: Provide
 // 		})}
 // 	</>
 // }
+type TabName = 'models' | 'general'
 export const VoidFeatureFlagSettings = () => {
 
 	const accessor = useAccessor()
@@ -383,12 +384,85 @@ export const VoidFeatureFlagSettings = () => {
 }
 
 
+export const FeaturesTab = () => {
+	return <>
+		<h2 className={`text-3xl mb-2`}>Local Providers</h2>
+		{/* <h3 className={`opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
+		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
+		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
+		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
+		<div className='pl-4 select-text opacity-50'>
+			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></span>
+			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></span>
+			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></span>
+			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></span>
+			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} /></span>
+			{/* TODO we should create UI for downloading models without user going into terminal */}
+		</div>
+
+		<ErrorBoundary>
+			<VoidProviderSettings providerNames={localProviderNames} />
+		</ErrorBoundary>
+
+		<h2 className={`text-3xl mb-2 mt-16`}>Providers</h2>
+		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
+		{/* <h3 className={`opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3> */}
+		<ErrorBoundary>
+			<VoidProviderSettings providerNames={nonlocalProviderNames} />
+		</ErrorBoundary>
+
+		<h2 className={`text-3xl mb-2 mt-16`}>Models</h2>
+		<ErrorBoundary>
+			<VoidFeatureFlagSettings />
+			<RefreshableModels />
+			<ModelDump />
+			<AddModelMenuFull />
+		</ErrorBoundary>
+	</>
+}
+
+
+
+
+
+
+const OneClickSwitch = () => {
+
+}
+
+
+const GeneralTab = () => {
+	return <>
+		{/* <VoidFeatureFlagSettings /> */}
+
+		{/* keyboard shortcuts */}
+
+		<h2 className={`text-3xl mb-2`}>General Settings</h2>
+		<h3 className={`text-void-fg-3 mb-2`}>{`VS Code's built-in settings.`}</h3>
+
+		<h2 className={`text-3xl mb-2`}>Keyboard Settings</h2>
+		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
+
+
+		<h2 className={`text-3xl mb-2`}>One-click Switch</h2>
+
+		Transfer your VS Code settings to Void.
+
+		<h2 className={`text-3xl mb-2`}>Theme</h2>
+
+
+		<h2 className={`text-3xl mb-2`}>Rules for AI</h2>
+
+
+	</>
+}
+
 // full settings
 
 export const Settings = () => {
 	const isDark = useIsDark()
 
-	const [tab, setTab] = useState<'models' | 'features'>('models')
+	const [tab, setTab] = useState<TabName>('models')
 
 	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`}>
 		<div className='w-full h-full px-10 py-10 select-none'>
@@ -407,9 +481,9 @@ export const Settings = () => {
 						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
 							onClick={() => { setTab('models') }}
 						>Models</button>
-						{/* <button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'features' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
-							onClick={() => { setTab('features') }}
-						>Features</button> */}
+						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'general' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
+							onClick={() => { setTab('general') }}
+						>General</button>
 					</div>
 
 					{/* separator */}
@@ -420,43 +494,11 @@ export const Settings = () => {
 					<div className='w-full overflow-y-auto'>
 
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
-							<h2 className={`text-3xl mb-2`}>Local Providers</h2>
-							{/* <h3 className={`opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
-							{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
-							{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
-							<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
-							<div className='pl-4 select-text opacity-50'>
-								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></h4>
-								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></h4>
-								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></h4>
-								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></h4>
-								<h4 className={`text-sm mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} /></h4>
-								{/* TODO we should create UI for downloading models without user going into terminal */}
-							</div>
-
-							<ErrorBoundary>
-								<VoidProviderSettings providerNames={localProviderNames} />
-							</ErrorBoundary>
-
-							<h2 className={`text-3xl mb-2 mt-16`}>More Providers</h2>
-							<h3 className={`text-void-fg-3 mb-2`}>{`Void can also access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
-							{/* <h3 className={`opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3> */}
-							<ErrorBoundary>
-								<VoidProviderSettings providerNames={nonlocalProviderNames} />
-							</ErrorBoundary>
-
-							<h2 className={`text-3xl mb-2 mt-16`}>Models</h2>
-							<ErrorBoundary>
-								<VoidFeatureFlagSettings />
-								<RefreshableModels />
-								<ModelDump />
-								<AddModelMenuFull />
-							</ErrorBoundary>
+							<FeaturesTab />
 						</div>
 
-						<div className={`${tab !== 'features' ? 'hidden' : ''}`}>
-							<h2 className={`text-3xl mb-2`} onClick={() => { setTab('features') }}>Features</h2>
-							{/* <VoidFeatureFlagSettings /> */}
+						<div className={`${tab !== 'general' ? 'hidden' : ''}`}>
+							<GeneralTab />
 						</div>
 
 					</div>

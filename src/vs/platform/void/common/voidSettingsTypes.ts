@@ -204,7 +204,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'openAICompatible') {
 		return {
-			title: 'Other',
+			title: 'OpenAI-Compatible',
 		}
 	}
 	else if (providerName === 'gemini') {

@@ -4,9 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-
-
-export const extractArtificialFIMCodeFromResult = ({ text, preTag, sufTag, midTag }: { text: string, preTag: string, sufTag: string, midTag: string }) => {
+// modelWasTrainedOnFIM should be false here
+export const extractCodeFromFIM = ({ text, midTag, modelWasTrainedOnFIM }: { text: string, midTag: string, modelWasTrainedOnFIM: false }) => {
 
 	/* desired matches
 `
@@ -39,22 +38,25 @@ export const extractArtificialFIMCodeFromResult = ({ text, preTag, sufTag, midTa
 		[optional ` | `` | ```]
 	*/
 
-	const regex = /[\s\S]*?(?:`{1,3}\s*([a-zA-Z_]+[\w]*)?[\s\S]*?)?<MID>([\s\S]*?)(?:<MID\/>|`{1,3}|$)/;
-
+	// const regex = /[\s\S]*?(?:`{1,3}\s*([a-zA-Z_]+[\w]*)?[\s\S]*?)?<MID>([\s\S]*?)(?:<\/MID>|`{1,3}|$)/;
+	const regex = new RegExp(
+		`[\\s\\S]*?(?:\`{1,3}\\s*([a-zA-Z_]+[\\w]*)?[\\s\\S]*?)?<${midTag}>([\\s\\S]*?)(?:</${midTag}>|\`{1,3}|$)`,
+		''
+	);
 	const match = text.match(regex);
 	if (match) {
 		const [_, languageName, codeBetweenMidTags] = match;
-		return [languageName, codeBetweenMidTags]
+		return [languageName, codeBetweenMidTags] as const
 
 	} else {
-		return [undefined, extractCodeFromResult(text)]
+		return [undefined, extractCodeFromRegular(text)] as const
 	}
 
 }
 
 
 
-export const extractCodeFromResult = (result: string) => {
+export const extractCodeFromRegular = (result: string) => {
 	// Match either:
 	// 1. ```language\n<code>```
 	// 2. ```<code>```

@@ -324,13 +324,25 @@ export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }:
 
 }
 
-export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage }: { selection: string, prefix: string, suffix: string, userMessage: string, }) => {
-	const modelWasTrainedOnFIM = false
+
+export type FimTagsType = {
+	preTag: string,
+	sufTag: string,
+	midTag: string
+}
+export const defaultFimTags: FimTagsType = {
+	preTag: 'BEFORE',
+	sufTag: 'AFTER',
+	midTag: 'SELECTION',
+}
+
+export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage, modelWasTrainedOnFIM, fimTags }: { selection: string, prefix: string, suffix: string, userMessage: string, modelWasTrainedOnFIM: boolean, fimTags: FimTagsType }) => {
+	const { preTag, sufTag, midTag } = fimTags
 
 	if (modelWasTrainedOnFIM) {
-		const preTag = 'PRE'
-		const sufTag = 'SUF'
-		const midTag = 'MID'
+		// const preTag = 'PRE'
+		// const sufTag = 'SUF'
+		// const midTag = 'MID'
 		return `\
 <${preTag}>
 /* Original Selection:
@@ -343,9 +355,9 @@ ${prefix}</${preTag}>
 	}
 	// prompt the model artifically on how to do FIM
 	else {
-		const preTag = 'BEFORE'
-		const sufTag = 'AFTER'
-		const midTag = 'SELECTION'
+		// const preTag = 'BEFORE'
+		// const sufTag = 'AFTER'
+		// const midTag = 'SELECTION'
 		return `\
 The user is selecting this code as their SELECTION:
 \`\`\`

@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { mountFnGenerator } from '../util/mountFnGenerator.js'
-import { CtrlK } from './CtrlK.js'
+import { QuickEdit } from './QuickEdit.js'
 
 
-export const mountCtrlK = mountFnGenerator(CtrlK)
+export const mountCtrlK = mountFnGenerator(QuickEdit)
 
 

@@ -361,10 +361,10 @@ Note that the SELECTION has code that comes before it. This code is indicated wi
 Note also that the SELECTION has code that comes after it. This code is indicated with <${sufTag}>...after<${sufTag}/>.
 
 Instructions:
-1. Your OUTPUT should be a SINGLE PIECE OF CODE of the form <${midTag}>...new_selection<${midTag}/>
-2. You may ONLY CHANGE the original SELECTION, and NOT the content in the <${preTag}>...<${preTag}/> or <${sufTag}>...<${sufTag}/> tags
-3. Make sure all brackets in the new selection are balanced the same as in the original selection
-4. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
+1. Your OUTPUT should be a SINGLE PIECE OF CODE of the form <${midTag}>...new_selection<${midTag}/>. Do not give any explanation before or after this. ONLY output this format, nothing more.
+2. You may ONLY CHANGE the original SELECTION, and NOT the content in the <${preTag}>...<${preTag}/> or <${sufTag}>...<${sufTag}/> tags.
+3. Make sure all brackets in the new selection are balanced the same as in the original selection.
+4. Be careful not to duplicate or remove variables, comments, or other syntax by mistake.
 
 Complete the following:
 <${preTag}>${prefix}</${preTag}>

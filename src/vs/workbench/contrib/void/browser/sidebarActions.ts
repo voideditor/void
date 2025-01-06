@@ -83,45 +83,45 @@ registerAction2(class extends Action2 {
 		)
 
 
+		// select whole lines
 		if (selectionRange) {
-			// select whole lines
 			editor?.setSelection({ startLineNumber: selectionRange.startLineNumber, endLineNumber: selectionRange.endLineNumber, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER })
+		}
 
-			const selectionStr = getContentInRange(model, selectionRange)
+		const selectionStr = getContentInRange(model, selectionRange)
 
-			const selection: CodeStagingSelection = selectionStr === null || selectionRange.startLineNumber > selectionRange.endLineNumber ? {
-				type: 'File',
-				fileURI: model.uri,
-				selectionStr: null,
-				range: null,
-			} : {
-				type: 'Selection',
-				fileURI: model.uri,
-				selectionStr: selectionStr,
-				range: selectionRange,
-			}
+		const selection: CodeStagingSelection = !selectionRange || !selectionStr || (selectionRange.startLineNumber > selectionRange.endLineNumber) ? {
+			type: 'File',
+			fileURI: model.uri,
+			selectionStr: null,
+			range: null,
+		} : {
+			type: 'Selection',
+			fileURI: model.uri,
+			selectionStr: selectionStr,
+			range: selectionRange,
+		}
 
-			// add selection to staging
-			const threadHistoryService = accessor.get(IThreadHistoryService)
-			const currentStaging = threadHistoryService.state._currentStagingSelections
-			const currentStagingEltIdx = currentStaging?.findIndex(s =>
-				s.fileURI.fsPath === model.uri.fsPath
-				&& s.range?.startLineNumber === selection.range?.startLineNumber
-				&& s.range?.endLineNumber === selection.range?.endLineNumber
-			)
+		// add selection to staging
+		const threadHistoryService = accessor.get(IThreadHistoryService)
+		const currentStaging = threadHistoryService.state._currentStagingSelections
+		const currentStagingEltIdx = currentStaging?.findIndex(s =>
+			s.fileURI.fsPath === model.uri.fsPath
+			&& s.range?.startLineNumber === selection.range?.startLineNumber
+			&& s.range?.endLineNumber === selection.range?.endLineNumber
+		)
 
-			// if matches with existing selection, overwrite
-			if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
-				threadHistoryService.setStaging([
-					...currentStaging!.slice(0, currentStagingEltIdx),
-					selection,
-					...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
-				])
-			}
-			// if no match, add
-			else {
-				threadHistoryService.setStaging([...(currentStaging ?? []), selection])
-			}
+		// if matches with existing selection, overwrite
+		if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
+			threadHistoryService.setStaging([
+				...currentStaging!.slice(0, currentStagingEltIdx),
+				selection,
+				...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
+			])
+		}
+		// if no match, add
+		else {
+			threadHistoryService.setStaging([...(currentStaging ?? []), selection])
 		}
 
 	}

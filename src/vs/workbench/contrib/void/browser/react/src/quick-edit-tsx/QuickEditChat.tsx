@@ -14,12 +14,13 @@ import { ButtonStop, ButtonSubmit } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { X } from 'lucide-react';
 
-export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
+export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
 
 	const accessor = useAccessor()
 	const inlineDiffsService = accessor.get('IInlineDiffsService')
 	const sizerRef = useRef<HTMLDivElement | null>(null)
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
+
 
 	useEffect(() => {
 		const inputContainer = sizerRef.current
@@ -66,6 +67,10 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 		setIsStreaming(false)
 	}, [inlineDiffsService])
 
+
+	const onX = useCallback(() => {
+		inlineDiffsService.removeCtrlKZone({ diffareaid })
+	}, [inlineDiffsService, diffareaid])
 
 	// sync init value
 	const alreadySetRef = useRef(false)
@@ -116,9 +121,9 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 					@@[&_div.monaco-inputbox]:!void-outline-none`}
 			>
 				<div className='flex flex-row justify-between items-end gap-1'>
-					<div className='absolute size-0.5 top-0 right-4 z-[1]'>
+					<div className='absolute size-[4px] top-0 right-4 z-[1]'>
 						<X
-							onClick={() => { inlineDiffsService.removeCtrlKZone({ diffareaid }) }}
+							onClick={onX}
 						/>
 					</div>
 
@@ -132,6 +137,12 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 							onChangeText={onChangeText}
 							onCreateInstance={useCallback((instance: InputBox) => {
 								inputBoxRef.current = instance;
+
+								// if presses the esc key, X
+								instance.element.addEventListener('keydown', (e) => {
+									if (e.key === 'Escape')
+										onX()
+								})
 								onGetInputBox(instance);
 								instance.focus()
 							}, [onGetInputBox])}

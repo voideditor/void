@@ -31,7 +31,7 @@ import { ctrlKStream_prefixAndSuffix, ctrlKStream_prompt, ctrlKStream_systemMess
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 import { IPosition } from '../../../../editor/common/core/position.js';
 
-import { mountCtrlK } from '../browser/react/out/ctrl-k-tsx/index.js'
+import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
 import { LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js';

@@ -1298,8 +1298,18 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		//  B|  <-- endLine (we want to delete this whole line)
 		//  C
 		else if (diff.type === 'insertion') {
-			writeText = ''
-			toRange = { startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.endLine + 1, endColumn: 1 } // 1-indexed
+			// console.log('REJECTING:', diff)
+			// handle the case where the insertion was a newline at end of diffarea (applying to the next line doesnt work because it doesnt exist, vscode just doesnt delete the correct # of newlines)
+			if (diff.endLine === diffArea.endLine) {
+				// delete the line before instead of after
+				writeText = ''
+				toRange = { startLineNumber: diff.startLine - 1, startColumn: Number.MAX_SAFE_INTEGER, endLineNumber: diff.endLine, endColumn: 1 } // 1-indexed
+			}
+			else {
+				writeText = ''
+				toRange = { startLineNumber: diff.startLine, startColumn: 1, endLineNumber: diff.endLine + 1, endColumn: 1 } // 1-indexed
+			}
+
 		}
 		// if it was an edit, just edit the range
 		// (this image applies to writeText and toRange, not newOriginalCode)

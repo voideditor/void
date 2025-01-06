@@ -97,7 +97,7 @@ const DummySelectBox = () => {
 			size={14}
 			className='mr-1 brightness-90'
 		/>
-		<span>Model required</span>
+		<span>Provider required</span>
 	</div>
 	// return <VoidSelectBox
 	// 	options={[{ text: 'Please add a model!', value: null }]}

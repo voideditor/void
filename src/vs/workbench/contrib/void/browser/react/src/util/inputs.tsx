@@ -306,9 +306,9 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 	initValue = normalizeIndentation(initValue)
 
-	return <div ref={divRef}>
+	return <div ref={divRef} className='relative z-0 px-2 py-1 bg-void-bg-3'>
 		<WidgetComponent
-			className='relative z-0 @@bg-editor-style-override' // text-sm
+			className='@@bg-editor-style-override' // text-sm
 			ctor={useCallback((container) => {
 				return instantiationService.createInstance(
 					CodeEditorWidget,
@@ -321,8 +321,8 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 							alwaysConsumeMouseWheel: false,
 							vertical: 'hidden',
 							horizontal: 'hidden',
-							verticalScrollbarSize: 0,
-							horizontalScrollbarSize: 0,
+							verticalScrollbarSize: 8,
+							horizontalScrollbarSize: 8,
 						},
 						scrollBeyondLastLine: false,
 

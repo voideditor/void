@@ -75,10 +75,10 @@ const MemoizedModelSelectBox = ({ featureName }: { featureName: FeatureName }) =
 const DummySelectBox = () => {
 
 	const accessor = useAccessor()
-	const comandService = accessor.get('ICommandService')
+	const commandService = accessor.get('ICommandService')
 
 	const openSettings = () => {
-		comandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID);
+		commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID);
 	};
 
 	return <div

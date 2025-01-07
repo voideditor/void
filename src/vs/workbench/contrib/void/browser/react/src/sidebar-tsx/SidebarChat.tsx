@@ -6,7 +6,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
-import { useAccessor, useThreadsState } from '../util/services.js';
+import { useAccessor, useSidebarState, useThreadsState } from '../util/services.js';
 import { ChatMessage, CodeSelection, CodeStagingSelection, IThreadHistoryService } from '../../../threadHistoryService.js';
 
 import { BlockCode, getLanguageFromFileName } from '../markdown/BlockCode.js';
@@ -24,6 +24,7 @@ import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
+import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 
 
 const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -54,7 +55,7 @@ const IconArrowUp = ({ size, className = '' }: { size: number, className?: strin
 			width={size}
 			height={size}
 			className={className}
-			viewBox="0 0 32 32"
+			viewBox="0 0 20 20"
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
 		>
@@ -62,10 +63,9 @@ const IconArrowUp = ({ size, className = '' }: { size: number, className?: strin
 				fill="black"
 				fillRule="evenodd"
 				clipRule="evenodd"
-				d="M15.1918 8.90615C15.6381 8.45983 16.3618 8.45983 16.8081 8.90615L21.9509 14.049C22.3972 14.4953 22.3972 15.2189 21.9509 15.6652C21.5046 16.1116 20.781 16.1116 20.3347 15.6652L17.1428 12.4734V22.2857C17.1428 22.9169 16.6311 23.4286 15.9999 23.4286C15.3688 23.4286 14.8571 22.9169 14.8571 22.2857V12.4734L11.6652 15.6652C11.2189 16.1116 10.4953 16.1116 10.049 15.6652C9.60265 15.2189 9.60265 14.4953 10.049 14.049L15.1918 8.90615Z"
+				d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"
 			></path>
 		</svg>
-
 	);
 };
 
@@ -174,26 +174,27 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 
 	return <button
 		type='submit'
-		className={`size-[20px] rounded-full shrink-0 grow-0 cursor-pointer
+		className={`rounded-full shrink-0 grow-0 cursor-pointer flex items-center justify-center
 			${disabled ? 'bg-vscode-disabled-fg' : 'bg-white'}
 			${className}
 		`}
 		{...props}
 	>
-		<IconArrowUp size={DEFAULT_BUTTON_SIZE} className="stroke-[2]" />
+		<IconArrowUp size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[2px]" />
 	</button>
 }
 
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
 
 	return <button
-		className={`rounded-full bg-white shrink-0 grow-0 cursor-pointer flex items-center justify-center
+		className={`rounded-full shrink-0 grow-0 cursor-pointer flex items-center justify-center
+			bg-white
 			${className}
 		`}
 		type='button'
 		{...props}
 	>
-		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[6px]" />
+		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[3] p-[6px]" />
 	</button>
 }
 
@@ -269,6 +270,9 @@ export const SelectedFiles = (
 	// index -> isOpened
 	const [selectionIsOpened, setSelectionIsOpened] = useState<(boolean)[]>(selections?.map(() => false) ?? [])
 
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
+
 	return (
 		!!selections && selections.length !== 0 && (
 			<div
@@ -277,6 +281,9 @@ export const SelectedFiles = (
 				{selections.map((selection, i) => {
 
 					const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
+					const isThisSelectionAFile = selection.selectionStr === null
+
+
 
 					return (
 						<div key={i} // container for `selectionSummary` and `selectionText`
@@ -294,18 +301,29 @@ export const SelectedFiles = (
 									border border-vscode-commandcenter-border rounded-xs
 								`}
 								onClick={() => {
-									setSelectionIsOpened(s => {
-										const newS = [...s]
-										newS[i] = !newS[i]
-										return newS
-									});
+									// open the file if it is a file
+									if (isThisSelectionAFile) {
+										commandService.executeCommand('vscode.open', selection.fileURI, {
+											preview: true,
+											// preserveFocus: false,
+										});
+									} else {
+										// open the selection if it is a text-selection
+										setSelectionIsOpened(s => {
+											const newS = [...s]
+											newS[i] = !newS[i]
+											return newS
+										});
+									}
 								}}
 							>
-								<span className=''>
+								<span
+
+									className=''>
 									{/* file name */}
 									{getBasename(selection.fileURI.fsPath)}
 									{/* selection range */}
-									{selection.selectionStr !== null ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
+									{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
 								</span>
 
 								{/* X button */}
@@ -378,15 +396,22 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 	}
 
 	return <div
-		// style + align chatbubble accoridng to role
-		className={`p-2 mx-2 text-left space-y-2 rounded-lg max-w-full
-				${role === 'user' ? 'self-end' : 'self-start'}
-				${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''}
-				${role === 'assistant' ? 'w-full' : ''}
+		// align chatbubble accoridng to role
+		className={`
+				${role === 'user' ? 'px-2 self-end w-fit' : ''}
+				${role === 'assistant' ? 'self-start w-full' : ''}
 			`}
 	>
-		{chatbubbleContents}
-		{isLoading && <IconLoading className='opacity-50 text-sm' />}
+		<div
+			// style chatbubble according to role
+			className={`
+				p-2 text-left space-y-2 rounded-lg
+				${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''}
+			`}
+		>
+			{chatbubbleContents}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
+		</div>
 	</div>
 }
 
@@ -411,6 +436,8 @@ export const SidebarChat = () => {
 		return () => disposables.forEach(d => d.dispose())
 	}, [sidebarStateService, inputBoxRef])
 
+	const { currentTab, isHistoryOpen } = useSidebarState()
+
 	// threads state
 	const threadsState = useThreadsState()
 	const threadsStateService = accessor.get('IThreadHistoryService')
@@ -433,6 +460,7 @@ export const SidebarChat = () => {
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
 	const [formRef, formDimensions] = useResizeObserver()
+	const [historyRef, historyDimensions] = useResizeObserver()
 
 	// const [formHeight, setFormHeight] = useState(0) // TODO should use resize observer instead
 	// const [sidebarHeight, setSidebarHeight] = useState(0)
@@ -551,6 +579,14 @@ export const SidebarChat = () => {
 		ref={sidebarRef}
 		className={`w-full h-full`}
 	>
+		{/* thread selector */}
+		<div ref={historyRef}
+			className={`w-full h-auto mb-2 ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow z-10`}
+		>
+			<SidebarThreadSelector />
+		</div>
+
+		{/* previous messages + current stream */}
 		<ScrollToBottomContainer
 			className={`
 				w-full h-auto
@@ -558,19 +594,13 @@ export const SidebarChat = () => {
 				overflow-x-hidden
 				overflow-y-auto
 			`}
-			style={{ maxHeight: sidebarDimensions.height - formDimensions.height - 30 }}
+			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 30 }} // the height of the previousMessages is determined by all other heights
 		>
 			{/* previous messages */}
 			{previousMessages.map((message, i) => <ChatBubble key={i} chatMessage={message} />)}
 
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} isLoading={isLoading} />
-
-			{/* {_test_messages.map((_, i) => <div key={i}>div {i}</div>)}
-				<div>{`totalHeight: ${sidebarHeight - formHeight - 30}`}</div>
-				<div>{`sidebarHeight: ${sidebarHeight}`}</div>
-				<div>{`formHeight: ${formHeight}`}</div>
-				<button type='button' onClick={() => { _set_test_messages(d => [...d, 'asdasdsadasd']) }}>add div</button> */}
 
 		</ScrollToBottomContainer>
 

@@ -12,6 +12,7 @@ import { Checkbox } from '../../../../../../../base/browser/ui/toggle/toggle.js'
 
 import { CodeEditorWidget } from '../../../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js'
 import { useAccessor } from './services.js';
+import { ScrollableElement } from '../../../../../../../base/browser/ui/scrollbar/scrollableElement.js';
 
 
 // type guard
@@ -202,7 +203,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	onCreateInstance?: ((instance: SelectBox) => void | IDisposable[]);
 	selectBoxRef?: React.MutableRefObject<SelectBox | null>;
 	options: readonly { text: string, value: T }[];
-	className?:string;
+	className?: string;
 }) => {
 	const accessor = useAccessor()
 	const contextViewProvider = accessor.get('IContextViewService')
@@ -319,8 +320,8 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 						scrollbar: {
 							alwaysConsumeMouseWheel: false,
-							vertical: 'hidden',
-							horizontal: 'hidden',
+							// vertical: 'hidden',
+							// horizontal: 'hidden',
 							verticalScrollbarSize: 8,
 							horizontalScrollbarSize: 8,
 						},

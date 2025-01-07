@@ -71,3 +71,36 @@
 	color: #3b82f6;
 	cursor: pointer;
 }
+
+
+
+
+.void-scrollable-element *::-webkit-scrollbar {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+.void-scrollable-element *::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+.void-scrollable-element *::-webkit-scrollbar-thumb {
+    background-color: transparent !important;
+    border-radius: 0px !important;
+}
+
+.void-scrollable-element.show-scrollbar *::-webkit-scrollbar-thumb {
+    background-color: var(--vscode-scrollbarSlider-background) !important;
+}
+
+.void-scrollable-element *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--vscode-scrollbarSlider-hoverBackground) !important;
+}
+
+.void-scrollable-element *::-webkit-scrollbar-thumb:active {
+    background-color: var(--vscode-scrollbarSlider-activeBackground) !important;
+}
+
+.void-scrollable-element *::-webkit-scrollbar-corner {
+    background-color: transparent !important;
+}

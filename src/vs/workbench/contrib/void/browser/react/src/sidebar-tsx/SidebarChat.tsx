@@ -25,6 +25,7 @@ import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
+import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 
 
 const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -416,64 +417,6 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 }
 
 
-
-const useScrollFade = (ref: React.MutableRefObject<HTMLDivElement | null>) => {
-    useEffect(() => {
-        if (!ref.current) return;
-
-        let fadeTimeout: NodeJS.Timeout | null = null;
-        const parent = ref.current;
-        const scrollElement = parent.querySelector('[class*="void-overflow-"]');
-        if (!scrollElement) return;
-
-        const onMouseEnter = () => {
-            parent.classList.add('show-scrollbar');
-        };
-
-        const onMouseLeave = () => {
-            if (fadeTimeout) {
-                clearTimeout(fadeTimeout);
-            }
-            fadeTimeout = setTimeout(() => {
-                parent.classList.remove('show-scrollbar');
-            }, 1000);
-        };
-
-        scrollElement.addEventListener('mouseenter', onMouseEnter);
-        scrollElement.addEventListener('mouseleave', onMouseLeave);
-
-        return () => {
-            scrollElement.removeEventListener('mouseenter', onMouseEnter);
-            scrollElement.removeEventListener('mouseleave', onMouseLeave);
-            if (fadeTimeout) {
-                clearTimeout(fadeTimeout);
-            }
-        };
-    }, [ref]);
-};
-
-
-const Test = ({ children, className = "", }: { children: React.ReactNode; className?: string; maxHeight?: string; maxWidth?: string; }) => {
-
-
-	const ref = useRef<HTMLDivElement | null>(null)
-
-	useScrollFade(ref)
-
-	return (
-		<div ref={ref}
-			className={`@@void-scrollable-element`}
-		>
-			<div
-				className='relative overflow-auto max-h-80 max-w-80 bg-blue-400'
-			>
-				{children}
-			</div>
-		</div>
-	);
-};
-
-
 export const SidebarChat = () => {
 
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
@@ -518,6 +461,8 @@ export const SidebarChat = () => {
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
 	const [formRef, formDimensions] = useResizeObserver()
 	const [historyRef, historyDimensions] = useResizeObserver()
+
+	useScrollbarStyles(sidebarRef)
 
 	// const [formHeight, setFormHeight] = useState(0) // TODO should use resize observer instead
 	// const [sidebarHeight, setSidebarHeight] = useState(0)
@@ -636,11 +581,6 @@ export const SidebarChat = () => {
 		ref={sidebarRef}
 		className={`w-full h-full`}
 	>
-		<Test>
-			aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa
-			aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa
-			aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa
-		</Test>
 		{/* thread selector */}
 		<div ref={historyRef}
 			className={`w-full h-auto mb-2 ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow z-10`}

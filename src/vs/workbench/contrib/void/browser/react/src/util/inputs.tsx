@@ -294,12 +294,12 @@ const normalizeIndentation = (code: string): string => {
 
 }
 
-export type VoidCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, hideScrollbars?: boolean }
-export const VoidCodeEditor = ({ initValue, language, maxHeight, hideScrollbars }: VoidCodeEditorProps) => {
+export type VoidCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
+export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars }: VoidCodeEditorProps) => {
 
-	// apply default settings
+	// default settings
 	const MAX_HEIGHT = maxHeight ?? Infinity;
-	const HIDE_SCROLLBARS = hideScrollbars ?? false;
+	const SHOW_SCROLLBARS = showScrollbars ?? false;
 
 	const divRef = useRef<HTMLDivElement | null>(null)
 
@@ -323,7 +323,7 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, hideScrollbars 
 
 						scrollbar: {
 							alwaysConsumeMouseWheel: false,
-							...HIDE_SCROLLBARS ? {
+							...!SHOW_SCROLLBARS ? {
 								vertical: 'hidden',
 								horizontal: 'hidden',
 								verticalScrollbarSize: 0,

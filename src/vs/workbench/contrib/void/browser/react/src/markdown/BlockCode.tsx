@@ -74,7 +74,6 @@ export const BlockCode = ({ buttonsOnHover, ...codeEditorProps }: { buttonsOnHov
 					<div className={`flex space-x-2 ${isSingleLine ? '' : 'p-2'}`}>{buttonsOnHover}</div>
 				</div>
 			)}
-
 			<VoidCodeEditor {...codeEditorProps} />
 		</div>
 	</>

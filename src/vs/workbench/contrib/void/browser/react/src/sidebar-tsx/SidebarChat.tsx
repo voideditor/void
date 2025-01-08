@@ -17,7 +17,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { VoidInputBox } from '../util/inputs.js';
+import { VoidCodeEditorProps, VoidInputBox } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
@@ -362,7 +362,12 @@ export const SelectedFiles = (
 							{/* selection text */}
 							{isThisSelectionOpened &&
 								<div className='w-full px-1 rounded-sm border-vscode-editor-border'>
-									<BlockCode initValue={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
+									<BlockCode
+										initValue={selection.selectionStr!}
+										language={getLanguageFromFileName(selection.fileURI.path)}
+										maxHeight={100}
+										showScrollbars={false}
+									/>
 								</div>
 							}
 						</div>

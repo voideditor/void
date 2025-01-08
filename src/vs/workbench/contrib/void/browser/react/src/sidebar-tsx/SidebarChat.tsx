@@ -284,8 +284,6 @@ export const SelectedFiles = (
 					const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
 					const isThisSelectionAFile = selection.selectionStr === null
 
-
-
 					return (
 						<div key={i} // container for `selectionSummary` and `selectionText`
 							className={`${isThisSelectionOpened ? 'w-full' : ''}`}
@@ -332,7 +330,7 @@ export const SelectedFiles = (
 									<span
 										className='cursor-pointer hover:bg-vscode-toolbar-hover-bg rounded-md z-1'
 										onClick={(e) => {
-											e.stopPropagation();
+											e.stopPropagation(); // don't open/close selection
 											if (type !== 'staging') return;
 											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
 											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
@@ -361,7 +359,12 @@ export const SelectedFiles = (
 							</div>
 							{/* selection text */}
 							{isThisSelectionOpened &&
-								<div className='w-full px-1 rounded-sm border-vscode-editor-border'>
+								<div
+									className='w-full px-1 rounded-sm border-vscode-editor-border'
+									onClick={(e) => {
+										e.stopPropagation(); // don't focus input box
+									}}
+								>
 									<BlockCode
 										initValue={selection.selectionStr!}
 										language={getLanguageFromFileName(selection.fileURI.path)}

@@ -366,7 +366,7 @@ export const SelectedFiles = (
 										initValue={selection.selectionStr!}
 										language={getLanguageFromFileName(selection.fileURI.path)}
 										maxHeight={100}
-										showScrollbars={false}
+										showScrollbars={true}
 									/>
 								</div>
 							}

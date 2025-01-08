@@ -322,17 +322,19 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 						wordWrap: 'off',
 
 						scrollbar: {
-							ignoreHorizontalScrollbarInContentHeight: true,
 							alwaysConsumeMouseWheel: false,
-							...!SHOW_SCROLLBARS ? {
+							...SHOW_SCROLLBARS ? {
+								vertical: 'auto',
+								verticalScrollbarSize: 8,
+								horizontal: 'auto',
+								horizontalScrollbarSize: 8,
+							} : {
 								vertical: 'hidden',
 								verticalScrollbarSize: 0,
-								// horizontal: 'hidden',
-								// horizontalScrollbarSize: 0,
-
-							} : {
-								verticalScrollbarSize: 8,
+								horizontal: 'auto',
 								horizontalScrollbarSize: 8,
+								ignoreHorizontalScrollbarInContentHeight: true,
+
 							},
 						},
 						scrollBeyondLastLine: false,

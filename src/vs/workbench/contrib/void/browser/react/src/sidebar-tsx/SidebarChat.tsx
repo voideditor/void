@@ -411,7 +411,7 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 		<div
 			// style chatbubble according to role
 			className={`
-				p-2 text-left space-y-2 rounded-lg
+				p-2 text-left space-y-2 rounded-lg break-all
 				${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''}
 			`}
 		>

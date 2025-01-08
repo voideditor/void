@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ReactNode } from "react"
-import { VoidCodeEditor } from '../util/inputs.js';
+import { VoidCodeEditor, VoidCodeEditorProps } from '../util/inputs.js';
 
 
 const extensionMap: { [key: string]: string } = {
@@ -63,10 +63,9 @@ export function getLanguageFromFileName(fileName: string): string {
 	return extensionMap[ext] || 'plaintext';
 }
 
-export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, buttonsOnHover?: ReactNode, language?: string }) => {
+export const BlockCode = ({ buttonsOnHover, ...codeEditorProps }: { buttonsOnHover?: React.ReactNode } & VoidCodeEditorProps) => {
 
-
-	const isSingleLine = !text.includes('\n')
+	const isSingleLine = !codeEditorProps.initValue.includes('\n')
 
 	return (<>
 		<div className={`relative group w-full overflow-hidden`}>
@@ -76,10 +75,7 @@ export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, bu
 				</div>
 			)}
 
-			<VoidCodeEditor
-				initValue={text}
-				language={language}
-			/>
+			<VoidCodeEditor {...codeEditorProps} />
 		</div>
 	</>
 	)

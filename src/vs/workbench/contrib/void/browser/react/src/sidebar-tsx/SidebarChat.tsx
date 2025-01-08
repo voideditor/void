@@ -362,7 +362,7 @@ export const SelectedFiles = (
 							{/* selection text */}
 							{isThisSelectionOpened &&
 								<div className='w-full px-1 rounded-sm border-vscode-editor-border'>
-									<BlockCode text={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
+									<BlockCode initValue={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
 								</div>
 							}
 						</div>

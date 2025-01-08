@@ -21,6 +21,7 @@ import { IMetricsService } from '../../../../platform/void/common/metricsService
 import { ISidebarStateService } from './sidebarStateService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
+import { VOID_CTRL_L_ACTION_ID } from './actionIDs.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -60,7 +61,6 @@ const getContentInRange = (model: ITextModel, range: IRange | null) => {
 }
 
 // Action: when press ctrl+L, show the sidebar chat and add to the selection
-export const VOID_CTRL_L_ACTION_ID = 'void.ctrlLAction'
 registerAction2(class extends Action2 {
 	constructor() {
 		super({ id: VOID_CTRL_L_ACTION_ID, title: 'Void: Show Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });

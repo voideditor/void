@@ -12,6 +12,7 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 import { IInlineDiffsService } from './inlineDiffsService.js';
 import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
 import { roundRangeToLines } from './sidebarActions.js';
+import { VOID_CTRL_K_ACTION_ID } from './actionIDs.js';
 
 
 export type QuickEditPropsType = {
@@ -31,7 +32,6 @@ export type QuickEdit = {
 }
 
 
-export const VOID_CTRL_K_ACTION_ID = 'void.ctrlKAction'
 registerAction2(class extends Action2 {
 	constructor(
 	) {

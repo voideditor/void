@@ -8,10 +8,11 @@ import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, 
 import { OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from '../util/inputs.js';
-import { QuickEditPropsType, VOID_CTRL_K_ACTION_ID } from '../../../quickEditActions.js';
+import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { X } from 'lucide-react';
+import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 
 export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
 

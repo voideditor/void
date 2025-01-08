@@ -18,14 +18,13 @@ import { isRecentFolder, IWorkspacesService } from '../../../../platform/workspa
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { OpenFileFolderAction, OpenFolderAction } from '../../actions/workspaceActions.js';
 import { isMacintosh, isNative, OS } from '../../../../base/common/platform.js';
-import { VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/sidebarActions.js';
-import { VOID_CTRL_K_ACTION_ID } from '../../../contrib/void/browser/quickEditActions.js';
 import { defaultKeybindingLabelStyles } from '../../../../platform/theme/browser/defaultStyles.js';
 import { IWindowOpenable } from '../../../../platform/window/common/window.js';
 import { ILabelService, Verbosity } from '../../../../platform/label/common/label.js';
 import { splitRecentLabel } from '../../../../base/common/labels.js';
 import { IHostService } from '../../../services/host/browser/host.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../contrib/void/browser/voidSettingsPane.js';
+import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
 // import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 
 registerColor('editorWatermark.foreground', { dark: transparent(editorForeground, 0.6), light: transparent(editorForeground, 0.68), hcDark: editorForeground, hcLight: editorForeground }, localize('editorLineHighlight', 'Foreground color for the labels in the editor watermark.'));

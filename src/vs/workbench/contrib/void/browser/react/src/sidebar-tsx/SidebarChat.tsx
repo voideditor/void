@@ -25,7 +25,7 @@ import { ILLMMessageService } from '../../../../../../../platform/void/common/ll
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
-import { VOID_CTRL_L_ACTION_ID } from '../../../sidebarActions.js';
+import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 
 
 const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {

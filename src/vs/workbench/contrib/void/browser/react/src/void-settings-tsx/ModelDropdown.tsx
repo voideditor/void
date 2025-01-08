@@ -32,7 +32,7 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 	let weChangedText = false
 
 	return <VoidSelectBox
-		className='@@[&_select]:!void-text-xs'
+		className='@@[&_select]:!void-text-xs text-void-fg-3'
 		options={options}
 		onChangeSelection={useCallback((newVal: ModelSelection) => {
 			if (weChangedText) return

@@ -130,7 +130,12 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 					{/* input */}
 					<div // copied from SidebarChat.tsx
 						className={`w-full
-							@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_div.monaco-inputbox]:!void-outline-none`}>
+							@@[&_textarea]:!void-bg-transparent
+							@@[&_textarea]:!void-outline-none
+							@@[&_textarea]:!void-text-vscode-input-fg
+							@@[&_div.monaco-inputbox]:!void-outline-none
+						`}
+					>
 						{/* text input */}
 						<VoidInputBox
 							placeholder={`${keybindingString} to select`}

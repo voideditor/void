@@ -7,9 +7,8 @@ import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'reac
 import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
 import { OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { getCmdKey } from '../../../helpers/getCmdKey.js';
 import { VoidInputBox } from '../util/inputs.js';
-import { QuickEditPropsType } from '../../../quickEditActions.js';
+import { QuickEditPropsType, VOID_CTRL_K_ACTION_ID } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { X } from 'lucide-react';
@@ -72,6 +71,7 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 		inlineDiffsService.removeCtrlKZone({ diffareaid })
 	}, [inlineDiffsService, diffareaid])
 
+
 	// sync init value
 	const alreadySetRef = useRef(false)
 	useEffect(() => {
@@ -80,6 +80,10 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 		alreadySetRef.current = true
 		inputBoxRef.current.value = instructions
 	}, [initText, instructions])
+
+	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
+
+
 
 	return <div ref={sizerRef} className='py-2 w-full max-w-xl'>
 		<form
@@ -128,7 +132,7 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 							@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_div.monaco-inputbox]:!void-outline-none`}>
 						{/* text input */}
 						<VoidInputBox
-							placeholder={`${getCmdKey()}+K to select`}
+							placeholder={`${keybindingString} to select`}
 							onChangeText={onChangeText}
 							onCreateInstance={useCallback((instance: InputBox) => {
 								inputBoxRef.current = instance;

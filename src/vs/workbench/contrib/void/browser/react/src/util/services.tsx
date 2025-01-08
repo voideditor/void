@@ -40,6 +40,7 @@ import { IAccessibilityService } from '../../../../../../../platform/accessibili
 import { ILanguageConfigurationService } from '../../../../../../../editor/common/languages/languageConfigurationRegistry.js'
 import { ILanguageFeaturesService } from '../../../../../../../editor/common/services/languageFeatures.js'
 import { ILanguageDetectionService } from '../../../../../../services/languageDetection/common/languageDetectionWorkerService.js'
+import { IKeybindingService } from '../../../../../../../platform/keybinding/common/keybinding.js'
 
 
 
@@ -173,6 +174,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageConfigurationService: accessor.get(ILanguageConfigurationService),
 		ILanguageDetectionService: accessor.get(ILanguageDetectionService),
 		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
+		IKeybindingService: accessor.get(IKeybindingService),
 
 	} as const
 	return reactAccessor

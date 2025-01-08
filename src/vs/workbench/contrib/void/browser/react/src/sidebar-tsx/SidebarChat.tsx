@@ -16,7 +16,6 @@ import { EndOfLinePreference } from '../../../../../../../editor/common/model.js
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
-import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
@@ -26,6 +25,7 @@ import { ILLMMessageService } from '../../../../../../../platform/void/common/ll
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
+import { VOID_CTRL_L_ACTION_ID } from '../../../sidebarActions.js';
 
 
 const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -577,6 +577,8 @@ export const SidebarChat = () => {
 
 	// const [_test_messages, _set_test_messages] = useState<string[]>([])
 
+	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_L_ACTION_ID)?.getLabel()
+
 	return <div
 		ref={sidebarRef}
 		className={`w-full h-full`}
@@ -675,7 +677,7 @@ export const SidebarChat = () => {
 
 					{/* text input */}
 					<VoidInputBox
-						placeholder={`${getCmdKey()}+L to select`}
+						placeholder={`${keybindingString} to select`}
 						onChangeText={onChangeText}
 						inputBoxRef={inputBoxRef}
 						multiline={true}

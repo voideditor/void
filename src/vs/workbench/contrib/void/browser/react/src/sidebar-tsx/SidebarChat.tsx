@@ -628,7 +628,7 @@ export const SidebarChat = () => {
 					transition-all duration-200
 					rounded-md
 					bg-vscode-input-bg
-					max-h-[60vh] overflow-y-auto
+					max-h-[80vh] overflow-y-auto
 					border border-vscode-commandcenter-inactive-border focus-within:border-vscode-commandcenter-active-border hover:border-vscode-commandcenter-active-border
 				`}
 				onKeyDown={(e) => {

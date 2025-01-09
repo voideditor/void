@@ -29,7 +29,7 @@ type SetModelSelectionOfFeatureFn = <K extends FeatureName>(
 
 type SetFeatureFlagFn = (flagName: FeatureFlagName, newVal: boolean) => void;
 
-export type ModelOption = { text: string, value: ModelSelection }
+export type ModelOption = { name: string, selection: ModelSelection }
 
 
 
@@ -69,7 +69,7 @@ let _computeModelOptions = (settingsOfProvider: SettingsOfProvider) => {
 		if (!providerConfig._enabled) continue // if disabled, don't display model options
 		for (const { modelName, isHidden } of providerConfig.models) {
 			if (isHidden) continue
-			modelOptions.push({ text: `${modelName} (${providerName})`, value: { providerName, modelName } })
+			modelOptions.push({ name: `${modelName} (${providerName})`, selection: { providerName, modelName } })
 		}
 	}
 	return modelOptions
@@ -169,11 +169,11 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			for (const featureName of featureNames) {
 
 				const currentSelection = newModelSelectionOfFeature[featureName]
-				const selnIdx = currentSelection === null ? -1 : newModelsList.findIndex(m => modelSelectionsEqual(m.value, currentSelection))
+				const selnIdx = currentSelection === null ? -1 : newModelsList.findIndex(m => modelSelectionsEqual(m.selection, currentSelection))
 
 				if (selnIdx === -1) {
 					if (newModelsList.length !== 0)
-						this.setModelSelectionOfFeature(featureName, newModelsList[0].value, { doNotApplyEffects: true })
+						this.setModelSelectionOfFeature(featureName, newModelsList[0].selection, { doNotApplyEffects: true })
 					else
 						this.setModelSelectionOfFeature(featureName, null, { doNotApplyEffects: true })
 				}

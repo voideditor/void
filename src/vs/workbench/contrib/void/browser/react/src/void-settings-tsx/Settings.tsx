@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { VoidCheckBox, VoidInputBox, VoidSelectBox, VoidSwitch } from '../util/inputs.js'
+import { VoidCheckBox, VoidInputBox, _VoidSelectBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
@@ -98,7 +98,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 
 			{/* provider */}
 			<div className='max-w-40 w-full border border-vscode-editorwidget-border'>
-				<VoidSelectBox
+				<_VoidSelectBox
 					onCreateInstance={useCallback(() => { providerNameRef.current = providerOptions[0].value }, [providerOptions])} // initialize state
 					onChangeSelection={useCallback((providerName: ProviderName) => { providerNameRef.current = providerName }, [])}
 					options={providerOptions}

@@ -3,7 +3,7 @@
  *  Void Editor additions licensed under the AGPL 3.0 License.
  *--------------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
@@ -13,6 +13,7 @@ import { Checkbox } from '../../../../../../../base/browser/ui/toggle/toggle.js'
 import { CodeEditorWidget } from '../../../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js'
 import { useAccessor } from './services.js';
 import { ScrollableElement } from '../../../../../../../base/browser/ui/scrollbar/scrollableElement.js';
+import { ModelOption } from '../../../../../../../platform/void/common/voidSettingsService.js';
 
 
 // type guard
@@ -198,7 +199,95 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 }
 
 
-export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options, className }: {
+export const VoidCustomSelectBox = <T extends any>({ options, selectedOption, onChangeOption, getOptionName, getOptionsEqual }: { options: T[], selectedOption?: T, onChangeOption: (newValue: T) => void, getOptionName: (option: T) => string, getOptionsEqual: (a: T, b: T) => boolean }) => {
+
+	const [isOpen, setIsOpen] = useState(false);
+	const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+	if (!selectedOption) {
+		selectedOption = options[0]
+	}
+
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+				setIsOpen(false);
+			}
+		};
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, []);
+
+
+	return (
+		<div className="relative inline-block" ref={dropdownRef}>
+			{/* Select Button */}
+			<button
+				style={{ fontSize: '6px' }}
+				className="flex items-center gap-1 px-2 h-4 bg-white hover:bg-gray-100 active:bg-gray-200 whitespace-nowrap"
+				onClick={() => setIsOpen(!isOpen)}
+			>
+				<span>{getOptionName(selectedOption)}</span>
+
+				{/* Check Mark */}
+				<svg className="w-2 h-2 flex-shrink-0" viewBox="0 0 12 12" fill="none">
+					<path
+						d="M2.5 4.5L6 8L9.5 4.5"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					/>
+				</svg>
+			</button>
+
+			{/* Dropdown Menu */}
+			{isOpen && (
+				<div className="absolute z-10 py-1 mt-1 bg-white border rounded shadow-lg">
+					{options.map((option) => {
+
+						const thisOptionIsSelected = getOptionsEqual(option, selectedOption)
+						const optionName = getOptionName(option)
+
+						return (
+							<div
+								key={optionName}
+								className={`flex items-center h-4 px-2 cursor-pointer whitespace-nowrap text-[6px]
+								transition-colors duration-100
+								hover:bg-gray-100 active:bg-gray-200
+								${thisOptionIsSelected ? 'bg-gray-50' : ''}
+							`}
+								onClick={() => {
+									onChangeOption(option);
+									setIsOpen(false);
+								}}
+							>
+								<div className="w-4 flex justify-center flex-shrink-0">
+									{thisOptionIsSelected && (
+										<svg className="w-2 h-2" viewBox="0 0 12 12" fill="none">
+											<path
+												d="M10 3L4.5 8.5L2 6"
+												stroke="currentColor"
+												strokeWidth="1.5"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+											/>
+										</svg>
+									)}
+								</div>
+								<span>{optionName}</span>
+							</div>
+						)
+					})}
+				</div>
+			)}
+		</div>
+	);
+};
+
+
+
+export const _VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options, className }: {
 	onChangeSelection: (value: T) => void;
 	onCreateInstance?: ((instance: SelectBox) => void | IDisposable[]);
 	selectBoxRef?: React.MutableRefObject<SelectBox | null>;
@@ -211,9 +300,13 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
 	return <WidgetComponent
-		className={`@@select-child-restyle
+		className={`
+			@@select-child-restyle
 			@@[&_select]:!void-text-void-fg-3
-			${className ?? ''}`}
+			@@[&_select]:!void-text-xs
+			!text-void-fg-3
+			${className ?? ''}
+		`}
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container
@@ -222,7 +315,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 				options.map(opt => ({ text: opt.text })),
 				defaultIndex,
 				contextViewProvider,
-				defaultSelectBoxStyles
+				defaultSelectBoxStyles,
 			] as const;
 		}, [containerRef, options, contextViewProvider])}
 

@@ -104,10 +104,8 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 				}
 			}}
 			onSubmit={(e) => {
-				if (isDisabled) {
-					// __TODO__ show disabled
+				if (isDisabled)
 					return
-				}
 				console.log('submit!')
 				onSubmit(e)
 			}}

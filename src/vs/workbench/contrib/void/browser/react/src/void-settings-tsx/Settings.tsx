@@ -57,7 +57,7 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
 	return <SubtleButton
 		onClick={() => { refreshModelService.refreshModels(providerName) }}
-		text={justFinished ? `${providerTitle} Models are up-to-date!` : `Refresh Models List for ${providerTitle}.`}
+		text={justFinished ? `${providerTitle} Models are up-to-date!` : `Manually refresh models list for ${providerTitle}.`}
 		icon={isRefreshing ? <Loader2 className='size-3 animate-spin' /> : (justFinished ? <Check className='stroke-green-500 size-3' /> : <RefreshCw className='size-3' />)}
 		disabled={isRefreshing || justFinished}
 	/>

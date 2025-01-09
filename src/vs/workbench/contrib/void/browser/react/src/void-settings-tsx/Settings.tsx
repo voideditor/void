@@ -452,7 +452,7 @@ const GeneralTab = () => {
 
 
 		<h2 className={`text-3xl mb-2`}>Rules for AI</h2>
-
+		{/* placeholder: "Do not add ;'s. Do not change or delete spacing, formatting, or comments. Respond to queries in French when applicable. " */}
 
 	</>
 }

@@ -194,7 +194,7 @@ export const ModelDump = () => {
 		return Number(b.providerEnabled) - Number(a.providerEnabled)
 	})
 
-	return <div className='min-w-[600px] overflow-x-auto'>
+	return <div className=''>
 		{modelDump.map((m, i) => {
 			const { isHidden, isDefault, isAutodetected, modelName, providerName, providerEnabled } = m
 
@@ -605,7 +605,7 @@ export const Settings = () => {
 
 
 					{/* content */}
-					<div className='w-full overflow-y-auto'>
+					<div className='w-full min-w-[600px] overflow-auto'>
 
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
 							<FeaturesTab />

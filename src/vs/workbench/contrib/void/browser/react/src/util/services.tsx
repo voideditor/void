@@ -41,7 +41,9 @@ import { ILanguageConfigurationService } from '../../../../../../../editor/commo
 import { ILanguageFeaturesService } from '../../../../../../../editor/common/services/languageFeatures.js'
 import { ILanguageDetectionService } from '../../../../../../services/languageDetection/common/languageDetectionWorkerService.js'
 import { IKeybindingService } from '../../../../../../../platform/keybinding/common/keybinding.js'
-
+import { IEnvironmentService } from '../../../../../../../platform/environment/common/environment.js'
+import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
+import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -175,6 +177,10 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageDetectionService: accessor.get(ILanguageDetectionService),
 		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
 		IKeybindingService: accessor.get(IKeybindingService),
+
+		IEnvironmentService: accessor.get(IEnvironmentService),
+		IConfigurationService: accessor.get(IConfigurationService),
+		IPathService: accessor.get(IPathService),
 
 	} as const
 	return reactAccessor

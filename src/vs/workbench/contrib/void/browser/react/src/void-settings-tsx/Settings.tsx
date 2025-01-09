@@ -7,11 +7,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { VoidCheckBox, VoidInputBox, _VoidSelectBox, VoidSwitch, VoidCustomSelectBox } from '../util/inputs.js'
+import { VoidButton, VoidCheckBox, VoidCustomSelectBox, VoidInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
+import { isWindows, isLinux, isMacintosh } from '../../../../../../../base/common/platform.js'
+import { URI } from '../../../../../../../base/common/uri.js'
+import { env } from '../../../../../../../base/common/process.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
@@ -115,7 +118,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 				/> */}
 
 			{/* model */}
-			<div className='max-w-40 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'>
+			<div className='max-w-40 w-fit border border-vscode-editorwidget-border'>
 				<VoidInputBox
 					placeholder='Model Name'
 					onChangeText={useCallback((modelName) => { modelNameRef.current = modelName }, [])}
@@ -125,36 +128,33 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 
 			{/* button */}
 			<div className='max-w-40'>
-				<button
-					className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
-					onClick={() => {
-						const modelName = modelNameRef.current
+				<VoidButton onClick={() => {
+					const modelName = modelNameRef.current
 
-						if (providerName === null) {
-							setErrorString('Please select a provider.')
-							return
-						}
-						if (!modelName) {
-							setErrorString('Please enter a model name.')
-							return
-						}
-						// if model already exists here
-						if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
-							setErrorString(`This model already exists under ${providerName}.`)
-							return
-						}
+					if (providerName === null) {
+						setErrorString('Please select a provider.')
+						return
+					}
+					if (!modelName) {
+						setErrorString('Please enter a model name.')
+						return
+					}
+					// if model already exists here
+					if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
+						setErrorString(`This model already exists under ${providerName}.`)
+						return
+					}
 
-						settingsStateService.addModel(providerName, modelName)
-						onSubmit()
+					settingsStateService.addModel(providerName, modelName)
+					onSubmit()
 
-					}}>Add model</button>
+				}}
+				>Add model</VoidButton>
 			</div>
 
 			{!errorString ? null : <div className='text-red-500 truncate whitespace-nowrap'>
 				{errorString}
 			</div>}
-
-
 		</div>
 
 	</>
@@ -167,10 +167,7 @@ const AddModelMenuFull = () => {
 	return <div className='hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 my-4 pb-1 px-3 rounded-sm overflow-hidden '>
 		{open ?
 			<AddModelMenu onSubmit={() => { setOpen(false) }} />
-			: <button
-				className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
-				onClick={() => setOpen(true)}
-			>Add Model</button>
+			: <VoidButton onClick={() => setOpen(true)}>Add Model</VoidButton>
 		}
 	</div>
 }
@@ -432,11 +429,94 @@ export const FeaturesTab = () => {
 
 
 
+// https://github.com/VSCodium/vscodium/blob/master/docs/index.md#migrating-from-visual-studio-code-to-vscodium
+// https://code.visualstudio.com/docs/editor/extension-marketplace#_where-are-extensions-installed
+type TransferFilesInfo = { from: URI, to: URI }[]
+const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): TransferFilesInfo => {
+	if (os === null)
+		throw new Error(`One-click switch is not possible in this environment.`)
+	if (os === 'mac') {
+		const homeDir = env['HOME']
+		if (!homeDir) throw new Error(`$HOME not found`)
+		return [{
+			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'settings.json'),
+			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
+		}, {
+			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'keybindings.json'),
+			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
+		}, {
+			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
+			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+		}]
+	}
 
+	if (os === 'linux') {
+		const homeDir = env['HOME']
+		if (!homeDir) throw new Error(`variable for $HOME location not found`)
+		return [{
+			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'settings.json'),
+			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
+		}, {
+			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'keybindings.json'),
+			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
+		}, {
+			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
+			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+		}]
+	}
 
+	if (os === 'windows') {
+		const appdata = env['APPDATA']
+		if (!appdata) throw new Error(`variable for %APPDATA% location not found`)
+		const userprofile = env['USERPROFILE']
+		if (!userprofile) throw new Error(`variable for %USERPROFILE% location not found`)
+
+		return [{
+			from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'settings.json'),
+			to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
+		}, {
+			from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'keybindings.json'),
+			to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
+		}, {
+			from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.vscode', 'extensions'),
+			to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+		}]
+	}
+
+	throw new Error(`os '${os}' not recognized`)
+}
+
+const os = null//isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
+let transferTheseFiles: TransferFilesInfo = []
+let transferError: string | null = null
+
+try { transferTheseFiles = transferTheseFilesOfOS(os) }
+catch (e) { transferError = e + '' }
 
 const OneClickSwitch = () => {
+	const accessor = useAccessor()
+	const fileService = accessor.get('IFileService')
 
+	if (transferTheseFiles.length === 0)
+		return <>
+			<div>One-click transfer not available.</div>
+			<div>{transferError}</div>
+		</>
+
+	const onClick = async () => {
+		for (let { from, to } of transferTheseFiles) {
+			console.log('transferring', from, to)
+			// not sure if this can fail, just wrapping it with try/catch for now
+			try { await fileService.copy(from, to, true) }
+			catch (e) { console.error('Void Transfer Error:', e) }
+		}
+	}
+
+	return <>
+		<VoidButton onClick={onClick}>
+			Transfer Settings
+		</VoidButton>
+	</>
 }
 
 
@@ -446,21 +526,22 @@ const GeneralTab = () => {
 
 		{/* keyboard shortcuts */}
 
-		<h2 className={`text-3xl mb-2`}>General Settings</h2>
+		<h2 className={`text-2xl mb-2`}>General Settings</h2>
 		<h3 className={`text-void-fg-3 mb-2`}>{`VS Code's built-in settings.`}</h3>
 
-		<h2 className={`text-3xl mb-2`}>Keyboard Settings</h2>
+		<h2 className={`text-2xl mb-2`}>Keyboard Settings</h2>
 		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
 
 
-		<h2 className={`text-3xl mb-2`}>One-click Switch</h2>
-
-		Transfer your VS Code settings to Void.
-
-		<h2 className={`text-3xl mb-2`}>Theme</h2>
+		<h2 className={`text-2xl mb-2`}>One-click Switch</h2>
+		<h3 className={`text-void-fg-3 mb-2`}>{`Transfer your VS Code settings into Void.`}</h3>
+		<OneClickSwitch />
 
 
-		<h2 className={`text-3xl mb-2`}>Rules for AI</h2>
+		<h2 className={`text-2xl mb-2`}>Theme</h2>
+
+
+		<h2 className={`text-2xl mb-2`}>Rules for AI</h2>
 		{/* placeholder: "Do not add ;'s. Do not change or delete spacing, formatting, or comments. Respond to queries in French when applicable. " */}
 
 	</>

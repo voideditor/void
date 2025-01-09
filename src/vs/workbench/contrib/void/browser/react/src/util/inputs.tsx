@@ -567,6 +567,13 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 }
 
 
+export const VoidButton = ({ children, onClick }: { children: React.ReactNode; onClick: () => void }) => {
+	return <button
+		className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
+		onClick={onClick}
+	>{children}</button>
+}
+
 // export const VoidScrollableElt = ({ options, children }: { options: ScrollableElementCreationOptions, children: React.ReactNode }) => {
 // 	const instanceRef = useRef<DomScrollableElement | null>(null);
 // 	const [childrenPortal, setChildrenPortal] = useState<React.ReactNode | null>(null)

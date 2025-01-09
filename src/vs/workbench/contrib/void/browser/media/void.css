@@ -70,6 +70,10 @@
 .void-link {
 	color: #3b82f6;
 	cursor: pointer;
+	transition: all 0.2s ease;
+}
+.void-link:hover {
+	opacity: 80%;
 }
 
 

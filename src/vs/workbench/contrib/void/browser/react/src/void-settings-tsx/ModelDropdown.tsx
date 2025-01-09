@@ -90,7 +90,7 @@ const MemoizedModelSelectBox = ({ featureName }: { featureName: FeatureName }) =
 
 }
 
-const WarningBox = ({ text, className }: { text: string, className?: string }) => {
+export const WarningBox = ({ text, className }: { text: string, className?: string }) => {
 
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')

@@ -15,6 +15,7 @@ import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
 import { isWindows, isLinux, isMacintosh } from '../../../../../../../base/common/platform.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
+import { WarningBox } from './ModelDropdown.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
@@ -486,7 +487,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): Transfe
 	throw new Error(`os '${os}' not recognized`)
 }
 
-const os = null//isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
+const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
 let transferTheseFiles: TransferFilesInfo = []
 let transferError: string | null = null
 
@@ -499,8 +500,7 @@ const OneClickSwitch = () => {
 
 	if (transferTheseFiles.length === 0)
 		return <>
-			<div>One-click transfer not available.</div>
-			<div>{transferError}</div>
+			<WarningBox text={transferError ?? `One-click transfer not available.`} />
 		</>
 
 	const onClick = async () => {

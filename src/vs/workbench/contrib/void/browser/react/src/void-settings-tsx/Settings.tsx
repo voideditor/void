@@ -550,7 +550,7 @@ const GeneralTab = () => {
 
 		<div className=''>
 			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from VS Code to Void.`}</h4>
+			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from VS Code to Void in one click!`}</h4>
 			<OneClickSwitchButton />
 		</div>
 
@@ -565,7 +565,7 @@ const GeneralTab = () => {
 
 		<div className='mt-16'>
 			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keybindings, and theme customization.`}</h4>
+			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
 			<div className='my-4'>
 				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>

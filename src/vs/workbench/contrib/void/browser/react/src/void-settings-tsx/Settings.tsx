@@ -11,6 +11,7 @@ import { VoidCheckBox, VoidInputBox, VoidSelectBox, VoidSwitch } from '../util/i
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
+import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
@@ -464,8 +465,11 @@ export const Settings = () => {
 
 	const [tab, setTab] = useState<TabName>('models')
 
-	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`}>
-		<div className='w-full h-full px-10 py-10 select-none'>
+	const containerRef = useRef<HTMLDivElement | null>(null)
+	useScrollbarStyles(containerRef)
+
+	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
+		<div ref={containerRef} className='overflow-y-auto w-full h-full px-10 py-10 select-none'>
 
 			<div className='max-w-5xl mx-auto'>
 

@@ -583,34 +583,8 @@ const GeneralTab = () => {
 				</VoidButton>
 			</div>
 		</div>
-		{/* <div className='my-4'>
-			<h3 className={`text-xl mb-2 mt-4`}>General Settings</h3>
-			<h4 className={`text-void-fg-3 mb-2`}>{`VS Code's built-in settings.`}</h4>
-			<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
-				General Settings
-			</VoidButton>
-		</div>
-
-		<div className='my-4'>
-			<h3 className={`text-xl mb-2 mt-4`}>Keyboard Settings</h3>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h4>
-			<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindingsFile') }}>
-				Keyboard Settings
-			</VoidButton>
-		</div>
-
-
-		<div className='my-4'>
-			<h3 className={`text-xl mb-2 mt-4`}>Theme</h3>
-			<VoidButton onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
-				Theme
-			</VoidButton>
-		</div> */}
-
 
 		{/* <VoidFeatureFlagSettings /> */}
-
-
 
 	</>
 }

@@ -210,7 +210,7 @@ export const ModelDump = () => {
 			>
 				{/* left part is width:full */}
 				<div className={`w-full flex items-center gap-4`}>
-					<span className='min-w-20'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
+					<span className='min-w-32'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
 					<span>{modelName}</span>
 					{/* <span>{`${modelName} (${providerName})`}</span> */}
 				</div>

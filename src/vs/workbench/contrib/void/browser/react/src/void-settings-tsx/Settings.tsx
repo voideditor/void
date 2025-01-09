@@ -555,7 +555,7 @@ const GeneralTab = () => {
 
 
 		<h2 className={`text-2xl mb-2`}>One-click Switch</h2>
-		<h3 className={`text-void-fg-3 mb-2`}>{`Transfer your VS Code settings into Void.`}</h3>
+		<h3 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from VS Code into Void.`}</h3>
 		<OneClickSwitch />
 
 

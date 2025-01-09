@@ -36,7 +36,7 @@ export type RefreshModelStateOfProvider = Record<RefreshableProviderName, Refres
 
 const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvider[k])[] } = {
 	ollama: ['_enabled', 'endpoint'],
-	openAICompatible: ['_enabled', 'endpoint', 'apiKey'],
+	// openAICompatible: ['_enabled', 'endpoint', 'apiKey'],
 }
 const REFRESH_INTERVAL = 5_000
 // const COOLDOWN_TIMEOUT = 300
@@ -129,7 +129,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 	state: RefreshModelStateOfProvider = {
 		ollama: { state: 'init', timeoutId: null },
-		openAICompatible: { state: 'init', timeoutId: null },
+		// openAICompatible: { state: 'init', timeoutId: null },
 	}
 
 

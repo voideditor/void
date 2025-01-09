@@ -39,7 +39,7 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 		onChangeOption={onChangeOption}
 		getOptionName={(option) => option.name}
 		getOptionsEqual={(a, b) => optionsEqual([a], [b])}
-
+		className={`text-xs text-void-fg-3 px-1`}
 	/>
 }
 // const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], featureName: FeatureName }) => {

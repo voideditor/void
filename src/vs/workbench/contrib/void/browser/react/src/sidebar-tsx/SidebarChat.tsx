@@ -175,7 +175,7 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 
 	return <button
 		type='submit'
-		className={`rounded-full shrink-0 grow-0 cursor-pointer flex items-center justify-center
+		className={`rounded-full flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
 			${disabled ? 'bg-vscode-disabled-fg' : 'bg-white'}
 			${className}
 		`}
@@ -188,7 +188,7 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
 
 	return <button
-		className={`rounded-full shrink-0 grow-0 cursor-pointer flex items-center justify-center
+		className={`rounded-full flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
 			bg-white
 			${className}
 		`}
@@ -297,7 +297,7 @@ export const SelectedFiles = (
 									select-none
 									bg-void-bg-3 hover:brightness-95
 									text-void-fg-1 text-xs text-nowrap
-									border border-vscode-commandcenter-border rounded-xs
+									border border-void-border-2 rounded-xs
 								`}
 								onClick={() => {
 									// open the file if it is a file
@@ -629,7 +629,7 @@ export const SidebarChat = () => {
 					rounded-md
 					bg-vscode-input-bg
 					max-h-[80vh] overflow-y-auto
-					border border-vscode-commandcenter-inactive-border focus-within:border-vscode-commandcenter-active-border hover:border-vscode-commandcenter-active-border
+					border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 				`}
 				onKeyDown={(e) => {
 					if (e.key === 'Enter' && !e.shiftKey) {
@@ -700,7 +700,9 @@ export const SidebarChat = () => {
 					{/* submit options */}
 					<div className='max-w-[150px]
 						@@[&_select]:!void-border-none
-						@@[&_select]:!void-outline-none'
+						@@[&_select]:!void-outline-none
+						flex-grow
+						'
 					>
 						<ModelDropdown featureName='Ctrl+L' />
 					</div>

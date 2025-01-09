@@ -94,7 +94,7 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 				transition-all duration-200
 				rounded-md
 				bg-vscode-input-bg
-				border border-vscode-commandcenter-inactive-border focus-within:border-vscode-commandcenter-active-border hover:border-vscode-commandcenter-active-border
+				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 			`
 			}
 			onKeyDown={(e) => {

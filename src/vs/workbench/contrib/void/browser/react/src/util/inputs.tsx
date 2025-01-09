@@ -14,6 +14,7 @@ import { CodeEditorWidget } from '../../../../../../../editor/browser/widget/cod
 import { useAccessor } from './services.js';
 import { ScrollableElement } from '../../../../../../../base/browser/ui/scrollbar/scrollableElement.js';
 import { ModelOption } from '../../../../../../../platform/void/common/voidSettingsService.js';
+import { createPortal } from 'react-dom';
 
 
 // type guard
@@ -200,114 +201,153 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 
 
 export const VoidCustomSelectBox = <T extends any>({
-	options,
-	selectedOption,
-	onChangeOption,
-	getOptionName,
-	getOptionsEqual
+  options,
+  selectedOption,
+  onChangeOption,
+  getOptionName,
+  getOptionsEqual,
+  className,
+  arrowTouchesText = true,
 }: {
-	options: T[],
-	selectedOption?: T,
-	onChangeOption: (newValue: T) => void,
-	getOptionName: (option: T) => string,
-	getOptionsEqual: (a: T, b: T) => boolean
+  options: T[];
+  selectedOption?: T;
+  onChangeOption: (newValue: T) => void;
+  getOptionName: (option: T) => string;
+  getOptionsEqual: (a: T, b: T) => boolean;
+  className?: string;
+  arrowTouchesText?: boolean;
 }) => {
-	const [isOpen, setIsOpen] = useState(false);
-	const dropdownRef = useRef<HTMLDivElement | null>(null);
-	const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
 
-	if (!selectedOption) {
-		selectedOption = options[0];
-	}
+  if (!selectedOption) {
+    selectedOption = options[0];
+  }
 
-	useEffect(() => {
-		const handleClickOutside = (event: MouseEvent) => {
-			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-				setIsOpen(false);
-			}
-		};
-		document.addEventListener('mousedown', handleClickOutside);
-		return () => document.removeEventListener('mousedown', handleClickOutside);
-	}, []);
+  const updatePosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceNeeded = options.length * 28; // Approximate height per option
+    const showAbove = spaceBelow < spaceNeeded && rect.top > spaceBelow;
 
-	// Calculate dropdown position
-	const getDropdownPosition = () => {
-		if (!buttonRef.current) return { top: 0, left: 0 };
-		const rect = buttonRef.current.getBoundingClientRect();
-		return {
-			top: rect.bottom + window.scrollY,
-			left: rect.left + window.scrollX,
-			minWidth: rect.width // Ensure dropdown is at least as wide as the button
-		};
-	};
+    setPosition({
+      top: showAbove ? rect.top - 4 - spaceNeeded : rect.bottom + 4,
+      left: rect.left,
+    });
+  };
 
-	return (
-		<div className="relative inline-block">
-			{/* Select Button */}
-			<button
-				ref={buttonRef}
-				style={{ fontSize: '6px' }}
-				className="flex items-center gap-1 px-2 h-4 bg-transparent whitespace-nowrap text-void-fg-3"
-				onClick={() => setIsOpen(!isOpen)}
-			>
-				<span>{getOptionName(selectedOption)}</span>
-				<svg className="w-2 h-2 flex-shrink-0" viewBox="0 0 12 12" fill="none">
-					<path
-						d="M2.5 4.5L6 8L9.5 4.5"
-						stroke="currentColor"
-						strokeWidth="1.5"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					/>
-				</svg>
-			</button>
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
 
-			{/* Dropdown Menu */}
-			{isOpen && (
-				<div
-					ref={dropdownRef}
-					className="fixed z-10 py-1 bg-void-bg-1 border-void-bg-1 border rounded shadow-lg"
-					style={getDropdownPosition()}
-				>
-					{options.map((option) => {
-						const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
-						const optionName = getOptionName(option);
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isOpen]);
 
-						return (
-							<div
-								key={optionName}
-								className={`flex items-center h-4 px-2 cursor-pointer whitespace-nowrap text-[6px]
-									transition-colors duration-100
-									hover:bg-opacity-95 hover:brightness-105
-									active:bg-opacity-90 active:brightness-110
-									${thisOptionIsSelected ? 'bg-opacity-90 brightness-110' : ''}
-								`}
-								onClick={() => {
-									onChangeOption(option);
-									setIsOpen(false);
-								}}
-							>
-								<div className="w-4 flex justify-center flex-shrink-0">
-									{thisOptionIsSelected && (
-										<svg className="w-2 h-2" viewBox="0 0 12 12" fill="none">
-											<path
-												d="M10 3L4.5 8.5L2 6"
-												stroke="currentColor"
-												strokeWidth="1.5"
-												strokeLinecap="round"
-												strokeLinejoin="round"
-											/>
-										</svg>
-									)}
-								</div>
-								<span>{optionName}</span>
-							</div>
-						);
-					})}
-				</div>
-			)}
-		</div>
-	);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`inline-block ${className}`}
+    >
+      {/* Select Button */}
+      <button
+        ref={buttonRef}
+        className="flex items-center h-4 bg-transparent whitespace-nowrap hover:brightness-110 w-full"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) {
+            setTimeout(updatePosition, 0);
+          }
+        }}
+      >
+        <span className={`max-w-[120px] truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
+          {getOptionName(selectedOption)}
+        </span>
+        <svg
+          className={`size-3 flex-shrink-0 ${arrowTouchesText ? '' : 'ml-auto'}`}
+          viewBox="0 0 12 12"
+          fill="none"
+        >
+          <path
+            d="M2.5 4.5L6 8L9.5 4.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div
+          className="fixed z-10 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg w-fit"
+          style={{
+            top: position.top,
+            left: position.left,
+            minWidth: buttonRef.current?.offsetWidth,
+          }}
+        >
+          {options.map((option) => {
+            const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
+            const optionName = getOptionName(option);
+
+            return (
+              <div
+                key={optionName}
+                className={`flex items-center px-2 py-1 cursor-pointer whitespace-nowrap
+                  transition-all duration-100
+                  bg-void-bg-1
+                  ${thisOptionIsSelected ? 'bg-void-bg-3' : 'hover:bg-void-bg-2'}
+                `}
+                onClick={() => {
+                  onChangeOption(option);
+                  setIsOpen(false);
+                }}
+              >
+                <div className="w-4 flex justify-center flex-shrink-0">
+                  {thisOptionIsSelected && (
+                    <svg className="size-3" viewBox="0 0 12 12" fill="none">
+                      <path
+                        d="M10 3L4.5 8.5L2 6"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <span>{optionName}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 };
 
 

@@ -32,7 +32,7 @@ function saveStylesFile() {
 		} catch (err) {
 			console.error('[scope-tailwind] Error saving styles.css:', err);
 		}
-	}, 5000);
+	}, 3000);
 }
 
 const args = process.argv.slice(2);

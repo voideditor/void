@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { VoidCheckBox, VoidInputBox, _VoidSelectBox, VoidSwitch } from '../util/inputs.js'
+import { VoidCheckBox, VoidInputBox, _VoidSelectBox, VoidSwitch, VoidCustomSelectBox } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
@@ -85,28 +85,37 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 
 	const settingsState = useSettingsState()
 
-	const providerNameRef = useRef<ProviderName | null>(null)
+	// const providerNameRef = useRef<ProviderName | null>(null)
+	const [providerName, setProviderName] = useState<ProviderName | null>(null)
+
 	const modelNameRef = useRef<string | null>(null)
 
 	const [errorString, setErrorString] = useState('')
 
 
-	const providerOptions = useMemo(() => providerNames.map(providerName => ({ text: displayInfoOfProviderName(providerName).title, value: providerName })), [providerNames])
-
 	return <>
 		<div className='flex items-center gap-4'>
 
 			{/* provider */}
-			<div className='max-w-40 w-full border border-vscode-editorwidget-border'>
-				<_VoidSelectBox
+			<VoidCustomSelectBox
+				options={providerNames}
+				selectedOption={providerName}
+				onChangeOption={(pn) => setProviderName(pn)}
+				getOptionName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
+				getOptionsEqual={(a, b) => a === b}
+				className={`max-w-40 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
+					py-[4px] px-[6px]
+				`}
+				arrowTouchesText={false}
+			/>
+			{/* <_VoidSelectBox
 					onCreateInstance={useCallback(() => { providerNameRef.current = providerOptions[0].value }, [providerOptions])} // initialize state
 					onChangeSelection={useCallback((providerName: ProviderName) => { providerNameRef.current = providerName }, [])}
 					options={providerOptions}
-				/>
-			</div>
+				/> */}
 
 			{/* model */}
-			<div className='max-w-40 w-full border border-vscode-editorwidget-border'>
+			<div className='max-w-40 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'>
 				<VoidInputBox
 					placeholder='Model Name'
 					onChangeText={useCallback((modelName) => { modelNameRef.current = modelName }, [])}
@@ -119,7 +128,6 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 				<button
 					className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
 					onClick={() => {
-						const providerName = providerNameRef.current
 						const modelName = modelNameRef.current
 
 						if (providerName === null) {

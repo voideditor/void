@@ -36,6 +36,10 @@ module.exports = {
 				"void-fg-3": "var(--vscode-input-placeholderForeground)",
 				"void-warning": "var(--vscode-charts-orange)",
 
+				"void-border-1": "var(--vscode-commandCenter-activeBorder)",
+				"void-border-2": "var(--vscode-commandCenter-border)",
+				"void-border-3": "var(--vscode-commandCenter-inactiveBorder)",
+
 
 				vscode: {
 					// see: https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content

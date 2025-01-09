@@ -340,6 +340,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				domNode: domNode,
 				heightInPx: 52,
 				suppressMouseDown: false,
+				showInHiddenAreas: true,
 			};
 			viewZone_ = viewZone
 
@@ -362,6 +363,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					},
 					onChangeHeight(height) {
 						if (height === undefined) return
+						if (height === 0) return // if hidden, height is set to 0 creating a jumpy scroll. ignore
 						viewZone.heightInPx = height
 						// re-render with this new height
 						editor.changeViewZones(accessor => {
@@ -457,6 +459,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						domNode: domNode,
 						marginDomNode: document.createElement('div'), // displayed to left
 						suppressMouseDown: true,
+						showInHiddenAreas: true,
 					};
 
 					let zoneId: string | null = null

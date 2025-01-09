@@ -107,7 +107,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 				onChangeOption={(pn) => setProviderName(pn)}
 				getOptionName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
 				getOptionsEqual={(a, b) => a === b}
-				className={`max-w-40 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
+				className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
 					py-[4px] px-[6px]
 				`}
 				arrowTouchesText={false}
@@ -119,7 +119,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 				/> */}
 
 			{/* model */}
-			<div className='max-w-40 w-fit border border-vscode-editorwidget-border'>
+			<div className='max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'>
 				<VoidInputBox
 					placeholder='Model Name'
 					onChangeText={useCallback((modelName) => { modelNameRef.current = modelName }, [])}
@@ -194,7 +194,7 @@ export const ModelDump = () => {
 		return Number(b.providerEnabled) - Number(a.providerEnabled)
 	})
 
-	return <div className=''>
+	return <div className='min-w-[600px] overflow-x-auto'>
 		{modelDump.map((m, i) => {
 			const { isHidden, isDefault, isAutodetected, modelName, providerName, providerEnabled } = m
 
@@ -208,7 +208,7 @@ export const ModelDump = () => {
 			>
 				{/* left part is width:full */}
 				<div className={`w-full flex items-center gap-4`}>
-					<span className='min-w-32'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
+					<span className='max-w-44 w-full'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
 					<span>{modelName}</span>
 					{/* <span>{`${modelName} (${providerName})`}</span> */}
 				</div>

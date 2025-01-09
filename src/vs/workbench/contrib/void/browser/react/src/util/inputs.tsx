@@ -208,6 +208,8 @@ export const VoidCustomSelectBox = <T extends any>({
 	getOptionsEqual,
 	className,
 	arrowTouchesText = true,
+	matchInputWidth = false,
+	gap = 0,
 }: {
 	options: T[];
 	selectedOption?: T;
@@ -216,32 +218,54 @@ export const VoidCustomSelectBox = <T extends any>({
 	getOptionsEqual: (a: T, b: T) => boolean;
 	className?: string;
 	arrowTouchesText?: boolean;
+	matchInputWidth?: boolean;
+	gap?: number;
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [position, setPosition] = useState({ top: 0, left: 0 });
+	const [readyToShow, setReadyToShow] = useState(false);
+	const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const buttonRef = useRef<HTMLButtonElement | null>(null);
+	const measureRef = useRef<HTMLDivElement | null>(null);
 
 	if (!selectedOption) {
 		selectedOption = options[0];
 	}
 
-	const updatePosition = () => {
-		if (!buttonRef.current) return;
+	const updatePosition = useCallback(() => {
+		if (!buttonRef.current || !containerRef.current || !measureRef.current) return;
 		const rect = buttonRef.current.getBoundingClientRect();
+		const containerWidth = containerRef.current.offsetWidth;
 		const viewportHeight = window.innerHeight;
 		const spaceBelow = viewportHeight - rect.bottom;
-		const spaceNeeded = options.length * 28; // Approximate height per option
+		const spaceNeeded = options.length * 28;
 		const showAbove = spaceBelow < spaceNeeded && rect.top > spaceBelow;
 
+		// Calculate the menu width
+		let menuWidth = matchInputWidth ? containerWidth : rect.width;
+
+		// If not matchInputWidth, calculate content width from measurement div
+		if (!matchInputWidth) {
+			const contentWidth = measureRef.current.offsetWidth;
+			menuWidth = Math.max(rect.width, contentWidth);
+		}
+
+		// Calculate exact positions without any additional offsets
+		const topPosition = showAbove
+			? rect.top - spaceNeeded  // Align exactly to top when showing above
+			: rect.bottom + gap;      // Add gap only when showing below
+
 		setPosition({
-			top: showAbove ? rect.top - 4 - spaceNeeded : rect.bottom + 4,
+			top: topPosition,
 			left: rect.left,
+			width: menuWidth,
 		});
-	};
+		setReadyToShow(true);
+	}, [gap, matchInputWidth, options.length]);
 
 	useEffect(() => {
 		if (isOpen) {
+			setReadyToShow(false);
 			updatePosition();
 			window.addEventListener('scroll', updatePosition, true);
 			window.addEventListener('resize', updatePosition);
@@ -250,8 +274,10 @@ export const VoidCustomSelectBox = <T extends any>({
 				window.removeEventListener('scroll', updatePosition, true);
 				window.removeEventListener('resize', updatePosition);
 			};
+		} else {
+			setReadyToShow(false);
 		}
-	}, [isOpen]);
+	}, [isOpen, updatePosition]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -271,15 +297,26 @@ export const VoidCustomSelectBox = <T extends any>({
 			ref={containerRef}
 			className={`inline-block ${className}`}
 		>
+			{/* Hidden measurement div */}
+			<div
+				ref={measureRef}
+				className="opacity-0 pointer-events-none absolute -left-[999999px] -top-[999999px] flex flex-col"
+				aria-hidden="true"
+			>
+				{options.map((option) => (
+					<div key={getOptionName(option)} className="flex items-center whitespace-nowrap">
+						<div className="w-4" />
+						<span className="px-2">{getOptionName(option)}</span>
+					</div>
+				))}
+			</div>
+
 			{/* Select Button */}
 			<button
 				ref={buttonRef}
-				className="flex items-center h-4 bg-transparent whitespace-nowrap hover:brightness-110 w-full"
+				className="flex items-center h-4 bg-transparent whitespace-nowrap hover:brightness-90 w-full"
 				onClick={() => {
 					setIsOpen(!isOpen);
-					if (!isOpen) {
-						setTimeout(updatePosition, 0);
-					}
 				}}
 			>
 				<span className={`max-w-[120px] truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
@@ -301,13 +338,13 @@ export const VoidCustomSelectBox = <T extends any>({
 			</button>
 
 			{/* Dropdown Menu */}
-			{isOpen && (
+			{isOpen && readyToShow && (
 				<div
-					className="fixed z-10 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg w-fit"
+					className="fixed z-10 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg"
 					style={{
 						top: position.top,
 						left: position.left,
-						minWidth: buttonRef.current?.offsetWidth,
+						width: position.width,
 					}}
 				>
 					{options.map((option) => {
@@ -320,7 +357,7 @@ export const VoidCustomSelectBox = <T extends any>({
 								className={`flex items-center px-2 py-1 cursor-pointer whitespace-nowrap
 									transition-all duration-100
 									bg-void-bg-1
-									${thisOptionIsSelected ? 'bg-void-bg-3' : 'hover:bg-void-bg-3'}
+									${thisOptionIsSelected ? 'bg-void-bg-2' : 'hover:bg-void-bg-2'}
 								`}
 								onClick={() => {
 									onChangeOption(option);

@@ -59,8 +59,8 @@ export const SidebarThreadSelector = () => {
 						return <>Error: Threads not found.</>
 					const pastThread = allThreads[threadId]
 
-					let firstMsg:string|null = null
-					let secondMsg:string|null = null
+					let firstMsg: string | null = null
+					let secondMsg: string | null = null
 
 					const firstMsgIdx = allThreads[threadId].messages.findIndex(msg => msg.role !== 'system' && !!msg.displayContent) ?? ''
 					if (firstMsgIdx !== -1)

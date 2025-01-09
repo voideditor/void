@@ -64,6 +64,11 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 	</>
 }
 
+export const CodeSpan = ({ children, className }: { children: React.ReactNode, className?: string }) => {
+	return <code className={`text-vscode-text-preformat-fg bg-vscode-text-preformat-bg px-1 rounded-sm font-mono ${className}`}>
+		{children}
+	</code>
+}
 
 const RenderToken = ({ token, nested = false }: { token: Token | string, nested?: boolean }): JSX.Element => {
 
@@ -197,9 +202,9 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	// inline code
 	if (t.type === "codespan") {
 		return (
-			<code className="text-vscode-text-preformat-fg bg-vscode-text-preformat-bg px-1 rounded-sm font-mono">
+			<CodeSpan>
 				{t.text}
-			</code>
+			</CodeSpan>
 		)
 	}
 

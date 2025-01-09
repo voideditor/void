@@ -11,23 +11,64 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const __void_name = 'void'
+
+function doesPathExist(filePath) {
+	try {
+		const stats = fs.statSync(filePath);
+
+		return stats.isFile();
+	} catch (err) {
+		if (err.code === 'ENOENT') {
+			return false;
+		}
+		throw err;
+	}
+}
+
+/*
+
+This function finds `globalDesiredPath` given `localDesiredPath` and `currentPath`
+
+Diagram:
+
+...basePath/
+└── void/
+	├── ...currentPath/ (defined globally)
+	└── ...localDesiredPath/ (defined locally)
+
+*/
+function findDesiredPathFromLocalPath(localDesiredPath, currentPath) {
+
+	// walk upwards until currentPath + localDesiredPath exists
+	while (!doesPathExist(path.join(currentPath, localDesiredPath))) {
+		const parentDir = path.dirname(currentPath);
+
+		if (parentDir === currentPath) {
+			return undefined;
+		}
+
+		currentPath = parentDir;
+	}
+
+	// return the `globallyDesiredPath`
+	const globalDesiredPath = path.join(currentPath, localDesiredPath)
+	return globalDesiredPath;
+}
 
 // hack to refresh styles automatically
 function saveStylesFile() {
 	setTimeout(() => {
 		try {
-			// Find "void" in __dirname and use that as our base:
-			const voidIdx = __dirname.indexOf(__void_name);
-			const baseDir = __dirname.substring(0, voidIdx + __void_name.length);
-			const target = path.join(
-				baseDir,
-				'src/vs/workbench/contrib/void/browser/react/src2/styles.css'
-			);
+			const pathToCssFile = findDesiredPathFromLocalPath('./src/vs/workbench/contrib/void/browser/react/src2/styles.css', __dirname);
+
+			if (pathToCssFile === undefined) {
+				console.error('[scope-tailwind] Error finding styles.css');
+				return;
+			}
 
 			// Or re-write with the same content:
-			const content = fs.readFileSync(target, 'utf8');
-			fs.writeFileSync(target, content, 'utf8');
+			const content = fs.readFileSync(pathToCssFile, 'utf8');
+			fs.writeFileSync(pathToCssFile, content, 'utf8');
 			console.log('[scope-tailwind] Force-saved styles.css');
 		} catch (err) {
 			console.error('[scope-tailwind] Error saving styles.css:', err);

@@ -498,24 +498,45 @@ const OneClickSwitch = () => {
 	const accessor = useAccessor()
 	const fileService = accessor.get('IFileService')
 
+	const [state, setState] = useState<{ type: 'done' | 'loading' | 'justfinished' } | { type: 'justerrored', error: string }>({ type: 'done' })
+
 	if (transferTheseFiles.length === 0)
 		return <>
-			<WarningBox text={transferError ?? `One-click transfer not available.`} />
+			<WarningBox text={transferError ?? `One-click-switch not available.`} />
 		</>
 
+
+
 	const onClick = async () => {
+
+		if (state.type !== 'done') return
+
+		setState({ type: 'loading' })
+
+		let errAcc = ''
 		for (let { from, to } of transferTheseFiles) {
 			console.log('transferring', from, to)
 			// not sure if this can fail, just wrapping it with try/catch for now
 			try { await fileService.copy(from, to, true) }
-			catch (e) { console.error('Void Transfer Error:', e) }
+			catch (e) { errAcc += e + '\n' }
 		}
+		const hadError = !!errAcc
+		if (hadError) setState({ type: 'justerrored', error: errAcc })
+		else setState({ type: 'justfinished' })
+
+		setTimeout(() => { setState({ type: 'done' }); }, hadError ? 5000 : 3000)
 	}
 
 	return <>
-		<VoidButton onClick={onClick}>
-			Transfer Settings
+		<VoidButton disabled={state.type !== 'done'} onClick={onClick}>
+			{state.type === 'done' ? 'Transfer my Settings'
+				: state.type === 'loading' ? 'Transferring...'
+					: state.type === 'justfinished' ? 'Success!'
+						: state.type === 'justerrored' ? `There was Error`
+							: null
+			}
 		</VoidButton>
+		{state.type === 'justerrored' && state.error}
 	</>
 }
 

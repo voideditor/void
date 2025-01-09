@@ -199,13 +199,25 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 }
 
 
-export const VoidCustomSelectBox = <T extends any>({ options, selectedOption, onChangeOption, getOptionName, getOptionsEqual }: { options: T[], selectedOption?: T, onChangeOption: (newValue: T) => void, getOptionName: (option: T) => string, getOptionsEqual: (a: T, b: T) => boolean }) => {
-
+export const VoidCustomSelectBox = <T extends any>({
+	options,
+	selectedOption,
+	onChangeOption,
+	getOptionName,
+	getOptionsEqual
+}: {
+	options: T[],
+	selectedOption?: T,
+	onChangeOption: (newValue: T) => void,
+	getOptionName: (option: T) => string,
+	getOptionsEqual: (a: T, b: T) => boolean
+}) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement | null>(null);
+	const buttonRef = useRef<HTMLButtonElement | null>(null);
 
 	if (!selectedOption) {
-		selectedOption = options[0]
+		selectedOption = options[0];
 	}
 
 	useEffect(() => {
@@ -218,18 +230,27 @@ export const VoidCustomSelectBox = <T extends any>({ options, selectedOption, on
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, []);
 
+	// Calculate dropdown position
+	const getDropdownPosition = () => {
+		if (!buttonRef.current) return { top: 0, left: 0 };
+		const rect = buttonRef.current.getBoundingClientRect();
+		return {
+			top: rect.bottom + window.scrollY,
+			left: rect.left + window.scrollX,
+			minWidth: rect.width // Ensure dropdown is at least as wide as the button
+		};
+	};
 
 	return (
-		<div className="relative inline-block" ref={dropdownRef}>
+		<div className="relative inline-block">
 			{/* Select Button */}
 			<button
+				ref={buttonRef}
 				style={{ fontSize: '6px' }}
-				className="flex items-center gap-1 px-2 h-4 bg-white hover:bg-gray-100 active:bg-gray-200 whitespace-nowrap"
+				className="flex items-center gap-1 px-2 h-4 bg-transparent whitespace-nowrap text-void-fg-3"
 				onClick={() => setIsOpen(!isOpen)}
 			>
 				<span>{getOptionName(selectedOption)}</span>
-
-				{/* Check Mark */}
 				<svg className="w-2 h-2 flex-shrink-0" viewBox="0 0 12 12" fill="none">
 					<path
 						d="M2.5 4.5L6 8L9.5 4.5"
@@ -243,20 +264,24 @@ export const VoidCustomSelectBox = <T extends any>({ options, selectedOption, on
 
 			{/* Dropdown Menu */}
 			{isOpen && (
-				<div className="absolute z-10 py-1 mt-1 bg-white border rounded shadow-lg">
+				<div
+					ref={dropdownRef}
+					className="fixed z-10 py-1 bg-void-bg-1 border-void-bg-1 border rounded shadow-lg"
+					style={getDropdownPosition()}
+				>
 					{options.map((option) => {
-
-						const thisOptionIsSelected = getOptionsEqual(option, selectedOption)
-						const optionName = getOptionName(option)
+						const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
+						const optionName = getOptionName(option);
 
 						return (
 							<div
 								key={optionName}
 								className={`flex items-center h-4 px-2 cursor-pointer whitespace-nowrap text-[6px]
-								transition-colors duration-100
-								hover:bg-gray-100 active:bg-gray-200
-								${thisOptionIsSelected ? 'bg-gray-50' : ''}
-							`}
+									transition-colors duration-100
+									hover:bg-opacity-95 hover:brightness-105
+									active:bg-opacity-90 active:brightness-110
+									${thisOptionIsSelected ? 'bg-opacity-90 brightness-110' : ''}
+								`}
 								onClick={() => {
 									onChangeOption(option);
 									setIsOpen(false);
@@ -277,7 +302,7 @@ export const VoidCustomSelectBox = <T extends any>({ options, selectedOption, on
 								</div>
 								<span>{optionName}</span>
 							</div>
-						)
+						);
 					})}
 				</div>
 			)}

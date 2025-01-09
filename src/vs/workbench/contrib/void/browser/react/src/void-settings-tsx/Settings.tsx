@@ -207,14 +207,14 @@ export const ModelDump = () => {
 				`}
 			>
 				{/* left part is width:full */}
-				<div className={`w-full flex items-center gap-4`}>
-					<span className='max-w-44 w-full'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
-					<span>{modelName}</span>
+				<div className={`flex-grow flex items-center gap-4`}>
+					<span className='w-full max-w-32'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
+					<span className='w-fit truncate'>{modelName}</span>
 					{/* <span>{`${modelName} (${providerName})`}</span> */}
 				</div>
 				{/* right part is anything that fits */}
-				<div className='w-fit flex items-center gap-4'>
-					<span className='opacity-50'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
+				<div className='flex items-center gap-4'>
+					<span className='opacity-50 truncate'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
 
 					<VoidSwitch
 						value={disabled ? false : !isHidden}
@@ -398,11 +398,11 @@ export const FeaturesTab = () => {
 		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
 		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
 		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
-		<div className='pl-4 select-text opacity-50'>
+		<div className='pl-4 opacity-50'>
 			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></span>
 			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></span>
+			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></span>
+			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></span>
 			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} /></span>
 			{/* TODO we should create UI for downloading models without user going into terminal */}
 		</div>
@@ -494,7 +494,7 @@ let transferError: string | null = null
 try { transferTheseFiles = transferTheseFilesOfOS(os) }
 catch (e) { transferError = e + '' }
 
-const OneClickSwitch = () => {
+const OneClickSwitchButton = () => {
 	const accessor = useAccessor()
 	const fileService = accessor.get('IFileService')
 
@@ -542,28 +542,75 @@ const OneClickSwitch = () => {
 
 
 const GeneralTab = () => {
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
+
 	return <>
+
+
+		<div className=''>
+			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
+			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from VS Code to Void.`}</h4>
+			<OneClickSwitchButton />
+		</div>
+
+
+		{/* <div className='my-4'>
+			<h3 className={`text-xl mb-2 mt-4`}>Rules for AI</h3>
+			{`placeholder: "Do not add ;'s. Do not change or delete spacing, formatting, or comments. Respond to queries in French when applicable. "`}
+		</div> */}
+
+
+
+
+		<div className='mt-16'>
+			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
+			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keybindings, and theme customization.`}</h4>
+
+			<div className='my-4'>
+				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+					General Settings
+				</VoidButton>
+			</div>
+			<div className='my-4'>
+				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
+					Keyboard Settings
+				</VoidButton>
+			</div>
+			<div className='my-4'>
+				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+					Theme Settings
+				</VoidButton>
+			</div>
+		</div>
+		{/* <div className='my-4'>
+			<h3 className={`text-xl mb-2 mt-4`}>General Settings</h3>
+			<h4 className={`text-void-fg-3 mb-2`}>{`VS Code's built-in settings.`}</h4>
+			<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+				General Settings
+			</VoidButton>
+		</div>
+
+		<div className='my-4'>
+			<h3 className={`text-xl mb-2 mt-4`}>Keyboard Settings</h3>
+			<h4 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h4>
+			<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindingsFile') }}>
+				Keyboard Settings
+			</VoidButton>
+		</div>
+
+
+		<div className='my-4'>
+			<h3 className={`text-xl mb-2 mt-4`}>Theme</h3>
+			<VoidButton onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+				Theme
+			</VoidButton>
+		</div> */}
+
+
 		{/* <VoidFeatureFlagSettings /> */}
 
-		{/* keyboard shortcuts */}
 
-		<h2 className={`text-2xl mb-2`}>General Settings</h2>
-		<h3 className={`text-void-fg-3 mb-2`}>{`VS Code's built-in settings.`}</h3>
-
-		<h2 className={`text-2xl mb-2`}>Keyboard Settings</h2>
-		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
-
-
-		<h2 className={`text-2xl mb-2`}>One-click Switch</h2>
-		<h3 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from VS Code into Void.`}</h3>
-		<OneClickSwitch />
-
-
-		<h2 className={`text-2xl mb-2`}>Theme</h2>
-
-
-		<h2 className={`text-2xl mb-2`}>Rules for AI</h2>
-		{/* placeholder: "Do not add ;'s. Do not change or delete spacing, formatting, or comments. Respond to queries in French when applicable. " */}
 
 	</>
 }

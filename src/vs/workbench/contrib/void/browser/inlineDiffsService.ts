@@ -917,16 +917,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const uri = editor.getModel()?.uri
 		if (!uri) return
 
-		// check if there's overlap with any other ctrlKZones and if so, focus them
-		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
-			const diffArea = this.diffAreaOfId[diffareaid]
-			if (!diffArea) continue
-			if (diffArea.type !== 'CtrlKZone') continue
-			const noOverlap = diffArea.startLine > endLine || diffArea.endLine < startLine
-			if (!noOverlap) {
-				setTimeout(() => diffArea._mountInfo?.inputBoxRef.current?.focus(), 0)
-				return
-			}
+		// check if there's overlap with any other ctrlKZone and if so, focus it
+		const overlappingCtrlKZone = this._findOverlappingDiffArea({ startLine, endLine, uri, filter: (diffArea) => diffArea.type === 'CtrlKZone' })
+		if (overlappingCtrlKZone) {
+			setTimeout(() => (overlappingCtrlKZone as CtrlKZone)._mountInfo?.inputBoxRef.current?.focus(), 0)
+			return
 		}
 
 		const { onFinishEdit } = this._addToHistory(uri)
@@ -947,6 +942,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		return ctrlKZone.diffareaid
 	}
 
+	// _remove means delete and also add to history
 	public removeCtrlKZone({ diffareaid }: { diffareaid: number }) {
 		const ctrlKZone = this.diffAreaOfId[diffareaid]
 		if (!ctrlKZone) return
@@ -969,6 +965,19 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
+	private _findOverlappingDiffArea({ startLine, endLine, uri, filter }: { startLine: number, endLine: number, uri: URI, filter?: (diffArea: DiffArea) => boolean }): DiffArea | null {
+		// check if there's overlap with any other diffAreas and return early if there is
+		for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (!diffArea) continue
+			if (!filter?.(diffArea)) continue
+			const noOverlap = diffArea.startLine > endLine || diffArea.endLine < startLine
+			if (!noOverlap) {
+				return diffArea
+			}
+		}
+		return null
+	}
 
 
 	private _initializeStartApplying(opts: StartApplyingOpts): DiffZone | undefined {
@@ -986,7 +995,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (!uri_) return
 			uri = uri_
 
-			// __TODO__ reject all diffs in the diff area
+			// reject all diffs on this URI, adding to history
+			this.removeDiffAreas({ uri, behavior: 'reject' })
 
 			// in ctrl+L the start and end lines are the full document
 			const numLines = this._getNumLines(uri)
@@ -995,15 +1005,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			endLine = numLines
 
 			// check if there's overlap with any other diffAreas and return early if there is
-			for (const diffareaid of this.diffAreasOfURI[uri.fsPath]) {
-				const da2 = this.diffAreaOfId[diffareaid]
-				if (!da2) continue
-				const noOverlap = da2.startLine > endLine || da2.endLine < startLine
-				if (!noOverlap) {
-					// TODO add a message here that says this to the user too
-					console.error('Not diffing because found overlap:', this.diffAreasOfURI[uri.fsPath], startLine, endLine)
-					return
-				}
+			if (this._findOverlappingDiffArea({ startLine, endLine, uri })) {
+				// TODO add a message here that says this to the user too
+				console.error('Not diffing because found overlap:', this.diffAreasOfURI[uri.fsPath], startLine, endLine)
+				return
 			}
 
 			userMessage = opts.userMessage
@@ -1039,14 +1044,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const { onFinishEdit } = this._addToHistory(uri)
 
 
-		// // for Ctrl+K, delete the current ctrlKZone, swapping it out for a diffZone
-		// if (featureName === 'Ctrl+K') {
-		// 	const { diffareaid } = opts
-		// 	const ctrlKZone = this.diffAreaOfId[diffareaid]
-		// 	this._deleteDiffArea(ctrlKZone)
-		// }
-
-		// TODO ctrl+K case should be replaced with an actual check for model.isFIM
+		// __TODO__ ctrl+K should use Ollama's FIM method. Also, modelWasTrainedOnFIM should not be a thing
 		const modelWasTrainedOnFIM = featureName === 'Ctrl+K' ? false : false
 		const modelFimTags = defaultFimTags
 
@@ -1184,6 +1182,55 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
+
+
+
+	// public removeDiffZone(diffZone: DiffZone, behavior: 'reject' | 'accept') {
+	// 	const uri = diffZone._URI
+	// 	const { onFinishEdit } = this._addToHistory(uri)
+
+	// 	if (behavior === 'reject') this._revertAndDeleteDiffZone(diffZone)
+	// 	else if (behavior === 'accept') this._deleteDiffZone(diffZone)
+
+	// 	this._refreshStylesAndDiffsInURI(uri)
+	// 	onFinishEdit()
+	// }
+
+	private _revertAndDeleteDiffZone(diffZone: DiffZone) {
+		const uri = diffZone._URI
+
+		const writeText = diffZone.originalCode
+		const toRange: IRange = { startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }
+		this._writeText(uri, writeText, toRange, { shouldRealignDiffAreas: true })
+
+		this._deleteDiffZone(diffZone)
+	}
+
+
+	// remove a batch of diffareas all at once (and handle accept/reject of their diffs)
+	public removeDiffAreas({ uri, behavior }: { uri: URI, behavior: 'reject' | 'accept' }) {
+
+		const diffareaids = this.diffAreasOfURI[uri.fsPath]
+		if (diffareaids.size === 0) return // do nothing
+
+		const { onFinishEdit } = this._addToHistory(uri)
+
+		for (const diffareaid of diffareaids) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (!diffArea) continue
+
+			if (diffArea.type == 'DiffZone') {
+				if (behavior === 'reject') this._revertAndDeleteDiffZone(diffArea)
+				else if (behavior === 'accept') this._deleteDiffZone(diffArea)
+			}
+			else if (diffArea.type === 'CtrlKZone') {
+				this._deleteCtrlKZone(diffArea)
+			}
+		}
+
+		this._refreshStylesAndDiffsInURI(uri)
+		onFinishEdit()
+	}
 
 
 

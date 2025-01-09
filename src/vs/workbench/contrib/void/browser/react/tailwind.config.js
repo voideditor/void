@@ -34,7 +34,7 @@ module.exports = {
 				"void-fg-1": "var(--vscode-editor-foreground)",
 				"void-fg-2": "var(--vscode-input-foreground)",
 				"void-fg-3": "var(--vscode-input-placeholderForeground)",
-				"void-warning": "var(--vscode-charts-orange)",
+				"void-warning": "var(--vscode-charts-yellow)",
 
 				"void-border-1": "var(--vscode-commandCenter-activeBorder)",
 				"void-border-2": "var(--vscode-commandCenter-border)",

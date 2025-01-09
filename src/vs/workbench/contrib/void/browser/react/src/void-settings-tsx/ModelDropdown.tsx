@@ -90,7 +90,7 @@ const MemoizedModelSelectBox = ({ featureName }: { featureName: FeatureName }) =
 
 }
 
-const DummySelectBox = () => {
+const WarningBox = ({ text, className }: { text: string, className?: string }) => {
 
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
@@ -101,22 +101,21 @@ const DummySelectBox = () => {
 
 	return <div
 		className={`
-			flex items-center
-			flex-nowrap text-ellipsis
-
 			text-void-warning brightness-90 opacity-90
-
 			hover:brightness-75 transition-all duration-200
+			text-xs text-ellipsis
 			cursor-pointer
-			text-xs
+
+			flex items-center flex-nowrap
+			${className}
 		`}
 		onClick={openSettings}
 	>
 		<IconWarning
 			size={14}
-			className='mr-1 brightness-90'
+			className='mr-1'
 		/>
-		<span>Provider required</span>
+		<span>{text}</span>
 	</div>
 	// return <VoidSelectBox
 	// 	options={[{ text: 'Please add a model!', value: null }]}
@@ -127,6 +126,6 @@ const DummySelectBox = () => {
 export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
 	const settingsState = useSettingsState()
 	return <>
-		{settingsState._modelOptions.length === 0 ? <DummySelectBox /> : <MemoizedModelSelectBox featureName={featureName} />}
+		{settingsState._modelOptions.length === 0 ? <WarningBox text='Provider required' /> : <MemoizedModelSelectBox featureName={featureName} />}
 	</>
 }

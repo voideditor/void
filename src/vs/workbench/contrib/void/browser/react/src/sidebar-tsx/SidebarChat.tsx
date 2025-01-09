@@ -170,7 +170,7 @@ const useResizeObserver = () => {
 
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
-const DEFAULT_BUTTON_SIZE = 20;
+const DEFAULT_BUTTON_SIZE = 22;
 export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
 
 	return <button
@@ -195,7 +195,7 @@ export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLBut
 		type='button'
 		{...props}
 	>
-		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[3] p-[6px]" />
+		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[3] p-[7px]" />
 	</button>
 }
 
@@ -628,6 +628,7 @@ export const SidebarChat = () => {
 					transition-all duration-200
 					rounded-md
 					bg-vscode-input-bg
+					max-h-[60vh] overflow-y-auto
 					border border-vscode-commandcenter-inactive-border focus-within:border-vscode-commandcenter-active-border hover:border-vscode-commandcenter-active-border
 				`}
 				onKeyDown={(e) => {

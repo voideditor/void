@@ -17,6 +17,8 @@ Void is the open-source Cursor alternative. This repo contains the full sourceco
 
 - 📝 [Changelog](https://voideditor.com/changelog)
 
+- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md)
+
 
 <!-- ❤️ Setup: -->
 

@@ -143,9 +143,8 @@ registerAction2(class extends Action2 {
 		const editorService = accessor.get(IEditorService);
 		const instantiationService = accessor.get(IInstantiationService);
 
-		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE);
-
 		// close all instances if found
+		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE);
 		if (openEditors.length > 0) {
 			await editorService.closeEditors(openEditors);
 			return;
@@ -173,6 +172,13 @@ registerAction2(class extends Action2 {
 		const editorService = accessor.get(IEditorService);
 		const instantiationService = accessor.get(IInstantiationService);
 
+		// close all instances if found
+		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE);
+		if (openEditors.length > 0) {
+			await editorService.closeEditors(openEditors);
+		}
+
+		// then, open one single editor
 		const input = instantiationService.createInstance(VoidSettingsInput);
 		await editorService.openEditor(input);
 	}

@@ -117,14 +117,13 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 );
 
 
-export const VOID_OPEN_SETTINGS_ACTION_ID = 'workbench.action.openVoidSettings'
 // register the gear on the top right
+export const VOID_TOGGLE_SETTINGS_ACTION_ID = 'workbench.action.toggleVoidSettings'
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
-			id: VOID_OPEN_SETTINGS_ACTION_ID,
-			title: nls.localize2('voidSettings', "Void: Settings"),
-			f1: true,
+			id: VOID_TOGGLE_SETTINGS_ACTION_ID,
+			title: nls.localize2('voidSettings', "Void: Toggle Settings"),
 			icon: Codicon.settingsGear,
 			menu: [
 				{
@@ -159,11 +158,35 @@ registerAction2(class extends Action2 {
 })
 
 
+
+export const VOID_OPEN_SETTINGS_ACTION_ID = 'workbench.action.openVoidSettings'
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_OPEN_SETTINGS_ACTION_ID,
+			title: nls.localize2('voidSettings', "Void: Open Settings"),
+			f1: true,
+			icon: Codicon.settingsGear,
+		});
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const editorService = accessor.get(IEditorService);
+		const instantiationService = accessor.get(IInstantiationService);
+
+		const input = instantiationService.createInstance(VoidSettingsInput);
+		await editorService.openEditor(input);
+	}
+})
+
+
+
+
+
 // add to settings gear on bottom left
 MenuRegistry.appendMenuItem(MenuId.GlobalActivity, {
 	group: '0_command',
 	command: {
-		id: VOID_OPEN_SETTINGS_ACTION_ID,
+		id: VOID_TOGGLE_SETTINGS_ACTION_ID,
 		title: nls.localize('voidSettings', "Void Settings")
 	},
 	order: 1

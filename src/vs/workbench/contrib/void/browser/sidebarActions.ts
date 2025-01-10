@@ -20,8 +20,13 @@ import { VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
+import { VOID_TOGGLE_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { VOID_CTRL_L_ACTION_ID } from './actionIDs.js';
+import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
+import { URI } from '../../../../base/common/uri.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -63,7 +68,7 @@ const getContentInRange = (model: ITextModel, range: IRange | null) => {
 // Action: when press ctrl+L, show the sidebar chat and add to the selection
 registerAction2(class extends Action2 {
 	constructor() {
-		super({ id: VOID_CTRL_L_ACTION_ID, title: 'Void: Show Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
+		super({ id: VOID_CTRL_L_ACTION_ID, title: 'Void: Add to Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 
@@ -187,6 +192,57 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const commandService = accessor.get(ICommandService)
-		commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID)
+		commandService.executeCommand(VOID_TOGGLE_SETTINGS_ACTION_ID)
 	}
 })
+
+
+
+
+export class TabSwitchListener extends Disposable {
+
+	constructor(
+		onSwitchTab: (uri: URI) => void,
+		@ICodeEditorService private readonly _editorService: ICodeEditorService,
+	) {
+		super()
+
+		// when editor switches tabs (models)
+		const addTabSwitchListeners = (editor: ICodeEditor) => {
+			this._register(editor.onDidChangeModel(e => {
+				if (e.newModelUrl)
+					onSwitchTab(e.newModelUrl)
+			}))
+		}
+
+		const initializeEditor = (editor: ICodeEditor) => {
+			addTabSwitchListeners(editor)
+		}
+
+		// initialize current editors + any new editors
+		for (let editor of this._editorService.listCodeEditors()) initializeEditor(editor)
+		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
+	}
+}
+
+
+class TabSwitchContribution implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.void.tabswitch'
+
+	constructor(
+		@IInstantiationService private readonly instantiationService: IInstantiationService,
+		@ICommandService private readonly commandService: ICommandService,
+	) {
+		const onSwitchTab = () => {
+			this.commandService.executeCommand(VOID_CTRL_L_ACTION_ID)
+		}
+		this.instantiationService.createInstance(TabSwitchListener, onSwitchTab)
+
+		// run on current tab if it exists
+		this.commandService.executeCommand(VOID_CTRL_L_ACTION_ID)
+
+
+	}
+}
+
+registerWorkbenchContribution2(TabSwitchContribution.ID, TabSwitchContribution, WorkbenchPhase.AfterRestored);

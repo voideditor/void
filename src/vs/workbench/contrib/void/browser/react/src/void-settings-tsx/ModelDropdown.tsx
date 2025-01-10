@@ -9,7 +9,7 @@ import { useSettingsState, useRefreshModelState, useAccessor } from '../util/ser
 import { _VoidSelectBox, VoidCustomSelectBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
-import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
+import { VOID_OPEN_SETTINGS_ACTION_ID, VOID_TOGGLE_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
 import { ModelOption } from '../../../../../../../platform/void/common/voidSettingsService.js'
 
 
@@ -91,26 +91,17 @@ const MemoizedModelSelectBox = ({ featureName }: { featureName: FeatureName }) =
 
 }
 
-export const WarningBox = ({ text, className }: { text: string, className?: string }) => {
-
-	const accessor = useAccessor()
-	const commandService = accessor.get('ICommandService')
-
-	const openSettings = () => {
-		commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID);
-	};
+export const WarningBox = ({ text, onClick, className }: { text: string; onClick?: () => void; className?: string }) => {
 
 	return <div
 		className={`
 			text-void-warning brightness-90 opacity-90
-			hover:brightness-75 transition-all duration-200
 			text-xs text-ellipsis
-			cursor-pointer
-
+			${onClick ? `hover:brightness-75 transition-all duration-200 cursor-pointer` : ''}
 			flex items-center flex-nowrap
 			${className}
 		`}
-		onClick={openSettings}
+		onClick={onClick}
 	>
 		<IconWarning
 			size={14}
@@ -126,7 +117,16 @@ export const WarningBox = ({ text, className }: { text: string, className?: stri
 
 export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
 	const settingsState = useSettingsState()
+
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
+
+	const openSettings = () => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID); };
+
 	return <>
-		{settingsState._modelOptions.length === 0 ? <WarningBox text='Provider required' /> : <MemoizedModelSelectBox featureName={featureName} />}
+		{settingsState._modelOptions.length === 0 ?
+			<WarningBox onClick={openSettings} text='Provider required' />
+			: <MemoizedModelSelectBox featureName={featureName} />
+		}
 	</>
 }

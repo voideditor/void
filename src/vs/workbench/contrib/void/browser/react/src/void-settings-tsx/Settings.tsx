@@ -497,7 +497,7 @@ const OneClickSwitchButton = () => {
 	const accessor = useAccessor()
 	const fileService = accessor.get('IFileService')
 
-	const [state, setState] = useState<{ type: 'done' | 'loading' | 'justfinished' } | { type: 'justerrored', error: string }>({ type: 'done' })
+	const [state, setState] = useState<{ type: 'done', error?: string } | { type: | 'loading' | 'justfinished' }>({ type: 'done' })
 
 	if (transferTheseFiles.length === 0)
 		return <>
@@ -520,10 +520,13 @@ const OneClickSwitchButton = () => {
 			catch (e) { errAcc += e + '\n' }
 		}
 		const hadError = !!errAcc
-		if (hadError) setState({ type: 'justerrored', error: errAcc })
-		else setState({ type: 'justfinished' })
-
-		setTimeout(() => { setState({ type: 'done' }); }, hadError ? 5000 : 3000)
+		if (hadError) {
+			setState({ type: 'done', error: errAcc })
+		}
+		else {
+			setState({ type: 'justfinished' })
+			setTimeout(() => { setState({ type: 'done' }); }, 3000)
+		}
 	}
 
 	return <>
@@ -531,11 +534,10 @@ const OneClickSwitchButton = () => {
 			{state.type === 'done' ? 'Transfer my Settings'
 				: state.type === 'loading' ? 'Transferring...'
 					: state.type === 'justfinished' ? 'Success!'
-						: state.type === 'justerrored' ? `There was Error`
-							: null
+						: null
 			}
 		</VoidButton>
-		{state.type === 'justerrored' && state.error}
+		{state.type === 'done' && state.error ? <WarningBox text={state.error} /> : null}
 	</>
 }
 
@@ -549,7 +551,7 @@ const GeneralTab = () => {
 
 		<div className=''>
 			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from VS Code to Void in one click!`}</h4>
+			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from VS Code to Void in one click.`}</h4>
 			<OneClickSwitchButton />
 		</div>
 

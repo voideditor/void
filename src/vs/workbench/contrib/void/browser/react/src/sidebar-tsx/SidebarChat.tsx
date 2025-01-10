@@ -593,7 +593,7 @@ export const SidebarChat = () => {
 	>
 		{/* thread selector */}
 		<div ref={historyRef}
-			className={`w-full h-auto mb-2 ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow z-10`}
+			className={`w-full h-auto mb-2 ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}
 		>
 			<SidebarThreadSelector />
 		</div>

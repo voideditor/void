@@ -26,7 +26,7 @@ import { IModelService } from '../../../../../../../editor/common/services/model
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
-import { X } from 'lucide-react';
+import { CopyX, SquareX, X } from 'lucide-react';
 
 
 const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -363,14 +363,11 @@ export const SelectedFiles = (
 								rounded-md
 								w-fit h-full
 								select-none
-								bg-void-bg-3 hover:brightness-95
-								text-void-fg-1 text-xs text-nowrap
-								border border-void-border-2 rounded-xs
 								px-0.5
 								'>
 
 					{/* clear button */}
-					<IconX size={16} className="stroke-[3]  p-[2px] cursor-pointer text-vscode-toolbar-foreground"
+					<SquareX size={16} className="stroke-[3] stroke-vscode-toolbar-foreground hover:brightness-95 p-[2px] cursor-pointer"
 						onClick={() => { setStaging([]) }}
 
 					/>

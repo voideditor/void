@@ -16,7 +16,8 @@ import { AvailableForDownload, DisablementReason, IUpdateService, State, StateTy
 
 export function createUpdateURL(platform: string, quality: string, productService: IProductService): string {
 	// return `https://voideditor.dev/api/update/${platform}/stable`;
-	return `${productService.updateUrl}/api/update/${platform}/${quality}/${productService.commit}`;
+	// return `${productService.updateUrl}/api/update/${platform}/${quality}/${productService.commit}`;
+	return `https://updates.voideditor.dev/api/update/${platform}/${quality}/${productService.commit}`;
 }
 
 export type UpdateNotAvailableClassification = {
@@ -77,21 +78,22 @@ export abstract class AbstractUpdateService implements IUpdateService {
 		}
 		console.log('is built, continuing with update service')
 
-		if (this.environmentMainService.disableUpdates) {
-			this.setState(State.Disabled(DisablementReason.DisabledByEnvironment));
-			this.logService.info('update#ctor - updates are disabled by the environment');
-			return;
-		}
+		// Void commented this
+		// if (this.environmentMainService.disableUpdates) {
+		// 	this.setState(State.Disabled(DisablementReason.DisabledByEnvironment));
+		// 	this.logService.info('update#ctor - updates are disabled by the environment');
+		// 	return;
+		// }
 
-		if (!this.productService.updateUrl || !this.productService.commit) {
-			this.setState(State.Disabled(DisablementReason.MissingConfiguration));
-			this.logService.info('update#ctor - updates are disabled as there is no update URL');
-			return;
-		}
+		// if (!this.productService.updateUrl || !this.productService.commit) {
+		// 	this.setState(State.Disabled(DisablementReason.MissingConfiguration));
+		// 	this.logService.info('update#ctor - updates are disabled as there is no update URL');
+		// 	return;
+		// }
 
 		// Void - for now, always update
 
-		const updateMode = this.configurationService.getValue<'none' | 'manual' | 'start' | 'default'>('update.mode');
+		const updateMode = 'default' //this.configurationService.getValue<'none' | 'manual' | 'start' | 'default'>('update.mode');
 
 		const quality = this.getProductQuality(updateMode);
 		if (!quality) {
@@ -117,20 +119,20 @@ export abstract class AbstractUpdateService implements IUpdateService {
 
 		this.setState(State.Idle(this.getUpdateType()));
 
-		if (updateMode === 'manual') {
-			this.logService.info('update#ctor - manual checks only; automatic updates are disabled by user preference');
-			return;
-		}
+		// if (updateMode === 'manual') {
+		// 	this.logService.info('update#ctor - manual checks only; automatic updates are disabled by user preference');
+		// 	return;
+		// }
 
-		if (updateMode === 'start') {
-			this.logService.info('update#ctor - startup checks only; automatic updates are disabled by user preference');
+		// if (updateMode === 'start') {
+		// 	this.logService.info('update#ctor - startup checks only; automatic updates are disabled by user preference');
 
-			// Check for updates only once after 30 seconds
-			setTimeout(() => this.checkForUpdates(false), 30 * 1000);
-		} else {
-			// Start checking for updates after 30 seconds
-			this.scheduleCheckForUpdates(30 * 1000).then(undefined, err => this.logService.error(err));
-		}
+		// 	// Check for updates only once after 30 seconds
+		// 	setTimeout(() => this.checkForUpdates(false), 30 * 1000);
+		// } else {
+		// Start checking for updates after 30 seconds
+		this.scheduleCheckForUpdates(30 * 1000).then(undefined, err => this.logService.error(err));
+		// }
 	}
 
 	private getProductQuality(updateMode: string): string | undefined {

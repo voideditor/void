@@ -281,7 +281,7 @@ export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }:
 	const fullFileLines = fullFileStr.split('\n')
 
 	// we can optimize this later
-	const MAX_CHARS = 1024
+	const MAX_PREFIX_SUFFIX_CHARS = 20_000
 	/*
 
 	a
@@ -302,7 +302,7 @@ export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }:
 	// we'll include fullFileLines[i...(startLine-1)-1].join('\n') in the prefix.
 	while (i !== 0) {
 		const newLine = fullFileLines[i - 1]
-		if (newLine.length + 1 + prefix.length <= MAX_CHARS) { // +1 to include the \n
+		if (newLine.length + 1 + prefix.length <= MAX_PREFIX_SUFFIX_CHARS) { // +1 to include the \n
 			prefix = `${newLine}\n${prefix}`
 			i -= 1
 		}
@@ -313,7 +313,7 @@ export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }:
 	let j = endLine - 1
 	while (j !== fullFileLines.length - 1) {
 		const newLine = fullFileLines[j + 1]
-		if (newLine.length + 1 + suffix.length <= MAX_CHARS) { // +1 to include the \n
+		if (newLine.length + 1 + suffix.length <= MAX_PREFIX_SUFFIX_CHARS) { // +1 to include the \n
 			suffix = `${suffix}\n${newLine}`
 			j += 1
 		}

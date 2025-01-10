@@ -26,6 +26,7 @@ import { IModelService } from '../../../../../../../editor/common/services/model
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
+import { X } from 'lucide-react';
 
 
 const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -277,7 +278,7 @@ export const SelectedFiles = (
 	return (
 		!!selections && selections.length !== 0 && (
 			<div
-				className='flex flex-wrap gap-0.5 text-left'
+				className='flex items-center flex-wrap gap-0.5 text-left'
 			>
 				{selections.map((selection, i) => {
 
@@ -297,8 +298,7 @@ export const SelectedFiles = (
 									select-none
 									bg-void-bg-3 hover:brightness-95
 									text-void-fg-1 text-xs text-nowrap
-									border border-void-border-2 rounded-xs
-								`}
+									border border-void-border-2 rounded-xs`}
 								onClick={() => {
 									// open the file if it is a file
 									if (isThisSelectionAFile) {
@@ -316,9 +316,7 @@ export const SelectedFiles = (
 									}
 								}}
 							>
-								<span
-
-									className=''>
+								<span>
 									{/* file name */}
 									{getBasename(selection.fileURI.fsPath)}
 									{/* selection range */}
@@ -337,25 +335,7 @@ export const SelectedFiles = (
 										}}
 									>
 										<IconX size={16} className="p-[2px] stroke-[3] text-vscode-toolbar-foreground" />
-									</span>
-								}
-
-								{/* type of selection */}
-								{/* <span className='truncate'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span> */}
-								{/* X button */}
-								{/* {type === 'staging' && // hoveredIdx === i
-									<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-input-border z-1'
-										onClick={(e) => {
-											e.stopPropagation();
-											if (type !== 'staging') return;
-											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
-											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
-										}}
-									>
-										<IconX size={16} className="p-[2px] stroke-[3]" />
-									</span>
-								} */}
-
+									</span>}
 							</div>
 							{/* selection text */}
 							{isThisSelectionOpened &&
@@ -376,6 +356,27 @@ export const SelectedFiles = (
 						</div>
 					)
 				})}
+
+
+				{type !== 'staging' || selections.length <= 1 ? null : <div
+					className='flex items-center gap-0.5 relative
+								rounded-md
+								w-fit h-full
+								select-none
+								bg-void-bg-3 hover:brightness-95
+								text-void-fg-1 text-xs text-nowrap
+								border border-void-border-2 rounded-xs
+								px-0.5
+								'>
+
+					{/* clear button */}
+					<IconX size={16} className="stroke-[3]  p-[2px] cursor-pointer text-vscode-toolbar-foreground"
+						onClick={() => { setStaging([]) }}
+
+					/>
+				</div>}
+
+
 			</div>
 		)
 	)

@@ -8,7 +8,7 @@ There are a few ways to contribute:
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
 - ⭐️ If you want to build your AI tool into Void, feel free to get in touch! It's very easy to extend Void, and the UX you create will be much more natural than a VSCode Extension.
 
-Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`.
+Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`.
 
 
 
@@ -55,7 +55,7 @@ To build Void, open `void/` inside VSCode. Then open your terminal and run:
 	 - Run `./scripts/code.sh` (Mac/Linux).
    - Run `./scripts/code.bat` (Windows).
    - This command should open up the built IDE. You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>)  inside the new window to see changes without re-building, or press or <kbd>Ctrl+Shift+P</kbd> in the new window and run "Reload Window".
-	- If you would like to reset Void back to its default settings, you can run `./scripts/code.sh --user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` (mac). This will save all data and extensions to the `.tmp` folder. You can delete this folder to reset your settings.
+	- If you are actively developing Void, we strongly recommend adding the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command (just append them at the end of the string). This will save all data and extensions to the `.tmp` folder. You can delete this folder to reset any IDE changes you made when testing.
 
 #### Building Void from Terminal
 
@@ -83,7 +83,8 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 
 ## Bundling
 
-We don't usually recommend bundling. Instead, you should probably just build. If you're sure you want to bundle Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` (or similar) in the repo's parent's directory. Be patient - compiling can take ~25 minutes.
+We don't usually recommend bundling. Instead, you should probably just build. If you're sure you want to bundle Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). Be patient - compiling can take ~25 minutes.
+
 
 ### Mac
 - `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)
@@ -97,6 +98,16 @@ We don't usually recommend bundling. Instead, you should probably just build. If
 - `npm run gulp vscode-linux-x64` - most common
 - `npm run gulp vscode-linux-arm`
 - `npm run gulp vscode-linux-ia32`
+
+
+### Output
+
+This will generate a folder outside of `void/`:
+```bash
+workspace/
+├── void/   # Your Void fork
+└── VSCode-darwin-arm64/ # Generated output
+```
 
 
 

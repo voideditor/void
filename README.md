@@ -13,4 +13,4 @@ To build and run Void, follow the steps in [`CONTRIBUTING.md`](https://github.co
 Void is a fork of the of [vscode](https://github.com/microsoft/vscode) repository. For some useful links on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 ## Support
-Feel free to reach out in our [Discord](https://discord.gg/RSNjgaugJs) or contact us via email.
+Feel free to reach out in our [Discord](https://discord.gg/RSNjgaugJs) server or contact us via email.

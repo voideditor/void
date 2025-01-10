@@ -45,7 +45,7 @@ export const sendMistralMsg: _InternalSendLLMMessageFnType = async ({ messages, 
 		apiKey: thisConfig.apiKey
 	});
 
-	// Définir l'aborter avant de commencer le streaming
+	// Define the aborter before staring the stream
 	_setAborter(() => {
 		aborted = true;
 	});
@@ -87,7 +87,7 @@ export const sendMistralMsg: _InternalSendLLMMessageFnType = async ({ messages, 
 		});
 
 		for await (const chunk of stream) {
-			// Vérifier si la requête a été abandonnée
+			// Check if the request has been aborted
 			if (aborted) {
 				return;
 			}
@@ -102,7 +102,7 @@ export const sendMistralMsg: _InternalSendLLMMessageFnType = async ({ messages, 
 			}
 		}
 
-		// Vérifier une dernière fois si la requête a été abandonnée
+		// Check one last time if the request has been aborted
 		if (aborted) {
 			return;
 		}

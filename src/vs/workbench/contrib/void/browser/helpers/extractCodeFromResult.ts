@@ -61,8 +61,6 @@ export const extractCodeFromRegular = (result: string) => {
 	// 1. ```language\n<code>```
 	// 2. ```<code>```
 
-	// 4 <PRE> A
-	// 3. <PRE> A </PRE><MID> B </MID> -> B
 	const match = result.match(/```(?:\w+\n)?([\s\S]*?)```|```([\s\S]*?)```/);
 
 	if (!match) {

@@ -32,6 +32,7 @@ interface MistralChunk {
 // Mistral
 export const sendMistralMsg: _InternalSendLLMMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 	let fullText = '';
+	let aborted = false;
 
 	const thisConfig = settingsOfProvider.mistral;
 
@@ -42,6 +43,11 @@ export const sendMistralMsg: _InternalSendLLMMessageFnType = async ({ messages, 
 
 	const mistral = new Mistral({
 		apiKey: thisConfig.apiKey
+	});
+
+	// Définir l'aborter avant de commencer le streaming
+	_setAborter(() => {
+		aborted = true;
 	});
 
 	try {
@@ -80,9 +86,12 @@ export const sendMistralMsg: _InternalSendLLMMessageFnType = async ({ messages, 
 			maxTokens: 2048
 		});
 
-		_setAborter(() => { }); // Mistral does not provide an abort method
-
 		for await (const chunk of stream) {
+			// Vérifier si la requête a été abandonnée
+			if (aborted) {
+				return;
+			}
+
 			if (typeof chunk === 'object' && chunk && 'data' in chunk) {
 				const { data } = chunk as MistralChunk;
 				if (data.choices?.[0]?.delta?.content) {
@@ -91,6 +100,11 @@ export const sendMistralMsg: _InternalSendLLMMessageFnType = async ({ messages, 
 					onText({ newText, fullText });
 				}
 			}
+		}
+
+		// Vérifier une dernière fois si la requête a été abandonnée
+		if (aborted) {
+			return;
 		}
 
 		if (!fullText) {

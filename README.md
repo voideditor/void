@@ -11,24 +11,23 @@
 
 Void is the open-source Cursor alternative. This repo contains the full sourcecode for Void. We are currently in [open beta](https://voideditor.com/) for downloading the official release. If you're new, welcome!
 
-👋 [Discord](https://discord.gg/RSNjgaugJs)
+- 👋 [Discord](https://discord.gg/RSNjgaugJs)
 
-🚙 [Roadmap](https://github.com/orgs/voideditor/projects/2)
+- 🚙 [Roadmap](https://github.com/orgs/voideditor/projects/2)
 
-📝 [Changelog](https://voideditor.com/changelog)
+- 📝 [Changelog](https://voideditor.com/changelog)
 
 
 <!-- ❤️ Setup: -->
 
 ## Contributing
 
-There are 3 main ways you can contribute to Void:
 
-1. **Build new features.** To get started on contributing to Void, follow the steps in [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md). 
+1. To contribute to the Void repository, follow the steps in [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
+  
+2. To suggest a new feature, please create a new [GitHub Issue](https://github.com/voideditor/void/issues). Suggestions will be added to our Roadmap within one day.
 
-2. **Propose new features.** To see what we have planned for the future, please see our [Roadmap](https://github.com/orgs/voideditor/projects/2). You can add to the roadmap by creating a new [GitHub Issue](https://github.com/voideditor/void/issues). We review and accept new issues daily.
-
-3. **Collaborate with us.** We're open to collaborations of all types. Feel free to contact us via email or discord.
+3. We're open to collaborations of all types. Feel free to contact us via email or discord.
 
 ## Reference
 

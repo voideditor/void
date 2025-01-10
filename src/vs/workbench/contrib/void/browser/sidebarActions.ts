@@ -27,6 +27,7 @@ import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { URI } from '../../../../base/common/uri.js';
+import { localize2 } from '../../../../nls.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -65,10 +66,28 @@ const getContentInRange = (model: ITextModel, range: IRange | null) => {
 	return trimmedContent
 }
 
-// Action: when press ctrl+L, show the sidebar chat and add to the selection
+
+
+const VOID_OPEN_SIDEBAR_ACTION_ID = 'void.sidebar.open'
 registerAction2(class extends Action2 {
 	constructor() {
-		super({ id: VOID_CTRL_L_ACTION_ID, title: 'Void: Add to Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
+		super({ id: VOID_OPEN_SIDEBAR_ACTION_ID, title: localize2('voidOpenSidebar', 'Void: Open Sidebar'), f1: true });
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const stateService = accessor.get(ISidebarStateService)
+		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
+		stateService.fireFocusChat()
+	}
+})
+
+
+
+
+// Action: when press ctrl+L, show the sidebar chat and add to the selection
+const VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID = 'void.sidebar.select'
+registerAction2(class extends Action2 {
+	constructor() {
+		super({ id: VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID, title: localize2('voidAddToSidebar', 'Void: Add Selection to Sidebar'), f1: true });
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 
@@ -76,14 +95,10 @@ registerAction2(class extends Action2 {
 		if (!model)
 			return
 
-		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
 		const editorService = accessor.get(ICodeEditorService)
 
 		metricsService.capture('User Action', { type: 'Ctrl+L' })
-
-		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		stateService.fireFocusChat()
 
 		const editor = editorService.getActiveCodeEditor()
 		// accessor.get(IEditorService).activeTextEditorControl?.getSelection()
@@ -133,6 +148,21 @@ registerAction2(class extends Action2 {
 
 	}
 });
+
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({ id: VOID_CTRL_L_ACTION_ID, title: 'Void: Press Ctrl+L', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandService = accessor.get(ICommandService)
+		await commandService.executeCommand(VOID_OPEN_SIDEBAR_ACTION_ID)
+		await commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
+	}
+})
+
+
+
 
 
 // New chat menu button
@@ -233,16 +263,16 @@ class TabSwitchContribution implements IWorkbenchContribution {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ICommandService private readonly commandService: ICommandService,
 	) {
-		const onSwitchTab = () => {
-			this.commandService.executeCommand(VOID_CTRL_L_ACTION_ID)
-		}
-		this.instantiationService.createInstance(TabSwitchListener, onSwitchTab)
+
+		this.instantiationService.createInstance(TabSwitchListener, () => {
+			this.commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
+		})
 
 		// run on current tab if it exists
-		this.commandService.executeCommand(VOID_CTRL_L_ACTION_ID)
+		this.commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
 
 
 	}
 }
 
-registerWorkbenchContribution2(TabSwitchContribution.ID, TabSwitchContribution, WorkbenchPhase.AfterRestored);
+registerWorkbenchContribution2(TabSwitchContribution.ID, TabSwitchContribution, WorkbenchPhase.BlockRestore);

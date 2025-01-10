@@ -1,5 +1,14 @@
 # Welcome to Void.
 
+<div style="display: flex; justify-content: center; align-items: center;">
+	<img
+		src="./src/vs/workbench/browser/parts/editor/media/slice_of_void.png"
+	 	alt="Void Welcome"
+		width="300"
+	 	height="300"
+	/>
+</div>
+
 Void is the open-source Cursor alternative. This repo contains the full sourcecode for Void. We have a [waitlist](https://voideditor.com/email) for downloading the official release, but you can build and develop Void right now.
 
 If you're new, welcome!

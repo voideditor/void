@@ -44,6 +44,7 @@ import { IKeybindingService } from '../../../../../../../platform/keybinding/com
 import { IEnvironmentService } from '../../../../../../../platform/environment/common/environment.js'
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
+import { IMetricsService } from '../../../../../../../platform/void/common/metricsService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -181,6 +182,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IEnvironmentService: accessor.get(IEnvironmentService),
 		IConfigurationService: accessor.get(IConfigurationService),
 		IPathService: accessor.get(IPathService),
+		IMetricsService: accessor.get(IMetricsService),
 
 	} as const
 	return reactAccessor

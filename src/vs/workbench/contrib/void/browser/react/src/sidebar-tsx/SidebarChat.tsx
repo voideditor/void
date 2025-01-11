@@ -405,14 +405,15 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 	return <div
 		// align chatbubble accoridng to role
 		className={`
-				${role === 'user' ? 'px-2 self-end w-fit' : ''}
-				${role === 'assistant' ? 'self-start w-full' : ''}
+				${role === 'user' ? 'px-2 self-end w-fit max-w-full' : ''}
+				${role === 'assistant' ? 'self-start w-full max-w-full' : ''}
 			`}
 	>
 		<div
 			// style chatbubble according to role
 			className={`
-				p-2 text-left space-y-2 rounded-lg break-all
+				p-2 text-left space-y-2 rounded-lg
+				overflow-x-auto max-w-full
 				${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''}
 			`}
 		>

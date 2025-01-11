@@ -49,7 +49,7 @@ registerAction2(class extends Action2 {
 
 		const editorService = accessor.get(ICodeEditorService)
 		const metricsService = accessor.get(IMetricsService)
-		metricsService.capture('User Action', { type: 'Open Ctrl+K' })
+		metricsService.capture('Ctrl+K', {})
 
 		const editor = editorService.getActiveCodeEditor()
 		if (!editor) return;

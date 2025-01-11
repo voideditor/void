@@ -20,9 +20,12 @@ const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 const CodeButtonsOnHover = ({ text }: { text: string }) => {
 	const accessor = useAccessor()
 
+
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
 	const inlineDiffService = accessor.get('IInlineDiffsService')
 	const clipboardService = accessor.get('IClipboardService')
+	const metricsService = accessor.get('IMetricsService')
+
 	useEffect(() => {
 
 		if (copyButtonState !== CopyButtonState.Copy) {
@@ -36,6 +39,8 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 		clipboardService.writeText(text)
 			.then(() => { setCopyButtonState(CopyButtonState.Copied) })
 			.catch(() => { setCopyButtonState(CopyButtonState.Error) })
+		metricsService.capture('Copy Code', { length: text.length }) // capture the length only
+
 	}, [text, clipboardService])
 
 	const onApply = useCallback(() => {
@@ -43,6 +48,7 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 			featureName: 'Ctrl+L',
 			userMessage: text,
 		})
+		metricsService.capture('Apply Code', { length: text.length }) // capture the length only
 	}, [inlineDiffService])
 
 	const isSingleLine = !text.includes('\n')

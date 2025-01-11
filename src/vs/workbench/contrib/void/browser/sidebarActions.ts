@@ -98,7 +98,7 @@ registerAction2(class extends Action2 {
 		const metricsService = accessor.get(IMetricsService)
 		const editorService = accessor.get(ICodeEditorService)
 
-		metricsService.capture('User Action', { type: 'Ctrl+L' })
+		metricsService.capture('Ctrl+L', {})
 
 		const editor = editorService.getActiveCodeEditor()
 		// accessor.get(IEditorService).activeTextEditorControl?.getSelection()

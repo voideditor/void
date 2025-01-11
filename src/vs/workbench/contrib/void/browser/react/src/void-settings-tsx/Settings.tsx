@@ -36,6 +36,7 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 
 	const accessor = useAccessor()
 	const refreshModelService = accessor.get('IRefreshModelService')
+	const metricsService = accessor.get('IMetricsService')
 
 	const [justFinished, setJustFinished] = useState(false)
 
@@ -56,7 +57,10 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 
 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
 	return <SubtleButton
-		onClick={() => { refreshModelService.refreshModels(providerName) }}
+		onClick={() => {
+			refreshModelService.refreshModels(providerName)
+			metricsService.capture('Click', { providerName, action: 'Refresh Models' })
+		}}
 		text={justFinished ? `${providerTitle} Models are up-to-date!` : `Manually refresh models list for ${providerTitle}.`}
 		icon={isRefreshing ? <Loader2 className='size-3 animate-spin' /> : (justFinished ? <Check className='stroke-green-500 size-3' /> : <RefreshCw className='size-3' />)}
 		disabled={isRefreshing || justFinished}
@@ -69,7 +73,7 @@ const RefreshableModels = () => {
 
 	const buttons = refreshableProviderNames.map(providerName => {
 		if (!settingsState.settingsOfProvider[providerName]._enabled) return null
-		return <div key={providerName} className='pb-4' >
+		return <div key={providerName} className='pb-4'>
 			<RefreshModelButton providerName={providerName} />
 		</div>
 	})
@@ -218,7 +222,9 @@ export const ModelDump = () => {
 
 					<VoidSwitch
 						value={disabled ? false : !isHidden}
-						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}
+						onChange={() => {
+							settingsStateService.toggleModelHidden(providerName, modelName)
+						}}
 						disabled={disabled}
 						size='sm'
 					/>
@@ -245,6 +251,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidMetricsService = accessor.get('IMetricsService')
 
 	let weChangedTextRef = false
 
@@ -278,10 +285,12 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 
 						if (shouldEnable) {
 							voidSettingsService.setSettingOfProvider(providerName, '_enabled', true)
+							voidMetricsService.capture('Enable Provider', { providerName })
 						}
 
 						if (shouldDisable) {
 							voidSettingsService.setSettingOfProvider(providerName, '_enabled', false)
+							voidMetricsService.capture('Disable Provider', { providerName })
 						}
 
 					}
@@ -372,6 +381,7 @@ export const VoidFeatureFlagSettings = () => {
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const metricsService = accessor.get('IMetricsService')
 
 	const voidSettingsState = useSettingsState()
 
@@ -382,7 +392,10 @@ export const VoidFeatureFlagSettings = () => {
 		const { description } = displayInfoOfFeatureFlag(flagName)
 
 		return <SubtleButton key={flagName}
-			onClick={() => { voidSettingsService.setFeatureFlag(flagName, !enabled) }}
+			onClick={() => {
+				voidSettingsService.setFeatureFlag(flagName, !enabled)
+				metricsService.capture('Click', { action: 'Autorefresh Toggle', flagName, enabled: !enabled })
+			}}
 			text={description}
 			icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
 			disabled={false}

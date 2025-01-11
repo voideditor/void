@@ -10,6 +10,7 @@ import { IEncryptionService } from '../../encryption/common/encryptionService.js
 import { registerSingleton, InstantiationType } from '../../instantiation/common/extensions.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
+import { IMetricsService } from './metricsService.js';
 import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultNames, VoidModelInfo, FeatureFlagSettings, FeatureFlagName, defaultFeatureFlagSettings } from './voidSettingsTypes.js';
 
 
@@ -55,7 +56,7 @@ export interface IVoidSettingsService {
 	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn;
 	setFeatureFlag: SetFeatureFlagFn;
 
-	setDefaultModels(providerName: ProviderName, modelNames: string[]): void;
+	setAutodetectedModels(providerName: ProviderName, modelNames: string[], logging: { enableProviderOnSuccess?: boolean, isPolling?: boolean, isInvisible?: boolean }): void;
 	toggleModelHidden(providerName: ProviderName, modelName: string): void;
 	addModel(providerName: ProviderName, modelName: string): void;
 	deleteModel(providerName: ProviderName, modelName: string): boolean;
@@ -100,6 +101,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
 		@IEncryptionService private readonly _encryptionService: IEncryptionService,
+		@IMetricsService private readonly _metricsService: IMetricsService,
 		// could have used this, but it's clearer the way it is (+ slightly different eg StorageTarget.USER)
 		// @ISecretStorageService private readonly _secretStorageService: ISecretStorageService,
 	) {
@@ -220,25 +222,45 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 
 
-	setDefaultModels(providerName: ProviderName, newDefaultModelNames: string[]) {
+	setAutodetectedModels(providerName: ProviderName, newDefaultModelNames: string[], logging: { enableProviderOnSuccess?: boolean, isPolling?: boolean, isInvisible?: boolean }) {
+
 		const { models } = this.state.settingsOfProvider[providerName]
+
+		const old_names = models.map(m => m.modelName)
+
 		const newDefaultModels = modelInfoOfDefaultNames(newDefaultModelNames, { isAutodetected: true, existingModels: models })
 		const newModels = [
 			...newDefaultModels,
 			...models.filter(m => !m.isDefault), // keep any non-default models
 		]
+
+
 		this.setSettingOfProvider(providerName, 'models', newModels)
+
+		// if the models changed, log it
+		const new_names = newModels.map(m => m.modelName)
+		if (!(old_names.length === new_names.length
+			&& old_names.every((_, i) => old_names[i] === new_names[i])
+		)) {
+			this._metricsService.capture('Autodetect Models', { providerName, newModels, ...logging })
+		}
 	}
 	toggleModelHidden(providerName: ProviderName, modelName: string) {
+
+
 		const { models } = this.state.settingsOfProvider[providerName]
 		const modelIdx = models.findIndex(m => m.modelName === modelName)
 		if (modelIdx === -1) return
+		const newIsHidden = !models[modelIdx].isHidden
 		const newModels: VoidModelInfo[] = [
 			...models.slice(0, modelIdx),
-			{ ...models[modelIdx], isHidden: !models[modelIdx].isHidden },
+			{ ...models[modelIdx], isHidden: newIsHidden },
 			...models.slice(modelIdx + 1, Infinity)
 		]
 		this.setSettingOfProvider(providerName, 'models', newModels)
+
+		this._metricsService.capture('Toggle Model Hidden', { providerName, modelName, newIsHidden })
+
 	}
 	addModel(providerName: ProviderName, modelName: string) {
 		const { models } = this.state.settingsOfProvider[providerName]
@@ -249,6 +271,9 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			{ modelName, isDefault: false, isHidden: false }
 		]
 		this.setSettingOfProvider(providerName, 'models', newModels)
+
+		this._metricsService.capture('Add Model', { providerName, modelName })
+
 	}
 	deleteModel(providerName: ProviderName, modelName: string): boolean {
 		const { models } = this.state.settingsOfProvider[providerName]
@@ -259,6 +284,9 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			...models.slice(delIdx + 1, Infinity)
 		]
 		this.setSettingOfProvider(providerName, 'models', newModels)
+
+		this._metricsService.capture('Delete Model', { providerName, modelName })
+
 		return true
 	}
 

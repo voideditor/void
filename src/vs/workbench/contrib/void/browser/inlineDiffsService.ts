@@ -37,6 +37,7 @@ import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
 import { LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
+import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -198,6 +199,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IConsistentItemService private readonly _consistentItemService: IConsistentItemService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IConsistentEditorItemService private readonly _consistentEditorItemService: IConsistentEditorItemService,
+		@IMetricsService private readonly _metricsService: IMetricsService,
 	) {
 		super();
 
@@ -480,8 +482,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			fn: (editor) => {
 				const buttonsWidget = new AcceptRejectWidget({
 					editor,
-					onAccept: () => { this.acceptDiff({ diffid }) },
-					onReject: () => { this.rejectDiff({ diffid }) },
+					onAccept: () => {
+						this.acceptDiff({ diffid })
+						this._metricsService.capture('Accept Diff', { batch: false })
+					},
+					onReject: () => {
+						this.rejectDiff({ diffid })
+						this._metricsService.capture('Reject Diff', { batch: false })
+					},
 					diffid: diffid.toString(),
 					startLine: diff.startLine,
 				})

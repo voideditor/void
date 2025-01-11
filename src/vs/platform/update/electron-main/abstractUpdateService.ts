@@ -17,6 +17,7 @@ import { AvailableForDownload, DisablementReason, IUpdateService, State, StateTy
 export function createUpdateURL(platform: string, quality: string, productService: IProductService): string {
 	// return `https://voideditor.dev/api/update/${platform}/stable`;
 	// return `${productService.updateUrl}/api/update/${platform}/${quality}/${productService.commit}`;
+	// https://github.com/VSCodium/update-api
 	return `https://updates.voideditor.dev/api/update/${platform}/${quality}/${productService.commit}`;
 }
 

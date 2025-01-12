@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
@@ -12,9 +12,7 @@ import { Checkbox } from '../../../../../../../base/browser/ui/toggle/toggle.js'
 
 import { CodeEditorWidget } from '../../../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js'
 import { useAccessor } from './services.js';
-import { ScrollableElement } from '../../../../../../../base/browser/ui/scrollbar/scrollableElement.js';
-import { ModelOption } from '../../../../../../../platform/void/common/voidSettingsService.js';
-import { createPortal } from 'react-dom';
+import { ITextModel } from '../../../../../../../editor/common/model.js';
 
 
 // type guard
@@ -327,6 +325,7 @@ export const VoidCustomSelectBox = <T extends any>({
 
 			{/* Select Button */}
 			<button
+				type='button'
 				ref={buttonRef}
 				className="flex items-center h-4 bg-transparent whitespace-nowrap hover:brightness-90 w-full"
 				onClick={() => {
@@ -503,8 +502,12 @@ const normalizeIndentation = (code: string): string => {
 
 }
 
-export type VoidCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean, placeholderLanguage?: string }
-export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars, placeholderLanguage }: VoidCodeEditorProps) => {
+
+const modelOfEditorId: { [id: string]: ITextModel | undefined } = {}
+export type VoidCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
+export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars }: VoidCodeEditorProps) => {
+
+	initValue = normalizeIndentation(initValue)
 
 	// default settings
 	const MAX_HEIGHT = maxHeight ?? Infinity;
@@ -514,10 +517,27 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars,
 
 	const accessor = useAccessor()
 	const instantiationService = accessor.get('IInstantiationService')
+	// const languageDetectionService = accessor.get('ILanguageDetectionService')
 	const modelService = accessor.get('IModelService')
-	const languageDetectionService = accessor.get('ILanguageDetectionService')
 
-	initValue = normalizeIndentation(initValue)
+
+	const id = useId()
+
+	// these are used to pass to the model creation of modelRef
+	const initValueRef = useRef(initValue)
+	const languageRef = useRef(language)
+
+	const modelRef = useRef<ITextModel | null>(null)
+
+	// if we change the initial value, don't re-render the whole thing, just set it here. same for language
+	useEffect(() => {
+		initValueRef.current = initValue
+		modelRef.current?.setValue(initValue)
+	}, [initValue])
+	useEffect(() => {
+		languageRef.current = language
+		if (language) modelRef.current?.setLanguage(language)
+	}, [language])
 
 	return <div ref={divRef} className='relative z-0 px-2 py-1 bg-void-bg-3'>
 		<WidgetComponent
@@ -576,31 +596,23 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars,
 					{
 						isSimpleWidget: true,
 					})
-			}, [instantiationService])
-			}
+			}, [instantiationService])}
 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
-				const model = modelService.createModel(
-					initValue,
-					language ? {
-						languageId: language,
-						onDidChange: () => ({
-							dispose: () => { }
-						})
-					} : {
-						languageId: placeholderLanguage ?? '',
-						onDidChange: () => ({
-							dispose: () => { }
-						})
-					}
-				);
+				const model = modelOfEditorId[id] ?? modelService.createModel(
+					initValueRef.current, {
+					languageId: languageRef.current ? languageRef.current : '',
+					onDidChange: (e) => { return { dispose: () => { } } } // no idea why they'd require this
+				})
+				modelRef.current = model
 				editor.setModel(model);
 
 				const container = editor.getDomNode()
 				const parentNode = container?.parentElement
 				const resize = () => {
+					const height = editor.getScrollHeight() + 1
 					if (parentNode) {
-						const height = Math.min(editor.getScrollHeight() + 1, MAX_HEIGHT);
+						// const height = Math.min(, MAX_HEIGHT);
 						parentNode.style.height = `${height}px`;
 						editor.layout();
 					}
@@ -609,12 +621,12 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars,
 				resize()
 				const disposable = editor.onDidContentSizeChange(() => { resize() });
 
-				return [disposable]
-			}, [modelService, initValue, language])}
+				return [disposable, model]
+			}, [modelService])}
 
 			dispose={useCallback((editor: CodeEditorWidget) => {
 				editor.dispose();
-			}, [modelService, languageDetectionService])}
+			}, [modelService])}
 
 			propsFn={useCallback(() => { return [] }, [])}
 		/>

@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { ReactNode } from "react"
+import { ReactNode } from 'react'
 import { VoidCodeEditor, VoidCodeEditorProps } from '../util/inputs.js';
 
 

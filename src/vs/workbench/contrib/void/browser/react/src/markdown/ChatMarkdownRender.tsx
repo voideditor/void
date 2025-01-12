@@ -88,7 +88,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	if (t.type === "code") {
 		return <BlockCode
 			initValue={t.text}
-			language={t.lang && nameToVscodeLanguage[t.lang]} // use vscode to detect language
+			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]} // use vscode to detect language
 			buttonsOnHover={<CodeButtonsOnHover text={t.text} />}
 		/>
 	}

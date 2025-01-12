@@ -13,7 +13,7 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 // import { throttle } from '../../../../base/common/decorators.js';
 import { ComputedDiff, findDiffs } from './helpers/findDiffs.js';
 import { EndOfLinePreference, IModelDecorationOptions, ITextModel } from '../../../../editor/common/model.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange, Range } from '../../../../editor/common/core/range.js';
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
 import { Color, RGBA } from '../../../../base/common/color.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
@@ -29,7 +29,6 @@ import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
 import { ctrlKStream_prefixAndSuffix, ctrlKStream_prompt, ctrlKStream_systemMessage, ctrlLStream_prompt, ctrlLStream_systemMessage, defaultFimTags } from './prompt/prompts.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
-import { IPosition } from '../../../../editor/common/core/position.js';
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -38,6 +37,9 @@ import { LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js'
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
+import { IEditorWorkerService } from '../../../../editor/common/services/editorWorker.js';
+import { InlineDecorationType } from '../../../../editor/common/viewModel.js';
+import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -200,6 +202,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IConsistentEditorItemService private readonly _consistentEditorItemService: IConsistentEditorItemService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
+		@IEditorWorkerService private readonly _editorWorkerService: IEditorWorkerService,
 	) {
 		super();
 
@@ -451,7 +454,13 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					const lines = redText.split('\n');
 					const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
 					const source = new LineSource(lineTokens, lines.map(() => null), false, false)
-					const result = renderLines(source, renderOptions, [], domNode);
+					const result = renderLines(source, renderOptions, [
+						{ // add dummy so it doesn't highlight in red
+							range: Range.lift({ startLineNumber: 1, startColumn: 1, endLineNumber: Number.MAX_SAFE_INTEGER, endColumn: Number.MAX_SAFE_INTEGER }),
+							inlineClassName: '',
+							type: InlineDecorationType.Regular
+						}
+					], domNode);
 
 					const viewZone: IViewZone = {
 						// afterLineNumber: computedDiff.startLine - 1,
@@ -514,8 +523,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		return model
 	}
-	private _readURI(uri: URI): string | null {
-		return this._getModel(uri)?.getValue(EndOfLinePreference.LF) ?? null
+	private _readURI(uri: URI, range?: IRange): string | null {
+		if (!range) return this._getModel(uri)?.getValue(EndOfLinePreference.LF) ?? null
+		else return this._getModel(uri)?.getValueInRange(range, EndOfLinePreference.LF) ?? null
 	}
 	private _getNumLines(uri: URI): number | null {
 		return this._getModel(uri)?.getLineCount() ?? null
@@ -529,13 +539,19 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 	weAreWriting = false
-	private _writeText(uri: URI, text: string, range: IRange, { shouldRealignDiffAreas }: { shouldRealignDiffAreas: boolean }) {
+	private async _writeText(uri: URI, text: string, range: IRange, { shouldRealignDiffAreas }: { shouldRealignDiffAreas: boolean }) {
 		const model = this._getModel(uri)
 		if (!model) return
+		const uriStr = this._readURI(uri, range)
+		if (!uriStr) return
 
-		this.weAreWriting = true
-		model.applyEdits([{ range, text }]) // applies edits without adding them to undo/redo stack
-		this.weAreWriting = false
+		// minimal edits so not so flashy
+		const edits = await this._editorWorkerService.computeMoreMinimalEdits(uri, [{ range, text }])
+		if (edits) {
+			this.weAreWriting = true
+			model.applyEdits(edits)
+			this.weAreWriting = false
+		}
 
 		this._onInternalChangeContent(uri, { shouldRealign: shouldRealignDiffAreas && { newText: text, oldRange: range } })
 	}
@@ -813,7 +829,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// @throttle(100)
-	private _writeDiffZoneLLMText(diffZone: DiffZone, llmText: string, latestCurrentFileEnd: IPosition, newPosition: IPosition) {
+	private _writeDiffZoneLLMText(diffZone: DiffZone, llmText: string) {
 
 		// ----------- 1. Write the new code to the document -----------
 		// figure out where to highlight based on where the AI is in the stream right now, use the last diff to figure that out
@@ -1055,8 +1071,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const { onFinishEdit } = this._addToHistory(uri)
 
 
-		// __TODO__ ctrl+K should use Ollama's FIM method. Also, modelWasTrainedOnFIM should not be a thing
-		const modelWasTrainedOnFIM = featureName === 'Ctrl+K' ? false : false
+		// __TODO__ ctrl+K should use Ollama's FIM method.
+		const ollamaStyleFIM = false
 		const modelFimTags = defaultFimTags
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
@@ -1087,7 +1103,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		else if (featureName === 'Ctrl+K') {
 			const { prefix, suffix } = ctrlKStream_prefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix, modelWasTrainedOnFIM, fimTags: modelFimTags, uri })
+			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
+			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix, ollamaStyleFIM, fimTags: modelFimTags, language })
 			console.log('PREFIX:\n', prefix)
 			console.log('SUFFIX:\n', suffix)
 			console.log('USER CONTENT:\n', userContent)
@@ -1099,9 +1116,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		else { throw new Error(`featureName ${featureName} is invalid`) }
 
-		// __TODO__ make these only move forward
-		const latestCurrentFileEnd: IPosition = { lineNumber: 1, column: 1 }
-		const latestOriginalFileStart: IPosition = { lineNumber: 1, column: 1 }
 
 		const onDone = () => {
 			diffZone._streamState = { isStreaming: false, }
@@ -1121,8 +1135,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		const extractText = (fullText: string) => {
 			if (featureName === 'Ctrl+K') {
-				const [_, textSoFar] = extractCodeFromFIM({ text: fullText, midTag: modelFimTags.midTag, modelWasTrainedOnFIM })
-				return textSoFar
+				if (ollamaStyleFIM) return fullText
+				return extractCodeFromFIM({ text: fullText, midTag: modelFimTags.midTag })
 			}
 			else if (featureName === 'Ctrl+L') {
 				return extractCodeFromRegular(fullText)
@@ -1135,7 +1149,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			logging: { loggingName: `startApplying - ${featureName}` },
 			messages,
 			onText: ({ newText, fullText }) => {
-				this._writeDiffZoneLLMText(diffZone, extractText(fullText), latestCurrentFileEnd, latestOriginalFileStart)
+				this._writeDiffZoneLLMText(diffZone, extractText(fullText))
 				this._refreshStylesAndDiffsInURI(uri)
 			},
 			onFinalMessage: ({ fullText }) => {

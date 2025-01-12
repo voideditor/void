@@ -341,12 +341,13 @@ export const defaultFimTags: FimTagsType = {
 	midTag: 'SELECTION',
 }
 
-export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage, modelWasTrainedOnFIM, fimTags, uri }: { selection: string, prefix: string, suffix: string, userMessage: string, modelWasTrainedOnFIM: boolean, fimTags: FimTagsType, uri: URI }) => {
+export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage, fimTags, ollamaStyleFIM, language }:
+	{ selection: string, prefix: string, suffix: string, userMessage: string, ollamaStyleFIM: boolean, fimTags: FimTagsType, language: string }) => {
 	const { preTag, sufTag, midTag } = fimTags
 
-	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 
-	if (modelWasTrainedOnFIM) {
+
+	if (ollamaStyleFIM) {
 		// const preTag = 'PRE'
 		// const sufTag = 'SUF'
 		// const midTag = 'MID'

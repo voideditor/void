@@ -1522,9 +1522,18 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 			this._domNode.style.top = `${topPx}px`
 		}
 		const updateLeft = () => {
-			const leftPx = 0//editor.getScrollLeft() - editor.getScrollWidth()
-			this._domNode.style.left = `${leftPx}px`
+			const layoutInfo = editor.getLayoutInfo();
+			const minimapWidth = layoutInfo.minimap.minimapWidth;
+			const verticalScrollbarWidth = layoutInfo.verticalScrollbarWidth;
+			const buttonWidth = this._domNode.offsetWidth;
+
+			const leftPx = layoutInfo.width - minimapWidth - verticalScrollbarWidth - buttonWidth;
+			this._domNode.style.left = `${leftPx}px`;
 		}
+
+		// Mount first, then update positions
+		editor.addOverlayWidget(this);
+
 
 		updateTop()
 		updateLeft()

@@ -95,8 +95,7 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 				rounded-md
 				bg-vscode-input-bg
 				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
-			`
-			}
+			`}
 			onKeyDown={(e) => {
 				if (e.key === 'Enter' && !e.shiftKey) {
 					onSubmit(e)

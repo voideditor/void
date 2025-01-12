@@ -16,7 +16,7 @@ import { CodeStagingSelection, IThreadHistoryService } from './threadHistoryServ
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
-import { VOID_VIEW_ID } from './sidebarPane.js';
+import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
@@ -28,6 +28,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { URI } from '../../../../base/common/uri.js';
 import { localize2 } from '../../../../nls.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
 
 
 // ---------- Register commands and keybindings ----------
@@ -256,22 +257,34 @@ export class TabSwitchListener extends Disposable {
 }
 
 
-class TabSwitchContribution implements IWorkbenchContribution {
+class TabSwitchContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.void.tabswitch'
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ICommandService private readonly commandService: ICommandService,
+		@IViewsService private readonly viewsService: IViewsService,
 	) {
+		super()
 
-		this.instantiationService.createInstance(TabSwitchListener, () => {
-			this.commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
-		})
+		// sidebarIsVisible state
+		let sidebarIsVisible = this.viewsService.isViewContainerVisible(VOID_VIEW_CONTAINER_ID)
+		this._register(this.viewsService.onDidChangeViewVisibility(e => {
+			sidebarIsVisible = e.visible
+		}))
 
-		// run on current tab if it exists
-		this.commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
+		const addCurrentFileIfVisible = () => {
+			if (sidebarIsVisible)
+				this.commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
+		}
 
+		// when sidebar becomes visible, add current file
+		this._register(this.viewsService.onDidChangeViewVisibility(e => { sidebarIsVisible = e.visible }))
 
+		// run on current tab if it exists, and listen for tab switches and visibility changes
+		addCurrentFileIfVisible()
+		this._register(this.viewsService.onDidChangeViewVisibility(() => { addCurrentFileIfVisible() }))
+		this.instantiationService.createInstance(TabSwitchListener, () => { addCurrentFileIfVisible() })
 	}
 }
 

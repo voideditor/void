@@ -37,9 +37,9 @@ import { LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js'
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
-import { IEditorWorkerService } from '../../../../editor/common/services/editorWorker.js';
 import { InlineDecorationType } from '../../../../editor/common/viewModel.js';
 import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
+import { BaseEditorSimpleWorker } from '../../../../editor/common/services/editorSimpleWorker.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -202,7 +202,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IConsistentEditorItemService private readonly _consistentEditorItemService: IConsistentEditorItemService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
-		@IEditorWorkerService private readonly _editorWorkerService: IEditorWorkerService,
 	) {
 		super();
 
@@ -249,7 +248,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	private _onInternalChangeContent(uri: URI, { shouldRealign }: { shouldRealign: false | { newText: string, oldRange: IRange } }) {
 		if (shouldRealign) {
 			const { newText, oldRange } = shouldRealign
-			console.log('realiging', newText, oldRange)
+			// console.log('realiging', newText, oldRange)
 			this._realignAllDiffAreasLines(uri, newText, oldRange)
 		}
 		this._refreshStylesAndDiffsInURI(uri)
@@ -411,7 +410,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (diffArea.type !== 'CtrlKZone') continue
 			if (!diffArea._mountInfo) {
 				diffArea._mountInfo = this._addCtrlKZoneInput(diffArea)
-				console.log('MOUNTED', diffArea.diffareaid)
+				// console.log('MOUNTED', diffArea.diffareaid)
 			}
 			else {
 				diffArea._mountInfo.refresh()
@@ -539,6 +538,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 	weAreWriting = false
+	worker = new BaseEditorSimpleWorker()
 	private async _writeText(uri: URI, text: string, range: IRange, { shouldRealignDiffAreas }: { shouldRealignDiffAreas: boolean }) {
 		const model = this._getModel(uri)
 		if (!model) return
@@ -546,7 +546,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		if (!uriStr) return
 
 		// minimal edits so not so flashy
-		const edits = await this._editorWorkerService.computeMoreMinimalEdits(uri, [{ range, text }])
+		// __TODO__ THIS IS NOT INSIDE A WORKER, SO IT MIGHT BE SLOW, we should instead just do an optimal write ourselves
+		const edits = this.worker.$Void_computeMoreMinimalEdits(uri.toString(), [{ range, text }], false)
+
 		if (edits) {
 			this.weAreWriting = true
 			model.applyEdits(edits)
@@ -592,7 +594,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			this._deleteAllDiffAreas(uri)
 			this.diffAreasOfURI[uri.fsPath].clear()
 
-			console.log('RESTORING FOR', uri)
 			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = structuredClone(snapshot) // don't want to destroy the snapshot
 
 			// restore diffAreaOfId and diffAreasOfModelId
@@ -1105,9 +1106,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const { prefix, suffix } = ctrlKStream_prefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
 			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix, ollamaStyleFIM, fimTags: modelFimTags, language })
-			console.log('PREFIX:\n', prefix)
-			console.log('SUFFIX:\n', suffix)
-			console.log('USER CONTENT:\n', userContent)
+			// console.log('PREFIX:\n', prefix)
+			// console.log('SUFFIX:\n', suffix)
+			// console.log('USER CONTENT:\n', userContent)
 			messages = [
 				// TODO include more context too (LSP, file history, etc)
 				{ role: 'system', content: ctrlKStream_systemMessage, },
@@ -1157,7 +1158,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				// at the end, re-write whole thing to make sure no sync errors
 				this._writeText(uri, extractText(fullText),
 					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-					{ shouldRealignDiffAreas: false }
+					{ shouldRealignDiffAreas: true }
 				)
 				onDone()
 			},
@@ -1396,11 +1397,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			throw new Error(`Void error: ${diff}.type not recognized`)
 		}
 
-		console.log('REJECTION start, end:', diffArea.startLine, diffArea.endLine)
 		// update the file
 		this._writeText(uri, writeText, toRange, { shouldRealignDiffAreas: true })
-
-		console.log('2REJECTION start, end:', diffArea.startLine, diffArea.endLine)
 
 		// originalCode does not change!
 

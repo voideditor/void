@@ -223,6 +223,11 @@ export class BaseEditorSimpleWorker implements IDisposable, IWorkerTextModelSync
 	private static readonly _diffLimit = 100000;
 
 	public async $computeMoreMinimalEdits(modelUrl: string, edits: TextEdit[], pretty: boolean): Promise<TextEdit[]> {
+		return this.$Void_computeMoreMinimalEdits(modelUrl, edits, pretty)
+	}
+
+	// Void added this as non async
+	public $Void_computeMoreMinimalEdits(modelUrl: string, edits: TextEdit[], pretty: boolean): TextEdit[] {
 		const model = this._getModel(modelUrl);
 		if (!model) {
 			return edits;

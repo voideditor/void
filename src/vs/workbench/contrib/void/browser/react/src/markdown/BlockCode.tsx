@@ -3,7 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { ReactNode } from 'react'
+import React from 'react';
+
 import { VoidCodeEditor, VoidCodeEditorProps } from '../util/inputs.js';
 
 
@@ -11,16 +12,21 @@ export const BlockCode = ({ buttonsOnHover, ...codeEditorProps }: { buttonsOnHov
 
 	const isSingleLine = !codeEditorProps.initValue.includes('\n')
 
-	return (<>
-		<div className={`relative group w-full overflow-hidden`}>
-			{buttonsOnHover === null ? null : (
-				<div className="z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200">
-					<div className={`flex space-x-2 ${isSingleLine ? '' : 'p-2'}`}>{buttonsOnHover}</div>
-				</div>
-			)}
-			<VoidCodeEditor {...codeEditorProps} />
-		</div>
-	</>
+	return (
+		<>
+			<div className={`relative group w-full overflow-hidden`}>
+
+				{buttonsOnHover === null ? null : (
+					<div className="z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200">
+						<div className={`flex space-x-2 ${isSingleLine ? '' : 'p-2'}`}>
+							{buttonsOnHover}
+						</div>
+					</div>
+				)}
+
+				<VoidCodeEditor {...codeEditorProps} />
+
+			</div>
+		</>
 	)
 }
-

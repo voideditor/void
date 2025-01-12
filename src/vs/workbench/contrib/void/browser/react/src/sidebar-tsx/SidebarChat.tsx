@@ -289,7 +289,7 @@ export const SelectedFiles = (
 					const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
 					const isThisSelectionAFile = selection.selectionStr === null
 
-					return <div // container for `selectionSummary` and `selectionText`
+					return <div key={i} // container for `selectionSummary` and `selectionText`
 						className={`${isThisSelectionOpened ? 'w-full' : ''}`}
 					>
 						{/* selection summary */}

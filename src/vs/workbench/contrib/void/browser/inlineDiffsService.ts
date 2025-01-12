@@ -40,6 +40,8 @@ import { IMetricsService } from '../../../../platform/void/common/metricsService
 import { InlineDecorationType } from '../../../../editor/common/viewModel.js';
 import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { BaseEditorSimpleWorker } from '../../../../editor/common/services/editorSimpleWorker.js';
+import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -952,6 +954,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			return
 		}
 
+		const overlappingDiffZone = this._findOverlappingDiffArea({ startLine, endLine, uri, filter: (diffArea) => diffArea.type === 'DiffZone' })
+		if (overlappingDiffZone)
+			return
+
 		const { onFinishEdit } = this._addToHistory(uri)
 
 		const adding: Omit<CtrlKZone, 'diffareaid'> = {
@@ -1023,7 +1029,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (!uri_) return
 			uri = uri_
 
-			// reject all diffs on this URI, adding to history
+			// reject all diffareas on this URI, adding to history (there can't possibly be overlap after this)
 			this.removeDiffAreas({ uri, behavior: 'reject' })
 
 			// in ctrl+L the start and end lines are the full document
@@ -1031,13 +1037,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (numLines === null) return
 			startLine = 1
 			endLine = numLines
-
-			// check if there's overlap with any other diffAreas and return early if there is
-			if (this._findOverlappingDiffArea({ startLine, endLine, uri })) {
-				// TODO add a message here that says this to the user too
-				console.error('Not diffing because found overlap:', this.diffAreasOfURI[uri.fsPath], startLine, endLine)
-				return
-			}
 
 			userMessage = opts.userMessage
 		}
@@ -1049,7 +1048,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 			const { startLine: startLine_, endLine: endLine_, _URI, _mountInfo } = ctrlKZone
 			uri = _URI
-
 			startLine = startLine_
 			endLine = endLine_
 
@@ -1507,3 +1505,18 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 }
 
 
+
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'void.testDiff',
+			title: 'Void Test Diff',
+		});
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const inlineDiffsService = accessor.get(IInlineDiffsService)
+		inlineDiffsService.startApplying
+
+	}
+})

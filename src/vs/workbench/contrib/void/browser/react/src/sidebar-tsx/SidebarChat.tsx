@@ -26,7 +26,7 @@ import { IModelService } from '../../../../../../../editor/common/services/model
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
-import { CopyX, SquareX, X } from 'lucide-react';
+import { ArrowBigLeftDash, CopyX, Delete, FileX2, SquareX, X } from 'lucide-react';
 
 
 const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -272,6 +272,9 @@ export const SelectedFiles = (
 	// index -> isOpened
 	const [selectionIsOpened, setSelectionIsOpened] = useState<(boolean)[]>(selections?.map(() => false) ?? [])
 
+	// state for tracking hover on clear all button
+	const [isClearHovered, setIsClearHovered] = useState(false)
+
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 
@@ -298,7 +301,9 @@ export const SelectedFiles = (
 									select-none
 									bg-void-bg-3 hover:brightness-95
 									text-void-fg-1 text-xs text-nowrap
-									border border-void-border-2 rounded-xs`}
+									border border-void-border-2 rounded-xs
+									${isClearHovered ? 'brightness-90' : ''}
+									transition-all duration-150`}
 								onClick={() => {
 									// open the file if it is a file
 									if (isThisSelectionAFile) {
@@ -336,6 +341,30 @@ export const SelectedFiles = (
 									>
 										<IconX size={16} className="p-[2px] stroke-[3]" />
 									</span>}
+
+
+								{/* clear all selections button */}
+								{type !== 'staging' || selections.length === 0 || i !== selections.length - 1 ? null : <div
+									className='
+											absolute right-0 translate-x-[calc(100%+4px)]
+											rounded-md
+											px-0.5
+										'
+									onMouseEnter={() => setIsClearHovered(true)}
+									onMouseLeave={() => setIsClearHovered(false)}
+								>
+									<Delete
+										size={16}
+										className='stroke-[1] stroke-void-fg-3
+												fill-void-bg-3
+												hover:brightness-95
+												cursor-pointer
+											'
+										onClick={() => { setStaging([]) }}
+									/>
+								</div>}
+
+
 							</div>
 							{/* selection text */}
 							{isThisSelectionOpened &&
@@ -356,30 +385,6 @@ export const SelectedFiles = (
 						</div>
 					)
 				})}
-
-
-				{type !== 'staging' || selections.length === 0 ? null : <div
-					className='absolute top-0 right-0
-
-						rounded-md
-						select-none
-						px-0.5
-					'
-				>
-					{/* clear all selections button */}
-					<IconX
-						size={16}
-						className='stroke-[2] stroke-void-fg-3
-							hover:brightness-95
-							p-[2px]
-							cursor-pointer
-						'
-						onClick={() => { setStaging([]) }}
-					/>
-					{/* <SquareX size={16} className="stroke-[2] stroke-void-fg-3 fill-void-bg-3 hover:brightness-95 p-[2px] cursor-pointer"
-						onClick={() => { setStaging([]) }}
-					/> */}
-				</div>}
 
 
 			</div>

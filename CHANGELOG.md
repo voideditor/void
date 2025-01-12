@@ -1,13 +1,14 @@
 
 
-1/11/24 - release
+1/12/24 -
 
 
-Added
 
-- delete the Void extension, and move entirely inside the VS Code codebase.
+- beta
 
-- model selection
+- deleted the Void extension, and move entirely inside the VS Code codebase.
+
+- Nicer settings page with auto model detection, one-click switch, and more.
 
 - model fetching with .list()
 

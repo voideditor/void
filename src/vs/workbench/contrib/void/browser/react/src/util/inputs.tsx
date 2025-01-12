@@ -489,8 +489,8 @@ const normalizeIndentation = (code: string): string => {
 
 }
 
-export type VoidCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
-export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars }: VoidCodeEditorProps) => {
+export type VoidCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean, placeholderLanguage?: string }
+export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars, placeholderLanguage }: VoidCodeEditorProps) => {
 
 	// default settings
 	const MAX_HEIGHT = maxHeight ?? Infinity;
@@ -573,7 +573,12 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 						onDidChange: () => ({
 							dispose: () => { }
 						})
-					} : null
+					} : {
+						languageId: placeholderLanguage ?? '',
+						onDidChange: () => ({
+							dispose: () => { }
+						})
+					}
 				);
 				editor.setModel(model);
 

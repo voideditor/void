@@ -4,6 +4,8 @@
  *--------------------------------------------------------------------------------------*/
 
 
+import { URI } from '../../../../../base/common/uri.js';
+import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
 import { CodeSelection } from '../threadHistoryService.js';
 
 export const chat_systemMessage = `\
@@ -22,25 +24,25 @@ Instructions:
 
 FILES
 selected file \`math.ts\`:
-\`\`\`
+\`\`\` typescript
 const addNumbers = (a, b) => a + b
 const subtractNumbers = (a, b) => a - b
 const divideNumbers = (a, b) => a / b
 \`\`\`
 
 SELECTION
-\`\`\`
+\`\`\` typescript
 const subtractNumbers = (a, b) => a - b
 \`\`\`
 
 INSTRUCTIONS
-\`\`\`
+\`\`\` typescript
 add a function that multiplies numbers below this
 \`\`\`
 
 EXPECTED OUTPUT
 We can add the following code to the file:
-\`\`\`
+\`\`\` typescript
 // existing code...
 const subtractNumbers = (a, b) => a - b;
 const multiplyNumbers = (a, b) => a * b;
@@ -51,7 +53,7 @@ const multiplyNumbers = (a, b) => a * b;
 
 FILES
 selected file \`fib.ts\`:
-\`\`\`
+\`\`\` typescript
 
 const dfs = (root) => {
 	if (!root) return;
@@ -66,18 +68,18 @@ const fib = (n) => {
 \`\`\`
 
 SELECTION
-\`\`\`
+\`\`\` typescript
 	return fib(n - 1) + fib(n - 2)
 \`\`\`
 
 INSTRUCTIONS
-\`\`\`
+\`\`\` typescript
 memoize results
 \`\`\`
 
 EXPECTED OUTPUT
 To implement memoization in your Fibonacci function, you can use a JavaScript object to store previously computed results. This will help avoid redundant calculations and improve performance. Here's how you can modify your function:
-\`\`\`
+\`\`\` typescript
 // existing code...
 const fib = (n, memo = {}) => {
     if (n < 1) return 1;
@@ -100,7 +102,7 @@ const stringifySelections = (selections: CodeSelection[]) => {
 	return selections.map(({ fileURI, content, selectionStr }) =>
 		`\
 File: ${fileURI.fsPath}
-\`\`\`
+\`\`\` ${filenameToVscodeLanguage(fileURI.fsPath) ?? ''}
 ${content // this was the enite file which is foolish
 		}
 \`\`\`${selectionStr === null ? '' : `
@@ -136,7 +138,7 @@ Directions:
 
 ORIGINAL_FILE
 \`Sidebar.tsx\`:
-\`\`\`
+\`\`\` typescript
 import React from 'react';
 import styles from './Sidebar.module.css';
 
@@ -172,7 +174,7 @@ export default Sidebar;
 \`\`\`
 
 DIFF
-\`\`\`
+\`\`\` typescript
 @@ ... @@
 -<div className={styles.sidebar}>
 -<ul>
@@ -211,7 +213,7 @@ DIFF
 \`\`\`
 
 NEW_FILE
-\`\`\`
+\`\`\` typescript
 import React from 'react';
 import styles from './Sidebar.module.css';
 
@@ -226,7 +228,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonCli
 \`\`\`
 
 COMPLETION
-\`\`\`
+\`\`\` typescript
     <div className={styles.sidebar}>
       <ul>
         {items.map((item, index) => (
@@ -253,10 +255,13 @@ export default Sidebar;\`\`\`
 
 
 
-export const ctrlLStream_prompt = ({ originalCode, userMessage }: { originalCode: string, userMessage: string }) => {
+export const ctrlLStream_prompt = ({ originalCode, userMessage, uri }: { originalCode: string, userMessage: string, uri: URI }) => {
+
+	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
+
 	return `\
 ORIGINAL_CODE
-\`\`\`
+\`\`\` ${language}
 ${originalCode}
 \`\`\`
 
@@ -336,8 +341,10 @@ export const defaultFimTags: FimTagsType = {
 	midTag: 'SELECTION',
 }
 
-export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage, modelWasTrainedOnFIM, fimTags }: { selection: string, prefix: string, suffix: string, userMessage: string, modelWasTrainedOnFIM: boolean, fimTags: FimTagsType }) => {
+export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage, modelWasTrainedOnFIM, fimTags, uri }: { selection: string, prefix: string, suffix: string, userMessage: string, modelWasTrainedOnFIM: boolean, fimTags: FimTagsType, uri: URI }) => {
 	const { preTag, sufTag, midTag } = fimTags
+
+	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 
 	if (modelWasTrainedOnFIM) {
 		// const preTag = 'PRE'
@@ -360,14 +367,14 @@ ${prefix}</${preTag}>
 		// const midTag = 'SELECTION'
 		return `\
 The user is selecting this code as their SELECTION:
-\`\`\`
+\`\`\` ${language}
 <${midTag}>${selection}</${midTag}>
 \`\`\`
 
 The user wants to apply the following INSTRUCTIONS to the SELECTION:
 ${userMessage}
 
-Please edit the SELECTION following the user's INSTRUCTIONS, and return only a single block.
+Please edit the SELECTION following the user's INSTRUCTIONS, and return the edited selection.
 
 Note that the SELECTION has code that comes before it. This code is indicated with <${preTag}>...before<${preTag}/>.
 Note also that the SELECTION has code that comes after it. This code is indicated with <${sufTag}>...after<${sufTag}/>.
@@ -378,11 +385,11 @@ Instructions:
 3. Make sure all brackets in the new selection are balanced the same as in the original selection.
 4. Be careful not to duplicate or remove variables, comments, or other syntax by mistake.
 
-Given code:
+Given the code:
 <${preTag}>${prefix}</${preTag}>
 <${sufTag}>${suffix}</${sufTag}>
 
-Return one block of code of the form \`\`\`<${midTag}>...new_selection<${midTag}/>\`\`\`:`
+Return only the completion block of code (of the form \`\`\` ${language}\n <${midTag}>...new_selection<${midTag}/>\`\`\`):`
 	}
 };
 

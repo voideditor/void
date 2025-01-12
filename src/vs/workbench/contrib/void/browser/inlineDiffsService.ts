@@ -1078,7 +1078,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let messages: LLMMessage[]
 
 		if (featureName === 'Ctrl+L') {
-			const userContent = ctrlLStream_prompt({ originalCode, userMessage })
+			const userContent = ctrlLStream_prompt({ originalCode, userMessage, uri })
 			messages = [
 				// TODO include more context too
 				{ role: 'system', content: ctrlLStream_systemMessage, },
@@ -1087,7 +1087,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		else if (featureName === 'Ctrl+K') {
 			const { prefix, suffix } = ctrlKStream_prefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix, modelWasTrainedOnFIM, fimTags: modelFimTags })
+			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix, modelWasTrainedOnFIM, fimTags: modelFimTags, uri })
 			console.log('PREFIX:\n', prefix)
 			console.log('SUFFIX:\n', suffix)
 			console.log('USER CONTENT:\n', userContent)

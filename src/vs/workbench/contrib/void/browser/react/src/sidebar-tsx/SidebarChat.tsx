@@ -9,7 +9,7 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, u
 import { useAccessor, useSidebarState, useThreadsState } from '../util/services.js';
 import { ChatMessage, CodeSelection, CodeStagingSelection, IThreadHistoryService } from '../../../threadHistoryService.js';
 
-import { BlockCode, getLanguageFromFileName } from '../markdown/BlockCode.js';
+import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
@@ -27,6 +27,7 @@ import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { ArrowBigLeftDash, CopyX, Delete, FileX2, SquareX, X } from 'lucide-react';
+import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 
 
 const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -376,7 +377,7 @@ export const SelectedFiles = (
 							>
 								<BlockCode
 									initValue={selection.selectionStr!}
-									language={getLanguageFromFileName(selection.fileURI.path)}
+									language={filenameToVscodeLanguage(selection.fileURI.path)}
 									maxHeight={100}
 									showScrollbars={true}
 								/>
@@ -417,14 +418,14 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 	return <div
 		// align chatbubble accoridng to role
 		className={`
-				${role === 'user' ? 'px-4 self-end w-fit max-w-full' : ''}
-				${role === 'assistant' ? 'self-start w-full max-w-full' : ''}
+				${role === 'user' ? `px-2 self-end w-fit max-w-full` : ''}
+				${role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''}
 			`}
 	>
 		<div
 			// style chatbubble according to role
 			className={`
-				p-4 text-left space-y-2 rounded-lg
+				p-2 text-left space-y-2 rounded-lg
 				overflow-x-auto max-w-full
 				${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''}
 			`}

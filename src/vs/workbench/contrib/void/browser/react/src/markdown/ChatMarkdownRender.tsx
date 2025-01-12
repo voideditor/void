@@ -7,6 +7,7 @@ import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
 import { useAccessor } from '../util/services.js'
+import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
 
 
 enum CopyButtonState {
@@ -19,7 +20,6 @@ const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
 const CodeButtonsOnHover = ({ text }: { text: string }) => {
 	const accessor = useAccessor()
-
 
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
 	const inlineDiffService = accessor.get('IInlineDiffsService')
@@ -71,7 +71,7 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 }
 
 export const CodeSpan = ({ children, className }: { children: React.ReactNode, className?: string }) => {
-	return <code className={`text-vscode-text-preformat-fg bg-vscode-text-preformat-bg px-1 rounded-sm font-mono ${className}`}>
+	return <code className={`text-vscode-text-preformat-fg bg-vscode-text-preformat-bg px-1 rounded-sm font-mono break-all ${className}`}>
 		{children}
 	</code>
 }
@@ -88,7 +88,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	if (t.type === "code") {
 		return <BlockCode
 			initValue={t.text}
-			// language={t.lang} // instead use vscode to detect language
+			language={t.lang && nameToVscodeLanguage[t.lang]} // use vscode to detect language
 			buttonsOnHover={<CodeButtonsOnHover text={t.text} />}
 		/>
 	}

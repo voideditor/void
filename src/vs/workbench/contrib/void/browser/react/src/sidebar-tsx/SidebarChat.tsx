@@ -344,7 +344,7 @@ export const SelectedFiles = (
 
 
 								{/* clear all selections button */}
-								{type !== 'staging' || selections.length === 0 || i !== selections.length - 1 ? null : <div
+								{/* {type !== 'staging' || selections.length === 0 || i !== selections.length - 1 ? null : <div
 									className='
 											absolute right-0 translate-x-[calc(100%+4px)]
 											rounded-md
@@ -362,7 +362,7 @@ export const SelectedFiles = (
 											'
 										onClick={() => { setStaging([]) }}
 									/>
-								</div>}
+								</div>} */}
 
 
 							</div>

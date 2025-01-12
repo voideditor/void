@@ -278,7 +278,7 @@ export const SelectedFiles = (
 	return (
 		!!selections && selections.length !== 0 && (
 			<div
-				className='flex items-center flex-wrap gap-0.5 text-left'
+				className='flex items-center flex-wrap gap-0.5 text-left relative'
 			>
 				{selections.map((selection, i) => {
 
@@ -334,7 +334,7 @@ export const SelectedFiles = (
 											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
 										}}
 									>
-										<IconX size={16} className="p-[2px] stroke-[3] text-vscode-toolbar-foreground" />
+										<IconX size={16} className="p-[2px] stroke-[3]" />
 									</span>}
 							</div>
 							{/* selection text */}
@@ -358,19 +358,27 @@ export const SelectedFiles = (
 				})}
 
 
-				{type !== 'staging' || selections.length <= 1 ? null : <div
-					className='flex items-center gap-0.5 relative
-								rounded-md
-								w-fit h-full
-								select-none
-								px-0.5
-								'>
+				{type !== 'staging' || selections.length === 0 ? null : <div
+					className='absolute top-0 right-0
 
-					{/* clear button */}
-					<SquareX size={16} className="stroke-[3] stroke-vscode-toolbar-foreground hover:brightness-95 p-[2px] cursor-pointer"
+						rounded-md
+						select-none
+						px-0.5
+					'
+				>
+					{/* clear all selections button */}
+					<IconX
+						size={16}
+						className='stroke-[2] stroke-void-fg-3
+							hover:brightness-95
+							p-[2px]
+							cursor-pointer
+						'
 						onClick={() => { setStaging([]) }}
-
 					/>
+					{/* <SquareX size={16} className="stroke-[2] stroke-void-fg-3 fill-void-bg-3 hover:brightness-95 p-[2px] cursor-pointer"
+						onClick={() => { setStaging([]) }}
+					/> */}
 				</div>}
 
 

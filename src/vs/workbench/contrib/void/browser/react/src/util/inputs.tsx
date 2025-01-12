@@ -209,6 +209,7 @@ export const VoidCustomSelectBox = <T extends any>({
 	className,
 	arrowTouchesText = true,
 	matchInputWidth = false,
+	isMenuPositionFixed = true,
 	gap = 0,
 }: {
 	options: T[];
@@ -219,6 +220,7 @@ export const VoidCustomSelectBox = <T extends any>({
 	className?: string;
 	arrowTouchesText?: boolean;
 	matchInputWidth?: boolean;
+	isMenuPositionFixed?: boolean;
 	gap?: number;
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -234,34 +236,46 @@ export const VoidCustomSelectBox = <T extends any>({
 
 	const updatePosition = useCallback(() => {
 		if (!buttonRef.current || !containerRef.current || !measureRef.current) return;
-		const rect = buttonRef.current.getBoundingClientRect();
+
+		const buttonRect = buttonRef.current.getBoundingClientRect();
+		const containerRect = containerRef.current.getBoundingClientRect();
 		const containerWidth = containerRef.current.offsetWidth;
 		const viewportHeight = window.innerHeight;
-		const spaceBelow = viewportHeight - rect.bottom;
+		const spaceBelow = viewportHeight - buttonRect.bottom;
 		const spaceNeeded = options.length * 28;
-		const showAbove = spaceBelow < spaceNeeded && rect.top > spaceBelow;
+		const showAbove = spaceBelow < spaceNeeded && buttonRect.top > spaceBelow;
 
 		// Calculate the menu width
-		let menuWidth = matchInputWidth ? containerWidth : rect.width;
+		let menuWidth = matchInputWidth ? containerWidth : buttonRect.width;
 
 		// If not matchInputWidth, calculate content width from measurement div
 		if (!matchInputWidth) {
 			const contentWidth = measureRef.current.offsetWidth;
-			menuWidth = Math.max(rect.width, contentWidth);
+			menuWidth = Math.max(buttonRect.width, contentWidth);
 		}
 
-		// Calculate exact positions without any additional offsets
-		const topPosition = showAbove
-			? rect.top - spaceNeeded  // Align exactly to top when showing above
-			: rect.bottom + gap;      // Add gap only when showing below
+		if (isMenuPositionFixed) {
+			// Fixed positioning (relative to viewport)
+			setPosition({
+				top: showAbove
+					? buttonRect.top - spaceNeeded
+					: buttonRect.bottom + gap,
+				left: buttonRect.left,
+				width: menuWidth,
+			});
+		} else {
+			// Absolute positioning (relative to parent container)
+			setPosition({
+				top: showAbove
+					? -(spaceNeeded + gap)
+					: buttonRect.height + gap,
+				left: 0,
+				width: menuWidth,
+			});
+		}
 
-		setPosition({
-			top: topPosition,
-			left: rect.left,
-			width: menuWidth,
-		});
 		setReadyToShow(true);
-	}, [gap, matchInputWidth, options.length]);
+	}, [gap, matchInputWidth, options.length, isMenuPositionFixed]);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -295,7 +309,7 @@ export const VoidCustomSelectBox = <T extends any>({
 	return (
 		<div
 			ref={containerRef}
-			className={`inline-block ${className}`}
+			className={`inline-block relative ${className}`}
 		>
 			{/* Hidden measurement div */}
 			<div
@@ -340,7 +354,7 @@ export const VoidCustomSelectBox = <T extends any>({
 			{/* Dropdown Menu */}
 			{isOpen && readyToShow && (
 				<div
-					className="fixed z-10 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg"
+					className={`${isMenuPositionFixed ? 'fixed' : 'absolute'} z-10 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg`}
 					style={{
 						top: position.top,
 						left: position.left,

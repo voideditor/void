@@ -367,7 +367,7 @@ The user is selecting this code as their SELECTION:
 The user wants to apply the following INSTRUCTIONS to the SELECTION:
 ${userMessage}
 
-Please edit the SELECTION following the user's INSTRUCTIONS, and return the new SELECTION.
+Please edit the SELECTION following the user's INSTRUCTIONS, and return only a single block.
 
 Note that the SELECTION has code that comes before it. This code is indicated with <${preTag}>...before<${preTag}/>.
 Note also that the SELECTION has code that comes after it. This code is indicated with <${sufTag}>...after<${sufTag}/>.
@@ -378,9 +378,11 @@ Instructions:
 3. Make sure all brackets in the new selection are balanced the same as in the original selection.
 4. Be careful not to duplicate or remove variables, comments, or other syntax by mistake.
 
-Complete the following:
+Given code:
 <${preTag}>${prefix}</${preTag}>
-<${sufTag}>${suffix}</${sufTag}>`
+<${sufTag}>${suffix}</${sufTag}>
+
+Return one block of code of the form \`\`\`<${midTag}>...new_selection<${midTag}/>\`\`\`:`
 	}
 };
 

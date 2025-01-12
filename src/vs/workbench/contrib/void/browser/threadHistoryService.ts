@@ -60,6 +60,10 @@ export type ChatThreads = {
 		createdAt: string; // ISO string
 		lastModified: string; // ISO string
 		messages: ChatMessage[];
+
+		// editing state
+		isBeingEdited: boolean;
+		_currentStagingSelections: CodeStagingSelection[] | null;
 	};
 }
 
@@ -77,6 +81,8 @@ const newThreadObject = () => {
 		createdAt: now,
 		lastModified: now,
 		messages: [],
+		isBeingEdited: false,
+		_currentStagingSelections: null,
 	}
 }
 

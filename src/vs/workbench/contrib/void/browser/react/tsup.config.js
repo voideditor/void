@@ -9,7 +9,7 @@ export default defineConfig({
 	entry: [
 		'./src2/sidebar-tsx/index.tsx',
 		'./src2/void-settings-tsx/index.tsx',
-		'./src2/ctrl-k-tsx/index.tsx',
+		'./src2/quick-edit-tsx/index.tsx',
 		'./src2/diff/index.tsx',
 	],
 	outDir: './out',

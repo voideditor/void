@@ -40,7 +40,11 @@ import { IAccessibilityService } from '../../../../../../../platform/accessibili
 import { ILanguageConfigurationService } from '../../../../../../../editor/common/languages/languageConfigurationRegistry.js'
 import { ILanguageFeaturesService } from '../../../../../../../editor/common/services/languageFeatures.js'
 import { ILanguageDetectionService } from '../../../../../../services/languageDetection/common/languageDetectionWorkerService.js'
-
+import { IKeybindingService } from '../../../../../../../platform/keybinding/common/keybinding.js'
+import { IEnvironmentService } from '../../../../../../../platform/environment/common/environment.js'
+import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
+import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
+import { IMetricsService } from '../../../../../../../platform/void/common/metricsService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -173,6 +177,12 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageConfigurationService: accessor.get(ILanguageConfigurationService),
 		ILanguageDetectionService: accessor.get(ILanguageDetectionService),
 		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
+		IKeybindingService: accessor.get(IKeybindingService),
+
+		IEnvironmentService: accessor.get(IEnvironmentService),
+		IConfigurationService: accessor.get(IConfigurationService),
+		IPathService: accessor.get(IPathService),
+		IMetricsService: accessor.get(IMetricsService),
 
 	} as const
 	return reactAccessor

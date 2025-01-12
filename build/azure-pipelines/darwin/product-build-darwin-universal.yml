@@ -1,3 +1,5 @@
+# Void - this looks like the relevant file for us (product-build-darwin.yml is independent and maybe just used for testing)
+
 steps:
   - task: NodeTool@0
     inputs:
@@ -59,6 +61,8 @@ steps:
   - script: node build/azure-pipelines/distro/mixin-quality
     displayName: Mixin distro quality
 
+
+  ## Void - IMPORTANT
   - script: |
       set -e
       unzip $(Pipeline.Workspace)/unsigned_vscode_client_darwin_x64_archive/VSCode-darwin-x64.zip -d $(agent.builddirectory)/VSCode-darwin-x64
@@ -66,6 +70,7 @@ steps:
       DEBUG=* node build/darwin/create-universal-app.js $(agent.builddirectory)
     displayName: Create Universal App
 
+  ## Void - IMPORTANT
   - script: |
       set -e
       security create-keychain -p pwd $(agent.tempdirectory)/buildagent.keychain

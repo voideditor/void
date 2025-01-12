@@ -403,8 +403,9 @@ function isVersionValid(currentVersion: string, date: ProductDate, requestedVers
 	}
 
 	if (!isValidVersion(currentVersion, date, desiredVersion)) {
-		notices.push(nls.localize('versionMismatch', "Extension is not compatible with Code {0}. Extension requires: {1}.", currentVersion, requestedVersion));
-		return false;
+		// Void - ignore not compatible
+		// notices.push(nls.localize('versionMismatch', "Extension is not compatible with Code {0}. Extension requires: {1}.", currentVersion, requestedVersion));
+		// return false;
 	}
 
 	return true;

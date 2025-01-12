@@ -7,6 +7,7 @@ import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
 import { useAccessor } from '../util/services.js'
+import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
 
 
 enum CopyButtonState {
@@ -23,6 +24,8 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
 	const inlineDiffService = accessor.get('IInlineDiffsService')
 	const clipboardService = accessor.get('IClipboardService')
+	const metricsService = accessor.get('IMetricsService')
+
 	useEffect(() => {
 
 		if (copyButtonState !== CopyButtonState.Copy) {
@@ -36,6 +39,8 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 		clipboardService.writeText(text)
 			.then(() => { setCopyButtonState(CopyButtonState.Copied) })
 			.catch(() => { setCopyButtonState(CopyButtonState.Error) })
+		metricsService.capture('Copy Code', { length: text.length }) // capture the length only
+
 	}, [text, clipboardService])
 
 	const onApply = useCallback(() => {
@@ -43,20 +48,21 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 			featureName: 'Ctrl+L',
 			userMessage: text,
 		})
+		metricsService.capture('Apply Code', { length: text.length }) // capture the length only
 	}, [inlineDiffService])
 
 	const isSingleLine = !text.includes('\n')
 
 	return <>
 		<button
-			className={`${isSingleLine ? '' : 'p-1'} text-xs hover:brightness-110 bg-vscode-input-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg`}
+			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
 			onClick={onCopy}
 		>
 			{copyButtonState}
 		</button>
 		<button
-			// btn btn-secondary btn-sm border text-xs text-vscode-input-fg border-vscode-input-border rounded
-			className={`${isSingleLine ? '' : 'p-1'} text-xs hover:brightness-110 bg-vscode-input-bg border border-vscode-input-border rounded text-xs text-vscode-input-fg`}
+			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
+			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
 			onClick={onApply}
 		>
 			Apply
@@ -64,6 +70,11 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 	</>
 }
 
+export const CodeSpan = ({ children, className }: { children: React.ReactNode, className?: string }) => {
+	return <code className={`text-vscode-text-preformat-fg bg-vscode-text-preformat-bg px-1 rounded-sm font-mono break-all ${className}`}>
+		{children}
+	</code>
+}
 
 const RenderToken = ({ token, nested = false }: { token: Token | string, nested?: boolean }): JSX.Element => {
 
@@ -76,8 +87,8 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 
 	if (t.type === "code") {
 		return <BlockCode
-			text={t.text}
-			// language={t.lang} // instead use vscode to detect language
+			initValue={t.text}
+			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]} // use vscode to detect language
 			buttonsOnHover={<CodeButtonsOnHover text={t.text} />}
 		/>
 	}
@@ -197,9 +208,9 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	// inline code
 	if (t.type === "codespan") {
 		return (
-			<code className="text-vscode-text-preformat-fg bg-vscode-text-preformat-bg px-1 rounded-sm font-mono">
+			<CodeSpan>
 				{t.text}
-			</code>
+			</CodeSpan>
 		)
 	}
 
@@ -215,7 +226,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	// default
 	return (
 		<div className="bg-orange-50 rounded-sm overflow-hidden">
-			<span className="text-xs text-orange-500">Unknown type:</span>
+			<span className="text-sm text-orange-500">Unknown type:</span>
 			{t.raw}
 		</div>
 	)

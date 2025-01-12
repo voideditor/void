@@ -99,7 +99,7 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 		await super.initialize();
 	}
 
-	protected buildUpdateFeedUrl(quality: string): string | undefined {
+	protected doBuildUpdateFeedUrl(quality: string): string | undefined {
 		let platform = `win32-${process.arch}`;
 
 		if (getUpdateType() === UpdateType.Archive) {

@@ -26,7 +26,6 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 import { mountVoidSettings } from './react/out/void-settings-tsx/index.js'
 import { Codicon } from '../../../../base/common/codicons.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
-import { DomScrollableElement } from '../../../../base/browser/ui/scrollbar/scrollableElement.js';
 
 
 // refer to preferences.contribution.ts keybindings editor
@@ -63,7 +62,7 @@ class VoidSettingsInput extends EditorInput {
 class VoidSettingsPane extends EditorPane {
 	static readonly ID = 'workbench.test.myCustomPane';
 
-	private _scrollbar: DomScrollableElement | undefined;
+	// private _scrollbar: DomScrollableElement | undefined;
 
 	constructor(
 		group: IEditorGroup,
@@ -79,32 +78,31 @@ class VoidSettingsPane extends EditorPane {
 		parent.style.height = '100%';
 		parent.style.width = '100%';
 
-		const scrollableContent = document.createElement('div');
-		scrollableContent.style.height = '100%';
-		scrollableContent.style.width = '100%';
+		const settingsElt = document.createElement('div');
+		settingsElt.style.height = '100%';
+		settingsElt.style.width = '100%';
 
-		this._scrollbar = this._register(new DomScrollableElement(scrollableContent, {}));
-		parent.appendChild(this._scrollbar.getDomNode());
-		this._scrollbar.scanDomNode();
+		parent.appendChild(settingsElt);
+
+		// this._scrollbar = this._register(new DomScrollableElement(scrollableContent, {}));
+		// parent.appendChild(this._scrollbar.getDomNode());
+		// this._scrollbar.scanDomNode();
 
 		// Mount React into the scrollable content
 		this.instantiationService.invokeFunction(accessor => {
-			const disposables: IDisposable[] | undefined = mountVoidSettings(scrollableContent, accessor);
+			const disposables: IDisposable[] | undefined = mountVoidSettings(settingsElt, accessor);
 
-			setTimeout(() => { // this is a complete hack and I don't really understand how scrollbar works here
-				this._scrollbar?.scanDomNode();
-			}, 1000)
+			// setTimeout(() => { // this is a complete hack and I don't really understand how scrollbar works here
+			// 	this._scrollbar?.scanDomNode();
+			// }, 1000)
 			disposables?.forEach(d => this._register(d));
 		});
 	}
 
 	layout(dimension: Dimension): void {
-		if (!this._scrollbar) return;
-
-		this._scrollbar.getDomNode().style.height = `${dimension.height}px`;
-		this._scrollbar.getDomNode().style.width = `${dimension.width}px`;
-		this._scrollbar.scanDomNode();
-
+		// if (!settingsElt) return
+		// settingsElt.style.height = `${dimension.height}px`;
+		// settingsElt.style.width = `${dimension.width}px`;
 	}
 
 
@@ -119,14 +117,13 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 );
 
 
-export const VOID_OPEN_SETTINGS_ACTION_ID = 'workbench.action.openVoidSettings'
 // register the gear on the top right
+export const VOID_TOGGLE_SETTINGS_ACTION_ID = 'workbench.action.toggleVoidSettings'
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
-			id: VOID_OPEN_SETTINGS_ACTION_ID,
-			title: nls.localize2('voidSettings', "Void: Settings"),
-			f1: true,
+			id: VOID_TOGGLE_SETTINGS_ACTION_ID,
+			title: nls.localize2('voidSettings', "Void: Toggle Settings"),
 			icon: Codicon.settingsGear,
 			menu: [
 				{
@@ -146,9 +143,8 @@ registerAction2(class extends Action2 {
 		const editorService = accessor.get(IEditorService);
 		const instantiationService = accessor.get(IInstantiationService);
 
-		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE);
-
 		// close all instances if found
+		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE);
 		if (openEditors.length > 0) {
 			await editorService.closeEditors(openEditors);
 			return;
@@ -161,11 +157,42 @@ registerAction2(class extends Action2 {
 })
 
 
+
+export const VOID_OPEN_SETTINGS_ACTION_ID = 'workbench.action.openVoidSettings'
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_OPEN_SETTINGS_ACTION_ID,
+			title: nls.localize2('voidSettings', "Void: Open Settings"),
+			f1: true,
+			icon: Codicon.settingsGear,
+		});
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const editorService = accessor.get(IEditorService);
+		const instantiationService = accessor.get(IInstantiationService);
+
+		// close all instances if found
+		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE);
+		if (openEditors.length > 0) {
+			await editorService.closeEditors(openEditors);
+		}
+
+		// then, open one single editor
+		const input = instantiationService.createInstance(VoidSettingsInput);
+		await editorService.openEditor(input);
+	}
+})
+
+
+
+
+
 // add to settings gear on bottom left
 MenuRegistry.appendMenuItem(MenuId.GlobalActivity, {
 	group: '0_command',
 	command: {
-		id: VOID_OPEN_SETTINGS_ACTION_ID,
+		id: VOID_TOGGLE_SETTINGS_ACTION_ID,
 		title: nls.localize('voidSettings', "Void Settings")
 	},
 	order: 1

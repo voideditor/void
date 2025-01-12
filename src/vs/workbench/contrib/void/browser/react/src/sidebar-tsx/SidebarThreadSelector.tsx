@@ -53,29 +53,26 @@ export const SidebarThreadSelector = () => {
 			</div>
 
 			{/* a list of all the past threads */}
-			<div className='flex flex-col gap-y-1 overflow-y-auto'>
+			<div className='px-1'><div className='flex flex-col gap-y-1 overflow-y-auto'>
 				{sortedThreadIds.map((threadId) => {
 					if (!allThreads)
 						return <>Error: Threads not found.</>
 					const pastThread = allThreads[threadId]
 
-					let btnStringArr: string[] = []
+					let firstMsg: string | null = null
+					let secondMsg: string | null = null
 
 					const firstMsgIdx = allThreads[threadId].messages.findIndex(msg => msg.role !== 'system' && !!msg.displayContent) ?? ''
 					if (firstMsgIdx !== -1)
-						btnStringArr.push(truncate(allThreads[threadId].messages[firstMsgIdx].displayContent ?? ''))
+						firstMsg = truncate(allThreads[threadId].messages[firstMsgIdx].displayContent ?? '')
 					else
-						btnStringArr.push('""')
+						firstMsg = '""'
 
 					const secondMsgIdx = allThreads[threadId].messages.findIndex((msg, i) => msg.role !== 'system' && !!msg.displayContent && i > firstMsgIdx) ?? ''
 					if (secondMsgIdx !== -1)
-						btnStringArr.push(truncate(allThreads[threadId].messages[secondMsgIdx].displayContent ?? ''))
+						secondMsg = truncate(allThreads[threadId].messages[secondMsgIdx].displayContent ?? '')
 
-					const numMessagesRemaining = allThreads[threadId].messages.filter((msg, i) => msg.role !== 'system' && !!msg.displayContent && i > secondMsgIdx).length
-					if (numMessagesRemaining > 0)
-						btnStringArr.push(numMessagesRemaining + '')
-
-					const btnString = btnStringArr.join(' / ')
+					const numMessages = allThreads[threadId].messages.filter((msg, i) => msg.role !== 'system').length
 
 					return (
 						<button
@@ -84,11 +81,11 @@ export const SidebarThreadSelector = () => {
 							onClick={() => threadsStateService.switchToThread(pastThread.id)}
 							title={new Date(pastThread.createdAt).toLocaleString()}
 						>
-							{btnString}
+							{`${firstMsg} (${numMessages})`}
 						</button>
 					)
 				})}
-			</div>
+			</div></div>
 
 		</div>
 	)

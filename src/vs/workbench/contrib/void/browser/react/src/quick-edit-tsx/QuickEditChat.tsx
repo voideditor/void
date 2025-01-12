@@ -7,19 +7,20 @@ import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'reac
 import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
 import { OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { getCmdKey } from '../../../helpers/getCmdKey.js';
 import { VoidInputBox } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
-import { ButtonStop, ButtonSubmit } from '../sidebar-tsx/SidebarChat.js';
+import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { X } from 'lucide-react';
+import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 
-export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
+export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
 
 	const accessor = useAccessor()
 	const inlineDiffsService = accessor.get('IInlineDiffsService')
 	const sizerRef = useRef<HTMLDivElement | null>(null)
 	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
+
 
 	useEffect(() => {
 		const inputContainer = sizerRef.current
@@ -67,6 +68,11 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 	}, [inlineDiffsService])
 
 
+	const onX = useCallback(() => {
+		inlineDiffsService.removeCtrlKZone({ diffareaid })
+	}, [inlineDiffsService, diffareaid])
+
+
 	// sync init value
 	const alreadySetRef = useRef(false)
 	useEffect(() => {
@@ -76,15 +82,19 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 		inputBoxRef.current.value = instructions
 	}, [initText, instructions])
 
+	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
+
+
+
 	return <div ref={sizerRef} className='py-2 w-full max-w-xl'>
 		<form
 			// copied from SidebarChat.tsx
 			className={`
-				flex flex-col gap-2 py-1 px-2 relative input text-left shrink-0
+				flex flex-col gap-2 p-2 relative input text-left shrink-0
 				transition-all duration-200
 				rounded-md
 				bg-vscode-input-bg
-				border border-vscode-commandcenter-inactive-border focus-within:border-vscode-commandcenter-active-border hover:border-vscode-commandcenter-active-border
+				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 			`
 			}
 			onKeyDown={(e) => {
@@ -94,10 +104,8 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 				}
 			}}
 			onSubmit={(e) => {
-				if (isDisabled) {
-					// __TODO__ show disabled
+				if (isDisabled)
 					return
-				}
 				console.log('submit!')
 				onSubmit(e)
 			}}
@@ -115,23 +123,29 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 					@@[&_div.monaco-inputbox]:!void-border-none
 					@@[&_div.monaco-inputbox]:!void-outline-none`}
 			>
-				<div className='flex flex-row justify-between items-end gap-1'>
-					<div className='absolute size-0.5 top-0 right-4 z-[1]'>
-						<X
-							onClick={() => { inlineDiffsService.removeCtrlKZone({ diffareaid }) }}
-						/>
-					</div>
+				<div className='flex flex-row items-center justify-between items-end gap-1'>
 
 					{/* input */}
 					<div // copied from SidebarChat.tsx
 						className={`w-full
-							@@[&_textarea]:!void-bg-transparent @@[&_textarea]:!void-outline-none @@[&_textarea]:!void-text-vscode-input-fg @@[&_div.monaco-inputbox]:!void-outline-none`}>
+							@@[&_textarea]:!void-bg-transparent
+							@@[&_textarea]:!void-outline-none
+							@@[&_textarea]:!void-text-vscode-input-fg
+							@@[&_div.monaco-inputbox]:!void-outline-none
+						`}
+					>
 						{/* text input */}
 						<VoidInputBox
-							placeholder={`${getCmdKey()}+K to select`}
+							placeholder={`${keybindingString} to select`}
 							onChangeText={onChangeText}
 							onCreateInstance={useCallback((instance: InputBox) => {
 								inputBoxRef.current = instance;
+
+								// if presses the esc key, X
+								instance.element.addEventListener('keydown', (e) => {
+									if (e.key === 'Escape')
+										onX()
+								})
 								onGetInputBox(instance);
 								instance.focus()
 							}, [onGetInputBox])}
@@ -139,6 +153,14 @@ export const CtrlKChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChang
 						/>
 					</div>
 
+					{/* X button */}
+					<div className='absolute -top-1 -right-1 cursor-pointer z-1'>
+						<IconX
+							size={16}
+							className="p-[1px] stroke-[2] opacity-80 text-void-fg-3 hover:brightness-95"
+							onClick={onX}
+						/>
+					</div>
 				</div>
 
 

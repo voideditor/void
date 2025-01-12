@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
@@ -12,6 +12,7 @@ import { Checkbox } from '../../../../../../../base/browser/ui/toggle/toggle.js'
 
 import { CodeEditorWidget } from '../../../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js'
 import { useAccessor } from './services.js';
+import { ITextModel } from '../../../../../../../editor/common/model.js';
 
 
 // type guard
@@ -60,6 +61,10 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 	const contextViewProvider = accessor.get('IContextViewService')
 	return <WidgetComponent
 		ctor={InputBox}
+		className='
+			bg-void-bg-1
+			@@[&_::placeholder]:!void-text-void-fg-3
+		'
 		propsFn={useCallback((container) => [
 			container,
 			contextViewProvider,
@@ -193,11 +198,216 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 }
 
 
-export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options }: {
+export const VoidCustomSelectBox = <T extends any>({
+	options,
+	selectedOption,
+	onChangeOption,
+	getOptionName,
+	getOptionsEqual,
+	className,
+	arrowTouchesText = true,
+	matchInputWidth = false,
+	isMenuPositionFixed = true,
+	gap = 0,
+}: {
+	options: T[];
+	selectedOption?: T;
+	onChangeOption: (newValue: T) => void;
+	getOptionName: (option: T) => string;
+	getOptionsEqual: (a: T, b: T) => boolean;
+	className?: string;
+	arrowTouchesText?: boolean;
+	matchInputWidth?: boolean;
+	isMenuPositionFixed?: boolean;
+	gap?: number;
+}) => {
+	const [isOpen, setIsOpen] = useState(false);
+	const [readyToShow, setReadyToShow] = useState(false);
+	const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+	const containerRef = useRef<HTMLDivElement | null>(null);
+	const buttonRef = useRef<HTMLButtonElement | null>(null);
+	const measureRef = useRef<HTMLDivElement | null>(null);
+
+	if (!selectedOption) {
+		selectedOption = options[0];
+	}
+
+	const updatePosition = useCallback(() => {
+		if (!buttonRef.current || !containerRef.current || !measureRef.current) return;
+
+		const buttonRect = buttonRef.current.getBoundingClientRect();
+		const containerRect = containerRef.current.getBoundingClientRect();
+		const containerWidth = containerRef.current.offsetWidth;
+		const viewportHeight = window.innerHeight;
+		const spaceBelow = viewportHeight - buttonRect.bottom;
+		const spaceNeeded = options.length * 28;
+		const showAbove = spaceBelow < spaceNeeded && buttonRect.top > spaceBelow;
+
+		// Calculate the menu width
+		let menuWidth = matchInputWidth ? containerWidth : buttonRect.width;
+
+		// If not matchInputWidth, calculate content width from measurement div
+		if (!matchInputWidth) {
+			const contentWidth = measureRef.current.offsetWidth;
+			menuWidth = Math.max(buttonRect.width, contentWidth);
+		}
+
+		if (isMenuPositionFixed) {
+			// Fixed positioning (relative to viewport)
+			setPosition({
+				top: showAbove
+					? buttonRect.top - spaceNeeded
+					: buttonRect.bottom + gap,
+				left: buttonRect.left,
+				width: menuWidth,
+			});
+		} else {
+			// Absolute positioning (relative to parent container)
+			setPosition({
+				top: showAbove
+					? -(spaceNeeded + gap)
+					: buttonRect.height + gap,
+				left: 0,
+				width: menuWidth,
+			});
+		}
+
+		setReadyToShow(true);
+	}, [gap, matchInputWidth, options.length, isMenuPositionFixed]);
+
+	useEffect(() => {
+		if (isOpen) {
+			setReadyToShow(false);
+			updatePosition();
+			window.addEventListener('scroll', updatePosition, true);
+			window.addEventListener('resize', updatePosition);
+
+			return () => {
+				window.removeEventListener('scroll', updatePosition, true);
+				window.removeEventListener('resize', updatePosition);
+			};
+		} else {
+			setReadyToShow(false);
+		}
+	}, [isOpen, updatePosition]);
+
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+				setIsOpen(false);
+			}
+		};
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside);
+			return () => document.removeEventListener('mousedown', handleClickOutside);
+		}
+	}, [isOpen]);
+
+	return (
+		<div
+			ref={containerRef}
+			className={`inline-block relative ${className}`}
+		>
+			{/* Hidden measurement div */}
+			<div
+				ref={measureRef}
+				className="opacity-0 pointer-events-none absolute -left-[999999px] -top-[999999px] flex flex-col"
+				aria-hidden="true"
+			>
+				{options.map((option) => (
+					<div key={getOptionName(option)} className="flex items-center whitespace-nowrap">
+						<div className="w-4" />
+						<span className="px-2">{getOptionName(option)}</span>
+					</div>
+				))}
+			</div>
+
+			{/* Select Button */}
+			<button
+				type='button'
+				ref={buttonRef}
+				className="flex items-center h-4 bg-transparent whitespace-nowrap hover:brightness-90 w-full"
+				onClick={() => {
+					setIsOpen(!isOpen);
+				}}
+			>
+				<span className={`max-w-[120px] truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
+					{getOptionName(selectedOption)}
+				</span>
+				<svg
+					className={`size-3 flex-shrink-0 ${arrowTouchesText ? '' : 'ml-auto'}`}
+					viewBox="0 0 12 12"
+					fill="none"
+				>
+					<path
+						d="M2.5 4.5L6 8L9.5 4.5"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					/>
+				</svg>
+			</button>
+
+			{/* Dropdown Menu */}
+			{isOpen && readyToShow && (
+				<div
+					className={`${isMenuPositionFixed ? 'fixed' : 'absolute'} z-10 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg`}
+					style={{
+						top: position.top,
+						left: position.left,
+						width: position.width,
+					}}
+				>
+					{options.map((option) => {
+						const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
+						const optionName = getOptionName(option);
+
+						return (
+							<div
+								key={optionName}
+								className={`flex items-center px-2 py-1 cursor-pointer whitespace-nowrap
+									transition-all duration-100
+									bg-void-bg-1
+									${thisOptionIsSelected ? 'bg-void-bg-2' : 'hover:bg-void-bg-2'}
+								`}
+								onClick={() => {
+									onChangeOption(option);
+									setIsOpen(false);
+								}}
+							>
+								<div className="w-4 flex justify-center flex-shrink-0">
+									{thisOptionIsSelected && (
+										<svg className="size-3" viewBox="0 0 12 12" fill="none">
+											<path
+												d="M10 3L4.5 8.5L2 6"
+												stroke="currentColor"
+												strokeWidth="1.5"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+											/>
+										</svg>
+									)}
+								</div>
+								<span>{optionName}</span>
+							</div>
+						);
+					})}
+				</div>
+			)}
+		</div>
+	);
+};
+
+
+
+export const _VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options, className }: {
 	onChangeSelection: (value: T) => void;
 	onCreateInstance?: ((instance: SelectBox) => void | IDisposable[]);
 	selectBoxRef?: React.MutableRefObject<SelectBox | null>;
 	options: readonly { text: string, value: T }[];
+	className?: string;
 }) => {
 	const accessor = useAccessor()
 	const contextViewProvider = accessor.get('IContextViewService')
@@ -205,7 +415,13 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 	let containerRef = useRef<HTMLDivElement | null>(null);
 
 	return <WidgetComponent
-		className='@@select-child-restyle'
+		className={`
+			@@select-child-restyle
+			@@[&_select]:!void-text-void-fg-3
+			@@[&_select]:!void-text-xs
+			!text-void-fg-3
+			${className ?? ''}
+		`}
 		ctor={SelectBox}
 		propsFn={useCallback((container) => {
 			containerRef.current = container
@@ -214,7 +430,7 @@ export const VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectB
 				options.map(opt => ({ text: opt.text })),
 				defaultIndex,
 				contextViewProvider,
-				defaultSelectBoxStyles
+				defaultSelectBoxStyles,
 			] as const;
 		}, [containerRef, options, contextViewProvider])}
 
@@ -286,24 +502,48 @@ const normalizeIndentation = (code: string): string => {
 
 }
 
-export const VoidCodeEditor = ({ initValue, language }: { initValue: string, language: string | undefined }) => {
 
-	const MAX_HEIGHT = Infinity;
+const modelOfEditorId: { [id: string]: ITextModel | undefined } = {}
+export type VoidCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
+export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars }: VoidCodeEditorProps) => {
+
+	initValue = normalizeIndentation(initValue)
+
+	// default settings
+	const MAX_HEIGHT = maxHeight ?? Infinity;
+	const SHOW_SCROLLBARS = showScrollbars ?? false;
 
 	const divRef = useRef<HTMLDivElement | null>(null)
 
 	const accessor = useAccessor()
 	const instantiationService = accessor.get('IInstantiationService')
+	// const languageDetectionService = accessor.get('ILanguageDetectionService')
 	const modelService = accessor.get('IModelService')
-	const languageDetectionService = accessor.get('ILanguageDetectionService')
 
-	initValue = normalizeIndentation(initValue)
 
-	return <div ref={divRef}>
+	const id = useId()
+
+	// these are used to pass to the model creation of modelRef
+	const initValueRef = useRef(initValue)
+	const languageRef = useRef(language)
+
+	const modelRef = useRef<ITextModel | null>(null)
+
+	// if we change the initial value, don't re-render the whole thing, just set it here. same for language
+	useEffect(() => {
+		initValueRef.current = initValue
+		modelRef.current?.setValue(initValue)
+	}, [initValue])
+	useEffect(() => {
+		languageRef.current = language
+		if (language) modelRef.current?.setLanguage(language)
+	}, [language])
+
+	return <div ref={divRef} className='relative z-0 px-2 py-1 bg-void-bg-3'>
 		<WidgetComponent
-			className='relative z-0 text-sm bg-vscode-editor-bg'
-			ctor={useCallback((container) =>
-				instantiationService.createInstance(
+			className='@@bg-editor-style-override' // text-sm
+			ctor={useCallback((container) => {
+				return instantiationService.createInstance(
 					CodeEditorWidget,
 					container,
 					{
@@ -312,10 +552,19 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 						scrollbar: {
 							alwaysConsumeMouseWheel: false,
-							vertical: 'hidden',
-							horizontal: 'hidden',
-							verticalScrollbarSize: 0,
-							horizontalScrollbarSize: 0,
+							...SHOW_SCROLLBARS ? {
+								vertical: 'auto',
+								verticalScrollbarSize: 8,
+								horizontal: 'auto',
+								horizontalScrollbarSize: 8,
+							} : {
+								vertical: 'hidden',
+								verticalScrollbarSize: 0,
+								horizontal: 'auto',
+								horizontalScrollbarSize: 8,
+								ignoreHorizontalScrollbarInContentHeight: true,
+
+							},
 						},
 						scrollBeyondLastLine: false,
 
@@ -347,26 +596,23 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 					{
 						isSimpleWidget: true,
 					})
-				, [instantiationService])
-			}
+			}, [instantiationService])}
 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
-				const model = modelService.createModel(
-					initValue,
-					language ? {
-						languageId: language,
-						onDidChange: () => ({
-							dispose: () => { }
-						})
-					} : null
-				);
+				const model = modelOfEditorId[id] ?? modelService.createModel(
+					initValueRef.current, {
+					languageId: languageRef.current ? languageRef.current : '',
+					onDidChange: (e) => { return { dispose: () => { } } } // no idea why they'd require this
+				})
+				modelRef.current = model
 				editor.setModel(model);
 
 				const container = editor.getDomNode()
 				const parentNode = container?.parentElement
 				const resize = () => {
+					const height = editor.getScrollHeight() + 1
 					if (parentNode) {
-						const height = Math.min(editor.getScrollHeight() + 1, MAX_HEIGHT);
+						// const height = Math.min(, MAX_HEIGHT);
 						parentNode.style.height = `${height}px`;
 						editor.layout();
 					}
@@ -375,12 +621,12 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 				resize()
 				const disposable = editor.onDidContentSizeChange(() => { resize() });
 
-				return [disposable]
-			}, [modelService, initValue, language])}
+				return [disposable, model]
+			}, [modelService])}
 
 			dispose={useCallback((editor: CodeEditorWidget) => {
 				editor.dispose();
-			}, [modelService, languageDetectionService])}
+			}, [modelService])}
 
 			propsFn={useCallback(() => { return [] }, [])}
 		/>
@@ -388,6 +634,13 @@ export const VoidCodeEditor = ({ initValue, language }: { initValue: string, lan
 
 }
 
+
+export const VoidButton = ({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) => {
+	return <button disabled={disabled}
+		className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
+		onClick={onClick}
+	>{children}</button>
+}
 
 // export const VoidScrollableElt = ({ options, children }: { options: ScrollableElementCreationOptions, children: React.ReactNode }) => {
 // 	const instanceRef = useRef<DomScrollableElement | null>(null);

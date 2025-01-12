@@ -9,7 +9,7 @@ import { OnError } from '../../../../../../../platform/void/common/llmMessageTyp
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { VoidInputBox } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
-import { ButtonStop, ButtonSubmit } from '../sidebar-tsx/SidebarChat.js';
+import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { X } from 'lucide-react';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
@@ -90,7 +90,7 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 		<form
 			// copied from SidebarChat.tsx
 			className={`
-				flex flex-col gap-2 py-1 px-2 relative input text-left shrink-0
+				flex flex-col gap-2 p-2 relative input text-left shrink-0
 				transition-all duration-200
 				rounded-md
 				bg-vscode-input-bg
@@ -153,16 +153,14 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 						/>
 					</div>
 
-					<div className='absolute pt-1 -top-1 -right-1'>
-						<span className='cursor-pointer rounded-md z-1'>
-							<X
-								className='size-4 text-vscode-toolbar-foreground'
-								onClick={onX}
-							/>
-						</span>
+					{/* X button */}
+					<div className='absolute -top-1 -right-1 cursor-pointer z-1'>
+						<IconX
+							size={16}
+							className="p-[1px] stroke-[2] opacity-80 text-void-fg-3 hover:brightness-95"
+							onClick={onX}
+						/>
 					</div>
-
-
 				</div>
 
 

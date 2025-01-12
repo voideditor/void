@@ -30,7 +30,7 @@ import { ArrowBigLeftDash, CopyX, Delete, FileX2, SquareX, X } from 'lucide-reac
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 
 
-const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
+export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
 	return (
 		<svg
 			xmlns='http://www.w3.org/2000/svg'

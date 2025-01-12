@@ -288,102 +288,97 @@ export const SelectedFiles = (
 					const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
 					const isThisSelectionAFile = selection.selectionStr === null
 
-					return (
-						<div key={i} // container for `selectionSummary` and `selectionText`
-							className={`${isThisSelectionOpened ? 'w-full' : ''}`}
+					const content = <div // container for `selectionSummary` and `selectionText`
+						className={`${isThisSelectionOpened ? 'w-full' : ''}`}
+					>
+						{/* selection summary */}
+						<div
+							// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
+							className={`flex items-center gap-0.5 relative
+							rounded-md px-1
+							w-fit h-fit
+							select-none
+							bg-void-bg-3 hover:brightness-95
+							text-void-fg-1 text-xs text-nowrap
+							border rounded-xs ${isClearHovered ? 'border-void-border-1' : 'border-void-border-2'}
+							transition-all duration-150`}
+							onClick={() => {
+								// open the file if it is a file
+								if (isThisSelectionAFile) {
+									commandService.executeCommand('vscode.open', selection.fileURI, {
+										preview: true,
+										// preserveFocus: false,
+									});
+								} else {
+									// open the selection if it is a text-selection
+									setSelectionIsOpened(s => {
+										const newS = [...s]
+										newS[i] = !newS[i]
+										return newS
+									});
+								}
+							}}
 						>
-							{/* selection summary */}
-							<div
-								// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
-								className={`flex items-center gap-0.5 relative
-									rounded-md px-1
-									w-fit h-fit
-									select-none
-									bg-void-bg-3 hover:brightness-95
-									text-void-fg-1 text-xs text-nowrap
-									border border-void-border-2 rounded-xs
-									${isClearHovered ? 'brightness-90' : ''}
-									transition-all duration-150`}
-								onClick={() => {
-									// open the file if it is a file
-									if (isThisSelectionAFile) {
-										commandService.executeCommand('vscode.open', selection.fileURI, {
-											preview: true,
-											// preserveFocus: false,
-										});
-									} else {
-										// open the selection if it is a text-selection
-										setSelectionIsOpened(s => {
-											const newS = [...s]
-											newS[i] = !newS[i]
-											return newS
-										});
-									}
-								}}
-							>
-								<span>
-									{/* file name */}
-									{getBasename(selection.fileURI.fsPath)}
-									{/* selection range */}
-									{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
-								</span>
+							<span>
+								{/* file name */}
+								{getBasename(selection.fileURI.fsPath)}
+								{/* selection range */}
+								{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
+							</span>
 
-								{/* X button */}
-								{type === 'staging' &&
-									<span
-										className='cursor-pointer hover:bg-vscode-toolbar-hover-bg rounded-md z-1'
-										onClick={(e) => {
-											e.stopPropagation(); // don't open/close selection
-											if (type !== 'staging') return;
-											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
-											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
-										}}
-									>
-										<IconX size={16} className="p-[2px] stroke-[3]" />
-									</span>}
-
-
-								{/* clear all selections button */}
-								{type !== 'staging' || selections.length === 0 || i !== selections.length - 1 ? null : <div
-									className='
-											absolute right-0 translate-x-[calc(100%+4px)]
-											rounded-md
-											px-0.5
-										'
-									onMouseEnter={() => setIsClearHovered(true)}
-									onMouseLeave={() => setIsClearHovered(false)}
-								>
-									<Delete
-										size={16}
-										className='stroke-[1] stroke-void-fg-3
-												fill-void-bg-3
-												hover:brightness-95
-												cursor-pointer
-											'
-										onClick={() => { setStaging([]) }}
-									/>
-								</div>}
-
-
-							</div>
-							{/* selection text */}
-							{isThisSelectionOpened &&
-								<div
-									className='w-full px-1 rounded-sm border-vscode-editor-border'
+							{/* X button */}
+							{type === 'staging' &&
+								<span
+									className='cursor-pointer hover:bg-vscode-toolbar-hover-bg rounded-md z-1'
 									onClick={(e) => {
-										e.stopPropagation(); // don't focus input box
+										e.stopPropagation(); // don't open/close selection
+										if (type !== 'staging') return;
+										setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
+										setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
 									}}
 								>
-									<BlockCode
-										initValue={selection.selectionStr!}
-										language={getLanguageFromFileName(selection.fileURI.path)}
-										maxHeight={100}
-										showScrollbars={true}
-									/>
-								</div>
-							}
+									<IconX size={16} className="p-[2px] stroke-[3]" />
+								</span>}
+
+
 						</div>
-					)
+						{/* selection text */}
+						{isThisSelectionOpened &&
+							<div
+								className='w-full px-1 rounded-sm border-vscode-editor-border'
+								onClick={(e) => {
+									e.stopPropagation(); // don't focus input box
+								}}
+							>
+								<BlockCode
+									initValue={selection.selectionStr!}
+									language={getLanguageFromFileName(selection.fileURI.path)}
+									maxHeight={100}
+									showScrollbars={true}
+								/>
+							</div>}
+					</div>
+
+					if (type !== 'staging' || selections.length === 0 || i !== selections.length - 1)
+						return <Fragment key={i}>{content}</Fragment>
+
+					else return <div key={i} className='flex items-center gap-0.5'>
+						{content}
+						<div
+							className='rounded-md'
+							onMouseEnter={() => setIsClearHovered(true)}
+							onMouseLeave={() => setIsClearHovered(false)}
+						>
+							<Delete
+								size={16}
+								className='stroke-[1] stroke-void-fg-3
+										fill-void-bg-3
+										hover:brightness-105
+										cursor-pointer'
+								onClick={() => { setStaging([]) }}
+							/>
+						</div>
+					</div>
 				})}
 
 

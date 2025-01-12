@@ -241,8 +241,9 @@ export class TabSwitchListener extends Disposable {
 		// when editor switches tabs (models)
 		const addTabSwitchListeners = (editor: ICodeEditor) => {
 			this._register(editor.onDidChangeModel(e => {
-				if (e.newModelUrl)
+				if (e.newModelUrl && e.newModelUrl.scheme === 'file') {
 					onSwitchTab(e.newModelUrl)
+				}
 			}))
 		}
 
@@ -284,7 +285,7 @@ class TabSwitchContribution extends Disposable implements IWorkbenchContribution
 		// run on current tab if it exists, and listen for tab switches and visibility changes
 		addCurrentFileIfVisible()
 		this._register(this.viewsService.onDidChangeViewVisibility(() => { addCurrentFileIfVisible() }))
-		this.instantiationService.createInstance(TabSwitchListener, () => { addCurrentFileIfVisible() })
+		this._register(this.instantiationService.createInstance(TabSwitchListener, () => { addCurrentFileIfVisible() }))
 	}
 }
 

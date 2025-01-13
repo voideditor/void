@@ -54,7 +54,7 @@ type InputBox2Props = {
 	onChangeText?: (value: string) => void;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }
-export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(({ placeholder, multiline, fnsRef, onKeyDown, onChangeText }, ref) => {
+export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ placeholder, multiline, fnsRef, onKeyDown, onChangeText }, ref) {
 
 	// mirrors whatever is in ref
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -99,7 +99,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(({ 
 				if (typeof ref === 'function') ref(r)
 				else if (ref) ref.current = r
 				adjustHeight()
-			}, [fnsRef, onChange, setEnabled, adjustHeight])}
+			}, [fnsRef, onChange, setEnabled, adjustHeight, ref])}
 
 			disabled={!isEnabled}
 
@@ -114,7 +114,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(({ 
 					if (!shouldAddNewline) e.preventDefault(); // prevent newline from being created
 				}
 				onKeyDown?.(e)
-			}, [onKeyDown])}
+			}, [onKeyDown, multiline])}
 
 			rows={1}
 			placeholder={placeholder}
@@ -514,12 +514,13 @@ export const _VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, select
 				contextViewProvider,
 				defaultSelectBoxStyles,
 			] as const;
-		}, [containerRef, options, contextViewProvider])}
+		}, [containerRef, options])}
 
 		dispose={useCallback((instance: SelectBox) => {
 			instance.dispose();
-			for (let child of containerRef.current?.childNodes ?? [])
+			containerRef.current?.childNodes.forEach(child => {
 				containerRef.current?.removeChild(child)
+			})
 		}, [containerRef])}
 
 		onCreateInstance={useCallback((instance: SelectBox) => {

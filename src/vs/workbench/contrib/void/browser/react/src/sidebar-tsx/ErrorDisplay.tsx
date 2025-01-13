@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { errorDetails } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 

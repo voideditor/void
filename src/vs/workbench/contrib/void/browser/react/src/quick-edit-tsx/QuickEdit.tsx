@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useIsDark, useSidebarState } from '../util/services.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { QuickEditChat } from './QuickEditChat.js'

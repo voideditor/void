@@ -635,13 +635,17 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			// restore file content
 			const numLines = this._getNumLines(uri)
 			if (numLines === null) return
-			this._writeText(uri, entireModelCode,
-				{ startColumn: 1, startLineNumber: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
-				{ shouldRealignDiffAreas: false }
-			)
 
-			// restore all the decorations
-			// this._refreshStylesAndDiffsInURI(uri)
+			const hasWriteChange = this._readURI(uri) !== entireModelCode // a heuristic check
+			if (hasWriteChange)
+				this._writeText(uri, entireModelCode,
+					{ startColumn: 1, startLineNumber: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
+					{ shouldRealignDiffAreas: false }
+				)
+			else {
+				// restore all the decorations
+				this._refreshStylesAndDiffsInURI(uri)
+			}
 		}
 
 		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()

@@ -202,9 +202,10 @@ export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLBut
 }
 
 
-const ScrollToBottomContainer = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => {
+const ScrollToBottomContainer = ({ children, className, style, scrollContainerRef }: { children: React.ReactNode, className?: string, style?: React.CSSProperties, scrollContainerRef: React.MutableRefObject<HTMLDivElement | null> }) => {
 	const [isAtBottom, setIsAtBottom] = useState(true); // Start at bottom
-	const divRef = useRef<HTMLDivElement>(null);
+
+	const divRef = scrollContainerRef
 
 	const scrollToBottom = () => {
 		if (divRef.current) {
@@ -597,6 +598,13 @@ export const SidebarChat = () => {
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_L_ACTION_ID)?.getLabel()
 
+	// scroll to top on thread switch
+	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+	useEffect(() => {
+		if (isHistoryOpen)
+			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
+	}, [isHistoryOpen, currentThread?.id])
+
 	return <div
 		ref={sidebarRef}
 		className={`w-full h-full`}
@@ -610,6 +618,7 @@ export const SidebarChat = () => {
 
 		{/* previous messages + current stream */}
 		<ScrollToBottomContainer
+			scrollContainerRef={scrollContainerRef}
 			className={`
 				w-full h-auto
 				flex flex-col gap-0
@@ -619,7 +628,9 @@ export const SidebarChat = () => {
 			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 30 }} // the height of the previousMessages is determined by all other heights
 		>
 			{/* previous messages */}
-			{previousMessages.map((message, i) => <ChatBubble key={i} chatMessage={message} />)}
+			{previousMessages.map((message, i) =>
+				<ChatBubble key={i} chatMessage={message} />
+			)}
 
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} isLoading={isLoading} />

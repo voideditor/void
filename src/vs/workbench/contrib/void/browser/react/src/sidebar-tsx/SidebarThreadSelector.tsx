@@ -32,7 +32,7 @@ export const SidebarThreadSelector = () => {
 	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
 
 	return (
-		<div className="flex p-2 flex-col  gap-y-1 max-h-[400px] overflow-y-auto">
+		<div className="flex p-2 flex-col mb-2 gap-y-1 max-h-[400px] overflow-y-auto">
 
 			<div className="w-full relative flex justify-center items-center">
 				{/* title */}

@@ -28,6 +28,7 @@ import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { ArrowBigLeftDash, CopyX, Delete, FileX2, SquareX, X } from 'lucide-react';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
+import { Pencil } from 'lucide-react'
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -332,7 +333,7 @@ export const SelectedFiles = (
 								{/* X button */}
 								{type === 'staging' &&
 									<span
-										className='cursor-pointer hover:bg-vscode-toolbar-hover-bg rounded-md z-1'
+										className='cursor-pointer hover:brightness-95 rounded-md z-1'
 										onClick={(e) => {
 											e.stopPropagation(); // don't open/close selection
 											if (type !== 'staging') return;
@@ -346,7 +347,7 @@ export const SelectedFiles = (
 
 							</div>
 
-							{/* delete all selections button */}
+							{/* clear all selections button */}
 							{type !== 'staging' || selections.length === 0 || i !== selections.length - 1
 								? null
 								: <div key={i} className={`flex items-center gap-0.5 ${isThisSelectionOpened ? 'w-full' : ''}`}>
@@ -357,10 +358,14 @@ export const SelectedFiles = (
 									>
 										<Delete
 											size={16}
-											className='stroke-[1] stroke-void-fg-3
-										fill-void-bg-3
-										hover:brightness-105
-										cursor-pointer'
+											className={`stroke-[1]
+												stroke-void-fg-1
+												fill-void-bg-3
+												opacity-40
+												hover:opacity-60
+												transition-all duration-150
+												cursor-pointer
+											`}
 											onClick={() => { setStaging([]) }}
 										/>
 									</div>
@@ -381,7 +386,8 @@ export const SelectedFiles = (
 									maxHeight={100}
 									showScrollbars={true}
 								/>
-							</div>}
+							</div>
+						}
 					</div>
 
 				})}
@@ -393,12 +399,16 @@ export const SelectedFiles = (
 }
 
 
+
 const ChatBubble = ({ chatMessage, isLoading }: {
 	chatMessage: ChatMessage,
 	isLoading?: boolean,
 }) => {
 
 	const role = chatMessage.role
+
+	// edit mode state
+	const [isEditMode, setIsEditMode] = useState(false)
 
 	if (!chatMessage.displayContent)
 		return null
@@ -409,30 +419,61 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 		chatbubbleContents = <>
 			<SelectedFiles type='past' selections={chatMessage.selections} />
 			{chatMessage.displayContent}
+
+			{/* {!isEditMode ? chatMessage.displayContent : <></>} */}
+			{/* edit mode content */}
+			{/* TODO this should be the same input box as in the Sidebar */}
+			{/* <textarea
+				value={editModeText}
+				className={`
+						w-full max-w-full
+						h-auto min-h-[81px] max-h-[500px]
+						bg-void-bg-1 resize-none
+					`}
+				style={{ marginTop: 0 }}
+				hidden={!isEditMode}
+			/> */}
+
 		</>
 	}
 	else if (role === 'assistant') {
-		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent} /> // sectionsHTML
+		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent} />
 	}
 
 	return <div
 		// align chatbubble accoridng to role
 		className={`
-				${role === 'user' ? `px-2 self-end w-fit max-w-full` : ''}
-				${role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''}
-			`}
+            relative
+			${isEditMode ? 'px-2 w-full max-w-full'
+				: role === 'user' ? `px-2 self-end w-fit max-w-full`
+					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
+			}
+        `}
 	>
 		<div
 			// style chatbubble according to role
 			className={`
-				p-2 text-left space-y-2 rounded-lg
-				overflow-x-auto max-w-full
-				${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''}
-			`}
+                p-2 text-left space-y-2 rounded-lg
+                overflow-x-auto max-w-full
+                ${role === 'user' ? 'bg-void-bg-1 text-void-fg-1' : ''}
+            `}
 		>
 			{chatbubbleContents}
 			{isLoading && <IconLoading className='opacity-50 text-sm' />}
 		</div>
+
+		{/* edit button */}
+		{/* {role === 'user' &&
+			<Pencil
+				size={16}
+				className={`
+					absolute top-0 right-2
+					translate-x-0 -translate-y-0
+					cursor-pointer z-1
+				`}
+				onClick={() => { setIsEditMode(v => !v); }}
+			/>
+		} */}
 	</div>
 }
 
@@ -610,7 +651,7 @@ export const SidebarChat = () => {
 	>
 		{/* thread selector */}
 		<div ref={historyRef}
-			className={`w-full h-auto mb-2 ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}
+			className={`w-full h-auto ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}
 		>
 			<SidebarThreadSelector />
 		</div>
@@ -623,6 +664,7 @@ export const SidebarChat = () => {
 				flex flex-col gap-0
 				overflow-x-hidden
 				overflow-y-auto
+				${previousMessages.length > 0 ? 'pt-2' : ''}
 			`}
 			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 30 }} // the height of the previousMessages is determined by all other heights
 		>

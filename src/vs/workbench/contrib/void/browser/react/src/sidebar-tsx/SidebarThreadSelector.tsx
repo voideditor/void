@@ -51,9 +51,8 @@ export const SidebarThreadSelector = () => {
 			</div>
 
 			{/* a list of all the past threads */}
-
-			<div className="px-1 ">
-				<ul className="flex flex-col gap-y-1 overflow-y-auto list-disc">
+			<div className="px-1">
+				<ul className="flex flex-col gap-y-0.5 overflow-y-auto list-disc">
 
 					{sortedThreadIds.length === 0
 
@@ -66,25 +65,26 @@ export const SidebarThreadSelector = () => {
 
 							const pastThread = allThreads[threadId];
 							let firstMsg = null;
-							let secondMsg = null;
+							// let secondMsg = null;
 
 							const firstMsgIdx = pastThread.messages.findIndex(
 								(msg) => msg.role !== 'system' && !!msg.displayContent
 							);
 
 							if (firstMsgIdx !== -1) {
-								firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');
+								// firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');
+								firstMsg = pastThread.messages[firstMsgIdx].displayContent ?? '';
 							} else {
 								firstMsg = '""';
 							}
 
-							const secondMsgIdx = pastThread.messages.findIndex(
-								(msg, i) => msg.role !== 'system' && !!msg.displayContent && i > firstMsgIdx
-							);
+							// const secondMsgIdx = pastThread.messages.findIndex(
+							// 	(msg, i) => msg.role !== 'system' && !!msg.displayContent && i > firstMsgIdx
+							// );
 
-							if (secondMsgIdx !== -1) {
-								secondMsg = truncate(pastThread.messages[secondMsgIdx].displayContent ?? '');
-							}
+							// if (secondMsgIdx !== -1) {
+							// 	secondMsg = truncate(pastThread.messages[secondMsgIdx].displayContent ?? '');
+							// }
 
 							const numMessages = pastThread.messages.filter(
 								(msg) => msg.role !== 'system'
@@ -93,17 +93,20 @@ export const SidebarThreadSelector = () => {
 							return (
 								<li key={pastThread.id}>
 									<button
+									type='button'
 										className={`
 										hover:bg-void-bg-1
 										${threadsState._currentThreadId === pastThread.id ? 'bg-void-bg-1' : ''}
 										rounded-sm px-2 py-1
 										w-full
 										text-left
+										flex items-center
 									`}
 										onClick={() => threadsStateService.switchToThread(pastThread.id)}
 										title={new Date(pastThread.createdAt).toLocaleString()}
 									>
-										{`${firstMsg} (${numMessages})`}
+										<div className='truncate'>{`${firstMsg}`}</div>
+										<div>{`\u00A0(${numMessages})`}</div>
 									</button>
 								</li>
 							);

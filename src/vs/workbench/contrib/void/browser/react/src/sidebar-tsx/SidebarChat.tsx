@@ -495,8 +495,6 @@ export const SidebarChat = () => {
 		if (isDisabled) return
 		if (isLoading) return
 
-
-
 		const currSelns = threadsStateService.state._currentStagingSelections ?? []
 		const selections = !currSelns ? null : await Promise.all(
 			currSelns.map(async (sel) => ({ ...sel, content: await VSReadFile(modelService, sel.fileURI) }))

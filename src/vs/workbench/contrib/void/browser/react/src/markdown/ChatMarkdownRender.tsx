@@ -71,7 +71,15 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 }
 
 export const CodeSpan = ({ children, className }: { children: React.ReactNode, className?: string }) => {
-	return <code className={`text-vscode-text-preformat-fg bg-vscode-text-preformat-bg px-1 rounded-sm font-mono break-all ${className}`}>
+	return <code className={`
+			bg-void-bg-1
+			px-1
+			rounded-sm
+			font-mono font-medium
+			break-all
+			${className}
+		`}
+	>
 		{children}
 	</code>
 }
@@ -95,45 +103,60 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 
 	if (t.type === "heading") {
 		const HeadingTag = `h${t.depth}` as keyof JSX.IntrinsicElements
-		return <HeadingTag>{t.text}</HeadingTag>
+		const headingClasses: { [h: string]: string } = {
+			h1: "text-4xl font-semibold mt-6 mb-4 pb-2 border-b border-void-bg-2",
+			h2: "text-3xl font-semibold mt-6 mb-4 pb-2 border-b border-void-bg-2",
+			h3: "text-2xl font-semibold mt-6 mb-4",
+			h4: "text-xl font-semibold mt-6 mb-4",
+			h5: "text-lg font-semibold mt-6 mb-4",
+			h6: "text-base font-semibold mt-6 mb-4 text-gray-600"
+		}
+		return <HeadingTag className={headingClasses[HeadingTag]}>{t.text}</HeadingTag>
 	}
 
 	if (t.type === "table") {
 		return (
-			<table>
-				<thead>
-					<tr>
-						{t.header.map((cell: any, index: number) => (
-							<th key={index} style={{ textAlign: t.align[index] || "left" }}>
-								{cell.raw}
-							</th>
-						))}
-					</tr>
-				</thead>
-				<tbody>
-					{t.rows.map((row: any[], rowIndex: number) => (
-						<tr key={rowIndex}>
-							{row.map((cell: any, cellIndex: number) => (
-								<td
-									key={cellIndex}
-									style={{ textAlign: t.align[cellIndex] || "left" }}
+			<div className="my-4 overflow-x-auto">
+				<table className="min-w-full border border-void-bg-2">
+					<thead>
+						<tr className="bg-void-bg-1">
+							{t.header.map((cell: any, index: number) => (
+								<th
+									key={index}
+									className="px-4 py-2 border border-void-bg-2 font-semibold"
+									style={{ textAlign: t.align[index] || "left" }}
 								>
 									{cell.raw}
-								</td>
+								</th>
 							))}
 						</tr>
-					))}
-				</tbody>
-			</table>
+					</thead>
+					<tbody>
+						{t.rows.map((row: any[], rowIndex: number) => (
+							<tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-void-bg-1'}>
+								{row.map((cell: any, cellIndex: number) => (
+									<td
+										key={cellIndex}
+										className="px-4 py-2 border border-void-bg-2"
+										style={{ textAlign: t.align[cellIndex] || "left" }}
+									>
+										{cell.raw}
+									</td>
+								))}
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
 		)
 	}
 
 	if (t.type === "hr") {
-		return <hr />
+		return <hr className="my-6 border-t border-void-bg-2" />
 	}
 
 	if (t.type === "blockquote") {
-		return <blockquote>{t.text}</blockquote>
+		return <blockquote className="pl-4 border-l-4 border-void-bg-2 italic my-4">{t.text}</blockquote>
 	}
 
 	if (t.type === "list") {
@@ -141,14 +164,16 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 		return (
 			<ListTag
 				start={t.start ? t.start : undefined}
-				className={`list-inside ${t.ordered ? "list-decimal" : "list-disc"}`}
+				className={`list-inside pl-2 my-4 ${t.ordered ? "list-decimal" : "list-disc"}`}
 			>
 				{t.items.map((item, index) => (
-					<li key={index}>
+					<li key={index} className="mb-4">
 						{item.task && (
-							<input type="checkbox" checked={item.checked} readOnly />
+							<input type="checkbox" checked={item.checked} readOnly className="mr-2 form-checkbox" />
 						)}
-						<ChatMarkdownRender string={item.text} nested={true} />
+						<span className="ml-1">
+							<ChatMarkdownRender string={item.text} nested={true} />
+						</span>
 					</li>
 				))}
 			</ListTag>
@@ -163,13 +188,12 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 		</>
 		if (nested)
 			return contents
-		return <p>{contents}</p>
+		return <p className="my-4 leading-snug">{contents}</p>
 	}
 
-	// don't actually render <html> tags, just render strings of them
 	if (t.type === "html") {
 		return (
-			<pre>
+			<pre className="bg-void-bg-2 p-4 rounded-lg my-4 font-mono text-sm">
 				{`<html>`}
 				{t.raw}
 				{`</html>`}
@@ -187,22 +211,32 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 
 	if (t.type === "link") {
 		return (
-			<a className='underline' onClick={() => { window.open(t.href) }} href={t.href} title={t.title ?? undefined}>
+			<a
+				className='underline'
+				onClick={() => { window.open(t.href) }}
+				href={t.href}
+				title={t.title ?? undefined}
+			>
 				{t.text}
 			</a>
 		)
 	}
 
 	if (t.type === "image") {
-		return <img src={t.href} alt={t.text} title={t.title ?? undefined} />
+		return <img
+			src={t.href}
+			alt={t.text}
+			title={t.title ?? undefined}
+			className="max-w-full h-auto rounded my-4"
+		/>
 	}
 
 	if (t.type === "strong") {
-		return <strong>{t.text}</strong>
+		return <strong className="font-semibold">{t.text}</strong>
 	}
 
 	if (t.type === "em") {
-		return <em>{t.text}</em>
+		return <em className="italic">{t.text}</em>
 	}
 
 	// inline code
@@ -220,12 +254,12 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 
 	// strikethrough
 	if (t.type === "del") {
-		return <del>{t.text}</del>
+		return <del className="line-through">{t.text}</del>
 	}
 
 	// default
 	return (
-		<div className="bg-orange-50 rounded-sm overflow-hidden">
+		<div className="bg-orange-50 rounded-sm overflow-hidden p-2">
 			<span className="text-sm text-orange-500">Unknown type:</span>
 			{t.raw}
 		</div>

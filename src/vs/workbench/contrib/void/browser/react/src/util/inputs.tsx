@@ -116,6 +116,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 			className="w-full resize-none max-h-[500px] overflow-y-auto"
 			style={{
+				// defaultInputBoxStyles
 				background: asCssVariable(inputBackground),
 				color: asCssVariable(inputForeground)
 				// inputBorder: asCssVariable(inputBorder),

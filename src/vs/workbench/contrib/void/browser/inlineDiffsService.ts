@@ -44,6 +44,7 @@ import { Action2, registerAction2 } from '../../../../platform/actions/common/ac
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { localize2 } from '../../../../nls.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
+import { isMacintosh } from '../../../../base/common/platform.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -1174,7 +1175,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				this._notificationService.notify({
 					severity: Severity.Warning,
 					message: `Void Error: ${e.message}`,
-					source: details ?? undefined
+					source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}` : undefined
 				})
 				onDone(true)
 			},

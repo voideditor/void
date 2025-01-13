@@ -78,16 +78,13 @@ class SurroundingsRemover {
 	removeCodeBlock = () => {
 		const pm = this
 		const foundCodeBlock = pm.removePrefix('```')
-		console.log('A', this.i, this.j)
 		if (!foundCodeBlock) return false
 
 		pm.removeFromStartUntil('\n', true) // language
-		console.log('B', this.i, this.j)
 
 		const foundCodeBlockEnd = pm.removeSuffix('```')
 		if (!foundCodeBlockEnd) return false
 
-		console.log('C', this.i, this.j)
 		pm.removeSuffix('\n')
 		return true
 	}

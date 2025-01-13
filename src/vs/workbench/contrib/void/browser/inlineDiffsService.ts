@@ -32,7 +32,6 @@ import { ILLMMessageService } from '../../../../platform/void/common/llmMessageS
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
-import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
 import { errorDetails, LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
@@ -49,7 +48,7 @@ import { isMacintosh } from '../../../../base/common/platform.js';
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
 }
-// gets converted to --vscode-void-greenBG, see void.css
+// gets converted to --vscode-void-greenBG, see void.css, asCssVariable
 const greenBG = new Color(new RGBA(155, 185, 85, .3)); // default is RGBA(155, 185, 85, .2)
 registerColor('void.greenBG', configOfBG(greenBG), '', true);
 
@@ -126,7 +125,7 @@ type CtrlKZone = {
 	editorId: string; // the editor the input lives on
 
 	_mountInfo: null | {
-		inputBoxRef: { current: InputBox | null }; // the input box that lives in the zone
+		textAreaRef: { current: HTMLTextAreaElement | null }
 		dispose: () => void;
 		refresh: () => void;
 	}
@@ -342,15 +341,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		let zoneId: string | null = null
 		let viewZone_: IViewZone | null = null
-		const inputBoxRef: { current: InputBox | null } = { current: null }
+		const textAreaRef: { current: HTMLTextAreaElement | null } = { current: null }
 
 		const itemId = this._consistentEditorItemService.addToEditor(editor, () => {
 			const domNode = document.createElement('div');
 			domNode.style.zIndex = '1'
+			domNode.style.height = 'auto'
 			const viewZone: IViewZone = {
 				afterLineNumber: ctrlKZone.startLine - 1,
 				domNode: domNode,
-				heightInPx: 52,
+				// heightInPx: 80,
 				suppressMouseDown: false,
 				showInHiddenAreas: true,
 			};
@@ -361,30 +361,32 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				zoneId = accessor.addZone(viewZone)
 			})
 
+
 			// mount react
 			this._instantiationService.invokeFunction(accessor => {
 				mountCtrlK(domNode, accessor, {
+
 					diffareaid: ctrlKZone.diffareaid,
-					onGetInputBox: (inputBox) => {
-						inputBoxRef.current = inputBox
-						// if it's mounting for the first time, focus it
+
+					textAreaRef: (r) => {
+						textAreaRef.current = r
+						if (!textAreaRef.current) return
+
 						if (!(ctrlKZone.diffareaid in this.mostRecentTextOfCtrlKZoneId)) { // detect first mount this way (a hack)
 							this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = undefined
-							setTimeout(() => inputBox.focus(), 0)
+							setTimeout(() => textAreaRef.current?.focus(), 100)
 						}
 					},
 					onChangeHeight(height) {
-						if (height === undefined) return
-						if (height === 0) return // if hidden, height is set to 0 creating a jumpy scroll. ignore
 						viewZone.heightInPx = height
 						// re-render with this new height
 						editor.changeViewZones(accessor => {
-							if (zoneId) {
-								accessor.layoutZone(zoneId)
-							}
+							if (zoneId) accessor.layoutZone(zoneId)
 						})
 					},
-					onUserUpdateText: (text) => { this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = text; },
+					onChangeText: (text) => {
+						this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = text;
+					},
 					initText: this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] ?? null,
 				} satisfies QuickEditPropsType)
 
@@ -397,7 +399,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		})
 
 		return {
-			inputBoxRef,
+			textAreaRef,
 			refresh: () => editor.changeViewZones(accessor => {
 				if (zoneId && viewZone_) {
 					viewZone_.afterLineNumber = ctrlKZone.startLine - 1
@@ -956,7 +958,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// check if there's overlap with any other ctrlKZone and if so, focus it
 		const overlappingCtrlKZone = this._findOverlappingDiffArea({ startLine, endLine, uri, filter: (diffArea) => diffArea.type === 'CtrlKZone' })
 		if (overlappingCtrlKZone) {
-			setTimeout(() => (overlappingCtrlKZone as CtrlKZone)._mountInfo?.inputBoxRef.current?.focus(), 0)
+			(overlappingCtrlKZone as CtrlKZone)._mountInfo?.textAreaRef.current?.focus()
 			return
 		}
 
@@ -1057,8 +1059,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			startLine = startLine_
 			endLine = endLine_
 
-			if (!_mountInfo?.inputBoxRef.current) return
-			userMessage = _mountInfo.inputBoxRef.current?.value
+			if (!_mountInfo?.textAreaRef.current) return
+			userMessage = _mountInfo.textAreaRef.current?.value
 		}
 		else {
 			throw new Error(`Void: diff.type not recognized on: ${featureName}`)

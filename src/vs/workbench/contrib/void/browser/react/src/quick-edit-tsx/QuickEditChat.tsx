@@ -5,27 +5,29 @@
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
-import { OnError } from '../../../../../../../platform/void/common/llmMessageTypes.js';
-import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { VoidInputBox } from '../util/inputs.js';
+import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
-import { X } from 'lucide-react';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 
-export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onChangeHeight, initText }: QuickEditPropsType) => {
+export const QuickEditChat = ({
+	diffareaid,
+	onChangeHeight,
+	onChangeText: onChangeText_,
+	textAreaRef: textAreaRef_,
+	initText
+}: QuickEditPropsType) => {
 
 	const accessor = useAccessor()
 	const inlineDiffsService = accessor.get('IInlineDiffsService')
 	const sizerRef = useRef<HTMLDivElement | null>(null)
-	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
-
+	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
 
 	useEffect(() => {
 		const inputContainer = sizerRef.current
 		if (!inputContainer) return;
-
 		// only observing 1 element
 		let resizeObserver: ResizeObserver | undefined
 		resizeObserver = new ResizeObserver((entries) => {
@@ -33,37 +35,35 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 			onChangeHeight(height)
 		})
 		resizeObserver.observe(inputContainer);
-
 		return () => { resizeObserver?.disconnect(); };
 	}, [onChangeHeight]);
 
+
 	// state of current message
-	const [instructions, setInstructions] = useState(initText ?? '') // the user's instructions
-	const onChangeText = useCallback((newStr: string) => {
-		setInstructions(newStr)
-		onUserUpdateText(newStr)
-	}, [setInstructions])
-	const isDisabled = !instructions.trim()
+	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!(initText ?? '')) // the user's instructions
+	const isDisabled = instructionsAreEmpty
 
 	const currentlyStreamingIdRef = useRef<number | undefined>(undefined)
 	const [isStreaming, setIsStreaming] = useState(false)
 
 	const onSubmit = useCallback((e: FormEvent) => {
+		if (isDisabled) return
 		if (currentlyStreamingIdRef.current !== undefined) return
-		inputBoxRef.current?.disable()
+		textAreaFnsRef.current?.disable()
 
+		const instructions = textAreaRef.current?.value ?? ''
 		currentlyStreamingIdRef.current = inlineDiffsService.startApplying({
 			featureName: 'Ctrl+K',
 			diffareaid: diffareaid,
 			userMessage: instructions,
 		})
 		setIsStreaming(true)
-	}, [inlineDiffsService, diffareaid, instructions])
+	}, [isDisabled, inlineDiffsService, diffareaid])
 
 	const onInterrupt = useCallback(() => {
 		if (currentlyStreamingIdRef.current !== undefined)
 			inlineDiffsService.interruptStreaming(currentlyStreamingIdRef.current)
-		inputBoxRef.current?.enable()
+		textAreaFnsRef.current?.enable()
 		setIsStreaming(false)
 	}, [inlineDiffsService])
 
@@ -73,18 +73,7 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 	}, [inlineDiffsService, diffareaid])
 
 
-	// sync init value
-	const alreadySetRef = useRef(false)
-	useEffect(() => {
-		if (!inputBoxRef.current) return
-		if (alreadySetRef.current) return
-		alreadySetRef.current = true
-		inputBoxRef.current.value = instructions
-	}, [initText, instructions])
-
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
-
-
 
 	return <div ref={sizerRef} className='py-2 w-full max-w-xl'>
 		<form
@@ -96,20 +85,8 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 				bg-vscode-input-bg
 				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 			`}
-			onKeyDown={(e) => {
-				if (e.key === 'Enter' && !e.shiftKey) {
-					onSubmit(e)
-					return
-				}
-			}}
-			onSubmit={(e) => {
-				if (isDisabled)
-					return
-				console.log('submit!')
-				onSubmit(e)
-			}}
 			onClick={(e) => {
-				inputBoxRef.current?.focus()
+				textAreaRef.current?.focus()
 			}}
 		>
 
@@ -134,20 +111,38 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 						`}
 					>
 						{/* text input */}
-						<VoidInputBox
-							placeholder={`${keybindingString} to select`}
-							onChangeText={onChangeText}
-							onCreateInstance={useCallback((instance: InputBox) => {
-								inputBoxRef.current = instance;
+						<VoidInputBox2
 
+							ref={useCallback((r: HTMLTextAreaElement | null) => {
+								textAreaRef.current = r
+								textAreaRef_(r)
+
+								// sync init value
+								textAreaFnsRef.current?.setValue(initText ?? '')
 								// if presses the esc key, X
-								instance.element.addEventListener('keydown', (e) => {
+								r?.addEventListener('keydown', (e) => {
 									if (e.key === 'Escape')
 										onX()
 								})
-								onGetInputBox(instance);
-								instance.focus()
-							}, [onGetInputBox])}
+
+							}, [textAreaRef_, initText, onX])}
+
+							fnsRef={textAreaFnsRef}
+
+							placeholder={`${keybindingString} to select`}
+
+							onChangeText={useCallback((newStr: string) => {
+								setInstructionsAreEmpty(!newStr)
+								onChangeText_(newStr)
+							}, [onChangeText_])}
+
+							onKeyDown={(e) => {
+								if (e.key === 'Enter' && !e.shiftKey) {
+									onSubmit(e)
+									return
+								}
+							}}
+
 							multiline={true}
 						/>
 					</div>
@@ -184,6 +179,7 @@ export const QuickEditChat = ({ diffareaid, onGetInputBox, onUserUpdateText, onC
 						:
 						// submit button (up arrow)
 						<ButtonSubmit
+							onClick={onSubmit}
 							disabled={isDisabled}
 						/>
 					}

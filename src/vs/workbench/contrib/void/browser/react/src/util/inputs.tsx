@@ -53,6 +53,7 @@ type InputBox2Props = {
 	fnsRef?: { current: null | TextAreaFns };
 	onChangeText?: (value: string) => void;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+	onChangeHeight?: (newHeight: number) => void;
 }
 export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ placeholder, multiline, fnsRef, onKeyDown, onChangeText }, ref) {
 
@@ -62,9 +63,12 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 	const adjustHeight = useCallback(() => {
 		const r = textAreaRef.current
 		if (!r) return
-		r.style.height = 'auto';
-		const newHeight = Math.min(r.scrollHeight + 1, 500);
-		r.style.height = `${newHeight}px`;
+
+		r.style.height = 'auto' // set to auto to reset height, then set to new height
+		if (r.scrollHeight === 0) return
+		const h = r.scrollHeight
+		const newHeight = Math.min(h, 500)
+		r.style.height = `${newHeight}px`
 	}, []);
 
 

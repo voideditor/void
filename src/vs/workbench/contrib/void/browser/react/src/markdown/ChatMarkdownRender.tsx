@@ -84,7 +84,7 @@ export const CodeSpan = ({ children, className }: { children: React.ReactNode, c
 	</code>
 }
 
-const RenderToken = ({ token, nested = false }: { token: Token | string, nested?: boolean }): JSX.Element => {
+const RenderToken = ({ token, nested = false, noSpace = false }: { token: Token | string, nested?: boolean, noSpace?: boolean }): JSX.Element => {
 
 	// deal with built-in tokens first (assume marked token)
 	const t = token as MarkedToken
@@ -116,7 +116,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 
 	if (t.type === "table") {
 		return (
-			<div className="my-4 overflow-x-auto">
+			<div className={`${noSpace ? '' : 'my-4'} overflow-x-auto`}>
 				<table className="min-w-full border border-void-bg-2">
 					<thead>
 						<tr className="bg-void-bg-1">
@@ -156,7 +156,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	}
 
 	if (t.type === "blockquote") {
-		return <blockquote className="pl-4 border-l-4 border-void-bg-2 italic my-4">{t.text}</blockquote>
+		return <blockquote className={`pl-4 border-l-4 border-void-bg-2 italic ${noSpace ? '' : 'my-4'}`}>{t.text}</blockquote>
 	}
 
 	if (t.type === "list") {
@@ -164,10 +164,10 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 		return (
 			<ListTag
 				start={t.start ? t.start : undefined}
-				className={`list-inside pl-2 my-4 ${t.ordered ? "list-decimal" : "list-disc"}`}
+				className={`list-inside pl-2 ${noSpace ? '' : 'my-4'} ${t.ordered ? "list-decimal" : "list-disc"}`}
 			>
 				{t.items.map((item, index) => (
-					<li key={index} className="mb-4">
+					<li key={index} className={`${noSpace ? '' : 'mb-4'}`}>
 						{item.task && (
 							<input type="checkbox" checked={item.checked} readOnly className="mr-2 form-checkbox" />
 						)}
@@ -188,12 +188,12 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 		</>
 		if (nested)
 			return contents
-		return <p className="my-4 leading-snug">{contents}</p>
+		return <p className={`${noSpace ? '' : 'my-4'} leading`}>{contents}</p>
 	}
 
 	if (t.type === "html") {
 		return (
-			<pre className="bg-void-bg-2 p-4 rounded-lg my-4 font-mono text-sm">
+			<pre className={`bg-4oid-bg-2 p-4 rounded-lg ${noSpace ? '' : 'my-4'} font-mono text-sm`}>
 				{`<html>`}
 				{t.raw}
 				{`</html>`}
@@ -227,7 +227,7 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 			src={t.href}
 			alt={t.text}
 			title={t.title ?? undefined}
-			className="max-w-full h-auto rounded my-4"
+			className={`max4w-full h-auto rounded ${noSpace ? '' : 'my-4'}`}
 		/>
 	}
 
@@ -266,12 +266,12 @@ const RenderToken = ({ token, nested = false }: { token: Token | string, nested?
 	)
 }
 
-export const ChatMarkdownRender = ({ string, nested = false }: { string: string, nested?: boolean }) => {
+export const ChatMarkdownRender = ({ string, nested = false, noSpace }: { string: string, nested?: boolean, noSpace?: boolean }) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
-				<RenderToken key={index} token={token} nested={nested} />
+				<RenderToken key={index} token={token} nested={nested} noSpace={noSpace} />
 			))}
 		</>
 	)

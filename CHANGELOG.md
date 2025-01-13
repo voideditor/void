@@ -1,24 +1,32 @@
 
 
-1/12/24 -
 
 
 
-- beta
-
-- deleted the Void extension, and move entirely inside the VS Code codebase.
-
-- Nicer settings page with auto model detection, one-click switch, and more.
-
-- model fetching with .list()
+## Jan. 12, 2025 - Entering beta
 
 
-- We switched from the MIT License to to the Apache 2.0 License.
-- New diff algorithm for computing and streaming diffs.
+- Migrated away from VS Code extension API - Void now lives and interacts entirely within the VS Code codebase.
 
-- Streaming a change doesn't jitter the syntax highlighter
+- Added inline quick edits, including FIM prompting and output parsing, inline UI, and history management.
 
-- Ctrl+K added!
+- Added settings page with model configuration, one-click switch, and user settings.
 
+- Void now auto-detects local models on mount.
 
+- LLM requests now originate from `node/`, which fixes common CORS and CSP issues when running some models locally.
+
+- History and state improvements for Accept | Reject, stream interruptions, and past chats.
+
+- Lots of new UI, misc bug fixes, and performance improvements.
+
+- Switched from the MIT License to the Apache 2.0 License. Apache's attribution clause provides a small amount of protection to our source initiative.
+
+Many thanks to our contributors __, __, __
+
+## Sept/Oct. 2024 - Early launch
+
+- Initialized Void's website and GitHub repo.
+
+- Started a waitlist.
 

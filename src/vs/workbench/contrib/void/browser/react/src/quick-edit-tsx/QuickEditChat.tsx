@@ -113,19 +113,19 @@ export const QuickEditChat = ({
 						{/* text input */}
 						<VoidInputBox2
 
+							initValue={initText}
+
 							ref={useCallback((r: HTMLTextAreaElement | null) => {
 								textAreaRef.current = r
 								textAreaRef_(r)
 
-								// sync init value
-								textAreaFnsRef.current?.setValue(initText ?? '')
 								// if presses the esc key, X
 								r?.addEventListener('keydown', (e) => {
 									if (e.key === 'Escape')
 										onX()
 								})
 
-							}, [textAreaRef_, initText, onX])}
+							}, [textAreaRef_, onX])}
 
 							fnsRef={textAreaFnsRef}
 

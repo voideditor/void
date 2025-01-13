@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { forwardRef, MutableRefObject, useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { forwardRef, MutableRefObject, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
@@ -48,6 +48,7 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 
 export type TextAreaFns = { setValue: (v: string) => void, enable: () => void, disable: () => void }
 type InputBox2Props = {
+	initValue?: string | null;
 	placeholder: string;
 	multiline: boolean;
 	fnsRef?: { current: null | TextAreaFns };
@@ -55,61 +56,70 @@ type InputBox2Props = {
 	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 	onChangeHeight?: (newHeight: number) => void;
 }
-export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ placeholder, multiline, fnsRef, onKeyDown, onChangeText }, ref) {
+export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, onKeyDown, onChangeText }, ref) {
 
 	// mirrors whatever is in ref
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+	const [isEnabled, setEnabled] = useState(true)
 
 	const adjustHeight = useCallback(() => {
 		const r = textAreaRef.current
 		if (!r) return
 
 		r.style.height = 'auto' // set to auto to reset height, then set to new height
-		if (r.scrollHeight === 0) return
+
+		if (r.scrollHeight === 0) return requestAnimationFrame(adjustHeight)
 		const h = r.scrollHeight
 		const newHeight = Math.min(h, 500)
 		r.style.height = `${newHeight}px`
 	}, []);
 
 
-	const onChange = useCallback(() => {
-		const r = textAreaRef.current
-		if (!r) return
-		onChangeText?.(r.value)
-		adjustHeight()
-	}, [onChangeText, adjustHeight])
+
+	const fns: TextAreaFns = useMemo(() => ({
+		setValue: (val) => {
+			const r = textAreaRef.current
+			if (!r) return
+			r.value = val
+			onChangeText?.(r.value)
+			adjustHeight()
+		},
+		enable: () => { setEnabled(true) },
+		disable: () => { setEnabled(false) },
+	}), [onChangeText, adjustHeight])
 
 
-	const [isEnabled, setEnabled] = useState(true)
+
+	useEffect(() => {
+		if (initValue)
+			fns.setValue(initValue)
+	}, [initValue])
+
+
 
 
 	return (
 		<textarea
 			ref={useCallback((r: HTMLTextAreaElement | null) => {
-
 				if (fnsRef)
-					fnsRef.current = {
-						setValue: (val) => {
-							const r = textAreaRef.current
-							if (!r) return
-							r.value = val
-							onChange()
-						},
-						enable: () => { setEnabled(true) },
-						disable: () => { setEnabled(false) },
-					}
+					fnsRef.current = fns
 
 				textAreaRef.current = r
 				if (typeof ref === 'function') ref(r)
 				else if (ref) ref.current = r
 				adjustHeight()
-			}, [fnsRef, onChange, setEnabled, adjustHeight, ref])}
+			}, [fnsRef, fns, setEnabled, adjustHeight, ref])}
 
 			disabled={!isEnabled}
 
 			className="w-full resize-none max-h-[500px] overflow-y-auto"
 
-			onChange={onChange}
+			onChange={useCallback(() => {
+				const r = textAreaRef.current
+				if (!r) return
+				onChangeText?.(r.value)
+				adjustHeight()
+			}, [onChangeText, adjustHeight])}
 
 			onKeyDown={useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 				if (e.key === 'Enter') {

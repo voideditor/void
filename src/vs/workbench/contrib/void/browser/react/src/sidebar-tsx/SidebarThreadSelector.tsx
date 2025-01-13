@@ -52,7 +52,7 @@ export const SidebarThreadSelector = () => {
 
 			{/* a list of all the past threads */}
 
-			<div className="px-1">
+			<div className="px-1 ">
 				<ul className="flex flex-col gap-y-1 overflow-y-auto list-disc">
 
 					{sortedThreadIds.length === 0

@@ -52,6 +52,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		super()
 
 		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service
+		// see llmMessageChannel.ts
 		this.channel = this.mainProcessService.getChannel('void-channel-llmMessageService')
 
 		// .listen sets up an IPC channel and takes a few ms, so we set up listeners immediately and add hooks to them instead

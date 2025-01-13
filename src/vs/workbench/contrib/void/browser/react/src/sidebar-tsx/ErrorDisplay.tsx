@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { errorDetails } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 
 
 export const ErrorDisplay = ({
@@ -20,17 +21,7 @@ export const ErrorDisplay = ({
 }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
-	let details: string | null = null;
-
-	if (fullError === null) {
-		details = null
-	}
-	else if (typeof fullError === 'object') {
-		details = JSON.stringify(fullError, null, 2)
-	}
-	else if (typeof fullError === 'string') {
-		details = null
-	}
+	const details = errorDetails(fullError)
 
 
 	return (

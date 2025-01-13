@@ -33,7 +33,7 @@ import { ILLMMessageService } from '../../../../platform/void/common/llmMessageS
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
-import { LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js';
+import { errorDetails, LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
@@ -43,6 +43,7 @@ import { BaseEditorSimpleWorker } from '../../../../editor/common/services/edito
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { localize2 } from '../../../../nls.js';
+import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -207,6 +208,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IConsistentEditorItemService private readonly _consistentEditorItemService: IConsistentEditorItemService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
+		@INotificationService private readonly _notificationService: INotificationService,
 	) {
 		super();
 
@@ -1119,16 +1121,19 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		else { throw new Error(`featureName ${featureName} is invalid`) }
 
 
-		const onDone = () => {
+		const onDone = (hadError: boolean) => {
 			diffZone._streamState = { isStreaming: false, }
-
 			if (featureName === 'Ctrl+K') {
 				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
 				this._deleteCtrlKZone(ctrlKZone)
 			}
 			this._refreshStylesAndDiffsInURI(uri)
-
 			onFinishEdit()
+
+			// if had error, revert!
+			if (hadError) {
+				this._undoHistory(diffZone._URI)
+			}
 		}
 
 		// refresh now in case onText takes a while to get 1st message
@@ -1161,14 +1166,17 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 					{ shouldRealignDiffAreas: true }
 				)
-				onDone()
+				onDone(false)
 			},
 			onError: (e) => {
 				console.error('Error rewriting file with diff', e);
-				// TODO indicate there was an error
-				if (streamRequestIdRef.current)
-					this._llmMessageService.abort(streamRequestIdRef.current)
-				onDone()
+				const details = errorDetails(e.fullError)
+				this._notificationService.notify({
+					severity: Severity.Warning,
+					message: `Void Error: ${e.message}`,
+					source: details ?? undefined
+				})
+				onDone(true)
 			},
 
 			range: { startLineNumber: startLine, endLineNumber: endLine, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER },
@@ -1232,6 +1240,9 @@ if (x > 0) {
 
 	}
 
+	_undoHistory(uri: URI) {
+		this._undoRedoService.undo(uri)
+	}
 
 	// call this outside undo/redo (it calls undo). this is only for aborting a diffzone stream
 	interruptStreaming(diffareaid: number) {
@@ -1242,7 +1253,7 @@ if (x > 0) {
 		if (!diffArea._streamState.isStreaming) return
 
 		this._stopIfStreaming(diffArea)
-		this._undoRedoService.undo(diffArea._URI)
+		this._undoHistory(diffArea._URI)
 	}
 
 

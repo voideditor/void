@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { forwardRef, MutableRefObject, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
@@ -46,8 +46,84 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 }
 
 
+export type TextAreaFns = { setValue: (v: string) => void, enable: () => void, disable: () => void }
+type InputBox2Props = {
+	placeholder: string;
+	multiline: boolean;
+	fnsRef?: { current: null | TextAreaFns };
+	onChangeText?: (value: string) => void;
+	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+}
+export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(({ placeholder, multiline, fnsRef, onKeyDown, onChangeText }, ref) => {
 
-export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, multiline, styles }: {
+	// mirrors whatever is in ref
+	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+
+	const adjustHeight = useCallback(() => {
+		const r = textAreaRef.current
+		if (!r) return
+		r.style.height = 'auto';
+		const newHeight = Math.min(r.scrollHeight + 1, 500);
+		r.style.height = `${newHeight}px`;
+	}, []);
+
+
+	const onChange = useCallback(() => {
+		const r = textAreaRef.current
+		if (!r) return
+		onChangeText?.(r.value)
+		adjustHeight()
+	}, [onChangeText, adjustHeight])
+
+
+	const [isEnabled, setEnabled] = useState(true)
+
+
+	return (
+		<textarea
+			ref={useCallback((r: HTMLTextAreaElement | null) => {
+
+				if (fnsRef)
+					fnsRef.current = {
+						setValue: (val) => {
+							const r = textAreaRef.current
+							if (!r) return
+							r.value = val
+							onChange()
+						},
+						enable: () => { setEnabled(true) },
+						disable: () => { setEnabled(false) },
+					}
+
+				textAreaRef.current = r
+				if (typeof ref === 'function') ref(r)
+				else if (ref) ref.current = r
+				adjustHeight()
+			}, [fnsRef, onChange, setEnabled, adjustHeight])}
+
+			disabled={!isEnabled}
+
+			className="w-full resize-none max-h-[500px] overflow-y-auto"
+
+			onChange={onChange}
+
+			onKeyDown={useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+				if (e.key === 'Enter') {
+					// Shift + Enter when multiline = newline
+					const shouldAddNewline = e.shiftKey && multiline
+					if (!shouldAddNewline) e.preventDefault(); // prevent newline from being created
+				}
+				onKeyDown?.(e)
+			}, [onKeyDown])}
+
+			rows={1}
+			placeholder={placeholder}
+		/>
+	)
+
+})
+
+export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, multiline }: {
 	onChangeText: (value: string) => void;
 	styles?: Partial<IInputBoxStyles>,
 	onCreateInstance?: (instance: InputBox) => void | IDisposable[];
@@ -74,7 +150,6 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 					inputForeground: "var(--vscode-foreground)",
 					// inputBackground: 'transparent',
 					// inputBorder: 'none',
-					...styles,
 				},
 				placeholder,
 				tooltip: '',
@@ -200,7 +275,7 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 
 export const VoidCustomSelectBox = <T extends any>({
 	options,
-	selectedOption,
+	selectedOption: selectedOption_,
 	onChangeOption,
 	getOptionName,
 	getOptionsEqual,
@@ -228,9 +303,16 @@ export const VoidCustomSelectBox = <T extends any>({
 	const buttonRef = useRef<HTMLButtonElement | null>(null);
 	const measureRef = useRef<HTMLDivElement | null>(null);
 
-	if (!selectedOption) {
-		selectedOption = options[0];
-	}
+
+	// if the selected option is null, use the 0th option as the selected, and set the option to options[0]
+	useEffect(() => {
+		if (!options[0]) return
+		if (!selectedOption_) {
+			onChangeOption(options[0]);
+		}
+	}, [selectedOption_, options])
+	const selectedOption = !selectedOption_ ? options[0] : selectedOption_
+
 
 	const updatePosition = useCallback(() => {
 		if (!buttonRef.current || !containerRef.current || !measureRef.current) return;

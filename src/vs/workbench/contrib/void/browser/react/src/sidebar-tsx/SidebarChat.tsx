@@ -17,7 +17,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { VoidCodeEditorProps, VoidInputBox } from '../util/inputs.js';
+import { TextAreaFns, VoidCodeEditorProps, VoidInputBox2 } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
@@ -176,7 +176,7 @@ const DEFAULT_BUTTON_SIZE = 22;
 export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
 
 	return <button
-		type='submit'
+		type='button'
 		className={`rounded-full flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
 			${disabled ? 'bg-vscode-disabled-fg' : 'bg-white'}
 			${className}
@@ -480,7 +480,8 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 
 export const SidebarChat = () => {
 
-	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
+	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
 
 	const accessor = useAccessor()
 	const modelService = accessor.get('IModelService')
@@ -491,11 +492,11 @@ export const SidebarChat = () => {
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { inputBoxRef.current?.focus() }),
-			sidebarStateService.onDidBlurChat(() => { inputBoxRef.current?.blur() })
+			sidebarStateService.onDidFocusChat(() => { textAreaRef.current?.focus() }),
+			sidebarStateService.onDidBlurChat(() => { textAreaRef.current?.blur() })
 		)
 		return () => disposables.forEach(d => d.dispose())
-	}, [sidebarStateService, inputBoxRef])
+	}, [sidebarStateService, textAreaRef])
 
 	const { currentTab, isHistoryOpen } = useSidebarState()
 
@@ -516,8 +517,9 @@ export const SidebarChat = () => {
 
 
 	// state of current message
-	const [instructions, setInstructions] = useState('') // the user's instructions
-	const isDisabled = !instructions.trim()
+	const initVal = ''
+	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
+	const isDisabled = instructionsAreEmpty
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
 	const [formRef, formDimensions] = useResizeObserver()
@@ -525,14 +527,8 @@ export const SidebarChat = () => {
 
 	useScrollbarStyles(sidebarRef)
 
-	// const [formHeight, setFormHeight] = useState(0) // TODO should use resize observer instead
-	// const [sidebarHeight, setSidebarHeight] = useState(0)
-	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
+	const onSubmit = async () => {
 
-
-	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
-
-		e.preventDefault()
 		if (isDisabled) return
 		if (isLoading) return
 
@@ -561,6 +557,7 @@ export const SidebarChat = () => {
 		threadsStateService.addMessageToCurrentThread(systemPromptElt)
 
 		// add user's message to chat history
+		const instructions = textAreaRef.current?.value ?? ''
 		const userHistoryElt: ChatMessage = { role: 'user', content: chat_prompt(instructions, selections), displayContent: instructions, selections: selections }
 		threadsStateService.addMessageToCurrentThread(userHistoryElt)
 
@@ -569,9 +566,9 @@ export const SidebarChat = () => {
 		// send message to LLM
 		setIsLoading(true) // must come before message is sent so onError will work
 		setLatestError(null)
-		if (inputBoxRef.current) {
-			inputBoxRef.current.value = ''; // this triggers onDidChangeText
-			inputBoxRef.current.blur();
+		if (textAreaRef.current) {
+			textAreaFnsRef.current?.setValue('') // triggers onChange
+			textAreaRef.current.blur();
 		}
 
 		const object: ServiceSendLLMMessageParams = {
@@ -609,7 +606,7 @@ export const SidebarChat = () => {
 
 		threadsStateService.setStaging([]) // clear staging
 
-		inputBoxRef.current?.focus() // focus input after submit
+		textAreaRef.current?.focus() // focus input after submit
 
 	}
 
@@ -682,7 +679,7 @@ export const SidebarChat = () => {
 		<div // this div is used to position the input box properly
 			className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
 		>
-			<form
+			<div
 				ref={formRef}
 				className={`
 					flex flex-col gap-2 p-2 relative input text-left shrink-0
@@ -692,17 +689,8 @@ export const SidebarChat = () => {
 					max-h-[80vh] overflow-y-auto
 					border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 				`}
-				onKeyDown={(e) => {
-					if (e.key === 'Enter' && !e.shiftKey) {
-						onSubmit(e)
-					}
-				}}
-				onSubmit={(e) => {
-					console.log('submit!')
-					onSubmit(e)
-				}}
 				onClick={(e) => {
-					inputBoxRef.current?.focus()
+					textAreaRef.current?.focus()
 				}}
 			>
 				{/* top row */}
@@ -746,10 +734,16 @@ export const SidebarChat = () => {
 				>
 
 					{/* text input */}
-					<VoidInputBox
+					<VoidInputBox2
 						placeholder={`${keybindingString} to select`}
-						onChangeText={onChangeText}
-						inputBoxRef={inputBoxRef}
+						onChangeText={useCallback((newStr: string) => { setInstructionsAreEmpty(!newStr) }, [setInstructionsAreEmpty])}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' && !e.shiftKey) {
+								onSubmit()
+							}
+						}}
+						ref={textAreaRef}
+						fnsRef={textAreaFnsRef}
 						multiline={true}
 					/>
 				</div>
@@ -777,13 +771,14 @@ export const SidebarChat = () => {
 						:
 						// submit button (up arrow)
 						<ButtonSubmit
+							onClick={onSubmit}
 							disabled={isDisabled}
 						/>
 					}
 				</div>
 
 
-			</form>
+			</div>
 		</div >
 	</div >
 }

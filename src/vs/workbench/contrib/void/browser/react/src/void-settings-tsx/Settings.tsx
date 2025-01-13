@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { VoidButton, VoidCheckBox, VoidCustomSelectBox, VoidInputBox, VoidSwitch } from '../util/inputs.js'
+import { VoidButton, VoidCheckBox, VoidCustomSelectBox, VoidInputBox, VoidInputBox2, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
@@ -96,7 +96,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 	// const providerNameRef = useRef<ProviderName | null>(null)
 	const [providerName, setProviderName] = useState<ProviderName | null>(null)
 
-	const modelNameRef = useRef<string | null>(null)
+	const modelNameRef = useRef<HTMLTextAreaElement | null>(null)
 
 	const [errorString, setErrorString] = useState('')
 
@@ -124,9 +124,9 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 
 			{/* model */}
 			<div className='max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'>
-				<VoidInputBox
+				<VoidInputBox2
 					placeholder='Model Name'
-					onChangeText={useCallback((modelName) => { modelNameRef.current = modelName }, [])}
+					ref={modelNameRef}
 					multiline={false}
 				/>
 			</div>
@@ -134,7 +134,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 			{/* button */}
 			<div className='max-w-40'>
 				<VoidButton onClick={() => {
-					const modelName = modelNameRef.current
+					const modelName = modelNameRef.current?.value
 
 					if (providerName === null) {
 						setErrorString('Please select a provider.')

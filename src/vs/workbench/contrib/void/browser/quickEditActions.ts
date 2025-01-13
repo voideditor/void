@@ -10,16 +10,15 @@ import { KeybindingWeight } from '../../../../platform/keybinding/common/keybind
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IInlineDiffsService } from './inlineDiffsService.js';
-import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
 import { roundRangeToLines } from './sidebarActions.js';
 import { VOID_CTRL_K_ACTION_ID } from './actionIDs.js';
 
 
 export type QuickEditPropsType = {
 	diffareaid: number,
-	onGetInputBox: (i: InputBox) => void;
+	textAreaRef: (ref: HTMLTextAreaElement | null) => void;
 	onChangeHeight: (height: number) => void;
-	onUserUpdateText: (text: string) => void;
+	onChangeText: (text: string) => void;
 	initText: string | null;
 }
 

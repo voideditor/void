@@ -664,7 +664,6 @@ export const SidebarChat = () => {
 				flex flex-col gap-0
 				overflow-x-hidden
 				overflow-y-auto
-				${previousMessages.length > 0 ? 'pt-2' : ''}
 			`}
 			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 30 }} // the height of the previousMessages is determined by all other heights
 		>

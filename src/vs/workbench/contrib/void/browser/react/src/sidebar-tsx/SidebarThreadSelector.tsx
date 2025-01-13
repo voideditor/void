@@ -53,56 +53,62 @@ export const SidebarThreadSelector = () => {
 			{/* a list of all the past threads */}
 
 			<div className="px-1">
-				<ul className="flex flex-col gap-y-1 overflow-y-auto list-disc pl-4">
-					{sortedThreadIds.map((threadId) => {
-						if (!allThreads) {
-							return <li key="error" className="text-void-warning">{`No history found.`}</li>;
-						}
+				<ul className="flex flex-col gap-y-1 overflow-y-auto list-disc">
 
-						const pastThread = allThreads[threadId];
-						let firstMsg = null;
-						let secondMsg = null;
+					{sortedThreadIds.length === 0
 
-						const firstMsgIdx = pastThread.messages.findIndex(
-							(msg) => msg.role !== 'system' && !!msg.displayContent
-						);
+						? <div key="nothreads" className="text-center text-void-fg-3 brightness-90 text-sm">{`No history found`}</div>
 
-						if (firstMsgIdx !== -1) {
-							firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');
-						} else {
-							firstMsg = '""';
-						}
+						: sortedThreadIds.map((threadId) => {
+							if (!allThreads) {
+								return <li key="error" className="text-void-warning">{`No history found`}</li>;
+							}
 
-						const secondMsgIdx = pastThread.messages.findIndex(
-							(msg, i) => msg.role !== 'system' && !!msg.displayContent && i > firstMsgIdx
-						);
+							const pastThread = allThreads[threadId];
+							let firstMsg = null;
+							let secondMsg = null;
 
-						if (secondMsgIdx !== -1) {
-							secondMsg = truncate(pastThread.messages[secondMsgIdx].displayContent ?? '');
-						}
+							const firstMsgIdx = pastThread.messages.findIndex(
+								(msg) => msg.role !== 'system' && !!msg.displayContent
+							);
 
-						const numMessages = pastThread.messages.filter(
-							(msg) => msg.role !== 'system'
-						).length;
+							if (firstMsgIdx !== -1) {
+								firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');
+							} else {
+								firstMsg = '""';
+							}
 
-						return (
-							<li key={pastThread.id}>
-								<button
-									className={`
+							const secondMsgIdx = pastThread.messages.findIndex(
+								(msg, i) => msg.role !== 'system' && !!msg.displayContent && i > firstMsgIdx
+							);
+
+							if (secondMsgIdx !== -1) {
+								secondMsg = truncate(pastThread.messages[secondMsgIdx].displayContent ?? '');
+							}
+
+							const numMessages = pastThread.messages.filter(
+								(msg) => msg.role !== 'system'
+							).length;
+
+							return (
+								<li key={pastThread.id}>
+									<button
+										className={`
 										hover:bg-void-bg-1
 										${threadsState._currentThreadId === pastThread.id ? 'bg-void-bg-1' : ''}
 										rounded-sm px-2 py-1
 										w-full
 										text-left
 									`}
-									onClick={() => threadsStateService.switchToThread(pastThread.id)}
-									title={new Date(pastThread.createdAt).toLocaleString()}
-								>
-									{`${firstMsg} (${numMessages})`}
-								</button>
-							</li>
-						);
-					})}
+										onClick={() => threadsStateService.switchToThread(pastThread.id)}
+										title={new Date(pastThread.createdAt).toLocaleString()}
+									>
+										{`${firstMsg} (${numMessages})`}
+									</button>
+								</li>
+							);
+						})
+					}
 				</ul>
 			</div>
 

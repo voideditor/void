@@ -13,6 +13,8 @@ import { Checkbox } from '../../../../../../../base/browser/ui/toggle/toggle.js'
 import { CodeEditorWidget } from '../../../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js'
 import { useAccessor } from './services.js';
 import { ITextModel } from '../../../../../../../editor/common/model.js';
+import { asCssVariable } from '../../../../../../../platform/theme/common/colorUtils.js';
+import { inputBackground, inputForeground } from '../../../../../../../platform/theme/common/colorRegistry.js';
 
 
 // type guard
@@ -113,6 +115,11 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			disabled={!isEnabled}
 
 			className="w-full resize-none max-h-[500px] overflow-y-auto"
+			style={{
+				background: asCssVariable(inputBackground),
+				color: asCssVariable(inputForeground)
+				// inputBorder: asCssVariable(inputBorder),
+			}}
 
 			onChange={useCallback(() => {
 				const r = textAreaRef.current

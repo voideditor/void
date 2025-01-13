@@ -51,7 +51,6 @@ export const IconX = ({ size, className = '', ...props }: { size: number, classN
 	);
 };
 
-
 const IconArrowUp = ({ size, className = '' }: { size: number, className?: string }) => {
 	return (
 		<svg

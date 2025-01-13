@@ -1,7 +1,7 @@
-/*------------------------------------------------------------------------------------------
- *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
- *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
- *-----------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { spawn, execSync } from 'child_process';
 // Added lines below
@@ -73,7 +73,7 @@ function saveStylesFile() {
 		} catch (err) {
 			console.error('[scope-tailwind] Error saving styles.css:', err);
 		}
-	}, 5000);
+	}, 3000);
 }
 
 const args = process.argv.slice(2);

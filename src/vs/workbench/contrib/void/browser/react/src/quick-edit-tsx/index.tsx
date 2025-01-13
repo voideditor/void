@@ -3,16 +3,10 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-// ---------- common ----------
+import { mountFnGenerator } from '../util/mountFnGenerator.js'
+import { QuickEdit } from './QuickEdit.js'
 
-// llmMessage
-import '../common/llmMessageService.js'
 
-// voidSettings
-import '../common/voidSettingsService.js'
+export const mountCtrlK = mountFnGenerator(QuickEdit)
 
-// refreshModel
-import '../common/refreshModelService.js'
 
-// metrics
-import '../common/metricsService.js'

@@ -1,7 +1,7 @@
-/*------------------------------------------------------------------------------------------
- *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
- *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
- *-----------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainLLMMessageParams, MainLLMMessageAbortParams, ServiceModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, MainModelListParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from './llmMessageTypes.js';
 import { IChannel } from '../../../base/parts/ipc/common/ipc.js';
@@ -52,6 +52,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		super()
 
 		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service
+		// see llmMessageChannel.ts
 		this.channel = this.mainProcessService.getChannel('void-channel-llmMessageService')
 
 		// .listen sets up an IPC channel and takes a few ms, so we set up listeners immediately and add hooks to them instead

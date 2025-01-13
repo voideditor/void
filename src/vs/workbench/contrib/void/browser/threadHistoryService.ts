@@ -1,7 +1,7 @@
-/*------------------------------------------------------------------------------------------
- *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
- *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
- *-----------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
@@ -60,6 +60,10 @@ export type ChatThreads = {
 		createdAt: string; // ISO string
 		lastModified: string; // ISO string
 		messages: ChatMessage[];
+
+		// editing state
+		isBeingEdited: boolean;
+		_currentStagingSelections: CodeStagingSelection[] | null;
 	};
 }
 
@@ -77,6 +81,8 @@ const newThreadObject = () => {
 		createdAt: now,
 		lastModified: now,
 		messages: [],
+		isBeingEdited: false,
+		_currentStagingSelections: null,
 	}
 }
 

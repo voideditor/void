@@ -1,11 +1,24 @@
-/*------------------------------------------------------------------------------------------
- *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
- *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
- *-----------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { IRange } from '../../../editor/common/core/range'
 import { ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
+
+export const errorDetails = (fullError: Error | null): string | null => {
+	if (fullError === null) {
+		return null
+	}
+	else if (typeof fullError === 'object') {
+		return JSON.stringify(fullError, null, 2)
+	}
+	else if (typeof fullError === 'string') {
+		return null
+	}
+	return null
+}
 
 export type OnText = (p: { newText: string, fullText: string }) => void
 export type OnFinalMessage = (p: { fullText: string }) => void

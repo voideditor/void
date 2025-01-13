@@ -1,7 +1,7 @@
-/*------------------------------------------------------------------------------------------
- *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
- *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
- *-----------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { defineConfig } from 'tsup'
 
@@ -9,7 +9,7 @@ export default defineConfig({
 	entry: [
 		'./src2/sidebar-tsx/index.tsx',
 		'./src2/void-settings-tsx/index.tsx',
-		'./src2/ctrl-k-tsx/index.tsx',
+		'./src2/quick-edit-tsx/index.tsx',
 		'./src2/diff/index.tsx',
 	],
 	outDir: './out',

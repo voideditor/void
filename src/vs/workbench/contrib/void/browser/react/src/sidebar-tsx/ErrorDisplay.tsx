@@ -1,10 +1,11 @@
-/*------------------------------------------------------------------------------------------
- *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
- *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
- *-----------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { errorDetails } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 
 
 export const ErrorDisplay = ({
@@ -20,54 +21,44 @@ export const ErrorDisplay = ({
 }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
-	let details: string | null = null;
-
-	if (fullError === null) {
-		details = null
-	}
-	else if (typeof fullError === 'object') {
-		details = JSON.stringify(fullError, null, 2)
-	}
-	else if (typeof fullError === 'string') {
-		details = null
-	}
+	const details = errorDetails(fullError)
 
 
 	return (
 		<div className={`rounded-lg border border-red-200 bg-red-50 p-4 overflow-auto`}>
 			{/* Header */}
-			<div className="flex items-start justify-between">
-				<div className="flex gap-3">
-					<AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-					<div className="flex-1">
-						<h3 className="font-semibold text-red-800">
+			<div className='flex items-start justify-between'>
+				<div className='flex gap-3'>
+					<AlertCircle className='h-5 w-5 text-red-600 mt-0.5' />
+					<div className='flex-1'>
+						<h3 className='font-semibold text-red-800'>
 							{/* eg Error */}
 							Error
 						</h3>
-						<p className="text-red-700 mt-1">
+						<p className='text-red-700 mt-1'>
 							{/* eg Something went wrong */}
 							{message}
 						</p>
 					</div>
 				</div>
 
-				<div className="flex gap-2">
+				<div className='flex gap-2'>
 					{details && (
-						<button className="text-red-600 hover:text-red-800 p-1 rounded"
+						<button className='text-red-600 hover:text-red-800 p-1 rounded'
 							onClick={() => setIsExpanded(!isExpanded)}
 						>
 							{isExpanded ? (
-								<ChevronUp className="h-5 w-5" />
+								<ChevronUp className='h-5 w-5' />
 							) : (
-								<ChevronDown className="h-5 w-5" />
+								<ChevronDown className='h-5 w-5' />
 							)}
 						</button>
 					)}
 					{showDismiss && onDismiss && (
-						<button className="text-red-600 hover:text-red-800 p-1 rounded"
+						<button className='text-red-600 hover:text-red-800 p-1 rounded'
 							onClick={onDismiss}
 						>
-							<X className="h-5 w-5" />
+							<X className='h-5 w-5' />
 						</button>
 					)}
 				</div>
@@ -75,10 +66,10 @@ export const ErrorDisplay = ({
 
 			{/* Expandable Details */}
 			{isExpanded && details && (
-				<div className="mt-4 space-y-3 border-t border-red-200 pt-3 overflow-auto">
+				<div className='mt-4 space-y-3 border-t border-red-200 pt-3 overflow-auto'>
 					<div>
-						<span className="font-semibold text-red-800">Full Error: </span>
-						<pre className="text-red-700">{details}</pre>
+						<span className='font-semibold text-red-800'>Full Error: </span>
+						<pre className='text-red-700'>{details}</pre>
 					</div>
 				</div>
 			)}

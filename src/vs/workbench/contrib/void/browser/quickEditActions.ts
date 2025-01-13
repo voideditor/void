@@ -1,7 +1,7 @@
-/*------------------------------------------------------------------------------------------
- *  Copyright (c) 2025 Glass Devtools, Inc. All rights reserved.
- *  Licensed under the MIT License. See LICENSE.txt in the project root for more information.
- *-----------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
@@ -10,14 +10,15 @@ import { KeybindingWeight } from '../../../../platform/keybinding/common/keybind
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IInlineDiffsService } from './inlineDiffsService.js';
-import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
+import { roundRangeToLines } from './sidebarActions.js';
+import { VOID_CTRL_K_ACTION_ID } from './actionIDs.js';
 
 
 export type QuickEditPropsType = {
 	diffareaid: number,
-	onGetInputBox: (i: InputBox) => void;
+	textAreaRef: (ref: HTMLTextAreaElement | null) => void;
 	onChangeHeight: (height: number) => void;
-	onUserUpdateText: (text: string) => void;
+	onChangeText: (text: string) => void;
 	initText: string | null;
 }
 
@@ -30,7 +31,6 @@ export type QuickEdit = {
 }
 
 
-export const VOID_CTRL_K_ACTION_ID = 'void.ctrlKAction'
 registerAction2(class extends Action2 {
 	constructor(
 	) {
@@ -48,13 +48,13 @@ registerAction2(class extends Action2 {
 
 		const editorService = accessor.get(ICodeEditorService)
 		const metricsService = accessor.get(IMetricsService)
-		metricsService.capture('User Action', { type: 'Open Ctrl+K' })
+		metricsService.capture('Ctrl+K', {})
 
 		const editor = editorService.getActiveCodeEditor()
 		if (!editor) return;
 		const model = editor.getModel()
 		if (!model) return;
-		const selection = editor.getSelection()
+		const selection = roundRangeToLines(editor.getSelection(), { emptySelectionBehavior: 'line' })
 		if (!selection) return;
 
 

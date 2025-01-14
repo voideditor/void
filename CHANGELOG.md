@@ -17,6 +17,8 @@
 
 - Misc improvements like UI and history for Accept | Reject in the sidebar and editor, streaming interruptions, and past chat history.
 
+- Automatic file selection on tab switches.
+
 - Lots of new UI, misc bug fixes, and performance improvements.
 
 - Switched from the MIT License to the Apache 2.0 License. Apache's attribution clause provides a small amount of protection to our source initiative.

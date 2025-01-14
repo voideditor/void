@@ -1512,29 +1512,45 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 		buttons.style.display = 'flex';
 		buttons.style.position = 'absolute';
 		buttons.style.gap = '4px';
-		buttons.style.padding = '4px';
+		buttons.style.paddingRight = '4px';
 		buttons.style.zIndex = '1000';
 
 
 		// Style accept button
 		acceptButton.onclick = onAccept;
 		acceptButton.textContent = 'Accept';
-		acceptButton.style.backgroundColor = '#28a745';
+		acceptButton.style.backgroundColor = '#1a7431';
 		acceptButton.style.color = 'white';
-		acceptButton.style.border = 'none';
-		acceptButton.style.padding = '4px 8px';
-		acceptButton.style.borderRadius = '3px';
+		acceptButton.style.border = '1px solid #145626';
+		acceptButton.style.borderTop = 'none';
+		acceptButton.style.padding = '1px 4px';
+		acceptButton.style.borderBottomLeftRadius = '6px';
+		acceptButton.style.borderBottomRightRadius = '6px';
+		acceptButton.style.borderTopLeftRadius = '0';
+		acceptButton.style.borderTopRightRadius = '0';
 		acceptButton.style.cursor = 'pointer';
+		acceptButton.style.height = '100%';
+		acceptButton.style.fontSize = '12px';
+		acceptButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
 
 		// Style reject button
 		rejectButton.onclick = onReject;
 		rejectButton.textContent = 'Reject';
-		rejectButton.style.backgroundColor = '#dc3545';
+		rejectButton.style.backgroundColor = '#b42331';
 		rejectButton.style.color = 'white';
-		rejectButton.style.border = 'none';
-		rejectButton.style.padding = '4px 8px';
-		rejectButton.style.borderRadius = '3px';
+		rejectButton.style.border = '1px solid #8e1c27';
+		rejectButton.style.borderTop = 'none';
+		rejectButton.style.padding = '1px 4px';
+		rejectButton.style.borderBottomLeftRadius = '6px';
+		rejectButton.style.borderBottomRightRadius = '6px';
+		rejectButton.style.borderTopLeftRadius = '0';
+		rejectButton.style.borderTopRightRadius = '0';
 		rejectButton.style.cursor = 'pointer';
+		rejectButton.style.height = '100%';
+		rejectButton.style.fontSize = '12px';
+		rejectButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
+
+
 
 		this._domNode = buttons;
 

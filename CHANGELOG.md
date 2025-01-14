@@ -3,7 +3,7 @@
 
 
 
-## Jan. 12, 2025 - Entering beta
+## Jan. 13, 2025 - Entering beta
 
 - Added quick edits! Void handles FIM-prompting, output parsing, and history management for inline UI.
 

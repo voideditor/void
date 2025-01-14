@@ -13,14 +13,12 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 // import { throttle } from '../../../../base/common/decorators.js';
 import { ComputedDiff, findDiffs } from './helpers/findDiffs.js';
 import { EndOfLinePreference, IModelDecorationOptions, ITextModel } from '../../../../editor/common/model.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/core/range.js';
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
 import { Color, RGBA } from '../../../../base/common/color.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType } from '../../../../platform/undoRedo/common/undoRedo.js';
-import { LineSource, renderLines, RenderOptions } from '../../../../editor/browser/widget/diffEditor/components/diffEditorViewZones/renderLines.js';
-import { LineTokens } from '../../../../editor/common/tokens/lineTokens.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { RenderOptions } from '../../../../editor/browser/widget/diffEditor/components/diffEditorViewZones/renderLines.js';
 // import { IModelService } from '../../../../editor/common/services/model.js';
 
 import * as dom from '../../../../base/browser/dom.js';
@@ -36,7 +34,6 @@ import { errorDetails, LLMMessage } from '../../../../platform/void/common/llmMe
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
-import { InlineDecorationType } from '../../../../editor/common/viewModel.js';
 import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
@@ -202,7 +199,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 		@IModelService private readonly _modelService: IModelService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
-		@ILanguageService private readonly _langService: ILanguageService,
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IConsistentItemService private readonly _consistentItemService: IConsistentItemService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
@@ -458,29 +454,53 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					const domNode = document.createElement('div');
 					domNode.className = 'void-redBG'
 
-					const renderOptions = RenderOptions.fromEditor(editor);
-					// applyFontInfo(domNode, renderOptions.fontInfo)
+					const renderOptions = RenderOptions.fromEditor(editor)
 
-					// Compute view-lines based on redText
-					const redText = diff.originalCode
-					const lines = redText.split('\n');
-					const lineTokens = lines.map(line => LineTokens.createFromTextAndMetadata([{ text: line, metadata: 0 }], this._langService.languageIdCodec));
-					const source = new LineSource(lineTokens, lines.map(() => null), false, false)
-					const result = renderLines(source, renderOptions, [
-						{ // add dummy so it doesn't highlight in red
-							range: Range.lift({ startLineNumber: 1, startColumn: 1, endLineNumber: Number.MAX_SAFE_INTEGER, endColumn: Number.MAX_SAFE_INTEGER }),
-							inlineClassName: '',
-							type: InlineDecorationType.Regular
-						}
-					], domNode);
+					const processedText = diff.originalCode.replace(/\t/g, ' '.repeat(renderOptions.tabSize));
+
+					const lines = processedText.split('\n');
+
+					const linesContainer = document.createElement('div');
+					linesContainer.style.fontFamily = renderOptions.fontInfo.fontFamily
+					linesContainer.style.fontSize = `${renderOptions.fontInfo.fontSize}px`
+					linesContainer.style.lineHeight = `${renderOptions.fontInfo.lineHeight}px`
+					// linesContainer.style.tabSize = `${tabWidth}px` // \t
+					linesContainer.style.whiteSpace = 'pre'
+					linesContainer.style.position = 'relative'
+					linesContainer.style.width = '100%'
+
+					lines.forEach(line => {
+						// div for current line
+						const lineDiv = document.createElement('div');
+						lineDiv.className = 'view-line';
+						lineDiv.style.whiteSpace = 'pre'
+						lineDiv.style.position = 'relative'
+						lineDiv.style.height = `${renderOptions.fontInfo.lineHeight}px`
+
+						// span (this is just how vscode does it)
+						const span = document.createElement('span');
+						span.textContent = line || '\u00a0';
+						span.style.whiteSpace = 'pre'
+						span.style.display = 'inline-block'
+
+						lineDiv.appendChild(span);
+						linesContainer.appendChild(lineDiv);
+					});
+
+					domNode.appendChild(linesContainer);
+
+					// Calculate height based on number of lines and line height
+					const heightInLines = lines.length;
+					const minWidthInPx = Math.max(...lines.map(line =>
+						Math.ceil(renderOptions.fontInfo.typicalFullwidthCharacterWidth * line.length)
+					));
 
 					const viewZone: IViewZone = {
-						// afterLineNumber: computedDiff.startLine - 1,
 						afterLineNumber: type === 'edit' ? diff.endLine : diff.startLine - 1,
-						heightInLines: result.heightInLines,
-						minWidthInPx: result.minWidthInPx,
-						domNode: domNode,
-						marginDomNode: document.createElement('div'), // displayed to left
+						heightInLines,
+						minWidthInPx,
+						domNode,
+						marginDomNode: document.createElement('div'),
 						suppressMouseDown: false,
 						showInHiddenAreas: true,
 					};
@@ -497,48 +517,51 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-		// Accept | Reject widget
-		const consistentWidgetId = this._consistentItemService.addConsistentItemToURI({
-			uri,
-			fn: (editor) => {
-				const buttonsWidget = new AcceptRejectWidget({
-					editor,
-					onAccept: () => {
-						this.acceptDiff({ diffid })
-						this._metricsService.capture('Accept Diff', { batch: false })
-					},
-					onReject: () => {
-						this.rejectDiff({ diffid })
-						this._metricsService.capture('Reject Diff', { batch: false })
-					},
-					diffid: diffid.toString(),
-					startLine: diff.startLine,
-				})
-				return () => { buttonsWidget.dispose() }
-			}
-		})
-		disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(consistentWidgetId) })
+		const diffZone = this.diffAreaOfId[diff.diffareaid]
+		if (diffZone.type === 'DiffZone' && !diffZone._streamState.isStreaming) {
+			// Accept | Reject widget
+			const consistentWidgetId = this._consistentItemService.addConsistentItemToURI({
+				uri,
+				fn: (editor) => {
+					const buttonsWidget = new AcceptRejectWidget({
+						editor,
+						onAccept: () => {
+							this.acceptDiff({ diffid })
+							this._metricsService.capture('Accept Diff', { batch: false })
+						},
+						onReject: () => {
+							this.rejectDiff({ diffid })
+							this._metricsService.capture('Reject Diff', { batch: false })
+						},
+						diffid: diffid.toString(),
+						startLine: diff.startLine,
+					})
+					return () => { buttonsWidget.dispose() }
+				}
+			})
+			disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(consistentWidgetId) })
+		}
 
 
 
-		const id2 = this._consistentItemService.addConsistentItemToURI({
-			uri,
-			fn: (editor) => {
-				const buttonsWidget = new AcceptAllRejectAllWidget({
-					editor,
-					onAccept: () => {
-						this.acceptDiff({ diffid })
-						this._metricsService.capture('Accept Diff', { batch: false })
-					},
-					onReject: () => {
-						this.rejectDiff({ diffid })
-						this._metricsService.capture('Reject Diff', { batch: false })
-					},
-				})
-				return () => { buttonsWidget.dispose() }
-			}
-		})
-		disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(id2) })
+		// const id2 = this._consistentItemService.addConsistentItemToURI({
+		// 	uri,
+		// 	fn: (editor) => {
+		// 		const buttonsWidget = new AcceptAllRejectAllWidget({
+		// 			editor,
+		// 			onAccept: () => {
+		// 				this.acceptDiff({ diffid })
+		// 				this._metricsService.capture('Accept Diff', { batch: false })
+		// 			},
+		// 			onReject: () => {
+		// 				this.rejectDiff({ diffid })
+		// 				this._metricsService.capture('Reject Diff', { batch: false })
+		// 			},
+		// 		})
+		// 		return () => { buttonsWidget.dispose() }
+		// 	}
+		// })
+		// disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(id2) })
 
 
 
@@ -1661,56 +1684,56 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 
 
 
-class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
-	private readonly _domNode: HTMLElement;
-	private readonly editor: ICodeEditor;
-	private readonly ID: string;
+// class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
+// 	private readonly _domNode: HTMLElement;
+// 	private readonly editor: ICodeEditor;
+// 	private readonly ID: string;
 
-	constructor({ editor, onAccept, onReject, }: { editor: ICodeEditor, onAccept: () => void, onReject: () => void, }) {
-		super();
-		this.editor = editor;
-		this.ID = 'my.centered.widget';
+// 	constructor({ editor, onAccept, onReject, }: { editor: ICodeEditor, onAccept: () => void, onReject: () => void, }) {
+// 		super();
+// 		this.editor = editor;
+// 		this.ID = 'my.centered.widget';
 
-		// Create container div
-		this._domNode = document.createElement('div');
+// 		// Create container div
+// 		this._domNode = document.createElement('div');
 
-		// Style the container to center it
-		this._domNode.style.position = 'fixed';  // fixed instead of absolute
-		this._domNode.style.left = '50%';
-		this._domNode.style.top = '50%';
-		this._domNode.style.transform = 'translate(-50%, -50%)';
-		this._domNode.style.zIndex = '1000';
+// 		// Style the container to center it
+// 		this._domNode.style.position = 'fixed';  // fixed instead of absolute
+// 		this._domNode.style.left = '50%';
+// 		this._domNode.style.top = '50%';
+// 		this._domNode.style.transform = 'translate(-50%, -50%)';
+// 		this._domNode.style.zIndex = '1000';
 
-		// Style the blue box
-		this._domNode.style.backgroundColor = '#007ACC';
-		this._domNode.style.padding = '20px';
-		this._domNode.style.color = 'white';
-		this._domNode.style.borderRadius = '4px';
+// 		// Style the blue box
+// 		this._domNode.style.backgroundColor = '#007ACC';
+// 		this._domNode.style.padding = '20px';
+// 		this._domNode.style.color = 'white';
+// 		this._domNode.style.borderRadius = '4px';
 
-		// Add some content
-		this._domNode.textContent = 'Centered Widget';
+// 		// Add some content
+// 		this._domNode.textContent = 'Centered Widget';
 
-		// Mount the widget
-		editor.addOverlayWidget(this);
-	}
+// 		// Mount the widget
+// 		editor.addOverlayWidget(this);
+// 	}
 
-	public getId(): string {
-		return this.ID;
-	}
+// 	public getId(): string {
+// 		return this.ID;
+// 	}
 
-	public getDomNode(): HTMLElement {
-		return this._domNode;
-	}
+// 	public getDomNode(): HTMLElement {
+// 		return this._domNode;
+// 	}
 
-	public getPosition(): null {
-		return null;  // null position lets us position it absolutely
-	}
+// 	public getPosition(): null {
+// 		return null;  // null position lets us position it absolutely
+// 	}
 
-	public override dispose(): void {
-		this.editor.removeOverlayWidget(this);
-		super.dispose();
-	}
-}
+// 	public override dispose(): void {
+// 		this.editor.removeOverlayWidget(this);
+// 		super.dispose();
+// 	}
+// }
 
 
 

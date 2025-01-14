@@ -708,7 +708,7 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
 				const model = modelOfEditorId[id] ?? modelService.createModel(
 					initValueRef.current, {
-					languageId: languageRef.current ? languageRef.current : '',
+					languageId: languageRef.current ? languageRef.current : 'typescript',
 					onDidChange: (e) => { return { dispose: () => { } } } // no idea why they'd require this
 				})
 				modelRef.current = model

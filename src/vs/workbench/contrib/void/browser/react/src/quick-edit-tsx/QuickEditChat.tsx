@@ -75,7 +75,7 @@ export const QuickEditChat = ({
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
 
-	return <div ref={sizerRef} className='py-2 w-full max-w-xl'>
+	return <div ref={sizerRef} style={{ maxWidth: 500 }} className='py-2 pl-4 w-full'>
 		<form
 			// copied from SidebarChat.tsx
 			className={`
@@ -92,27 +92,17 @@ export const QuickEditChat = ({
 
 			{/* // this div is used to position the input box properly */}
 			<div
-				className={`w-full z-[999] relative
-					@@[&_textarea]:!void-bg-transparent
-					@@[&_textarea]:!void-outline-none
-					@@[&_textarea]:!void-text-vscode-input-fg
-					@@[&_div.monaco-inputbox]:!void-border-none
-					@@[&_div.monaco-inputbox]:!void-outline-none`}
+				className={`w-full z-[999] relative`}
 			>
 				<div className='flex flex-row items-center justify-between items-end gap-1'>
 
 					{/* input */}
 					<div // copied from SidebarChat.tsx
-						className={`w-full
-							@@[&_textarea]:!void-bg-transparent
-							@@[&_textarea]:!void-outline-none
-							@@[&_textarea]:!void-text-vscode-input-fg
-							@@[&_div.monaco-inputbox]:!void-outline-none
-						`}
+						className={`w-full`}
 					>
 						{/* text input */}
 						<VoidInputBox2
-
+							className='px-1'
 							initValue={initText}
 
 							ref={useCallback((r: HTMLTextAreaElement | null) => {
@@ -129,7 +119,8 @@ export const QuickEditChat = ({
 
 							fnsRef={textAreaFnsRef}
 
-							placeholder={`${keybindingString} to select`}
+							placeholder={`Enter instructions...`}
+							// ${keybindingString} to select.
 
 							onChangeText={useCallback((newStr: string) => {
 								setInstructionsAreEmpty(!newStr)

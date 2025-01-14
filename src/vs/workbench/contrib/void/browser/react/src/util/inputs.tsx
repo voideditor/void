@@ -54,11 +54,12 @@ type InputBox2Props = {
 	placeholder: string;
 	multiline: boolean;
 	fnsRef?: { current: null | TextAreaFns };
+	className?: string;
 	onChangeText?: (value: string) => void;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 	onChangeHeight?: (newHeight: number) => void;
 }
-export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, onKeyDown, onChangeText }, ref) {
+export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, className, onKeyDown, onChangeText }, ref) {
 
 	// mirrors whatever is in ref
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -114,7 +115,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 			disabled={!isEnabled}
 
-			className="w-full resize-none max-h-[500px] overflow-y-auto"
+			className={`w-full resize-none overflow-y-auto ${className}`}
 			style={{
 				// defaultInputBoxStyles
 				background: asCssVariable(inputBackground),

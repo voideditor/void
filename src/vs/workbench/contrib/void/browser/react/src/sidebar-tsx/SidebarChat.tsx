@@ -177,8 +177,8 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 
 	return <button
 		type='button'
-		className={`rounded-full flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
-			${disabled ? 'bg-vscode-disabled-fg' : 'bg-white'}
+		className={`rounded-full flex-shrink-0 flex-grow-0 flex items-center justify-center
+			${disabled ? 'bg-vscode-disabled-fg cursor-default' : 'bg-white cursor-pointer'}
 			${className}
 		`}
 		{...props}
@@ -304,7 +304,7 @@ export const SelectedFiles = (
 									select-none
 									bg-void-bg-3 hover:brightness-95
 									text-void-fg-1 text-xs text-nowrap
-									border rounded-xs ${isClearHovered ? 'border-void-border-1' : 'border-void-border-2'}
+									border rounded-xs ${isClearHovered ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
 									transition-all duration-150`}
 								onClick={() => {
 									// open the file if it is a file
@@ -712,30 +712,12 @@ export const SidebarChat = () => {
 				</>
 
 				{/* middle row */}
-				<div
-					className={
-						// // hack to overwrite vscode styles (generated with this code):
-						//   `bg-transparent outline-none text-vscode-input-fg min-h-[81px] max-h-[500px]`
-						//     .split(' ')
-						//     .map(style => `@@[&_textarea]:!void-${style}`) // apply styles to ancestor textarea elements
-						//     .join(' ') +
-						//   ` outline-none border-none`
-						//     .split(' ')
-						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`)
-						//     .join(' ');
-						`
-						@@[&_textarea]:!void-outline-none
-						@@[&_textarea]:!void-min-h-[81px]
-						@@[&_textarea]:!void-max-h-[500px]
-						@@[&_div.monaco-inputbox]:!void-border-none
-						@@[&_div.monaco-inputbox]:!void-outline-none
-						`
-					}
-				>
+				<div>
 
 					{/* text input */}
 					<VoidInputBox2
-						placeholder={`${keybindingString} to select`}
+						className='min-h-[81px]'
+						placeholder={`${keybindingString} to select. Enter instructions...`}
 						onChangeText={useCallback((newStr: string) => { setInstructionsAreEmpty(!newStr) }, [setInstructionsAreEmpty])}
 						onKeyDown={(e) => {
 							if (e.key === 'Enter' && !e.shiftKey) {

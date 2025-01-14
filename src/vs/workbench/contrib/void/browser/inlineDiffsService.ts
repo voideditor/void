@@ -378,6 +378,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						}
 					},
 					onChangeHeight(height) {
+						if (height === 0) return // the viewZone sets this height to the container if it's out of view, ignore it
 						viewZone.heightInPx = height
 						// re-render with this new height
 						editor.changeViewZones(accessor => {

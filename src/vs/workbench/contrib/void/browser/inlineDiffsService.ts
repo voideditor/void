@@ -38,7 +38,6 @@ import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCod
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { InlineDecorationType } from '../../../../editor/common/viewModel.js';
 import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
-import { BaseEditorSimpleWorker } from '../../../../editor/common/services/editorSimpleWorker.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
 // import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
@@ -129,6 +128,8 @@ type CtrlKZone = {
 		dispose: () => void;
 		refresh: () => void;
 	}
+
+	_linkedStreamingDiffZone: number | null; // diffareaid of the diffZone currently streaming here
 
 } & CommonZoneProps
 
@@ -292,13 +293,15 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					// sweepLine ... sweepLine
 					const fn1 = this._addLineDecoration(model, diffArea._streamState.line, diffArea._streamState.line, 'void-sweepIdxBG')
 					// sweepLine+1 ... endLine
-					const fn2 = this._addLineDecoration(model, diffArea._streamState.line + 1, diffArea.endLine, 'void-sweepBG')
+					const fn2 = diffArea._streamState.line + 1 <= diffArea.endLine ?
+						this._addLineDecoration(model, diffArea._streamState.line + 1, diffArea.endLine, 'void-sweepBG')
+						: null
 					diffArea._removeStylesFns.add(() => { fn1?.(); fn2?.(); })
 
 				}
 			}
 
-			else if (diffArea.type === 'CtrlKZone') {
+			else if (diffArea.type === 'CtrlKZone' && diffArea._linkedStreamingDiffZone === null) {
 				// highlight zone's text
 				const fn = this._addLineDecoration(model, diffArea.startLine, diffArea.endLine, 'void-highlightBG')
 				diffArea._removeStylesFns.add(() => fn?.());
@@ -478,7 +481,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						minWidthInPx: result.minWidthInPx,
 						domNode: domNode,
 						marginDomNode: document.createElement('div'), // displayed to left
-						suppressMouseDown: true,
+						suppressMouseDown: false,
 						showInHiddenAreas: true,
 					};
 
@@ -548,24 +551,30 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 	weAreWriting = false
-	worker = new BaseEditorSimpleWorker()
 	private async _writeText(uri: URI, text: string, range: IRange, { shouldRealignDiffAreas }: { shouldRealignDiffAreas: boolean }) {
 		const model = this._getModel(uri)
 		if (!model) return
 		const uriStr = this._readURI(uri, range)
-		if (!uriStr) return
+		if (uriStr === null) return
 
-		// minimal edits so not so flashy
-		// __TODO__ THIS IS NOT INSIDE A WORKER, SO IT MIGHT BE SLOW, we should instead just do an optimal write ourselves
-		const edits = this.worker.$Void_computeMoreMinimalEdits(uri.toString(), [{ range, text }], false)
 
-		if (edits) {
-			this.weAreWriting = true
-			model.applyEdits(edits)
-			this.weAreWriting = false
+		// heuristic check if don't need to make edits
+		const dontNeedToWrite = uriStr === text
+		if (dontNeedToWrite) {
+			// at the end of a write, we still expect to refresh all styles
+			// e.g. sometimes we expect to restore all the decorations even if no edits were made when _writeText is used
+			this._refreshStylesAndDiffsInURI(uri)
+			return
 		}
 
+		// minimal edits so not so flashy
+		// const edits = this.worker.$Void_computeMoreMinimalEdits(uri.toString(), [{ range, text }], false)
+		this.weAreWriting = true
+		model.applyEdits([{ range, text }])
+		this.weAreWriting = false
+
 		this._onInternalChangeContent(uri, { shouldRealign: shouldRealignDiffAreas && { newText: text, oldRange: range } })
+
 	}
 
 
@@ -627,6 +636,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						_URI: uri,
 						_removeStylesFns: new Set(),
 						_mountInfo: null,
+						_linkedStreamingDiffZone: null,
 					}
 				}
 				this.diffAreasOfURI[uri.fsPath].add(diffareaid)
@@ -636,16 +646,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const numLines = this._getNumLines(uri)
 			if (numLines === null) return
 
-			const hasWriteChange = this._readURI(uri) !== entireModelCode // a heuristic check
-			if (hasWriteChange)
-				this._writeText(uri, entireModelCode,
-					{ startColumn: 1, startLineNumber: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
-					{ shouldRealignDiffAreas: false }
-				)
-			else {
-				// restore all the decorations
-				this._refreshStylesAndDiffsInURI(uri)
-			}
+
+			this._writeText(uri, entireModelCode,
+				{ startColumn: 1, startLineNumber: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
+				{ shouldRealignDiffAreas: false }
+			)
 		}
 
 		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
@@ -844,7 +849,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// @throttle(100)
-	private _writeDiffZoneLLMText(diffZone: DiffZone, llmText: string) {
+	private _writeStreamedDiffZoneLLMText(diffZone: DiffZone, llmText: string, deltaText: string, latest: { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number }) {
 
 		// ----------- 1. Write the new code to the document -----------
 		// figure out where to highlight based on where the AI is in the stream right now, use the last diff to figure that out
@@ -881,17 +886,41 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 
 
-		// lines are 1-indexed
-		const newCodeTop = llmText.split('\n').slice(0, (newCodeEndLine - 1) + 1).join('\n')
-		const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1) + 1, Infinity).join('\n')
 
-		// oriignalCode[1 + line...Infinity]. Must make sure 1 + line < originalCode.length. This is another way to check:
-		const newCode = (newCodeTop && oldFileBottom) ? `${newCodeTop}\n${oldFileBottom}` : (oldFileBottom || newCodeTop)
 
-		this._writeText(uri, newCode,
-			{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
+		// insert at latest line and col
+		this._writeText(uri, deltaText,
+			{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col },
 			{ shouldRealignDiffAreas: true }
 		)
+		latest.line += deltaText.split('\n').length - 1
+		const lastNewlineIdx = deltaText.lastIndexOf('\n')
+		latest.col = lastNewlineIdx === -1 ? latest.col + deltaText.length : deltaText.length - lastNewlineIdx
+
+		if (!latest.addedSplitYet) {
+			this._writeText(uri, '',
+				{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col, },
+				{ shouldRealignDiffAreas: true }
+			)
+			latest.addedSplitYet = true
+		}
+
+		// delete or insert to get original up to speed
+		if (latest.originalCodeStartLine < originalCodeStartLine) {
+			// moved up, delete
+			const numLinesDeleted = originalCodeStartLine - latest.originalCodeStartLine
+			this._writeText(uri, '',
+				{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line + numLinesDeleted, endColumn: Number.MAX_SAFE_INTEGER, },
+				{ shouldRealignDiffAreas: true }
+			)
+		}
+		else if (latest.originalCodeStartLine > originalCodeStartLine) {
+			this._writeText(uri, '\n' + diffZone.originalCode.split('\n').slice((latest.originalCodeStartLine - 1), (originalCodeStartLine - 1) + 1).join('\n'),
+				{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col },
+				{ shouldRealignDiffAreas: true }
+			)
+		}
+		latest.originalCodeStartLine = originalCodeStartLine
 
 		// add diffZone.startLine to convert to right coordinate system (line in file, not in diffarea)
 		diffZone._streamState.line = (diffZone.startLine - 1) + newCodeEndLine
@@ -980,6 +1009,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_URI: uri,
 			_removeStylesFns: new Set(),
 			_mountInfo: null,
+			_linkedStreamingDiffZone: null,
 		}
 		const ctrlKZone = this._addDiffArea(adding)
 		this._refreshStylesAndDiffsInURI(uri)
@@ -1054,7 +1084,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		else if (featureName === 'Ctrl+K') {
 			const { diffareaid } = opts
-
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
 			if (ctrlKZone.type !== 'CtrlKZone') return
 
@@ -1101,7 +1130,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_removeStylesFns: new Set(),
 		}
 		const diffZone = this._addDiffArea(adding)
+		if (featureName === 'Ctrl+K') {
+			const { diffareaid } = opts
+			const ctrlKZone = this.diffAreaOfId[diffareaid]
+			if (ctrlKZone.type !== 'CtrlKZone') return
+			ctrlKZone._linkedStreamingDiffZone = diffZone.diffareaid
+		}
 
+		// now handle messages
 		let messages: LLMMessage[]
 
 		if (featureName === 'Ctrl+L') {
@@ -1147,29 +1183,33 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this._refreshStylesAndDiffsInURI(uri)
 
 
-		const extractText = (fullText: string) => {
+		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
 			if (featureName === 'Ctrl+K') {
 				if (ollamaStyleFIM) return fullText
-				return extractCodeFromFIM({ text: fullText, midTag: modelFimTags.midTag })
+				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: modelFimTags.midTag })
 			}
 			else if (featureName === 'Ctrl+L') {
-				return extractCodeFromRegular(fullText)
+				return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
 			}
 			throw 1
 		}
 
+		const latestStreamInfo = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			featureName,
 			logging: { loggingName: `startApplying - ${featureName}` },
 			messages,
 			onText: ({ newText, fullText }) => {
-				this._writeDiffZoneLLMText(diffZone, extractText(fullText))
+				const [text, deltaText] = extractText(fullText, newText.length)
+
+				this._writeStreamedDiffZoneLLMText(diffZone, text, deltaText, latestStreamInfo)
 				this._refreshStylesAndDiffsInURI(uri)
 			},
 			onFinalMessage: ({ fullText }) => {
 				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
 				// at the end, re-write whole thing to make sure no sync errors
-				this._writeText(uri, extractText(fullText),
+				const [text, _] = extractText(fullText, 0)
+				this._writeText(uri, text,
 					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 					{ shouldRealignDiffAreas: true }
 				)

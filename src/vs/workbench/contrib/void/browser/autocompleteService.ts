@@ -652,7 +652,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					// newAutocompletion.abortRef = { current: () => { } }
 					newAutocompletion.status = 'finished'
 					// newAutocompletion.promise = undefined
-					newAutocompletion.insertText = postprocessResult(extractCodeFromRegular(fullText))
+					const [text, _] = extractCodeFromRegular({ text: fullText, recentlyAddedTextLen: 0 })
+					newAutocompletion.insertText = postprocessResult(text)
 
 					resolve(newAutocompletion.insertText)
 

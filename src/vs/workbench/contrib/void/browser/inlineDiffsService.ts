@@ -39,11 +39,11 @@ import { IMetricsService } from '../../../../platform/void/common/metricsService
 import { InlineDecorationType } from '../../../../editor/common/viewModel.js';
 import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { BaseEditorSimpleWorker } from '../../../../editor/common/services/editorSimpleWorker.js';
-import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
-import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
-import { localize2 } from '../../../../nls.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
+// import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
+// import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
+// import { localize2 } from '../../../../nls.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -180,8 +180,7 @@ export interface IInlineDiffsService {
 	interruptStreaming(diffareaid: number): void;
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 	removeCtrlKZone(opts: { diffareaid: number }): void;
-
-	testDiffs(): void;
+	// testDiffs(): void;
 }
 
 export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffAreasService');
@@ -1195,45 +1194,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	testDiffs(): DiffZone | undefined {
-		const uri = this._getActiveEditorURI()
-		if (!uri) return
-
-		const startLine = 1
-		const endLine = 4
-
-		const currentFileStr = this._readURI(uri)
-		if (currentFileStr === null) return
-		const originalCode = currentFileStr.split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
-
-		const { onFinishEdit } = this._addToHistory(uri)
-		const adding: Omit<DiffZone, 'diffareaid'> = {
-			type: 'DiffZone',
-			originalCode,
-			startLine,
-			endLine,
-			_URI: uri,
-			_streamState: { isStreaming: false, },
-			_diffOfId: {}, // added later
-			_removeStylesFns: new Set(),
-		}
-		const diffZone = this._addDiffArea(adding)
-		const endResult = `\
-const x = 1;
-if (x > 0) {
-	console.log('hi!')
-}`
-		this._writeText(uri, endResult,
-			{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-			{ shouldRealignDiffAreas: true }
-		)
-		diffZone._streamState = { isStreaming: false, }
-		this._refreshStylesAndDiffsInURI(uri)
-		onFinishEdit()
-
-		return diffZone
-	}
-
 
 
 	private _stopIfStreaming(diffZone: DiffZone) {
@@ -1475,6 +1435,48 @@ if (x > 0) {
 
 	}
 
+
+
+
+	// 	testDiffs(): DiffZone | undefined {
+	// 		const uri = this._getActiveEditorURI()
+	// 		if (!uri) return
+
+	// 		const startLine = 1
+	// 		const endLine = 4
+
+	// 		const currentFileStr = this._readURI(uri)
+	// 		if (currentFileStr === null) return
+	// 		const originalCode = currentFileStr.split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
+
+	// 		const { onFinishEdit } = this._addToHistory(uri)
+	// 		const adding: Omit<DiffZone, 'diffareaid'> = {
+	// 			type: 'DiffZone',
+	// 			originalCode,
+	// 			startLine,
+	// 			endLine,
+	// 			_URI: uri,
+	// 			_streamState: { isStreaming: false, },
+	// 			_diffOfId: {}, // added later
+	// 			_removeStylesFns: new Set(),
+	// 		}
+	// 		const diffZone = this._addDiffArea(adding)
+	// 		const endResult = `\
+	// const x = 1;
+	// if (x > 0) {
+	// 	console.log('hi!')
+	// }`
+	// 		this._writeText(uri, endResult,
+	// 			{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+	// 			{ shouldRealignDiffAreas: true }
+	// 		)
+	// 		diffZone._streamState = { isStreaming: false, }
+	// 		this._refreshStylesAndDiffsInURI(uri)
+	// 		onFinishEdit()
+
+	// 		return diffZone
+	// 	}
+
 }
 
 registerSingleton(IInlineDiffsService, InlineDiffsService, InstantiationType.Eager);
@@ -1577,17 +1579,17 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 
 
 
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'void.testDiff',
-			title: localize2('voidTestDiff', 'Void Test Diff'),
-			f1: true,
-		});
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-		const inlineDiffsService = accessor.get(IInlineDiffsService)
-		inlineDiffsService.testDiffs()
+// registerAction2(class extends Action2 {
+// 	constructor() {
+// 		super({
+// 			id: 'void.testDiff',
+// 			title: localize2('voidTestDiff', 'Void Test Diff'),
+// 			f1: true,
+// 		});
+// 	}
+// 	async run(accessor: ServicesAccessor): Promise<void> {
+// 		const inlineDiffsService = accessor.get(IInlineDiffsService)
+// 		inlineDiffsService.testDiffs()
 
-	}
-})
+// 	}
+// })

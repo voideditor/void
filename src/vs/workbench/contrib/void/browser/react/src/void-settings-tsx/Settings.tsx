@@ -109,7 +109,8 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 				options={providerNames}
 				selectedOption={providerName}
 				onChangeOption={(pn) => setProviderName(pn)}
-				getOptionName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
+				getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
+				getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
 				getOptionsEqual={(a, b) => a === b}
 				className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
 					py-[4px] px-[6px]

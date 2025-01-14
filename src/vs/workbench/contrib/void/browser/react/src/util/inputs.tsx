@@ -299,7 +299,8 @@ export const VoidCustomSelectBox = <T extends any>({
 	options,
 	selectedOption: selectedOption_,
 	onChangeOption,
-	getOptionName,
+	getOptionDropdownName,
+	getOptionDisplayName,
 	getOptionsEqual,
 	className,
 	arrowTouchesText = true,
@@ -310,7 +311,8 @@ export const VoidCustomSelectBox = <T extends any>({
 	options: T[];
 	selectedOption?: T;
 	onChangeOption: (newValue: T) => void;
-	getOptionName: (option: T) => string;
+	getOptionDropdownName: (option: T) => string;
+	getOptionDisplayName: (option: T) => string;
 	getOptionsEqual: (a: T, b: T) => boolean;
 	className?: string;
 	arrowTouchesText?: boolean;
@@ -420,9 +422,9 @@ export const VoidCustomSelectBox = <T extends any>({
 				aria-hidden="true"
 			>
 				{options.map((option) => (
-					<div key={getOptionName(option)} className="flex items-center whitespace-nowrap">
+					<div key={getOptionDropdownName(option)} className="flex items-center whitespace-nowrap">
 						<div className="w-4" />
-						<span className="px-2">{getOptionName(option)}</span>
+						<span className="px-2">{getOptionDropdownName(option)}</span>
 					</div>
 				))}
 			</div>
@@ -437,7 +439,7 @@ export const VoidCustomSelectBox = <T extends any>({
 				}}
 			>
 				<span className={`max-w-[120px] truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
-					{getOptionName(selectedOption)}
+					{getOptionDisplayName(selectedOption)}
 				</span>
 				<svg
 					className={`size-3 flex-shrink-0 ${arrowTouchesText ? '' : 'ml-auto'}`}
@@ -466,7 +468,7 @@ export const VoidCustomSelectBox = <T extends any>({
 				>
 					{options.map((option) => {
 						const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
-						const optionName = getOptionName(option);
+						const optionName = getOptionDropdownName(option);
 
 						return (
 							<div

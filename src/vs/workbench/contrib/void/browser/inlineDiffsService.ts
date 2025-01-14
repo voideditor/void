@@ -521,6 +521,27 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
+		const id2 = this._consistentItemService.addConsistentItemToURI({
+			uri,
+			fn: (editor) => {
+				const buttonsWidget = new AcceptAllRejectAllWidget({
+					editor,
+					onAccept: () => {
+						this.acceptDiff({ diffid })
+						this._metricsService.capture('Accept Diff', { batch: false })
+					},
+					onReject: () => {
+						this.rejectDiff({ diffid })
+						this._metricsService.capture('Reject Diff', { batch: false })
+					},
+				})
+				return () => { buttonsWidget.dispose() }
+			}
+		})
+		disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(id2) })
+
+
+
 		const disposeInEditor = () => { disposeInThisEditorFns.forEach(f => f()) }
 		return disposeInEditor;
 
@@ -843,6 +864,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// 4. refresh ctrlK zones
 		this._refreshCtrlKInputs(uri)
+
+		// 5.
+		// this.removeDiffAreas({ uri, behavior: 'reject' })
 	}
 
 
@@ -1632,6 +1656,61 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 
 }
 
+
+
+
+
+
+class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
+	private readonly _domNode: HTMLElement;
+	private readonly editor: ICodeEditor;
+	private readonly ID: string;
+
+	constructor({ editor, onAccept, onReject, }: { editor: ICodeEditor, onAccept: () => void, onReject: () => void, }) {
+		super();
+		this.editor = editor;
+		this.ID = 'my.centered.widget';
+
+		// Create container div
+		this._domNode = document.createElement('div');
+
+		// Style the container to center it
+		this._domNode.style.position = 'fixed';  // fixed instead of absolute
+		this._domNode.style.left = '50%';
+		this._domNode.style.top = '50%';
+		this._domNode.style.transform = 'translate(-50%, -50%)';
+		this._domNode.style.zIndex = '1000';
+
+		// Style the blue box
+		this._domNode.style.backgroundColor = '#007ACC';
+		this._domNode.style.padding = '20px';
+		this._domNode.style.color = 'white';
+		this._domNode.style.borderRadius = '4px';
+
+		// Add some content
+		this._domNode.textContent = 'Centered Widget';
+
+		// Mount the widget
+		editor.addOverlayWidget(this);
+	}
+
+	public getId(): string {
+		return this.ID;
+	}
+
+	public getDomNode(): HTMLElement {
+		return this._domNode;
+	}
+
+	public getPosition(): null {
+		return null;  // null position lets us position it absolutely
+	}
+
+	public override dispose(): void {
+		this.editor.removeOverlayWidget(this);
+		super.dispose();
+	}
+}
 
 
 

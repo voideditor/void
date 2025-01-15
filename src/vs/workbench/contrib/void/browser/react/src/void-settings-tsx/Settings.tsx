@@ -422,14 +422,14 @@ export const FeaturesTab = () => {
 			<VoidProviderSettings providerNames={localProviderNames} />
 		</ErrorBoundary>
 
-		<h2 className={`text-3xl mb-2 mt-24`}>Providers</h2>
+		<h2 className={`text-3xl mb-2 mt-12`}>Providers</h2>
 		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
 		{/* <h3 className={`opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3> */}
 		<ErrorBoundary>
 			<VoidProviderSettings providerNames={nonlocalProviderNames} />
 		</ErrorBoundary>
 
-		<h2 className={`text-3xl mb-2 mt-24`}>Models</h2>
+		<h2 className={`text-3xl mb-2 mt-12`}>Models</h2>
 		<ErrorBoundary>
 			<AutoRefreshToggle />
 			<RefreshableModels />
@@ -569,7 +569,7 @@ const GeneralTab = () => {
 
 
 
-		<div className='mt-24'>
+		<div className='mt-12'>
 			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
 			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
@@ -591,7 +591,7 @@ const GeneralTab = () => {
 		</div>
 
 
-		<div className='mt-24'>
+		<div className='mt-12'>
 			<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
 			<h4 className={`text-void-fg-3 mb-2`}>{`Instructions to include on all AI requests.`}</h4>
 			<AIInstructionsBox />

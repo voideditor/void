@@ -91,7 +91,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			disposables.forEach(d => d.dispose())
 			disposables.clear()
 
-			if (!voidSettingsService.state.globalSettings['autoRefreshModels']) return
+			if (!voidSettingsService.state.globalSettings.autoRefreshModels) return
 
 			for (const providerName of refreshableProviderNames) {
 

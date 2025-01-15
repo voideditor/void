@@ -38,9 +38,7 @@ import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-// import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
-// import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
-// import { localize2 } from '../../../../nls.js';
+import { Emitter, Event } from '../../../../base/common/event.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -197,6 +195,12 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	diffOfId: Record<string, Diff> = {}; // redundant with diffArea._diffs
 
 
+	// only applies to diffZones
+	streamingDiffZonesOfURI: Record<string, Set<number>> = {}
+	private readonly _onDidChangeStreaming = new Emitter<{ uri: URI }>();
+	readonly onDidChangeStreaming: Event<{ uri: URI }> = this._onDidChangeStreaming.event;
+
+
 	constructor(
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
@@ -217,6 +221,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				this.diffAreasOfURI[model.uri.fsPath] = new Set();
 			}
 
+			if (!(model.uri.fsPath in this.streamingDiffZonesOfURI)) {
+				this.streamingDiffZonesOfURI[model.uri.fsPath] = new Set();
+			}
+
 			// when the user types, realign diff areas and re-render them
 			this._register(
 				model.onDidChangeContent(e => {
@@ -224,6 +232,28 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					if (this.weAreWriting) return
 					const uri = model.uri
 					this._onUserChangeContent(uri, e)
+				})
+			)
+
+			// when a stream starts or ends
+			const uriStreamingState = {
+				isStreaming: false,
+				removeStyles: null as (() => void) | null,
+			}
+
+			this._register(
+				this.onDidChangeStreaming(({ uri: uri_ }) => {
+					const uri = model.uri
+					if (uri_.fsPath !== uri.fsPath) return
+
+					const noLongerStreaming = (this.streamingDiffZonesOfURI[uri.fsPath].size ?? 0) === 0
+					if (uriStreamingState.isStreaming === noLongerStreaming) return // if no change in the state, return
+
+					if (noLongerStreaming)
+						uriStreamingState.removeStyles?.()
+					else
+						uriStreamingState.removeStyles = this._addAcceptRejectUI(uri) ?? null
+
 				})
 			)
 		}
@@ -330,6 +360,40 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			}
 
 		}
+	}
+
+	private _addAcceptRejectUI(uri: URI) {
+
+		// find all diffzones that aren't streaming
+		const diffZones: DiffZone[] = []
+		for (let diffareaid of this.diffAreasOfURI[uri.fsPath]) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (diffArea.type !== 'DiffZone') continue
+			if (diffArea._streamState.isStreaming) continue
+			diffZones.push(diffArea)
+		}
+		if (diffZones.length === 0) return
+
+		const id2 = this._consistentItemService.addConsistentItemToURI({
+			uri,
+			fn: (editor) => {
+				const buttonsWidget = new AcceptAllRejectAllWidget({
+					editor,
+					onAccept: () => {
+						this.removeDiffAreas({ uri, behavior: 'accept' })
+						this._metricsService.capture('Accept All', { batch: false })
+					},
+					onReject: () => {
+						this.removeDiffAreas({ uri, behavior: 'reject' })
+						this._metricsService.capture('Reject All', { batch: false })
+					},
+				})
+				return () => { buttonsWidget.dispose() }
+			}
+		})
+
+
+		return () => { this._consistentItemService.removeConsistentItemFromURI(id2) }
 	}
 
 
@@ -552,29 +616,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(consistentWidgetId) })
 		}
 
-
-
-		// const id2 = this._consistentItemService.addConsistentItemToURI({
-		// 	uri,
-		// 	fn: (editor) => {
-		// 		const buttonsWidget = new AcceptAllRejectAllWidget({
-		// 			editor,
-		// 			onAccept: () => {
-		// 				this.acceptDiff({ diffid })
-		// 				this._metricsService.capture('Accept Diff', { batch: false })
-		// 			},
-		// 			onReject: () => {
-		// 				this.rejectDiff({ diffid })
-		// 				this._metricsService.capture('Reject Diff', { batch: false })
-		// 			},
-		// 		})
-		// 		return () => { buttonsWidget.dispose() }
-		// 	}
-		// })
-		// disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(id2) })
-
-
-
 		const disposeInEditor = () => { disposeInThisEditorFns.forEach(f => f()) }
 		return disposeInEditor;
 
@@ -750,7 +791,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	// clears all Diffs (and their styles) and all styles of DiffAreas
+	// clears all Diffs (and their styles) and all styles of DiffAreas, etc
 	private _clearAllEffects(uri: URI) {
 		for (let diffareaid of this.diffAreasOfURI[uri.fsPath]) {
 			const diffArea = this.diffAreaOfId[diffareaid]
@@ -897,9 +938,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// 4. refresh ctrlK zones
 		this._refreshCtrlKInputs(uri)
-
-		// 5.
-		// this.removeDiffAreas({ uri, behavior: 'reject' })
 	}
 
 
@@ -1705,56 +1743,56 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 
 
 
-// class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
-// 	private readonly _domNode: HTMLElement;
-// 	private readonly editor: ICodeEditor;
-// 	private readonly ID: string;
+class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
+	private readonly _domNode: HTMLElement;
+	private readonly editor: ICodeEditor;
+	private readonly ID: string;
 
-// 	constructor({ editor, onAccept, onReject, }: { editor: ICodeEditor, onAccept: () => void, onReject: () => void, }) {
-// 		super();
-// 		this.editor = editor;
-// 		this.ID = 'my.centered.widget';
+	constructor({ editor, onAccept, onReject, }: { editor: ICodeEditor, onAccept: () => void, onReject: () => void, }) {
+		super();
+		this.editor = editor;
+		this.ID = 'my.centered.widget';
 
-// 		// Create container div
-// 		this._domNode = document.createElement('div');
+		// Create container div
+		this._domNode = document.createElement('div');
 
-// 		// Style the container to center it
-// 		this._domNode.style.position = 'fixed';  // fixed instead of absolute
-// 		this._domNode.style.left = '50%';
-// 		this._domNode.style.top = '50%';
-// 		this._domNode.style.transform = 'translate(-50%, -50%)';
-// 		this._domNode.style.zIndex = '1000';
+		// Style the container to center it
+		this._domNode.style.position = 'fixed';  // fixed instead of absolute
+		this._domNode.style.left = '50%';
+		this._domNode.style.top = '50%';
+		this._domNode.style.transform = 'translate(-50%, -50%)';
+		this._domNode.style.zIndex = '1000';
 
-// 		// Style the blue box
-// 		this._domNode.style.backgroundColor = '#007ACC';
-// 		this._domNode.style.padding = '20px';
-// 		this._domNode.style.color = 'white';
-// 		this._domNode.style.borderRadius = '4px';
+		// Style the blue box
+		this._domNode.style.backgroundColor = '#007ACC';
+		this._domNode.style.padding = '20px';
+		this._domNode.style.color = 'white';
+		this._domNode.style.borderRadius = '4px';
 
-// 		// Add some content
-// 		this._domNode.textContent = 'Centered Widget';
+		// Add some content
+		this._domNode.textContent = 'Centered Widget';
 
-// 		// Mount the widget
-// 		editor.addOverlayWidget(this);
-// 	}
+		// Mount the widget
+		editor.addOverlayWidget(this);
+	}
 
-// 	public getId(): string {
-// 		return this.ID;
-// 	}
+	public getId(): string {
+		return this.ID;
+	}
 
-// 	public getDomNode(): HTMLElement {
-// 		return this._domNode;
-// 	}
+	public getDomNode(): HTMLElement {
+		return this._domNode;
+	}
 
-// 	public getPosition(): null {
-// 		return null;  // null position lets us position it absolutely
-// 	}
+	public getPosition(): null {
+		return null;  // null position lets us position it absolutely
+	}
 
-// 	public override dispose(): void {
-// 		this.editor.removeOverlayWidget(this);
-// 		super.dispose();
-// 	}
-// }
+	public override dispose(): void {
+		this.editor.removeOverlayWidget(this);
+		super.dispose();
+	}
+}
 
 
 
@@ -1768,7 +1806,7 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 // 	}
 // 	async run(accessor: ServicesAccessor): Promise<void> {
 // 		const inlineDiffsService = accessor.get(IInlineDiffsService)
-// 		inlineDiffsService.testDiffs()
+// 		// inlineDiffsService.testDiffs()
 
 // 	}
 // })

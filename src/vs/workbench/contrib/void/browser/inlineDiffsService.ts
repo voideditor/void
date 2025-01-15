@@ -6,7 +6,7 @@
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/browser/editorBrowser.js';
+import { ICodeEditor, IOverlayWidget, IViewZone, OverlayWidgetPositionPreference } from '../../../../editor/browser/editorBrowser.js';
 
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
@@ -381,11 +381,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					editor,
 					onAccept: () => {
 						this.removeDiffAreas({ uri, behavior: 'accept' })
-						this._metricsService.capture('Accept All', { batch: false })
+						this._metricsService.capture('Accept All', {})
 					},
 					onReject: () => {
 						this.removeDiffAreas({ uri, behavior: 'reject' })
-						this._metricsService.capture('Reject All', { batch: false })
+						this._metricsService.capture('Reject All', {})
 					},
 				})
 				return () => { buttonsWidget.dispose() }
@@ -595,11 +595,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						editor,
 						onAccept: () => {
 							this.acceptDiff({ diffid })
-							this._metricsService.capture('Accept Diff', { batch: false })
+							this._metricsService.capture('Accept Diff', {})
 						},
 						onReject: () => {
 							this.rejectDiff({ diffid })
-							this._metricsService.capture('Reject Diff', { batch: false })
+							this._metricsService.capture('Reject Diff', {})
 						},
 						diffid: diffid.toString(),
 						startLine: diff.startLine,
@@ -615,6 +615,26 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			})
 			disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(consistentWidgetId) })
 		}
+
+		const DELETE_ME = this._consistentItemService.addConsistentItemToURI({
+			uri,
+			fn: (editor) => {
+				const buttonsWidget = new AcceptAllRejectAllWidget({
+					editor,
+					onAccept: () => {
+						this.acceptDiff({ diffid })
+						this._metricsService.capture('Accept Diff', {})
+					},
+					onReject: () => {
+						this.rejectDiff({ diffid })
+						this._metricsService.capture('Reject Diff', {})
+					},
+				})
+				return () => { buttonsWidget.dispose() }
+			}
+		})
+		disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(DELETE_ME) })
+
 
 		const disposeInEditor = () => { disposeInThisEditorFns.forEach(f => f()) }
 		return disposeInEditor;
@@ -1624,8 +1644,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 registerSingleton(IInlineDiffsService, InlineDiffsService, InstantiationType.Eager);
 
-
-
+const acceptBg = '#1a7431'
+const acceptAllBg = '#1e8538'
+const acceptBorder = '1px solid #145626'
+const rejectBg = '#b42331'
+const rejectAllBg = '#cf2838'
+const rejectBorder = '1px solid #8e1c27'
+const buttonFontSize = '11px'
+const buttonTextColor = 'white'
 
 class AcceptRejectWidget extends Widget implements IOverlayWidget {
 
@@ -1659,15 +1685,17 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 		buttons.style.position = 'absolute';
 		buttons.style.gap = '4px';
 		buttons.style.paddingRight = '4px';
-		buttons.style.zIndex = '1000';
+		buttons.style.zIndex = '1';
 		buttons.style.transform = `translateY(${offsetLines * lineHeight}px)`;
+
 
 		// Style accept button
 		acceptButton.onclick = onAccept;
 		acceptButton.textContent = 'Accept';
-		acceptButton.style.backgroundColor = '#1a7431';
-		acceptButton.style.color = 'white';
-		acceptButton.style.border = '1px solid #145626';
+		acceptButton.style.backgroundColor = acceptBg;
+		acceptButton.style.border = acceptBorder;
+		acceptButton.style.color = buttonTextColor;
+		acceptButton.style.fontSize = buttonFontSize;
 		acceptButton.style.borderTop = 'none';
 		acceptButton.style.padding = '1px 4px';
 		acceptButton.style.borderBottomLeftRadius = '6px';
@@ -1676,15 +1704,15 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 		acceptButton.style.borderTopRightRadius = '0';
 		acceptButton.style.cursor = 'pointer';
 		acceptButton.style.height = '100%';
-		acceptButton.style.fontSize = '12px';
 		acceptButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
 
 		// Style reject button
 		rejectButton.onclick = onReject;
 		rejectButton.textContent = 'Reject';
-		rejectButton.style.backgroundColor = '#b42331';
-		rejectButton.style.color = 'white';
-		rejectButton.style.border = '1px solid #8e1c27';
+		rejectButton.style.backgroundColor = rejectBg;
+		rejectButton.style.border = rejectBorder;
+		rejectButton.style.color = buttonTextColor;
+		rejectButton.style.fontSize = buttonFontSize;
 		rejectButton.style.borderTop = 'none';
 		rejectButton.style.padding = '1px 4px';
 		rejectButton.style.borderBottomLeftRadius = '6px';
@@ -1693,7 +1721,6 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 		rejectButton.style.borderTopRightRadius = '0';
 		rejectButton.style.cursor = 'pointer';
 		rejectButton.style.height = '100%';
-		rejectButton.style.fontSize = '12px';
 		rejectButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
 
 
@@ -1748,33 +1775,54 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 	private readonly editor: ICodeEditor;
 	private readonly ID: string;
 
-	constructor({ editor, onAccept, onReject, }: { editor: ICodeEditor, onAccept: () => void, onReject: () => void, }) {
+	constructor({ editor, onAccept, onReject }: { editor: ICodeEditor, onAccept: () => void, onReject: () => void }) {
 		super();
+
+		this.ID = editor.getModel()?.uri.fsPath + '';
 		this.editor = editor;
-		this.ID = 'my.centered.widget';
 
-		// Create container div
-		this._domNode = document.createElement('div');
+		// Create container div with buttons
+		const { acceptButton, rejectButton, buttons } = dom.h('div@buttons', [
+			dom.h('button@acceptButton', []),
+			dom.h('button@rejectButton', [])
+		]);
 
-		// Style the container to center it
-		this._domNode.style.position = 'fixed';  // fixed instead of absolute
-		this._domNode.style.left = '50%';
-		this._domNode.style.top = '50%';
-		this._domNode.style.transform = 'translate(-50%, -50%)';
-		this._domNode.style.zIndex = '1000';
+		// Style the container
+		buttons.style.zIndex = '1';
+		buttons.style.padding = '4px';
+		buttons.style.display = 'flex';
+		buttons.style.gap = '4px';
+		buttons.style.alignItems = 'center';
 
-		// Style the blue box
-		this._domNode.style.backgroundColor = '#007ACC';
-		this._domNode.style.padding = '20px';
-		this._domNode.style.color = 'white';
-		this._domNode.style.borderRadius = '4px';
+		// Style accept button
+		acceptButton.onclick = () => onAccept;
+		acceptButton.textContent = 'Accept All';
+		acceptButton.style.backgroundColor = acceptAllBg;
+		acceptButton.style.border = acceptBorder;
+		acceptButton.style.color = buttonTextColor;
+		acceptButton.style.fontSize = buttonFontSize;
+		acceptButton.style.padding = '4px 8px';
+		acceptButton.style.borderRadius = '6px';
+		acceptButton.style.cursor = 'pointer';
 
-		// Add some content
-		this._domNode.textContent = 'Centered Widget';
+		// Style reject button
+		rejectButton.onclick = () => onReject;
+		rejectButton.textContent = 'Reject All';
+		rejectButton.style.backgroundColor = rejectAllBg;
+		rejectButton.style.border = rejectBorder;
+		rejectButton.style.color = buttonTextColor;
+		rejectButton.style.fontSize = buttonFontSize;
+		rejectButton.style.color = 'white';
+		rejectButton.style.padding = '4px 8px';
+		rejectButton.style.borderRadius = '6px';
+		rejectButton.style.cursor = 'pointer';
+
+		this._domNode = buttons;
 
 		// Mount the widget
 		editor.addOverlayWidget(this);
 	}
+
 
 	public getId(): string {
 		return this.ID;
@@ -1784,8 +1832,10 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 		return this._domNode;
 	}
 
-	public getPosition(): null {
-		return null;  // null position lets us position it absolutely
+	public getPosition() {
+		return {
+			preference: OverlayWidgetPositionPreference.BOTTOM_RIGHT_CORNER,
+		}
 	}
 
 	public override dispose(): void {

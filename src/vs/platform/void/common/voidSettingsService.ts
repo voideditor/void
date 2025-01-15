@@ -57,7 +57,7 @@ export interface IVoidSettingsService {
 	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn;
 	setGlobalSetting: SetGlobalSettingFn;
 
-	setAutodetectedModels(providerName: ProviderName, modelNames: string[], logging: { enableProviderOnSuccess?: boolean, isPolling?: boolean, isInvisible?: boolean }): void;
+	setAutodetectedModels(providerName: ProviderName, modelNames: string[], logging: object): void;
 	toggleModelHidden(providerName: ProviderName, modelName: string): void;
 	addModel(providerName: ProviderName, modelName: string): void;
 	deleteModel(providerName: ProviderName, modelName: string): boolean;
@@ -223,7 +223,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 
 
-	setAutodetectedModels(providerName: ProviderName, newDefaultModelNames: string[], logging: { enableProviderOnSuccess?: boolean, isPolling?: boolean, isInvisible?: boolean }) {
+	setAutodetectedModels(providerName: ProviderName, newDefaultModelNames: string[], logging: object) {
 
 		const { models } = this.state.settingsOfProvider[providerName]
 

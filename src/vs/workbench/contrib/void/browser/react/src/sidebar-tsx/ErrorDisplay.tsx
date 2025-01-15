@@ -9,7 +9,7 @@ import { errorDetails } from '../../../../../../../platform/void/common/llmMessa
 
 
 export const ErrorDisplay = ({
-	message,
+	message:message_,
 	fullError,
 	onDismiss,
 	showDismiss,
@@ -22,6 +22,8 @@ export const ErrorDisplay = ({
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const details = errorDetails(fullError)
+
+	const message = message_ === 'TypeError: fetch failed' ? 'TypeError: fetch failed. This likely means you specified the wrong endpoint in Void Settings.' : message_
 
 
 	return (

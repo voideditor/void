@@ -38,32 +38,39 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 	const refreshModelService = accessor.get('IRefreshModelService')
 	const metricsService = accessor.get('IMetricsService')
 
-	const [justFinished, setJustFinished] = useState(false)
+	const [justFinished, setJustFinished] = useState<null | 'finished' | 'error'>(null)
 
 	useRefreshModelListener(
 		useCallback((providerName2, refreshModelState) => {
 			if (providerName2 !== providerName) return
 			const { state } = refreshModelState[providerName]
-			if (state !== 'finished') return
+			if (!(state === 'finished' || state === 'error')) return
 			// now we know we just entered 'finished' state for this providerName
-			setJustFinished(true)
-			const tid = setTimeout(() => { setJustFinished(false) }, 2000)
+			setJustFinished(state)
+			const tid = setTimeout(() => { setJustFinished(null) }, 2000)
 			return () => clearTimeout(tid)
 		}, [providerName])
 	)
 
 	const { state } = refreshModelState[providerName]
-	const isRefreshing = state === 'refreshing'
 
 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
 	return <SubtleButton
 		onClick={() => {
-			refreshModelService.refreshModels(providerName)
+			refreshModelService.startRefreshingModels(providerName, { enableProviderOnSuccess: false, doNotFire: false })
 			metricsService.capture('Click', { providerName, action: 'Refresh Models' })
 		}}
-		text={justFinished ? `${providerTitle} Models are up-to-date!` : `Manually refresh models list for ${providerTitle}.`}
-		icon={isRefreshing ? <Loader2 className='size-3 animate-spin' /> : (justFinished ? <Check className='stroke-green-500 size-3' /> : <RefreshCw className='size-3' />)}
-		disabled={isRefreshing || justFinished}
+		text={justFinished === 'finished' ? `${providerTitle} Models are up-to-date!`
+			: justFinished === 'error' ? `${providerTitle} not found!`
+				: `Manually refresh ${providerTitle} models.`
+		}
+		icon={justFinished === 'finished' ? <Check className='stroke-green-500 size-3' />
+			: justFinished === 'error' ? <X className='stroke-red-500 size-3' />
+				: state === 'refreshing' ? <Loader2 className='size-3 animate-spin' />
+					: <RefreshCw className='size-3' />
+		}
+
+		disabled={state === 'refreshing' || justFinished !== null}
 	/>
 }
 

@@ -366,16 +366,18 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 		if (diffZones.length === 0) return
 
-		const id2 = this._consistentItemService.addConsistentItemToURI({
+		const consistentItemId = this._consistentItemService.addConsistentItemToURI({
 			uri,
 			fn: (editor) => {
 				const buttonsWidget = new AcceptAllRejectAllWidget({
 					editor,
-					onAccept: () => {
+					onAcceptAll: () => {
+						console.log('ACCEPTING ALL')
 						this.removeDiffAreas({ uri, behavior: 'accept' })
 						this._metricsService.capture('Accept All', {})
 					},
-					onReject: () => {
+					onRejectAll: () => {
+						console.log('RE ALL')
 						this.removeDiffAreas({ uri, behavior: 'reject' })
 						this._metricsService.capture('Reject All', {})
 					},
@@ -385,7 +387,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		})
 
 
-		return () => { this._consistentItemService.removeConsistentItemFromURI(id2) }
+		return () => { this._consistentItemService.removeConsistentItemFromURI(consistentItemId) }
 	}
 
 
@@ -607,26 +609,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			})
 			disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(consistentWidgetId) })
 		}
-
-		const DELETE_ME = this._consistentItemService.addConsistentItemToURI({
-			uri,
-			fn: (editor) => {
-				const buttonsWidget = new AcceptAllRejectAllWidget({
-					editor,
-					onAccept: () => {
-						this.acceptDiff({ diffid })
-						this._metricsService.capture('Accept Diff', {})
-					},
-					onReject: () => {
-						this.rejectDiff({ diffid })
-						this._metricsService.capture('Reject Diff', {})
-					},
-				})
-				return () => { buttonsWidget.dispose() }
-			}
-		})
-		disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(DELETE_ME) })
-
 
 		const disposeInEditor = () => { disposeInThisEditorFns.forEach(f => f()) }
 		return disposeInEditor;
@@ -1773,7 +1755,7 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 	private readonly editor: ICodeEditor;
 	private readonly ID: string;
 
-	constructor({ editor, onAccept, onReject }: { editor: ICodeEditor, onAccept: () => void, onReject: () => void }) {
+	constructor({ editor, onAcceptAll, onRejectAll }: { editor: ICodeEditor, onAcceptAll: () => void, onRejectAll: () => void }) {
 		super();
 
 		this.ID = editor.getModel()?.uri.fsPath + '';
@@ -1793,7 +1775,7 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 		buttons.style.alignItems = 'center';
 
 		// Style accept button
-		acceptButton.onclick = () => onAccept;
+		acceptButton.addEventListener('click', onAcceptAll)
 		acceptButton.textContent = 'Accept All';
 		acceptButton.style.backgroundColor = acceptAllBg;
 		acceptButton.style.border = acceptBorder;
@@ -1804,7 +1786,7 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 		acceptButton.style.cursor = 'pointer';
 
 		// Style reject button
-		rejectButton.onclick = () => onReject;
+		rejectButton.addEventListener('click', onRejectAll)
 		rejectButton.textContent = 'Reject All';
 		rejectButton.style.backgroundColor = rejectAllBg;
 		rejectButton.style.border = rejectBorder;

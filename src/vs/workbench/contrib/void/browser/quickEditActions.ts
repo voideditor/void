@@ -16,6 +16,7 @@ import { VOID_CTRL_K_ACTION_ID } from './actionIDs.js';
 
 export type QuickEditPropsType = {
 	diffareaid: number,
+	initStreamingDiffZoneId: number | null,
 	textAreaRef: (ref: HTMLTextAreaElement | null) => void;
 	onChangeHeight: (height: number) => void;
 	onChangeText: (text: string) => void;
@@ -59,12 +60,6 @@ registerAction2(class extends Action2 {
 
 
 		const { startLineNumber: startLine, endLineNumber: endLine } = selection
-
-
-		// deselect - clear selection
-		editor.setSelection({ startLineNumber: startLine, endLineNumber: startLine, startColumn: 1, endColumn: 1 })
-
-		editor.revealLine(startLine) // important
 
 		const inlineDiffsService = accessor.get(IInlineDiffsService)
 		inlineDiffsService.addCtrlKZone({ startLine, endLine, editor })

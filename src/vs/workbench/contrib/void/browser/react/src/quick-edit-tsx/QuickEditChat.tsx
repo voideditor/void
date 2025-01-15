@@ -4,15 +4,17 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
+import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor, useIsStreaming } from '../util/services.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
+import { useRefState } from '../util/helpers.js';
 
 export const QuickEditChat = ({
 	diffareaid,
+	initStreamingDiffZoneId,
 	onChangeHeight,
 	onChangeText: onChangeText_,
 	textAreaRef: textAreaRef_,
@@ -43,32 +45,34 @@ export const QuickEditChat = ({
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!(initText ?? '')) // the user's instructions
 	const isDisabled = instructionsAreEmpty
 
-	const currentlyStreamingIdRef = useRef<number | undefined>(undefined)
-	const [isStreaming, setIsStreaming] = useState(false)
+	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
+
+	const isStreaming = useIsStreaming({ diffareaid: currStreamingDiffZoneRef.current })
 
 	const onSubmit = useCallback((e: FormEvent) => {
 		if (isDisabled) return
-		if (currentlyStreamingIdRef.current !== undefined) return
+		if (currStreamingDiffZoneRef.current !== null) return
 		textAreaFnsRef.current?.disable()
 
 		const instructions = textAreaRef.current?.value ?? ''
-		currentlyStreamingIdRef.current = inlineDiffsService.startApplying({
+		const id = inlineDiffsService.startApplying({
 			featureName: 'Ctrl+K',
 			diffareaid: diffareaid,
 			userMessage: instructions,
 		})
-		setIsStreaming(true)
-	}, [isDisabled, inlineDiffsService, diffareaid])
+		setCurrentlyStreamingDiffZone(id ?? null)
+	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, inlineDiffsService, diffareaid])
 
 	const onInterrupt = useCallback(() => {
-		if (currentlyStreamingIdRef.current !== undefined)
-			inlineDiffsService.interruptStreaming(currentlyStreamingIdRef.current)
+		if (currStreamingDiffZoneRef.current === null) return
+		inlineDiffsService.interruptStreaming(currStreamingDiffZoneRef.current)
+		setCurrentlyStreamingDiffZone(null)
 		textAreaFnsRef.current?.enable()
-		setIsStreaming(false)
-	}, [inlineDiffsService])
+	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, inlineDiffsService])
 
 
 	const onX = useCallback(() => {
+		onInterrupt()
 		inlineDiffsService.removeCtrlKZone({ diffareaid })
 	}, [inlineDiffsService, diffareaid])
 

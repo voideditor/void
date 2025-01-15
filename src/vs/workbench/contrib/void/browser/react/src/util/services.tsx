@@ -27,7 +27,7 @@ import { IThemeService } from '../../../../../../../platform/theme/common/themeS
 import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
 import { IRefreshModelService } from '../../../../../../../platform/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../platform/void/common/voidSettingsService.js';
-import { IInlineDiffsService } from '../../../inlineDiffsService.js';
+import { IInlineDiffsService, StreamState } from '../../../inlineDiffsService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { IThreadHistoryService } from '../../../threadHistoryService.js';
@@ -70,6 +70,9 @@ const refreshModelProviderListeners: Set<(p: RefreshableProviderName, s: Refresh
 let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 
+let streamState: StreamState
+const diffareaStreamStateListeners: Set<(diffareaid: number) => void> = new Set()
+
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
 let wasCalled = false
@@ -93,9 +96,10 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		settingsStateService: accessor.get(IVoidSettingsService),
 		refreshModelService: accessor.get(IRefreshModelService),
 		themeService: accessor.get(IThemeService),
+		inlineDiffsService: accessor.get(IInlineDiffsService),
 	}
 
-	const { sidebarStateService, quickEditStateService, settingsStateService, threadsStateService, refreshModelService, themeService, } = stateServices
+	const { sidebarStateService, quickEditStateService, settingsStateService, threadsStateService, refreshModelService, themeService, inlineDiffsService } = stateServices
 
 	quickEditState = quickEditStateService.state
 	disposables.push(
@@ -143,6 +147,13 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		themeService.onDidColorThemeChange(theme => {
 			colorThemeState = theme.type
 			colorThemeStateListeners.forEach(l => l(colorThemeState))
+		})
+	)
+
+	disposables.push(
+		inlineDiffsService.onDidChangeStreamState((diffareaid) => {
+			streamState = inlineDiffsService.streamingDiffZonesState
+			diffareaStreamStateListeners.forEach(l => l(diffareaid))
 		})
 	)
 
@@ -282,4 +293,18 @@ export const useIsDark = () => {
 	const isDark = s === ColorScheme.DARK || s === ColorScheme.HIGH_CONTRAST_DARK
 	return isDark
 
+}
+
+
+export const useIsStreaming = ({ diffareaid }: { diffareaid: number | null }) => {
+	console.log('difareaid', diffareaid)
+	const [s, ss] = useState(diffareaid === null ? false : streamState.has(diffareaid))
+	useEffect(() => { ss(diffareaid === null ? false : streamState.has(diffareaid)) }, [diffareaid])
+	useEffect(() => {
+		const listener = (diffareaid_: number) => { if (diffareaid === diffareaid_) ss(streamState.has(diffareaid)) }
+		diffareaStreamStateListeners.add(listener)
+		return () => { diffareaStreamStateListeners.delete(listener) }
+	}, [ss, diffareaid])
+
+	return s
 }

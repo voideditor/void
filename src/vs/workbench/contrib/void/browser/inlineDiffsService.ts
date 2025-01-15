@@ -680,7 +680,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						type: 'DiffZone',
 						_diffOfId: {},
 						_URI: uri,
-						_streamState: { isStreaming: false },
+						_streamState: { isStreaming: false }, // when restoring, we will never be streaming
 						_removeStylesFns: new Set(),
 					}
 				}
@@ -690,7 +690,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						_URI: uri,
 						_removeStylesFns: new Set(),
 						_mountInfo: null,
-						_linkedStreamingDiffZone: null,
+						_linkedStreamingDiffZone: null, // when restoring, we will never be streaming
 					}
 				}
 				this.diffAreasOfURI[uri.fsPath].add(diffareaid)

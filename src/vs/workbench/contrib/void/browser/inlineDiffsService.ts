@@ -502,7 +502,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						domNode,
 						marginDomNode: document.createElement('div'),
 						suppressMouseDown: false,
-						showInHiddenAreas: true,
+						showInHiddenAreas: false,
 					};
 
 					let zoneId: string | null = null
@@ -934,8 +934,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
+		// at the start, add a newline between the stream and originalCode to make reasoning easier
+		if (!latest.addedSplitYet) {
+			this._writeText(uri, '\n',
+				{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col, },
+				{ shouldRealignDiffAreas: true }
+			)
+			latest.addedSplitYet = true
+		}
 
-		// insert at latest line and col
+		// insert deltaText at latest line and col
 		this._writeText(uri, deltaText,
 			{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col },
 			{ shouldRealignDiffAreas: true }
@@ -943,14 +951,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		latest.line += deltaText.split('\n').length - 1
 		const lastNewlineIdx = deltaText.lastIndexOf('\n')
 		latest.col = lastNewlineIdx === -1 ? latest.col + deltaText.length : deltaText.length - lastNewlineIdx
-
-		if (!latest.addedSplitYet) {
-			this._writeText(uri, '',
-				{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col, },
-				{ shouldRealignDiffAreas: true }
-			)
-			latest.addedSplitYet = true
-		}
 
 		// delete or insert to get original up to speed
 		if (latest.originalCodeStartLine < originalCodeStartLine) {
@@ -962,7 +962,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			)
 		}
 		else if (latest.originalCodeStartLine > originalCodeStartLine) {
-			this._writeText(uri, '\n' + diffZone.originalCode.split('\n').slice((latest.originalCodeStartLine - 1), (originalCodeStartLine - 1) + 1).join('\n'),
+			this._writeText(uri, '\n' + diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), (latest.originalCodeStartLine - 1) - 1 + 1).join('\n'),
 				{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col },
 				{ shouldRealignDiffAreas: true }
 			)
@@ -1215,6 +1215,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			diffZone._streamState = { isStreaming: false, }
 			if (featureName === 'Ctrl+K') {
 				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
+				ctrlKZone._linkedStreamingDiffZone = null // gets deleted next so not really needed...
 				this._deleteCtrlKZone(ctrlKZone)
 			}
 			this._refreshStylesAndDiffsInURI(uri)

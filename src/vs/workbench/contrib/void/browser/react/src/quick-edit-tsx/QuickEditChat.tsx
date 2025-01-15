@@ -46,7 +46,7 @@ export const QuickEditChat = ({
 	const isDisabled = instructionsAreEmpty
 
 	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
-	const isStreaming = !!currStreamingDiffZoneRef
+	const isStreaming = currStreamingDiffZoneRef.current !== null
 
 	const onSubmit = useCallback((e: FormEvent) => {
 		if (isDisabled) return

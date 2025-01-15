@@ -37,6 +37,7 @@ import { IMetricsService } from '../../../../platform/void/common/metricsService
 import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
+import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 // import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 // import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 // import { localize2 } from '../../../../nls.js';
@@ -535,6 +536,12 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						},
 						diffid: diffid.toString(),
 						startLine: diff.startLine,
+						offsetLines: (
+							diff.type === 'insertion' ? 0
+								: diff.type === 'deletion' ? -(diff.originalEndLine - diff.originalStartLine + 1)
+									: diff.type === 'edit' ? (diff.endLine - diff.startLine + 1)
+										: 0 // not allowed
+						)
 					})
 					return () => { buttonsWidget.dispose() }
 				}
@@ -1583,12 +1590,15 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 	private readonly ID
 	private readonly startLine
 
-	constructor({ editor, onAccept, onReject, diffid, startLine }: { editor: ICodeEditor; onAccept: () => void; onReject: () => void; diffid: string, startLine: number }) {
+	constructor({ editor, onAccept, onReject, diffid, startLine, offsetLines }: { editor: ICodeEditor; onAccept: () => void; onReject: () => void; diffid: string, startLine: number, offsetLines: number }) {
 		super()
+
 
 		this.ID = editor.getModel()?.uri.fsPath + diffid;
 		this.editor = editor;
 		this.startLine = startLine;
+
+		const lineHeight = editor.getOption(EditorOption.lineHeight);
 
 		// Create container div with buttons
 		const { acceptButton, rejectButton, buttons } = dom.h('div@buttons', [
@@ -1602,7 +1612,7 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 		buttons.style.gap = '4px';
 		buttons.style.paddingRight = '4px';
 		buttons.style.zIndex = '1000';
-
+		buttons.style.transform = `translateY(${offsetLines * lineHeight}px)`;
 
 		// Style accept button
 		acceptButton.onclick = onAccept;

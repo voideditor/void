@@ -56,11 +56,11 @@ export const SidebarThreadSelector = () => {
 
 					{sortedThreadIds.length === 0
 
-						? <div key="nothreads" className="text-center text-void-fg-3 brightness-90 text-sm">{`No history found`}</div>
+						? <div key="nothreads" className="text-center text-void-fg-3 brightness-90 text-sm">{`There are no chat threads yet.`}</div>
 
 						: sortedThreadIds.map((threadId) => {
 							if (!allThreads) {
-								return <li key="error" className="text-void-warning">{`No history found`}</li>;
+								return <li key="error" className="text-void-warning">{`Error accessing chat history.`}</li>;
 							}
 
 							const pastThread = allThreads[threadId];
@@ -93,7 +93,7 @@ export const SidebarThreadSelector = () => {
 							return (
 								<li key={pastThread.id}>
 									<button
-									type='button'
+										type='button'
 										className={`
 										hover:bg-void-bg-1
 										${threadsState._currentThreadId === pastThread.id ? 'bg-void-bg-1' : ''}

@@ -38,7 +38,6 @@ import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-import { Emitter, Event } from '../../../../base/common/event.js';
 // import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 // import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 // import { localize2 } from '../../../../nls.js';
@@ -175,7 +174,6 @@ type HistorySnapshot = {
 }
 
 
-export type StreamState = Set<number> // set of streaming diffareaids, only applies to diffzones
 
 export interface IInlineDiffsService {
 	readonly _serviceBrand: undefined;
@@ -183,9 +181,6 @@ export interface IInlineDiffsService {
 	interruptStreaming(diffareaid: number): void;
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 	removeCtrlKZone(opts: { diffareaid: number }): void;
-
-	onDidChangeStreamState: Event<number>
-	streamingDiffZonesState: StreamState
 	// testDiffs(): void;
 }
 
@@ -200,13 +195,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	diffAreaOfId: Record<string, DiffArea> = {};
 	diffOfId: Record<string, Diff> = {}; // redundant with diffArea._diffs
-
-
-
-	// streaming state for React, reflection of the streaming value in the diffarea, only applies to diffZone
-	readonly streamingDiffZonesState: StreamState = new Set()
-	private readonly _onDidChangeStreamState = new Emitter<number>();
-	readonly onDidChangeStreamState: Event<number> = this._onDidChangeStreamState.event;
 
 
 	constructor(
@@ -1203,8 +1191,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_removeStylesFns: new Set(),
 		}
 		const diffZone = this._addDiffArea(adding)
-		this.streamingDiffZonesState.add(diffZone.diffareaid)
-		this._onDidChangeStreamState.fire(diffZone.diffareaid)
 
 		if (featureName === 'Ctrl+K') {
 			const { diffareaid } = opts
@@ -1243,8 +1229,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		const onDone = (hadError: boolean) => {
 			diffZone._streamState = { isStreaming: false, }
-			this.streamingDiffZonesState.delete(diffZone.diffareaid)
-			this._onDidChangeStreamState.fire(diffZone.diffareaid)
 
 			if (featureName === 'Ctrl+K') {
 				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
@@ -1327,8 +1311,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this._llmMessageService.abort(streamRequestId)
 
 		diffZone._streamState = { isStreaming: false, }
-		this.streamingDiffZonesState.delete(diffZone.diffareaid)
-		this._onDidChangeStreamState.fire(diffZone.diffareaid)
 	}
 
 	_undoHistory(uri: URI) {

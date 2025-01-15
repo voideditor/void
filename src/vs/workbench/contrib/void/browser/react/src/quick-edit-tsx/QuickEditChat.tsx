@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor, useIsStreaming } from '../util/services.js';
+import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
@@ -46,8 +46,7 @@ export const QuickEditChat = ({
 	const isDisabled = instructionsAreEmpty
 
 	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
-
-	const isStreaming = useIsStreaming({ diffareaid: currStreamingDiffZoneRef.current })
+	const isStreaming = !!currStreamingDiffZoneRef
 
 	const onSubmit = useCallback((e: FormEvent) => {
 		if (isDisabled) return

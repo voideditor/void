@@ -241,9 +241,8 @@ export class TabSwitchListener extends Disposable {
 		// when editor switches tabs (models)
 		const addTabSwitchListeners = (editor: ICodeEditor) => {
 			this._register(editor.onDidChangeModel(e => {
-				if (e.newModelUrl && e.newModelUrl.scheme === 'file') {
-					onSwitchTab(e.newModelUrl)
-				}
+				if (e.newModelUrl?.scheme !== 'file') return
+				onSwitchTab(e.newModelUrl)
 			}))
 		}
 

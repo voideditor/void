@@ -372,13 +372,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				const buttonsWidget = new AcceptAllRejectAllWidget({
 					editor,
 					onAcceptAll: () => {
-						console.log('ACCEPTING ALL')
-						this.removeDiffAreas({ uri, behavior: 'accept' })
+						this.removeDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
 						this._metricsService.capture('Accept All', {})
 					},
 					onRejectAll: () => {
-						console.log('RE ALL')
-						this.removeDiffAreas({ uri, behavior: 'reject' })
+						this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
 						this._metricsService.capture('Reject All', {})
 					},
 				})
@@ -1166,8 +1164,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (!uri_) return
 			uri = uri_
 
-			// reject all diffareas on this URI, adding to history (there can't possibly be overlap after this)
-			this.removeDiffAreas({ uri, behavior: 'reject' })
+			// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
+			this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
 
 			// in ctrl+L the start and end lines are the full document
 			const numLines = this._getNumLines(uri)
@@ -1396,7 +1394,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// remove a batch of diffareas all at once (and handle accept/reject of their diffs)
-	public removeDiffAreas({ uri, behavior }: { uri: URI, behavior: 'reject' | 'accept' }) {
+	public removeDiffAreas({ uri, removeCtrlKs, behavior }: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept' }) {
 
 		const diffareaids = this.diffAreasOfURI[uri.fsPath]
 		if (diffareaids.size === 0) return // do nothing
@@ -1411,7 +1409,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				if (behavior === 'reject') this._revertAndDeleteDiffZone(diffArea)
 				else if (behavior === 'accept') this._deleteDiffZone(diffArea)
 			}
-			else if (diffArea.type === 'CtrlKZone') {
+			else if (diffArea.type === 'CtrlKZone' && removeCtrlKs) {
 				this._deleteCtrlKZone(diffArea)
 			}
 		}

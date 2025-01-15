@@ -138,7 +138,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 		const { isPolling, isInvisible } = options ?? {}
 
-		console.log(`refreshModels, isInvisible ${isInvisible} isPolling ${isPolling}`)
+		// console.log(`refreshModels, isInvisible ${isInvisible} isPolling ${isPolling}`)
 
 		this._clearProviderTimeout(providerName)
 

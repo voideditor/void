@@ -5,7 +5,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButton, VoidCheckBox, VoidCustomSelectBox, VoidInputBox, VoidInputBox2, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -355,31 +355,10 @@ export const VoidProviderSettings = ({ providerNames }: { providerNames: Provide
 	</>
 }
 
-// export const VoidFeatureFlagSettings = () => {
-// 	const accessor = useAccessor()
-// 	const voidSettingsService = accessor.get('IVoidSettingsService')
 
-// 	const voidSettingsState = useSettingsState()
-
-// 	return <>
-// 		{featureFlagNames.map((flagName) => {
-// 			const value = voidSettingsState.featureFlagSettings[flagName]
-// 			const { description } = displayInfoOfFeatureFlag(flagName)
-// 			return <div key={flagName} className='hover:bg-black/10 hover:dark:bg-gray-200/10 rounded-sm overflow-hidden py-1 px-3 my-1'>
-// 				<div className='flex items-center'>
-// 					<VoidCheckBox
-// 						label=''
-// 						value={value}
-// 						onClick={() => { voidSettingsService.setFeatureFlag(flagName, !value) }}
-// 					/>
-// 					<h4 className='text-sm'>{description}</h4>
-// 				</div>
-// 			</div>
-// 		})}
-// 	</>
-// }
 type TabName = 'models' | 'general'
-export const VoidFeatureFlagSettings = () => {
+export const AutoRefreshToggle = () => {
+	const settingName: GlobalSettingName = 'autoRefreshModels'
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
@@ -387,22 +366,33 @@ export const VoidFeatureFlagSettings = () => {
 
 	const voidSettingsState = useSettingsState()
 
-	return featureFlagNames.map((flagName) => {
+	// right now this is just `enabled_autoRefreshModels`
+	const enabled = voidSettingsState.globalSettings[settingName]
 
-		// right now this is just `enabled_autoRefreshModels`
-		const enabled = voidSettingsState.featureFlagSettings[flagName]
-		const { description } = displayInfoOfFeatureFlag(flagName)
+	return <SubtleButton
+		onClick={() => {
+			voidSettingsService.setGlobalSetting(settingName, !enabled)
+			metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: !enabled })
+		}}
+		text={`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
+		icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
+		disabled={false}
+	/>
+}
 
-		return <SubtleButton key={flagName}
-			onClick={() => {
-				voidSettingsService.setFeatureFlag(flagName, !enabled)
-				metricsService.capture('Click', { action: 'Autorefresh Toggle', flagName, enabled: !enabled })
-			}}
-			text={description}
-			icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
-			disabled={false}
-		/>
-	})
+export const AIInstructionsBox = () => {
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
+	return <VoidInputBox2
+	className='min-h-[81px] p-3 rounded-sm'
+		initValue={voidSettingsState.globalSettings.aiInstructions}
+		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Respond to all queries in French. `}
+		multiline
+		onChangeText={(newText) => {
+			voidSettingsService.setGlobalSetting('aiInstructions', newText)
+		}}
+	/>
 }
 
 export const FeaturesTab = () => {
@@ -434,7 +424,7 @@ export const FeaturesTab = () => {
 
 		<h2 className={`text-3xl mb-2 mt-24`}>Models</h2>
 		<ErrorBoundary>
-			<VoidFeatureFlagSettings />
+			<AutoRefreshToggle />
 			<RefreshableModels />
 			<ModelDump />
 			<AddModelMenuFull />
@@ -571,13 +561,6 @@ const GeneralTab = () => {
 		</div>
 
 
-		{/* <div className='my-4'>
-			<h3 className={`text-xl mb-2 mt-4`}>Rules for AI</h3>
-			{`placeholder: "Do not add ;'s. Do not change or delete spacing, formatting, or comments. Respond to queries in French when applicable. "`}
-		</div> */}
-
-
-
 
 		<div className='mt-24'>
 			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
@@ -600,7 +583,13 @@ const GeneralTab = () => {
 			</div>
 		</div>
 
-		{/* <VoidFeatureFlagSettings /> */}
+
+		<div className='mt-24'>
+			<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
+			<h4 className={`text-void-fg-3 mb-2`}>{`Instructions to include on all AI requests.`}</h4>
+			<AIInstructionsBox />
+		</div>
+
 
 	</>
 }

@@ -80,7 +80,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			disposables.forEach(d => d.dispose())
 			disposables.clear()
 
-			if (!voidSettingsService.state.featureFlagSettings.autoRefreshModels) return
+			if (!voidSettingsService.state.globalSettings['autoRefreshModels']) return
 
 			for (const providerName of refreshableProviderNames) {
 
@@ -117,11 +117,11 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			}
 		}
 
-		// on mount (when get init settings state), and if a relevant feature flag changes (detected natively right now by refreshing if any flag changes), start refreshing models
+		// on mount (when get init settings state), and if a relevant feature flag changes, start refreshing models
 		voidSettingsService.waitForInitState.then(() => {
 			initializePollingAndOnChange()
 			this._register(
-				voidSettingsService.onDidChangeState((type) => { if (type === 'featureFlagSettings') initializePollingAndOnChange() })
+				voidSettingsService.onDidChangeState((type) => { if (typeof type === 'object' && type[1] === 'autoRefreshModels') initializePollingAndOnChange() })
 			)
 		})
 
@@ -184,7 +184,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 		// check if we should poll
 		// if it was originally called as `isPolling` and if the `autoRefreshModels` flag is enabled
-		if (isPolling && this.voidSettingsService.state.featureFlagSettings.autoRefreshModels) {
+		if (isPolling && this.voidSettingsService.state.globalSettings['autoRefreshModels']) {
 			const timeoutId = setTimeout(() => this.refreshModels(providerName, enableProviderOnSuccess, options), REFRESH_INTERVAL)
 			this._setTimeoutId(providerName, timeoutId)
 		}

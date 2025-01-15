@@ -1203,9 +1203,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// add to history
 		const { onFinishEdit } = this._addToHistory(uri)
 
-
-		// __TODO__ ctrl+K should use Ollama's FIM method.
-		const ollamaStyleFIM = false
+		// __TODO__ let users customize modelFimTags
+		const isOllamaFIM = false // this._voidSettingsService.state.modelSelectionOfFeature['Ctrl+K']?.providerName === 'ollama'
 		const modelFimTags = defaultFimTags
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
@@ -1240,20 +1239,21 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		if (featureName === 'Ctrl+L') {
 			const userContent = ctrlLStream_prompt({ originalCode, userMessage, uri })
 			messages = [
-				// TODO include more context too
 				{ role: 'system', content: ctrlLStream_systemMessage, },
 				{ role: 'user', content: userContent, }
 			]
 		}
 		else if (featureName === 'Ctrl+K') {
 			const { prefix, suffix } = ctrlKStream_prefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
-			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix, ollamaStyleFIM, fimTags: modelFimTags, language })
 			// console.log('PREFIX:\n', prefix)
 			// console.log('SUFFIX:\n', suffix)
 			// console.log('USER CONTENT:\n', userContent)
+
+			// __TODO__ use Ollama's FIM api
+			// if (isOllamaFIM) {...} else:
+			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
+			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix, isOllamaFIM: false, fimTags: modelFimTags, language })
 			messages = [
-				// TODO include more context too (LSP, file history, etc)
 				{ role: 'system', content: ctrlKStream_systemMessage, },
 				{ role: 'user', content: userContent, }
 			]
@@ -1286,7 +1286,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
 			if (featureName === 'Ctrl+K') {
-				if (ollamaStyleFIM) return fullText
+				if (isOllamaFIM) return fullText
 				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: modelFimTags.midTag })
 			}
 			else if (featureName === 'Ctrl+L') {

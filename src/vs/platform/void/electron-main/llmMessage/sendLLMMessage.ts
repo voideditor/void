@@ -37,7 +37,6 @@ export const sendLLMMessage = ({
 			modelName,
 			numMessages: messages?.length,
 			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
-			version: '2024-11-14',
 			...extras,
 		})
 	}
@@ -62,7 +61,6 @@ export const sendLLMMessage = ({
 
 	const onError: OnError = ({ message: error, fullError }) => {
 		if (_didAbort) return
-		console.log("ERROR!!!!!", error)
 		console.error('sendLLMMessage onError:', error)
 		captureChatEvent(`${loggingName} - Error`, { error })
 		onError_({ message: error, fullError })

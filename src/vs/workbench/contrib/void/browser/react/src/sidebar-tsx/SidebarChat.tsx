@@ -383,7 +383,7 @@ export const SelectedFiles = (
 								<BlockCode
 									initValue={selection.selectionStr!}
 									language={filenameToVscodeLanguage(selection.fileURI.path)}
-									maxHeight={100}
+									maxHeight={200}
 									showScrollbars={true}
 								/>
 							</div>

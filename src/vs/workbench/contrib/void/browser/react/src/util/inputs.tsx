@@ -722,6 +722,7 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 					if (parentNode) {
 						// const height = Math.min(, MAX_HEIGHT);
 						parentNode.style.height = `${height}px`;
+						parentNode.style.maxHeight = `${MAX_HEIGHT}px`;
 						editor.layout();
 					}
 				}

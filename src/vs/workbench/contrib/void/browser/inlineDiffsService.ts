@@ -38,7 +38,7 @@ import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-import { Emitter, Event } from '../../../../base/common/event.js';
+import { Emitter } from '../../../../base/common/event.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -196,9 +196,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// only applies to diffZones
-	streamingDiffZonesOfURI: Record<string, Set<number>> = {}
-	private readonly _onDidChangeStreaming = new Emitter<{ uri: URI }>();
-	readonly onDidChangeStreaming: Event<{ uri: URI }> = this._onDidChangeStreaming.event;
+	// streamingDiffZones: Set<number> = new Set()
+	private readonly _onDidChangeStreaming = new Emitter<{ uri: URI; diffareaid: number }>();
+	private readonly _onDidAddOrDeleteDiffZones = new Emitter<{ uri: URI }>();
 
 
 	constructor(
@@ -221,10 +221,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				this.diffAreasOfURI[model.uri.fsPath] = new Set();
 			}
 
-			if (!(model.uri.fsPath in this.streamingDiffZonesOfURI)) {
-				this.streamingDiffZonesOfURI[model.uri.fsPath] = new Set();
-			}
-
 			// when the user types, realign diff areas and re-render them
 			this._register(
 				model.onDidChangeContent(e => {
@@ -236,26 +232,22 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			)
 
 			// when a stream starts or ends
-			const uriStreamingState = {
-				isStreaming: false,
-				removeStyles: null as (() => void) | null,
+			let removeAcceptRejectAllUI: (() => void) | null = null
+			const onChangeUriState = () => {
+				const uri = model.uri
+				const diffZones = [...this.diffAreasOfURI[uri.fsPath].values()]
+					.map(diffareaid => this.diffAreaOfId[diffareaid])
+					.filter(diffArea => !!diffArea && diffArea.type === 'DiffZone')
+				const isStreaming = diffZones.find(diffZone => !!diffZone._streamState.isStreaming)
+				if (diffZones.length !== 0 && !isStreaming && !removeAcceptRejectAllUI) {
+					removeAcceptRejectAllUI = this._addAcceptRejectUI(uri) ?? null
+				} else {
+					removeAcceptRejectAllUI?.()
+					removeAcceptRejectAllUI = null
+				}
 			}
-
-			this._register(
-				this.onDidChangeStreaming(({ uri: uri_ }) => {
-					const uri = model.uri
-					if (uri_.fsPath !== uri.fsPath) return
-
-					const noLongerStreaming = (this.streamingDiffZonesOfURI[uri.fsPath].size ?? 0) === 0
-					if (uriStreamingState.isStreaming === noLongerStreaming) return // if no change in the state, return
-
-					if (noLongerStreaming)
-						uriStreamingState.removeStyles?.()
-					else
-						uriStreamingState.removeStyles = this._addAcceptRejectUI(uri) ?? null
-
-				})
-			)
+			this._register(this._onDidAddOrDeleteDiffZones.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) onChangeUriState() }))
+			this._register(this._onDidChangeStreaming.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) onChangeUriState() }))
 		}
 		// initialize all existing models + initialize when a new model mounts
 		for (let model of this._modelService.getModels()) { initializeModel(model) }
@@ -756,6 +748,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				}
 				this.diffAreasOfURI[uri.fsPath].add(diffareaid)
 			}
+			this._onDidAddOrDeleteDiffZones.fire({ uri })
 
 			// restore file content
 			const numLines = this._getNumLines(uri)
@@ -825,6 +818,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this._clearAllDiffAreaEffects(diffZone)
 		delete this.diffAreaOfId[diffZone.diffareaid]
 		this.diffAreasOfURI[diffZone._URI.fsPath].delete(diffZone.diffareaid.toString())
+		this._onDidAddOrDeleteDiffZones.fire({ uri: diffZone._URI })
 	}
 
 	private _deleteCtrlKZone(ctrlKZone: CtrlKZone) {
@@ -1249,6 +1243,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			_removeStylesFns: new Set(),
 		}
 		const diffZone = this._addDiffArea(adding)
+		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
 		if (featureName === 'Ctrl+K') {
 			const { diffareaid } = opts
@@ -1287,6 +1283,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		const onDone = (hadError: boolean) => {
 			diffZone._streamState = { isStreaming: false, }
+			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 
 			if (featureName === 'Ctrl+K') {
 				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
@@ -1361,14 +1358,15 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	private _stopIfStreaming(diffZone: DiffZone) {
+		const uri = diffZone._URI
 
 		const streamRequestId = diffZone._streamState.streamRequestIdRef?.current
-		if (!streamRequestId)
-			return
+		if (!streamRequestId) return
 
 		this._llmMessageService.abort(streamRequestId)
 
 		diffZone._streamState = { isStreaming: false, }
+		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 	}
 
 	_undoHistory(uri: URI) {

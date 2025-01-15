@@ -11,6 +11,7 @@ import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 import { useRefState } from '../util/helpers.js';
+import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 
 export const QuickEditChat = ({
 	diffareaid,
@@ -75,6 +76,7 @@ export const QuickEditChat = ({
 		inlineDiffsService.removeCtrlKZone({ diffareaid })
 	}, [inlineDiffsService, diffareaid])
 
+	useScrollbarStyles(sizerRef)
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
 

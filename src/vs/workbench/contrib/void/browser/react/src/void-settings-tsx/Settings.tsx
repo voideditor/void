@@ -127,6 +127,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 			<div className='max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'>
 				<VoidInputBox2
 					placeholder='Model Name'
+					className='mt-[2px] px-[6px] h-full w-full'
 					ref={modelNameRef}
 					multiline={false}
 				/>

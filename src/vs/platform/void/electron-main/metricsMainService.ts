@@ -6,9 +6,10 @@
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { isLinux, isMacintosh, isWindows } from '../../../base/common/platform.js';
 import { generateUuid } from '../../../base/common/uuid.js';
+import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
 
 import { IProductService } from '../../product/common/productService.js';
-import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
+import { IStorageMainService } from '../../storage/electron-main/storageMainService.js';
 
 import { IMetricsService } from '../common/metricsService.js';
 import { PostHog } from 'posthog-node'
@@ -16,7 +17,6 @@ import { PostHog } from 'posthog-node'
 
 const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
 
-const VOID_DISTINCT_ID_STORAGE_KEY = 'void.distinctId'
 const VOID_MACHINE_STORAGE_KEY = 'void.machineId'
 
 export class MetricsMainService extends Disposable implements IMetricsService {
@@ -28,26 +28,19 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 
 
 	// TODO we should eventually identify people based on email
-	private get distinctId() {
-		const curr = this._storageService.get(VOID_DISTINCT_ID_STORAGE_KEY, StorageScope.APPLICATION)
-		if (curr !== undefined) return curr
-		const newVal = generateUuid()
-		this._storageService.store(VOID_DISTINCT_ID_STORAGE_KEY, newVal, StorageScope.APPLICATION, StorageTarget.USER)
-		return newVal
-	}
-
 	private get machineId() {
-		const curr = this._storageService.get(VOID_MACHINE_STORAGE_KEY, StorageScope.APPLICATION)
-		if (curr !== undefined) return curr
+		const currVal = this._storageService.applicationStorage.get(VOID_MACHINE_STORAGE_KEY)
+		if (currVal !== undefined) return currVal
 		const newVal = generateUuid()
-		this._storageService.store(VOID_MACHINE_STORAGE_KEY, newVal, StorageScope.APPLICATION, StorageTarget.MACHINE) // <-- MACHINE here
+		this._storageService.applicationStorage.set(VOID_MACHINE_STORAGE_KEY, newVal)
 		return newVal
 	}
 
 
 	constructor(
 		@IProductService private readonly _productService: IProductService,
-		@IStorageService private readonly _storageService: IStorageService,
+		@IStorageMainService private readonly _storageService: IStorageMainService,
+		@IEnvironmentMainService private readonly _envMainService: IEnvironmentMainService,
 	) {
 		super()
 		this.client = new PostHog('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2', {
@@ -58,19 +51,22 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 
 		const { commit, version, quality } = this._productService
 
+		const isDevMode = !this._envMainService.isBuilt // found in abstractUpdateService.ts
+
+
 		// custom properties we identify
 		this._initProperties = {
 			commit,
 			version,
 			os,
 			quality,
-			distinctId: this.distinctId,
-			machineId: this.machineId,
+			distinctId: this.machineId,
+			isDevMode,
 			...this._getOSInfo(),
 		}
 
 		const identifyMessage = {
-			distinctId: this.distinctId,
+			distinctId: this.machineId,
 			properties: this._initProperties,
 		}
 		this.client.identify(identifyMessage)
@@ -90,7 +86,7 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 	}
 
 	capture: IMetricsService['capture'] = (event, params) => {
-		const capture = { distinctId: this.distinctId, event, properties: params } as const
+		const capture = { distinctId: this.machineId, event, properties: params } as const
 		// console.log('full capture:', capture)
 		this.client.capture(capture)
 	}

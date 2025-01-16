@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
+import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';

@@ -6,7 +6,7 @@
 
 import { URI } from '../../../../../base/common/uri.js';
 import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
-import { CodeSelection } from '../threadHistoryService.js';
+import { CodeSelection } from '../chatThreadService.js';
 
 export const chat_systemMessage = `\
 You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.

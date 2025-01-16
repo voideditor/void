@@ -4,8 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React from "react";
-import { useAccessor, useThreadsState } from '../util/services.js';
-import { IThreadHistoryService } from '../../../threadHistoryService.js';
+import { useAccessor, useChatThreadsState } from '../util/services.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { IconX } from './SidebarChat.js';
 
@@ -20,10 +19,10 @@ const truncate = (s: string) => {
 
 
 export const SidebarThreadSelector = () => {
-	const threadsState = useThreadsState()
+	const threadsState = useChatThreadsState()
 
 	const accessor = useAccessor()
-	const threadsStateService = accessor.get('IThreadHistoryService')
+	const chatThreadsService = accessor.get('IChatThreadService')
 	const sidebarStateService = accessor.get('ISidebarStateService')
 
 	const { allThreads } = threadsState
@@ -96,13 +95,13 @@ export const SidebarThreadSelector = () => {
 										type='button'
 										className={`
 										hover:bg-void-bg-1
-										${threadsState._currentThreadId === pastThread.id ? 'bg-void-bg-1' : ''}
+										${threadsState.currentThreadId === pastThread.id ? 'bg-void-bg-1' : ''}
 										rounded-sm px-2 py-1
 										w-full
 										text-left
 										flex items-center
 									`}
-										onClick={() => threadsStateService.switchToThread(pastThread.id)}
+										onClick={() => chatThreadsService.switchToThread(pastThread.id)}
 										title={new Date(pastThread.createdAt).toLocaleString()}
 									>
 										<div className='truncate'>{`${firstMsg}`}</div>

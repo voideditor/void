@@ -11,7 +11,7 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { CodeStagingSelection, IThreadHistoryService } from './threadHistoryService.js';
+import { CodeStagingSelection, IChatThreadService } from './chatThreadService.js';
 
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
@@ -126,8 +126,8 @@ registerAction2(class extends Action2 {
 		}
 
 		// add selection to staging
-		const threadHistoryService = accessor.get(IThreadHistoryService)
-		const currentStaging = threadHistoryService.state._currentStagingSelections
+		const chatThreadService = accessor.get(IChatThreadService)
+		const currentStaging = chatThreadService.state.currentStagingSelections
 		const currentStagingEltIdx = currentStaging?.findIndex(s =>
 			s.fileURI.fsPath === model.uri.fsPath
 			&& s.range?.startLineNumber === selection.range?.startLineNumber
@@ -136,7 +136,7 @@ registerAction2(class extends Action2 {
 
 		// if matches with existing selection, overwrite
 		if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
-			threadHistoryService.setStaging([
+			chatThreadService.setStaging([
 				...currentStaging!.slice(0, currentStagingEltIdx),
 				selection,
 				...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
@@ -144,7 +144,7 @@ registerAction2(class extends Action2 {
 		}
 		// if no match, add
 		else {
-			threadHistoryService.setStaging([...(currentStaging ?? []), selection])
+			chatThreadService.setStaging([...(currentStaging ?? []), selection])
 		}
 
 	}
@@ -184,8 +184,8 @@ registerAction2(class extends Action2 {
 
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.fireFocusChat()
-		const historyService = accessor.get(IThreadHistoryService)
-		historyService.startNewThread()
+		const chatThreadService = accessor.get(IChatThreadService)
+		chatThreadService.openNewThread()
 	}
 })
 

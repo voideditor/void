@@ -6,8 +6,8 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useThreadsState } from '../util/services.js';
-import { ChatMessage, CodeSelection, CodeStagingSelection, IThreadHistoryService } from '../../../threadHistoryService.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState } from '../util/services.js';
+import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
@@ -250,13 +250,6 @@ const ScrollToBottomContainer = ({ children, className, style, scrollContainerRe
 };
 
 
-// read files from VSCode
-const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
-	const model = modelService.getModel(uri)
-	if (!model) return null
-	return model.getValue(EndOfLinePreference.LF)
-}
-
 
 const getBasename = (pathStr: string) => {
 	// 'unixify' path
@@ -498,23 +491,23 @@ export const SidebarChat = () => {
 		return () => disposables.forEach(d => d.dispose())
 	}, [sidebarStateService, textAreaRef])
 
-	const { currentTab, isHistoryOpen } = useSidebarState()
+	const { isHistoryOpen } = useSidebarState()
 
 	// threads state
-	const threadsState = useThreadsState()
-	const threadsStateService = accessor.get('IThreadHistoryService')
+	const chatThreadsState = useChatThreadsState()
+	const chatThreadsService = accessor.get('IChatThreadService')
 
-	const llmMessageService = accessor.get('ILLMMessageService')
+	const currentThread = chatThreadsService.getCurrentThread()
+	const previousMessages = currentThread?.messages ?? []
+	const selections = chatThreadsState.currentStagingSelections
+
+	// stream state
+	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
+	const isCurrThreadStreaming = !!chatThreadsStreamState?.streamingToken
+	const latestError = chatThreadsStreamState?.error
+	const messageSoFar = chatThreadsStreamState?.messageSoFar
 
 	// ----- SIDEBAR CHAT state (local) -----
-
-	// state of chat
-	const [messageStream, setMessageStream] = useState<string | null>(null)
-	const [isLoading, setIsLoading] = useState(false)
-	const latestRequestIdRef = useRef<string | null>(null)
-
-	const [latestError, setLatestError] = useState<Parameters<OnError>[0] | null>(null)
-
 
 	// state of current message
 	const initVal = ''
@@ -527,109 +520,27 @@ export const SidebarChat = () => {
 
 	useScrollbarStyles(sidebarRef)
 
+
 	const onSubmit = async () => {
 
 		if (isDisabled) return
-		if (isLoading) return
-
-		const currSelns = threadsStateService.state._currentStagingSelections ?? []
-		const selections = !currSelns ? null : await Promise.all(
-			currSelns.map(async (sel) => ({ ...sel, content: await VSReadFile(modelService, sel.fileURI) }))
-		).then(
-			(files) => files.filter(file => file.content !== null) as CodeSelection[]
-		)
-
-
-		// // TODO don't save files to the thread history
-		// const selectedSnippets = currSelns.filter(sel => sel.selectionStr !== null)
-		// const selectedFiles = await Promise.all(  // do not add these to the context history
-		// 	currSelns.filter(sel => sel.selectionStr === null)
-		// 		.map(async (sel) => ({ ...sel, content: await VSReadFile(modelService, sel.fileURI) }))
-		// ).then(
-		// 	(files) => files.filter(file => file.content !== null) as CodeSelection[]
-		// )
-		// const contextToSendToLLM = ''
-		// const contextToAddToHistory = ''
-
-
-		// add system message to chat history
-		const systemPromptElt: ChatMessage = { role: 'system', content: chat_systemMessage }
-		threadsStateService.addMessageToCurrentThread(systemPromptElt)
-
-		// add user's message to chat history
-		const instructions = textAreaRef.current?.value ?? ''
-		const userHistoryElt: ChatMessage = { role: 'user', content: chat_prompt(instructions, selections), displayContent: instructions, selections: selections }
-		threadsStateService.addMessageToCurrentThread(userHistoryElt)
-
-		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
+		if (isCurrThreadStreaming) return
 
 		// send message to LLM
-		setIsLoading(true) // must come before message is sent so onError will work
-		setLatestError(null)
-		if (textAreaRef.current) {
-			textAreaFnsRef.current?.setValue('') // triggers onChange
-			textAreaRef.current.blur();
-		}
+		const userMessage = textAreaRef.current?.value ?? ''
+		await chatThreadsService.addUserMessageAndStreamResponse(userMessage)
 
-		const object: ServiceSendLLMMessageParams = {
-			logging: { loggingName: 'Chat' },
-			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content || '(null)' })),],
-			onText: ({ newText, fullText }) => setMessageStream(fullText),
-			onFinalMessage: ({ fullText: content }) => {
-				console.log('chat: running final message')
-
-				// add assistant's message to chat history, and clear selection
-				const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null }
-				threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
-				setMessageStream(null)
-				setIsLoading(false)
-			},
-			onError: ({ message, fullError }) => {
-				console.log('chat: running error', message, fullError)
-
-				// add assistant's message to chat history, and clear selection
-				let content = messageStream ?? ''; // just use the current content
-				const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null, }
-				threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
-
-				setMessageStream('')
-				setIsLoading(false)
-
-				setLatestError({ message, fullError })
-			},
-			featureName: 'Ctrl+L',
-
-		}
-
-		const latestRequestId = llmMessageService.sendLLMMessage(object)
-		latestRequestIdRef.current = latestRequestId
-
-		threadsStateService.setStaging([]) // clear staging
-
+		chatThreadsService.setStaging([]) // clear staging
+		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
 	}
 
 	const onAbort = () => {
-		// abort the LLM call
-		if (latestRequestIdRef.current)
-			llmMessageService.abort(latestRequestIdRef.current)
-
-		// if messageStream was not empty, add it to the history
-		const llmContent = messageStream ?? ''
-		const assistantHistoryElt: ChatMessage = { role: 'assistant', content: llmContent, displayContent: messageStream || null, }
-		threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
-
-		setMessageStream('')
-		setIsLoading(false)
-
+		const token = chatThreadsStreamState?.streamingToken
+		if (!token) return
+		chatThreadsService.cancelStreaming(token)
 	}
-
-	const currentThread = threadsStateService.getCurrentThread(threadsState)
-
-	const selections = threadsState._currentStagingSelections
-
-	const previousMessages = currentThread?.messages ?? []
 
 	// const [_test_messages, _set_test_messages] = useState<string[]>([])
 
@@ -640,7 +551,7 @@ export const SidebarChat = () => {
 	useEffect(() => {
 		if (isHistoryOpen)
 			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
-	}, [isHistoryOpen, currentThread?.id])
+	}, [isHistoryOpen, currentThread.id])
 
 	return <div
 		ref={sidebarRef}
@@ -670,7 +581,7 @@ export const SidebarChat = () => {
 			)}
 
 			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} isLoading={isLoading} />
+			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isCurrThreadStreaming} />
 
 		</ScrollToBottomContainer>
 
@@ -697,15 +608,15 @@ export const SidebarChat = () => {
 				<>
 					{/* selections */}
 					{(selections && selections.length !== 0) &&
-						<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
+						<SelectedFiles type='staging' selections={selections} setStaging={chatThreadsService.setStaging.bind(chatThreadsService)} />
 					}
 
 					{/* error message */}
-					{latestError === null ? null :
+					{latestError === undefined ? null :
 						<ErrorDisplay
 							message={latestError.message}
 							fullError={latestError.fullError}
-							onDismiss={() => { setLatestError(null) }}
+							onDismiss={() => { chatThreadsService.dismissStreamError(currentThread.id) }}
 							showDismiss={true}
 						/>
 					}
@@ -745,7 +656,7 @@ export const SidebarChat = () => {
 					</div>
 
 					{/* submit / stop button */}
-					{isLoading ?
+					{isCurrThreadStreaming ?
 						// stop button
 						<ButtonStop
 							onClick={onAbort}

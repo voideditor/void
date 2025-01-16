@@ -403,9 +403,6 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 	// edit mode state
 	const [isEditMode, setIsEditMode] = useState(false)
 
-	if (!chatMessage.displayContent)
-		return null
-
 	let chatbubbleContents: React.ReactNode
 
 	if (role === 'user') {
@@ -430,7 +427,7 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 		</>
 	}
 	else if (role === 'assistant') {
-		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent} />
+		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} />
 	}
 
 	return <div

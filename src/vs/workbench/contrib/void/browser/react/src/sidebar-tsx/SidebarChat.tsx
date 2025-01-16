@@ -312,9 +312,9 @@ export const SelectedFiles = (
 									rounded-md px-1
 									w-fit h-fit
 									select-none
-									${isThisSelectionProspective ? 'bg-void-1' : 'bg-void-bg-3 hover:brightness-95'}
-									text-void-fg-1 text-xs text-nowrap
-									border rounded-xs ${isClearHovered ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
+									${isThisSelectionProspective ? 'bg-void-1 text-void-fg-3' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
+									 text-xs text-nowrap
+									border rounded-xs ${isClearHovered && !isThisSelectionProspective ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
 									transition-all duration-150`}
 							onClick={() => {
 								if (isThisSelectionProspective) { // add prospective selection to selections
@@ -343,7 +343,7 @@ export const SelectedFiles = (
 							</span>
 
 							{/* X button */}
-							{type === 'staging' &&
+							{type === 'staging' && !isThisSelectionProspective &&
 								<span
 									className='cursor-pointer hover:brightness-95 rounded-md z-1'
 									onClick={(e) => {
@@ -360,7 +360,7 @@ export const SelectedFiles = (
 						</div>
 
 						{/* clear all selections button */}
-						{type !== 'staging' || allSelections.length === 0 || i !== allSelections.length - 1
+						{type !== 'staging' || selections.length === 0 || i !== allSelections.length - 1
 							? null
 							: <div key={i} className={`flex items-center gap-0.5 ${isThisSelectionOpened ? 'w-full' : ''}`}>
 								<div

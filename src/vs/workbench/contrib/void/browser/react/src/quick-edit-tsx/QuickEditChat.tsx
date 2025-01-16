@@ -80,7 +80,7 @@ export const QuickEditChat = ({
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
 
-	return <div ref={sizerRef} style={{ maxWidth: 500 }} className='py-2 pl-4 w-full'>
+	return <div ref={sizerRef} style={{ maxWidth: 500 }} className={`py-2 w-full`}>
 		<form
 			// copied from SidebarChat.tsx
 			className={`

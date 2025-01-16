@@ -61,6 +61,43 @@ registerColor('void.sweepIdxBG', configOfBG(sweepIdxBG), '', true);
 
 
 
+
+
+const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number => {
+
+	const model = editor.getModel();
+	if (!model) {
+		return 0;
+	}
+
+	// Get the line content, defaulting to empty string if line doesn't exist
+	const lineContent = model.getLineContent(startLine) || '';
+
+	// Find the first non-whitespace character
+	const firstNonWhitespaceIndex = lineContent.search(/\S/);
+
+	// Extract leading whitespace, handling case where line is all whitespace
+	const leadingWhitespace = firstNonWhitespaceIndex === -1
+		? lineContent
+		: lineContent.slice(0, firstNonWhitespaceIndex);
+
+	// Get font information from editor render options
+	const { tabSize: numSpacesInTab } = model.getFormattingOptions();
+	const spaceWidth = editor.getOption(EditorOption.fontInfo).spaceWidth;
+	const tabWidth = numSpacesInTab * spaceWidth;
+
+	let paddingLeft = 0;
+	for (const char of leadingWhitespace) {
+		if (char === '\t') {
+			paddingLeft += tabWidth
+		} else if (char === ' ') {
+			paddingLeft += spaceWidth;
+		}
+	}
+
+	return paddingLeft;
+};
+
 // similar to ServiceLLM
 export type StartApplyingOpts = {
 	featureName: 'Ctrl+K';
@@ -400,10 +437,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let viewZone_: IViewZone | null = null
 		const textAreaRef: { current: HTMLTextAreaElement | null } = { current: null }
 
+
+		const paddingLeft = getLeadingWhitespacePx(editor, ctrlKZone.startLine)
+
 		const itemId = this._consistentEditorItemService.addToEditor(editor, () => {
 			const domNode = document.createElement('div');
 			domNode.style.zIndex = '1'
 			domNode.style.height = 'auto'
+			domNode.style.paddingLeft = `${paddingLeft}px`
 			const viewZone: IViewZone = {
 				afterLineNumber: ctrlKZone.startLine - 1,
 				domNode: domNode,
@@ -417,7 +458,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			editor.changeViewZones(accessor => {
 				zoneId = accessor.addZone(viewZone)
 			})
-
 
 			// mount react
 			this._instantiationService.invokeFunction(accessor => {

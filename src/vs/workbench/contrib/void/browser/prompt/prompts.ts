@@ -4,7 +4,9 @@
  *--------------------------------------------------------------------------------------*/
 
 
-import { CodeSelection } from '../threadHistoryService.js';
+import { URI } from '../../../../../base/common/uri.js';
+import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
+import { CodeSelection } from '../chatThreadService.js';
 
 export const chat_systemMessage = `\
 You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.
@@ -22,25 +24,25 @@ Instructions:
 
 FILES
 selected file \`math.ts\`:
-\`\`\`
+\`\`\` typescript
 const addNumbers = (a, b) => a + b
 const subtractNumbers = (a, b) => a - b
 const divideNumbers = (a, b) => a / b
 \`\`\`
 
 SELECTION
-\`\`\`
+\`\`\` typescript
 const subtractNumbers = (a, b) => a - b
 \`\`\`
 
 INSTRUCTIONS
-\`\`\`
+\`\`\` typescript
 add a function that multiplies numbers below this
 \`\`\`
 
 EXPECTED OUTPUT
 We can add the following code to the file:
-\`\`\`
+\`\`\` typescript
 // existing code...
 const subtractNumbers = (a, b) => a - b;
 const multiplyNumbers = (a, b) => a * b;
@@ -51,7 +53,7 @@ const multiplyNumbers = (a, b) => a * b;
 
 FILES
 selected file \`fib.ts\`:
-\`\`\`
+\`\`\` typescript
 
 const dfs = (root) => {
 	if (!root) return;
@@ -66,18 +68,18 @@ const fib = (n) => {
 \`\`\`
 
 SELECTION
-\`\`\`
+\`\`\` typescript
 	return fib(n - 1) + fib(n - 2)
 \`\`\`
 
 INSTRUCTIONS
-\`\`\`
+\`\`\` typescript
 memoize results
 \`\`\`
 
 EXPECTED OUTPUT
 To implement memoization in your Fibonacci function, you can use a JavaScript object to store previously computed results. This will help avoid redundant calculations and improve performance. Here's how you can modify your function:
-\`\`\`
+\`\`\` typescript
 // existing code...
 const fib = (n, memo = {}) => {
     if (n < 1) return 1;
@@ -100,7 +102,7 @@ const stringifySelections = (selections: CodeSelection[]) => {
 	return selections.map(({ fileURI, content, selectionStr }) =>
 		`\
 File: ${fileURI.fsPath}
-\`\`\`
+\`\`\` ${filenameToVscodeLanguage(fileURI.fsPath) ?? ''}
 ${content // this was the enite file which is foolish
 		}
 \`\`\`${selectionStr === null ? '' : `
@@ -136,7 +138,7 @@ Directions:
 
 ORIGINAL_FILE
 \`Sidebar.tsx\`:
-\`\`\`
+\`\`\` typescript
 import React from 'react';
 import styles from './Sidebar.module.css';
 
@@ -172,7 +174,7 @@ export default Sidebar;
 \`\`\`
 
 DIFF
-\`\`\`
+\`\`\` typescript
 @@ ... @@
 -<div className={styles.sidebar}>
 -<ul>
@@ -211,7 +213,7 @@ DIFF
 \`\`\`
 
 NEW_FILE
-\`\`\`
+\`\`\` typescript
 import React from 'react';
 import styles from './Sidebar.module.css';
 
@@ -226,7 +228,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonCli
 \`\`\`
 
 COMPLETION
-\`\`\`
+\`\`\` typescript
     <div className={styles.sidebar}>
       <ul>
         {items.map((item, index) => (
@@ -253,10 +255,13 @@ export default Sidebar;\`\`\`
 
 
 
-export const ctrlLStream_prompt = ({ originalCode, userMessage }: { originalCode: string, userMessage: string }) => {
+export const ctrlLStream_prompt = ({ originalCode, userMessage, uri }: { originalCode: string, userMessage: string, uri: URI }) => {
+
+	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
+
 	return `\
 ORIGINAL_CODE
-\`\`\`
+\`\`\` ${language}
 ${originalCode}
 \`\`\`
 
@@ -281,7 +286,7 @@ export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }:
 	const fullFileLines = fullFileStr.split('\n')
 
 	// we can optimize this later
-	const MAX_CHARS = 1024
+	const MAX_PREFIX_SUFFIX_CHARS = 20_000
 	/*
 
 	a
@@ -302,7 +307,7 @@ export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }:
 	// we'll include fullFileLines[i...(startLine-1)-1].join('\n') in the prefix.
 	while (i !== 0) {
 		const newLine = fullFileLines[i - 1]
-		if (newLine.length + 1 + prefix.length <= MAX_CHARS) { // +1 to include the \n
+		if (newLine.length + 1 + prefix.length <= MAX_PREFIX_SUFFIX_CHARS) { // +1 to include the \n
 			prefix = `${newLine}\n${prefix}`
 			i -= 1
 		}
@@ -313,7 +318,7 @@ export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }:
 	let j = endLine - 1
 	while (j !== fullFileLines.length - 1) {
 		const newLine = fullFileLines[j + 1]
-		if (newLine.length + 1 + suffix.length <= MAX_CHARS) { // +1 to include the \n
+		if (newLine.length + 1 + suffix.length <= MAX_PREFIX_SUFFIX_CHARS) { // +1 to include the \n
 			suffix = `${suffix}\n${newLine}`
 			j += 1
 		}
@@ -324,50 +329,54 @@ export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }:
 
 }
 
-export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage }: { selection: string, prefix: string, suffix: string, userMessage: string, }) => {
-	const onlySpeaksFIM = false
 
-	if (onlySpeaksFIM) {
-		const preTag = 'PRE'
-		const sufTag = 'SUF'
-		const midTag = 'MID'
-		return `\
-<${preTag}>
-/* Original Selection:
-${selection}*/
-/* Instructions:
-${userMessage}*/
-${prefix}</${preTag}>
-<${sufTag}>${suffix}</${sufTag}>
-<${midTag}>`
-	}
-	// prompt the model on how to do FIM
-	else {
-		const preTag = 'PRE'
-		const sufTag = 'SUF'
-		const midTag = 'MID'
-		return `\
-Here is the user's original selection:
-\`\`\`
+export type FimTagsType = {
+	preTag: string,
+	sufTag: string,
+	midTag: string
+}
+export const defaultFimTags: FimTagsType = {
+	preTag: 'BEFORE',
+	sufTag: 'AFTER',
+	midTag: 'SELECTION',
+}
+
+export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage, fimTags, isOllamaFIM, language }:
+	{
+		selection: string, prefix: string, suffix: string, userMessage: string, fimTags: FimTagsType, language: string,
+		isOllamaFIM: false, // we require this be false for clarity
+	}) => {
+	const { preTag, sufTag, midTag } = fimTags
+
+	// prompt the model artifically on how to do FIM
+	// const preTag = 'BEFORE'
+	// const sufTag = 'AFTER'
+	// const midTag = 'SELECTION'
+	return `\
+The user is selecting this code as their SELECTION:
+\`\`\` ${language}
 <${midTag}>${selection}</${midTag}>
 \`\`\`
 
-The user wants to apply the following instructions to the selection:
+The user wants to apply the following INSTRUCTIONS to the SELECTION:
 ${userMessage}
 
-Please rewrite the selection following the user's instructions.
+Please edit the SELECTION following the user's INSTRUCTIONS, and return the edited selection.
 
-Instructions to follow:
-1. Follow the user's instructions
-2. You may ONLY CHANGE the selection, and nothing else in the file
-3. Make sure all brackets in the new selection are balanced the same was as in the original selection
-3. Be careful not to duplicate or remove variables, comments, or other syntax by mistake
+Note that the SELECTION has code that comes before it. This code is indicated with <${preTag}>...before</${preTag}>.
+Note also that the SELECTION has code that comes after it. This code is indicated with <${sufTag}>...after</${sufTag}>.
 
-Complete the following:
+Instructions:
+1. Your OUTPUT should be a SINGLE PIECE OF CODE of the form <${midTag}>...new_selection</${midTag}>. Do NOT output any text or explanations before or after this.
+2. You may ONLY CHANGE the original SELECTION, and NOT the content in the <${preTag}>...</${preTag}> or <${sufTag}>...</${sufTag}> tags.
+3. Make sure all brackets in the new selection are balanced the same as in the original selection.
+4. Be careful not to duplicate or remove variables, comments, or other syntax by mistake.
+
+Given the code:
 <${preTag}>${prefix}</${preTag}>
 <${sufTag}>${suffix}</${sufTag}>
-<${midTag}>`
-	}
+
+Return only the completion block of code (of the form \`\`\` ${language}\n <${midTag}>...new_selection</${midTag}>\`\`\`):`
 };
 
 

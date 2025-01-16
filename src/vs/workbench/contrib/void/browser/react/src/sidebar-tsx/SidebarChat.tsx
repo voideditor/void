@@ -6,27 +6,32 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
-import { useAccessor, useThreadsState } from '../util/services.js';
-import { ChatMessage, CodeSelection, CodeStagingSelection, IThreadHistoryService } from '../../../threadHistoryService.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState } from '../util/services.js';
+import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../chatThreadService.js';
 
-import { BlockCode, getLanguageFromFileName } from '../markdown/BlockCode.js';
+import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
-import { getCmdKey } from '../../../helpers/getCmdKey.js'
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { VoidInputBox } from '../util/inputs.js';
+import { TextAreaFns, VoidCodeEditorProps, VoidInputBox2 } from '../util/inputs.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
+import { SidebarThreadSelector } from './SidebarThreadSelector.js';
+import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
+import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
+import { ArrowBigLeftDash, CopyX, Delete, FileX2, SquareX, X } from 'lucide-react';
+import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
+import { Pencil } from 'lucide-react'
 
 
-const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
+export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
 	return (
 		<svg
 			xmlns='http://www.w3.org/2000/svg'
@@ -47,14 +52,13 @@ const IconX = ({ size, className = '', ...props }: { size: number, className?: s
 	);
 };
 
-
 const IconArrowUp = ({ size, className = '' }: { size: number, className?: string }) => {
 	return (
 		<svg
 			width={size}
 			height={size}
 			className={className}
-			viewBox="0 0 32 32"
+			viewBox="0 0 20 20"
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
 		>
@@ -62,10 +66,9 @@ const IconArrowUp = ({ size, className = '' }: { size: number, className?: strin
 				fill="black"
 				fillRule="evenodd"
 				clipRule="evenodd"
-				d="M15.1918 8.90615C15.6381 8.45983 16.3618 8.45983 16.8081 8.90615L21.9509 14.049C22.3972 14.4953 22.3972 15.2189 21.9509 15.6652C21.5046 16.1116 20.781 16.1116 20.3347 15.6652L17.1428 12.4734V22.2857C17.1428 22.9169 16.6311 23.4286 15.9999 23.4286C15.3688 23.4286 14.8571 22.9169 14.8571 22.2857V12.4734L11.6652 15.6652C11.2189 16.1116 10.4953 16.1116 10.049 15.6652C9.60265 15.2189 9.60265 14.4953 10.049 14.049L15.1918 8.90615Z"
+				d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"
 			></path>
 		</svg>
-
 	);
 };
 
@@ -169,38 +172,40 @@ const useResizeObserver = () => {
 
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
-const DEFAULT_BUTTON_SIZE = 20;
+const DEFAULT_BUTTON_SIZE = 22;
 export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Required<Pick<ButtonProps, 'disabled'>>) => {
 
 	return <button
-		type='submit'
-		className={`size-[20px] rounded-full shrink-0 grow-0 cursor-pointer
-			${disabled ? 'bg-vscode-disabled-fg' : 'bg-white'}
+		type='button'
+		className={`rounded-full flex-shrink-0 flex-grow-0 flex items-center justify-center
+			${disabled ? 'bg-vscode-disabled-fg cursor-default' : 'bg-white cursor-pointer'}
 			${className}
 		`}
 		{...props}
 	>
-		<IconArrowUp size={DEFAULT_BUTTON_SIZE} className="stroke-[2]" />
+		<IconArrowUp size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[2px]" />
 	</button>
 }
 
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
 
 	return <button
-		className={`rounded-full bg-white shrink-0 grow-0 cursor-pointer flex items-center justify-center
+		className={`rounded-full flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
+			bg-white
 			${className}
 		`}
 		type='button'
 		{...props}
 	>
-		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[6px]" />
+		<IconSquare size={DEFAULT_BUTTON_SIZE} className="stroke-[3] p-[7px]" />
 	</button>
 }
 
 
-const ScrollToBottomContainer = ({ children, className, style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => {
+const ScrollToBottomContainer = ({ children, className, style, scrollContainerRef }: { children: React.ReactNode, className?: string, style?: React.CSSProperties, scrollContainerRef: React.MutableRefObject<HTMLDivElement | null> }) => {
 	const [isAtBottom, setIsAtBottom] = useState(true); // Start at bottom
-	const divRef = useRef<HTMLDivElement>(null);
+
+	const divRef = scrollContainerRef
 
 	const scrollToBottom = () => {
 		if (divRef.current) {
@@ -245,13 +250,6 @@ const ScrollToBottomContainer = ({ children, className, style }: { children: Rea
 };
 
 
-// read files from VSCode
-const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
-	const model = modelService.getModel(uri)
-	if (!model) return null
-	return model.getValue(EndOfLinePreference.LF)
-}
-
 
 const getBasename = (pathStr: string) => {
 	// 'unixify' path
@@ -269,95 +267,130 @@ export const SelectedFiles = (
 	// index -> isOpened
 	const [selectionIsOpened, setSelectionIsOpened] = useState<(boolean)[]>(selections?.map(() => false) ?? [])
 
+	// state for tracking hover on clear all button
+	const [isClearHovered, setIsClearHovered] = useState(false)
+
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
+
 	return (
 		!!selections && selections.length !== 0 && (
 			<div
-				className='flex flex-wrap gap-2 text-left'
+				className='flex items-center flex-wrap gap-0.5 text-left relative'
 			>
 				{selections.map((selection, i) => {
 
 					const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
+					const isThisSelectionAFile = selection.selectionStr === null
 
-					return (
-						<div key={i} // container for `selectionSummary` and `selectionText`
-							className={`${isThisSelectionOpened ? 'w-full' : ''}`}
+					return <div key={i} // container for `selectionSummary` and `selectionText`
+						className={`${isThisSelectionOpened ? 'w-full' : ''}`}
+					>
+						{/* selection summary */}
+						<div // container for delete button
+							className='flex items-center gap-0.5'
 						>
-							{/* selection summary */}
-							<div
-								// className="relative rounded rounded-e-2xl flex items-center space-x-2 mx-1 mb-1 disabled:cursor-default"
-								className={`flex items-center gap-1 relative
-									rounded-md p-1
+							<div // styled summary box
+								className={`flex items-center gap-0.5 relative
+									rounded-md px-1
 									w-fit h-fit
 									select-none
-									bg-vscode-editor-bg hover:brightness-95
-									border border-vscode-commandcenter-border rounded-xs
-									text-xs text-vscode-editor-fg text-nowrap
-								`}
+									bg-void-bg-3 hover:brightness-95
+									text-void-fg-1 text-xs text-nowrap
+									border rounded-xs ${isClearHovered ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
+									transition-all duration-150`}
 								onClick={() => {
-									setSelectionIsOpened(s => {
-										const newS = [...s]
-										newS[i] = !newS[i]
-										return newS
-									});
+									// open the file if it is a file
+									if (isThisSelectionAFile) {
+										commandService.executeCommand('vscode.open', selection.fileURI, {
+											preview: true,
+											// preserveFocus: false,
+										});
+									} else {
+										// open the selection if it is a text-selection
+										setSelectionIsOpened(s => {
+											const newS = [...s]
+											newS[i] = !newS[i]
+											return newS
+										});
+									}
 								}}
 							>
-								<span className=''>
+								<span>
 									{/* file name */}
 									{getBasename(selection.fileURI.fsPath)}
 									{/* selection range */}
-									{selection.selectionStr !== null ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
+									{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
 								</span>
 
 								{/* X button */}
 								{type === 'staging' &&
 									<span
-										className='
-											cursor-pointer
-											bg-vscode-editorwidget-bg hover:bg-vscode-toolbar-hover-bg
-											rounded-md
-											z-1
-										'
+										className='cursor-pointer hover:brightness-95 rounded-md z-1'
 										onClick={(e) => {
-											e.stopPropagation();
-											if (type !== 'staging') return;
-											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
-											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
-										}}
-									>
-										<IconX size={16} className="p-[2px] stroke-[3] text-vscode-toolbar-foreground" />
-									</span>
-								}
-
-								{/* type of selection */}
-								{/* <span className='truncate'>{selection.selectionStr !== null ? 'Selection' : 'File'}</span> */}
-								{/* X button */}
-								{/* {type === 'staging' && // hoveredIdx === i
-									<span className='absolute right-0 top-0 translate-x-[50%] translate-y-[-50%] cursor-pointer bg-white rounded-full border border-vscode-input-border z-1'
-										onClick={(e) => {
-											e.stopPropagation();
+											e.stopPropagation(); // don't open/close selection
 											if (type !== 'staging') return;
 											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
 											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
 										}}
 									>
 										<IconX size={16} className="p-[2px] stroke-[3]" />
-									</span>
-								} */}
+									</span>}
+
 
 							</div>
-							{/* selection text */}
-							{isThisSelectionOpened &&
-								<div className='w-full p-1 rounded-sm border-vscode-editor-border'>
-									<BlockCode text={selection.selectionStr!} language={getLanguageFromFileName(selection.fileURI.path)} />
+
+							{/* clear all selections button */}
+							{type !== 'staging' || selections.length === 0 || i !== selections.length - 1
+								? null
+								: <div key={i} className={`flex items-center gap-0.5 ${isThisSelectionOpened ? 'w-full' : ''}`}>
+									<div
+										className='rounded-md'
+										onMouseEnter={() => setIsClearHovered(true)}
+										onMouseLeave={() => setIsClearHovered(false)}
+									>
+										<Delete
+											size={16}
+											className={`stroke-[1]
+												stroke-void-fg-1
+												fill-void-bg-3
+												opacity-40
+												hover:opacity-60
+												transition-all duration-150
+												cursor-pointer
+											`}
+											onClick={() => { setStaging([]) }}
+										/>
+									</div>
 								</div>
 							}
 						</div>
-					)
+						{/* selection text */}
+						{isThisSelectionOpened &&
+							<div
+								className='w-full px-1 rounded-sm border-vscode-editor-border'
+								onClick={(e) => {
+									e.stopPropagation(); // don't focus input box
+								}}
+							>
+								<BlockCode
+									initValue={selection.selectionStr!}
+									language={filenameToVscodeLanguage(selection.fileURI.path)}
+									maxHeight={200}
+									showScrollbars={true}
+								/>
+							</div>
+						}
+					</div>
+
 				})}
+
+
 			</div>
 		)
 	)
 }
+
 
 
 const ChatBubble = ({ chatMessage, isLoading }: {
@@ -367,8 +400,8 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 
 	const role = chatMessage.role
 
-	if (!chatMessage.displayContent)
-		return null
+	// edit mode state
+	const [isEditMode, setIsEditMode] = useState(false)
 
 	let chatbubbleContents: React.ReactNode
 
@@ -376,30 +409,69 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 		chatbubbleContents = <>
 			<SelectedFiles type='past' selections={chatMessage.selections} />
 			{chatMessage.displayContent}
+
+			{/* {!isEditMode ? chatMessage.displayContent : <></>} */}
+			{/* edit mode content */}
+			{/* TODO this should be the same input box as in the Sidebar */}
+			{/* <textarea
+				value={editModeText}
+				className={`
+						w-full max-w-full
+						h-auto min-h-[81px] max-h-[500px]
+						bg-void-bg-1 resize-none
+					`}
+				style={{ marginTop: 0 }}
+				hidden={!isEditMode}
+			/> */}
+
 		</>
 	}
 	else if (role === 'assistant') {
-		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent} /> // sectionsHTML
+		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} />
 	}
 
 	return <div
-		// style + align chatbubble accoridng to role
-		className={`p-2 mx-2 text-left space-y-2 rounded-lg max-w-full
-				${role === 'user' ? 'self-end' : 'self-start'}
-				${role === 'user' ? 'bg-vscode-input-bg text-vscode-input-fg' : ''}
-				${role === 'assistant' ? 'w-full' : ''}
-			`}
+		// align chatbubble accoridng to role
+		className={`
+            relative
+			${isEditMode ? 'px-2 w-full max-w-full'
+				: role === 'user' ? `px-2 self-end w-fit max-w-full`
+					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
+			}
+        `}
 	>
-		{chatbubbleContents}
-		{isLoading && <IconLoading className='opacity-50 text-sm' />}
+		<div
+			// style chatbubble according to role
+			className={`
+                p-2 text-left space-y-2 rounded-lg
+                overflow-x-auto max-w-full
+                ${role === 'user' ? 'bg-void-bg-1 text-void-fg-1' : ''}
+            `}
+		>
+			{chatbubbleContents}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
+		</div>
+
+		{/* edit button */}
+		{/* {role === 'user' &&
+			<Pencil
+				size={16}
+				className={`
+					absolute top-0 right-2
+					translate-x-0 -translate-y-0
+					cursor-pointer z-1
+				`}
+				onClick={() => { setIsEditMode(v => !v); }}
+			/>
+		} */}
 	</div>
 }
 
 
-
 export const SidebarChat = () => {
 
-	const inputBoxRef: React.MutableRefObject<InputBox | null> = useRef(null);
+	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
 
 	const accessor = useAccessor()
 	const modelService = accessor.get('IModelService')
@@ -410,172 +482,103 @@ export const SidebarChat = () => {
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { inputBoxRef.current?.focus() }),
-			sidebarStateService.onDidBlurChat(() => { inputBoxRef.current?.blur() })
+			sidebarStateService.onDidFocusChat(() => { textAreaRef.current?.focus() }),
+			sidebarStateService.onDidBlurChat(() => { textAreaRef.current?.blur() })
 		)
 		return () => disposables.forEach(d => d.dispose())
-	}, [sidebarStateService, inputBoxRef])
+	}, [sidebarStateService, textAreaRef])
+
+	const { isHistoryOpen } = useSidebarState()
 
 	// threads state
-	const threadsState = useThreadsState()
-	const threadsStateService = accessor.get('IThreadHistoryService')
+	const chatThreadsState = useChatThreadsState()
+	const chatThreadsService = accessor.get('IChatThreadService')
 
-	const llmMessageService = accessor.get('ILLMMessageService')
+	const currentThread = chatThreadsService.getCurrentThread()
+	const previousMessages = currentThread?.messages ?? []
+	const selections = chatThreadsState.currentStagingSelections
+
+	// stream state
+	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
+	const isCurrThreadStreaming = !!chatThreadsStreamState?.streamingToken
+	const latestError = chatThreadsStreamState?.error
+	const messageSoFar = chatThreadsStreamState?.messageSoFar
 
 	// ----- SIDEBAR CHAT state (local) -----
 
-	// state of chat
-	const [messageStream, setMessageStream] = useState<string | null>(null)
-	const [isLoading, setIsLoading] = useState(false)
-	const latestRequestIdRef = useRef<string | null>(null)
-
-	const [latestError, setLatestError] = useState<Parameters<OnError>[0] | null>(null)
-
-
 	// state of current message
-	const [instructions, setInstructions] = useState('') // the user's instructions
-	const isDisabled = !instructions.trim()
+	const initVal = ''
+	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
+	const isDisabled = instructionsAreEmpty
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
 	const [formRef, formDimensions] = useResizeObserver()
+	const [historyRef, historyDimensions] = useResizeObserver()
 
-	// const [formHeight, setFormHeight] = useState(0) // TODO should use resize observer instead
-	// const [sidebarHeight, setSidebarHeight] = useState(0)
-	const onChangeText = useCallback((newStr: string) => { setInstructions(newStr) }, [setInstructions])
+	useScrollbarStyles(sidebarRef)
 
 
-	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+	const onSubmit = async () => {
 
-		e.preventDefault()
 		if (isDisabled) return
-		if (isLoading) return
-
-
-
-		const currSelns = threadsStateService.state._currentStagingSelections ?? []
-		const selections = !currSelns ? null : await Promise.all(
-			currSelns.map(async (sel) => ({ ...sel, content: await VSReadFile(modelService, sel.fileURI) }))
-		).then(
-			(files) => files.filter(file => file.content !== null) as CodeSelection[]
-		)
-
-
-		// // TODO don't save files to the thread history
-		// const selectedSnippets = currSelns.filter(sel => sel.selectionStr !== null)
-		// const selectedFiles = await Promise.all(  // do not add these to the context history
-		// 	currSelns.filter(sel => sel.selectionStr === null)
-		// 		.map(async (sel) => ({ ...sel, content: await VSReadFile(modelService, sel.fileURI) }))
-		// ).then(
-		// 	(files) => files.filter(file => file.content !== null) as CodeSelection[]
-		// )
-		// const contextToSendToLLM = ''
-		// const contextToAddToHistory = ''
-
-
-		// add system message to chat history
-		const systemPromptElt: ChatMessage = { role: 'system', content: chat_systemMessage }
-		threadsStateService.addMessageToCurrentThread(systemPromptElt)
-
-		// add user's message to chat history
-		const userHistoryElt: ChatMessage = { role: 'user', content: chat_prompt(instructions, selections), displayContent: instructions, selections: selections }
-		threadsStateService.addMessageToCurrentThread(userHistoryElt)
-
-		const currentThread = threadsStateService.getCurrentThread(threadsStateService.state) // the the instant state right now, don't wait for the React state
+		if (isCurrThreadStreaming) return
 
 		// send message to LLM
-		setIsLoading(true) // must come before message is sent so onError will work
-		setLatestError(null)
-		if (inputBoxRef.current) {
-			inputBoxRef.current.value = ''; // this triggers onDidChangeText
-			inputBoxRef.current.blur();
-		}
+		const userMessage = textAreaRef.current?.value ?? ''
+		await chatThreadsService.addUserMessageAndStreamResponse(userMessage)
 
-		const object: ServiceSendLLMMessageParams = {
-			logging: { loggingName: 'Chat' },
-			messages: [...(currentThread?.messages ?? []).map(m => ({ role: m.role, content: m.content || '(null)' })),],
-			onText: ({ newText, fullText }) => setMessageStream(fullText),
-			onFinalMessage: ({ fullText: content }) => {
-				console.log('chat: running final message')
-
-				// add assistant's message to chat history, and clear selection
-				const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null }
-				threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
-				setMessageStream(null)
-				setIsLoading(false)
-			},
-			onError: ({ message, fullError }) => {
-				console.log('chat: running error', message, fullError)
-
-				// add assistant's message to chat history, and clear selection
-				let content = messageStream ?? ''; // just use the current content
-				const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null, }
-				threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
-
-				setMessageStream('')
-				setIsLoading(false)
-
-				setLatestError({ message, fullError })
-			},
-			featureName: 'Ctrl+L',
-
-		}
-
-		const latestRequestId = llmMessageService.sendLLMMessage(object)
-		latestRequestIdRef.current = latestRequestId
-
-		threadsStateService.setStaging([]) // clear staging
-
-		inputBoxRef.current?.focus() // focus input after submit
+		chatThreadsService.setStaging([]) // clear staging
+		textAreaFnsRef.current?.setValue('')
+		textAreaRef.current?.focus() // focus input after submit
 
 	}
 
 	const onAbort = () => {
-		// abort the LLM call
-		if (latestRequestIdRef.current)
-			llmMessageService.abort(latestRequestIdRef.current)
-
-		// if messageStream was not empty, add it to the history
-		const llmContent = messageStream ?? ''
-		const assistantHistoryElt: ChatMessage = { role: 'assistant', content: llmContent, displayContent: messageStream || null, }
-		threadsStateService.addMessageToCurrentThread(assistantHistoryElt)
-
-		setMessageStream('')
-		setIsLoading(false)
-
+		const token = chatThreadsStreamState?.streamingToken
+		if (!token) return
+		chatThreadsService.cancelStreaming(token)
 	}
 
-	const currentThread = threadsStateService.getCurrentThread(threadsState)
-
-	const selections = threadsState._currentStagingSelections
-
-	const previousMessages = currentThread?.messages ?? []
-
 	// const [_test_messages, _set_test_messages] = useState<string[]>([])
+
+	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_L_ACTION_ID)?.getLabel()
+
+	// scroll to top on thread switch
+	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+	useEffect(() => {
+		if (isHistoryOpen)
+			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
+	}, [isHistoryOpen, currentThread.id])
 
 	return <div
 		ref={sidebarRef}
 		className={`w-full h-full`}
 	>
+		{/* thread selector */}
+		<div ref={historyRef}
+			className={`w-full h-auto ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}
+		>
+			<SidebarThreadSelector />
+		</div>
+
+		{/* previous messages + current stream */}
 		<ScrollToBottomContainer
+			scrollContainerRef={scrollContainerRef}
 			className={`
 				w-full h-auto
 				flex flex-col gap-0
 				overflow-x-hidden
 				overflow-y-auto
 			`}
-			style={{ maxHeight: sidebarDimensions.height - formDimensions.height - 30 }}
+			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 30 }} // the height of the previousMessages is determined by all other heights
 		>
 			{/* previous messages */}
-			{previousMessages.map((message, i) => <ChatBubble key={i} chatMessage={message} />)}
+			{previousMessages.map((message, i) =>
+				<ChatBubble key={i} chatMessage={message} />
+			)}
 
 			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageStream, displayContent: messageStream || null }} isLoading={isLoading} />
-
-			{/* {_test_messages.map((_, i) => <div key={i}>div {i}</div>)}
-				<div>{`totalHeight: ${sidebarHeight - formHeight - 30}`}</div>
-				<div>{`sidebarHeight: ${sidebarHeight}`}</div>
-				<div>{`formHeight: ${formHeight}`}</div>
-				<button type='button' onClick={() => { _set_test_messages(d => [...d, 'asdasdsadasd']) }}>add div</button> */}
+			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isCurrThreadStreaming} />
 
 		</ScrollToBottomContainer>
 
@@ -584,73 +587,53 @@ export const SidebarChat = () => {
 		<div // this div is used to position the input box properly
 			className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
 		>
-			<form
+			<div
 				ref={formRef}
 				className={`
 					flex flex-col gap-2 p-2 relative input text-left shrink-0
 					transition-all duration-200
 					rounded-md
 					bg-vscode-input-bg
-					border border-vscode-commandcenter-inactive-border focus-within:border-vscode-commandcenter-active-border hover:border-vscode-commandcenter-active-border
+					max-h-[80vh] overflow-y-auto
+					border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 				`}
-				onKeyDown={(e) => {
-					if (e.key === 'Enter' && !e.shiftKey) {
-						onSubmit(e)
-					}
-				}}
-				onSubmit={(e) => {
-					console.log('submit!')
-					onSubmit(e)
-				}}
 				onClick={(e) => {
-					inputBoxRef.current?.focus()
+					textAreaRef.current?.focus()
 				}}
 			>
 				{/* top row */}
 				<>
 					{/* selections */}
 					{(selections && selections.length !== 0) &&
-						<SelectedFiles type='staging' selections={selections} setStaging={threadsStateService.setStaging.bind(threadsStateService)} />
+						<SelectedFiles type='staging' selections={selections} setStaging={chatThreadsService.setStaging.bind(chatThreadsService)} />
 					}
 
 					{/* error message */}
-					{latestError === null ? null :
+					{latestError === undefined ? null :
 						<ErrorDisplay
 							message={latestError.message}
 							fullError={latestError.fullError}
-							onDismiss={() => { setLatestError(null) }}
+							onDismiss={() => { chatThreadsService.dismissStreamError(currentThread.id) }}
 							showDismiss={true}
 						/>
 					}
 				</>
 
 				{/* middle row */}
-				<div
-					className={
-						// // hack to overwrite vscode styles (generated with this code):
-						//   `bg-transparent outline-none text-vscode-input-fg min-h-[81px] max-h-[500px]`
-						//     .split(' ')
-						//     .map(style => `@@[&_textarea]:!void-${style}`) // apply styles to ancestor textarea elements
-						//     .join(' ') +
-						//   ` outline-none border-none`
-						//     .split(' ')
-						//     .map(style => `@@[&_div.monaco-inputbox]:!void-${style}`)
-						//     .join(' ');
-						`@@[&_textarea]:!void-bg-transparent
-						@@[&_textarea]:!void-outline-none
-						@@[&_textarea]:!void-text-vscode-input-fg
-						@@[&_textarea]:!void-min-h-[81px]
-						@@[&_textarea]:!void-max-h-[500px]
-						@@[&_div.monaco-inputbox]:!void-border-none
-						@@[&_div.monaco-inputbox]:!void-outline-none`
-					}
-				>
+				<div>
 
 					{/* text input */}
-					<VoidInputBox
-						placeholder={`${getCmdKey()}+L to select`}
-						onChangeText={onChangeText}
-						inputBoxRef={inputBoxRef}
+					<VoidInputBox2
+						className='min-h-[81px] p-1'
+						placeholder={`${keybindingString} to select. Enter instructions...`}
+						onChangeText={useCallback((newStr: string) => { setInstructionsAreEmpty(!newStr) }, [setInstructionsAreEmpty])}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' && !e.shiftKey) {
+								onSubmit()
+							}
+						}}
+						ref={textAreaRef}
+						fnsRef={textAreaFnsRef}
 						multiline={true}
 					/>
 				</div>
@@ -662,13 +645,15 @@ export const SidebarChat = () => {
 					{/* submit options */}
 					<div className='max-w-[150px]
 						@@[&_select]:!void-border-none
-						@@[&_select]:!void-outline-none'
+						@@[&_select]:!void-outline-none
+						flex-grow
+						'
 					>
 						<ModelDropdown featureName='Ctrl+L' />
 					</div>
 
 					{/* submit / stop button */}
-					{isLoading ?
+					{isCurrThreadStreaming ?
 						// stop button
 						<ButtonStop
 							onClick={onAbort}
@@ -676,13 +661,14 @@ export const SidebarChat = () => {
 						:
 						// submit button (up arrow)
 						<ButtonSubmit
+							onClick={onSubmit}
 							disabled={isDisabled}
 						/>
 					}
 				</div>
 
 
-			</form>
+			</div>
 		</div >
 	</div >
 }

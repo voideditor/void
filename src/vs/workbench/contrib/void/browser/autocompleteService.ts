@@ -17,7 +17,7 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
-import { extractCodeFromResult } from './helpers/extractCodeFromResult.js';
+import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
 
@@ -652,7 +652,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					// newAutocompletion.abortRef = { current: () => { } }
 					newAutocompletion.status = 'finished'
 					// newAutocompletion.promise = undefined
-					newAutocompletion.insertText = postprocessResult(extractCodeFromResult(fullText))
+					const [text, _] = extractCodeFromRegular({ text: fullText, recentlyAddedTextLen: 0 })
+					newAutocompletion.insertText = postprocessResult(text)
 
 					resolve(newAutocompletion.insertText)
 
@@ -662,7 +663,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(message)
 				},
-				featureName: 'Autocomplete',
+				useProviderFor: 'Autocomplete',
 				range: { startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column },
 			})
 			newAutocompletion.requestId = requestId

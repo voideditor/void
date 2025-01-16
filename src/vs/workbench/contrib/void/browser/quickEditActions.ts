@@ -10,14 +10,16 @@ import { KeybindingWeight } from '../../../../platform/keybinding/common/keybind
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IInlineDiffsService } from './inlineDiffsService.js';
-import { InputBox } from '../../../../base/browser/ui/inputbox/inputBox.js';
+import { roundRangeToLines } from './sidebarActions.js';
+import { VOID_CTRL_K_ACTION_ID } from './actionIDs.js';
 
 
 export type QuickEditPropsType = {
 	diffareaid: number,
-	onGetInputBox: (i: InputBox) => void;
+	initStreamingDiffZoneId: number | null,
+	textAreaRef: (ref: HTMLTextAreaElement | null) => void;
 	onChangeHeight: (height: number) => void;
-	onUserUpdateText: (text: string) => void;
+	onChangeText: (text: string) => void;
 	initText: string | null;
 }
 
@@ -30,7 +32,6 @@ export type QuickEdit = {
 }
 
 
-export const VOID_CTRL_K_ACTION_ID = 'void.ctrlKAction'
 registerAction2(class extends Action2 {
 	constructor(
 	) {
@@ -48,20 +49,17 @@ registerAction2(class extends Action2 {
 
 		const editorService = accessor.get(ICodeEditorService)
 		const metricsService = accessor.get(IMetricsService)
-		metricsService.capture('User Action', { type: 'Open Ctrl+K' })
+		metricsService.capture('Ctrl+K', {})
 
 		const editor = editorService.getActiveCodeEditor()
 		if (!editor) return;
 		const model = editor.getModel()
 		if (!model) return;
-		const selection = editor.getSelection()
+		const selection = roundRangeToLines(editor.getSelection(), { emptySelectionBehavior: 'line' })
 		if (!selection) return;
 
 
 		const { startLineNumber: startLine, endLineNumber: endLine } = selection
-
-		// deselect - clear selection
-		editor.setSelection({ startLineNumber: startLine, endLineNumber: startLine, startColumn: 1, endColumn: 1 })
 
 		const inlineDiffsService = accessor.get(IInlineDiffsService)
 		inlineDiffsService.addCtrlKZone({ startLine, endLine, editor })

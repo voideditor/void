@@ -25,6 +25,7 @@ export class MetricsService implements IMetricsService {
 	constructor(
 		@IMainProcessService mainProcessService: IMainProcessService // (only usable on client side)
 	) {
+		// creates an IPC proxy to use metricsMainService.ts
 		this.metricsService = ProxyChannel.toService<IMetricsService>(mainProcessService.getChannel('void-channel-metrics'));
 	}
 

@@ -16,7 +16,7 @@ import './sidebarStateService.js'
 import './quickEditActions.js'
 
 // register Thread History
-import './threadHistoryService.js'
+import './chatThreadService.js'
 
 // register Autocomplete
 import './autocompleteService.js'

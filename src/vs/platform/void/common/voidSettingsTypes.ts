@@ -14,26 +14,33 @@ export type VoidModelInfo = {
 	isAutodetected?: boolean, // whether the model was autodetected by polling
 }
 
-type ModelInfoOfDefaultNamesOptions = { isAutodetected: true, existingModels: VoidModelInfo[] } // | { isOtherOption: true, ...otherOptions }
-export const modelInfoOfDefaultNames = (modelNames: string[], options?: ModelInfoOfDefaultNamesOptions): VoidModelInfo[] => {
+// creates `modelInfo` from `modelNames`
+export const modelInfoOfDefaultNames = (modelNames: string[], options?: { isAutodetected: true, existingModels: VoidModelInfo[] }): VoidModelInfo[] => {
 
 	const { isAutodetected, existingModels } = options ?? {}
-	const isDefault = true
-	const isHidden = modelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
 
-	if (!existingModels) {
+	if (!existingModels) { // default settings
 
-		return modelNames.map((modelName, i) => ({ modelName, isDefault, isAutodetected, isHidden, }))
+		return modelNames.map((modelName, i) => ({
+			modelName,
+			isDefault: true,
+			isAutodetected: isAutodetected,
+			isHidden: modelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
+		}))
 
-	} else {
-		// keep existing `isHidden` property
+	} else { // settings if there are existing models (keep existing `isHidden` property)
 
 		const existingModelsMap: Record<string, VoidModelInfo> = {}
-		for (const em of existingModels) {
-			existingModelsMap[em.modelName] = em
+		for (const existingModel of existingModels) {
+			existingModelsMap[existingModel.modelName] = existingModel
 		}
 
-		return modelNames.map((modelName, i) => ({ modelName, isDefault, isAutodetected, isHidden: !!existingModelsMap[modelName]?.isHidden, }))
+		return modelNames.map((modelName, i) => ({
+			modelName,
+			isDefault: true,
+			isAutodetected: isAutodetected,
+			isHidden: !!existingModelsMap[modelName]?.isHidden,
+		}))
 
 	}
 
@@ -144,7 +151,7 @@ export const defaultProviderSettings = {
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
-export const localProviderNames = ['ollama', 'openAICompatible'] satisfies ProviderName[] // all local names
+export const localProviderNames = ['ollama'] satisfies ProviderName[] // all local names
 export const nonlocalProviderNames = providerNames.filter((name) => !(localProviderNames as string[]).includes(name)) // all non-local names
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
@@ -177,6 +184,7 @@ export type SettingName = keyof SettingsForProvider<ProviderName>
 
 type DisplayInfoForProviderName = {
 	title: string,
+	desc?: string,
 }
 
 export const displayInfoOfProviderName = (providerName: ProviderName): DisplayInfoForProviderName => {
@@ -203,7 +211,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'openAICompatible') {
 		return {
-			title: 'Other',
+			title: 'OpenAI-Compatible',
 		}
 	}
 	else if (providerName === 'gemini') {
@@ -256,7 +264,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: '(never)',
 
-			subTextMd: providerName === 'ollama' ? 'Read about advanced [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
+			subTextMd: providerName === 'ollama' ? 'If you would like to change this endpoint, please read more about [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
 				undefined,
 		}
 	}
@@ -389,26 +397,16 @@ export type RefreshableProviderName = typeof refreshableProviderNames[number]
 
 
 
-export type FeatureFlagSettings = {
+export type GlobalSettings = {
 	autoRefreshModels: boolean;
+	aiInstructions: string;
 }
-export const defaultFeatureFlagSettings: FeatureFlagSettings = {
+export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
+	aiInstructions: '',
 }
 
-export type FeatureFlagName = keyof FeatureFlagSettings
-export const featureFlagNames = Object.keys(defaultFeatureFlagSettings) as FeatureFlagName[]
-
-type FeatureFlagDisplayInfo = {
-	description: string,
-}
-export const displayInfoOfFeatureFlag = (featureFlag: FeatureFlagName): FeatureFlagDisplayInfo => {
-	if (featureFlag === 'autoRefreshModels') {
-		return {
-			description: `Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`,
-		}
-	}
-	throw new Error(`featureFlagInfo: Unknown feature flag: "${featureFlag}"`)
-}
+export type GlobalSettingName = keyof GlobalSettings
+export const globalSettingNames = Object.keys(defaultGlobalSettings) as GlobalSettingName[]
 
 

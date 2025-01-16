@@ -3,19 +3,19 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useIsDark, useSidebarState } from '../util/services.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { CtrlKChat } from './CtrlKChat.js'
+import { QuickEditChat } from './QuickEditChat.js'
 import { QuickEditPropsType } from '../../../quickEditActions.js'
 
-export const CtrlK = (props: QuickEditPropsType) => {
+export const QuickEdit = (props: QuickEditPropsType) => {
 
 	const isDark = useIsDark()
 
 	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`}>
 		<ErrorBoundary>
-			<CtrlKChat {...props} />
+			<QuickEditChat {...props} />
 		</ErrorBoundary>
 	</div>
 

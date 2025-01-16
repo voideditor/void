@@ -25,21 +25,32 @@ type RefreshableState = ({
 	state: 'finished',
 	timeoutId: null,
 } | {
-	state: 'finished_invisible',
+	state: 'error',
 	timeoutId: null,
 })
 
 
+/*
+
+user click -> error -> fire(error)
+		   \> success -> fire(success)
+	finally: keep polling
+
+poll -> do not fire
+
+*/
 export type RefreshModelStateOfProvider = Record<RefreshableProviderName, RefreshableState>
 
 
 
 const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvider[k])[] } = {
 	ollama: ['_enabled', 'endpoint'],
-	openAICompatible: ['_enabled', 'endpoint', 'apiKey'],
+	// openAICompatible: ['_enabled', 'endpoint', 'apiKey'],
 }
 const REFRESH_INTERVAL = 5_000
 // const COOLDOWN_TIMEOUT = 300
+
+const autoOptions = { enableProviderOnSuccess: true, doNotFire: true }
 
 // element-wise equals
 function eq<T>(a: T[], b: T[]): boolean {
@@ -51,7 +62,7 @@ function eq<T>(a: T[], b: T[]): boolean {
 }
 export interface IRefreshModelService {
 	readonly _serviceBrand: undefined;
-	refreshModels: (providerName: RefreshableProviderName) => Promise<void>;
+	startRefreshingModels: (providerName: RefreshableProviderName, options: { enableProviderOnSuccess: boolean, doNotFire: boolean }) => void;
 	onDidChangeState: Event<RefreshableProviderName>;
 	state: RefreshModelStateOfProvider;
 }
@@ -75,23 +86,23 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 		const disposables: Set<IDisposable> = new Set()
 
-		const initializePollingAndOnChange = () => {
+		const initializeAutoPollingAndOnChange = () => {
 			this._clearAllTimeouts()
 			disposables.forEach(d => d.dispose())
 			disposables.clear()
 
-			if (!voidSettingsService.state.featureFlagSettings.autoRefreshModels) return
+			if (!voidSettingsService.state.globalSettings.autoRefreshModels) return
 
 			for (const providerName of refreshableProviderNames) {
 
-				const { _enabled: enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
-				this.refreshModels(providerName, !enabled, { isPolling: true, isInternal: true })
+				// const { _enabled: enabled } = this.voidSettingsService.state.settingsOfProvider[providerName]
+				this.startRefreshingModels(providerName, autoOptions)
 
 				// every time providerName.enabled changes, refresh models too, like a useEffect
-				let relevantVals = () => refreshBasedOn[providerName].map(settingName => this.voidSettingsService.state.settingsOfProvider[providerName][settingName])
+				let relevantVals = () => refreshBasedOn[providerName].map(settingName => voidSettingsService.state.settingsOfProvider[providerName][settingName])
 				let prevVals = relevantVals() // each iteration of a for loop has its own context and vars, so this is ok
 				disposables.add(
-					this.voidSettingsService.onDidChangeState(() => { // we might want to debounce this
+					voidSettingsService.onDidChangeState(() => { // we might want to debounce this
 						const newVals = relevantVals()
 						if (!eq(prevVals, newVals)) {
 
@@ -101,7 +112,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 							// if it was just enabled, or there was a change and it wasn't to the enabled state, refresh
 							if ((enabled && !prevEnabled) || (!enabled && !prevEnabled)) {
 								// if user just clicked enable, refresh
-								this.refreshModels(providerName, !enabled, { isPolling: false, isInternal: true })
+								this.startRefreshingModels(providerName, autoOptions)
 							}
 							else {
 								// else if user just clicked disable, don't refresh
@@ -117,11 +128,11 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			}
 		}
 
-		// on mount (when get init settings state), and if a relevant feature flag changes (detected natively right now by refreshing if any flag changes), start refreshing models
+		// on mount (when get init settings state), and if a relevant feature flag changes, start refreshing models
 		voidSettingsService.waitForInitState.then(() => {
-			initializePollingAndOnChange()
+			initializeAutoPollingAndOnChange()
 			this._register(
-				voidSettingsService.onDidChangeState((type) => { if (type === 'featureFlagSettings') initializePollingAndOnChange() })
+				voidSettingsService.onDidChangeState((type) => { if (typeof type === 'object' && type[1] === 'autoRefreshModels') initializeAutoPollingAndOnChange() })
 			)
 		})
 
@@ -129,54 +140,53 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 	state: RefreshModelStateOfProvider = {
 		ollama: { state: 'init', timeoutId: null },
-		openAICompatible: { state: 'init', timeoutId: null },
 	}
 
 
 	// start listening for models (and don't stop until success)
-	async refreshModels(providerName: RefreshableProviderName, enableProviderOnSuccess?: boolean, options?: { isPolling?: boolean, isInternal?: boolean }) {
-
-		const { isPolling, isInternal } = options ?? {}
-
-		console.log(`refreshModels, isInternal ${isInternal} isPolling ${isPolling}`)
+	startRefreshingModels: IRefreshModelService['startRefreshingModels'] = (providerName, options) => {
 
 		this._clearProviderTimeout(providerName)
 
-		// start loading models
-		if (!isInternal) this._setRefreshState(providerName, 'refreshing')
+		this._setRefreshState(providerName, 'refreshing', options)
 
-		const fn = providerName === 'ollama' ? this.llmMessageService.ollamaList
+		const autoPoll = () => {
+			if (this.voidSettingsService.state.globalSettings.autoRefreshModels) {
+				// resume auto-polling
+				const timeoutId = setTimeout(() => this.startRefreshingModels(providerName, autoOptions), REFRESH_INTERVAL)
+				this._setTimeoutId(providerName, timeoutId)
+			}
+		}
+		const listFn = providerName === 'ollama' ? this.llmMessageService.ollamaList
 			: providerName === 'openAICompatible' ? this.llmMessageService.openAICompatibleList
 				: () => { }
 
-		fn({
+		listFn({
 			onSuccess: ({ models }) => {
-				this.voidSettingsService.setDefaultModels(providerName, models.map(model => {
-					if (providerName === 'ollama') return (model as OllamaModelResponse).name
-					else if (providerName === 'openAICompatible') return (model as OpenaiCompatibleModelResponse).id
-					else throw new Error('refreshMode fn: unknown provider', providerName)
-				}))
 
-				if (enableProviderOnSuccess) {
-					this.voidSettingsService.setSettingOfProvider(providerName, '_enabled', true)
-				}
+				// set the models to the detected models
+				this.voidSettingsService.setAutodetectedModels(
+					providerName,
+					models.map(model => {
+						if (providerName === 'ollama') return (model as OllamaModelResponse).name;
+						else if (providerName === 'openAICompatible') return (model as OpenaiCompatibleModelResponse).id;
+						else throw new Error('refreshMode fn: unknown provider', providerName);
+					}),
+					{ enableProviderOnSuccess: options.enableProviderOnSuccess, hideRefresh: options.doNotFire }
+				)
 
-				if (!isInternal) this._setRefreshState(providerName, 'finished')
+				if (options.enableProviderOnSuccess) this.voidSettingsService.setSettingOfProvider(providerName, '_enabled', true)
 
+				this._setRefreshState(providerName, 'finished', options)
+				autoPoll()
 			},
 			onError: ({ error }) => {
-				console.log('retrying list models:', providerName, error)
+				this._setRefreshState(providerName, 'error', options)
+				autoPoll()
 			}
 		})
 
-		if (isInternal) this._setRefreshState(providerName, 'finished_invisible')
 
-		// check if we should poll
-		// if it was originally called as `isPolling` and if the `autoRefreshModels` flag is enabled
-		if (isPolling && this.voidSettingsService.state.featureFlagSettings.autoRefreshModels) {
-			const timeoutId = setTimeout(() => this.refreshModels(providerName, enableProviderOnSuccess, options), REFRESH_INTERVAL)
-			this._setTimeoutId(providerName, timeoutId)
-		}
 	}
 
 	_clearAllTimeouts() {
@@ -197,7 +207,8 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 		this.state[providerName].timeoutId = timeoutId
 	}
 
-	private _setRefreshState(providerName: RefreshableProviderName, state: RefreshableState['state']) {
+	private _setRefreshState(providerName: RefreshableProviderName, state: RefreshableState['state'], options?: { doNotFire: boolean }) {
+		if (options?.doNotFire) return
 		this.state[providerName].state = state
 		this._onDidChangeState.fire(providerName)
 	}

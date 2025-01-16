@@ -217,7 +217,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				console.log('Void Chat Error:', error)
 				onDone(this.streamState[threadId]?.messageSoFar ?? '', error)
 			},
-			featureName: 'Ctrl+L',
+			useProviderFor: 'Ctrl+L',
 
 		})
 		if (llmCancelToken === null) return

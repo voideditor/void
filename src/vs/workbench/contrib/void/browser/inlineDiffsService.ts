@@ -1337,7 +1337,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		const latestStreamInfo = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-			featureName,
+			useProviderFor: featureName,
 			logging: { loggingName: `startApplying - ${featureName}` },
 			messages,
 			onText: ({ newText, fullText }) => {

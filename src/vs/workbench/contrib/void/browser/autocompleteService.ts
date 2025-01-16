@@ -663,7 +663,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(message)
 				},
-				featureName: 'Autocomplete',
+				useProviderFor: 'Autocomplete',
 				range: { startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column },
 			})
 			newAutocompletion.requestId = requestId

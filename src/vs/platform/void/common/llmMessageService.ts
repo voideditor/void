@@ -88,7 +88,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 	sendLLMMessage(params: ServiceSendLLMMessageParams) {
 		const { onText, onFinalMessage, onError, ...proxyParams } = params;
-		const { featureName } = proxyParams
+		const { useProviderFor: featureName } = proxyParams
 
 		// end early if no provider
 		const modelSelection = this.voidSettingsService.state.modelSelectionOfFeature[featureName]

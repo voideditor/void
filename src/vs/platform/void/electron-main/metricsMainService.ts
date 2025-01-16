@@ -5,55 +5,67 @@
 
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { isLinux, isMacintosh, isWindows } from '../../../base/common/platform.js';
+import { generateUuid } from '../../../base/common/uuid.js';
 
 import { IProductService } from '../../product/common/productService.js';
-import { ITelemetryService } from '../../telemetry/common/telemetry.js';
+import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
 
 import { IMetricsService } from '../common/metricsService.js';
 import { PostHog } from 'posthog-node'
 
 
-// posthog-js (old):
-// posthog.init('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2', { api_host: 'https://us.i.posthog.com', })
-
-// const buildEnv = 'development';
-// const buildNumber = '1.0.0';
-// const isMac = process.platform === 'darwin';
-
-
 const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
+
+const VOID_DISTINCT_ID_STORAGE_KEY = 'void.distinctId'
+const VOID_MACHINE_STORAGE_KEY = 'void.machineId'
 
 export class MetricsMainService extends Disposable implements IMetricsService {
 	_serviceBrand: undefined;
 
-	readonly distinctId: string
-	readonly client: PostHog
+	private readonly client: PostHog
 
-	readonly _initProperties: object
+	private readonly _initProperties: object
+
+
+	// TODO we should eventually identify people based on email
+	private get distinctId() {
+		const curr = this._storageService.get(VOID_DISTINCT_ID_STORAGE_KEY, StorageScope.APPLICATION)
+		if (curr !== undefined) return curr
+		const newVal = generateUuid()
+		this._storageService.store(VOID_DISTINCT_ID_STORAGE_KEY, newVal, StorageScope.APPLICATION, StorageTarget.USER)
+		return newVal
+	}
+
+	private get machineId() {
+		const curr = this._storageService.get(VOID_MACHINE_STORAGE_KEY, StorageScope.APPLICATION)
+		if (curr !== undefined) return curr
+		const newVal = generateUuid()
+		this._storageService.store(VOID_MACHINE_STORAGE_KEY, newVal, StorageScope.APPLICATION, StorageTarget.MACHINE) // <-- MACHINE here
+		return newVal
+	}
 
 
 	constructor(
-		@ITelemetryService private readonly _telemetryService: ITelemetryService,
 		@IProductService private readonly _productService: IProductService,
+		@IStorageService private readonly _storageService: IStorageService,
 	) {
 		super()
 		this.client = new PostHog('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2', {
 			host: 'https://us.i.posthog.com',
 		})
 
-		const { devDeviceId, firstSessionDate, machineId } = this._telemetryService
-		this.distinctId = devDeviceId
+		// we'd like to use devDeviceId on telemetryService, but that gets sanitized by the time it gets here as 'someValue.devDeviceId'
+
 		const { commit, version, quality } = this._productService
 
 		// custom properties we identify
 		this._initProperties = {
-			firstSessionDate,
-			machineId,
 			commit,
 			version,
 			os,
 			quality,
 			distinctId: this.distinctId,
+			machineId: this.machineId,
 			...this._getOSInfo(),
 		}
 

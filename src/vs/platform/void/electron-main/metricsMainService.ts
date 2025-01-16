@@ -5,6 +5,7 @@
 
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { isLinux, isMacintosh, isWindows } from '../../../base/common/platform.js';
+
 import { IProductService } from '../../product/common/productService.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 
@@ -19,35 +20,72 @@ import { PostHog } from 'posthog-node'
 // const buildNumber = '1.0.0';
 // const isMac = process.platform === 'darwin';
 
+
+const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
+
 export class MetricsMainService extends Disposable implements IMetricsService {
 	_serviceBrand: undefined;
 
-	readonly _distinctId: string
+	readonly distinctId: string
 	readonly client: PostHog
+
+	readonly _initProperties: object
+
 
 	constructor(
 		@ITelemetryService private readonly _telemetryService: ITelemetryService,
-		@IProductService private readonly _productService: IProductService
+		@IProductService private readonly _productService: IProductService,
 	) {
 		super()
-		this.client = new PostHog('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2', { host: 'https://us.i.posthog.com', })
+		this.client = new PostHog('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2', {
+			host: 'https://us.i.posthog.com',
+		})
 
 		const { devDeviceId, firstSessionDate, machineId } = this._telemetryService
+		this.distinctId = devDeviceId
+		const { commit, version, quality } = this._productService
 
-		this._distinctId = devDeviceId
+		// custom properties we identify
+		this._initProperties = {
+			firstSessionDate,
+			machineId,
+			commit,
+			version,
+			os,
+			quality,
+			distinctId: this.distinctId,
+			...this._getOSInfo(),
+		}
 
-		const { commit, version } = this._productService
-		const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
+		const identifyMessage = {
+			distinctId: this.distinctId,
+			properties: this._initProperties,
+		}
+		this.client.identify(identifyMessage)
 
-		this.client.identify({ distinctId: this._distinctId, properties: { firstSessionDate, machineId, commit, version, os } })
+		console.log('Void posthog metrics info:', JSON.stringify(identifyMessage, null, 2))
 
-		console.log('Void posthog metrics info:', JSON.stringify({ devDeviceId, firstSessionDate, machineId }))
+	}
+
+	_getOSInfo() {
+		try {
+			const { platform, arch } = process // see platform.ts
+			return { platform, arch }
+		}
+		catch (e) {
+			return { osInfo: { platform: '??', arch: '??' } }
+		}
 	}
 
 	capture: IMetricsService['capture'] = (event, params) => {
-		const capture = { distinctId: this._distinctId, event, properties: params } as const
+		const capture = { distinctId: this.distinctId, event, properties: params } as const
 		// console.log('full capture:', capture)
 		this.client.capture(capture)
+	}
+
+
+	async getDebuggingProperties() {
+		return this._initProperties
 	}
 }
 

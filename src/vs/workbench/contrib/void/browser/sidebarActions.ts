@@ -153,7 +153,15 @@ registerAction2(class extends Action2 {
 
 registerAction2(class extends Action2 {
 	constructor() {
-		super({ id: VOID_CTRL_L_ACTION_ID, title: 'Void: Press Ctrl+L', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
+		super({
+			id: VOID_CTRL_L_ACTION_ID,
+			f1: true,
+			title: localize2('voidCtrlL', 'Void: Add Select to Chat'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyCode.KeyL,
+				weight: KeybindingWeight.VoidExtension
+			}
+		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const commandService = accessor.get(ICommandService)

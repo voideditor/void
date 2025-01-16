@@ -625,7 +625,7 @@ export const SidebarChat = () => {
 					{/* text input */}
 					<VoidInputBox2
 						className='min-h-[81px] p-1'
-						placeholder={`${keybindingString} to select. Enter instructions...`}
+						placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
 						onChangeText={useCallback((newStr: string) => { setInstructionsAreEmpty(!newStr) }, [setInstructionsAreEmpty])}
 						onKeyDown={(e) => {
 							if (e.key === 'Enter' && !e.shiftKey) {

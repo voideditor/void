@@ -6,7 +6,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState } from '../util/services.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState } from '../util/services.js';
 import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
@@ -259,9 +259,9 @@ const getBasename = (pathStr: string) => {
 }
 
 export const SelectedFiles = (
-	{ type, selections, setStaging }:
-		| { type: 'past', selections: CodeSelection[] | null; setStaging?: undefined }
-		| { type: 'staging', selections: CodeStagingSelection[] | null; setStaging: ((files: CodeStagingSelection[]) => void) }
+	{ type, selections, setSelections }:
+		| { type: 'past', selections: CodeSelection[]; setSelections?: undefined }
+		| { type: 'staging', selections: CodeStagingSelection[]; setSelections: ((newSelections: CodeStagingSelection[]) => void) }
 ) => {
 
 	// index -> isOpened
@@ -273,85 +273,104 @@ export const SelectedFiles = (
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 
+	const { currentUri } = useUriState()
+
+	let prospectiveSelections: CodeStagingSelection[] = []
+	if ( // add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
+		type === 'staging'
+		&& currentUri
+		&& !selections.find(s => s.range === null && s.fileURI.fsPath === currentUri.fsPath)
+	) {
+		prospectiveSelections = [{
+			type: 'File',
+			fileURI: currentUri,
+			selectionStr: null,
+			range: null,
+		}]
+	}
+
+	const allSelections = [...selections, ...prospectiveSelections]
+
 	return (
-		!!selections && selections.length !== 0 && (
-			<div
-				className='flex items-center flex-wrap gap-0.5 text-left relative'
-			>
-				{selections.map((selection, i) => {
+		<div className='flex items-center flex-wrap gap-0.5 text-left relative'>
 
-					const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
-					const isThisSelectionAFile = selection.selectionStr === null
+			{allSelections.map((selection, i) => {
 
-					return <div key={i} // container for `selectionSummary` and `selectionText`
-						className={`${isThisSelectionOpened ? 'w-full' : ''}`}
+				const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
+				const isThisSelectionAFile = selection.selectionStr === null
+				const isThisSelectionProspective = i > selections.length - 1
+
+				return <div key={i} // container for `selectionSummary` and `selectionText`
+					className={`${isThisSelectionOpened ? 'w-full' : ''}`}
+				>
+					{/* selection summary */}
+					<div // container for delete button
+						className='flex items-center gap-0.5'
 					>
-						{/* selection summary */}
-						<div // container for delete button
-							className='flex items-center gap-0.5'
-						>
-							<div // styled summary box
-								className={`flex items-center gap-0.5 relative
+						<div // styled summary box
+							className={`flex items-center gap-0.5 relative
 									rounded-md px-1
 									w-fit h-fit
 									select-none
-									bg-void-bg-3 hover:brightness-95
+									${isThisSelectionProspective ? 'bg-void-1' : 'bg-void-bg-3 hover:brightness-95'}
 									text-void-fg-1 text-xs text-nowrap
 									border rounded-xs ${isClearHovered ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
 									transition-all duration-150`}
-								onClick={() => {
-									// open the file if it is a file
-									if (isThisSelectionAFile) {
-										commandService.executeCommand('vscode.open', selection.fileURI, {
-											preview: true,
-											// preserveFocus: false,
-										});
-									} else {
-										// open the selection if it is a text-selection
-										setSelectionIsOpened(s => {
-											const newS = [...s]
-											newS[i] = !newS[i]
-											return newS
-										});
-									}
-								}}
-							>
-								<span>
-									{/* file name */}
-									{getBasename(selection.fileURI.fsPath)}
-									{/* selection range */}
-									{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
-								</span>
+							onClick={() => {
+								if (isThisSelectionProspective) { // add prospective selection to selections
+									if (type !== 'staging') return; // (never)
+									setSelections([...selections, selection as CodeStagingSelection])
 
-								{/* X button */}
-								{type === 'staging' &&
-									<span
-										className='cursor-pointer hover:brightness-95 rounded-md z-1'
-										onClick={(e) => {
-											e.stopPropagation(); // don't open/close selection
-											if (type !== 'staging') return;
-											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
-											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
-										}}
-									>
-										<IconX size={16} className="p-[2px] stroke-[3]" />
-									</span>}
+								} else if (isThisSelectionAFile) { // open files
+									commandService.executeCommand('vscode.open', selection.fileURI, {
+										preview: true,
+										// preserveFocus: false,
+									});
+								} else { // show text
+									setSelectionIsOpened(s => {
+										const newS = [...s]
+										newS[i] = !newS[i]
+										return newS
+									});
+								}
+							}}
+						>
+							<span>
+								{/* file name */}
+								{getBasename(selection.fileURI.fsPath)}
+								{/* selection range */}
+								{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
+							</span>
+
+							{/* X button */}
+							{type === 'staging' &&
+								<span
+									className='cursor-pointer hover:brightness-95 rounded-md z-1'
+									onClick={(e) => {
+										e.stopPropagation(); // don't open/close selection
+										if (type !== 'staging') return;
+										setSelections([...selections.slice(0, i), ...selections.slice(i + 1)])
+										setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
+									}}
+								>
+									<IconX size={16} className="p-[2px] stroke-[3]" />
+								</span>}
 
 
-							</div>
+						</div>
 
-							{/* clear all selections button */}
-							{type !== 'staging' || selections.length === 0 || i !== selections.length - 1
-								? null
-								: <div key={i} className={`flex items-center gap-0.5 ${isThisSelectionOpened ? 'w-full' : ''}`}>
-									<div
-										className='rounded-md'
-										onMouseEnter={() => setIsClearHovered(true)}
-										onMouseLeave={() => setIsClearHovered(false)}
-									>
-										<Delete
-											size={16}
-											className={`stroke-[1]
+						{/* clear all selections button */}
+						{type !== 'staging' || allSelections.length === 0 || i !== allSelections.length - 1
+							? null
+							: <div key={i} className={`flex items-center gap-0.5 ${isThisSelectionOpened ? 'w-full' : ''}`}>
+								<div
+									className='rounded-md'
+									onMouseEnter={() => setIsClearHovered(true)}
+									onMouseLeave={() => setIsClearHovered(false)}
+								>
+									<Delete
+										size={16}
+										className={`stroke-[1]
 												stroke-void-fg-1
 												fill-void-bg-3
 												opacity-40
@@ -359,35 +378,35 @@ export const SelectedFiles = (
 												transition-all duration-150
 												cursor-pointer
 											`}
-											onClick={() => { setStaging([]) }}
-										/>
-									</div>
+										onClick={() => { setSelections([]) }}
+									/>
 								</div>
-							}
-						</div>
-						{/* selection text */}
-						{isThisSelectionOpened &&
-							<div
-								className='w-full px-1 rounded-sm border-vscode-editor-border'
-								onClick={(e) => {
-									e.stopPropagation(); // don't focus input box
-								}}
-							>
-								<BlockCode
-									initValue={selection.selectionStr!}
-									language={filenameToVscodeLanguage(selection.fileURI.path)}
-									maxHeight={200}
-									showScrollbars={true}
-								/>
 							</div>
 						}
 					</div>
+					{/* selection text */}
+					{isThisSelectionOpened &&
+						<div
+							className='w-full px-1 rounded-sm border-vscode-editor-border'
+							onClick={(e) => {
+								e.stopPropagation(); // don't focus input box
+							}}
+						>
+							<BlockCode
+								initValue={selection.selectionStr!}
+								language={filenameToVscodeLanguage(selection.fileURI.path)}
+								maxHeight={200}
+								showScrollbars={true}
+							/>
+						</div>
+					}
+				</div>
 
-				})}
+			})}
 
 
-			</div>
-		)
+		</div>
+
 	)
 }
 
@@ -407,7 +426,7 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 
 	if (role === 'user') {
 		chatbubbleContents = <>
-			<SelectedFiles type='past' selections={chatMessage.selections} />
+			<SelectedFiles type='past' selections={chatMessage.selections || []} />
 			{chatMessage.displayContent}
 
 			{/* {!isEditMode ? chatMessage.displayContent : <></>} */}
@@ -604,9 +623,8 @@ export const SidebarChat = () => {
 				{/* top row */}
 				<>
 					{/* selections */}
-					{(selections && selections.length !== 0) &&
-						<SelectedFiles type='staging' selections={selections} setStaging={chatThreadsService.setStaging.bind(chatThreadsService)} />
-					}
+					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} />
+
 
 					{/* error message */}
 					{latestError === undefined ? null :

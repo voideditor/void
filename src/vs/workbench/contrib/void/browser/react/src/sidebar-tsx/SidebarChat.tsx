@@ -273,23 +273,35 @@ export const SelectedFiles = (
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 
+	// state for tracking prospective files
 	const { currentUri } = useUriState()
-
+	const [recentUris, setRecentUris] = useState<URI[]>([])
+	const maxProspectiveFiles = 3
+	useEffect(() => {
+		if (!currentUri) return
+		setRecentUris(prev => {
+			const withoutCurrent = prev.filter(uri => uri.fsPath !== currentUri.fsPath) // remove if already exists
+			const withCurrent = [currentUri, ...withoutCurrent]
+			return withCurrent.slice(0, maxProspectiveFiles)
+		})
+	}, [currentUri])
 	let prospectiveSelections: CodeStagingSelection[] = []
-	if ( // add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
-		type === 'staging'
-		&& currentUri
-		&& !selections.find(s => s.range === null && s.fileURI.fsPath === currentUri.fsPath)
-	) {
-		prospectiveSelections = [{
-			type: 'File',
-			fileURI: currentUri,
-			selectionStr: null,
-			range: null,
-		}]
+	if (type === 'staging') { // add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
+		prospectiveSelections = recentUris
+			.filter(uri => !selections.find(s => s.range === null && s.fileURI.fsPath === uri.fsPath))
+			.map(uri => ({
+				type: 'File',
+				fileURI: uri,
+				selectionStr: null,
+				range: null,
+			}))
 	}
 
 	const allSelections = [...selections, ...prospectiveSelections]
+
+	if (allSelections.length === 0) {
+		return null
+	}
 
 	return (
 		<div className='flex items-center flex-wrap gap-0.5 text-left relative'>
@@ -300,8 +312,10 @@ export const SelectedFiles = (
 				const isThisSelectionAFile = selection.selectionStr === null
 				const isThisSelectionProspective = i > selections.length - 1
 
-				return <div key={i} // container for `selectionSummary` and `selectionText`
-					className={`${isThisSelectionOpened ? 'w-full' : ''}`}
+				const selectionHTML = (<div key={i} // container for `selectionSummary` and `selectionText`
+					className={`
+						${isThisSelectionOpened ? 'w-full' : ''}
+					`}
 				>
 					{/* selection summary */}
 					<div // container for delete button
@@ -360,7 +374,7 @@ export const SelectedFiles = (
 						</div>
 
 						{/* clear all selections button */}
-						{type !== 'staging' || selections.length === 0 || i !== allSelections.length - 1
+						{type !== 'staging' || selections.length === 0 || i !== selections.length - 1
 							? null
 							: <div key={i} className={`flex items-center gap-0.5 ${isThisSelectionOpened ? 'w-full' : ''}`}>
 								<div
@@ -400,7 +414,12 @@ export const SelectedFiles = (
 							/>
 						</div>
 					}
-				</div>
+				</div>)
+
+				return <>
+					{i === selections.length && <div className='w-full'></div>}
+					{selectionHTML}
+				</>
 
 			})}
 

@@ -307,7 +307,7 @@ export const SelectedFiles = (
 	}
 
 	return (
-		<div className='flex items-center flex-wrap gap-0.5 text-left relative'>
+		<div className='flex items-center flex-wrap text-left relative'>
 
 			{allSelections.map((selection, i) => {
 
@@ -322,16 +322,16 @@ export const SelectedFiles = (
 				>
 					{/* selection summary */}
 					<div // container for delete button
-						className='flex items-center gap-0.5'
+						className='flex items-center gap-0.5 mr-0.5 mb-0.5'
 					>
 						<div // styled summary box
 							className={`flex items-center gap-0.5 relative
-									rounded-md px-1
+									px-1
 									w-fit h-fit
 									select-none
-									${isThisSelectionProspective ? 'bg-void-1 text-void-fg-3' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
+									${isThisSelectionProspective ? 'bg-void-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
 									text-xs text-nowrap
-									border rounded-xs ${isClearHovered && !isThisSelectionProspective ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
+									border rounded-sm ${isClearHovered && !isThisSelectionProspective ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
 									transition-all duration-150`}
 							onClick={() => {
 								if (isThisSelectionProspective) { // add prospective selection to selections
@@ -362,7 +362,7 @@ export const SelectedFiles = (
 							{/* X button */}
 							{type === 'staging' && !isThisSelectionProspective &&
 								<span
-									className='cursor-pointer hover:brightness-95 rounded-md z-1'
+									className='cursor-pointer z-1'
 									onClick={(e) => {
 										e.stopPropagation(); // don't open/close selection
 										if (type !== 'staging') return;
@@ -370,7 +370,7 @@ export const SelectedFiles = (
 										setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
 									}}
 								>
-									<IconX size={16} className="p-[2px] stroke-[3]" />
+									<IconX size={10} className="stroke-[2]" />
 								</span>}
 
 
@@ -420,7 +420,9 @@ export const SelectedFiles = (
 				</div>)
 
 				return <>
-					{i === selections.length && <div className='w-full'></div>}
+					{selections.length > 0 && i === selections.length &&
+						<div className='w-full'></div> // divider between `selections` and `prospectiveSelections`
+					}
 					{selectionHTML}
 				</>
 

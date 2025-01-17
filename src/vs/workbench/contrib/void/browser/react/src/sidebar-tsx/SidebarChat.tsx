@@ -422,6 +422,11 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 	// edit mode state
 	const [isEditMode, setIsEditMode] = useState(false)
 
+
+	if (!chatMessage.content) { // don't show if empty
+		return null
+	}
+
 	let chatbubbleContents: React.ReactNode
 
 	if (role === 'user') {

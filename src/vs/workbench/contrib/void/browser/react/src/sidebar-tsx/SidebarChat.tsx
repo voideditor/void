@@ -276,19 +276,22 @@ export const SelectedFiles = (
 	// state for tracking prospective files
 	const { currentUri } = useUriState()
 	const [recentUris, setRecentUris] = useState<URI[]>([])
+	const maxRecentUris = 10
 	const maxProspectiveFiles = 3
-	useEffect(() => {
+	useEffect(() => { // handle recent files
 		if (!currentUri) return
 		setRecentUris(prev => {
-			const withoutCurrent = prev.filter(uri => uri.fsPath !== currentUri.fsPath) // remove if already exists
+			const withoutCurrent = prev.filter(uri => uri.fsPath !== currentUri.fsPath) // remove duplicates
 			const withCurrent = [currentUri, ...withoutCurrent]
-			return withCurrent.slice(0, maxProspectiveFiles)
+			return withCurrent.slice(0, maxRecentUris)
 		})
 	}, [currentUri])
 	let prospectiveSelections: CodeStagingSelection[] = []
-	if (type === 'staging') { // add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
+	if (type === 'staging') { // handle prospective files
+		// add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
 		prospectiveSelections = recentUris
 			.filter(uri => !selections.find(s => s.range === null && s.fileURI.fsPath === uri.fsPath))
+			.slice(0, maxProspectiveFiles)
 			.map(uri => ({
 				type: 'File',
 				fileURI: uri,
@@ -312,7 +315,7 @@ export const SelectedFiles = (
 				const isThisSelectionAFile = selection.selectionStr === null
 				const isThisSelectionProspective = i > selections.length - 1
 
-				const selectionHTML = (<div key={i} // container for `selectionSummary` and `selectionText`
+				const selectionHTML = (<div key={`${isThisSelectionProspective}-${i}-${selections.length}`} // container for `selectionSummary` and `selectionText`
 					className={`
 						${isThisSelectionOpened ? 'w-full' : ''}
 					`}
@@ -327,7 +330,7 @@ export const SelectedFiles = (
 									w-fit h-fit
 									select-none
 									${isThisSelectionProspective ? 'bg-void-1 text-void-fg-3' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
-									 text-xs text-nowrap
+									text-xs text-nowrap
 									border rounded-xs ${isClearHovered && !isThisSelectionProspective ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
 									transition-all duration-150`}
 							onClick={() => {

@@ -1360,7 +1360,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				onDone(false)
 			},
 			onError: (e) => {
-				console.error('Error rewriting file with diff', e);
 				const details = errorDetails(e.fullError)
 				this._notificationService.notify({
 					severity: Severity.Warning,

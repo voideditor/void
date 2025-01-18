@@ -675,7 +675,7 @@ export const SidebarChat = () => {
 				{/* top row */}
 				<>
 					{/* selections */}
-					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} />
+					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0}/>
 				</>
 
 				{/* middle row */}

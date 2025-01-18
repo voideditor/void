@@ -599,7 +599,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					));
 
 					const viewZone: IViewZone = {
-						afterLineNumber: type === 'edit' ? diff.endLine : diff.startLine - 1,
+						afterLineNumber: diff.startLine - 1,
 						heightInLines,
 						minWidthInPx,
 						domNode,
@@ -626,6 +626,21 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const consistentWidgetId = this._consistentItemService.addConsistentItemToURI({
 				uri,
 				fn: (editor) => {
+					console.log('diffOriignal', diff.startLine, diff.originalStartLine, diff.type === 'deletion' && diff.originalEndLine)
+
+					let startLine: number
+					let offsetLines: number
+
+					if (diff.type === 'insertion' || diff.type === 'edit') {
+						startLine = diff.startLine // green start
+						offsetLines = 0
+					}
+					else if (diff.type === 'deletion') {
+						startLine = diff.startLine - 1
+						offsetLines = 1
+					}
+					else { throw 1 }
+
 					const buttonsWidget = new AcceptRejectWidget({
 						editor,
 						onAccept: () => {
@@ -637,13 +652,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 							this._metricsService.capture('Reject Diff', {})
 						},
 						diffid: diffid.toString(),
-						startLine: diff.startLine,
-						offsetLines: (
-							diff.type === 'insertion' ? 0
-								: diff.type === 'deletion' ? -(diff.originalEndLine - diff.originalStartLine + 1)
-									: diff.type === 'edit' ? (diff.endLine - diff.startLine + 1)
-										: 0 // not allowed
-						)
+						startLine,
+						offsetLines
 					})
 					return () => { buttonsWidget.dispose() }
 				}

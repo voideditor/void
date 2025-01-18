@@ -74,9 +74,9 @@ export type ThreadsState = {
 
 export type ThreadStreamState = {
 	[threadId: string]: undefined | {
-		streamingToken?: string;
 		error?: { message: string, fullError: Error | null };
 		messageSoFar?: string;
+		streamingToken?: string;
 	}
 }
 
@@ -177,6 +177,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// ---------- streaming ----------
 
+	finishStreaming = (threadId: string, content: string, error?: { message: string, fullError: Error | null }) => {
+		// add assistant's message to chat history, and clear selection
+		const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null }
+		this._addMessageToThread(threadId, assistantHistoryElt)
+		this._setStreamState(threadId, { messageSoFar: undefined, streamingToken: undefined, error })
+	}
+
 	async addUserMessageAndStreamResponse(userMessage: string) {
 		const threadId = this.getCurrentThread().id
 
@@ -192,12 +199,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const userHistoryElt: ChatMessage = { role: 'user', content: chat_prompt(instructions, selections), displayContent: instructions, selections: selections }
 		this._addMessageToThread(threadId, userHistoryElt)
 
-		const onDone = (content: string, error?: { message: string, fullError: Error | null }) => {
-			// add assistant's message to chat history, and clear selection
-			const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null }
-			this._addMessageToThread(threadId, assistantHistoryElt)
-			this._setStreamState(threadId, { messageSoFar: undefined, streamingToken: undefined, error })
-		}
 
 		this._setStreamState(threadId, { error: undefined })
 
@@ -211,11 +212,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				this._setStreamState(threadId, { messageSoFar: fullText })
 			},
 			onFinalMessage: ({ fullText: content }) => {
-				onDone(content)
+				this.finishStreaming(threadId, content)
 			},
 			onError: (error) => {
-				console.log('Void Chat Error:', error)
-				onDone(this.streamState[threadId]?.messageSoFar ?? '', error)
+				this.finishStreaming(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
 			},
 			useProviderFor: 'Ctrl+L',
 
@@ -227,8 +227,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	cancelStreaming(threadId: string) {
 		const llmCancelToken = this.streamState[threadId]?.streamingToken
-		if (llmCancelToken) this._llmMessageService.abort(llmCancelToken)
-		this._setStreamState(threadId, { streamingToken: undefined })
+		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
+		this.finishStreaming(threadId, this.streamState[threadId]?.messageSoFar ?? '')
 	}
 
 	dismissStreamError(threadId: string): void {

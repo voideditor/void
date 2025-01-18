@@ -18,7 +18,7 @@ import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { TextAreaFns, VoidCodeEditorProps, VoidInputBox2 } from '../util/inputs.js';
-import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
+import { ModelDropdown, WarningBox } from '../void-settings-tsx/ModelDropdown.js';
 import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
@@ -29,6 +29,7 @@ import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { ArrowBigLeftDash, CopyX, Delete, FileX2, SquareX, X } from 'lucide-react';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { Pencil } from 'lucide-react'
+import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -438,10 +439,47 @@ export const SelectedFiles = (
 
 
 
-const ChatBubble = ({ chatMessage, isLoading }: {
-	chatMessage: ChatMessage,
-	isLoading?: boolean,
-}) => {
+const ChatBubble_ = ({ isEditMode, isLoading, children, role }: { role: ChatMessage['role'], children: React.ReactNode, isLoading: boolean, isEditMode: boolean }) => {
+
+	return <div
+		// align chatbubble accoridng to role
+		className={`
+		relative
+		${isEditMode ? 'px-2 w-full max-w-full'
+				: role === 'user' ? `px-2 self-end w-fit max-w-full`
+					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
+			}
+	`}
+	>
+		<div
+			// style chatbubble according to role
+			className={`
+		    text-left space-y-2 rounded-lg
+			overflow-x-auto max-w-full
+			${role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1' : 'px-2'}
+		`}
+		>
+			{children}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
+		</div>
+
+		{/* edit button */}
+		{/* {role === 'user' &&
+		<Pencil
+			size={16}
+			className={`
+				absolute top-0 right-2
+				translate-x-0 -translate-y-0
+				cursor-pointer z-1
+			`}
+			onClick={() => { setIsEditMode(v => !v); }}
+		/>
+	} */}
+	</div>
+}
+
+
+const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLoading?: boolean, }) => {
 
 	const role = chatMessage.role
 
@@ -480,41 +518,9 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} />
 	}
 
-	return <div
-		// align chatbubble accoridng to role
-		className={`
-            relative
-			${isEditMode ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full`
-					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
-			}
-        `}
-	>
-		<div
-			// style chatbubble according to role
-			className={`
-                p-2 text-left space-y-2 rounded-lg
-                overflow-x-auto max-w-full
-                ${role === 'user' ? 'bg-void-bg-1 text-void-fg-1' : ''}
-            `}
-		>
-			{chatbubbleContents}
-			{isLoading && <IconLoading className='opacity-50 text-sm' />}
-		</div>
-
-		{/* edit button */}
-		{/* {role === 'user' &&
-			<Pencil
-				size={16}
-				className={`
-					absolute top-0 right-2
-					translate-x-0 -translate-y-0
-					cursor-pointer z-1
-				`}
-				onClick={() => { setIsEditMode(v => !v); }}
-			/>
-		} */}
-	</div>
+	return <ChatBubble_ role={role} isEditMode={isEditMode} isLoading={!!isLoading}>
+		{chatbubbleContents}
+	</ChatBubble_>
 }
 
 
@@ -524,7 +530,8 @@ export const SidebarChat = () => {
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
 
 	const accessor = useAccessor()
-	const modelService = accessor.get('IModelService')
+	// const modelService = accessor.get('IModelService')
+	const commandService = accessor.get('ICommandService')
 
 	// ----- HIGHER STATE -----
 	// sidebar state
@@ -549,11 +556,10 @@ export const SidebarChat = () => {
 	const selections = chatThreadsState.currentStagingSelections
 
 	// stream state
-	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
-	const streamingToken = chatThreadsStreamState?.streamingToken
-	const isStreaming = !!streamingToken
-	const latestError = chatThreadsStreamState?.error
-	const messageSoFar = chatThreadsStreamState?.messageSoFar
+	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
+	const isStreaming = !!currThreadStreamState?.streamingToken
+	const latestError = currThreadStreamState?.error
+	const messageSoFar = currThreadStreamState?.messageSoFar
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -585,9 +591,8 @@ export const SidebarChat = () => {
 	}
 
 	const onAbort = () => {
-		// this assumes an instant cancellation doesn't happen, since streamingToken state must have updated by this time
-		if (!streamingToken) return
-		chatThreadsService.cancelStreaming(streamingToken)
+		const threadId = currentThread.id
+		chatThreadsService.cancelStreaming(threadId)
 	}
 
 	// const [_test_messages, _set_test_messages] = useState<string[]>([])
@@ -617,7 +622,7 @@ export const SidebarChat = () => {
 			scrollContainerRef={scrollContainerRef}
 			className={`
 				w-full h-auto
-				flex flex-col gap-0
+				flex flex-col gap-1
 				overflow-x-hidden
 				overflow-y-auto
 			`}
@@ -630,6 +635,21 @@ export const SidebarChat = () => {
 
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isStreaming} />
+
+
+			{/* error message */}
+			{latestError === undefined ? null :
+				<div className='px-2'>
+					<ErrorDisplay
+						message={latestError.message}
+						fullError={latestError.fullError}
+						onDismiss={() => { chatThreadsService.dismissStreamError(currentThread.id) }}
+						showDismiss={true}
+					/>
+
+					<WarningBox className='text-sm my-2 pl-4' onClick={() => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }} text='Open settings' />
+				</div>
+			}
 
 		</ScrollToBottomContainer>
 
@@ -655,18 +675,7 @@ export const SidebarChat = () => {
 				{/* top row */}
 				<>
 					{/* selections */}
-					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0} />
-
-
-					{/* error message */}
-					{latestError === undefined ? null :
-						<ErrorDisplay
-							message={latestError.message}
-							fullError={latestError.fullError}
-							onDismiss={() => { chatThreadsService.dismissStreamError(currentThread.id) }}
-							showDismiss={true}
-						/>
-					}
+					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} />
 				</>
 
 				{/* middle row */}

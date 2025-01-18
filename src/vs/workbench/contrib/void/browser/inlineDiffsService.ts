@@ -636,8 +636,17 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 						offsetLines = 0
 					}
 					else if (diff.type === 'deletion') {
-						startLine = diff.startLine - 1
-						offsetLines = 1
+						// if diff.startLine is out of bounds
+						if (diff.startLine === 1) {
+							const numRedLines = diff.originalEndLine - diff.originalStartLine + 1
+							startLine = diff.startLine
+							offsetLines = -numRedLines
+						}
+						else {
+							startLine = diff.startLine - 1
+							offsetLines = 1
+						}
+
 					}
 					else { throw 1 }
 

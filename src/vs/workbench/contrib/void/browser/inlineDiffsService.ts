@@ -39,6 +39,8 @@ import { INotificationService, Severity } from '../../../../platform/notificatio
 import { isMacintosh } from '../../../../base/common/platform.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { Emitter } from '../../../../base/common/event.js';
+import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -249,6 +251,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IConsistentEditorItemService private readonly _consistentEditorItemService: IConsistentEditorItemService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
 		@INotificationService private readonly _notificationService: INotificationService,
+		@ICommandService private readonly _commandService: ICommandService,
 	) {
 		super();
 
@@ -1362,6 +1365,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				this._notificationService.notify({
 					severity: Severity.Warning,
 					message: `Void Error: ${e.message}`,
+					actions: {
+						secondary: [{
+							id: 'void.onerror.opensettings',
+							enabled: true,
+							label: 'Open Void settings',
+							tooltip: '',
+							class: undefined,
+							run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
+						}]
+					},
 					source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}` : undefined
 				})
 				onDone(true)

@@ -548,7 +548,8 @@ export const SidebarChat = () => {
 
 	// stream state
 	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
-	const isCurrThreadStreaming = !!chatThreadsStreamState?.streamingToken
+	const streamingToken = chatThreadsStreamState?.streamingToken
+	const isStreaming = !!streamingToken
 	const latestError = chatThreadsStreamState?.error
 	const messageSoFar = chatThreadsStreamState?.messageSoFar
 
@@ -569,7 +570,7 @@ export const SidebarChat = () => {
 	const onSubmit = async () => {
 
 		if (isDisabled) return
-		if (isCurrThreadStreaming) return
+		if (isStreaming) return
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
@@ -582,9 +583,9 @@ export const SidebarChat = () => {
 	}
 
 	const onAbort = () => {
-		const token = chatThreadsStreamState?.streamingToken
-		if (!token) return
-		chatThreadsService.cancelStreaming(token)
+		// this assumes an instant cancellation doesn't happen, since streamingToken state must have updated by this time
+		if (!streamingToken) return
+		chatThreadsService.cancelStreaming(streamingToken)
 	}
 
 	// const [_test_messages, _set_test_messages] = useState<string[]>([])
@@ -626,7 +627,7 @@ export const SidebarChat = () => {
 			)}
 
 			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isCurrThreadStreaming} />
+			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isStreaming} />
 
 		</ScrollToBottomContainer>
 
@@ -700,7 +701,7 @@ export const SidebarChat = () => {
 					</div>
 
 					{/* submit / stop button */}
-					{isCurrThreadStreaming ?
+					{isStreaming ?
 						// stop button
 						<ButtonStop
 							onClick={onAbort}

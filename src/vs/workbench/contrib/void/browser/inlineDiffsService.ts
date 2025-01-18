@@ -626,11 +626,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const consistentWidgetId = this._consistentItemService.addConsistentItemToURI({
 				uri,
 				fn: (editor) => {
-					console.log('diffOriignal', diff.startLine, diff.originalStartLine, diff.type === 'deletion' && diff.originalEndLine)
-
 					let startLine: number
 					let offsetLines: number
-
 					if (diff.type === 'insertion' || diff.type === 'edit') {
 						startLine = diff.startLine // green start
 						offsetLines = 0
@@ -646,7 +643,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 							startLine = diff.startLine - 1
 							offsetLines = 1
 						}
-
 					}
 					else { throw 1 }
 

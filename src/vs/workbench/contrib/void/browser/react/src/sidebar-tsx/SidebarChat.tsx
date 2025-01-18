@@ -324,8 +324,8 @@ export const SelectedFiles = (
 					`}
 				>
 					{/* selection summary */}
-					<div // container for delete button
-						className='flex items-center gap-0.5 mr-0.5 mb-0.5'
+					<div // container for item and its delete button (if it's last)
+						className='flex items-center gap-1 mr-0.5 mb-0.5'
 					>
 						<div // styled summary box
 							className={`flex items-center gap-0.5 relative
@@ -382,7 +382,7 @@ export const SelectedFiles = (
 						{/* clear all selections button */}
 						{type !== 'staging' || selections.length === 0 || i !== selections.length - 1
 							? null
-							: <div key={i} className={`flex items-center gap-0.5 ${isThisSelectionOpened ? 'w-full' : ''}`}>
+							: <div className={`flex items-center ${isThisSelectionOpened ? 'w-full' : ''}`}>
 								<div
 									className='rounded-md'
 									onMouseEnter={() => setIsClearHovered(true)}

@@ -259,9 +259,9 @@ const getBasename = (pathStr: string) => {
 }
 
 export const SelectedFiles = (
-	{ type, selections, setSelections }:
-		| { type: 'past', selections: CodeSelection[]; setSelections?: undefined }
-		| { type: 'staging', selections: CodeStagingSelection[]; setSelections: ((newSelections: CodeStagingSelection[]) => void) }
+	{ type, selections, setSelections, showProspectiveSelections }:
+		| { type: 'past', selections: CodeSelection[]; setSelections?: undefined, showProspectiveSelections?: undefined }
+		| { type: 'staging', selections: CodeStagingSelection[]; setSelections: ((newSelections: CodeStagingSelection[]) => void), showProspectiveSelections?: boolean }
 ) => {
 
 	// index -> isOpened
@@ -287,7 +287,7 @@ export const SelectedFiles = (
 		})
 	}, [currentUri])
 	let prospectiveSelections: CodeStagingSelection[] = []
-	if (type === 'staging') { // handle prospective files
+	if (type === 'staging' && showProspectiveSelections) { // handle prospective files
 		// add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
 		prospectiveSelections = recentUris
 			.filter(uri => !selections.find(s => s.range === null && s.fileURI.fsPath === uri.fsPath))
@@ -621,7 +621,7 @@ export const SidebarChat = () => {
 				overflow-x-hidden
 				overflow-y-auto
 			`}
-			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 40 }} // the height of the previousMessages is determined by all other heights
+			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 30 }} // the height of the previousMessages is determined by all other heights
 		>
 			{/* previous messages */}
 			{previousMessages.map((message, i) =>
@@ -641,7 +641,7 @@ export const SidebarChat = () => {
 			<div
 				ref={formRef}
 				className={`
-					flex flex-col gap-2 p-2 relative input text-left shrink-0
+					flex flex-col gap-1 p-2 relative input text-left shrink-0
 					transition-all duration-200
 					rounded-md
 					bg-vscode-input-bg
@@ -655,7 +655,7 @@ export const SidebarChat = () => {
 				{/* top row */}
 				<>
 					{/* selections */}
-					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} />
+					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0} />
 
 
 					{/* error message */}

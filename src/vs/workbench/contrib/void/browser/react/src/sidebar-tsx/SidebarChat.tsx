@@ -315,7 +315,9 @@ export const SelectedFiles = (
 				const isThisSelectionAFile = selection.selectionStr === null
 				const isThisSelectionProspective = i > selections.length - 1
 
-				const selectionHTML = (<div key={`${isThisSelectionProspective}-${i}-${selections.length}`} // container for `selectionSummary` and `selectionText`
+				const thisKey = `${isThisSelectionProspective}-${i}-${selections.length}`
+
+				const selectionHTML = (<div key={thisKey} // container for `selectionSummary` and `selectionText`
 					className={`
 						${isThisSelectionOpened ? 'w-full' : ''}
 					`}
@@ -419,12 +421,12 @@ export const SelectedFiles = (
 					}
 				</div>)
 
-				return <>
+				return <Fragment key={thisKey}>
 					{selections.length > 0 && i === selections.length &&
 						<div className='w-full'></div> // divider between `selections` and `prospectiveSelections`
 					}
 					{selectionHTML}
-				</>
+				</Fragment>
 
 			})}
 

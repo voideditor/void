@@ -1806,7 +1806,7 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 		]);
 
 		// Style the container
-		buttons.style.zIndex = '1';
+		buttons.style.zIndex = '2';
 		buttons.style.padding = '4px';
 		buttons.style.display = 'flex';
 		buttons.style.gap = '4px';

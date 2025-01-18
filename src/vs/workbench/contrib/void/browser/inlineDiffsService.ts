@@ -39,6 +39,8 @@ import { INotificationService, Severity } from '../../../../platform/notificatio
 import { isMacintosh } from '../../../../base/common/platform.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { Emitter } from '../../../../base/common/event.js';
+import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -249,6 +251,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		@IConsistentEditorItemService private readonly _consistentEditorItemService: IConsistentEditorItemService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
 		@INotificationService private readonly _notificationService: INotificationService,
+		@ICommandService private readonly _commandService: ICommandService,
 	) {
 		super();
 
@@ -596,7 +599,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					));
 
 					const viewZone: IViewZone = {
-						afterLineNumber: type === 'edit' ? diff.endLine : diff.startLine - 1,
+						afterLineNumber: diff.startLine - 1,
 						heightInLines,
 						minWidthInPx,
 						domNode,
@@ -623,6 +626,26 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const consistentWidgetId = this._consistentItemService.addConsistentItemToURI({
 				uri,
 				fn: (editor) => {
+					let startLine: number
+					let offsetLines: number
+					if (diff.type === 'insertion' || diff.type === 'edit') {
+						startLine = diff.startLine // green start
+						offsetLines = 0
+					}
+					else if (diff.type === 'deletion') {
+						// if diff.startLine is out of bounds
+						if (diff.startLine === 1) {
+							const numRedLines = diff.originalEndLine - diff.originalStartLine + 1
+							startLine = diff.startLine
+							offsetLines = -numRedLines
+						}
+						else {
+							startLine = diff.startLine - 1
+							offsetLines = 1
+						}
+					}
+					else { throw 1 }
+
 					const buttonsWidget = new AcceptRejectWidget({
 						editor,
 						onAccept: () => {
@@ -634,13 +657,8 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 							this._metricsService.capture('Reject Diff', {})
 						},
 						diffid: diffid.toString(),
-						startLine: diff.startLine,
-						offsetLines: (
-							diff.type === 'insertion' ? 0
-								: diff.type === 'deletion' ? -(diff.originalEndLine - diff.originalStartLine + 1)
-									: diff.type === 'edit' ? (diff.endLine - diff.startLine + 1)
-										: 0 // not allowed
-						)
+						startLine,
+						offsetLines
 					})
 					return () => { buttonsWidget.dispose() }
 				}
@@ -1357,11 +1375,20 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				onDone(false)
 			},
 			onError: (e) => {
-				console.error('Error rewriting file with diff', e);
 				const details = errorDetails(e.fullError)
 				this._notificationService.notify({
 					severity: Severity.Warning,
 					message: `Void Error: ${e.message}`,
+					actions: {
+						secondary: [{
+							id: 'void.onerror.opensettings',
+							enabled: true,
+							label: 'Open Void settings',
+							tooltip: '',
+							class: undefined,
+							run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
+						}]
+					},
 					source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}` : undefined
 				})
 				onDone(true)
@@ -1806,7 +1833,7 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 		]);
 
 		// Style the container
-		buttons.style.zIndex = '1';
+		buttons.style.zIndex = '2';
 		buttons.style.padding = '4px';
 		buttons.style.display = 'flex';
 		buttons.style.gap = '4px';

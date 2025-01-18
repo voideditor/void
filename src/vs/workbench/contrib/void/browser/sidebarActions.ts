@@ -26,10 +26,9 @@ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase 
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { URI } from '../../../../base/common/uri.js';
 import { localize2 } from '../../../../nls.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
-
+import { IVoidUriStateService } from './voidUriStateService.js';
 
 // ---------- Register commands and keybindings ----------
 
@@ -153,7 +152,15 @@ registerAction2(class extends Action2 {
 
 registerAction2(class extends Action2 {
 	constructor() {
-		super({ id: VOID_CTRL_L_ACTION_ID, title: 'Void: Press Ctrl+L', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
+		super({
+			id: VOID_CTRL_L_ACTION_ID,
+			f1: true,
+			title: localize2('voidCtrlL', 'Void: Add Select to Chat'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyCode.KeyL,
+				weight: KeybindingWeight.VoidExtension
+			}
+		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const commandService = accessor.get(ICommandService)
@@ -233,7 +240,7 @@ registerAction2(class extends Action2 {
 export class TabSwitchListener extends Disposable {
 
 	constructor(
-		onSwitchTab: (uri: URI) => void,
+		onSwitchTab: () => void,
 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
 	) {
 		super()
@@ -242,7 +249,7 @@ export class TabSwitchListener extends Disposable {
 		const addTabSwitchListeners = (editor: ICodeEditor) => {
 			this._register(editor.onDidChangeModel(e => {
 				if (e.newModelUrl?.scheme !== 'file') return
-				onSwitchTab(e.newModelUrl)
+				onSwitchTab()
 			}))
 		}
 
@@ -262,8 +269,10 @@ class TabSwitchContribution extends Disposable implements IWorkbenchContribution
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
-		@ICommandService private readonly commandService: ICommandService,
 		@IViewsService private readonly viewsService: IViewsService,
+		@IVoidUriStateService private readonly uriStateService: IVoidUriStateService,
+		@ICodeEditorService private readonly codeEditorService: ICodeEditorService,
+		// @ICommandService private readonly commandService: ICommandService,
 	) {
 		super()
 
@@ -273,18 +282,22 @@ class TabSwitchContribution extends Disposable implements IWorkbenchContribution
 			sidebarIsVisible = e.visible
 		}))
 
-		const addCurrentFileIfVisible = () => {
-			if (sidebarIsVisible)
-				this.commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
+		const onSwitchTab = () => { // update state
+			if (sidebarIsVisible) {
+				const currentUri = this.codeEditorService.getActiveCodeEditor()?.getModel()?.uri
+				if (!currentUri) return;
+				this.uriStateService.setState({ currentUri })
+				// this.commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
+			}
 		}
 
 		// when sidebar becomes visible, add current file
 		this._register(this.viewsService.onDidChangeViewVisibility(e => { sidebarIsVisible = e.visible }))
 
 		// run on current tab if it exists, and listen for tab switches and visibility changes
-		addCurrentFileIfVisible()
-		this._register(this.viewsService.onDidChangeViewVisibility(() => { addCurrentFileIfVisible() }))
-		this._register(this.instantiationService.createInstance(TabSwitchListener, () => { addCurrentFileIfVisible() }))
+		onSwitchTab()
+		this._register(this.viewsService.onDidChangeViewVisibility(() => { onSwitchTab() }))
+		this._register(this.instantiationService.createInstance(TabSwitchListener, () => { onSwitchTab() }))
 	}
 }
 

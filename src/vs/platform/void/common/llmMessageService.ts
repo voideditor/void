@@ -65,7 +65,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			this._onRequestIdDone(e.requestId)
 		}))
 		this._register((this.channel.listen('onError_llm') satisfies Event<EventLLMMessageOnErrorParams>)(e => {
-			console.log('Error in LLMMessageService:', JSON.stringify(e))
+			console.error('Error in LLMMessageService:', JSON.stringify(e))
 			this.onErrorHooks_llm[e.requestId]?.(e)
 			this._onRequestIdDone(e.requestId)
 		}))

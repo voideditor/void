@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { DisposableStore } from '../../../base/common/lifecycle.js';
+// import { mixin } from '../../../base/common/objects.js';
 import { isWeb } from '../../../base/common/platform.js';
 import { escapeRegExpCharacters } from '../../../base/common/strings.js';
 import { localize } from '../../../nls.js';
@@ -15,6 +16,7 @@ import { Registry } from '../../registry/common/platform.js';
 import { ClassifiedEvent, IGDPRProperty, OmitMetadata, StrictPropertyCheck } from './gdprTypings.js';
 import { ITelemetryData, ITelemetryService, TelemetryConfiguration, TelemetryLevel, TELEMETRY_CRASH_REPORTER_SETTING_ID, TELEMETRY_OLD_SETTING_ID, TELEMETRY_SECTION_ID, TELEMETRY_SETTING_ID, ICommonProperties } from './telemetry.js';
 import { getTelemetryLevel, ITelemetryAppender } from './telemetryUtils.js';
+// import { cleanData } from './telemetryUtils.js';
 
 export interface ITelemetryServiceConfig {
 	appenders: ITelemetryAppender[];

@@ -28,10 +28,12 @@ export const SidebarThreadSelector = () => {
 	const { allThreads } = threadsState
 
 	// sorted by most recent to least recent
-	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
+	const sortedThreadIds = Object.keys(allThreads ?? {})
+		.sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
+		.filter(threadId => allThreads![threadId].messages.length !== 0)
 
 	return (
-		<div className="flex p-2 flex-col mb-2 gap-y-1 max-h-[400px] overflow-y-auto">
+		<div className="flex p-2 flex-col gap-y-1 max-h-[400px] overflow-y-auto">
 
 			<div className="w-full relative flex justify-center items-center">
 				{/* title */}

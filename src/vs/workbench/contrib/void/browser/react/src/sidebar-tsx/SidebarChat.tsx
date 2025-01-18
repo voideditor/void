@@ -6,7 +6,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState } from '../util/services.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState } from '../util/services.js';
 import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
@@ -18,7 +18,7 @@ import { ErrorDisplay } from './ErrorDisplay.js';
 import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
 import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { TextAreaFns, VoidCodeEditorProps, VoidInputBox2 } from '../util/inputs.js';
-import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
+import { ModelDropdown, WarningBox } from '../void-settings-tsx/ModelDropdown.js';
 import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
@@ -29,6 +29,7 @@ import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { ArrowBigLeftDash, CopyX, Delete, FileX2, SquareX, X } from 'lucide-react';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { Pencil } from 'lucide-react'
+import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -259,9 +260,9 @@ const getBasename = (pathStr: string) => {
 }
 
 export const SelectedFiles = (
-	{ type, selections, setStaging }:
-		| { type: 'past', selections: CodeSelection[] | null; setStaging?: undefined }
-		| { type: 'staging', selections: CodeStagingSelection[] | null; setStaging: ((files: CodeStagingSelection[]) => void) }
+	{ type, selections, setSelections, showProspectiveSelections }:
+		| { type: 'past', selections: CodeSelection[]; setSelections?: undefined, showProspectiveSelections?: undefined }
+		| { type: 'staging', selections: CodeStagingSelection[]; setSelections: ((newSelections: CodeStagingSelection[]) => void), showProspectiveSelections?: boolean }
 ) => {
 
 	// index -> isOpened
@@ -273,85 +274,123 @@ export const SelectedFiles = (
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 
+	// state for tracking prospective files
+	const { currentUri } = useUriState()
+	const [recentUris, setRecentUris] = useState<URI[]>([])
+	const maxRecentUris = 10
+	const maxProspectiveFiles = 3
+	useEffect(() => { // handle recent files
+		if (!currentUri) return
+		setRecentUris(prev => {
+			const withoutCurrent = prev.filter(uri => uri.fsPath !== currentUri.fsPath) // remove duplicates
+			const withCurrent = [currentUri, ...withoutCurrent]
+			return withCurrent.slice(0, maxRecentUris)
+		})
+	}, [currentUri])
+	let prospectiveSelections: CodeStagingSelection[] = []
+	if (type === 'staging' && showProspectiveSelections) { // handle prospective files
+		// add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
+		prospectiveSelections = recentUris
+			.filter(uri => !selections.find(s => s.range === null && s.fileURI.fsPath === uri.fsPath))
+			.slice(0, maxProspectiveFiles)
+			.map(uri => ({
+				type: 'File',
+				fileURI: uri,
+				selectionStr: null,
+				range: null,
+			}))
+	}
+
+	const allSelections = [...selections, ...prospectiveSelections]
+
+	if (allSelections.length === 0) {
+		return null
+	}
+
 	return (
-		!!selections && selections.length !== 0 && (
-			<div
-				className='flex items-center flex-wrap gap-0.5 text-left relative'
-			>
-				{selections.map((selection, i) => {
+		<div className='flex items-center flex-wrap text-left relative'>
 
-					const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
-					const isThisSelectionAFile = selection.selectionStr === null
+			{allSelections.map((selection, i) => {
 
-					return <div key={i} // container for `selectionSummary` and `selectionText`
-						className={`${isThisSelectionOpened ? 'w-full' : ''}`}
+				const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
+				const isThisSelectionAFile = selection.selectionStr === null
+				const isThisSelectionProspective = i > selections.length - 1
+
+				const thisKey = `${isThisSelectionProspective}-${i}-${selections.length}`
+
+				const selectionHTML = (<div key={thisKey} // container for `selectionSummary` and `selectionText`
+					className={`
+						${isThisSelectionOpened ? 'w-full' : ''}
+					`}
+				>
+					{/* selection summary */}
+					<div // container for item and its delete button (if it's last)
+						className='flex items-center gap-1 mr-0.5 mb-0.5'
 					>
-						{/* selection summary */}
-						<div // container for delete button
-							className='flex items-center gap-0.5'
-						>
-							<div // styled summary box
-								className={`flex items-center gap-0.5 relative
-									rounded-md px-1
+						<div // styled summary box
+							className={`flex items-center gap-0.5 relative
+									px-1
 									w-fit h-fit
 									select-none
-									bg-void-bg-3 hover:brightness-95
-									text-void-fg-1 text-xs text-nowrap
-									border rounded-xs ${isClearHovered ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
+									${isThisSelectionProspective ? 'bg-void-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
+									text-xs text-nowrap
+									border rounded-sm ${isClearHovered && !isThisSelectionProspective ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
 									transition-all duration-150`}
-								onClick={() => {
-									// open the file if it is a file
-									if (isThisSelectionAFile) {
-										commandService.executeCommand('vscode.open', selection.fileURI, {
-											preview: true,
-											// preserveFocus: false,
-										});
-									} else {
-										// open the selection if it is a text-selection
-										setSelectionIsOpened(s => {
-											const newS = [...s]
-											newS[i] = !newS[i]
-											return newS
-										});
-									}
-								}}
-							>
-								<span>
-									{/* file name */}
-									{getBasename(selection.fileURI.fsPath)}
-									{/* selection range */}
-									{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
-								</span>
+							onClick={() => {
+								if (isThisSelectionProspective) { // add prospective selection to selections
+									if (type !== 'staging') return; // (never)
+									setSelections([...selections, selection as CodeStagingSelection])
 
-								{/* X button */}
-								{type === 'staging' &&
-									<span
-										className='cursor-pointer hover:brightness-95 rounded-md z-1'
-										onClick={(e) => {
-											e.stopPropagation(); // don't open/close selection
-											if (type !== 'staging') return;
-											setStaging([...selections.slice(0, i), ...selections.slice(i + 1)])
-											setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
-										}}
-									>
-										<IconX size={16} className="p-[2px] stroke-[3]" />
-									</span>}
+								} else if (isThisSelectionAFile) { // open files
+									commandService.executeCommand('vscode.open', selection.fileURI, {
+										preview: true,
+										// preserveFocus: false,
+									});
+								} else { // show text
+									setSelectionIsOpened(s => {
+										const newS = [...s]
+										newS[i] = !newS[i]
+										return newS
+									});
+								}
+							}}
+						>
+							<span>
+								{/* file name */}
+								{getBasename(selection.fileURI.fsPath)}
+								{/* selection range */}
+								{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
+							</span>
+
+							{/* X button */}
+							{type === 'staging' && !isThisSelectionProspective &&
+								<span
+									className='cursor-pointer z-1'
+									onClick={(e) => {
+										e.stopPropagation(); // don't open/close selection
+										if (type !== 'staging') return;
+										setSelections([...selections.slice(0, i), ...selections.slice(i + 1)])
+										setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
+									}}
+								>
+									<IconX size={10} className="stroke-[2]" />
+								</span>}
 
 
-							</div>
+						</div>
 
-							{/* clear all selections button */}
-							{type !== 'staging' || selections.length === 0 || i !== selections.length - 1
-								? null
-								: <div key={i} className={`flex items-center gap-0.5 ${isThisSelectionOpened ? 'w-full' : ''}`}>
-									<div
-										className='rounded-md'
-										onMouseEnter={() => setIsClearHovered(true)}
-										onMouseLeave={() => setIsClearHovered(false)}
-									>
-										<Delete
-											size={16}
-											className={`stroke-[1]
+						{/* clear all selections button */}
+						{type !== 'staging' || selections.length === 0 || i !== selections.length - 1
+							? null
+							: <div className={`flex items-center ${isThisSelectionOpened ? 'w-full' : ''}`}>
+								<div
+									className='rounded-md'
+									onMouseEnter={() => setIsClearHovered(true)}
+									onMouseLeave={() => setIsClearHovered(false)}
+								>
+									<Delete
+										size={16}
+										className={`stroke-[1]
 												stroke-void-fg-1
 												fill-void-bg-3
 												opacity-40
@@ -359,55 +398,104 @@ export const SelectedFiles = (
 												transition-all duration-150
 												cursor-pointer
 											`}
-											onClick={() => { setStaging([]) }}
-										/>
-									</div>
+										onClick={() => { setSelections([]) }}
+									/>
 								</div>
-							}
-						</div>
-						{/* selection text */}
-						{isThisSelectionOpened &&
-							<div
-								className='w-full px-1 rounded-sm border-vscode-editor-border'
-								onClick={(e) => {
-									e.stopPropagation(); // don't focus input box
-								}}
-							>
-								<BlockCode
-									initValue={selection.selectionStr!}
-									language={filenameToVscodeLanguage(selection.fileURI.path)}
-									maxHeight={200}
-									showScrollbars={true}
-								/>
 							</div>
 						}
 					</div>
+					{/* selection text */}
+					{isThisSelectionOpened &&
+						<div
+							className='w-full px-1 rounded-sm border-vscode-editor-border'
+							onClick={(e) => {
+								e.stopPropagation(); // don't focus input box
+							}}
+						>
+							<BlockCode
+								initValue={selection.selectionStr!}
+								language={filenameToVscodeLanguage(selection.fileURI.path)}
+								maxHeight={200}
+								showScrollbars={true}
+							/>
+						</div>
+					}
+				</div>)
 
-				})}
+				return <Fragment key={thisKey}>
+					{selections.length > 0 && i === selections.length &&
+						<div className='w-full'></div> // divider between `selections` and `prospectiveSelections`
+					}
+					{selectionHTML}
+				</Fragment>
+
+			})}
 
 
-			</div>
-		)
+		</div>
+
 	)
 }
 
 
 
-const ChatBubble = ({ chatMessage, isLoading }: {
-	chatMessage: ChatMessage,
-	isLoading?: boolean,
-}) => {
+const ChatBubble_ = ({ isEditMode, isLoading, children, role }: { role: ChatMessage['role'], children: React.ReactNode, isLoading: boolean, isEditMode: boolean }) => {
+
+	return <div
+		// align chatbubble accoridng to role
+		className={`
+		relative
+		${isEditMode ? 'px-2 w-full max-w-full'
+				: role === 'user' ? `px-2 self-end w-fit max-w-full`
+					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
+			}
+	`}
+	>
+		<div
+			// style chatbubble according to role
+			className={`
+		    text-left space-y-2 rounded-lg
+			overflow-x-auto max-w-full
+			${role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1' : 'px-2'}
+		`}
+		>
+			{children}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
+		</div>
+
+		{/* edit button */}
+		{/* {role === 'user' &&
+		<Pencil
+			size={16}
+			className={`
+				absolute top-0 right-2
+				translate-x-0 -translate-y-0
+				cursor-pointer z-1
+			`}
+			onClick={() => { setIsEditMode(v => !v); }}
+		/>
+	} */}
+	</div>
+}
+
+
+const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLoading?: boolean, }) => {
 
 	const role = chatMessage.role
 
 	// edit mode state
 	const [isEditMode, setIsEditMode] = useState(false)
 
+
+	if (!chatMessage.content) { // don't show if empty
+		return null
+	}
+
 	let chatbubbleContents: React.ReactNode
 
 	if (role === 'user') {
 		chatbubbleContents = <>
-			<SelectedFiles type='past' selections={chatMessage.selections} />
+			<SelectedFiles type='past' selections={chatMessage.selections || []} />
 			{chatMessage.displayContent}
 
 			{/* {!isEditMode ? chatMessage.displayContent : <></>} */}
@@ -430,41 +518,9 @@ const ChatBubble = ({ chatMessage, isLoading }: {
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} />
 	}
 
-	return <div
-		// align chatbubble accoridng to role
-		className={`
-            relative
-			${isEditMode ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full`
-					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
-			}
-        `}
-	>
-		<div
-			// style chatbubble according to role
-			className={`
-                p-2 text-left space-y-2 rounded-lg
-                overflow-x-auto max-w-full
-                ${role === 'user' ? 'bg-void-bg-1 text-void-fg-1' : ''}
-            `}
-		>
-			{chatbubbleContents}
-			{isLoading && <IconLoading className='opacity-50 text-sm' />}
-		</div>
-
-		{/* edit button */}
-		{/* {role === 'user' &&
-			<Pencil
-				size={16}
-				className={`
-					absolute top-0 right-2
-					translate-x-0 -translate-y-0
-					cursor-pointer z-1
-				`}
-				onClick={() => { setIsEditMode(v => !v); }}
-			/>
-		} */}
-	</div>
+	return <ChatBubble_ role={role} isEditMode={isEditMode} isLoading={!!isLoading}>
+		{chatbubbleContents}
+	</ChatBubble_>
 }
 
 
@@ -474,7 +530,8 @@ export const SidebarChat = () => {
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
 
 	const accessor = useAccessor()
-	const modelService = accessor.get('IModelService')
+	// const modelService = accessor.get('IModelService')
+	const commandService = accessor.get('ICommandService')
 
 	// ----- HIGHER STATE -----
 	// sidebar state
@@ -499,10 +556,10 @@ export const SidebarChat = () => {
 	const selections = chatThreadsState.currentStagingSelections
 
 	// stream state
-	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
-	const isCurrThreadStreaming = !!chatThreadsStreamState?.streamingToken
-	const latestError = chatThreadsStreamState?.error
-	const messageSoFar = chatThreadsStreamState?.messageSoFar
+	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
+	const isStreaming = !!currThreadStreamState?.streamingToken
+	const latestError = currThreadStreamState?.error
+	const messageSoFar = currThreadStreamState?.messageSoFar
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -521,7 +578,7 @@ export const SidebarChat = () => {
 	const onSubmit = async () => {
 
 		if (isDisabled) return
-		if (isCurrThreadStreaming) return
+		if (isStreaming) return
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
@@ -534,9 +591,8 @@ export const SidebarChat = () => {
 	}
 
 	const onAbort = () => {
-		const token = chatThreadsStreamState?.streamingToken
-		if (!token) return
-		chatThreadsService.cancelStreaming(token)
+		const threadId = currentThread.id
+		chatThreadsService.cancelStreaming(threadId)
 	}
 
 	// const [_test_messages, _set_test_messages] = useState<string[]>([])
@@ -566,11 +622,11 @@ export const SidebarChat = () => {
 			scrollContainerRef={scrollContainerRef}
 			className={`
 				w-full h-auto
-				flex flex-col gap-0
+				flex flex-col gap-1
 				overflow-x-hidden
 				overflow-y-auto
 			`}
-			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 30 }} // the height of the previousMessages is determined by all other heights
+			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
 		>
 			{/* previous messages */}
 			{previousMessages.map((message, i) =>
@@ -578,7 +634,22 @@ export const SidebarChat = () => {
 			)}
 
 			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isCurrThreadStreaming} />
+			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isStreaming} />
+
+
+			{/* error message */}
+			{latestError === undefined ? null :
+				<div className='px-2'>
+					<ErrorDisplay
+						message={latestError.message}
+						fullError={latestError.fullError}
+						onDismiss={() => { chatThreadsService.dismissStreamError(currentThread.id) }}
+						showDismiss={true}
+					/>
+
+					<WarningBox className='text-sm my-2 pl-4' onClick={() => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }} text='Open settings' />
+				</div>
+			}
 
 		</ScrollToBottomContainer>
 
@@ -590,7 +661,7 @@ export const SidebarChat = () => {
 			<div
 				ref={formRef}
 				className={`
-					flex flex-col gap-2 p-2 relative input text-left shrink-0
+					flex flex-col gap-1 p-2 relative input text-left shrink-0
 					transition-all duration-200
 					rounded-md
 					bg-vscode-input-bg
@@ -604,19 +675,7 @@ export const SidebarChat = () => {
 				{/* top row */}
 				<>
 					{/* selections */}
-					{(selections && selections.length !== 0) &&
-						<SelectedFiles type='staging' selections={selections} setStaging={chatThreadsService.setStaging.bind(chatThreadsService)} />
-					}
-
-					{/* error message */}
-					{latestError === undefined ? null :
-						<ErrorDisplay
-							message={latestError.message}
-							fullError={latestError.fullError}
-							onDismiss={() => { chatThreadsService.dismissStreamError(currentThread.id) }}
-							showDismiss={true}
-						/>
-					}
+					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0}/>
 				</>
 
 				{/* middle row */}
@@ -625,7 +684,7 @@ export const SidebarChat = () => {
 					{/* text input */}
 					<VoidInputBox2
 						className='min-h-[81px] p-1'
-						placeholder={`${keybindingString} to select. Enter instructions...`}
+						placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
 						onChangeText={useCallback((newStr: string) => { setInstructionsAreEmpty(!newStr) }, [setInstructionsAreEmpty])}
 						onKeyDown={(e) => {
 							if (e.key === 'Enter' && !e.shiftKey) {
@@ -653,7 +712,7 @@ export const SidebarChat = () => {
 					</div>
 
 					{/* submit / stop button */}
-					{isCurrThreadStreaming ?
+					{isStreaming ?
 						// stop button
 						<ButtonStop
 							onClick={onAbort}

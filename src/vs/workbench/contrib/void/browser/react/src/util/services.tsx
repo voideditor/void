@@ -10,6 +10,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
+import { VoidUriState } from '../../../voidUriStateService.js';
 import { VoidQuickEditState } from '../../../quickEditStateService.js'
 import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
 
@@ -28,6 +29,7 @@ import { ILLMMessageService } from '../../../../../../../platform/void/common/ll
 import { IRefreshModelService } from '../../../../../../../platform/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../platform/void/common/voidSettingsService.js';
 import { IInlineDiffsService } from '../../../inlineDiffsService.js';
+import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { IChatThreadService } from '../../../chatThreadService.js';
@@ -47,10 +49,14 @@ import { IPathService } from '../../../../../../../workbench/services/path/commo
 import { IMetricsService } from '../../../../../../../platform/void/common/metricsService.js'
 
 
+
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
 
 // even if React hasn't mounted yet, the variables are always updated to the latest state.
 // React listens by adding a setState function to these listeners.
+let uriState: VoidUriState
+const uriStateListeners: Set<(s: VoidUriState) => void> = new Set()
+
 let quickEditState: VoidQuickEditState
 const quickEditStateListeners: Set<(s: VoidQuickEditState) => void> = new Set()
 
@@ -90,6 +96,7 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 	_registerAccessor(accessor)
 
 	const stateServices = {
+		uriStateService: accessor.get(IVoidUriStateService),
 		quickEditStateService: accessor.get(IQuickEditStateService),
 		sidebarStateService: accessor.get(ISidebarStateService),
 		chatThreadsStateService: accessor.get(IChatThreadService),
@@ -99,7 +106,15 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		inlineDiffsService: accessor.get(IInlineDiffsService),
 	}
 
-	const { sidebarStateService, quickEditStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, inlineDiffsService } = stateServices
+	const { uriStateService, sidebarStateService, quickEditStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, inlineDiffsService } = stateServices
+
+	uriState = uriStateService.state
+	disposables.push(
+		uriStateService.onDidChangeState(() => {
+			uriState = uriStateService.state
+			uriStateListeners.forEach(l => l(uriState))
+		})
+	)
 
 	quickEditState = quickEditStateService.state
 	disposables.push(
@@ -178,6 +193,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IRefreshModelService: accessor.get(IRefreshModelService),
 		IVoidSettingsService: accessor.get(IVoidSettingsService),
 		IInlineDiffsService: accessor.get(IInlineDiffsService),
+		IVoidUriStateService: accessor.get(IVoidUriStateService),
 		IQuickEditStateService: accessor.get(IQuickEditStateService),
 		ISidebarStateService: accessor.get(ISidebarStateService),
 		IChatThreadService: accessor.get(IChatThreadService),
@@ -223,6 +239,16 @@ export const useAccessor = () => {
 
 
 // -- state of services --
+
+export const useUriState = () => {
+	const [s, ss] = useState(uriState)
+	useEffect(() => {
+		ss(uriState)
+		uriStateListeners.add(ss)
+		return () => { uriStateListeners.delete(ss) }
+	}, [ss])
+	return s
+}
 
 export const useQuickEditState = () => {
 	const [s, ss] = useState(quickEditState)

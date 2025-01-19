@@ -8,6 +8,7 @@ import { CancellationToken } from '../../../base/common/cancellation.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { IConfigurationService } from '../../configuration/common/configuration.js';
 import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
+// import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
 import { ILifecycleMainService, LifecycleMainPhase } from '../../lifecycle/electron-main/lifecycleMainService.js';
 import { ILogService } from '../../log/common/log.js';
 import { IProductService } from '../../product/common/productService.js';
@@ -94,29 +95,30 @@ export abstract class AbstractUpdateService implements IUpdateService {
 
 		// Void - for now, always update
 
-		const updateMode = 'default' //this.configurationService.getValue<'none' | 'manual' | 'start' | 'default'>('update.mode');
+		// const updateMode = 'default' //this.configurationService.getValue<'none' | 'manual' | 'start' | 'default'>('update.mode');
 
-		const quality = this.getProductQuality(updateMode);
-		if (!quality) {
-			this.setState(State.Disabled(DisablementReason.ManuallyDisabled));
-			this.logService.info('update#ctor - updates are disabled by user preference');
-			return;
-		}
+		// const quality = this.getProductQuality(updateMode);
+		// if (!quality) {
+		// 	console.log('disabling....', updateMode, quality)
+		// 	this.setState(State.Disabled(DisablementReason.ManuallyDisabled));
+		// 	this.logService.info('update#ctor - updates are disabled by user preference');
+		// 	return;
+		// }
 
 		// const quality = 'stable'
-		this.url = this.doBuildUpdateFeedUrl(quality);
+		this.url = this.doBuildUpdateFeedUrl('stable');
 		if (!this.url) {
 			this.setState(State.Disabled(DisablementReason.InvalidConfiguration));
 			this.logService.info('update#ctor - updates are disabled as the update URL is badly formed');
 			return;
 		}
 
-		// hidden setting
-		if (this.configurationService.getValue<boolean>('_update.prss')) {
-			const url = new URL(this.url);
-			url.searchParams.set('prss', 'true');
-			this.url = url.toString();
-		}
+		// // hidden setting
+		// if (this.configurationService.getValue<boolean>('_update.prss')) {
+		// 	const url = new URL(this.url);
+		// 	url.searchParams.set('prss', 'true');
+		// 	this.url = url.toString();
+		// }
 
 		this.setState(State.Idle(this.getUpdateType()));
 
@@ -136,9 +138,9 @@ export abstract class AbstractUpdateService implements IUpdateService {
 		// }
 	}
 
-	private getProductQuality(updateMode: string): string | undefined {
-		return updateMode === 'none' ? undefined : this.productService.quality;
-	}
+	// private getProductQuality(updateMode: string): string | undefined {
+	// 	return updateMode === 'none' ? undefined : this.productService.quality;
+	// }
 
 	private async scheduleCheckForUpdates(delay = 60 * 60 * 1000): Promise<void> {
 		await timeout(delay);

@@ -67,7 +67,7 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 		@ILogService logService: ILogService,
 		@IFileService private readonly fileService: IFileService,
 		@INativeHostMainService private readonly nativeHostMainService: INativeHostMainService,
-		@IProductService productService: IProductService
+		@IProductService productService: IProductService,
 	) {
 		super(lifecycleMainService, configurationService, environmentMainService, requestService, logService, productService);
 

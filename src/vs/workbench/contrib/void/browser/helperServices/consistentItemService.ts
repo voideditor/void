@@ -80,7 +80,7 @@ export class ConsistentItemService extends Disposable {
 		}
 
 		const initializeEditor = (editor: ICodeEditor) => {
-			if (editor.getModel()?.uri.scheme !== 'file') return
+			// if (editor.getModel()?.uri.scheme !== 'file') return // THIS BREAKS THINGS
 			addTabSwitchListeners(editor)
 			addDisposeListener(editor)
 			putItemsOnEditor(editor, editor.getModel()?.uri ?? null)

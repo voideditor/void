@@ -16,3 +16,6 @@ import '../common/refreshModelService.js'
 
 // metrics
 import '../common/metricsService.js'
+
+// updates
+import '../common/voidUpdateService.js'

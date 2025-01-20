@@ -26,3 +26,6 @@ import './voidSettingsPane.js'
 
 // register css
 import './media/void.css'
+
+// update (frontend part, also see platform/)
+import './voidUpdateActions.js'

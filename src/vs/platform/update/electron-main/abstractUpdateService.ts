@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { timeout } from '../../../base/common/async.js';
+// import { timeout } from '../../../base/common/async.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { IConfigurationService } from '../../configuration/common/configuration.js';
@@ -75,8 +75,8 @@ export abstract class AbstractUpdateService implements IUpdateService {
 	protected async initialize(): Promise<void> {
 		if (!this.environmentMainService.isBuilt) {
 			console.log('is NOT built, canceling update service')
-			// this.setState(State.Disabled(DisablementReason.NotBuilt));
-			// return; // updates are never enabled when running out of sources
+			this.setState(State.Disabled(DisablementReason.NotBuilt));
+			return; // updates are never enabled when running out of sources
 		}
 		console.log('is built, continuing with update service')
 
@@ -87,17 +87,22 @@ export abstract class AbstractUpdateService implements IUpdateService {
 			return;
 		}
 
-		this.setState(State.Idle(this.getUpdateType()));
+		this.setState(State.Disabled(DisablementReason.ManuallyDisabled));
+
+
+		// Void - temporarily disabled while we figure out how to do this the right way
+
+		// this.setState(State.Idle(this.getUpdateType()));
 
 		// start checking for updates after 10 seconds
-		this.scheduleCheckForUpdates(10 * 1000).then(undefined, err => this.logService.error(err));
+		// this.scheduleCheckForUpdates(10 * 1000).then(undefined, err => this.logService.error(err));
 	}
 
-	private async scheduleCheckForUpdates(delay = 60 * 60 * 1000): Promise<void> {
-		await timeout(delay);
-		await this.checkForUpdates(false);
-		return await this.scheduleCheckForUpdates(60 * 60 * 1000);
-	}
+	// private async scheduleCheckForUpdates(delay = 60 * 60 * 1000): Promise<void> {
+	// 	await timeout(delay);
+	// 	await this.checkForUpdates(false);
+	// 	return await this.scheduleCheckForUpdates(60 * 60 * 1000);
+	// }
 
 	async checkForUpdates(explicit: boolean): Promise<void> {
 		this.logService.trace('update#checkForUpdates, state = ', this.state.type);

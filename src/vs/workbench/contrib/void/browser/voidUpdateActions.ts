@@ -9,6 +9,7 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 import { localize2 } from '../../../../nls.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
+import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { IVoidUpdateService } from '../../../../platform/void/common/voidUpdateService.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 
@@ -29,7 +30,7 @@ const notifyNoUpdate = (notifService: INotificationService) => {
 	})
 }
 const notifyErrChecking = (notifService: INotificationService) => {
-	const message = `Void Error: There was an error checking for updates. If this persists for a few days, please get in touch or re-download Void [here](https://voideditor.com/download-beta)!`
+	const message = `Void Error: There was an error checking for updates. If this persists, please get in touch or reinstall Void [here](https://voideditor.com/download-beta)!`
 	notifService.notify({
 		severity: Severity.Info,
 		message: message,
@@ -50,11 +51,12 @@ registerAction2(class extends Action2 {
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const voidUpdateService = accessor.get(IVoidUpdateService)
 		const notifService = accessor.get(INotificationService)
+		const metricsService = accessor.get(IMetricsService)
 
 		const res = await voidUpdateService.check()
-		if (!res) notifyErrChecking(notifService)
-		else if (res.hasUpdate) notifyYesUpdate(notifService, res.message)
-		else if (!res.hasUpdate) notifyNoUpdate(notifService)
+		if (!res) { notifyErrChecking(notifService); metricsService.capture('Void Update: Error', {}) }
+		else if (res.hasUpdate) { notifyYesUpdate(notifService, res.message); metricsService.capture('Void Update: Yes', {}) }
+		else if (!res.hasUpdate) { notifyNoUpdate(notifService); metricsService.capture('Void Update: No', {}) }
 	}
 })
 
@@ -63,7 +65,8 @@ class VoidUpdateWorkbenchContribution extends Disposable implements IWorkbenchCo
 	static readonly ID = 'workbench.contrib.void.voidUpdate'
 	constructor(
 		@IVoidUpdateService private readonly voidUpdateService: IVoidUpdateService,
-		@INotificationService private readonly notifService: INotificationService
+		@INotificationService private readonly notifService: INotificationService,
+		@IMetricsService private readonly metricsService: IMetricsService,
 	) {
 		super()
 
@@ -71,9 +74,12 @@ class VoidUpdateWorkbenchContribution extends Disposable implements IWorkbenchCo
 		setTimeout(async () => {
 			const res = await this.voidUpdateService.check()
 
-			if (!res) notifyErrChecking(this.notifService)
-			else if (res.hasUpdate) notifyYesUpdate(this.notifService, res.message)
-			else if (!res.hasUpdate) { } // display nothing if up to date
+			const notifService = this.notifService
+			const metricsService = this.metricsService
+
+			if (!res) { notifyErrChecking(notifService); metricsService.capture('Void Update Startup: Error', {}) }
+			else if (res.hasUpdate) { notifyYesUpdate(this.notifService, res.message); metricsService.capture('Void Update Startup: Yes', {}) }
+			else if (!res.hasUpdate) { metricsService.capture('Void Update Startup: No', {}) } // display nothing if up to date
 
 		}, 5 * 1000)
 	}

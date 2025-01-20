@@ -75,37 +75,11 @@ export abstract class AbstractUpdateService implements IUpdateService {
 	protected async initialize(): Promise<void> {
 		if (!this.environmentMainService.isBuilt) {
 			console.log('is NOT built, canceling update service')
-			this.setState(State.Disabled(DisablementReason.NotBuilt));
-			return; // updates are never enabled when running out of sources
+			// this.setState(State.Disabled(DisablementReason.NotBuilt));
+			// return; // updates are never enabled when running out of sources
 		}
 		console.log('is built, continuing with update service')
 
-		// Void commented this
-		// if (this.environmentMainService.disableUpdates) {
-		// 	this.setState(State.Disabled(DisablementReason.DisabledByEnvironment));
-		// 	this.logService.info('update#ctor - updates are disabled by the environment');
-		// 	return;
-		// }
-
-		// if (!this.productService.updateUrl || !this.productService.commit) {
-		// 	this.setState(State.Disabled(DisablementReason.MissingConfiguration));
-		// 	this.logService.info('update#ctor - updates are disabled as there is no update URL');
-		// 	return;
-		// }
-
-		// Void - for now, always update
-
-		// const updateMode = 'default' //this.configurationService.getValue<'none' | 'manual' | 'start' | 'default'>('update.mode');
-
-		// const quality = this.getProductQuality(updateMode);
-		// if (!quality) {
-		// 	console.log('disabling....', updateMode, quality)
-		// 	this.setState(State.Disabled(DisablementReason.ManuallyDisabled));
-		// 	this.logService.info('update#ctor - updates are disabled by user preference');
-		// 	return;
-		// }
-
-		// const quality = 'stable'
 		this.url = this.doBuildUpdateFeedUrl('stable');
 		if (!this.url) {
 			this.setState(State.Disabled(DisablementReason.InvalidConfiguration));
@@ -113,34 +87,11 @@ export abstract class AbstractUpdateService implements IUpdateService {
 			return;
 		}
 
-		// // hidden setting
-		// if (this.configurationService.getValue<boolean>('_update.prss')) {
-		// 	const url = new URL(this.url);
-		// 	url.searchParams.set('prss', 'true');
-		// 	this.url = url.toString();
-		// }
-
 		this.setState(State.Idle(this.getUpdateType()));
 
-		// if (updateMode === 'manual') {
-		// 	this.logService.info('update#ctor - manual checks only; automatic updates are disabled by user preference');
-		// 	return;
-		// }
-
-		// if (updateMode === 'start') {
-		// 	this.logService.info('update#ctor - startup checks only; automatic updates are disabled by user preference');
-
-		// 	// Check for updates only once after 30 seconds
-		// 	setTimeout(() => this.checkForUpdates(false), 30 * 1000);
-		// } else {
-		// Start checking for updates after 30 seconds
-		this.scheduleCheckForUpdates(30 * 1000).then(undefined, err => this.logService.error(err));
-		// }
+		// start checking for updates after 10 seconds
+		this.scheduleCheckForUpdates(10 * 1000).then(undefined, err => this.logService.error(err));
 	}
-
-	// private getProductQuality(updateMode: string): string | undefined {
-	// 	return updateMode === 'none' ? undefined : this.productService.quality;
-	// }
 
 	private async scheduleCheckForUpdates(delay = 60 * 60 * 1000): Promise<void> {
 		await timeout(delay);

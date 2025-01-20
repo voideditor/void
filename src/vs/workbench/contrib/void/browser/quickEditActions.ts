@@ -12,10 +12,12 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 import { IInlineDiffsService } from './inlineDiffsService.js';
 import { roundRangeToLines } from './sidebarActions.js';
 import { VOID_CTRL_K_ACTION_ID } from './actionIDs.js';
+import { localize2 } from '../../../../nls.js';
 
 
 export type QuickEditPropsType = {
 	diffareaid: number,
+	initStreamingDiffZoneId: number | null,
 	textAreaRef: (ref: HTMLTextAreaElement | null) => void;
 	onChangeHeight: (height: number) => void;
 	onChangeText: (text: string) => void;
@@ -36,10 +38,11 @@ registerAction2(class extends Action2 {
 	) {
 		super({
 			id: VOID_CTRL_K_ACTION_ID,
-			title: 'Void: Quick Edit',
+			f1: true,
+			title: localize2('voidQuickEditAction', 'Void: Quick Edit'),
 			keybinding: {
 				primary: KeyMod.CtrlCmd | KeyCode.KeyK,
-				weight: KeybindingWeight.BuiltinExtension,
+				weight: KeybindingWeight.VoidExtension,
 			}
 		});
 	}
@@ -59,9 +62,6 @@ registerAction2(class extends Action2 {
 
 
 		const { startLineNumber: startLine, endLineNumber: endLine } = selection
-
-		// deselect - clear selection
-		editor.setSelection({ startLineNumber: startLine, endLineNumber: startLine, startColumn: 1, endColumn: 1 })
 
 		const inlineDiffsService = accessor.get(IInlineDiffsService)
 		inlineDiffsService.addCtrlKZone({ startLine, endLine, editor })

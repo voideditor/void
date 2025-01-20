@@ -6,7 +6,7 @@
 
 import { URI } from '../../../../../base/common/uri.js';
 import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
-import { CodeSelection } from '../threadHistoryService.js';
+import { CodeSelection } from '../chatThreadService.js';
 
 export const chat_systemMessage = `\
 You are a coding assistant. You are given a list of relevant files \`files\`, a selection that the user is making \`selection\`, and instructions to follow \`instructions\`.
@@ -341,32 +341,18 @@ export const defaultFimTags: FimTagsType = {
 	midTag: 'SELECTION',
 }
 
-export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage, fimTags, ollamaStyleFIM, language }:
-	{ selection: string, prefix: string, suffix: string, userMessage: string, ollamaStyleFIM: boolean, fimTags: FimTagsType, language: string }) => {
+export const ctrlKStream_prompt = ({ selection, prefix, suffix, userMessage, fimTags, isOllamaFIM, language }:
+	{
+		selection: string, prefix: string, suffix: string, userMessage: string, fimTags: FimTagsType, language: string,
+		isOllamaFIM: false, // we require this be false for clarity
+	}) => {
 	const { preTag, sufTag, midTag } = fimTags
 
-
-
-	if (ollamaStyleFIM) {
-		// const preTag = 'PRE'
-		// const sufTag = 'SUF'
-		// const midTag = 'MID'
-		return `\
-<${preTag}>
-/* Original Selection:
-${selection}*/
-/* Instructions:
-${userMessage}*/
-${prefix}</${preTag}>
-<${sufTag}>${suffix}</${sufTag}>
-<${midTag}>`
-	}
 	// prompt the model artifically on how to do FIM
-	else {
-		// const preTag = 'BEFORE'
-		// const sufTag = 'AFTER'
-		// const midTag = 'SELECTION'
-		return `\
+	// const preTag = 'BEFORE'
+	// const sufTag = 'AFTER'
+	// const midTag = 'SELECTION'
+	return `\
 The user is selecting this code as their SELECTION:
 \`\`\` ${language}
 <${midTag}>${selection}</${midTag}>
@@ -377,12 +363,12 @@ ${userMessage}
 
 Please edit the SELECTION following the user's INSTRUCTIONS, and return the edited selection.
 
-Note that the SELECTION has code that comes before it. This code is indicated with <${preTag}>...before<${preTag}/>.
-Note also that the SELECTION has code that comes after it. This code is indicated with <${sufTag}>...after<${sufTag}/>.
+Note that the SELECTION has code that comes before it. This code is indicated with <${preTag}>...before</${preTag}>.
+Note also that the SELECTION has code that comes after it. This code is indicated with <${sufTag}>...after</${sufTag}>.
 
 Instructions:
-1. Your OUTPUT should be a SINGLE PIECE OF CODE of the form <${midTag}>...new_selection<${midTag}/>. Do not give any explanation before or after this. ONLY output this format, nothing more.
-2. You may ONLY CHANGE the original SELECTION, and NOT the content in the <${preTag}>...<${preTag}/> or <${sufTag}>...<${sufTag}/> tags.
+1. Your OUTPUT should be a SINGLE PIECE OF CODE of the form <${midTag}>...new_selection</${midTag}>. Do NOT output any text or explanations before or after this.
+2. You may ONLY CHANGE the original SELECTION, and NOT the content in the <${preTag}>...</${preTag}> or <${sufTag}>...</${sufTag}> tags.
 3. Make sure all brackets in the new selection are balanced the same as in the original selection.
 4. Be careful not to duplicate or remove variables, comments, or other syntax by mistake.
 
@@ -390,8 +376,7 @@ Given the code:
 <${preTag}>${prefix}</${preTag}>
 <${sufTag}>${suffix}</${sufTag}>
 
-Return only the completion block of code (of the form \`\`\` ${language}\n <${midTag}>...new_selection<${midTag}/>\`\`\`):`
-	}
+Return only the completion block of code (of the form \`\`\` ${language}\n <${midTag}>...new_selection</${midTag}>\`\`\`):`
 };
 
 

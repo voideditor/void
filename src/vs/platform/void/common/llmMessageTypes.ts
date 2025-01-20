@@ -31,12 +31,12 @@ export type LLMMessage = {
 }
 
 export type ServiceSendLLMFeatureParams = {
-	featureName: 'Ctrl+K';
+	useProviderFor: 'Ctrl+K';
 	range: IRange;
 } | {
-	featureName: 'Ctrl+L';
+	useProviderFor: 'Ctrl+L';
 } | {
-	featureName: 'Autocomplete';
+	useProviderFor: 'Autocomplete';
 	range: IRange;
 }
 

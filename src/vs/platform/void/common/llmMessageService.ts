@@ -65,18 +65,18 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			this._onRequestIdDone(e.requestId)
 		}))
 		this._register((this.channel.listen('onError_llm') satisfies Event<EventLLMMessageOnErrorParams>)(e => {
-			console.log('Error in LLMMessageService:', JSON.stringify(e))
+			console.error('Error in LLMMessageService:', JSON.stringify(e))
 			this.onErrorHooks_llm[e.requestId]?.(e)
 			this._onRequestIdDone(e.requestId)
 		}))
-		// ollama
+		// ollama .list()
 		this._register((this.channel.listen('onSuccess_ollama') satisfies Event<EventModelListOnSuccessParams<OllamaModelResponse>>)(e => {
 			this.onSuccess_ollama[e.requestId]?.(e)
 		}))
 		this._register((this.channel.listen('onError_ollama') satisfies Event<EventModelListOnErrorParams<OllamaModelResponse>>)(e => {
 			this.onError_ollama[e.requestId]?.(e)
 		}))
-		// openaiCompatible
+		// openaiCompatible .list()
 		this._register((this.channel.listen('onSuccess_openAICompatible') satisfies Event<EventModelListOnSuccessParams<OpenaiCompatibleModelResponse>>)(e => {
 			this.onSuccess_openAICompatible[e.requestId]?.(e)
 		}))
@@ -88,7 +88,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 	sendLLMMessage(params: ServiceSendLLMMessageParams) {
 		const { onText, onFinalMessage, onError, ...proxyParams } = params;
-		const { featureName } = proxyParams
+		const { useProviderFor: featureName } = proxyParams
 
 		// end early if no provider
 		const modelSelection = this.voidSettingsService.state.modelSelectionOfFeature[featureName]
@@ -97,6 +97,10 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			return null
 		}
 		const { providerName, modelName } = modelSelection
+
+		const aiInstructions = this.voidSettingsService.state.globalSettings.aiInstructions
+		if (aiInstructions)
+			proxyParams.messages.unshift({ role: 'system', content: aiInstructions })
 
 		// add state for request id
 		const requestId_ = generateUuid();

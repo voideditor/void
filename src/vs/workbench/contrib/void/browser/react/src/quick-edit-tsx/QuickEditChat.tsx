@@ -4,15 +4,18 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
+import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
+import { useRefState } from '../util/helpers.js';
+import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 
 export const QuickEditChat = ({
 	diffareaid,
+	initStreamingDiffZoneId,
 	onChangeHeight,
 	onChangeText: onChangeText_,
 	textAreaRef: textAreaRef_,
@@ -43,39 +46,41 @@ export const QuickEditChat = ({
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!(initText ?? '')) // the user's instructions
 	const isDisabled = instructionsAreEmpty
 
-	const currentlyStreamingIdRef = useRef<number | undefined>(undefined)
-	const [isStreaming, setIsStreaming] = useState(false)
+	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
+	const isStreaming = currStreamingDiffZoneRef.current !== null
 
 	const onSubmit = useCallback((e: FormEvent) => {
 		if (isDisabled) return
-		if (currentlyStreamingIdRef.current !== undefined) return
+		if (currStreamingDiffZoneRef.current !== null) return
 		textAreaFnsRef.current?.disable()
 
 		const instructions = textAreaRef.current?.value ?? ''
-		currentlyStreamingIdRef.current = inlineDiffsService.startApplying({
+		const id = inlineDiffsService.startApplying({
 			featureName: 'Ctrl+K',
 			diffareaid: diffareaid,
 			userMessage: instructions,
 		})
-		setIsStreaming(true)
-	}, [isDisabled, inlineDiffsService, diffareaid])
+		setCurrentlyStreamingDiffZone(id ?? null)
+	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, inlineDiffsService, diffareaid])
 
 	const onInterrupt = useCallback(() => {
-		if (currentlyStreamingIdRef.current !== undefined)
-			inlineDiffsService.interruptStreaming(currentlyStreamingIdRef.current)
+		if (currStreamingDiffZoneRef.current === null) return
+		inlineDiffsService.interruptStreaming(currStreamingDiffZoneRef.current)
+		setCurrentlyStreamingDiffZone(null)
 		textAreaFnsRef.current?.enable()
-		setIsStreaming(false)
-	}, [inlineDiffsService])
+	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, inlineDiffsService])
 
 
 	const onX = useCallback(() => {
+		onInterrupt()
 		inlineDiffsService.removeCtrlKZone({ diffareaid })
 	}, [inlineDiffsService, diffareaid])
 
+	useScrollbarStyles(sizerRef)
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
 
-	return <div ref={sizerRef} className='py-2 w-full max-w-xl'>
+	return <div ref={sizerRef} style={{ maxWidth: 500 }} className={`py-2 w-full`}>
 		<form
 			// copied from SidebarChat.tsx
 			className={`
@@ -92,27 +97,17 @@ export const QuickEditChat = ({
 
 			{/* // this div is used to position the input box properly */}
 			<div
-				className={`w-full z-[999] relative
-					@@[&_textarea]:!void-bg-transparent
-					@@[&_textarea]:!void-outline-none
-					@@[&_textarea]:!void-text-vscode-input-fg
-					@@[&_div.monaco-inputbox]:!void-border-none
-					@@[&_div.monaco-inputbox]:!void-outline-none`}
+				className={`w-full z-[999] relative`}
 			>
 				<div className='flex flex-row items-center justify-between items-end gap-1'>
 
 					{/* input */}
 					<div // copied from SidebarChat.tsx
-						className={`w-full
-							@@[&_textarea]:!void-bg-transparent
-							@@[&_textarea]:!void-outline-none
-							@@[&_textarea]:!void-text-vscode-input-fg
-							@@[&_div.monaco-inputbox]:!void-outline-none
-						`}
+						className={`w-full`}
 					>
 						{/* text input */}
 						<VoidInputBox2
-
+							className='px-1'
 							initValue={initText}
 
 							ref={useCallback((r: HTMLTextAreaElement | null) => {
@@ -129,7 +124,8 @@ export const QuickEditChat = ({
 
 							fnsRef={textAreaFnsRef}
 
-							placeholder={`${keybindingString} to select`}
+							placeholder={`Enter instructions...`}
+							// ${keybindingString} to select.
 
 							onChangeText={useCallback((newStr: string) => {
 								setInstructionsAreEmpty(!newStr)

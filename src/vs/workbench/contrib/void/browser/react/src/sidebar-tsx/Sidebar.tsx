@@ -28,7 +28,7 @@ export const Sidebar = ({ className }: { className: string }) => {
 		<div
 			// default background + text styles for sidebar
 			className={`
-				w-full h-full py-2
+				w-full h-full
 				bg-void-bg-2
 				text-void-fg-1
 			`}

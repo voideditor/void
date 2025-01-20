@@ -22,7 +22,7 @@ class SurroundingsRemover {
 	// returns whether it removed the whole prefix
 	removePrefix = (prefix: string): boolean => {
 		let offset = 0
-		console.log('prefix', prefix, Math.min(this.j, prefix.length - 1))
+		// console.log('prefix', prefix, Math.min(this.j, prefix.length - 1))
 		while (this.i <= this.j && offset <= prefix.length - 1) {
 			if (this.originalS.charAt(this.i) !== prefix.charAt(offset))
 				break
@@ -64,7 +64,7 @@ class SurroundingsRemover {
 			this.i = this.j + 1
 			return false
 		}
-		console.log('index', index, until.length)
+		// console.log('index', index, until.length)
 
 		if (alsoRemoveUntilStr)
 			this.i = index + until.length
@@ -90,11 +90,21 @@ class SurroundingsRemover {
 	}
 
 
+	actualRecentlyAdded = (recentlyAddedTextLen: number) => {
+		// aaaaaatextaaaaaa{recentlyAdded}
+		//           i      ^        j
+		//                  |
+		//            recentyAddedIdx
+		const recentlyAddedIdx = this.j - recentlyAddedTextLen + 1
+		return this.originalS.substring(Math.max(this.i, recentlyAddedIdx), this.j + 1)
+	}
+
+
 }
 
 
 
-export const extractCodeFromRegular = (text: string): string => {
+export const extractCodeFromRegular = ({ text, recentlyAddedTextLen }: { text: string, recentlyAddedTextLen: number }): [string, string] => {
 	// Match either:
 	// 1. ```language\n<code>```
 	// 2. ```<code>```
@@ -104,7 +114,9 @@ export const extractCodeFromRegular = (text: string): string => {
 	pm.removeCodeBlock()
 
 	const s = pm.value()
-	return s
+	const actual = pm.actualRecentlyAdded(recentlyAddedTextLen)
+
+	return [s, actual]
 }
 
 
@@ -112,7 +124,7 @@ export const extractCodeFromRegular = (text: string): string => {
 
 
 // Ollama has its own FIM, we should not use this if we use that
-export const extractCodeFromFIM = ({ text, midTag }: { text: string, midTag: string }): string => {
+export const extractCodeFromFIM = ({ text, recentlyAddedTextLen, midTag, }: { text: string, recentlyAddedTextLen: number, midTag: string }): [string, string] => {
 
 	/* ------------- summary of the regex -------------
 		[optional ` | `` | ```]
@@ -126,23 +138,17 @@ export const extractCodeFromFIM = ({ text, midTag }: { text: string, midTag: str
 
 	const pm = new SurroundingsRemover(text)
 
-	console.log('ORIGIINAL CODE', text)
-
 	pm.removeCodeBlock()
 
-	console.log('D', pm.i, pm.j)
-
-
 	const foundMid = pm.removePrefix(`<${midTag}>`)
-	console.log('E', midTag, pm.i, pm.j)
 
 	if (foundMid) {
 		pm.removeSuffix(`</${midTag}>`)
-		console.log('F', pm.i, pm.j)
-
 	}
 	const s = pm.value()
-	return s
+	const actual = pm.actualRecentlyAdded(recentlyAddedTextLen)
+
+	return [s, actual]
 
 
 	// // const regex = /[\s\S]*?(?:`{1,3}\s*([a-zA-Z_]+[\w]*)?[\s\S]*?)?<MID>([\s\S]*?)(?:<\/MID>|`{1,3}|$)/;

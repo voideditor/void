@@ -16,7 +16,7 @@ import './sidebarStateService.js'
 import './quickEditActions.js'
 
 // register Thread History
-import './threadHistoryService.js'
+import './chatThreadService.js'
 
 // register Autocomplete
 import './autocompleteService.js'
@@ -26,3 +26,6 @@ import './voidSettingsPane.js'
 
 // register css
 import './media/void.css'
+
+// update (frontend part, also see platform/)
+import './voidUpdateActions.js'

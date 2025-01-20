@@ -4,12 +4,13 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useState, useEffect } from 'react'
-import { ThreadsState } from '../../../threadHistoryService.js'
+import { ThreadStreamState, ThreadsState } from '../../../chatThreadService.js'
 import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
+import { VoidUriState } from '../../../voidUriStateService.js';
 import { VoidQuickEditState } from '../../../quickEditStateService.js'
 import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
 
@@ -28,9 +29,10 @@ import { ILLMMessageService } from '../../../../../../../platform/void/common/ll
 import { IRefreshModelService } from '../../../../../../../platform/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../platform/void/common/voidSettingsService.js';
 import { IInlineDiffsService } from '../../../inlineDiffsService.js';
+import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
-import { IThreadHistoryService } from '../../../threadHistoryService.js';
+import { IChatThreadService } from '../../../chatThreadService.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
 import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
 import { ICommandService } from '../../../../../../../platform/commands/common/commands.js'
@@ -47,18 +49,25 @@ import { IPathService } from '../../../../../../../workbench/services/path/commo
 import { IMetricsService } from '../../../../../../../platform/void/common/metricsService.js'
 
 
+
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
 
 // even if React hasn't mounted yet, the variables are always updated to the latest state.
 // React listens by adding a setState function to these listeners.
+let uriState: VoidUriState
+const uriStateListeners: Set<(s: VoidUriState) => void> = new Set()
+
 let quickEditState: VoidQuickEditState
 const quickEditStateListeners: Set<(s: VoidQuickEditState) => void> = new Set()
 
 let sidebarState: VoidSidebarState
 const sidebarStateListeners: Set<(s: VoidSidebarState) => void> = new Set()
 
-let threadsState: ThreadsState
-const threadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
+let chatThreadsState: ThreadsState
+const chatThreadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
+
+let chatThreadsStreamState: ThreadStreamState
+const chatThreadsStreamStateListeners: Set<(threadId: string) => void> = new Set()
 
 let settingsState: VoidSettingsState
 const settingsStateListeners: Set<(s: VoidSettingsState) => void> = new Set()
@@ -87,15 +96,25 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 	_registerAccessor(accessor)
 
 	const stateServices = {
+		uriStateService: accessor.get(IVoidUriStateService),
 		quickEditStateService: accessor.get(IQuickEditStateService),
 		sidebarStateService: accessor.get(ISidebarStateService),
-		threadsStateService: accessor.get(IThreadHistoryService),
+		chatThreadsStateService: accessor.get(IChatThreadService),
 		settingsStateService: accessor.get(IVoidSettingsService),
 		refreshModelService: accessor.get(IRefreshModelService),
 		themeService: accessor.get(IThemeService),
+		inlineDiffsService: accessor.get(IInlineDiffsService),
 	}
 
-	const { sidebarStateService, quickEditStateService, settingsStateService, threadsStateService, refreshModelService, themeService, } = stateServices
+	const { uriStateService, sidebarStateService, quickEditStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, inlineDiffsService } = stateServices
+
+	uriState = uriStateService.state
+	disposables.push(
+		uriStateService.onDidChangeState(() => {
+			uriState = uriStateService.state
+			uriStateListeners.forEach(l => l(uriState))
+		})
+	)
 
 	quickEditState = quickEditStateService.state
 	disposables.push(
@@ -113,11 +132,20 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		})
 	)
 
-	threadsState = threadsStateService.state
+	chatThreadsState = chatThreadsStateService.state
 	disposables.push(
-		threadsStateService.onDidChangeCurrentThread(() => {
-			threadsState = threadsStateService.state
-			threadsStateListeners.forEach(l => l(threadsState))
+		chatThreadsStateService.onDidChangeCurrentThread(() => {
+			chatThreadsState = chatThreadsStateService.state
+			chatThreadsStateListeners.forEach(l => l(chatThreadsState))
+		})
+	)
+
+	// same service, different state
+	chatThreadsStreamState = chatThreadsStateService.streamState
+	disposables.push(
+		chatThreadsStateService.onDidChangeStreamState(({ threadId }) => {
+			chatThreadsStreamState = chatThreadsStateService.streamState
+			chatThreadsStreamStateListeners.forEach(l => l(threadId))
 		})
 	)
 
@@ -146,6 +174,7 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		})
 	)
 
+
 	return disposables
 }
 
@@ -164,9 +193,10 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IRefreshModelService: accessor.get(IRefreshModelService),
 		IVoidSettingsService: accessor.get(IVoidSettingsService),
 		IInlineDiffsService: accessor.get(IInlineDiffsService),
+		IVoidUriStateService: accessor.get(IVoidUriStateService),
 		IQuickEditStateService: accessor.get(IQuickEditStateService),
 		ISidebarStateService: accessor.get(ISidebarStateService),
-		IThreadHistoryService: accessor.get(IThreadHistoryService),
+		IChatThreadService: accessor.get(IChatThreadService),
 
 		IInstantiationService: accessor.get(IInstantiationService),
 		ICodeEditorService: accessor.get(ICodeEditorService),
@@ -210,6 +240,16 @@ export const useAccessor = () => {
 
 // -- state of services --
 
+export const useUriState = () => {
+	const [s, ss] = useState(uriState)
+	useEffect(() => {
+		ss(uriState)
+		uriStateListeners.add(ss)
+		return () => { uriStateListeners.delete(ss) }
+	}, [ss])
+	return s
+}
+
 export const useQuickEditState = () => {
 	const [s, ss] = useState(quickEditState)
 	useEffect(() => {
@@ -240,15 +280,34 @@ export const useSettingsState = () => {
 	return s
 }
 
-export const useThreadsState = () => {
-	const [s, ss] = useState(threadsState)
+export const useChatThreadsState = () => {
+	const [s, ss] = useState(chatThreadsState)
 	useEffect(() => {
-		ss(threadsState)
-		threadsStateListeners.add(ss)
-		return () => { threadsStateListeners.delete(ss) }
+		ss(chatThreadsState)
+		chatThreadsStateListeners.add(ss)
+		return () => { chatThreadsStateListeners.delete(ss) }
 	}, [ss])
 	return s
 }
+
+
+
+
+export const useChatThreadsStreamState = (threadId: string) => {
+	const [s, ss] = useState<ThreadStreamState[string] | undefined>(chatThreadsStreamState[threadId])
+	useEffect(() => {
+		ss(chatThreadsStreamState[threadId])
+		const listener = (threadId_: string) => {
+			if (threadId_ !== threadId) return
+			ss(chatThreadsStreamState[threadId])
+		}
+		chatThreadsStreamStateListeners.add(listener)
+		return () => { chatThreadsStreamStateListeners.delete(listener) }
+	}, [ss, threadId])
+	return s
+}
+
+
 
 
 export const useRefreshModelState = () => {

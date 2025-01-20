@@ -5,7 +5,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, featureFlagNames, displayInfoOfFeatureFlag, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButton, VoidCheckBox, VoidCustomSelectBox, VoidInputBox, VoidInputBox2, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -38,32 +38,39 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 	const refreshModelService = accessor.get('IRefreshModelService')
 	const metricsService = accessor.get('IMetricsService')
 
-	const [justFinished, setJustFinished] = useState(false)
+	const [justFinished, setJustFinished] = useState<null | 'finished' | 'error'>(null)
 
 	useRefreshModelListener(
 		useCallback((providerName2, refreshModelState) => {
 			if (providerName2 !== providerName) return
 			const { state } = refreshModelState[providerName]
-			if (state !== 'finished') return
+			if (!(state === 'finished' || state === 'error')) return
 			// now we know we just entered 'finished' state for this providerName
-			setJustFinished(true)
-			const tid = setTimeout(() => { setJustFinished(false) }, 2000)
+			setJustFinished(state)
+			const tid = setTimeout(() => { setJustFinished(null) }, 2000)
 			return () => clearTimeout(tid)
 		}, [providerName])
 	)
 
 	const { state } = refreshModelState[providerName]
-	const isRefreshing = state === 'refreshing'
 
 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
 	return <SubtleButton
 		onClick={() => {
-			refreshModelService.refreshModels(providerName)
+			refreshModelService.startRefreshingModels(providerName, { enableProviderOnSuccess: false, doNotFire: false })
 			metricsService.capture('Click', { providerName, action: 'Refresh Models' })
 		}}
-		text={justFinished ? `${providerTitle} Models are up-to-date!` : `Manually refresh models list for ${providerTitle}.`}
-		icon={isRefreshing ? <Loader2 className='size-3 animate-spin' /> : (justFinished ? <Check className='stroke-green-500 size-3' /> : <RefreshCw className='size-3' />)}
-		disabled={isRefreshing || justFinished}
+		text={justFinished === 'finished' ? `${providerTitle} Models are up-to-date!`
+			: justFinished === 'error' ? `${providerTitle} not found!`
+				: `Manually refresh ${providerTitle} models.`
+		}
+		icon={justFinished === 'finished' ? <Check className='stroke-green-500 size-3' />
+			: justFinished === 'error' ? <X className='stroke-red-500 size-3' />
+				: state === 'refreshing' ? <Loader2 className='size-3 animate-spin' />
+					: <RefreshCw className='size-3' />
+		}
+
+		disabled={state === 'refreshing' || justFinished !== null}
 	/>
 }
 
@@ -109,7 +116,8 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 				options={providerNames}
 				selectedOption={providerName}
 				onChangeOption={(pn) => setProviderName(pn)}
-				getOptionName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
+				getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
+				getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
 				getOptionsEqual={(a, b) => a === b}
 				className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
 					py-[4px] px-[6px]
@@ -126,6 +134,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 			<div className='max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'>
 				<VoidInputBox2
 					placeholder='Model Name'
+					className='mt-[2px] px-[6px] h-full w-full'
 					ref={modelNameRef}
 					multiline={false}
 				/>
@@ -353,31 +362,10 @@ export const VoidProviderSettings = ({ providerNames }: { providerNames: Provide
 	</>
 }
 
-// export const VoidFeatureFlagSettings = () => {
-// 	const accessor = useAccessor()
-// 	const voidSettingsService = accessor.get('IVoidSettingsService')
 
-// 	const voidSettingsState = useSettingsState()
-
-// 	return <>
-// 		{featureFlagNames.map((flagName) => {
-// 			const value = voidSettingsState.featureFlagSettings[flagName]
-// 			const { description } = displayInfoOfFeatureFlag(flagName)
-// 			return <div key={flagName} className='hover:bg-black/10 hover:dark:bg-gray-200/10 rounded-sm overflow-hidden py-1 px-3 my-1'>
-// 				<div className='flex items-center'>
-// 					<VoidCheckBox
-// 						label=''
-// 						value={value}
-// 						onClick={() => { voidSettingsService.setFeatureFlag(flagName, !value) }}
-// 					/>
-// 					<h4 className='text-sm'>{description}</h4>
-// 				</div>
-// 			</div>
-// 		})}
-// 	</>
-// }
 type TabName = 'models' | 'general'
-export const VoidFeatureFlagSettings = () => {
+export const AutoRefreshToggle = () => {
+	const settingName: GlobalSettingName = 'autoRefreshModels'
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
@@ -385,22 +373,33 @@ export const VoidFeatureFlagSettings = () => {
 
 	const voidSettingsState = useSettingsState()
 
-	return featureFlagNames.map((flagName) => {
+	// right now this is just `enabled_autoRefreshModels`
+	const enabled = voidSettingsState.globalSettings[settingName]
 
-		// right now this is just `enabled_autoRefreshModels`
-		const enabled = voidSettingsState.featureFlagSettings[flagName]
-		const { description } = displayInfoOfFeatureFlag(flagName)
+	return <SubtleButton
+		onClick={() => {
+			voidSettingsService.setGlobalSetting(settingName, !enabled)
+			metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: !enabled })
+		}}
+		text={`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
+		icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
+		disabled={false}
+	/>
+}
 
-		return <SubtleButton key={flagName}
-			onClick={() => {
-				voidSettingsService.setFeatureFlag(flagName, !enabled)
-				metricsService.capture('Click', { action: 'Autorefresh Toggle', flagName, enabled: !enabled })
-			}}
-			text={description}
-			icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
-			disabled={false}
-		/>
-	})
+export const AIInstructionsBox = () => {
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
+	return <VoidInputBox2
+	className='min-h-[81px] p-3 rounded-sm'
+		initValue={voidSettingsState.globalSettings.aiInstructions}
+		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Respond to all queries in French. `}
+		multiline
+		onChangeText={(newText) => {
+			voidSettingsService.setGlobalSetting('aiInstructions', newText)
+		}}
+	/>
 }
 
 export const FeaturesTab = () => {
@@ -423,16 +422,16 @@ export const FeaturesTab = () => {
 			<VoidProviderSettings providerNames={localProviderNames} />
 		</ErrorBoundary>
 
-		<h2 className={`text-3xl mb-2 mt-16`}>Providers</h2>
+		<h2 className={`text-3xl mb-2 mt-12`}>Providers</h2>
 		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
 		{/* <h3 className={`opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3> */}
 		<ErrorBoundary>
 			<VoidProviderSettings providerNames={nonlocalProviderNames} />
 		</ErrorBoundary>
 
-		<h2 className={`text-3xl mb-2 mt-16`}>Models</h2>
+		<h2 className={`text-3xl mb-2 mt-12`}>Models</h2>
 		<ErrorBoundary>
-			<VoidFeatureFlagSettings />
+			<AutoRefreshToggle />
 			<RefreshableModels />
 			<ModelDump />
 			<AddModelMenuFull />
@@ -569,15 +568,8 @@ const GeneralTab = () => {
 		</div>
 
 
-		{/* <div className='my-4'>
-			<h3 className={`text-xl mb-2 mt-4`}>Rules for AI</h3>
-			{`placeholder: "Do not add ;'s. Do not change or delete spacing, formatting, or comments. Respond to queries in French when applicable. "`}
-		</div> */}
 
-
-
-
-		<div className='mt-16'>
+		<div className='mt-12'>
 			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
 			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
@@ -598,7 +590,13 @@ const GeneralTab = () => {
 			</div>
 		</div>
 
-		{/* <VoidFeatureFlagSettings /> */}
+
+		<div className='mt-12'>
+			<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
+			<h4 className={`text-void-fg-3 mb-2`}>{`Instructions to include on all AI requests.`}</h4>
+			<AIInstructionsBox />
+		</div>
+
 
 	</>
 }

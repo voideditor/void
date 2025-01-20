@@ -4,8 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React from "react";
-import { useAccessor, useThreadsState } from '../util/services.js';
-import { IThreadHistoryService } from '../../../threadHistoryService.js';
+import { useAccessor, useChatThreadsState } from '../util/services.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { IconX } from './SidebarChat.js';
 
@@ -20,19 +19,21 @@ const truncate = (s: string) => {
 
 
 export const SidebarThreadSelector = () => {
-	const threadsState = useThreadsState()
+	const threadsState = useChatThreadsState()
 
 	const accessor = useAccessor()
-	const threadsStateService = accessor.get('IThreadHistoryService')
+	const chatThreadsService = accessor.get('IChatThreadService')
 	const sidebarStateService = accessor.get('ISidebarStateService')
 
 	const { allThreads } = threadsState
 
 	// sorted by most recent to least recent
-	const sortedThreadIds = Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
+	const sortedThreadIds = Object.keys(allThreads ?? {})
+		.sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
+		.filter(threadId => allThreads![threadId].messages.length !== 0)
 
 	return (
-		<div className="flex p-2 flex-col mb-2 gap-y-1 max-h-[400px] overflow-y-auto">
+		<div className="flex p-2 flex-col gap-y-1 max-h-[400px] overflow-y-auto">
 
 			<div className="w-full relative flex justify-center items-center">
 				{/* title */}
@@ -56,11 +57,11 @@ export const SidebarThreadSelector = () => {
 
 					{sortedThreadIds.length === 0
 
-						? <div key="nothreads" className="text-center text-void-fg-3 brightness-90 text-sm">{`No history found`}</div>
+						? <div key="nothreads" className="text-center text-void-fg-3 brightness-90 text-sm">{`There are no chat threads yet.`}</div>
 
 						: sortedThreadIds.map((threadId) => {
 							if (!allThreads) {
-								return <li key="error" className="text-void-warning">{`No history found`}</li>;
+								return <li key="error" className="text-void-warning">{`Error accessing chat history.`}</li>;
 							}
 
 							const pastThread = allThreads[threadId];
@@ -93,16 +94,16 @@ export const SidebarThreadSelector = () => {
 							return (
 								<li key={pastThread.id}>
 									<button
-									type='button'
+										type='button'
 										className={`
 										hover:bg-void-bg-1
-										${threadsState._currentThreadId === pastThread.id ? 'bg-void-bg-1' : ''}
+										${threadsState.currentThreadId === pastThread.id ? 'bg-void-bg-1' : ''}
 										rounded-sm px-2 py-1
 										w-full
 										text-left
 										flex items-center
 									`}
-										onClick={() => threadsStateService.switchToThread(pastThread.id)}
+										onClick={() => chatThreadsService.switchToThread(pastThread.id)}
 										title={new Date(pastThread.createdAt).toLocaleString()}
 									>
 										<div className='truncate'>{`${firstMsg}`}</div>

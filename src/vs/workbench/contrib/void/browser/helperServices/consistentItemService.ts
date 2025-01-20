@@ -80,6 +80,7 @@ export class ConsistentItemService extends Disposable {
 		}
 
 		const initializeEditor = (editor: ICodeEditor) => {
+			// if (editor.getModel()?.uri.scheme !== 'file') return // THIS BREAKS THINGS
 			addTabSwitchListeners(editor)
 			addDisposeListener(editor)
 			putItemsOnEditor(editor, editor.getModel()?.uri ?? null)
@@ -126,6 +127,8 @@ export class ConsistentItemService extends Disposable {
 
 		const editorId = editor.getId()
 		this.itemIdsOfEditorId[editorId]?.delete(itemId)
+		if (this.itemIdsOfEditorId[editorId]?.size === 0)
+			delete this.itemIdsOfEditorId[editorId]
 
 		this.disposeFnOfItemId[itemId]?.()
 		delete this.disposeFnOfItemId[itemId]
@@ -157,7 +160,6 @@ export class ConsistentItemService extends Disposable {
 
 
 	removeConsistentItemFromURI(consistentItemId: string) {
-
 		if (!(consistentItemId in this.infoOfConsistentItemId))
 			return
 
@@ -173,6 +175,9 @@ export class ConsistentItemService extends Disposable {
 
 		// clear
 		this.consistentItemIdsOfURI[uri.fsPath]?.delete(consistentItemId)
+		if (this.consistentItemIdsOfURI[uri.fsPath]?.size === 0)
+			delete this.consistentItemIdsOfURI[uri.fsPath]
+
 		delete this.infoOfConsistentItemId[consistentItemId]
 
 	}

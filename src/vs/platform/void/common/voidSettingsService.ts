@@ -11,10 +11,10 @@ import { registerSingleton, InstantiationType } from '../../instantiation/common
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultNames, VoidModelInfo, FeatureFlagSettings, FeatureFlagName, defaultFeatureFlagSettings } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings } from './voidSettingsTypes.js';
 
 
-const STORAGE_KEY = 'void.voidSettingsStorage'
+const STORAGE_KEY = 'void.settingsServiceStorage'
 
 type SetSettingOfProviderFn = <S extends SettingName>(
 	providerName: ProviderName,
@@ -28,7 +28,7 @@ type SetModelSelectionOfFeatureFn = <K extends FeatureName>(
 	options?: { doNotApplyEffects?: true }
 ) => Promise<void>;
 
-type SetFeatureFlagFn = (flagName: FeatureFlagName, newVal: boolean) => void;
+type SetGlobalSettingFn = <T extends GlobalSettingName, >(settingName: T, newVal: GlobalSettings[T]) => void;
 
 export type ModelOption = { name: string, selection: ModelSelection }
 
@@ -37,12 +37,13 @@ export type ModelOption = { name: string, selection: ModelSelection }
 export type VoidSettingsState = {
 	readonly settingsOfProvider: SettingsOfProvider; // optionsOfProvider
 	readonly modelSelectionOfFeature: ModelSelectionOfFeature; // stateOfFeature
-	readonly featureFlagSettings: FeatureFlagSettings;
+	readonly globalSettings: GlobalSettings;
 
 	readonly _modelOptions: ModelOption[] // computed based on the two above items
 }
 
-type EventProp = Exclude<keyof VoidSettingsState, '_modelOptions'> | 'all'
+type RealVoidSettings = Exclude<keyof VoidSettingsState, '_modelOptions'>
+type EventProp<T extends RealVoidSettings = RealVoidSettings> = T extends 'globalSettings' ? [T, keyof VoidSettingsState[T]] : T | 'all'
 
 
 export interface IVoidSettingsService {
@@ -54,9 +55,9 @@ export interface IVoidSettingsService {
 
 	setSettingOfProvider: SetSettingOfProviderFn;
 	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn;
-	setFeatureFlag: SetFeatureFlagFn;
+	setGlobalSetting: SetGlobalSettingFn;
 
-	setAutodetectedModels(providerName: ProviderName, modelNames: string[], logging: { enableProviderOnSuccess?: boolean, isPolling?: boolean, isInvisible?: boolean }): void;
+	setAutodetectedModels(providerName: ProviderName, modelNames: string[], logging: object): void;
 	toggleModelHidden(providerName: ProviderName, modelName: string): void;
 	addModel(providerName: ProviderName, modelName: string): void;
 	deleteModel(providerName: ProviderName, modelName: string): boolean;
@@ -81,7 +82,7 @@ const defaultState = () => {
 	const d: VoidSettingsState = {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
 		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null },
-		featureFlagSettings: deepClone(defaultFeatureFlagSettings),
+		globalSettings: deepClone(defaultGlobalSettings),
 		_modelOptions: _computeModelOptions(defaultSettingsOfProvider), // computed
 	}
 	return d
@@ -150,7 +151,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			}
 		}
 
-		const newFeatureFlags = this.state.featureFlagSettings
+		const newGlobalSettings = this.state.globalSettings
 
 		// if changed models or enabled a provider, recompute models list
 		const modelsListChanged = settingName === 'models' || settingName === '_enabled'
@@ -159,7 +160,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const newState: VoidSettingsState = {
 			modelSelectionOfFeature: newModelSelectionOfFeature,
 			settingsOfProvider: newSettingsOfProvider,
-			featureFlagSettings: newFeatureFlags,
+			globalSettings: newGlobalSettings,
 			_modelOptions: newModelsList,
 		}
 
@@ -187,17 +188,17 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 
-	setFeatureFlag: SetFeatureFlagFn = async (flagName, newVal) => {
-		const newState = {
+	setGlobalSetting: SetGlobalSettingFn = async (settingName, newVal) => {
+		const newState: VoidSettingsState = {
 			...this.state,
-			featureFlagSettings: {
-				...this.state.featureFlagSettings,
-				[flagName]: newVal
+			globalSettings: {
+				...this.state.globalSettings,
+				[settingName]: newVal
 			}
 		}
 		this.state = newState
 		await this._storeState()
-		this._onDidChangeState.fire('featureFlagSettings')
+		this._onDidChangeState.fire(['globalSettings', settingName])
 
 	}
 
@@ -222,7 +223,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 
 
-	setAutodetectedModels(providerName: ProviderName, newDefaultModelNames: string[], logging: { enableProviderOnSuccess?: boolean, isPolling?: boolean, isInvisible?: boolean }) {
+	setAutodetectedModels(providerName: ProviderName, newDefaultModelNames: string[], logging: object) {
 
 		const { models } = this.state.settingsOfProvider[providerName]
 

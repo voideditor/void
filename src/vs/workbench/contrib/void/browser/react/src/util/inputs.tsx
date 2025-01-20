@@ -54,11 +54,12 @@ type InputBox2Props = {
 	placeholder: string;
 	multiline: boolean;
 	fnsRef?: { current: null | TextAreaFns };
+	className?: string;
 	onChangeText?: (value: string) => void;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 	onChangeHeight?: (newHeight: number) => void;
 }
-export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, onKeyDown, onChangeText }, ref) {
+export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, className, onKeyDown, onChangeText }, ref) {
 
 	// mirrors whatever is in ref
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -72,7 +73,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 		if (r.scrollHeight === 0) return requestAnimationFrame(adjustHeight)
 		const h = r.scrollHeight
-		const newHeight = Math.min(h, 500)
+		const newHeight = Math.min(h + 1, 500) // plus one to avoid scrollbar appearing when it shouldn't
 		r.style.height = `${newHeight}px`
 	}, []);
 
@@ -114,7 +115,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 			disabled={!isEnabled}
 
-			className="w-full resize-none max-h-[500px] overflow-y-auto"
+			className={`w-full resize-none max-h-[500px] overflow-y-auto text-void-fg-1 placeholder:text-void-fg-3 ${className}`}
 			style={{
 				// defaultInputBoxStyles
 				background: asCssVariable(inputBackground),
@@ -299,7 +300,8 @@ export const VoidCustomSelectBox = <T extends any>({
 	options,
 	selectedOption: selectedOption_,
 	onChangeOption,
-	getOptionName,
+	getOptionDropdownName,
+	getOptionDisplayName,
 	getOptionsEqual,
 	className,
 	arrowTouchesText = true,
@@ -310,7 +312,8 @@ export const VoidCustomSelectBox = <T extends any>({
 	options: T[];
 	selectedOption?: T;
 	onChangeOption: (newValue: T) => void;
-	getOptionName: (option: T) => string;
+	getOptionDropdownName: (option: T) => string;
+	getOptionDisplayName: (option: T) => string;
 	getOptionsEqual: (a: T, b: T) => boolean;
 	className?: string;
 	arrowTouchesText?: boolean;
@@ -420,9 +423,9 @@ export const VoidCustomSelectBox = <T extends any>({
 				aria-hidden="true"
 			>
 				{options.map((option) => (
-					<div key={getOptionName(option)} className="flex items-center whitespace-nowrap">
+					<div key={getOptionDropdownName(option)} className="flex items-center whitespace-nowrap">
 						<div className="w-4" />
-						<span className="px-2">{getOptionName(option)}</span>
+						<span className="px-2">{getOptionDropdownName(option)}</span>
 					</div>
 				))}
 			</div>
@@ -437,7 +440,7 @@ export const VoidCustomSelectBox = <T extends any>({
 				}}
 			>
 				<span className={`max-w-[120px] truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
-					{getOptionName(selectedOption)}
+					{getOptionDisplayName(selectedOption)}
 				</span>
 				<svg
 					className={`size-3 flex-shrink-0 ${arrowTouchesText ? '' : 'ml-auto'}`}
@@ -466,7 +469,7 @@ export const VoidCustomSelectBox = <T extends any>({
 				>
 					{options.map((option) => {
 						const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
-						const optionName = getOptionName(option);
+						const optionName = getOptionDropdownName(option);
 
 						return (
 							<div
@@ -706,7 +709,7 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
 				const model = modelOfEditorId[id] ?? modelService.createModel(
 					initValueRef.current, {
-					languageId: languageRef.current ? languageRef.current : '',
+					languageId: languageRef.current ? languageRef.current : 'typescript',
 					onDidChange: (e) => { return { dispose: () => { } } } // no idea why they'd require this
 				})
 				modelRef.current = model
@@ -719,6 +722,7 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 					if (parentNode) {
 						// const height = Math.min(, MAX_HEIGHT);
 						parentNode.style.height = `${height}px`;
+						parentNode.style.maxHeight = `${MAX_HEIGHT}px`;
 						editor.layout();
 					}
 				}

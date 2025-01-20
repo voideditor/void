@@ -429,26 +429,16 @@ export type RefreshableProviderName = typeof refreshableProviderNames[number]
 
 
 
-export type FeatureFlagSettings = {
+export type GlobalSettings = {
 	autoRefreshModels: boolean;
+	aiInstructions: string;
 }
-export const defaultFeatureFlagSettings: FeatureFlagSettings = {
+export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
+	aiInstructions: '',
 }
 
-export type FeatureFlagName = keyof FeatureFlagSettings
-export const featureFlagNames = Object.keys(defaultFeatureFlagSettings) as FeatureFlagName[]
-
-type FeatureFlagDisplayInfo = {
-	description: string,
-}
-export const displayInfoOfFeatureFlag = (featureFlag: FeatureFlagName): FeatureFlagDisplayInfo => {
-	if (featureFlag === 'autoRefreshModels') {
-		return {
-			description: `Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`,
-		}
-	}
-	throw new Error(`featureFlagInfo: Unknown feature flag: "${featureFlag}"`)
-}
+export type GlobalSettingName = keyof GlobalSettings
+export const globalSettingNames = Object.keys(defaultGlobalSettings) as GlobalSettingName[]
 
 

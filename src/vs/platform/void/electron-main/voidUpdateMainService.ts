@@ -24,13 +24,13 @@ export class VoidMainUpdateService extends Disposable implements IVoidUpdateServ
 
 	async check() {
 		const isDevMode = !this._envMainService.isBuilt // found in abstractUpdateService.ts
+
 		if (isDevMode) {
-			console.log('Checking for updates in dev mode')
-			// return { message: `` }
+			return { hasUpdate: false } as const
 		}
 
 		try {
-			const res = await fetch(`https://updates.voideditor.dev/api/v0/${this._productService.commit ?? '6e1f8a08b39b9fcc2810356a7e69e65d6e61d13f'}`)
+			const res = await fetch(`https://updates.voideditor.dev/api/v0/${this._productService.commit}`)
 			const resJSON = await res.json()
 
 			if (!resJSON) return null

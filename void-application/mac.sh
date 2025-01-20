@@ -2,8 +2,6 @@
 
 set -e
 
-./mac-env.sh
-
 
 npm run vscode-darwin-arm64-min
 ./mac-sign.sh sign arm64

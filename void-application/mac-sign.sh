@@ -86,9 +86,6 @@ sign() {
     # We don't even have to codesign - apparently create-dmg does it! codesign --deep --options runtime --sign "${CODESIGN_IDENTITY}" "${SIGNED_DMG}" create
     codesign --verify --verbose=4 "${SIGNED_DMG}"
 
-    echo "-------------------- 2c. zip .app --------------------"
-
-
 }
 
 
@@ -124,10 +121,10 @@ notarize(){
 
 
 updater(){
+	cd "${SIGNED_DOTAPP_DIR}"
 	echo "Zipping updater here..."
-	ZIP_NAME="Void-Updater-darwin-${ARCH}.zip"
-	zip -r -q "${ZIP_NAME}" "${SIGNED_DOTAPP}"
-	mv "${ZIP_NAME}" "${SIGNED_DOTAPP_DIR}"
+	VOIDAPP=$(basename $SIGNED_DOTAPP)
+	zip -r -q "Void-Updater-darwin-${ARCH}.zip" "${VOIDAPP}"
 
 	echo "Done!"
 }

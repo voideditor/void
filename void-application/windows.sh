@@ -1,7 +1,7 @@
 
 
 
-npm run vscode-win32-x64-min
+npm run gulp vscode-win32-x64-min
 npm run gulp vscode-win32-x64-inno-updater
 npm run gulp vscode-win32-x64-system-setup
 # change icon

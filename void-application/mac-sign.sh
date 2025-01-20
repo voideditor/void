@@ -129,6 +129,24 @@ updater(){
 	echo "Done!"
 }
 
+
+computehash() {
+    cd "${SIGNED_DOTAPP_DIR}"
+
+    SHA1=$(shasum -a 1 "${SIGNED_DOTAPP}/Contents/MacOS/Electron" | cut -d' ' -f1)
+    SHA256=$(shasum -a 256 "${SIGNED_DOTAPP}/Contents/MacOS/Electron" | cut -d' ' -f1)
+    TIMESTAMP=$(date +%s)
+
+    cat > hash.json << EOF
+{
+    "sha256hash": "${SHA256}",
+    "hash": "${SHA1}",
+    "timestamp": ${TIMESTAMP}
+}
+EOF
+}
+
+
 USAGE="Usage: $0 {sign|notarize|updater} {arm64|x64}"
 
 # check to make sure arm64 or x64 is specified
@@ -153,6 +171,9 @@ case "$1" in
         ;;
 	updater)
 		updater
+		;;
+	computehash)
+		computehash
 		;;
     *)
         echo $USAGE

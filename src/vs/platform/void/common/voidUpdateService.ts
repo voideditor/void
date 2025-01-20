@@ -12,7 +12,7 @@ import { InstantiationType, registerSingleton } from '../../instantiation/common
 
 export interface IVoidUpdateService {
 	readonly _serviceBrand: undefined;
-	check: () => Promise<{ message: string } | null>;
+	check: () => Promise<{ hasUpdate: true, message: string } | { hasUpdate: false } | null>;
 }
 
 

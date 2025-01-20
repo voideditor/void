@@ -13,16 +13,29 @@ import { IVoidUpdateService } from '../../../../platform/void/common/voidUpdateS
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 
 
-const afterGetRes = (res: null | { message: string }, notifService: INotificationService) => {
-	if (res === null) return
 
-	const message = res?.message ?? 'This is a very old version of void, please download the latest version! [Void Editor](https://voideditor.com/download-beta)! '
 
+const notifyYesUpdate = (notifService: INotificationService, msg?: string) => {
+	const message = msg || 'This is a very old version of void, please download the latest version! [Void Editor](https://voideditor.com/download-beta)!'
 	notifService.notify({
 		severity: Severity.Info,
 		message: message,
 	})
 }
+const notifyNoUpdate = (notifService: INotificationService) => {
+	notifService.notify({
+		severity: Severity.Info,
+		message: 'Void is up-to-date!',
+	})
+}
+const notifyErrChecking = (notifService: INotificationService) => {
+	const message = `Void Error: There was an error checking for updates. If this persists for a few days, please get in touch or re-download Void [here](https://voideditor.com/download-beta)!`
+	notifService.notify({
+		severity: Severity.Info,
+		message: message,
+	})
+}
+
 
 
 // Action
@@ -39,7 +52,9 @@ registerAction2(class extends Action2 {
 		const notifService = accessor.get(INotificationService)
 
 		const res = await voidUpdateService.check()
-		afterGetRes(res, notifService)
+		if (!res) notifyErrChecking(notifService)
+		else if (res.hasUpdate) notifyYesUpdate(notifService, res.message)
+		else if (!res.hasUpdate) notifyNoUpdate(notifService)
 	}
 })
 
@@ -51,9 +66,15 @@ class VoidUpdateWorkbenchContribution extends Disposable implements IWorkbenchCo
 		@INotificationService private readonly notifService: INotificationService
 	) {
 		super()
+
+		// on mount
 		setTimeout(async () => {
 			const res = await this.voidUpdateService.check()
-			afterGetRes(res, this.notifService)
+
+			if (!res) notifyErrChecking(this.notifService)
+			else if (res.hasUpdate) notifyYesUpdate(this.notifService, res.message)
+			else if (!res.hasUpdate) { } // display nothing if up to date
+
 		}, 5 * 1000)
 	}
 }

@@ -325,7 +325,7 @@ export const SelectedFiles = (
 				>
 					{/* selection summary */}
 					<div // container for item and its delete button (if it's last)
-						className='flex items-center gap-1 mr-0.5 mb-0.5'
+						className='flex items-center gap-1 mr-0.5 my-0.5'
 					>
 						<div // styled summary box
 							className={`flex items-center gap-0.5 relative

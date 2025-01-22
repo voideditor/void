@@ -42,7 +42,7 @@ First, run `npm install -g node-gyp`. Then:
 - Red Hat (Fedora, etc): `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
 - Others: see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
-### Building Void
+### d. Building Void
 
 To build Void, open `void/` inside VSCode. Then open your terminal and run:
 

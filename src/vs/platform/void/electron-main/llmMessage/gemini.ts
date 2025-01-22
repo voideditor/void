@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
+import { Content, GoogleGenerativeAI } from '@google/generative-ai';
 import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
 
 // Gemini
@@ -43,11 +43,6 @@ export const sendGeminiMsg: _InternalSendLLMMessageFnType = async ({ messages, o
 			onFinalMessage({ fullText });
 		})
 		.catch((error) => {
-			if (error instanceof GoogleGenerativeAIFetchError && error.status === 400) {
-				onError({ message: 'Invalid API key.', fullError: null });
-			}
-			else {
-				onError({ message: error + '', fullError: error });
-			}
+			onError({ message: error + '', fullError: error })
 		})
 }

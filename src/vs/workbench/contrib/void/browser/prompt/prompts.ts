@@ -277,7 +277,9 @@ Please finish writing the new file by applying the diff to the original file. Re
 
 
 
+// this should probably be longer
 export const ctrlKStream_systemMessage = `\
+You are an AI assistant tasked with filling in the middle.
 `
 
 

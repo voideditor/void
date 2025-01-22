@@ -11,7 +11,7 @@
 
 Void is the open-source Cursor alternative. 
 
-This repo contains the full sourcecode for Void. We are currently in [open beta](https://voideditor.com/) for Discord members (see `#announcements`), and we have a waitlist for our official release. If you're new, welcome!
+This repo contains the full sourcecode for Void. We are currently in [open beta](https://voideditor.com/) for Discord members (see `#announcements` to download), and we have a waitlist for our official release. If you're new, welcome!
 
 - 👋 [Discord](https://discord.gg/RSNjgaugJs)
 

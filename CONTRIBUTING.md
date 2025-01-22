@@ -8,7 +8,7 @@ Void's code mostly lives in `src/vs/workbench/contrib/void/` and `src/vs/platfor
 
 There are a few ways to contribute:
 
-- 👨‍💻 Build new features - see [Issues](https://github.com/voideditor/void/issues).
+- 👨‍💻 Build new features - see [Roadmap](https://github.com/orgs/voideditor/projects/2/views/3) or [Issues](https://github.com/voideditor/void/issues).
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
 
 
@@ -117,7 +117,7 @@ Void's maintainers distribute Void on our website and in releases. If you'd like
 
 
 - Please submit a pull request once you've made a change.
-- No need to submit an Issue unless you're creating a new feature.
+- No need to submit an Issue unless you're creating a new feature that might involve multiple PRs.
 - Please don't use AI to write your PR 🙂
 
 

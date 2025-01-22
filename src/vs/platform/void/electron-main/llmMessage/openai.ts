@@ -79,7 +79,6 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 		throw new Error(`providerName was invalid: ${providerName}`)
 	}
 
-	openai.models.list()
 	openai.chat.completions
 		.create(options)
 		.then(async response => {
@@ -98,7 +97,7 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 				onError({ message: 'Invalid API key.', fullError: error });
 			}
 			else {
-				onError({ message: error, fullError: error });
+				onError({ message: error + '', fullError: error });
 			}
 		})
 

@@ -9,7 +9,9 @@
 	/>
 </div>
 
-Void is the open-source Cursor alternative. This repo contains the full sourcecode for Void. We are currently in [open beta](https://voideditor.com/) for downloading the official release. If you're new, welcome!
+Void is the open-source Cursor alternative. 
+
+This repo contains the full sourcecode for Void. We are currently in [open beta](https://voideditor.com/) for Discord members (see `#announcements` to download), and we have a waitlist for our official release. If you're new, welcome!
 
 - 👋 [Discord](https://discord.gg/RSNjgaugJs)
 
@@ -20,20 +22,19 @@ Void is the open-source Cursor alternative. This repo contains the full sourceco
 - 🔨 [Contribute](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md)
 
 
-<!-- ❤️ Setup: -->
-
 ## Contributing
 
 
-1. To contribute to the Void repository, follow the steps in [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
-  
-2. To suggest a new feature, please create a new [GitHub Issue](https://github.com/voideditor/void/issues). Suggestions will be added to our Roadmap within one day.
+1. To get started developing Void, see [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
 
-3. We're open to collaborations of all types. Feel free to contact us via email or discord.
+2. Feel free to attend a weekly meeting in our Discord channel!
+
+3. We're open to collaborations of all types - just reach out.
+
 
 ## Reference
 
 Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For some useful links on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 ## Support
-Feel free to reach out in our discord or contact us via email.
+Feel free to reach out in our Discord or contact us via email: support@voideditor.com.

@@ -1,25 +1,38 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 import React, { useEffect, useState } from 'react'
 import { mountFnGenerator } from '../util/mountFnGenerator.js'
 
-import { SidebarSettings } from './SidebarSettings.js';
-import { useSidebarState } from '../util/services.js';
+// import { SidebarSettings } from './SidebarSettings.js';
+
+
+import { useIsDark, useSidebarState } from '../util/services.js';
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 // import { SidebarChat } from './SidebarChat.js';
 
 import '../styles.css'
-import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { SidebarChat } from './SidebarChat.js';
+import ErrorBoundary from './ErrorBoundary.js';
 
-const Sidebar = () => {
+export const Sidebar = ({ className }: { className: string }) => {
 	const sidebarState = useSidebarState()
-	const { isHistoryOpen, currentTab: tab } = sidebarState
+	const { currentTab: tab } = sidebarState
 
-	return <div className='@@void-scope'>
-		<div className={`flex flex-col h-screen w-full`}>
+	// const isDark = useIsDark()
+	return <div
+		className={`@@void-scope`} 	// ${isDark ? 'dark' : ''}
+		style={{ width: '100%', height: '100%' }}
+	>
+		<div
+			// default background + text styles for sidebar
+			className={`
+				w-full h-full
+				bg-void-bg-2
+				text-void-fg-1
+			`}
+		>
 
 			{/* <span onClick={() => {
 				const tabs = ['chat', 'settings', 'threadSelector']
@@ -27,24 +40,31 @@ const Sidebar = () => {
 				sidebarStateService.setState({ currentTab: tabs[(index + 1) % tabs.length] as any })
 			}}>clickme {tab}</span> */}
 
-			<div className={`mb-2 h-[30vh] ${isHistoryOpen ? '' : 'hidden'}`}>
-				<SidebarThreadSelector />
+			{/* <div className={`w-full h-auto mb-2 ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow z-10`}>
+				<ErrorBoundary>
+					<SidebarThreadSelector />
+				</ErrorBoundary>
+			</div> */}
+
+			<div className={`w-full h-full ${tab === 'chat' ? '' : 'hidden'}`}>
+				<ErrorBoundary>
+					<SidebarChat />
+				</ErrorBoundary>
+
+				{/* <ErrorBoundary>
+					<ModelSelectionSettings />
+				</ErrorBoundary> */}
 			</div>
 
-			<div className={`${tab === 'chat' ? '' : 'hidden'}`}>
-				<SidebarChat />
-			</div>
-
-			<div className={`${tab === 'settings' ? '' : 'hidden'}`}>
-				<SidebarSettings />
-			</div>
+			{/* <div className={`w-full h-full ${tab === 'settings' ? '' : 'hidden'}`}>
+				<ErrorBoundary>
+					<VoidProviderSettings />
+				</ErrorBoundary>
+			</div> */}
 
 		</div>
 	</div>
 
+
 }
-
-
-const mountFn = mountFnGenerator(Sidebar)
-export default mountFn
 

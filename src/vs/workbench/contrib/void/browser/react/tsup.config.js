@@ -1,11 +1,16 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
 	entry: [
-		'./src2/sidebar-tsx/Sidebar.tsx',
-		'./src2/util/sendLLMMessage.tsx',
-		'./src2/util/posthog.tsx',
-		'./src2/util/diffLines.tsx',
+		'./src2/sidebar-tsx/index.tsx',
+		'./src2/void-settings-tsx/index.tsx',
+		'./src2/quick-edit-tsx/index.tsx',
+		'./src2/diff/index.tsx',
 	],
 	outDir: './out',
 	format: ['esm'],
@@ -14,7 +19,7 @@ export default defineConfig({
 	// dts: true,
 	// sourcemap: true,
 
-	clean: true,
+	clean: false,
 	platform: 'browser', // 'node'
 	target: 'esnext',
 	injectStyle: true, // bundle css into the output file

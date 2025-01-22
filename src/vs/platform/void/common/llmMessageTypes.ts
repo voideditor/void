@@ -1,18 +1,28 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
-import { VoidConfig } from '../../../workbench/contrib/void/browser/registerConfig.js';
+import { IRange } from '../../../editor/common/core/range'
+import { ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
-// ---------- type definitions ----------
+
+export const errorDetails = (fullError: Error | null): string | null => {
+	if (fullError === null) {
+		return null
+	}
+	else if (typeof fullError === 'object') {
+		return JSON.stringify(fullError, null, 2)
+	}
+	else if (typeof fullError === 'string') {
+		return null
+	}
+	return null
+}
 
 export type OnText = (p: { newText: string, fullText: string }) => void
-
 export type OnFinalMessage = (p: { fullText: string }) => void
-
-export type OnError = (p: { error: Error | string }) => void
-
+export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
 export type LLMMessage = {
@@ -20,49 +30,133 @@ export type LLMMessage = {
 	content: string;
 }
 
-export type LLMMessageOptions = {
-	stopTokens?: string[],
-	prefix?: string,
-	suffix?: string,
+export type ServiceSendLLMFeatureParams = {
+	useProviderFor: 'Ctrl+K';
+	range: IRange;
+} | {
+	useProviderFor: 'Ctrl+L';
+} | {
+	useProviderFor: 'Autocomplete';
+	range: IRange;
 }
 
-export type LLMMessageServiceParams = {
+// params to the true sendLLMMessage function
+export type LLMMMessageParams = {
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
-
-	messages: LLMMessage[];
-	voidConfig: VoidConfig | null;
-
-	logging: {
-		loggingName: string,
-	};
-
-	options: LLMMessageOptions;
-}
-
-export type SendLLMMMessageParams = {
-	onText: OnText;
-	onFinalMessage: OnFinalMessage;
-	onError: OnError;
-
-	messages: LLMMessage[];
-	voidConfig: VoidConfig | null;
-
-	logging: {
-		loggingName: string,
-	};
-	options: LLMMessageOptions;
-
 	abortRef: AbortRef;
+
+	messages: LLMMessage[];
+
+	logging: {
+		loggingName: string,
+	};
+	providerName: ProviderName;
+	modelName: string;
+	settingsOfProvider: SettingsOfProvider;
 }
+
+export type ServiceSendLLMMessageParams = {
+	onText: OnText;
+	onFinalMessage: OnFinalMessage;
+	onError: OnError;
+
+	messages: LLMMessage[];
+
+	logging: {
+		loggingName: string,
+	};
+} & ServiceSendLLMFeatureParams
 
 // can't send functions across a proxy, use listeners instead
-export const listenerNames = ['onText', 'onFinalMessage', 'onError'] as const
-export type ProxyLLMMessageParams = Omit<LLMMessageServiceParams, typeof listenerNames[number]> & { requestId: string }
+export type BlockedMainLLMMessageParams = 'onText' | 'onFinalMessage' | 'onError' | 'abortRef'
 
-export type ProxyOnTextPayload = Parameters<OnText>[0] & { requestId: string }
-export type ProxyOnFinalMessagePayload = Parameters<OnFinalMessage>[0] & { requestId: string }
-export type ProxyOnErrorPayload = Parameters<OnError>[0] & { requestId: string }
+export type MainLLMMessageParams = Omit<LLMMMessageParams, BlockedMainLLMMessageParams> & { requestId: string }
+export type MainLLMMessageAbortParams = { requestId: string }
 
-export type ProxyLLMMessageAbortParams = { requestId: string }
+export type EventLLMMessageOnTextParams = Parameters<OnText>[0] & { requestId: string }
+export type EventLLMMessageOnFinalMessageParams = Parameters<OnFinalMessage>[0] & { requestId: string }
+export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId: string }
+
+export type _InternalSendLLMMessageFnType = (params: {
+	messages: LLMMessage[];
+	onText: OnText;
+	onFinalMessage: OnFinalMessage;
+	onError: OnError;
+	settingsOfProvider: SettingsOfProvider;
+	providerName: ProviderName;
+	modelName: string;
+
+	_setAborter: (aborter: () => void) => void;
+}) => void
+
+// service -> main -> internal -> event (back to main)
+// (browser)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// These are from 'ollama' SDK
+interface OllamaModelDetails {
+	parent_model: string;
+	format: string;
+	family: string;
+	families: string[];
+	parameter_size: string;
+	quantization_level: string;
+}
+
+export type OllamaModelResponse = {
+	name: string;
+	modified_at: Date;
+	size: number;
+	digest: string;
+	details: OllamaModelDetails;
+	expires_at: Date;
+	size_vram: number;
+}
+
+export type OpenaiCompatibleModelResponse = {
+	id: string;
+	created: number;
+	object: 'model';
+	owned_by: string;
+}
+
+
+// params to the true list fn
+export type ModelListParams<modelResponse> = {
+	settingsOfProvider: SettingsOfProvider;
+	onSuccess: (param: { models: modelResponse[] }) => void;
+	onError: (param: { error: string }) => void;
+}
+
+// params to the service
+export type ServiceModelListParams<modelResponse> = {
+	onSuccess: (param: { models: modelResponse[] }) => void;
+	onError: (param: { error: any }) => void;
+}
+
+type BlockedMainModelListParams = 'onSuccess' | 'onError'
+export type MainModelListParams<modelResponse> = Omit<ModelListParams<modelResponse>, BlockedMainModelListParams> & { requestId: string }
+
+export type EventModelListOnSuccessParams<modelResponse> = Parameters<ModelListParams<modelResponse>['onSuccess']>[0] & { requestId: string }
+export type EventModelListOnErrorParams<modelResponse> = Parameters<ModelListParams<modelResponse>['onError']>[0] & { requestId: string }
+
+
+
+
+export type _InternalModelListFnType<modelResponse> = (params: ModelListParams<modelResponse>) => void

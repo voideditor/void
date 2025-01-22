@@ -52,10 +52,10 @@
 		"./typings",
 		"./vs/**/*.ts",
 		"vscode-dts/vscode.proposed.*.d.ts",
-		"vscode-dts/vscode.d.ts"
+		"vscode-dts/vscode.d.ts",
 
 		// Void added these:
-		// "./vs/**/*.tsx",
+		// "./vs/workbench/contrib/void/browser/**.tsx",
 		// "./vs/**/*.d.mts",
 	]
 }

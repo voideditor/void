@@ -4,6 +4,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
+// Void explanation - product-build-darwin-universal.yml runs this (create-universal-app.ts), then sign.ts
 const path = require("path");
 const fs = require("fs");
 const minimatch = require("minimatch");

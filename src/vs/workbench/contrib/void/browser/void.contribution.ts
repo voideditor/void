@@ -1,28 +1,31 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPLv3 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
-// register keybinds
-import './registerActions.js'
-
-// register Settings
-import './registerConfig.js'
 
 // register inline diffs
-import './registerInlineDiffs.js'
+import './inlineDiffsService.js'
 
-// register Posthog metrics
-import './registerMetrics.js'
+// register Sidebar pane, state, actions (keybinds, menus) (Ctrl+L)
+import './sidebarActions.js'
+import './sidebarPane.js'
+import './sidebarStateService.js'
 
-// register Sidebar chat
-import './registerSidebar.js'
+// register quick edit (Ctrl+K)
+import './quickEditActions.js'
 
 // register Thread History
-import './registerThreads.js'
+import './chatThreadService.js'
 
 // register Autocomplete
-import './registerAutocomplete.js'
+import './autocompleteService.js'
+
+// settings pane
+import './voidSettingsPane.js'
 
 // register css
 import './media/void.css'
+
+// update (frontend part, also see platform/)
+import './voidUpdateActions.js'

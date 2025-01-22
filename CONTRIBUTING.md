@@ -150,6 +150,13 @@ Edit: far too many changes to track... this is old
 
 -->
 
+
+## Installation
+
+### Linux
+- Arch Linux [AUR](https://aur.archlinux.org/packages/void-git): ```yay -S void-git```
+
+
 ## References
 
 For some useful links we've compiled on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).

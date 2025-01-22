@@ -325,7 +325,7 @@ export const SelectedFiles = (
 				>
 					{/* selection summary */}
 					<div // container for item and its delete button (if it's last)
-						className='flex items-center gap-1 mr-0.5 mb-0.5'
+						className='flex items-center gap-1 mr-0.5 my-0.5'
 					>
 						<div // styled summary box
 							className={`flex items-center gap-0.5 relative
@@ -380,7 +380,7 @@ export const SelectedFiles = (
 						</div>
 
 						{/* clear all selections button */}
-						{type !== 'staging' || selections.length === 0 || i !== selections.length - 1
+						{/* {type !== 'staging' || selections.length === 0 || i !== selections.length - 1
 							? null
 							: <div className={`flex items-center ${isThisSelectionOpened ? 'w-full' : ''}`}>
 								<div
@@ -402,7 +402,7 @@ export const SelectedFiles = (
 									/>
 								</div>
 							</div>
-						}
+						} */}
 					</div>
 					{/* selection text */}
 					{isThisSelectionOpened &&
@@ -423,9 +423,8 @@ export const SelectedFiles = (
 				</div>)
 
 				return <Fragment key={thisKey}>
-					{selections.length > 0 && i === selections.length &&
-						<div className='w-full'></div> // divider between `selections` and `prospectiveSelections`
-					}
+					{/* divider between `selections` and `prospectiveSelections` */}
+					{/* {selections.length > 0 && i === selections.length && <div className='w-full'></div>} */}
 					{selectionHTML}
 				</Fragment>
 
@@ -675,7 +674,7 @@ export const SidebarChat = () => {
 				{/* top row */}
 				<>
 					{/* selections */}
-					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0}/>
+					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0} />
 				</>
 
 				{/* middle row */}

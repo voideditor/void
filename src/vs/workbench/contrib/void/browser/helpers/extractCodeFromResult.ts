@@ -86,7 +86,11 @@ class SurroundingsRemover {
 
 		pm.removeFromStartUntil('\n', true) // language
 
-		const foundCodeBlockEnd = pm.removeSuffix('```') || pm.removeSuffix('```\n')
+		const j = pm.j
+		let foundCodeBlockEnd = pm.removeSuffix('```')
+
+		if (pm.j === j) foundCodeBlockEnd = pm.removeSuffix('```\n') // if no change, try again with \n after ```
+
 		if (!foundCodeBlockEnd) return false
 
 		pm.removeSuffix('\n') // remove the newline before ```

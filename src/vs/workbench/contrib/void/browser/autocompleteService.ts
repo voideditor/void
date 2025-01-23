@@ -134,14 +134,14 @@ class LRUCache<K, V> {
 	}
 }
 
-type AutocompletionStatus = 'pending' | 'finished' | 'error';
+
 type Autocompletion = {
 	id: number,
 	prefix: string,
 	suffix: string,
 	startTime: number,
 	endTime: number | undefined,
-	status: AutocompletionStatus,
+	status: 'pending' | 'finished' | 'error',
 	llmPromise: Promise<string> | undefined,
 	insertText: string,
 	requestId: string | null,
@@ -168,7 +168,7 @@ const postprocessResult = (result: string) => {
 
 
 // trims the end of the prefix to improve cache hit rate
-const removeLeftTabsAndTrimEnd = (s: string): string => {
+const removeLeftTabsAndTrimEnds = (s: string): string => {
 	const trimmedString = s.trimEnd();
 	const trailingEnd = s.slice(trimmedString.length);
 
@@ -223,7 +223,7 @@ function getStringUpToUnbalancedParenthesis(s: string, prefix: string): string {
 const parenthesisChars = `{}()[]<>\`'"`
 
 // returns the text in the autocompletion to display, assuming the prefix is already matched
-const toInlineCompletions = ({ matchInfo, prefix, suffix, autocompletion, position, debug }: { matchInfo: matchInfo, prefix: string, suffix: string, autocompletion: Autocompletion, position: Position, debug?: boolean }): { insertText: string, range: Range }[] => {
+const toInlineCompletions = ({ matchInfo, prefix, suffix, autocompletion, position, debug }: { matchInfo: DisplayRelativeToPrefix, prefix: string, suffix: string, autocompletion: Autocompletion, position: Position, debug?: boolean }): { insertText: string, range: Range }[] => {
 
 
 	const suffixLines = suffix.split('\n')
@@ -365,18 +365,18 @@ const getLastLine = (s: string): string => {
 	return matches ? matches[0] : ''
 }
 
-type matchInfo = {
-	lineStart: number,
-	character: number,
+type DisplayRelativeToPrefix = {
+	startLine: number,
+	startCharacter: number,
 	startIdx: number,
 }
 // returns the startIdx of the match if there is a match, or undefined if there is no match
 // all results are wrt `autocompletion.result`
-const getPrefixAutocompletionMatch = ({ prefix, autocompletion }: { prefix: string, autocompletion: Autocompletion }): matchInfo | undefined => {
+const getPrefixAutocompletionMatch = ({ prefix, autocompletion }: { prefix: string, autocompletion: Autocompletion }): DisplayRelativeToPrefix | undefined => {
 
-	const trimmedCurrentPrefix = removeLeftTabsAndTrimEnd(prefix)
-	const trimmedCompletionPrefix = removeLeftTabsAndTrimEnd(autocompletion.prefix)
-	const trimmedCompletionMiddle = removeLeftTabsAndTrimEnd(autocompletion.insertText)
+	const trimmedCurrentPrefix = removeLeftTabsAndTrimEnds(prefix)
+	const trimmedCompletionPrefix = removeLeftTabsAndTrimEnds(autocompletion.prefix)
+	const trimmedCompletionMiddle = removeLeftTabsAndTrimEnds(autocompletion.insertText)
 
 	// console.log('@result: ', JSON.stringify(autocompletion.insertText))
 	// console.log('@trimmedCurrentPrefix: ', JSON.stringify(trimmedCurrentPrefix))
@@ -432,8 +432,8 @@ const getPrefixAutocompletionMatch = ({ prefix, autocompletion }: { prefix: stri
 	const startIdx = getIndex(autocompletion.insertText, lineStart, character)
 
 	return {
-		lineStart,
-		character,
+		startLine: lineStart,
+		startCharacter: character,
 		startIdx,
 	}
 
@@ -527,7 +527,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		// get autocompletion from cache
 		let cachedAutocompletion: Autocompletion | undefined = undefined
-		let matchInfo: matchInfo | undefined = undefined
+		let matchInfo: DisplayRelativeToPrefix | undefined = undefined
 		for (const autocompletion of this._autocompletionsOfDocument[docUriStr].items.values()) {
 			// if the user's change matches up with the generated text
 			matchInfo = getPrefixAutocompletionMatch({ prefix, autocompletion })
@@ -687,7 +687,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			await newAutocompletion.llmPromise
 			// console.log('id: ' + newAutocompletion.id)
 
-			const matchInfo: matchInfo = { startIdx: 0, lineStart: 0, character: 0 }
+			const matchInfo: DisplayRelativeToPrefix = { startIdx: 0, startLine: 0, startCharacter: 0 }
 			const inlineCompletions = toInlineCompletions({ matchInfo, autocompletion: newAutocompletion, prefix, suffix, position })
 			return inlineCompletions
 
@@ -737,8 +737,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				// autocompletion.prefix + autocompletion.insertedText ~== insertedText
 				completions.items.forEach(item => {
 					this._autocompletionsOfDocument[docUriStr].items.forEach((autocompletion: Autocompletion) => {
-						if (removeLeftTabsAndTrimEnd(prefix)
-							=== removeLeftTabsAndTrimEnd(autocompletion.prefix + autocompletion.insertText)
+						if (removeLeftTabsAndTrimEnds(prefix)
+							=== removeLeftTabsAndTrimEnds(autocompletion.prefix + autocompletion.insertText)
 						) {
 							this._autocompletionsOfDocument[docUriStr].delete(autocompletion.id);
 						}

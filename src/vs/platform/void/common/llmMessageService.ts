@@ -98,9 +98,24 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		}
 		const { providerName, modelName } = modelSelection
 
+		// end early if there are no messages
+		if (proxyParams.messages.length === 0) {
+			onError({ message: 'Please send a message first.', fullError: null })
+			return null
+		}
+
+		// make first message contain system message for compatibility
+		// this is needed because o1 and other models do not accept a system prompt
 		const aiInstructions = this.voidSettingsService.state.globalSettings.aiInstructions
-		if (aiInstructions)
-			proxyParams.messages.unshift({ role: 'system', content: aiInstructions })
+		const systemMessageIdx = proxyParams.messages.findIndex(m => m.role === 'system')
+		const systemMessage = systemMessageIdx > -1 ? proxyParams.messages[systemMessageIdx].content : undefined
+		proxyParams.messages[0].content = ``
+			+ (systemMessage ? `\n\n${systemMessage}` : '')
+			+ (aiInstructions ? `\n\n${aiInstructions}` : '')
+			+ `\n\nHere are the user's instructions:\n\n${proxyParams.messages[0].content}`
+		if (systemMessageIdx > -1) { // remove role='system' messages
+			proxyParams.messages.splice(systemMessageIdx, 1)
+		}
 
 		// add state for request id
 		const requestId_ = generateUuid();

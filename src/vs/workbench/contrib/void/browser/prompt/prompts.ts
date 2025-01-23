@@ -125,14 +125,13 @@ export const chat_prompt = (instructions: string, selections: CodeSelection[] | 
 
 
 export const ctrlLStream_systemMessage = `
-You are a coding assistant that applies a diff to a file. You are given the original file \`original_file\`, a diff \`diff\`, and a new file that you are applying the diff to \`new_file\`.
+You are a coding assistant that applies a change to a file. You are given the original file \`original_file\`, a change \`change\`, and a new file that you are applying the change to \`new_file\`.
 
-Please finish writing the new file \`new_file\`, according to the diff \`diff\`. You must completely re-write the whole file, using the diff.
+Please finish writing the new file \`new_file\`, according to the change \`change\`. You must completely re-write the whole file, using the change.
 
 Directions:
 1. Continue exactly where the new file \`new_file\` left off.
 2. Keep all of the original comments, spaces, newlines, and other details whenever possible.
-3. Note that \`+\` lines represent additions, \`-\` lines represent removals, and space lines \` \` represent no change.
 
 # Example 1:
 
@@ -173,43 +172,26 @@ const Sidebar: React.FC<SidebarProps> = ({ items, onItemSelect, onExtraButtonCli
 export default Sidebar;
 \`\`\`
 
-DIFF
+CHANGE
 \`\`\` typescript
-@@ ... @@
--<div className={styles.sidebar}>
--<ul>
--  {items.map((item, index) => (
--	<li key={index}>
--	  <button
--		className={styles.sidebarButton}
--		onClick={() => onItemSelect?.(item.label)}
--	  >
--		{item.label}
--	  </button>
--	</li>
--  ))}
--</ul>
--<button className={styles.extraButton} onClick={onExtraButtonClick}>
--  Extra Action
--</button>
--</div>
-+<div className={styles.sidebar}>
-+<ul>
-+  {items.map((item, index) => (
-+	<li key={index}>
-+	  <div
-+		className={styles.sidebarButton}
-+		onClick={() => onItemSelect?.(item.label)}
-+	  >
-+		{item.label}
-+	  </div>
-+	</li>
-+  ))}
-+</ul>
-+<div className={styles.extraButton} onClick={onExtraButtonClick}>
-+  Extra Action
-+</div>
-+</div>
+// existing code ...
+<div className={styles.sidebar}>
+<ul>
+  {items.map((item, index) => (
+	<li key={index}>
+	  <div
+		className={styles.sidebarButton}
+		onClick={() => onItemSelect?.(item.label)}
+	  >
+		{item.label}
+	  </div>
+	</li>
+  ))}
+</ul>
+<div className={styles.extraButton} onClick={onExtraButtonClick}>
+  Extra Action
+</div>
+// existing code ...
 \`\`\`
 
 NEW_FILE
@@ -265,22 +247,20 @@ ORIGINAL_CODE
 ${originalCode}
 \`\`\`
 
-DIFF
+CHANGE
 \`\`\`
 ${userMessage}
 \`\`\`
 
 INSTRUCTIONS
-Please finish writing the new file by applying the diff to the original file. Return ONLY the completion of the file, without any explanation.
+Please finish writing the new file by applying the change to the original file. Return ONLY the completion of the file, without any explanation.
 `
 }
 
 
 
 // this should probably be longer
-export const ctrlKStream_systemMessage = `\
-You are an AI assistant tasked with filling in the middle.
-`
+export const ctrlKStream_systemMessage = ``
 
 
 export const ctrlKStream_prefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullFileStr: string, startLine: number, endLine: number }) => {
@@ -338,8 +318,8 @@ export type FimTagsType = {
 	midTag: string
 }
 export const defaultFimTags: FimTagsType = {
-	preTag: 'BEFORE',
-	sufTag: 'AFTER',
+	preTag: 'ABOVE',
+	sufTag: 'BELOW',
 	midTag: 'SELECTION',
 }
 

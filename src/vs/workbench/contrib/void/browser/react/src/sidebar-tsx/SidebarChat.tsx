@@ -486,7 +486,7 @@ const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLo
 	const [isEditMode, setIsEditMode] = useState(false)
 
 
-	if (!chatMessage.content) { // don't show if empty
+	if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show)
 		return null
 	}
 

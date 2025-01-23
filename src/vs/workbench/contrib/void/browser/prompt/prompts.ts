@@ -115,7 +115,7 @@ memoize results
 
 ACCEPTED OUTPUT
 To implement memoization in your Fibonacci function, you can use a JavaScript object to store previously computed results. This will help avoid redundant calculations and improve performance. Here's how you can modify your function:
-\`\`\` typescript
+\`\`\`typescript
 // existing code...
 const fib = (n, memo = {}) => {
     if (n < 1) return 1;
@@ -201,7 +201,7 @@ export const fastApply_userMessage = ({ originalCode, applyStr, uri }: { origina
 
 	return `\
 ORIGINAL_FILE
-\`\`\` ${language}
+\`\`\`${language}
 ${originalCode}
 \`\`\`
 

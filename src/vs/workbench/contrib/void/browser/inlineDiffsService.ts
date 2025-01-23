@@ -259,6 +259,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			if (!(model.uri.fsPath in this.diffAreasOfURI)) {
 				this.diffAreasOfURI[model.uri.fsPath] = new Set();
 			}
+			else return // do not add listeners to the same model twice - important, or will see duplicates
 
 			// when the user types, realign diff areas and re-render them
 			this._register(
@@ -279,7 +280,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 					.filter(diffArea => !!diffArea && diffArea.type === 'DiffZone')
 				const isStreaming = diffZones.find(diffZone => !!diffZone._streamState.isStreaming)
 				if (diffZones.length !== 0 && !isStreaming && !removeAcceptRejectAllUI) {
-					removeAcceptRejectAllUI = this._addAcceptRejectUI(uri) ?? null
+					removeAcceptRejectAllUI = this._addAcceptRejectAllUI(uri) ?? null
 				} else {
 					removeAcceptRejectAllUI?.()
 					removeAcceptRejectAllUI = null
@@ -393,7 +394,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 	}
 
-	private _addAcceptRejectUI(uri: URI) {
+	private _addAcceptRejectAllUI(uri: URI) {
 
 		// find all diffzones that aren't streaming
 		const diffZones: DiffZone[] = []

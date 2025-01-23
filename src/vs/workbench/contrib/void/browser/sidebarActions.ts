@@ -11,7 +11,7 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { CodeStagingSelection, IChatThreadService } from './chatThreadService.js';
+import { StagingSelectionItem, IChatThreadService } from './chatThreadService.js';
 
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
@@ -112,7 +112,7 @@ registerAction2(class extends Action2 {
 
 		const selectionStr = getContentInRange(model, selectionRange)
 
-		const selection: CodeStagingSelection = !selectionRange || !selectionStr || (selectionRange.startLineNumber > selectionRange.endLineNumber) ? {
+		const selection: StagingSelectionItem = !selectionRange || !selectionStr || (selectionRange.startLineNumber > selectionRange.endLineNumber) ? {
 			type: 'File',
 			fileURI: model.uri,
 			selectionStr: null,

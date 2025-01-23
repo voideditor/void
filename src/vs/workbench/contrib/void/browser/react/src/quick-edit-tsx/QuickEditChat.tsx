@@ -58,7 +58,6 @@ export const QuickEditChat = ({
 		const id = inlineDiffsService.startApplying({
 			featureName: 'Ctrl+K',
 			diffareaid: diffareaid,
-			userMessage: instructions,
 		})
 		setCurrentlyStreamingDiffZone(id ?? null)
 	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, inlineDiffsService, diffareaid])

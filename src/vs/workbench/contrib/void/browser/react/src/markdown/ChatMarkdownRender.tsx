@@ -41,15 +41,15 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 			.catch(() => { setCopyButtonState(CopyButtonState.Error) })
 		metricsService.capture('Copy Code', { length: text.length }) // capture the length only
 
-	}, [text, clipboardService])
+	}, [metricsService, clipboardService, text])
 
 	const onApply = useCallback(() => {
 		inlineDiffService.startApplying({
 			featureName: 'Ctrl+L',
-			userMessage: text,
+			applyStr: text,
 		})
 		metricsService.capture('Apply Code', { length: text.length }) // capture the length only
-	}, [inlineDiffService])
+	}, [metricsService, inlineDiffService, text])
 
 	const isSingleLine = !text.includes('\n')
 

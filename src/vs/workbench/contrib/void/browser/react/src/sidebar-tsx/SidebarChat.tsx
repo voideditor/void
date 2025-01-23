@@ -7,28 +7,19 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, u
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState } from '../util/services.js';
-import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../chatThreadService.js';
+import { ChatMessage, StagingSelectionItem } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
-import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
-import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { TextAreaFns, VoidCodeEditorProps, VoidInputBox2 } from '../util/inputs.js';
+import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { ModelDropdown, WarningBox } from '../void-settings-tsx/ModelDropdown.js';
-import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
-import { ISidebarStateService } from '../../../sidebarStateService.js';
-import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
-import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
-import { ArrowBigLeftDash, CopyX, Delete, FileX2, SquareX, X } from 'lucide-react';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
-import { Pencil } from 'lucide-react'
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 
 
@@ -261,8 +252,8 @@ const getBasename = (pathStr: string) => {
 
 export const SelectedFiles = (
 	{ type, selections, setSelections, showProspectiveSelections }:
-		| { type: 'past', selections: CodeSelection[]; setSelections?: undefined, showProspectiveSelections?: undefined }
-		| { type: 'staging', selections: CodeStagingSelection[]; setSelections: ((newSelections: CodeStagingSelection[]) => void), showProspectiveSelections?: boolean }
+		| { type: 'past', selections: StagingSelectionItem[]; setSelections?: undefined, showProspectiveSelections?: undefined }
+		| { type: 'staging', selections: StagingSelectionItem[]; setSelections: ((newSelections: StagingSelectionItem[]) => void), showProspectiveSelections?: boolean }
 ) => {
 
 	// index -> isOpened
@@ -287,11 +278,11 @@ export const SelectedFiles = (
 			return withCurrent.slice(0, maxRecentUris)
 		})
 	}, [currentUri])
-	let prospectiveSelections: CodeStagingSelection[] = []
+	let prospectiveSelections: StagingSelectionItem[] = []
 	if (type === 'staging' && showProspectiveSelections) { // handle prospective files
 		// add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
 		prospectiveSelections = recentUris
-			.filter(uri => !selections.find(s => s.range === null && s.fileURI.fsPath === uri.fsPath))
+			.filter(uri => !selections.find(s => s.type === 'File' && s.fileURI.fsPath === uri.fsPath))
 			.slice(0, maxProspectiveFiles)
 			.map(uri => ({
 				type: 'File',
@@ -339,7 +330,7 @@ export const SelectedFiles = (
 							onClick={() => {
 								if (isThisSelectionProspective) { // add prospective selection to selections
 									if (type !== 'staging') return; // (never)
-									setSelections([...selections, selection as CodeStagingSelection])
+									setSelections([...selections, selection])
 
 								} else if (isThisSelectionAFile) { // open files
 									commandService.executeCommand('vscode.open', selection.fileURI, {
@@ -413,7 +404,7 @@ export const SelectedFiles = (
 							}}
 						>
 							<BlockCode
-								initValue={selection.selectionStr!}
+								initValue={selection.selectionStr}
 								language={filenameToVscodeLanguage(selection.fileURI.path)}
 								maxHeight={200}
 								showScrollbars={true}

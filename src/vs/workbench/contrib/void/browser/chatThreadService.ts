@@ -13,28 +13,24 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
-import { VSReadFile } from './helpers/readFile.js';
-import { chat_prompt, chat_systemMessage } from './prompt/prompts.js';
+import { chat_userMessage, chat_systemMessage } from './prompt/prompts.js';
 
+// one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
 export type CodeSelection = {
+	type: 'Selection';
 	fileURI: URI;
-	selectionStr: string | null;
-	content: string; // TODO remove this (replace `selectionStr` with `content`)
+	selectionStr: string;
 	range: IRange;
 }
 
-// if selectionStr is null, it means to use the entire file at send time
-export type CodeStagingSelection = {
-	type: 'Selection',
-	fileURI: URI,
-	selectionStr: string,
-	range: IRange
-} | {
-	type: 'File',
-	fileURI: URI,
-	selectionStr: null,
-	range: null
+export type FileSelection = {
+	type: 'File';
+	fileURI: URI;
+	selectionStr: null;
+	range: null;
 }
+
+export type StagingSelectionItem = CodeSelection | FileSelection
 
 
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
@@ -43,7 +39,7 @@ export type ChatMessage =
 		role: 'user';
 		content: string | null; // content sent to the llm - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
-		selections: CodeSelection[] | null; // the user's selection
+		selections: StagingSelectionItem[] | null; // the user's selection
 	}
 	| {
 		role: 'assistant';
@@ -69,7 +65,7 @@ export type ChatThreads = {
 export type ThreadsState = {
 	allThreads: ChatThreads;
 	currentThreadId: string; // intended for internal use only
-	currentStagingSelections: CodeStagingSelection[] | null;
+	currentStagingSelections: StagingSelectionItem[] | null;
 }
 
 export type ThreadStreamState = {
@@ -106,7 +102,7 @@ export interface IChatThreadService {
 	openNewThread(): void;
 	switchToThread(threadId: string): void;
 
-	setStaging(stagingSelection: CodeStagingSelection[] | null): void;
+	setStaging(stagingSelection: StagingSelectionItem[] | null): void;
 
 	addUserMessageAndStreamResponse(userMessage: string): Promise<void>;
 	cancelStreaming(threadId: string): void;
@@ -148,6 +144,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	private _readAllThreads(): ChatThreads {
 		// PUT ANY VERSION CHANGE FORMAT CONVERSION CODE HERE
+		// CAN ADD "v0" TAG IN STORAGE AND CONVERT
 		const threads = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION)
 		return threads ? JSON.parse(threads) : {}
 	}
@@ -188,15 +185,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const threadId = this.getCurrentThread().id
 
 		const currSelns = this.state.currentStagingSelections ?? []
-		const selections = !currSelns ? null : await Promise.all(
-			currSelns.map(async (sel) => ({ ...sel, content: await VSReadFile(this._modelService, sel.fileURI) }))
-		).then(
-			(files) => files.filter(file => file.content !== null) as CodeSelection[]
-		)
 
 		// add user's message to chat history
 		const instructions = userMessage
-		const userHistoryElt: ChatMessage = { role: 'user', content: chat_prompt(instructions, selections), displayContent: instructions, selections: selections }
+		const content = await chat_userMessage(instructions, currSelns, this._modelService)
+		const userHistoryElt: ChatMessage = { role: 'user', content: content, displayContent: instructions, selections: currSelns }
 		this._addMessageToThread(threadId, userHistoryElt)
 
 
@@ -292,7 +285,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
-	setStaging(stagingSelection: CodeStagingSelection[] | null): void {
+	setStaging(stagingSelection: StagingSelectionItem[] | null): void {
 		this._setState({ currentStagingSelections: stagingSelection }, true) // this is a hack for now
 	}
 

@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { ctrlKStream_prefixAndSuffix, ctrlKStream_prompt, ctrlKStream_systemMessage, ctrlLStream_prompt, ctrlLStream_systemMessage, defaultFimTags } from './prompt/prompts.js';
+import { ctrlKStream_prefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_userMessage, fastApply_systemMessage, defaultFimTags } from './prompt/prompts.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
@@ -104,10 +104,9 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 export type StartApplyingOpts = {
 	featureName: 'Ctrl+K';
 	diffareaid: number; // id of the CtrlK area (contains text selection)
-	userMessage: string; // user message
 } | {
 	featureName: 'Ctrl+L';
-	userMessage: string;
+	applyStr: string;
 } | {
 	featureName: 'Autocomplete';
 	range: IRange;
@@ -1214,7 +1213,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let startLine: number
 		let endLine: number
 		let uri: URI
-		let userMessage: string
 
 		if (featureName === 'Ctrl+L') {
 
@@ -1231,20 +1229,16 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			startLine = 1
 			endLine = numLines
 
-			userMessage = opts.userMessage
 		}
 		else if (featureName === 'Ctrl+K') {
 			const { diffareaid } = opts
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
 			if (ctrlKZone.type !== 'CtrlKZone') return
 
-			const { startLine: startLine_, endLine: endLine_, _URI, _mountInfo } = ctrlKZone
+			const { startLine: startLine_, endLine: endLine_, _URI } = ctrlKZone
 			uri = _URI
 			startLine = startLine_
 			endLine = endLine_
-
-			if (!_mountInfo?.textAreaRef.current) return
-			userMessage = _mountInfo.textAreaRef.current?.value
 		}
 		else {
 			throw new Error(`Void: diff.type not recognized on: ${featureName}`)
@@ -1295,24 +1289,25 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let messages: LLMMessage[]
 
 		if (featureName === 'Ctrl+L') {
-			const userContent = ctrlLStream_prompt({ originalCode, userMessage, uri })
+			const userContent = fastApply_userMessage({ originalCode, applyStr: opts.applyStr, uri })
 			messages = [
-				{ role: 'system', content: ctrlLStream_systemMessage, },
+				{ role: 'system', content: fastApply_systemMessage, },
 				{ role: 'user', content: userContent, }
 			]
 		}
 		else if (featureName === 'Ctrl+K') {
-			const { prefix, suffix } = ctrlKStream_prefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			// console.log('PREFIX:\n', prefix)
-			// console.log('SUFFIX:\n', suffix)
-			// console.log('USER CONTENT:\n', userContent)
+			const { diffareaid } = opts
+			const ctrlKZone = this.diffAreaOfId[diffareaid]
+			if (ctrlKZone.type !== 'CtrlKZone') return
+			const { _mountInfo } = ctrlKZone
+			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
 
-			// __TODO__ use Ollama's FIM api
-			// if (isOllamaFIM) {...} else:
+			// __TODO__ use Ollama's FIM api, if (isOllamaFIM) {...} else:
+			const { prefix, suffix } = ctrlKStream_prefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
 			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
-			const userContent = ctrlKStream_prompt({ selection: originalCode, userMessage, prefix, suffix, isOllamaFIM: false, fimTags: modelFimTags, language })
+			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: modelFimTags, language })
 			messages = [
-				{ role: 'system', content: ctrlKStream_systemMessage, },
+				{ role: 'system', content: ctrlKStream_systemMessage({ fimTags: modelFimTags }), },
 				{ role: 'user', content: userContent, }
 			]
 		}

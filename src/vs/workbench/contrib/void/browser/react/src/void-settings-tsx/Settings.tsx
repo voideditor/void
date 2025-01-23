@@ -513,7 +513,7 @@ const OneClickSwitchButton = () => {
 
 	if (transferTheseFiles.length === 0)
 		return <>
-			<WarningBox text={transferError ?? `One-click-switch not available.`} />
+			<WarningBox text={transferError ?? `One-click switch not available.`} />
 		</>
 
 

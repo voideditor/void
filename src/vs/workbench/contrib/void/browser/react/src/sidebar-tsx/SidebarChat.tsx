@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState } from '../util/services.js';
@@ -605,6 +605,13 @@ export const SidebarChat = () => {
 			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
 	}, [isHistoryOpen, currentThread.id])
 
+
+	const prevMessagesHTML = useMemo(() => {
+		return previousMessages.map((message, i) =>
+			<ChatBubble key={i} chatMessage={message} />
+		)
+	}, [previousMessages])
+
 	return <div
 		ref={sidebarRef}
 		className={`w-full h-full`}
@@ -628,9 +635,7 @@ export const SidebarChat = () => {
 			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
 		>
 			{/* previous messages */}
-			{previousMessages.map((message, i) =>
-				<ChatBubble key={i} chatMessage={message} />
-			)}
+			{prevMessagesHTML}
 
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isStreaming} />

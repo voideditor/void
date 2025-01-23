@@ -76,16 +76,20 @@ class SurroundingsRemover {
 
 
 	removeCodeBlock = () => {
+		// Match either:
+		// 1. ```language\n<code>\n```\n?
+		// 2. ```<code>\n```\n?
+
 		const pm = this
 		const foundCodeBlock = pm.removePrefix('```')
 		if (!foundCodeBlock) return false
 
 		pm.removeFromStartUntil('\n', true) // language
 
-		const foundCodeBlockEnd = pm.removeSuffix('```')
+		const foundCodeBlockEnd = pm.removeSuffix('```') || pm.removeSuffix('```\n')
 		if (!foundCodeBlockEnd) return false
 
-		pm.removeSuffix('\n')
+		pm.removeSuffix('\n') // remove the newline before ```
 		return true
 	}
 
@@ -105,9 +109,6 @@ class SurroundingsRemover {
 
 
 export const extractCodeFromRegular = ({ text, recentlyAddedTextLen }: { text: string, recentlyAddedTextLen: number }): [string, string] => {
-	// Match either:
-	// 1. ```language\n<code>```
-	// 2. ```<code>```
 
 	const pm = new SurroundingsRemover(text)
 

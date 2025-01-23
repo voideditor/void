@@ -11,7 +11,7 @@ import { VSReadFile } from '../helpers/readFile.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
 
 export const chat_systemMessage = `\
-You are a coding assistant. You are given a list of instructions to follow \`INSTRUCTIONS\`, and optionally a list of relevant files \`FILES\`, and selections inside of the files \`SELECTIONS\`.
+You are a coding assistant. You are given a list of instructions to follow \`INSTRUCTIONS\`, and optionally a list of relevant files \`FILES\`, and selections inside of files \`SELECTIONS\`.
 
 Please respond to the user's query.
 

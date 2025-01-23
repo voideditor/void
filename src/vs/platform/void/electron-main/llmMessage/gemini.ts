@@ -16,22 +16,17 @@ export const sendGeminiMsg: _InternalSendLLMMessageFnType = async ({ messages, o
 	const genAI = new GoogleGenerativeAI(thisConfig.apiKey);
 	const model = genAI.getGenerativeModel({ model: modelName });
 
-	// remove system messages that get sent to Gemini
-	// str of all system messages
-	const systemMessage = messages
-		.filter(msg => msg.role === 'system')
-		.map(msg => msg.content)
-		.join('\n');
-
 	// Convert messages to Gemini format
 	const geminiMessages: Content[] = messages
-		.filter(msg => msg.role !== 'system')
 		.map((msg, i) => ({
 			parts: [{ text: msg.content }],
 			role: msg.role === 'assistant' ? 'model' : 'user'
 		}))
 
-	model.generateContentStream({ contents: geminiMessages, systemInstruction: systemMessage, })
+	model.generateContentStream({
+		// systemInstruction: systemMessage,
+		contents: geminiMessages,
+	})
 		.then(async response => {
 			_setAborter(() => response.stream.return(fullText))
 

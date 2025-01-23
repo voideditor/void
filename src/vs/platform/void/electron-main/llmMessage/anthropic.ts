@@ -7,11 +7,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
 import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
 
-// Anthropic
-type LLMMessageAnthropic = {
-	role: 'user' | 'assistant';
-	content: string;
-}
 export const sendAnthropicMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	const thisConfig = settingsOfProvider.anthropic
@@ -24,20 +19,9 @@ export const sendAnthropicMsg: _InternalSendLLMMessageFnType = ({ messages, onTe
 
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 
-	// find system messages and concatenate them
-	const systemMessage = messages
-		.filter(msg => msg.role === 'system')
-		.map(msg => msg.content)
-		.join('\n');
-
-	// remove system messages for Anthropic
-	const anthropicMessages = messages.filter(msg => msg.role !== 'system') as LLMMessageAnthropic[]
-
-
-
 	const stream = anthropic.messages.stream({
-		system: systemMessage,
-		messages: anthropicMessages,
+		// system: systemMessage,
+		messages: messages,
 		model: modelName,
 		max_tokens: maxTokens,
 	});

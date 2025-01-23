@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { LLMMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
+import { LLMMMessageParams, OnText, OnFinalMessage, OnError, LLMMessage, _InternalLLMMessage } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 
 import { sendAnthropicMsg } from './anthropic.js';
@@ -12,8 +12,43 @@ import { sendOpenAIMsg } from './openai.js';
 import { sendGeminiMsg } from './gemini.js';
 import { sendGroqMsg } from './groq.js';
 
+
+const cleanMessages = (messages: LLMMessage[]): _InternalLLMMessage[] => {
+	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
+	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
+
+	// find system messages and concatenate them
+	const systemMessage = messages
+		.filter(msg => msg.role === 'system')
+		.map(msg => msg.content)
+		.join('\n') || undefined;
+
+	// remove all system messages
+	const noSystemMessages = messages
+		.filter(msg => msg.role !== 'system') as _InternalLLMMessage[]
+
+	// add system mesasges to first message (should be a user message)
+	if (systemMessage && (noSystemMessages.length !== 0)) {
+		const newFirstMessage = {
+			role: noSystemMessages[0].role,
+			content: (''
+				+ '<SYSTEM_MESSAGE>\n'
+				+ systemMessage
+				+ '\n'
+				+ '</SYSTEM_MESSAGE>\n'
+				+ noSystemMessages[0].content
+			)
+		}
+		noSystemMessages.splice(0, 1) // delete first message
+		noSystemMessages.unshift(newFirstMessage) // add new first message
+	}
+
+	return noSystemMessages
+}
+
+
 export const sendLLMMessage = ({
-	messages,
+	messages: messages_,
 	onText: onText_,
 	onFinalMessage: onFinalMessage_,
 	onError: onError_,
@@ -26,9 +61,7 @@ export const sendLLMMessage = ({
 
 	metricsService: IMetricsService
 ) => {
-
-	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
-	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
+	const messages = cleanMessages(messages_)
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureChatEvent = (eventId: string, extras?: object) => {
@@ -37,6 +70,9 @@ export const sendLLMMessage = ({
 			modelName,
 			numMessages: messages?.length,
 			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
+			origNumMessages: messages_?.length,
+			origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
+
 			...extras,
 		})
 	}

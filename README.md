@@ -1,16 +1,40 @@
 # Welcome to Void.
 
-Void is the open-source Cursor alternative. This repo contains the full sourcecode for Void. We have a [waitlist](https://voideditor.com/email) for downloading the official release, but you can build and develop Void right now.
+<div align="center">
+	<img
+		src="./src/vs/workbench/browser/parts/editor/media/slice_of_void.png"
+	 	alt="Void Welcome"
+		width="300"
+	 	height="300"
+	/>
+</div>
 
-If you're new, welcome!
+Void is the open-source Cursor alternative. 
+
+This repo contains the full sourcecode for Void. We are currently in [open beta](https://voideditor.com/) for Discord members (see `#announcements` to download), and we have a waitlist for our official release. If you're new, welcome!
+
+- 👋 [Discord](https://discord.gg/RSNjgaugJs)
+
+- 🚙 [Roadmap](https://github.com/orgs/voideditor/projects/2)
+
+- 📝 [Changelog](https://voideditor.com/changelog)
+
+- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md)
+
 
 ## Contributing
 
-To build and run Void, follow the steps in [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
+
+1. To get started developing Void, see [`CONTRIBUTING.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
+
+2. Feel free to attend a weekly meeting in our Discord channel!
+
+3. We're open to collaborations of all types - just reach out.
+
 
 ## Reference
 
-Void is a fork of the of [vscode](https://github.com/microsoft/vscode) repository. For some useful links on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
+Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For some useful links on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
 
 ## Support
-Feel free to reach out in our [Discord](https://discord.gg/RSNjgaugJs) or contact us via email.
+Feel free to reach out in our Discord or contact us via email: support@voideditor.com.

@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';

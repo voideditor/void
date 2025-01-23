@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 
@@ -11,26 +11,40 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { CodeStagingSelection, IThreadHistoryService } from './threadHistoryService.js';
-// import { IEditorService } from '../../../services/editor/common/editorService.js';
+import { CodeStagingSelection, IChatThreadService } from './chatThreadService.js';
 
-import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
-import { VOID_VIEW_ID } from './sidebarPane.js';
+import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { OPEN_VOID_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
-
+import { VOID_TOGGLE_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
+import { VOID_CTRL_L_ACTION_ID } from './actionIDs.js';
+import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
+import { localize2 } from '../../../../nls.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
+import { IVoidUriStateService } from './voidUriStateService.js';
 
 // ---------- Register commands and keybindings ----------
 
 
-const roundRangeToLines = (range: IRange | null | undefined) => {
+export const roundRangeToLines = (range: IRange | null | undefined, options: { emptySelectionBehavior: 'null' | 'line' }) => {
 	if (!range)
 		return null
+
+	// treat as no selection if selection is empty
+	if (range.endColumn === range.startColumn && range.endLineNumber === range.startLineNumber) {
+		if (options.emptySelectionBehavior === 'null')
+			return null
+		else if (options.emptySelectionBehavior === 'line')
+			return { startLineNumber: range.startLineNumber, startColumn: 1, endLineNumber: range.startLineNumber, endColumn: 1 }
+	}
+
 	// IRange is 1-indexed
 	const endLine = range.endColumn === 1 ? range.endLineNumber - 1 : range.endLineNumber // e.g. if the user triple clicks, it selects column=0, line=line -> column=0, line=line+1
 	const newRange: IRange = {
@@ -52,11 +66,28 @@ const getContentInRange = (model: ITextModel, range: IRange | null) => {
 	return trimmedContent
 }
 
-// Action: when press ctrl+L, show the sidebar chat and add to the selection
-export const VOID_CTRL_L_ACTION_ID = 'void.ctrlLAction'
+
+
+const VOID_OPEN_SIDEBAR_ACTION_ID = 'void.sidebar.open'
 registerAction2(class extends Action2 {
 	constructor() {
-		super({ id: VOID_CTRL_L_ACTION_ID, title: 'Void: Show Sidebar', keybinding: { primary: KeyMod.CtrlCmd | KeyCode.KeyL, weight: KeybindingWeight.BuiltinExtension } });
+		super({ id: VOID_OPEN_SIDEBAR_ACTION_ID, title: localize2('voidOpenSidebar', 'Void: Open Sidebar'), f1: true });
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const stateService = accessor.get(ISidebarStateService)
+		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
+		stateService.fireFocusChat()
+	}
+})
+
+
+
+
+// Action: when press ctrl+L, show the sidebar chat and add to the selection
+const VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID = 'void.sidebar.select'
+registerAction2(class extends Action2 {
+	constructor() {
+		super({ id: VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID, title: localize2('voidAddToSidebar', 'Void: Add Selection to Sidebar'), f1: true });
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 
@@ -64,60 +95,82 @@ registerAction2(class extends Action2 {
 		if (!model)
 			return
 
-		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
+		const editorService = accessor.get(ICodeEditorService)
 
-		metricsService.capture('User Action', { type: 'Ctrl+L' })
+		metricsService.capture('Ctrl+L', {})
 
-		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		stateService.fireFocusChat()
+		const editor = editorService.getActiveCodeEditor()
+		// accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+		const selectionRange = roundRangeToLines(editor?.getSelection(), { emptySelectionBehavior: 'null' })
 
-		const selectionRange = roundRangeToLines(
-			accessor.get(IEditorService).activeTextEditorControl?.getSelection()
+
+		// select whole lines
+		if (selectionRange) {
+			editor?.setSelection({ startLineNumber: selectionRange.startLineNumber, endLineNumber: selectionRange.endLineNumber, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER })
+		}
+
+		const selectionStr = getContentInRange(model, selectionRange)
+
+		const selection: CodeStagingSelection = !selectionRange || !selectionStr || (selectionRange.startLineNumber > selectionRange.endLineNumber) ? {
+			type: 'File',
+			fileURI: model.uri,
+			selectionStr: null,
+			range: null,
+		} : {
+			type: 'Selection',
+			fileURI: model.uri,
+			selectionStr: selectionStr,
+			range: selectionRange,
+		}
+
+		// add selection to staging
+		const chatThreadService = accessor.get(IChatThreadService)
+		const currentStaging = chatThreadService.state.currentStagingSelections
+		const currentStagingEltIdx = currentStaging?.findIndex(s =>
+			s.fileURI.fsPath === model.uri.fsPath
+			&& s.range?.startLineNumber === selection.range?.startLineNumber
+			&& s.range?.endLineNumber === selection.range?.endLineNumber
 		)
 
-
-		if (selectionRange) {
-
-			const selectionStr = getContentInRange(model, selectionRange)
-
-			const selection: CodeStagingSelection = selectionStr === null || selectionRange.startLineNumber > selectionRange.endLineNumber ? {
-				type: 'File',
-				fileURI: model.uri,
-				selectionStr: null,
-				range: null,
-			} : {
-				type: 'Selection',
-				fileURI: model.uri,
-				selectionStr: selectionStr,
-				range: selectionRange,
-			}
-
-			// add selection to staging
-			const threadHistoryService = accessor.get(IThreadHistoryService)
-			const currentStaging = threadHistoryService.state._currentStagingSelections
-			const currentStagingEltIdx = currentStaging?.findIndex(s =>
-				s.fileURI.fsPath === model.uri.fsPath
-				&& s.range?.startLineNumber === selection.range?.startLineNumber
-				&& s.range?.endLineNumber === selection.range?.endLineNumber
-			)
-
-			// if matches with existing selection, overwrite
-			if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
-				threadHistoryService.setStaging([
-					...currentStaging!.slice(0, currentStagingEltIdx),
-					selection,
-					...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
-				])
-			}
-			// if no match, add
-			else {
-				threadHistoryService.setStaging([...(currentStaging ?? []), selection])
-			}
+		// if matches with existing selection, overwrite
+		if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
+			chatThreadService.setStaging([
+				...currentStaging!.slice(0, currentStagingEltIdx),
+				selection,
+				...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
+			])
+		}
+		// if no match, add
+		else {
+			chatThreadService.setStaging([...(currentStaging ?? []), selection])
 		}
 
 	}
 });
+
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_CTRL_L_ACTION_ID,
+			f1: true,
+			title: localize2('voidCtrlL', 'Void: Add Select to Chat'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyCode.KeyL,
+				weight: KeybindingWeight.VoidExtension
+			}
+		});
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandService = accessor.get(ICommandService)
+		await commandService.executeCommand(VOID_OPEN_SIDEBAR_ACTION_ID)
+		await commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
+	}
+})
+
+
+
 
 
 // New chat menu button
@@ -138,8 +191,8 @@ registerAction2(class extends Action2 {
 
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
 		stateService.fireFocusChat()
-		const historyService = accessor.get(IThreadHistoryService)
-		historyService.startNewThread()
+		const chatThreadService = accessor.get(IChatThreadService)
+		chatThreadService.openNewThread()
 	}
 })
 
@@ -177,6 +230,75 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const commandService = accessor.get(ICommandService)
-		commandService.executeCommand(OPEN_VOID_SETTINGS_ACTION_ID)
+		commandService.executeCommand(VOID_TOGGLE_SETTINGS_ACTION_ID)
 	}
 })
+
+
+
+
+export class TabSwitchListener extends Disposable {
+
+	constructor(
+		onSwitchTab: () => void,
+		@ICodeEditorService private readonly _editorService: ICodeEditorService,
+	) {
+		super()
+
+		// when editor switches tabs (models)
+		const addTabSwitchListeners = (editor: ICodeEditor) => {
+			this._register(editor.onDidChangeModel(e => {
+				if (e.newModelUrl?.scheme !== 'file') return
+				onSwitchTab()
+			}))
+		}
+
+		const initializeEditor = (editor: ICodeEditor) => {
+			addTabSwitchListeners(editor)
+		}
+
+		// initialize current editors + any new editors
+		for (let editor of this._editorService.listCodeEditors()) initializeEditor(editor)
+		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
+	}
+}
+
+
+class TabSwitchContribution extends Disposable implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.void.tabswitch'
+
+	constructor(
+		@IInstantiationService private readonly instantiationService: IInstantiationService,
+		@IViewsService private readonly viewsService: IViewsService,
+		@IVoidUriStateService private readonly uriStateService: IVoidUriStateService,
+		@ICodeEditorService private readonly codeEditorService: ICodeEditorService,
+		// @ICommandService private readonly commandService: ICommandService,
+	) {
+		super()
+
+		// sidebarIsVisible state
+		let sidebarIsVisible = this.viewsService.isViewContainerVisible(VOID_VIEW_CONTAINER_ID)
+		this._register(this.viewsService.onDidChangeViewVisibility(e => {
+			sidebarIsVisible = e.visible
+		}))
+
+		const onSwitchTab = () => { // update state
+			if (sidebarIsVisible) {
+				const currentUri = this.codeEditorService.getActiveCodeEditor()?.getModel()?.uri
+				if (!currentUri) return;
+				this.uriStateService.setState({ currentUri })
+				// this.commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
+			}
+		}
+
+		// when sidebar becomes visible, add current file
+		this._register(this.viewsService.onDidChangeViewVisibility(e => { sidebarIsVisible = e.visible }))
+
+		// run on current tab if it exists, and listen for tab switches and visibility changes
+		onSwitchTab()
+		this._register(this.viewsService.onDidChangeViewVisibility(() => { onSwitchTab() }))
+		this._register(this.instantiationService.createInstance(TabSwitchListener, () => { onSwitchTab() }))
+	}
+}
+
+registerWorkbenchContribution2(TabSwitchContribution.ID, TabSwitchContribution, WorkbenchPhase.BlockRestore);

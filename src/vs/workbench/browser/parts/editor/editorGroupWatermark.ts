@@ -18,13 +18,13 @@ import { isRecentFolder, IWorkspacesService } from '../../../../platform/workspa
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { OpenFileFolderAction, OpenFolderAction } from '../../actions/workspaceActions.js';
 import { isMacintosh, isNative, OS } from '../../../../base/common/platform.js';
-import { VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/sidebarActions.js';
-import { VOID_CTRL_K_ACTION_ID } from '../../../contrib/void/browser/quickEditActions.js';
 import { defaultKeybindingLabelStyles } from '../../../../platform/theme/browser/defaultStyles.js';
 import { IWindowOpenable } from '../../../../platform/window/common/window.js';
 import { ILabelService, Verbosity } from '../../../../platform/label/common/label.js';
 import { splitRecentLabel } from '../../../../base/common/labels.js';
 import { IHostService } from '../../../services/host/browser/host.js';
+import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../contrib/void/browser/voidSettingsPane.js';
+import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
 // import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 
 registerColor('editorWatermark.foreground', { dark: transparent(editorForeground, 0.6), light: transparent(editorForeground, 0.68), hcDark: editorForeground, hcLight: editorForeground }, localize('editorLineHighlight', 'Foreground color for the labels in the editor watermark.'));
@@ -104,7 +104,7 @@ export class EditorGroupWatermark extends Disposable {
 			const isDark = theme === ColorScheme.DARK || theme === ColorScheme.HIGH_CONTRAST_DARK
 			elements.icon.style.maxWidth = '220px'
 			elements.icon.style.opacity = '50%'
-			elements.icon.style.filter = isDark ? 'brightness(.5)' : 'invert(1)'
+			elements.icon.style.filter = isDark ? '' : 'invert(1)' //brightness(.5)
 		}
 		updateTheme()
 		this._register(
@@ -167,14 +167,17 @@ export class EditorGroupWatermark extends Disposable {
 		// 	.filter(entry => !!this.keybindingService.lookupKeybinding(entry.id));
 
 		this.clear();
-		const box = append(this.shortcuts, $('.watermark-box'));
-		const boxBelow = append(this.shortcuts, $(''))
+		const voidIconBox = append(this.shortcuts, $('.watermark-box'));
+		const recentsBox = append(this.shortcuts, $('div'));
+		recentsBox.style.display = 'flex'
+		recentsBox.style.flex = 'row'
+		recentsBox.style.justifyContent = 'center'
 
 
 		const update = async () => {
 
-			clearNode(box);
-			clearNode(boxBelow);
+			clearNode(voidIconBox);
+			clearNode(recentsBox);
 
 			this.currentDisposables.forEach(label => label.dispose());
 			this.currentDisposables.clear();
@@ -183,10 +186,15 @@ export class EditorGroupWatermark extends Disposable {
 			// Void - if the workbench is empty, show open
 			if (this.contextService.getWorkbenchState() === WorkbenchState.EMPTY) {
 
-				// Open Folder
-				const button = h('button')
-				button.root.textContent = 'Open Folder'
-				button.root.onclick = () => {
+				// Open a folder
+				const openFolderButton = h('button')
+				openFolderButton.root.classList.add('void-watermark-button')
+				openFolderButton.root.style.display = 'block'
+				openFolderButton.root.style.marginLeft = 'auto'
+				openFolderButton.root.style.marginRight = 'auto'
+				openFolderButton.root.style.marginBottom = '16px'
+				openFolderButton.root.textContent = 'Open a folder'
+				openFolderButton.root.onclick = () => {
 					this.commandService.executeCommand(isMacintosh && isNative ? OpenFileFolderAction.ID : OpenFolderAction.ID)
 					// if (this.contextKeyService.contextMatchesRules(ContextKeyExpr.and(WorkbenchStateContext.isEqualTo('workspace')))) {
 					// 	this.commandService.executeCommand(OpenFolderViaWorkspaceAction.ID);
@@ -194,69 +202,72 @@ export class EditorGroupWatermark extends Disposable {
 					// 	this.commandService.executeCommand(isMacintosh ? 'workbench.action.files.openFileFolder' : 'workbench.action.files.openFolder');
 					// }
 				}
-				box.appendChild(button.root);
+				voidIconBox.appendChild(openFolderButton.root);
+
 
 				// Recents
 				const recentlyOpened = await this.workspacesService.getRecentlyOpened()
 					.catch(() => ({ files: [], workspaces: [] })).then(w => w.workspaces);
 
 
+				if (recentlyOpened.length !== 0) {
 
-				box.append(
-					...recentlyOpened.map(w => {
+					voidIconBox.append(
+						...recentlyOpened.map((w, i) => {
 
-						let fullPath: string;
-						let windowOpenable: IWindowOpenable;
-						if (isRecentFolder(w)) {
-							windowOpenable = { folderUri: w.folderUri };
-							fullPath = w.label || this.labelService.getWorkspaceLabel(w.folderUri, { verbose: Verbosity.LONG });
-						}
-						else {
-							return null
-							// fullPath = w.label || this.labelService.getWorkspaceLabel(w.workspace, { verbose: Verbosity.LONG });
-							// windowOpenable = { workspaceUri: w.workspace.configPath };
-						}
+							let fullPath: string;
+							let windowOpenable: IWindowOpenable;
+							if (isRecentFolder(w)) {
+								windowOpenable = { folderUri: w.folderUri };
+								fullPath = w.label || this.labelService.getWorkspaceLabel(w.folderUri, { verbose: Verbosity.LONG });
+							}
+							else {
+								return null
+								// fullPath = w.label || this.labelService.getWorkspaceLabel(w.workspace, { verbose: Verbosity.LONG });
+								// windowOpenable = { workspaceUri: w.workspace.configPath };
+							}
 
 
+							const { name, parentPath } = splitRecentLabel(fullPath);
 
-						const { name, parentPath } = splitRecentLabel(fullPath);
+							const linkSpan = $('span');
+							linkSpan.classList.add('void-link')
+							linkSpan.style.display = 'flex'
+							linkSpan.style.gap = '4px'
+							linkSpan.style.padding = '8px'
 
-						const li = $('li');
-						const link = $('button.button-link');
-
-						link.innerText = name;
-						link.title = fullPath;
-						link.setAttribute('aria-label', localize('welcomePage.openFolderWithPath', "Open folder {0} with path {1}", name, parentPath));
-						link.addEventListener('click', e => {
-							this.hostService.openWindow([windowOpenable], {
-								forceNewWindow: e.ctrlKey || e.metaKey,
-								remoteAuthority: w.remoteAuthority || null // local window if remoteAuthority is not set or can not be deducted from the openable
+							linkSpan.addEventListener('click', e => {
+								this.hostService.openWindow([windowOpenable], {
+									forceNewWindow: e.ctrlKey || e.metaKey,
+									remoteAuthority: w.remoteAuthority || null // local window if remoteAuthority is not set or can not be deducted from the openable
+								});
+								e.preventDefault();
+								e.stopPropagation();
 							});
-							e.preventDefault();
-							e.stopPropagation();
-						});
-						li.appendChild(link);
 
-						const span = $('span');
-						span.classList.add('path');
-						span.classList.add('detail');
-						span.innerText = parentPath;
-						span.title = fullPath;
-						li.appendChild(span);
+							const nameSpan = $('span');
+							nameSpan.innerText = name;
+							nameSpan.title = fullPath;
+							linkSpan.appendChild(nameSpan);
 
+							const dirSpan = $('span');
+							dirSpan.style.paddingLeft = '4px';
+							dirSpan.innerText = parentPath;
+							dirSpan.title = fullPath;
 
-						return li
-					}).filter(v => !!v)
-				)
+							linkSpan.appendChild(dirSpan);
 
-
+							return linkSpan
+						}).filter(v => !!v)
+					)
+				}
 
 			}
 			else {
 
 				// show them Void keybindings
 				const keys = this.keybindingService.lookupKeybinding(VOID_CTRL_L_ACTION_ID);
-				const dl = append(box, $('dl'));
+				const dl = append(voidIconBox, $('dl'));
 				const dt = append(dl, $('dt'));
 				dt.textContent = 'Chat'
 				const dd = append(dl, $('dd'));
@@ -267,7 +278,7 @@ export class EditorGroupWatermark extends Disposable {
 
 
 				const keys2 = this.keybindingService.lookupKeybinding(VOID_CTRL_K_ACTION_ID);
-				const dl2 = append(box, $('dl'));
+				const dl2 = append(voidIconBox, $('dl'));
 				const dt2 = append(dl2, $('dt'));
 				dt2.textContent = 'Quick Edit'
 				const dd2 = append(dl2, $('dd'));
@@ -277,17 +288,20 @@ export class EditorGroupWatermark extends Disposable {
 				this.currentDisposables.add(label2);
 
 				const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
-				const button3 = append(boxBelow, $('button'));
-				button3.textContent = 'Change Keybindings'
+				const button3 = append(recentsBox, $('button'));
+				button3.textContent = 'Void Settings'
+				button3.style.display = 'block'
+				button3.style.marginLeft = 'auto'
+				button3.style.marginRight = 'auto'
+				button3.classList.add('void-settings-watermark-button')
+
 				const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });
 				if (keys3)
 					label3.set(keys3);
 				button3.onclick = () => {
-					this.commandService.executeCommand('workbench.action.openGlobalKeybindings')
+					this.commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID)
 				}
 				this.currentDisposables.add(label3);
-
-
 
 			}
 

@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { LLMMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
@@ -34,9 +34,9 @@ export const sendLLMMessage = ({
 	const captureChatEvent = (eventId: string, extras?: object) => {
 		metricsService.capture(eventId, {
 			providerName,
+			modelName,
 			numMessages: messages?.length,
 			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
-			version: '2024-11-14',
 			...extras,
 		})
 	}
@@ -61,7 +61,6 @@ export const sendLLMMessage = ({
 
 	const onError: OnError = ({ message: error, fullError }) => {
 		if (_didAbort) return
-		console.log("ERROR!!!!!", error)
 		console.error('sendLLMMessage onError:', error)
 		captureChatEvent(`${loggingName} - Error`, { error })
 		onError_({ message: error, fullError })

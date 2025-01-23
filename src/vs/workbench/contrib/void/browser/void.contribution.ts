@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 
 // register inline diffs
@@ -16,7 +16,7 @@ import './sidebarStateService.js'
 import './quickEditActions.js'
 
 // register Thread History
-import './threadHistoryService.js'
+import './chatThreadService.js'
 
 // register Autocomplete
 import './autocompleteService.js'
@@ -26,3 +26,6 @@ import './voidSettingsPane.js'
 
 // register css
 import './media/void.css'
+
+// update (frontend part, also see platform/)
+import './voidUpdateActions.js'

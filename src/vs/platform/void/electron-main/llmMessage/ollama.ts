@@ -1,10 +1,11 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { Ollama } from 'ollama';
 import { _InternalModelListFnType, _InternalSendLLMMessageFnType, OllamaModelResponse } from '../../common/llmMessageTypes.js';
+import { defaultProviderSettings } from '../../common/voidSettingsTypes.js';
 
 export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
 
@@ -18,6 +19,9 @@ export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async (
 
 	try {
 		const thisConfig = settingsOfProvider.ollama
+		// if endpoint is empty, normally ollama will send to 11434, but we want it to fail - the user should type it in
+		if (!thisConfig.endpoint) throw new Error(`Ollama Endpoint was empty (please enter ${defaultProviderSettings.ollama.endpoint} in Void if you want the default url).`)
+
 		const ollama = new Ollama({ host: thisConfig.endpoint })
 		ollama.list()
 			.then((response) => {
@@ -38,6 +42,8 @@ export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async (
 export const sendOllamaMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	const thisConfig = settingsOfProvider.ollama
+	// if endpoint is empty, normally ollama will send to 11434, but we want it to fail - the user should type it in
+	if (!thisConfig.endpoint) throw new Error(`Ollama Endpoint was empty (please enter ${defaultProviderSettings.ollama.endpoint} if you want the default).`)
 
 	let fullText = ''
 

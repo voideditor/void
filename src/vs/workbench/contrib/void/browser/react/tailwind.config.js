@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -9,7 +9,38 @@ module.exports = {
 	content: ['./src2/**/*.{jsx,tsx}'], // uses these files to decide how to transform the css file
 	theme: {
 		extend: {
+			fontSize: {
+				xs: '10px',
+				sm: '11px',
+				root: '13px',
+				lg: '14px',
+				xl: '16px',
+				'2xl': '18px',
+				'3xl': '20px',
+				'4xl': '24px',
+				'5xl': '30px',
+				'6xl': '36px',
+				'7xl': '48px',
+				'8xl': '64px',
+				'9xl': '72px',
+			},
+			// common colors to use, ordered light to dark
+
 			colors: {
+				"void-bg-1": "var(--vscode-input-background)",
+				"void-bg-2": "var(--vscode-sideBar-background)",
+				"void-bg-3": "var(--vscode-editor-background)",
+
+				"void-fg-1": "var(--vscode-editor-foreground)",
+				"void-fg-2": "var(--vscode-input-foreground)",
+				"void-fg-3": "var(--vscode-input-placeholderForeground)",
+				"void-warning": "var(--vscode-charts-yellow)",
+
+				"void-border-1": "var(--vscode-commandCenter-activeBorder)",
+				"void-border-2": "var(--vscode-commandCenter-border)",
+				"void-border-3": "var(--vscode-commandCenter-inactiveBorder)",
+
+
 				vscode: {
 					// see: https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content
 
@@ -39,20 +70,20 @@ module.exports = {
 					"input-bg": "var(--vscode-input-background)",
 					"input-border": "var(--vscode-input-border)",
 					"input-fg": "var(--vscode-input-foreground)",
-					"input-placeholder-fg": "var(--vscode-placeholderForeground)",
-					"input-active-bg": "var(--vscode-activeBackground)",
-					"input-option-active-border": "var(--vscode-activeBorder)",
-					"input-option-active-fg": "var(--vscode-activeForeground)",
-					"input-option-hover-bg": "var(--vscode-hoverBackground)",
-					"input-validation-error-bg": "var(--vscode-errorBackground)",
-					"input-validation-error-fg": "var(--vscode-errorForeground)",
-					"input-validation-error-border": "var(--vscode-errorBorder)",
-					"input-validation-info-bg": "var(--vscode-infoBackground)",
-					"input-validation-info-fg": "var(--vscode-infoForeground)",
-					"input-validation-info-border": "var(--vscode-infoBorder)",
-					"input-validation-warning-bg": "var(--vscode-warningBackground)",
-					"input-validation-warning-fg": "var(--vscode-warningForeground)",
-					"input-validation-warning-border": "var(--vscode-warningBorder)",
+					"input-placeholder-fg": "var(--vscode-input-placeholderForeground)",
+					"input-active-bg": "var(--vscode-input-activeBackground)",
+					"input-option-active-border": "var(--vscode-inputOption-activeBorder)",
+					"input-option-active-fg": "var(--vscode-inputOption-activeForeground)",
+					"input-option-hover-bg": "var(--vscode-inputOption-hoverBackground)",
+					"input-validation-error-bg": "var(--vscode-inputValidation-errorBackground)",
+					"input-validation-error-fg": "var(--vscode-inputValidation-errorForeground)",
+					"input-validation-error-border": "var(--vscode-inputValidation-errorBorder)",
+					"input-validation-info-bg": "var(--vscode-inputValidation-infoBackground)",
+					"input-validation-info-fg": "var(--vscode-inputValidation-infoForeground)",
+					"input-validation-info-border": "var(--vscode-inputValidation-infoBorder)",
+					"input-validation-warning-bg": "var(--vscode-inputValidation-warningBackground)",
+					"input-validation-warning-fg": "var(--vscode-inputValidation-warningForeground)",
+					"input-validation-warning-border": "var(--vscode-inputValidation-warningBorder)",
 
 					// command center colors (the top bar)
 					"commandcenter-fg": "var(--vscode-commandCenter-foreground)",
@@ -89,7 +120,7 @@ module.exports = {
 					"sidebar-bg": "var(--vscode-sideBar-background)",
 					"sidebar-fg": "var(--vscode-sideBar-foreground)",
 					"sidebar-border": "var(--vscode-sideBar-border)",
-					"sidebar-drop-backdrop": "var(--vscode-sideBar-dropBackground)",
+					"sidebar-drop-bg": "var(--vscode-sideBar-dropBackground)",
 					"sidebar-title-fg": "var(--vscode-sideBarTitle-foreground)",
 					"sidebar-header-bg": "var(--vscode-sideBarSectionHeader-background)",
 					"sidebar-header-fg": "var(--vscode-sideBarSectionHeader-foreground)",
@@ -103,15 +134,26 @@ module.exports = {
 
 					// other colors (these are partially complete)
 
+					// text formatting
+					"text-preformat-bg": "var(--vscode-textPreformat-background)",
+					"text-preformat-fg": "var(--vscode-textPreformat-foreground)",
+
 					// editor colors
 					"editor-bg": "var(--vscode-editor-background)",
 					"editor-fg": "var(--vscode-editor-foreground)",
 
-					// editorwidget colors
-					"editorwidget-fg": "var(--vscode-editorWidget-foreground)",
+
+
+					// other
 					"editorwidget-bg": "var(--vscode-editorWidget-background)",
+					"toolbar-hover-bg": "var(--vscode-toolbar-hoverBackground)",
+					"toolbar-foreground": "var(--vscode-editorActionList-foreground)",
+
+					"editorwidget-fg": "var(--vscode-editorWidget-foreground)",
 					"editorwidget-border": "var(--vscode-editorWidget-border)",
 
+					"charts-orange": "var(--vscode-charts-orange)",
+					"charts-yellow": "var(--vscode-charts-yellow)",
 				},
 			},
 		},

@@ -34,7 +34,7 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		@IEnvironmentMainService environmentMainService: IEnvironmentMainService,
 		@IRequestService requestService: IRequestService,
 		@ILogService logService: ILogService,
-		@IProductService productService: IProductService
+		@IProductService productService: IProductService,
 	) {
 		super(lifecycleMainService, configurationService, environmentMainService, requestService, logService, productService);
 
@@ -73,7 +73,7 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		this.setState(State.Idle(UpdateType.Archive, message));
 	}
 
-	protected buildUpdateFeedUrl(quality: string): string | undefined {
+	protected doBuildUpdateFeedUrl(quality: string): string | undefined {
 		let assetID: string;
 		if (!this.productService.darwinUniversalAssetId) {
 			assetID = process.arch === 'x64' ? 'darwin' : 'darwin-arm64';

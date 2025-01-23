@@ -2,17 +2,18 @@
 
 Welcome! 👋 This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
+
+If you'd like to get started developing Void, feel free to follow the steps below on building Void yourself and doing a PR. 
+Void's code mostly lives in `src/vs/workbench/contrib/void/` and `src/vs/platform/void/`.
+
 There are a few ways to contribute:
 
-- 👨‍💻 Build new features - see [Issues](https://github.com/voideditor/void/issues).
+- 👨‍💻 Build new features - see [Roadmap](https://github.com/orgs/voideditor/projects/2/views/3) or [Issues](https://github.com/voideditor/void/issues).
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
-- ⭐️ If you want to build your AI tool into Void, feel free to get in touch! It's very easy to extend Void, and the UX you create will be much more natural than a VSCode Extension.
-
-Most of Void's code lives in `src/vs/workbench/contrib/void/browser/` and `src/vs/platform/void/`.
 
 
 
-## Building the full IDE
+## Building Void
 
 ### a. Build Prerequisites - Mac
 
@@ -41,21 +42,22 @@ First, run `npm install -g node-gyp`. Then:
 - Red Hat (Fedora, etc): `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
 - Others: see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
-### Building Void
+### d. Building Void
 
-To build Void, open `void/` inside VSCode. Then:
+To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
 1. `npm install` to install all dependencies.
-2. `npm run watchreact` to build Void's browser dependencies like React.
-3. Build.
+2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`).
+3. Build Void.
 	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
    - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
    - This step can take ~5 min. The build is done when you see two check marks.
-4. Run.
-	 - Run `./scripts/code.sh` (Mac/Linux).
+4. Run Void.
+   - Run `./scripts/code.sh` (Mac/Linux).
    - Run `./scripts/code.bat` (Windows).
-   - This command should open up the built IDE. You can always press <kbd>Ctrl+Shift+P</kbd> and run "Reload Window" inside the new window to see changes without re-building, unless they're React changes.
-
+6. Nice-to-knows.
+   - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
+   - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
 
 #### Building Void from Terminal
 
@@ -70,20 +72,20 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 
 
 
-### Common Fixes
+#### Common Fixes
 
-- Make sure you follow the prerequisite steps.
+- Make sure you followed the prerequisite steps.
 - Make sure you have the same NodeJS version as `.nvmrc`.
-- Make sure your `npm run watchreact` is running if you change any React files, or else you'll need to re-build.
-- If you get `"TypeError: Failed to fetch dynamically imported module: vscode-file://vscode-app/.../workbench.desktop.main.js", source: file:///.../bootstrap-window.js`, make sure all imports end with `.js`.
-- If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). For building questions, you can also refer to VSCode's full [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+- If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
+- If you see missing styles, wait a few seconds and then reload.
+- If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
 
 
+## Packaging
 
-## Bundling
+We don't usually recommend packaging. Instead, you should probably just build. If you're sure you want to package Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). Be patient - packaging can take ~25 minutes.
 
-We don't usually recommend bundling. Instead, you should probably just build. If you're sure you want to bundle Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` (or similar) in the repo's parent's directory. Be patient - compiling can take ~25 minutes.
 
 ### Mac
 - `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)
@@ -99,22 +101,49 @@ We don't usually recommend bundling. Instead, you should probably just build. If
 - `npm run gulp vscode-linux-ia32`
 
 
+### Output
 
-# Guidelines
+This will generate a folder outside of `void/`:
+```bash
+workspace/
+├── void/   # Your Void fork
+└── VSCode-darwin-arm64/ # Generated output
+```
 
-We're always glad to talk about new ideas, help you get set up, and make sure your changes align with our vision for the project! Feel free to shoot Mat or Andrew a message, or start chatting with us in the `#contributing` channel of our [Discord](https://discord.gg/RSNjgaugJs).
+### Distributing
+Void's maintainers distribute Void on our website and in releases. If you'd like to see the scripts to convert `Mac .app -> .dmg`, `Windows folder -> .exe`, and `Linux folder -> appimage` for distribution, feel free to reach out. 
+
+## Pull Request Guidelines
 
 
-## Submitting a Pull Request
+- Please submit a pull request once you've made a change.
+- No need to submit an Issue unless you're creating a new feature that might involve multiple PRs.
+- Please don't use AI to write your PR 🙂
 
-- Please submit a pull request once you've made a change. No need to submit an Issue unless you're creating a new feature.
-- Please don't use AI to write your PR 🙂.
+
+## Codebase Guide
+
+We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization. 
+
+We are currently putting together our own articles on VSCode and Void's sourcecode organization. The best way to get this information right now is by attending a weekly meeting.
+
+<!-- ADD BLOG HERE
+We wrote a [guide to working in VSCode].
+-->
+
+For some miscellaneous useful links on VSCode we've put together, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
+
+
+
+
 
 
 <!--
 # Relevant files
 
 We keep track of all the files we've changed with Void so it's easy to rebase:
+
+Edit: far too many changes to track... this is old
 
 - README.md
 - CONTRIBUTING.md
@@ -135,8 +164,5 @@ We keep track of all the files we've changed with Void so it's easy to rebase:
 - build/npm/dirs.js
 
 - vscode.proposed.editorInsets.d.ts - not modified, but code copied
+
 -->
-
-## References
-
-For some useful links we've compiled on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).

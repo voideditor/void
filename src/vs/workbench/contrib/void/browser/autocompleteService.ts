@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
@@ -17,6 +17,7 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
+import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
 
@@ -163,20 +164,6 @@ const postprocessResult = (result: string) => {
 		+ result.trim()
 		+ (hasTrailingSpace ? ' ' : '');
 
-}
-
-const extractCodeFromResult = (result: string) => {
-	// Match either:
-	// 1. ```language\n<code>```
-	// 2. ```<code>```
-	const match = result.match(/```(?:\w+\n)?([\s\S]*?)```|```([\s\S]*?)```/);
-
-	if (!match) {
-		return result;
-	}
-
-	// Return whichever group matched (non-empty)
-	return match[1] ?? match[2] ?? result;
 }
 
 
@@ -665,7 +652,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					// newAutocompletion.abortRef = { current: () => { } }
 					newAutocompletion.status = 'finished'
 					// newAutocompletion.promise = undefined
-					newAutocompletion.insertText = postprocessResult(extractCodeFromResult(fullText))
+					const [text, _] = extractCodeFromRegular({ text: fullText, recentlyAddedTextLen: 0 })
+					newAutocompletion.insertText = postprocessResult(text)
 
 					resolve(newAutocompletion.insertText)
 
@@ -675,7 +663,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(message)
 				},
-				featureName: 'Autocomplete',
+				useProviderFor: 'Autocomplete',
 				range: { startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column },
 			})
 			newAutocompletion.requestId = requestId
@@ -768,3 +756,5 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 
 registerSingleton(IAutocompleteService, AutocompleteService, InstantiationType.Eager);
+
+

@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
 import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainLLMMessageParams, MainLLMMessageAbortParams, ServiceModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, MainModelListParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from './llmMessageTypes.js';
 import { IChannel } from '../../../base/parts/ipc/common/ipc.js';
@@ -52,6 +52,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		super()
 
 		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service
+		// see llmMessageChannel.ts
 		this.channel = this.mainProcessService.getChannel('void-channel-llmMessageService')
 
 		// .listen sets up an IPC channel and takes a few ms, so we set up listeners immediately and add hooks to them instead
@@ -64,18 +65,18 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			this._onRequestIdDone(e.requestId)
 		}))
 		this._register((this.channel.listen('onError_llm') satisfies Event<EventLLMMessageOnErrorParams>)(e => {
-			console.log('Error in LLMMessageService:', JSON.stringify(e))
+			console.error('Error in LLMMessageService:', JSON.stringify(e))
 			this.onErrorHooks_llm[e.requestId]?.(e)
 			this._onRequestIdDone(e.requestId)
 		}))
-		// ollama
+		// ollama .list()
 		this._register((this.channel.listen('onSuccess_ollama') satisfies Event<EventModelListOnSuccessParams<OllamaModelResponse>>)(e => {
 			this.onSuccess_ollama[e.requestId]?.(e)
 		}))
 		this._register((this.channel.listen('onError_ollama') satisfies Event<EventModelListOnErrorParams<OllamaModelResponse>>)(e => {
 			this.onError_ollama[e.requestId]?.(e)
 		}))
-		// openaiCompatible
+		// openaiCompatible .list()
 		this._register((this.channel.listen('onSuccess_openAICompatible') satisfies Event<EventModelListOnSuccessParams<OpenaiCompatibleModelResponse>>)(e => {
 			this.onSuccess_openAICompatible[e.requestId]?.(e)
 		}))
@@ -87,7 +88,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 	sendLLMMessage(params: ServiceSendLLMMessageParams) {
 		const { onText, onFinalMessage, onError, ...proxyParams } = params;
-		const { featureName } = proxyParams
+		const { useProviderFor: featureName } = proxyParams
 
 		// end early if no provider
 		const modelSelection = this.voidSettingsService.state.modelSelectionOfFeature[featureName]
@@ -96,6 +97,10 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			return null
 		}
 		const { providerName, modelName } = modelSelection
+
+		const aiInstructions = this.voidSettingsService.state.globalSettings.aiInstructions
+		if (aiInstructions)
+			proxyParams.messages.unshift({ role: 'system', content: aiInstructions })
 
 		// add state for request id
 		const requestId_ = generateUuid();

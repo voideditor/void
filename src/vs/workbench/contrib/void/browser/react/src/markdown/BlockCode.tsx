@@ -1,46 +1,30 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Glass Devtools, Inc. All rights reserved.
- *  Void Editor additions licensed under the AGPL 3.0 License.
- *--------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
-import React, { ReactNode } from "react"
-import SyntaxHighlighter from "react-syntax-highlighter";
-import { atomOneDarkReasonable } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import React from 'react';
+
+import { VoidCodeEditor, VoidCodeEditorProps } from '../util/inputs.js';
 
 
-export const BlockCode = ({ text, buttonsOnHover, language }: { text: string, buttonsOnHover?: ReactNode, language?: string }) => {
+export const BlockCode = ({ buttonsOnHover, ...codeEditorProps }: { buttonsOnHover?: React.ReactNode } & VoidCodeEditorProps) => {
+	const isSingleLine = !codeEditorProps.initValue.includes('\n')
 
-	const customStyle = {
-		...atomOneDarkReasonable,
-		'code[class*="language-"]': {
-			...atomOneDarkReasonable['code[class*="language-"]'],
-			background: "none",
-		},
-	}
+	return (
+		<>
+			<div className="relative group w-full overflow-hidden">
+				{buttonsOnHover === null ? null : (
+					<div className={`z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200 ${isSingleLine ? 'h-full flex items-center' : ''
+						}`}>
+						<div className={`flex space-x-1 ${isSingleLine ? 'pr-2' : 'p-2'}`}>
+							{buttonsOnHover}
+						</div>
+					</div>
+				)}
 
-	return (<>
-		<div className={`relative group w-full bg-vscode-sidebar-bg overflow-hidden isolate`}>
-
-			{buttonsOnHover === null ? null : (
-				<div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200">
-					<div className="flex space-x-2 p-2">{buttonsOnHover}</div>
-				</div>
-			)}
-
-			<div
-				className={`overflow-x-auto rounded-sm text-vscode-editor-fg bg-vscode-editor-bg`}
-			>
-				<SyntaxHighlighter
-					language={language ?? 'plaintext'} // TODO must auto detect language
-					style={customStyle}
-					className={"rounded-sm"}
-				>
-					{text}
-				</SyntaxHighlighter>
-
+				<VoidCodeEditor {...codeEditorProps} />
 			</div>
-		</div>
-	</>
+		</>
 	)
 }
-

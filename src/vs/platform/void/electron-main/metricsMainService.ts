@@ -10,21 +10,32 @@ import { IEnvironmentMainService } from '../../environment/electron-main/environ
 
 import { IProductService } from '../../product/common/productService.js';
 import { StorageScope, StorageTarget } from '../../storage/common/storage.js';
-import { IApplicationStorageMainService, IStorageMainService } from '../../storage/electron-main/storageMainService.js';
+import { IApplicationStorageMainService } from '../../storage/electron-main/storageMainService.js';
 
 import { IMetricsService } from '../common/metricsService.js';
 import { PostHog } from 'posthog-node'
 
 
 const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
+const _getOSInfo = () => {
+	try {
+		const { platform, arch } = process // see platform.ts
+		return { platform, arch }
+	}
+	catch (e) {
+		return { osInfo: { platform: '??', arch: '??' } }
+	}
+}
+const osInfo = _getOSInfo()
 
+// we'd like to use devDeviceId on telemetryService, but that gets sanitized by the time it gets here as 'someValue.devDeviceId'
 
 export class MetricsMainService extends Disposable implements IMetricsService {
 	_serviceBrand: undefined;
 
 	private readonly client: PostHog
 
-	private readonly _initProperties: object
+	private _initProperties: object = {}
 
 
 	// helper - looks like this is stored in a .vscdb file in ~/Library/Application Support/Void
@@ -46,15 +57,16 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 		if (newOldId) return newOldId
 
 		// put old key into new key if didn't already
-		const oldValue = this._storageService.applicationStorage.get('void.machineId') ?? 'NULL' // the old way of getting the key
+		const oldValue = this._appStorage.get('void.machineId', StorageScope.APPLICATION) ?? 'NULL' // the old way of getting the key
 		this._appStorage.store(newKey, oldValue, StorageScope.APPLICATION, StorageTarget.MACHINE)
 		return oldValue
+
+		// in a few weeks we can replace above with this
+		// private get oldId() {
+		// 	return this._memoStorage('void.app.oldMachineId', StorageTarget.MACHINE, 'NULL')
+		// }
 	}
 
-	// eventually we can replace above with this
-	// private get oldId() {
-	// 	return this._memoStorage('void.app.oldMachineId', StorageTarget.MACHINE, 'NULL')
-	// }
 
 	// the main id
 	private get distinctId() {
@@ -70,7 +82,6 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 
 	constructor(
 		@IProductService private readonly _productService: IProductService,
-		@IStorageMainService private readonly _storageService: IStorageMainService,
 		@IEnvironmentMainService private readonly _envMainService: IEnvironmentMainService,
 		@IApplicationStorageMainService private readonly _appStorage: IApplicationStorageMainService,
 	) {
@@ -79,7 +90,12 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 			host: 'https://us.i.posthog.com',
 		})
 
-		// we'd like to use devDeviceId on telemetryService, but that gets sanitized by the time it gets here as 'someValue.devDeviceId'
+		this.initialize() // async
+	}
+
+	async initialize() {
+		// very important to await whenReady!
+		await this._appStorage.whenReady
 
 		const { commit, version, quality } = this._productService
 
@@ -95,7 +111,7 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 			distinctIdUser: this.userId,
 			oldId: this.oldId,
 			isDevMode,
-			...this._getOSInfo(),
+			...osInfo,
 		}
 
 		const identifyMessage = {
@@ -105,18 +121,8 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 		this.client.identify(identifyMessage)
 
 		console.log('Void posthog metrics info:', JSON.stringify(identifyMessage, null, 2))
-
 	}
 
-	_getOSInfo() {
-		try {
-			const { platform, arch } = process // see platform.ts
-			return { platform, arch }
-		}
-		catch (e) {
-			return { osInfo: { platform: '??', arch: '??' } }
-		}
-	}
 
 	capture: IMetricsService['capture'] = (event, params) => {
 		const capture = { distinctId: this.distinctId, event, properties: params } as const

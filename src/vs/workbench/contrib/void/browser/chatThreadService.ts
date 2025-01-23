@@ -87,6 +87,9 @@ const newThreadObject = () => {
 	} satisfies ChatThreads[string]
 }
 
+const THREAD_VERSION_KEY = 'void.chatThreadVersion'
+const THREAD_VERSION = 'v1'
+
 const THREAD_STORAGE_KEY = 'void.chatThreadStorage'
 
 export interface IChatThreadService {
@@ -139,6 +142,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// always be in a thread
 		this.openNewThread()
+
+		// for now just write the version, anticipating bigger changes in the future where we'll want to access this
+		this._storageService.store(THREAD_VERSION_KEY, THREAD_VERSION, StorageScope.APPLICATION, StorageTarget.USER)
 	}
 
 

@@ -3,14 +3,14 @@
 Welcome! 👋 This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
 
+If you'd like to get started developing Void, feel free to follow the steps below on building Void yourself and doing a PR. 
+Void's code mostly lives in `src/vs/workbench/contrib/void/` and `src/vs/platform/void/`.
 
 There are a few ways to contribute:
 
-- 👨‍💻 Build new features - see [Issues](https://github.com/voideditor/void/issues).
+- 👨‍💻 Build new features - see [Roadmap](https://github.com/orgs/voideditor/projects/2/views/3) or [Issues](https://github.com/voideditor/void/issues).
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
-- ⭐️ If you want to build your AI tool into Void, feel free to get in touch! It's very easy to extend Void, and the UX you create will be much more natural than a VSCode Extension.
 
-Void's code mostly lives in `src/vs/workbench/contrib/void/` and `src/vs/platform/void/`.
 
 
 ## Building Void
@@ -111,14 +111,31 @@ workspace/
 ```
 
 ### Distributing
-We have a few scripts to convert `Mac .app -> .dmg`, `Windows folder -> .exe`, and `Linux folder -> appimage` for distribution. Let us know if you'd like access to them. 
+Void's maintainers distribute Void on our website and in releases. If you'd like to see the scripts to convert `Mac .app -> .dmg`, `Windows folder -> .exe`, and `Linux folder -> appimage` for distribution, feel free to reach out. 
 
 ## Pull Request Guidelines
 
 
 - Please submit a pull request once you've made a change.
-- No need to submit an Issue unless you're creating a new feature.
+- No need to submit an Issue unless you're creating a new feature that might involve multiple PRs.
 - Please don't use AI to write your PR 🙂
+
+
+## Codebase Guide
+
+We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization. 
+
+We are currently putting together our own articles on VSCode and Void's sourcecode organization. The best way to get this information right now is by attending a weekly meeting.
+
+<!-- ADD BLOG HERE
+We wrote a [guide to working in VSCode].
+-->
+
+For some miscellaneous useful links on VSCode we've put together, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
+
+
+
+
 
 
 <!--
@@ -149,7 +166,3 @@ Edit: far too many changes to track... this is old
 - vscode.proposed.editorInsets.d.ts - not modified, but code copied
 
 -->
-
-## References
-
-For some useful links we've compiled on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).

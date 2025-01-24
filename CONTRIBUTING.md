@@ -20,8 +20,6 @@ We are currently putting together our own articles on VSCode and Void's sourceco
 We wrote a [guide to working in VSCode].
 -->
 
-For some miscellaneous useful links on VSCode we've put together, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
-
 Most of Void's code lives in the two folders called `void/`.
 
 

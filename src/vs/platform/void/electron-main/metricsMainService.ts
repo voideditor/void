@@ -104,7 +104,7 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 		// custom properties we identify
 		this._initProperties = {
 			commit,
-			version,
+			vscodeVersion: version,
 			os,
 			quality,
 			distinctId: this.distinctId,

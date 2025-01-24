@@ -3,7 +3,7 @@
 Welcome! 👋 This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
 
-If you'd like to get started developing Void, feel free to follow the steps below on building Void yourself and doing a PR. 
+If you'd like to get started developing Void, feel free to follow the steps below on building Void yourself and doing a PR.
 Void's code mostly lives in `src/vs/workbench/contrib/void/` and `src/vs/platform/void/`.
 
 There are a few ways to contribute:
@@ -47,7 +47,7 @@ First, run `npm install -g node-gyp`. Then:
 To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
 1. `npm install` to install all dependencies.
-2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`).
+2. `npm run watchreact` to build Void's browser dependencies like React.
 3. Build Void.
 	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
    - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
@@ -111,7 +111,7 @@ workspace/
 ```
 
 ### Distributing
-Void's maintainers distribute Void on our website and in releases. If you'd like to see the scripts to convert `Mac .app -> .dmg`, `Windows folder -> .exe`, and `Linux folder -> appimage` for distribution, feel free to reach out. 
+Void's maintainers distribute Void on our website and in releases. If you'd like to see the scripts to convert `Mac .app -> .dmg`, `Windows folder -> .exe`, and `Linux folder -> appimage` for distribution, feel free to reach out.
 
 ## Pull Request Guidelines
 
@@ -123,7 +123,7 @@ Void's maintainers distribute Void on our website and in releases. If you'd like
 
 ## Codebase Guide
 
-We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization. 
+We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization.
 
 We are currently putting together our own articles on VSCode and Void's sourcecode organization. The best way to get this information right now is by attending a weekly meeting.
 

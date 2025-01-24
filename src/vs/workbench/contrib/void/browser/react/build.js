@@ -80,6 +80,22 @@ const args = process.argv.slice(2);
 const isWatch = args.includes('--watch') || args.includes('-w');
 
 if (isWatch) {
+
+	// Check if src2/ exists; if not, do an initial scope-tailwind build
+	if (!fs.existsSync('src2')) {
+		try {
+			console.log('🔨 Running initial scope-tailwind build to create src2 folder...');
+			execSync(
+				'npx scope-tailwind ./src -o src2/ -s void-scope -c styles.css -p "void-"',
+				{ stdio: 'inherit' }
+			);
+			console.log('✅ src2/ created successfully.');
+		} catch (err) {
+			console.error('❌ Error running initial scope-tailwind build:', err);
+			process.exit(1);
+		}
+	}
+
 	// Watch mode
 	const scopeTailwindWatcher = spawn('npx', [
 		'nodemon',

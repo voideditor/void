@@ -7,7 +7,6 @@ import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { ProxyChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
-import { IMetricsService } from './metricsService.js';
 
 
 
@@ -28,7 +27,6 @@ export class VoidUpdateService implements IVoidUpdateService {
 
 	constructor(
 		@IMainProcessService mainProcessService: IMainProcessService, // (only usable on client side)
-		@IMetricsService private readonly metricsService: IMetricsService,
 	) {
 		// creates an IPC proxy to use metricsMainService.ts
 		this.voidUpdateService = ProxyChannel.toService<IVoidUpdateService>(mainProcessService.getChannel('void-channel-update'));
@@ -38,7 +36,6 @@ export class VoidUpdateService implements IVoidUpdateService {
 	// anything transmitted over a channel must be async even if it looks like it doesn't have to be
 	check: IVoidUpdateService['check'] = async () => {
 		const res = await this.voidUpdateService.check()
-		this.metricsService.capture('Check for Updates', { ...res })
 		return res
 	}
 }

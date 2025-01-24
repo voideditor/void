@@ -53,10 +53,11 @@ registerAction2(class extends Action2 {
 		const notifService = accessor.get(INotificationService)
 		const metricsService = accessor.get(IMetricsService)
 
+		metricsService.capture('Void Update Manual: Checking...', {})
 		const res = await voidUpdateService.check()
-		if (!res) { notifyErrChecking(notifService); metricsService.capture('Void Update: Error', {}) }
-		else if (res.hasUpdate) { notifyYesUpdate(notifService, res.message); metricsService.capture('Void Update: Yes', {}) }
-		else if (!res.hasUpdate) { notifyNoUpdate(notifService); metricsService.capture('Void Update: No', {}) }
+		if (!res) { notifyErrChecking(notifService); metricsService.capture('Void Update Manual: Error', { res }) }
+		else if (res.hasUpdate) { notifyYesUpdate(notifService, res.message); metricsService.capture('Void Update Manual: Yes', { res }) }
+		else if (!res.hasUpdate) { notifyNoUpdate(notifService); metricsService.capture('Void Update Manual: No', { res }) }
 	}
 })
 
@@ -65,23 +66,32 @@ class VoidUpdateWorkbenchContribution extends Disposable implements IWorkbenchCo
 	static readonly ID = 'workbench.contrib.void.voidUpdate'
 	constructor(
 		@IVoidUpdateService private readonly voidUpdateService: IVoidUpdateService,
-		@INotificationService private readonly notifService: INotificationService,
 		@IMetricsService private readonly metricsService: IMetricsService,
+		@INotificationService private readonly notifService: INotificationService,
 	) {
 		super()
-
-		// on mount
-		setTimeout(async () => {
+		const autoCheck = async () => {
+			this.metricsService.capture('Void Update Startup: Checking...', {})
 			const res = await this.voidUpdateService.check()
+			if (!res) { notifyErrChecking(this.notifService); this.metricsService.capture('Void Update Startup: Error', { res }) }
+			else if (res.hasUpdate) { notifyYesUpdate(this.notifService, res.message); this.metricsService.capture('Void Update Startup: Yes', { res }) }
+			else if (!res.hasUpdate) { this.metricsService.capture('Void Update Startup: No', { res }) } // display nothing if up to date
+		}
 
-			const notifService = this.notifService
-			const metricsService = this.metricsService
+		// check once 5 seconds after mount
+		this._register({
+			dispose: () => clearTimeout(
+				setTimeout(() => autoCheck(), 5 * 1000)
+			)
+		})
 
-			if (!res) { notifyErrChecking(notifService); metricsService.capture('Void Update Startup: Error', {}) }
-			else if (res.hasUpdate) { notifyYesUpdate(this.notifService, res.message); metricsService.capture('Void Update Startup: Yes', {}) }
-			else if (!res.hasUpdate) { metricsService.capture('Void Update Startup: No', {}) } // display nothing if up to date
+		// check every 3 hours
+		this._register({
+			dispose: () => clearInterval(
+				setInterval(() => autoCheck(), 3 * 60 * 60 * 1000)
+			)
+		})
 
-		}, 5 * 1000)
 	}
 }
 registerWorkbenchContribution2(VoidUpdateWorkbenchContribution.ID, VoidUpdateWorkbenchContribution, WorkbenchPhase.BlockRestore);

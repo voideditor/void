@@ -26,7 +26,7 @@ This repo contains the full sourcecode for Void. We are currently in [open beta]
 
 1. Feel free to attend a weekly meeting in our Discord channel if you'd like to contribute!
 
-2. To get started building Void, see [`Contributing.md`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
+2. To get started building Void, see [`Contributing`](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
 
 3. We're open to collaborations of all types - just reach out.
 

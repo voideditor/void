@@ -58,7 +58,6 @@ export const QuickEditChat = ({
 		const id = inlineDiffsService.startApplying({
 			featureName: 'Ctrl+K',
 			diffareaid: diffareaid,
-			userMessage: instructions,
 		})
 		setCurrentlyStreamingDiffZone(id ?? null)
 	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, inlineDiffsService, diffareaid])
@@ -80,7 +79,7 @@ export const QuickEditChat = ({
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
 
-	return <div ref={sizerRef} style={{ maxWidth: 500 }} className={`py-2 w-full`}>
+	return <div ref={sizerRef} style={{ maxWidth: 450 }} className={`py-2 w-full`}>
 		<form
 			// copied from SidebarChat.tsx
 			className={`
@@ -146,8 +145,8 @@ export const QuickEditChat = ({
 					{/* X button */}
 					<div className='absolute -top-1 -right-1 cursor-pointer z-1'>
 						<IconX
-							size={16}
-							className="p-[1px] stroke-[2] opacity-80 text-void-fg-3 hover:brightness-95"
+							size={12}
+							className="stroke-[2] opacity-80 text-void-fg-3 hover:brightness-95"
 							onClick={onX}
 						/>
 					</div>

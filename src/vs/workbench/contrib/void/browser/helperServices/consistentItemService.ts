@@ -91,10 +91,7 @@ export class ConsistentItemService extends Disposable {
 		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
 
 		// when an editor is deleted, remove its items
-		this._register(this._editorService.onCodeEditorRemove(editor => {
-			removeItemsFromEditor(editor)
-		}))
-
+		this._register(this._editorService.onCodeEditorRemove(editor => { removeItemsFromEditor(editor) }))
 	}
 
 
@@ -127,8 +124,6 @@ export class ConsistentItemService extends Disposable {
 
 		const editorId = editor.getId()
 		this.itemIdsOfEditorId[editorId]?.delete(itemId)
-		if (this.itemIdsOfEditorId[editorId]?.size === 0)
-			delete this.itemIdsOfEditorId[editorId]
 
 		this.disposeFnOfItemId[itemId]?.()
 		delete this.disposeFnOfItemId[itemId]
@@ -175,8 +170,6 @@ export class ConsistentItemService extends Disposable {
 
 		// clear
 		this.consistentItemIdsOfURI[uri.fsPath]?.delete(consistentItemId)
-		if (this.consistentItemIdsOfURI[uri.fsPath]?.size === 0)
-			delete this.consistentItemIdsOfURI[uri.fsPath]
 
 		delete this.infoOfConsistentItemId[consistentItemId]
 

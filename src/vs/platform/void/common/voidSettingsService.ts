@@ -115,8 +115,13 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		this.waitForInitState = new Promise((res, rej) => resolver = res)
 
 		// read and update the actual state immediately
-		this._readState().then(s => {
-			this.state = s
+		this._readState().then(readS => {
+
+			// THIS IS A HACK BECAUSE WE ADDED DEEPSEEK
+			const deepseekAdd = { deepseek: defaultSettingsOfProvider['deepseek'] }
+			readS = { ...readS, settingsOfProvider: { ...deepseekAdd, ...readS.settingsOfProvider, } }
+
+			this.state = readS
 			resolver()
 			this._onDidChangeState.fire('all')
 		})

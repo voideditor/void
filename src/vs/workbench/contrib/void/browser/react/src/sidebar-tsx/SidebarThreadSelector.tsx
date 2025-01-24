@@ -104,6 +104,7 @@ export const SidebarThreadSelector = () => {
 										flex items-center
 									`}
 										onClick={() => chatThreadsService.switchToThread(pastThread.id)}
+										onDoubleClick={() => sidebarStateService.setState({ isHistoryOpen: false })}
 										title={new Date(pastThread.createdAt).toLocaleString()}
 									>
 										<div className='truncate'>{`${firstMsg}`}</div>

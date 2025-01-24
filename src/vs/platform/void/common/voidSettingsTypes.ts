@@ -77,6 +77,11 @@ export const defaultOpenAIModels = modelInfoOfDefaultNames([
 	// 'gpt-3.5-turbo-1106',
 ])
 
+// https://platform.openai.com/docs/models/gp
+export const defaultDeepseekModels = modelInfoOfDefaultNames([
+	'deepseek-chat',
+	'deepseek-reasoner',
+])
 
 
 // https://console.groq.com/docs/models
@@ -139,6 +144,9 @@ export const defaultProviderSettings = {
 		apiKey: '',
 	},
 	openAI: {
+		apiKey: '',
+	},
+	deepseek: {
 		apiKey: '',
 	},
 	ollama: {
@@ -212,6 +220,11 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 			title: 'OpenAI',
 		}
 	}
+	else if (providerName === 'deepseek') {
+		return {
+			title: 'DeepSeek',
+		}
+	}
 	else if (providerName === 'openRouter') {
 		return {
 			title: 'OpenRouter',
@@ -258,21 +271,23 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			title: 'API Key',
 			placeholder: providerName === 'anthropic' ? 'sk-ant-key...' : // sk-ant-api03-key
 				providerName === 'openAI' ? 'sk-proj-key...' :
-					providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
-						providerName === 'gemini' ? 'key...' :
-							providerName === 'groq' ? 'gsk_key...' :
-								providerName === 'mistral' ? 'api-key...' :
-									providerName === 'openAICompatible' ? 'sk-key...' :
-										'(never)',
+					providerName === 'deepseek' ? 'sk-...' :
+						providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
+							providerName === 'gemini' ? 'key...' :
+								providerName === 'groq' ? 'gsk_key...' :
+									providerName === 'mistral' ? 'api-key...' :
+										providerName === 'openAICompatible' ? 'sk-key...' :
+											'',
 
 			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
 				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
-					providerName === 'openRouter' ? 'Get your [API Key here](https://openrouter.ai/settings/keys).' :
-						providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
-							providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
-								providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys/).' :
-									providerName === 'openAICompatible' ? undefined :
-										undefined,
+					providerName === 'deepseek' ? 'Get your [API Key here](https://platform.deepseek.com/api_keys).' :
+						providerName === 'openRouter' ? 'Get your [API Key here](https://openrouter.ai/settings/keys).' :
+							providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
+								providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
+									providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys/).' :
+										providerName === 'openAICompatible' ? undefined :
+											'',
 		}
 	}
 	else if (settingName === 'endpoint') {
@@ -323,6 +338,9 @@ export const voidInitModelOptions = {
 	openAI: {
 		models: defaultOpenAIModels,
 	},
+	deepseek: {
+		models: defaultDeepseekModels,
+	},
 	ollama: {
 		models: [],
 	},
@@ -357,6 +375,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
+	},
+	deepseek: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.deepseek,
+		...voidInitModelOptions.deepseek,
+		_enabled: undefined,
 	},
 	gemini: {
 		...defaultCustomSettings,

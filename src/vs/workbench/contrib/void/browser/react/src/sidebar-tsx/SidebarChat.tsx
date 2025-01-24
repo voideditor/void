@@ -3,32 +3,23 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState } from '../util/services.js';
-import { ChatMessage, CodeSelection, CodeStagingSelection } from '../../../chatThreadService.js';
+import { ChatMessage, StagingSelectionItem } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
-import { EndOfLinePreference } from '../../../../../../../editor/common/model.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { OnError, ServiceSendLLMMessageParams } from '../../../../../../../platform/void/common/llmMessageTypes.js';
-import { HistoryInputBox, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
-import { TextAreaFns, VoidCodeEditorProps, VoidInputBox2 } from '../util/inputs.js';
+import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { ModelDropdown, WarningBox } from '../void-settings-tsx/ModelDropdown.js';
-import { chat_systemMessage, chat_prompt } from '../../../prompt/prompts.js';
-import { ISidebarStateService } from '../../../sidebarStateService.js';
-import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
-import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
-import { ArrowBigLeftDash, CopyX, Delete, FileX2, SquareX, X } from 'lucide-react';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
-import { Pencil } from 'lucide-react'
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 
 
@@ -261,8 +252,8 @@ const getBasename = (pathStr: string) => {
 
 export const SelectedFiles = (
 	{ type, selections, setSelections, showProspectiveSelections }:
-		| { type: 'past', selections: CodeSelection[]; setSelections?: undefined, showProspectiveSelections?: undefined }
-		| { type: 'staging', selections: CodeStagingSelection[]; setSelections: ((newSelections: CodeStagingSelection[]) => void), showProspectiveSelections?: boolean }
+		| { type: 'past', selections: StagingSelectionItem[]; setSelections?: undefined, showProspectiveSelections?: undefined }
+		| { type: 'staging', selections: StagingSelectionItem[]; setSelections: ((newSelections: StagingSelectionItem[]) => void), showProspectiveSelections?: boolean }
 ) => {
 
 	// index -> isOpened
@@ -287,11 +278,11 @@ export const SelectedFiles = (
 			return withCurrent.slice(0, maxRecentUris)
 		})
 	}, [currentUri])
-	let prospectiveSelections: CodeStagingSelection[] = []
+	let prospectiveSelections: StagingSelectionItem[] = []
 	if (type === 'staging' && showProspectiveSelections) { // handle prospective files
 		// add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
 		prospectiveSelections = recentUris
-			.filter(uri => !selections.find(s => s.range === null && s.fileURI.fsPath === uri.fsPath))
+			.filter(uri => !selections.find(s => s.type === 'File' && s.fileURI.fsPath === uri.fsPath))
 			.slice(0, maxProspectiveFiles)
 			.map(uri => ({
 				type: 'File',
@@ -325,7 +316,7 @@ export const SelectedFiles = (
 				>
 					{/* selection summary */}
 					<div // container for item and its delete button (if it's last)
-						className='flex items-center gap-1 mr-0.5 mb-0.5'
+						className='flex items-center gap-1 mr-0.5 my-0.5'
 					>
 						<div // styled summary box
 							className={`flex items-center gap-0.5 relative
@@ -339,7 +330,7 @@ export const SelectedFiles = (
 							onClick={() => {
 								if (isThisSelectionProspective) { // add prospective selection to selections
 									if (type !== 'staging') return; // (never)
-									setSelections([...selections, selection as CodeStagingSelection])
+									setSelections([...selections, selection])
 
 								} else if (isThisSelectionAFile) { // open files
 									commandService.executeCommand('vscode.open', selection.fileURI, {
@@ -380,7 +371,7 @@ export const SelectedFiles = (
 						</div>
 
 						{/* clear all selections button */}
-						{type !== 'staging' || selections.length === 0 || i !== selections.length - 1
+						{/* {type !== 'staging' || selections.length === 0 || i !== selections.length - 1
 							? null
 							: <div className={`flex items-center ${isThisSelectionOpened ? 'w-full' : ''}`}>
 								<div
@@ -402,7 +393,7 @@ export const SelectedFiles = (
 									/>
 								</div>
 							</div>
-						}
+						} */}
 					</div>
 					{/* selection text */}
 					{isThisSelectionOpened &&
@@ -413,7 +404,7 @@ export const SelectedFiles = (
 							}}
 						>
 							<BlockCode
-								initValue={selection.selectionStr!}
+								initValue={selection.selectionStr}
 								language={filenameToVscodeLanguage(selection.fileURI.path)}
 								maxHeight={200}
 								showScrollbars={true}
@@ -423,9 +414,8 @@ export const SelectedFiles = (
 				</div>)
 
 				return <Fragment key={thisKey}>
-					{selections.length > 0 && i === selections.length &&
-						<div className='w-full'></div> // divider between `selections` and `prospectiveSelections`
-					}
+					{/* divider between `selections` and `prospectiveSelections` */}
+					{/* {selections.length > 0 && i === selections.length && <div className='w-full'></div>} */}
 					{selectionHTML}
 				</Fragment>
 
@@ -446,7 +436,7 @@ const ChatBubble_ = ({ isEditMode, isLoading, children, role }: { role: ChatMess
 		className={`
 		relative
 		${isEditMode ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full`
+				: role === 'user' ? `px-2 mt-4 self-end w-fit max-w-full`
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
 	`}
@@ -487,7 +477,7 @@ const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLo
 	const [isEditMode, setIsEditMode] = useState(false)
 
 
-	if (!chatMessage.content) { // don't show if empty
+	if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show)
 		return null
 	}
 
@@ -606,6 +596,13 @@ export const SidebarChat = () => {
 			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
 	}, [isHistoryOpen, currentThread.id])
 
+
+	const prevMessagesHTML = useMemo(() => {
+		return previousMessages.map((message, i) =>
+			<ChatBubble key={i} chatMessage={message} />
+		)
+	}, [previousMessages])
+
 	return <div
 		ref={sidebarRef}
 		className={`w-full h-full`}
@@ -622,16 +619,14 @@ export const SidebarChat = () => {
 			scrollContainerRef={scrollContainerRef}
 			className={`
 				w-full h-auto
-				flex flex-col gap-1
+				flex flex-col
 				overflow-x-hidden
 				overflow-y-auto
 			`}
 			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
 		>
 			{/* previous messages */}
-			{previousMessages.map((message, i) =>
-				<ChatBubble key={i} chatMessage={message} />
-			)}
+			{prevMessagesHTML}
 
 			{/* message stream */}
 			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isStreaming} />
@@ -675,7 +670,7 @@ export const SidebarChat = () => {
 				{/* top row */}
 				<>
 					{/* selections */}
-					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0}/>
+					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0} />
 				</>
 
 				{/* middle row */}

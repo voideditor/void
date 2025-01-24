@@ -79,18 +79,13 @@ class VoidUpdateWorkbenchContribution extends Disposable implements IWorkbenchCo
 		}
 
 		// check once 5 seconds after mount
-		this._register({
-			dispose: () => clearTimeout(
-				setTimeout(() => autoCheck(), 5 * 1000)
-			)
-		})
+
+		const initId = setTimeout(() => autoCheck(), 5 * 1000)
+		this._register({ dispose: () => clearTimeout(initId) })
 
 		// check every 3 hours
-		this._register({
-			dispose: () => clearInterval(
-				setInterval(() => autoCheck(), 3 * 60 * 60 * 1000)
-			)
-		})
+		const intervalId = setInterval(() => autoCheck(), 3 * 60 * 60 * 1000)
+		this._register({ dispose: () => clearInterval(intervalId) })
 
 	}
 }

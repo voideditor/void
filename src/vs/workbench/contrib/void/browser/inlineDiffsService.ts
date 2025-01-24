@@ -1350,15 +1350,25 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 
 		const latestStreamInfo = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+
+		// state used in onText:
+		let fullText = ''
+		let prevIgnoredSuffix = ''
+
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			useProviderFor: featureName,
 			logging: { loggingName: `startApplying - ${featureName}` },
 			messages,
-			onText: ({ newText, fullText }) => {
-				const [text, deltaText] = extractText(fullText, newText.length)
+			onText: ({ newText: newText_ }) => {
 
+				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
+				fullText += prevIgnoredSuffix + newText
+
+				const [text, deltaText, ignoredSuffix] = extractText(fullText, newText.length)
 				this._writeStreamedDiffZoneLLMText(diffZone, text, deltaText, latestStreamInfo)
 				this._refreshStylesAndDiffsInURI(uri)
+
+				prevIgnoredSuffix = ignoredSuffix
 			},
 			onFinalMessage: ({ fullText }) => {
 				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)

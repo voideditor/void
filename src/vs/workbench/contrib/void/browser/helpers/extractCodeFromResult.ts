@@ -98,30 +98,33 @@ class SurroundingsRemover {
 	}
 
 
-	actualRecentlyAdded = (recentlyAddedTextLen: number) => {
+	deltaInfo = (recentlyAddedTextLen: number) => {
 		// aaaaaatextaaaaaa{recentlyAdded}
-		//           i      ^        j
+		//                  ^   i    j    len
 		//                  |
 		//            recentyAddedIdx
-		const recentlyAddedIdx = this.j - recentlyAddedTextLen + 1
-		return this.originalS.substring(Math.max(this.i, recentlyAddedIdx), this.j + 1)
+		const recentlyAddedIdx = this.originalS.length - recentlyAddedTextLen
+		const actualDelta = this.originalS.substring(Math.max(this.i, recentlyAddedIdx), this.j + 1)
+		const ignoredSuffix = this.originalS.substring(Math.max(this.j + 1, recentlyAddedIdx), Infinity)
+		return [actualDelta, ignoredSuffix] as const
 	}
+
 
 
 }
 
 
 
-export const extractCodeFromRegular = ({ text, recentlyAddedTextLen }: { text: string, recentlyAddedTextLen: number }): [string, string] => {
+export const extractCodeFromRegular = ({ text, recentlyAddedTextLen }: { text: string, recentlyAddedTextLen: number }): [string, string, string] => {
 
 	const pm = new SurroundingsRemover(text)
 
 	pm.removeCodeBlock()
 
 	const s = pm.value()
-	const actual = pm.actualRecentlyAdded(recentlyAddedTextLen)
+	const [delta, ignoredSuffix] = pm.deltaInfo(recentlyAddedTextLen)
 
-	return [s, actual]
+	return [s, delta, ignoredSuffix]
 }
 
 
@@ -129,7 +132,7 @@ export const extractCodeFromRegular = ({ text, recentlyAddedTextLen }: { text: s
 
 
 // Ollama has its own FIM, we should not use this if we use that
-export const extractCodeFromFIM = ({ text, recentlyAddedTextLen, midTag, }: { text: string, recentlyAddedTextLen: number, midTag: string }): [string, string] => {
+export const extractCodeFromFIM = ({ text, recentlyAddedTextLen, midTag, }: { text: string, recentlyAddedTextLen: number, midTag: string }): [string, string, string] => {
 
 	/* ------------- summary of the regex -------------
 		[optional ` | `` | ```]
@@ -151,9 +154,9 @@ export const extractCodeFromFIM = ({ text, recentlyAddedTextLen, midTag, }: { te
 		pm.removeSuffix(`</${midTag}>`)
 	}
 	const s = pm.value()
-	const actual = pm.actualRecentlyAdded(recentlyAddedTextLen)
+	const [delta, ignoredSuffix] = pm.deltaInfo(recentlyAddedTextLen)
 
-	return [s, actual]
+	return [s, delta, ignoredSuffix]
 
 
 	// // const regex = /[\s\S]*?(?:`{1,3}\s*([a-zA-Z_]+[\w]*)?[\s\S]*?)?<MID>([\s\S]*?)(?:<\/MID>|`{1,3}|$)/;

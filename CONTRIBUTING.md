@@ -4,8 +4,9 @@ This is the official guide on how to contribute to Void. We want to make it as e
 
 There are a few ways to contribute:
 
-- 💫 Build new features - see [Issues](https://github.com/voideditor/void/issues).
+- 💫 Complete items on the [Roadmap](https://github.com/orgs/voideditor/projects/2).
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
+- 🪴 Start new Issues - see [Issues](https://github.com/voideditor/void/issues).
 
 
 

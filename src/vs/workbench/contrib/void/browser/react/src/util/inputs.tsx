@@ -687,6 +687,8 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 							// maxColumn: 0,
 						},
 
+						hover: { enabled: false },
+
 						selectionHighlight: false, // highlights whole words
 						renderLineHighlight: 'none',
 

@@ -69,6 +69,14 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 		});
 		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
 	}
+	else if (providerName === 'deepseek') {
+		const thisConfig = settingsOfProvider.deepseek
+		openai = new OpenAI({
+			baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		});
+		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
+
+	}
 	else if (providerName === 'openAICompatible') {
 		const thisConfig = settingsOfProvider.openAICompatible
 		openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true })

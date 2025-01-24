@@ -119,6 +119,7 @@ export const sendLLMMessage = ({
 				break;
 			case 'openAI':
 			case 'openRouter':
+			case 'deepseek':
 			case 'openAICompatible':
 				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;

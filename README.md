@@ -15,11 +15,11 @@ This repo contains the full sourcecode for Void. We are currently in [open beta]
 
 - 👋 [Discord](https://discord.gg/RSNjgaugJs)
 
+- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md)
+
 - 🚙 [Roadmap](https://github.com/orgs/voideditor/projects/2)
 
 - 📝 [Changelog](https://voideditor.com/changelog)
-
-- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md)
 
 
 ## Contributing

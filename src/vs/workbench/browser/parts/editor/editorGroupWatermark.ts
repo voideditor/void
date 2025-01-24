@@ -146,25 +146,6 @@ export class EditorGroupWatermark extends Disposable {
 
 
 	private render(): void {
-		// const enabled = this.configurationService.getValue<boolean>('workbench.tips.enabled');
-
-		// if (enabled === this.enabled) {
-		// 	return;
-		// }
-
-		// this.enabled = enabled;
-
-
-		// if (!enabled) {
-		// 	return;
-		// }
-
-		// const hasFolder = this.workbenchState !== WorkbenchState.EMPTY;
-		// const selected = (hasFolder ? folderEntries : noFolderEntries)
-		// 	.filter(entry => !('when' in entry) || this.contextKeyService.contextMatchesRules(entry.when))
-		// 	.filter(entry => !('mac' in entry) || entry.mac === (isMacintosh && !isWeb))
-		// 	.filter(entry => !!CommandsRegistry.getCommand(entry.id))
-		// 	.filter(entry => !!this.keybindingService.lookupKeybinding(entry.id));
 
 		this.clear();
 		const voidIconBox = append(this.shortcuts, $('.watermark-box'));
@@ -175,6 +156,10 @@ export class EditorGroupWatermark extends Disposable {
 
 
 		const update = async () => {
+
+			// put async at top so don't need to wait (this prevents a jitter on load)
+			const recentlyOpened = await this.workspacesService.getRecentlyOpened()
+				.catch(() => ({ files: [], workspaces: [] })).then(w => w.workspaces);
 
 			clearNode(voidIconBox);
 			clearNode(recentsBox);
@@ -206,10 +191,6 @@ export class EditorGroupWatermark extends Disposable {
 
 
 				// Recents
-				const recentlyOpened = await this.workspacesService.getRecentlyOpened()
-					.catch(() => ({ files: [], workspaces: [] })).then(w => w.workspaces);
-
-
 				if (recentlyOpened.length !== 0) {
 
 					voidIconBox.append(

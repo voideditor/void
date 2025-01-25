@@ -252,7 +252,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			title: 'API Key',
 			placeholder: providerName === 'anthropic' ? 'sk-ant-key...' : // sk-ant-api03-key
 				providerName === 'openAI' ? 'sk-proj-key...' :
-					providerName === 'deepseek' ? 'sk-...' :
+					providerName === 'deepseek' ? 'sk-key...' :
 						providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
 							providerName === 'gemini' ? 'key...' :
 								providerName === 'groq' ? 'gsk_key...' :

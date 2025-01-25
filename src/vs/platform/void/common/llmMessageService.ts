@@ -98,6 +98,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		}
 		const { providerName, modelName } = modelSelection
 
+		// add ai instructions here because we don't have access to voidSettingsService on the other side of the proxy
 		const aiInstructions = this.voidSettingsService.state.globalSettings.aiInstructions
 		if (aiInstructions)
 			proxyParams.messages.unshift({ role: 'system', content: aiInstructions })

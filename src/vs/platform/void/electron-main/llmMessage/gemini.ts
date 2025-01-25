@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { Content, GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
+import { Content, GoogleGenerativeAI } from '@google/generative-ai';
 import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
 
 // Gemini
@@ -16,22 +16,17 @@ export const sendGeminiMsg: _InternalSendLLMMessageFnType = async ({ messages, o
 	const genAI = new GoogleGenerativeAI(thisConfig.apiKey);
 	const model = genAI.getGenerativeModel({ model: modelName });
 
-	// remove system messages that get sent to Gemini
-	// str of all system messages
-	const systemMessage = messages
-		.filter(msg => msg.role === 'system')
-		.map(msg => msg.content)
-		.join('\n');
-
 	// Convert messages to Gemini format
 	const geminiMessages: Content[] = messages
-		.filter(msg => msg.role !== 'system')
 		.map((msg, i) => ({
 			parts: [{ text: msg.content }],
 			role: msg.role === 'assistant' ? 'model' : 'user'
 		}))
 
-	model.generateContentStream({ contents: geminiMessages, systemInstruction: systemMessage, })
+	model.generateContentStream({
+		// systemInstruction: systemMessage,
+		contents: geminiMessages,
+	})
 		.then(async response => {
 			_setAborter(() => response.stream.return(fullText))
 
@@ -43,11 +38,6 @@ export const sendGeminiMsg: _InternalSendLLMMessageFnType = async ({ messages, o
 			onFinalMessage({ fullText });
 		})
 		.catch((error) => {
-			if (error instanceof GoogleGenerativeAIFetchError && error.status === 400) {
-				onError({ message: 'Invalid API key.', fullError: null });
-			}
-			else {
-				onError({ message: error + '', fullError: error });
-			}
+			onError({ message: error + '', fullError: error })
 		})
 }

@@ -69,6 +69,14 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 		});
 		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
 	}
+	else if (providerName === 'deepseek') {
+		const thisConfig = settingsOfProvider.deepseek
+		openai = new OpenAI({
+			baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		});
+		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
+
+	}
 	else if (providerName === 'openAICompatible') {
 		const thisConfig = settingsOfProvider.openAICompatible
 		openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true })
@@ -79,7 +87,6 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 		throw new Error(`providerName was invalid: ${providerName}`)
 	}
 
-	openai.models.list()
 	openai.chat.completions
 		.create(options)
 		.then(async response => {
@@ -98,7 +105,7 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 				onError({ message: 'Invalid API key.', fullError: error });
 			}
 			else {
-				onError({ message: error, fullError: error });
+				onError({ message: error + '', fullError: error });
 			}
 		})
 

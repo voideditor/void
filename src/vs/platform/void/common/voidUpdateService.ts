@@ -33,7 +33,6 @@ export class VoidUpdateService implements IVoidUpdateService {
 	}
 
 
-
 	// anything transmitted over a channel must be async even if it looks like it doesn't have to be
 	check: IVoidUpdateService['check'] = async () => {
 		const res = await this.voidUpdateService.check()

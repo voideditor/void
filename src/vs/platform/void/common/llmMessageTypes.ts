@@ -30,6 +30,12 @@ export type LLMMessage = {
 	content: string;
 }
 
+export type _InternalLLMMessage = {
+	role: 'user' | 'assistant';
+	content: string;
+}
+
+
 export type ServiceSendLLMFeatureParams = {
 	useProviderFor: 'Ctrl+K';
 	range: IRange;
@@ -80,7 +86,7 @@ export type EventLLMMessageOnFinalMessageParams = Parameters<OnFinalMessage>[0] 
 export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId: string }
 
 export type _InternalSendLLMMessageFnType = (params: {
-	messages: LLMMessage[];
+	messages: _InternalLLMMessage[];
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;

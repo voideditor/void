@@ -121,10 +121,10 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				...readS,
 				settingsOfProvider: {
 					// A HACK BECAUSE WE ADDED DEEPSEEK (did not exist before, comes before readS)
-					...{ deepseek: defaultSettingsOfProvider['deepseek'] },
+					...{ deepseek: defaultSettingsOfProvider.deepseek },
 
 					// A HACK BECAUSE WE ADDED MISTRAL (did not exist before, comes before readS)
-					...{ deepseek: defaultSettingsOfProvider['deepseek'] },
+					...{ mistral: defaultSettingsOfProvider.mistral },
 
 					...readS.settingsOfProvider,
 

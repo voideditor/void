@@ -117,6 +117,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		// read and update the actual state immediately
 		this._readState().then(readS => {
 
+			// the stored data structure might be outdated, so we need to update it here (can do a more general solution later when we need to)
 			readS = {
 				...readS,
 				settingsOfProvider: {

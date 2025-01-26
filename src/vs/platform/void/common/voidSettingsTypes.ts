@@ -101,7 +101,16 @@ export const defaultGeminiModels = modelInfoOfDefaultNames([
 	'learnlm-1.5-pro-experimental'
 ])
 
-
+export const defaultMistralModels = modelInfoOfDefaultNames([
+	"codestral-latest",
+	"open-codestral-mamba",
+	"open-mistral-nemo",
+	"mistral-large-latest",
+	"pixtral-large-latest",
+	"ministral-3b-latest",
+	"ministral-8b-latest",
+	"mistral-small-latest",
+])
 
 // export const parseMaxTokensStr = (maxTokensStr: string) => {
 // 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
@@ -154,6 +163,9 @@ export const defaultProviderSettings = {
 		apiKey: '',
 	},
 	groq: {
+		apiKey: '',
+	},
+	mistral: {
 		apiKey: ''
 	}
 } as const
@@ -239,6 +251,11 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 			title: 'Groq',
 		}
 	}
+	else if (providerName === 'mistral') {
+		return {
+			title: 'Mistral',
+		}
+	}
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -252,14 +269,18 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	if (settingName === 'apiKey') {
 		return {
 			title: 'API Key',
+
+			// **Please follow this convention**:
+			// The word "key..." here is a placeholder for the hash. For example, sk-ant-key... means the key will look like sk-ant-abcdefg123...
 			placeholder: providerName === 'anthropic' ? 'sk-ant-key...' : // sk-ant-api03-key
 				providerName === 'openAI' ? 'sk-proj-key...' :
-					providerName === 'deepseek' ? 'sk-...' :
+					providerName === 'deepseek' ? 'sk-key...' :
 						providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
 							providerName === 'gemini' ? 'key...' :
 								providerName === 'groq' ? 'gsk_key...' :
-									providerName === 'openAICompatible' ? 'sk-key...' :
-										'',
+									providerName === 'mistral' ? 'key...' :
+										providerName === 'openAICompatible' ? 'sk-key...' :
+											'',
 
 			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
 				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
@@ -267,8 +288,9 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 						providerName === 'openRouter' ? 'Get your [API Key here](https://openrouter.ai/settings/keys).' :
 							providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 								providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
-									providerName === 'openAICompatible' ? 'Add any OpenAI-Compatible endpoint.' :
-										'',
+									providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys/).' :
+										providerName === 'openAICompatible' ? undefined :
+											'',
 		}
 	}
 	else if (settingName === 'endpoint') {
@@ -310,6 +332,8 @@ const defaultCustomSettings: Record<CustomSettingName, undefined> = {
 	endpoint: undefined,
 }
 
+
+
 export const voidInitModelOptions = {
 	anthropic: {
 		models: defaultAnthropicModels,
@@ -335,22 +359,25 @@ export const voidInitModelOptions = {
 	groq: {
 		models: defaultGroqModels,
 	},
+	mistral: {
+		models: defaultMistralModels,
+	}
 }
 
 
 // used when waiting and for a type reference
 export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
-		_enabled: undefined,
 		...defaultCustomSettings,
 		...defaultProviderSettings.anthropic,
 		...voidInitModelOptions.anthropic,
+		_enabled: undefined,
 	},
 	openAI: {
-		_enabled: undefined,
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
+		_enabled: undefined,
 	},
 	deepseek: {
 		...defaultCustomSettings,
@@ -388,6 +415,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...voidInitModelOptions.openAICompatible,
 		_enabled: undefined,
 	},
+	mistral: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.mistral,
+		...voidInitModelOptions.mistral,
+		_enabled: undefined,
+	}
 }
 
 

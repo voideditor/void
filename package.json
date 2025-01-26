@@ -81,6 +81,7 @@
     "@google/generative-ai": "^0.21.0",
     "@microsoft/1ds-core-js": "^3.2.13",
     "@microsoft/1ds-post-js": "^3.2.13",
+    "@mistralai/mistralai": "^1.4.0",
     "@parcel/watcher": "2.1.0",
     "@rrweb/record": "^2.0.0-alpha.17",
     "@rrweb/types": "^2.0.0-alpha.17",
@@ -132,7 +133,8 @@
     "vscode-regexpp": "^3.1.0",
     "vscode-textmate": "9.1.0",
     "yauzl": "^3.0.0",
-    "yazl": "^2.4.3"
+    "yazl": "^2.4.3",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.46.1",

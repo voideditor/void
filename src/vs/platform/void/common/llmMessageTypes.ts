@@ -108,13 +108,6 @@ export type _InternalSendLLMMessageFnType = (params: {
 
 
 
-
-
-
-
-
-
-
 // These are from 'ollama' SDK
 interface OllamaModelDetails {
 	parent_model: string;

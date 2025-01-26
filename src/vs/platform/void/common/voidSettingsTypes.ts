@@ -267,13 +267,16 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	if (settingName === 'apiKey') {
 		return {
 			title: 'API Key',
+
+			// **Please follow this convention**:
+			// The word "key..." here is a placeholder for the hash. For example, sk-ant-key means the key will look like sk-ant-abcdefg123...
 			placeholder: providerName === 'anthropic' ? 'sk-ant-key...' : // sk-ant-api03-key
 				providerName === 'openAI' ? 'sk-proj-key...' :
-					providerName === 'deepseek' ? 'sk-...' :
+					providerName === 'deepseek' ? 'sk-key...' :
 						providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
 							providerName === 'gemini' ? 'key...' :
 								providerName === 'groq' ? 'gsk_key...' :
-									providerName === 'mistral' ? 'api-key...' :
+									providerName === 'mistral' ? 'key...' :
 										providerName === 'openAICompatible' ? 'sk-key...' :
 											'',
 

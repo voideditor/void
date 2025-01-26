@@ -22,7 +22,7 @@ export const sendGroqMsg: _InternalSendLLMMessageFnType = async ({ messages, onT
 			messages: messages,
 			model: modelName,
 			stream: true,
-			temperature: 0.7,
+			// temperature: 0.7,
 			// max_tokens: parseMaxTokensStr(thisConfig.maxTokens),
 		})
 		.then(async response => {
@@ -30,10 +30,8 @@ export const sendGroqMsg: _InternalSendLLMMessageFnType = async ({ messages, onT
 			// when receive text
 			for await (const chunk of response) {
 				const newText = chunk.choices[0]?.delta?.content || '';
-				if (newText) {
-					fullText += newText;
-					onText({ newText, fullText });
-				}
+				fullText += newText;
+				onText({ newText, fullText });
 			}
 
 			onFinalMessage({ fullText });

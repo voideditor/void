@@ -117,9 +117,9 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		// read and update the actual state immediately
 		this._readState().then(readS => {
 
-			// THIS IS A HACK BECAUSE WE ADDED DEEPSEEK
-			const deepseekAdd = { deepseek: defaultSettingsOfProvider['deepseek'] }
-			readS = { ...readS, settingsOfProvider: { ...deepseekAdd, ...readS.settingsOfProvider, } }
+			// THIS IS A HACK BECAUSE WE ADDED DEEPSEEK AND MISTRAL
+			const additions = { deepseek: defaultSettingsOfProvider['deepseek'], mistral: defaultSettingsOfProvider['mistral'] }
+			readS = { ...readS, settingsOfProvider: { ...additions, ...readS.settingsOfProvider, } }
 
 			this.state = readS
 			resolver()

@@ -363,16 +363,16 @@ export const voidInitModelOptions = {
 // used when waiting and for a type reference
 export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
-		_enabled: undefined,
 		...defaultCustomSettings,
 		...defaultProviderSettings.anthropic,
 		...voidInitModelOptions.anthropic,
+		_enabled: undefined,
 	},
 	openAI: {
-		_enabled: undefined,
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
+		_enabled: undefined,
 	},
 	deepseek: {
 		...defaultCustomSettings,

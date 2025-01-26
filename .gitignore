@@ -22,4 +22,3 @@ product.overrides.json
 *.snap.actual
 .vscode-test
 .tmp/
-.tool-versions

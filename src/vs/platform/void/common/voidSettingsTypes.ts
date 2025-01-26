@@ -86,9 +86,10 @@ export const defaultDeepseekModels = modelInfoOfDefaultNames([
 
 // https://console.groq.com/docs/models
 export const defaultGroqModels = modelInfoOfDefaultNames([
-	"mixtral-8x7b-32768",
-	"llama2-70b-4096",
-	"gemma-7b-it"
+	"distil-whisper-large-v3-en",
+	"llama-3.3-70b-versatile",
+	"llama-3.1-8b-instant",
+	"gemma2-9b-it"
 ])
 
 

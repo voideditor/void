@@ -81,7 +81,7 @@
     "@google/generative-ai": "^0.21.0",
     "@microsoft/1ds-core-js": "^3.2.13",
     "@microsoft/1ds-post-js": "^3.2.13",
-    "@mistralai/mistralai": "^1.3.5",
+    "@mistralai/mistralai": "^1.4.0",
     "@parcel/watcher": "2.1.0",
     "@rrweb/record": "^2.0.0-alpha.17",
     "@rrweb/types": "^2.0.0-alpha.17",

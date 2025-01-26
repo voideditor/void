@@ -1,6 +1,6 @@
 # Contributing to Void
-### Welcome! 👋 
-This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord! 
+### Welcome! 👋
+This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
 There are a few ways to contribute:
 
@@ -12,7 +12,7 @@ There are a few ways to contribute:
 
 ### Codebase Guide
 
-We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization. 
+We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization.
 
 We are currently putting together our own articles on VSCode and Void's sourcecode organization. The best way to get this information right now is by attending a weekly meeting.
 
@@ -123,7 +123,7 @@ workspace/
 ```
 
 ### Distributing
-Void's maintainers distribute Void on our website and in releases. If you'd like to see the scripts to convert `Mac .app -> .dmg`, `Windows folder -> .exe`, and `Linux folder -> appimage` for distribution, feel free to reach out. 
+Void's maintainers distribute Void on our website and in releases. If you'd like to see the scripts to convert `Mac .app -> .dmg`, `Windows folder -> .exe`, and `Linux folder -> appimage` for distribution, feel free to reach out.
 
 ## Pull Request Guidelines
 

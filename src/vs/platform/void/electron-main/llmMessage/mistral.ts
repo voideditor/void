@@ -59,7 +59,6 @@ export const sendMistralMsg: _InternalSendLLMMessageFnType = async ({ messages, 
 
 		// Convert messages for Mistral
 		const mistralMessages = messages
-			.filter(msg => msg.role !== 'system') // Ignore system messages
 			.map(msg => ({
 				role: msg.role === 'assistant' ? 'assistant' : 'user',
 				content: msg.content.trim()

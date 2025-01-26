@@ -100,16 +100,14 @@ export const defaultGeminiModels = modelInfoOfDefaultNames([
 ])
 
 export const defaultMistralModels = modelInfoOfDefaultNames([
+	"codestral-latest",
 	"open-codestral-mamba",
 	"open-mistral-nemo",
-	"pixtral-12b-2409",
 	"mistral-large-latest",
 	"pixtral-large-latest",
 	"ministral-3b-latest",
 	"ministral-8b-latest",
 	"mistral-small-latest",
-	"codestral-latest",
-	"mistral-embed"
 ])
 
 // export const parseMaxTokensStr = (maxTokensStr: string) => {

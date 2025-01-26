@@ -269,7 +269,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			title: 'API Key',
 
 			// **Please follow this convention**:
-			// The word "key..." here is a placeholder for the hash. For example, sk-ant-key means the key will look like sk-ant-abcdefg123...
+			// The word "key..." here is a placeholder for the hash. For example, sk-ant-key... means the key will look like sk-ant-abcdefg123...
 			placeholder: providerName === 'anthropic' ? 'sk-ant-key...' : // sk-ant-api03-key
 				providerName === 'openAI' ? 'sk-proj-key...' :
 					providerName === 'deepseek' ? 'sk-key...' :

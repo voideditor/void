@@ -5,11 +5,10 @@
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
-import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ITextModel } from '../../../../editor/common/model.js';
 import { Position } from '../../../../editor/common/core/position.js';
-import { InlineCompletion, InlineCompletionContext } from '../../../../editor/common/languages.js';
+import { InlineCompletion, InlineCompletionContext, LocationLink } from '../../../../editor/common/languages.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Range } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
@@ -19,6 +18,7 @@ import { EditorResourceAccessor } from '../../../common/editor.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { isWindows } from '../../../../base/common/platform.js';
+import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
 
@@ -499,7 +499,7 @@ const getAutocompletionMatchup = ({ prefix, autocompletion }: { prefix: string, 
 
 }
 
-const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo) => {
+const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantContext: string) => {
 
 	const { prefix, suffix, prefixToTheLeftOfCursor, suffixToTheRightOfCursor, suffixLines } = prefixAndSuffix
 
@@ -519,6 +519,8 @@ const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo) => {
 	} else {
 		predictionType = 'single-line'
 	}
+
+	llmPrefix = llmPrefix + '\n\n/* Relevant context:\n' + relevantContext + '\n*/\n'
 
 	// default parameters
 	let shouldGenerate = true
@@ -545,6 +547,9 @@ export interface IAutocompleteService {
 export const IAutocompleteService = createDecorator<IAutocompleteService>('AutocompleteService');
 
 export class AutocompleteService extends Disposable implements IAutocompleteService {
+
+	static readonly ID = 'void.autocompleteService'
+
 	_serviceBrand: undefined;
 
 	private _autocompletionId: number = 0;
@@ -562,10 +567,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		token: CancellationToken,
 	): Promise<InlineCompletion[]> {
 
-		const disabled = true
 		const testMode = false
-
-		if (disabled) return [];
 
 		const docUriStr = model.uri.toString();
 
@@ -670,7 +672,15 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			}
 		}
 
-		const { shouldGenerate, predictionType, stopTokens, llmPrefix, llmSuffix } = getCompletionOptions(prefixAndSuffix) // TODO use stop tokens
+
+		// NEW: gather relevant context from the code around the user's selection and definitions
+		const relevantContext = await this._gatherRelevantContextForPosition(
+			model,
+			position,
+			3, //recursion depth
+			1 // number of lines to view in each recursion
+		);
+		const { shouldGenerate, predictionType, llmPrefix, llmSuffix } = getCompletionOptions(prefixAndSuffix, relevantContext) // TODO use stop tokens
 
 		if (!shouldGenerate) return []
 
@@ -700,12 +710,14 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
-				prefix: llmPrefix,
-				suffix: llmSuffix,
-				stopTokens: stopTokens,
+				type: 'ollamaFIM',
+				// TODO: Incorporate relevant context directly into the prefix
+				messages: {
+					prefix: llmPrefix,
+					suffix: llmSuffix,
+				},
 				logging: { loggingName: 'Autocomplete' },
-				messages: [],
-				onText: async ({ newText, fullText }) => {
+				onText: async ({ fullText }) => {
 
 					newAutocompletion.insertText = fullText
 
@@ -735,7 +747,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					reject(message)
 				},
 				useProviderFor: 'Autocomplete',
-				range: { startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column },
 			})
 			newAutocompletion.requestId = requestId
 
@@ -770,6 +781,84 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 	}
 
+	// helper method to gather ~N lines above and below the user's current line,
+	// and recursively gather lines around any symbol definitions encountered.
+	private async _gatherRelevantContextForPosition(
+		model: ITextModel,
+		position: Position,
+		recursionDepth: number,
+		linesAround: number
+	): Promise<string> {
+		// We'll do a BFS-like approach: for each position or definition, gather lines around it,
+		// then attempt to find the definition of any symbols in that range, up to 'recursionDepth' times.
+
+		// A set of "key" strings to avoid repeating the same location or line chunk
+		const visitedRanges = new Set<string>();
+		const collectedSnippets: string[] = [];
+
+		// A queue of tasks, each being a tuple of: (model, position, depth)
+		const tasks: Array<{ model: ITextModel, position: Position, depth: number }> = [];
+		tasks.push({ model, position, depth: recursionDepth });
+
+		const getSnippetAroundLine = (model: ITextModel, lineNumber: number, linesAround: number): string => {
+			const startLine = Math.max(1, lineNumber - linesAround);
+			const endLine = Math.min(model.getLineCount(), lineNumber + linesAround);
+			const lines: string[] = [];
+			for (let i = startLine; i <= endLine; i++) {
+				lines.push(model.getLineContent(i));
+			}
+			return lines.join('\n');
+		};
+
+		while (tasks.length > 0) {
+			const { model: currentModel, position: currentPos, depth } = tasks.shift()!;
+
+			if (depth < 0) {
+				continue;
+			}
+
+			// Gather snippet around the current line
+			const snippet = getSnippetAroundLine(currentModel, currentPos.lineNumber, linesAround);
+			const snippetKey = `${currentModel.uri.toString()}:${currentPos.lineNumber}`;
+			if (!visitedRanges.has(snippetKey)) {
+				visitedRanges.add(snippetKey);
+				collectedSnippets.push(`-- Snippet around line ${currentPos.lineNumber} --\n${snippet}\n`);
+			}
+
+			// Attempt to gather definitions for the symbol at this position
+			// We just pick all definition providers and see if any has a definition
+			const providers = this._langFeatureService.definitionProvider.ordered(currentModel);
+			for (const provider of providers) {
+				try {
+					const definitions = await provider.provideDefinition(currentModel, currentPos, CancellationToken.None);
+					if (!definitions) continue;
+
+					// definitions can be a single LocationLink or an array
+					const defArray: LocationLink[] = Array.isArray(definitions) ? definitions : [definitions];
+					for (const def of defArray) {
+						if (!def.uri) continue;
+						if (typeof def.range === 'undefined') continue;
+						const definitionModel = this._modelService.getModel(def.uri);
+						if (!definitionModel) continue;
+
+						// We'll queue up a new task for that definition range
+						const defPos = new Position(def.range.startLineNumber, def.range.startColumn);
+						const defKey = `${def.uri.toString()}:${defPos.lineNumber}`;
+						if (!visitedRanges.has(defKey)) {
+							tasks.push({ model: definitionModel, position: defPos, depth: depth - 1 });
+						}
+					}
+				} catch (err) {
+					// If a provider fails, ignore
+				}
+			}
+		}
+
+		// Return the joined context
+		return collectedSnippets.join('\n');
+	}
+
+
 	constructor(
 		@ILanguageFeaturesService private _langFeatureService: ILanguageFeaturesService,
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
@@ -780,12 +869,14 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		this._langFeatureService.inlineCompletionsProvider.register('*', {
 			provideInlineCompletions: async (model, position, context, token) => {
+				console.log('AAAAAAAAA')
 				const items = await this._provideInlineCompletionItems(model, position, context, token)
 
 				// console.log('item: ', items?.[0]?.insertText)
 				return { items: items, }
 			},
 			freeInlineCompletions: (completions) => {
+				console.log('BBBBBBBB')
 
 				// get the `docUriStr` and the `position` of the cursor
 				const activePane = this._editorService.activeEditorPane;
@@ -807,9 +898,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				// autocompletion.prefix + autocompletion.insertedText ~== insertedText
 				completions.items.forEach(item => {
 					this._autocompletionsOfDocument[docUriStr].items.forEach((autocompletion: Autocompletion) => {
-						if (removeLeftTabsAndTrimEnds(prefix)
-							=== removeLeftTabsAndTrimEnds(autocompletion.prefix + autocompletion.insertText)
-						) {
+						if (removeLeftTabsAndTrimEnds(prefix) === removeLeftTabsAndTrimEnds(autocompletion.prefix + autocompletion.insertText)) {
 							this._autocompletionsOfDocument[docUriStr].delete(autocompletion.id);
 						}
 					});
@@ -822,7 +911,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 }
 
+registerWorkbenchContribution2(AutocompleteService.ID, AutocompleteService, WorkbenchPhase.BlockRestore);
 
-registerSingleton(IAutocompleteService, AutocompleteService, InstantiationType.Eager);
 
 

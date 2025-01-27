@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { LLMMMessageParams, OnText, OnFinalMessage, OnError, LLMMessage, _InternalLLMMessage } from '../../common/llmMessageTypes.js';
+import { SendLLMMMessageParams, OnText, OnFinalMessage, OnError, LLMMessage, _InternalLLMMessage } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 
 import { sendAnthropicMsg } from './anthropic.js';
@@ -48,6 +48,8 @@ const cleanMessages = (messages: LLMMessage[]): _InternalLLMMessage[] => {
 
 
 export const sendLLMMessage = ({
+	type,
+	aiInstructions,
 	messages: messages_,
 	onText: onText_,
 	onFinalMessage: onFinalMessage_,
@@ -57,21 +59,31 @@ export const sendLLMMessage = ({
 	settingsOfProvider,
 	providerName,
 	modelName,
-}: LLMMMessageParams,
+}: SendLLMMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
-	const messages = cleanMessages(messages_)
+	messages.unshift({ role: 'system', content: aiInstructions })
+
+	const messages = type === 'sendLLMMessage' ? cleanMessages(messages_) : []
+
+
+	const prefixAndSuffix = type === 'ollamaFIM' ? messages_ : null
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
-	const captureChatEvent = (eventId: string, extras?: object) => {
+	const captureLLMEvent = (eventId: string, extras?: object) => {
 		metricsService.capture(eventId, {
 			providerName,
 			modelName,
-			numMessages: messages?.length,
-			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
-			origNumMessages: messages_?.length,
-			origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
+			...type === 'sendLLMMessage' ? {
+				numMessages: messages?.length,
+				messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
+				origNumMessages: messages_?.length,
+				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
+
+			} : type === 'ollamaFIM' ? {
+
+			} : {},
 
 			...extras,
 		})
@@ -91,26 +103,26 @@ export const sendLLMMessage = ({
 
 	const onFinalMessage: OnFinalMessage = ({ fullText }) => {
 		if (_didAbort) return
-		captureChatEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
 		onFinalMessage_({ fullText })
 	}
 
 	const onError: OnError = ({ message: error, fullError }) => {
 		if (_didAbort) return
 		console.error('sendLLMMessage onError:', error)
-		captureChatEvent(`${loggingName} - Error`, { error })
+		captureLLMEvent(`${loggingName} - Error`, { error })
 		onError_({ message: error, fullError })
 	}
 
 	const onAbort = () => {
-		captureChatEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
+		captureLLMEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
 		try { _aborter?.() } // aborter sometimes automatically throws an error
 		catch (e) { }
 		_didAbort = true
 	}
 	abortRef_.current = onAbort
 
-	captureChatEvent(`${loggingName} - Sending Message`, { messageLength: messages[messages.length - 1]?.content.length })
+	captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messages[messages.length - 1]?.content.length })
 
 	try {
 		switch (providerName) {

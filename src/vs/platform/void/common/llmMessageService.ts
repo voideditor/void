@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainLLMMessageParams, MainLLMMessageAbortParams, ServiceModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, MainModelListParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from './llmMessageTypes.js';
+import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainSendLLMMessageParams, MainLLMMessageAbortParams, ServiceModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, MainModelListParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from './llmMessageTypes.js';
 import { IChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
@@ -96,31 +96,29 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			onError({ message: 'Please add a Provider in Settings!', fullError: null })
 			return null
 		}
+
 		const { providerName, modelName } = modelSelection
 
-		// add ai instructions here because we don't have access to voidSettingsService on the other side of the proxy
-		const aiInstructions = this.voidSettingsService.state.globalSettings.aiInstructions
-		if (aiInstructions)
-			proxyParams.messages.unshift({ role: 'system', content: aiInstructions })
-
 		// add state for request id
-		const requestId_ = generateUuid();
-		this.onTextHooks_llm[requestId_] = onText
-		this.onFinalMessageHooks_llm[requestId_] = onFinalMessage
-		this.onErrorHooks_llm[requestId_] = onError
+		const requestId = generateUuid();
+		this.onTextHooks_llm[requestId] = onText
+		this.onFinalMessageHooks_llm[requestId] = onFinalMessage
+		this.onErrorHooks_llm[requestId] = onError
 
+		const { aiInstructions } = this.voidSettingsService.state.globalSettings
 		const { settingsOfProvider } = this.voidSettingsService.state
 
 		// params will be stripped of all its functions over the IPC channel
 		this.channel.call('sendLLMMessage', {
 			...proxyParams,
-			requestId: requestId_,
+			aiInstructions,
+			requestId,
 			providerName,
 			modelName,
 			settingsOfProvider,
-		} satisfies MainLLMMessageParams);
+		} satisfies MainSendLLMMessageParams);
 
-		return requestId_
+		return requestId
 	}
 
 
@@ -146,6 +144,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			requestId: requestId_,
 		} satisfies MainModelListParams<OllamaModelResponse>)
 	}
+
 
 	openAICompatibleList = (params: ServiceModelListParams<OpenaiCompatibleModelResponse>) => {
 		const { onSuccess, onError, ...proxyParams } = params

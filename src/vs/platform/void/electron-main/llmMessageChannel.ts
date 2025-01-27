@@ -8,7 +8,7 @@
 
 import { IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { Emitter, Event } from '../../../base/common/event.js';
-import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, MainLLMMessageParams, AbortRef, LLMMMessageParams, MainLLMMessageAbortParams, MainModelListParams, ModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from '../common/llmMessageTypes.js';
+import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, MainSendLLMMessageParams, AbortRef, SendLLMMMessageParams, MainLLMMessageAbortParams, MainModelListParams, ModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from '../common/llmMessageTypes.js';
 import { sendLLMMessage } from './llmMessage/sendLLMMessage.js'
 import { IMetricsService } from '../common/metricsService.js';
 import { ollamaList } from './llmMessage/ollama.js';
@@ -91,13 +91,13 @@ export class LLMMessageChannel implements IServerChannel {
 	}
 
 	// the only place sendLLMMessage is actually called
-	private async _callSendLLMMessage(params: MainLLMMessageParams) {
+	private async _callSendLLMMessage(params: MainSendLLMMessageParams) {
 		const { requestId } = params;
 
 		if (!(requestId in this._abortRefOfRequestId_llm))
 			this._abortRefOfRequestId_llm[requestId] = { current: null }
 
-		const mainThreadParams: LLMMMessageParams = {
+		const mainThreadParams: SendLLMMMessageParams = {
 			...params,
 			onText: ({ newText, fullText }) => { this._onText_llm.fire({ requestId, newText, fullText }); },
 			onFinalMessage: ({ fullText }) => { this._onFinalMessage_llm.fire({ requestId, fullText }); },

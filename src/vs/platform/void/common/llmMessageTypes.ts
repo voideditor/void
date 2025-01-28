@@ -34,16 +34,18 @@ export type _InternalLLMMessage = {
 	content: string;
 }
 
+type _InternalOllamaFIMMessages = {
+	prefix: string;
+	suffix: string;
+	stopTokens: string[];
+}
 
 type SendLLMType = {
 	type: 'sendLLMMessage';
 	messages: LLMMessage[];
 } | {
 	type: 'ollamaFIM';
-	messages: {
-		prefix: string;
-		suffix: string;
-	}
+	messages: _InternalOllamaFIMMessages;
 }
 
 // service types
@@ -56,7 +58,7 @@ export type ServiceSendLLMMessageParams = {
 } & SendLLMType
 
 // params to the true sendLLMMessage function
-export type SendLLMMMessageParams = {
+export type SendLLMMessageParams = {
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
@@ -74,7 +76,7 @@ export type SendLLMMMessageParams = {
 
 // can't send functions across a proxy, use listeners instead
 export type BlockedMainLLMMessageParams = 'onText' | 'onFinalMessage' | 'onError' | 'abortRef'
-export type MainSendLLMMessageParams = Omit<SendLLMMMessageParams, BlockedMainLLMMessageParams> & { requestId: string } & SendLLMType
+export type MainSendLLMMessageParams = Omit<SendLLMMessageParams, BlockedMainLLMMessageParams> & { requestId: string } & SendLLMType
 
 export type MainLLMMessageAbortParams = { requestId: string }
 
@@ -82,18 +84,32 @@ export type EventLLMMessageOnTextParams = Parameters<OnText>[0] & { requestId: s
 export type EventLLMMessageOnFinalMessageParams = Parameters<OnFinalMessage>[0] & { requestId: string }
 export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId: string }
 
+
 export type _InternalSendLLMMessageFnType = (
 	params: {
 		onText: OnText;
 		onFinalMessage: OnFinalMessage;
 		onError: OnError;
-		messages: _InternalLLMMessage[];
-
-		settingsOfProvider: SettingsOfProvider;
 		providerName: ProviderName;
+		settingsOfProvider: SettingsOfProvider;
 		modelName: string;
-
 		_setAborter: (aborter: () => void) => void;
+
+		messages: _InternalLLMMessage[];
+	}
+) => void
+
+export type _InternalOllamaFIMMessageFnType = (
+	params: {
+		onText: OnText;
+		onFinalMessage: OnFinalMessage;
+		onError: OnError;
+		providerName: ProviderName;
+		settingsOfProvider: SettingsOfProvider;
+		modelName: string;
+		_setAborter: (aborter: () => void) => void;
+
+		messages: _InternalOllamaFIMMessages;
 	}
 ) => void
 

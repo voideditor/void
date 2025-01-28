@@ -135,6 +135,12 @@ class LRUCache<K, V> {
 	}
 }
 
+type AutocompletionPredictionType =
+	| 'single-line-fill-middle'
+	| 'single-line-redo-suffix'
+	// | 'multi-line-start-here'
+	| 'multi-line-start-on-next-line'
+	| 'do-not-predict'
 
 type Autocompletion = {
 	id: number,
@@ -145,7 +151,7 @@ type Autocompletion = {
 	startTime: number,
 	endTime: number | undefined,
 	status: 'pending' | 'finished' | 'error',
-	type: 'single-line' | 'single-line-redo-suffix' | 'multi-line'
+	type: AutocompletionPredictionType,
 	llmPromise: Promise<string> | undefined,
 	insertText: string,
 	requestId: string | null,
@@ -345,24 +351,25 @@ const postprocessAutocompletion = ({ autocompletionMatchup, autocompletion, pref
 // returns the text in the autocompletion to display, assuming the prefix is already matched
 const toInlineCompletions = ({ autocompletionMatchup, autocompletion, prefixAndSuffix, position, debug }: { autocompletionMatchup: AutocompletionMatchupBounds, autocompletion: Autocompletion, prefixAndSuffix: PrefixAndSuffixInfo, position: Position, debug?: boolean }): { insertText: string, range: Range }[] => {
 
-	// postprocess the insertText
 	let trimmedInsertText = postprocessAutocompletion({ autocompletionMatchup, autocompletion, prefixAndSuffix, })
-
-	// postprocess `rangeToReplace`
 	let rangeToReplace: Range = new Range(position.lineNumber, position.column, position.lineNumber, position.column)
-	if (autocompletion.type === 'single-line-redo-suffix' // did we redo the line? if so, replace the whole suffix
+
+	// handle special cases
+
+	// if we are predicting starting on the next line, add a newline character
+	if (autocompletion.type === 'multi-line-start-on-next-line') {
+		trimmedInsertText = _ln + trimmedInsertText
+	}
+	// if we redid the suffix, replace the suffix
+	if (autocompletion.type === 'single-line-redo-suffix'
 		&& isSubsequence({ // check that the old text contains the same brackets + symbols as the new text
 			subsequence: removeAllWhitespace(prefixAndSuffix.suffixToTheRightOfCursor),
-			of: removeAllWhitespace(autocompletion.insertText), // should not be `trimmedInsertText`
+			of: removeAllWhitespace(autocompletion.insertText), // note that this should not be `trimmedInsertText`
 		})
 	) {
 		rangeToReplace = new Range(position.lineNumber, position.column, position.lineNumber, Number.MAX_SAFE_INTEGER)
-	} else { // did not matchup, do not show the autocompletion
-		return [{
-			insertText: '',
-			range: rangeToReplace
-		}]
 	}
+
 
 	return [{
 		insertText: trimmedInsertText,
@@ -499,44 +506,86 @@ const getAutocompletionMatchup = ({ prefix, autocompletion }: { prefix: string, 
 
 }
 
-const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantContext: string) => {
+// const x = []
+// const
+// c[[]]
+// asd[[]] =
+// const [{{}}]
+//
+type CompletionOptions = {
+	predictionType: AutocompletionPredictionType,
+	shouldGenerate: boolean,
+	llmPrefix: string,
+	llmSuffix: string,
+	stopTokens: string[],
+}
+const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantContext: string, justAcceptedAutocompletion: boolean): CompletionOptions => {
 
 	const { prefix, suffix, prefixToTheLeftOfCursor, suffixToTheRightOfCursor, suffixLines } = prefixAndSuffix
 
-	// single line prediction unless the current line is blank
-	let predictionType: Autocompletion['type']
-	let llmPrefix = prefix
-	let llmSuffix = suffix
+	let completionOptions: CompletionOptions
 
-	if (!prefixToTheLeftOfCursor.trim() && !suffixToTheRightOfCursor.trim()) { // line is empty
-		predictionType = 'multi-line'
+	// if line is empty, do multiline completion
+	const isLineEmpty = !prefixToTheLeftOfCursor.trim() && !suffixToTheRightOfCursor.trim()
+	const isLinePrefixEmpty = removeAllWhitespace(prefixToTheLeftOfCursor).length === 0
+	const isLineSuffixEmpty = removeAllWhitespace(suffixToTheRightOfCursor).length === 0
 
-	} else if (removeAllWhitespace(prefixAndSuffix.suffixToTheRightOfCursor).length < 4) { // suffix is less than 4 characters
-		predictionType = 'single-line-redo-suffix'
+	// TODO add context to prefix
+	// llmPrefix = '\n\n/* Relevant context:\n' + relevantContext + '\n*/\n' + llmPrefix
+
+	// if we just accepted an autocompletion, predict a multiline completion starting on the next line
+	if (justAcceptedAutocompletion && isLineSuffixEmpty) {
+		const prefixWithNewline = prefix + _ln
+		completionOptions = {
+			predictionType: 'multi-line-start-on-next-line',
+			shouldGenerate: true,
+			llmPrefix: prefixWithNewline,
+			llmSuffix: suffix,
+			stopTokens: [`${_ln}${_ln}`] // double newlines
+		}
+	}
+	// if the current line is empty, predict a single-line completion
+	else if (isLineEmpty) {
+		completionOptions = {
+			predictionType: 'single-line-fill-middle',
+			shouldGenerate: true,
+			llmPrefix: prefix,
+			llmSuffix: suffix,
+			stopTokens: allLinebreakSymbols
+		}
+	}
+	// if suffix is 3 or less characters, attempt to complete the line ignorning it
+	else if (removeAllWhitespace(suffixToTheRightOfCursor).length <= 3) {
 		const suffixLinesIgnoringThisLine = suffixLines.slice(1)
-		llmSuffix = suffixLinesIgnoringThisLine.length === 0 ? '' : _ln + suffixLinesIgnoringThisLine.join(_ln)
-
+		const suffixStringIgnoringThisLine = suffixLinesIgnoringThisLine.length === 0 ? '' : _ln + suffixLinesIgnoringThisLine.join(_ln)
+		completionOptions = {
+			predictionType: 'single-line-redo-suffix',
+			shouldGenerate: true,
+			llmPrefix: prefix,
+			llmSuffix: suffixStringIgnoringThisLine,
+			stopTokens: allLinebreakSymbols
+		}
+	}
+	// else attempt to complete the middle of the line if there is a prefix (the completion looks bad if there is no prefix)
+	else if (!isLinePrefixEmpty) {
+		completionOptions = {
+			predictionType: 'single-line-fill-middle',
+			shouldGenerate: true,
+			llmPrefix: prefix,
+			llmSuffix: suffix,
+			stopTokens: allLinebreakSymbols
+		}
 	} else {
-		predictionType = 'single-line'
+		completionOptions = {
+			predictionType: 'do-not-predict',
+			shouldGenerate: false,
+			llmPrefix: prefix,
+			llmSuffix: suffix,
+			stopTokens: []
+		}
 	}
 
-	llmPrefix = llmPrefix + '\n\n/* Relevant context:\n' + relevantContext + '\n*/\n'
-
-	// default parameters
-	let shouldGenerate = true
-	let stopTokens: string[] = allLinebreakSymbols // default to multi-line prediction
-
-	// Case 1: User is on a line with text to the left or right
-	if (prefixToTheLeftOfCursor.trim() !== '' || suffixToTheRightOfCursor.trim() !== '') {
-		stopTokens = allLinebreakSymbols // single line prediction
-	}
-
-	// Don't generate if at the very beginning of a line
-	if (prefixToTheLeftOfCursor === '') {
-		shouldGenerate = false
-	}
-
-	return { shouldGenerate, predictionType, stopTokens, llmPrefix, llmSuffix }
+	return completionOptions
 
 }
 
@@ -555,8 +604,9 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 	private _autocompletionId: number = 0;
 	private _autocompletionsOfDocument: { [docUriStr: string]: LRUCache<number, Autocompletion> } = {}
 
-	private _lastCompletionTime = 0
-	private _lastPrefix: string = ''
+	private _lastCompletionStart = 0
+	private _lastCompletionAccept = 0
+	// private _lastPrefix: string = ''
 
 	// used internally by vscode
 	// fires after every keystroke and returns the completion to show
@@ -566,6 +616,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		context: InlineCompletionContext,
 		token: CancellationToken,
 	): Promise<InlineCompletion[]> {
+
+		console.log('START1')
 
 		const testMode = false
 
@@ -585,7 +637,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				}
 			)
 		}
-		this._lastPrefix = prefix
+		// this._lastPrefix = prefix
+		console.log('START2')
 
 		// print all pending autocompletions
 		// let _numPending = 0
@@ -604,19 +657,24 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			}
 		}
 
+		console.log('START3')
+
 		// if there is a cached autocompletion, return it
 		if (cachedAutocompletion && autocompletionMatchup) {
+
+			console.log('AAA')
+
 
 			// console.log('id: ' + cachedAutocompletion.id)
 
 			if (cachedAutocompletion.status === 'finished') {
-				// console.log('A1')
+				console.log('A1')
 
 				const inlineCompletions = toInlineCompletions({ autocompletionMatchup, autocompletion: cachedAutocompletion, prefixAndSuffix, position, debug: true })
 				return inlineCompletions
 
 			} else if (cachedAutocompletion.status === 'pending') {
-				// console.log('A2')
+				console.log('A2')
 
 				try {
 					await cachedAutocompletion.llmPromise;
@@ -629,7 +687,9 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				}
 
 			} else if (cachedAutocompletion.status === 'error') {
-				// console.log('A3')
+				console.log('A3')
+			} else {
+				console.log('A4')
 			}
 
 			return []
@@ -638,10 +698,10 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		// else if no more typing happens, then go forwards with the request
 		// wait DEBOUNCE_TIME for the user to stop typing
 		const thisTime = Date.now()
-		this._lastCompletionTime = thisTime
+		this._lastCompletionStart = thisTime
 		const didTypingHappenDuringDebounce = await new Promise((resolve, reject) =>
 			setTimeout(() => {
-				if (this._lastCompletionTime === thisTime) {
+				if (this._lastCompletionStart === thisTime) {
 					resolve(false)
 				} else {
 					resolve(true)
@@ -651,6 +711,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		// if more typing happened, then do not go forwards with the request
 		if (didTypingHappenDuringDebounce) {
+			console.log('START4')
+
 			return []
 		}
 
@@ -667,26 +729,32 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				if (numPending >= MAX_PENDING_REQUESTS) {
 					// cancel the oldest pending request and remove it from cache
 					this._autocompletionsOfDocument[docUriStr].delete(oldestPending.id)
+					console.log('START5')
 					break
 				}
 			}
 		}
 
+		console.log('START6')
 
-		// NEW: gather relevant context from the code around the user's selection and definitions
+		// gather relevant context from the code around the user's selection and definitions
 		const relevantContext = await this._gatherRelevantContextForPosition(
 			model,
 			position,
 			3, //recursion depth
 			1 // number of lines to view in each recursion
 		);
-		const { shouldGenerate, predictionType, llmPrefix, llmSuffix } = getCompletionOptions(prefixAndSuffix, relevantContext) // TODO use stop tokens
+		const justAcceptedAutocompletion = thisTime - this._lastCompletionAccept < 500
+
+		const { shouldGenerate, predictionType, llmPrefix, llmSuffix, stopTokens } = getCompletionOptions(prefixAndSuffix, relevantContext, justAcceptedAutocompletion)
 
 		if (!shouldGenerate) return []
 
 		if (testMode && this._autocompletionId !== 0) { // TODO remove this
 			return []
 		}
+
+
 
 		// console.log('B')
 
@@ -706,15 +774,20 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			requestId: null,
 		}
 
+		console.log('BBBBBBB')
+		console.log('PREFIX', JSON.stringify(llmPrefix))
+		console.log('SUFFIX', JSON.stringify(llmSuffix))
+		console.log('PREDICTION_TYPE', predictionType)
+
 		// set parameters of `newAutocompletion` appropriately
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
 				type: 'ollamaFIM',
-				// TODO: Incorporate relevant context directly into the prefix
 				messages: {
 					prefix: llmPrefix,
 					suffix: llmSuffix,
+					stopTokens: stopTokens,
 				},
 				logging: { loggingName: 'Autocomplete' },
 				onText: async ({ fullText }) => {
@@ -722,12 +795,13 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.insertText = fullText
 
 					// if generation doesn't match the prefix for the first few tokens generated, reject it
-					if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
-						reject('LLM response did not match user\'s text.')
-					}
+					// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
+					// reject('LLM response did not match user\'s text.')
+					// }
 				},
 				onFinalMessage: ({ fullText }) => {
 
+					console.log('FULL TEXT', JSON.stringify(fullText))
 					// newAutocompletion.prefix = prefix
 					// newAutocompletion.suffix = suffix
 					// newAutocompletion.startTime = Date.now()
@@ -737,6 +811,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					// newAutocompletion.promise = undefined
 					const [text, _] = extractCodeFromRegular({ text: fullText, recentlyAddedTextLen: 0 })
 					newAutocompletion.insertText = postprocessResult(text)
+
+					console.log('RESULT', JSON.stringify(newAutocompletion.insertText))
 
 					resolve(newAutocompletion.insertText)
 
@@ -869,14 +945,12 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		this._langFeatureService.inlineCompletionsProvider.register('*', {
 			provideInlineCompletions: async (model, position, context, token) => {
-				console.log('AAAAAAAAA')
 				const items = await this._provideInlineCompletionItems(model, position, context, token)
 
 				// console.log('item: ', items?.[0]?.insertText)
 				return { items: items, }
 			},
 			freeInlineCompletions: (completions) => {
-				console.log('BBBBBBBB')
 
 				// get the `docUriStr` and the `position` of the cursor
 				const activePane = this._editorService.activeEditorPane;
@@ -899,6 +973,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				completions.items.forEach(item => {
 					this._autocompletionsOfDocument[docUriStr].items.forEach((autocompletion: Autocompletion) => {
 						if (removeLeftTabsAndTrimEnds(prefix) === removeLeftTabsAndTrimEnds(autocompletion.prefix + autocompletion.insertText)) {
+							console.log('ACCEPT AUTCOMPLETE', autocompletion.id)
+							this._lastCompletionAccept = Date.now()
 							this._autocompletionsOfDocument[docUriStr].delete(autocompletion.id);
 						}
 					});

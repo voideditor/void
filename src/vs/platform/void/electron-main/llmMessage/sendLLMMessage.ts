@@ -3,11 +3,11 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { SendLLMMMessageParams, OnText, OnFinalMessage, OnError, LLMMessage, _InternalLLMMessage } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError, LLMMessage, _InternalLLMMessage } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 
 import { sendAnthropicMsg } from './anthropic.js';
-import { sendOllamaMsg } from './ollama.js';
+import { sendOllamaFIM, sendOllamaMsg } from './ollama.js';
 import { sendOpenAIMsg } from './openai.js';
 import { sendGeminiMsg } from './gemini.js';
 import { sendGroqMsg } from './groq.js';
@@ -59,16 +59,13 @@ export const sendLLMMessage = ({
 	settingsOfProvider,
 	providerName,
 	modelName,
-}: SendLLMMMessageParams,
+}: SendLLMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
-	messages.unshift({ role: 'system', content: aiInstructions })
+	// messages.unshift({ role: 'system', content: aiInstructions })
 
-	const messages = type === 'sendLLMMessage' ? cleanMessages(messages_) : []
-
-
-	const prefixAndSuffix = type === 'ollamaFIM' ? messages_ : null
+	const messagesArr = type === 'sendLLMMessage' ? cleanMessages(messages_) : []
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
@@ -76,8 +73,8 @@ export const sendLLMMessage = ({
 			providerName,
 			modelName,
 			...type === 'sendLLMMessage' ? {
-				numMessages: messages?.length,
-				messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
+				numMessages: messagesArr?.length,
+				messagesShape: messagesArr?.map(msg => ({ role: msg.role, length: msg.content.length })),
 				origNumMessages: messages_?.length,
 				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
 
@@ -122,27 +119,30 @@ export const sendLLMMessage = ({
 	}
 	abortRef_.current = onAbort
 
-	captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messages[messages.length - 1]?.content.length })
+	captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messagesArr[messagesArr.length - 1]?.content.length })
 
 	try {
 		switch (providerName) {
 			case 'anthropic':
-				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendAnthropicMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'deepseek':
 			case 'openAICompatible':
-				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendOpenAIMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'gemini':
-				sendGeminiMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendGeminiMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'ollama':
-				sendOllamaMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				if (type === 'ollamaFIM')
+					sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
+				else
+					sendOllamaMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'groq':
-				sendGroqMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendGroqMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
 				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })

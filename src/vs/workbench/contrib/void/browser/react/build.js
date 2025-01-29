@@ -80,7 +80,7 @@ const args = process.argv.slice(2);
 const isWatch = args.includes('--watch') || args.includes('-w');
 
 if (isWatch) {
-
+	// this just builds it if it doesn't exist instead of waiting for the watcher to trigger
 	// Check if src2/ exists; if not, do an initial scope-tailwind build
 	if (!fs.existsSync('src2')) {
 		try {

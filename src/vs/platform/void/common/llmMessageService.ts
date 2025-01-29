@@ -12,6 +12,7 @@ import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { Event } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
+import { getProvidersWithoutModels } from './voidSettingsTypes.js';
 // import { INotificationService } from '../../notification/common/notification.js';
 
 // calls channel to implement features
@@ -92,6 +93,15 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 		// end early if no provider
 		const modelSelection = this.voidSettingsService.state.modelSelectionOfFeature[featureName]
+
+		// throw an error for providers without models
+		const providersWithoutModels = getProvidersWithoutModels(this.voidSettingsService.state.settingsOfProvider)
+		if (providersWithoutModels.length !== 0) {
+			onError({ message: `You haven't added any models for ${providersWithoutModels.join(', ')}.`, fullError: null })
+			return null
+		}
+
+		// throw an error if no models
 		if (modelSelection === null) {
 			onError({ message: 'Please add a Provider in Settings!', fullError: null })
 			return null

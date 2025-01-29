@@ -4,15 +4,13 @@
  *--------------------------------------------------------------------------------------*/
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FeatureName, featureNames, ModelSelection, modelSelectionsEqual, ProviderName, providerNames } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { FeatureName, featureNames, getProvidersWithoutModels, ModelSelection, modelSelectionsEqual, ProviderName, providerNames, SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import { useSettingsState, useRefreshModelState, useAccessor } from '../util/services.js'
 import { _VoidSelectBox, VoidCustomSelectBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
 import { VOID_OPEN_SETTINGS_ACTION_ID, VOID_TOGGLE_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
 import { ModelOption } from '../../../../../../../platform/void/common/voidSettingsService.js'
-
-
 
 const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
 	if (m1.length !== m2.length) return false
@@ -119,15 +117,19 @@ export const WarningBox = ({ text, onClick, className }: { text: string; onClick
 export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
 	const settingsState = useSettingsState()
 
+	const providersWithMissingModels = getProvidersWithoutModels(settingsState.settingsOfProvider)
+
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 
 	const openSettings = () => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID); };
 
 	return <>
-		{settingsState._modelOptions.length === 0 ?
-			<WarningBox onClick={openSettings} text='Provider required' />
-			: <MemoizedModelSelectBox featureName={featureName} />
+		{providersWithMissingModels.length !== 0 ?
+			<WarningBox onClick={openSettings} text={`Model required for ${providersWithMissingModels[0]}`} />
+			: settingsState._modelOptions.length === 0 ?
+				<WarningBox onClick={openSettings} text='Provider required' />
+				: <MemoizedModelSelectBox featureName={featureName} />
 		}
 	</>
 }

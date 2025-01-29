@@ -185,6 +185,13 @@ export const customSettingNamesOfProvider = (providerName: ProviderName) => {
 	return Object.keys(defaultProviderSettings[providerName]) as CustomSettingName[]
 }
 
+export const getProvidersWithoutModels = (settingsOfProvider: SettingsOfProvider) => {
+	return Object.entries(settingsOfProvider)
+		.filter(([name, provider]) => provider._enabled && provider.models.length === 0)
+		.map(([name]) => name)
+}
+
+
 
 type CommonProviderSettings = {
 	_enabled: boolean | undefined, // undefined initially, computed when user types in all fields

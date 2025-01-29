@@ -436,7 +436,7 @@ const ChatBubble_ = ({ isEditMode, isLoading, children, role }: { role: ChatMess
 		className={`
 		relative
 		${isEditMode ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 mt-4 self-end w-fit max-w-full`
+				: role === 'user' ? `px-2 self-end w-fit max-w-full`
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
 	`}
@@ -622,6 +622,7 @@ export const SidebarChat = () => {
 				flex flex-col
 				overflow-x-hidden
 				overflow-y-auto
+				gap-4
 			`}
 			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
 		>

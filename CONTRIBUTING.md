@@ -1,15 +1,27 @@
 # Contributing to Void
-
-Welcome! 👋 This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
-
-
-If you'd like to get started developing Void, feel free to follow the steps below on building Void yourself and doing a PR.
-Void's code mostly lives in `src/vs/workbench/contrib/void/` and `src/vs/platform/void/`.
+### Welcome! 👋
+This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
 There are a few ways to contribute:
 
-- 👨‍💻 Build new features - see [Roadmap](https://github.com/orgs/voideditor/projects/2/views/3) and [Issues](https://github.com/voideditor/void/issues).
+- 💫 Complete items on the [Roadmap](https://github.com/orgs/voideditor/projects/2).
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
+- 🪴 Start new Issues - see [Issues](https://github.com/voideditor/void/issues).
+
+
+
+### Codebase Guide
+
+We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization.
+
+We are currently putting together our own articles on VSCode and Void's sourcecode organization. The best way to get this information right now is by attending a weekly meeting.
+
+<!-- ADD BLOG HERE
+We wrote a [guide to working in VSCode].
+-->
+
+Most of Void's code lives in the two folders called `void/`.
+
 
 
 
@@ -47,7 +59,7 @@ First, run `npm install -g node-gyp`. Then:
 To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
 1. `npm install` to install all dependencies.
-2. `npm run watchreact` to build Void's browser dependencies like React.
+2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`).
 3. Build Void.
 	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
    - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
@@ -119,20 +131,6 @@ Void's maintainers distribute Void on our website and in releases. If you'd like
 - Please submit a pull request once you've made a change.
 - No need to submit an Issue unless you're creating a new feature that might involve multiple PRs.
 - Please don't use AI to write your PR 🙂
-
-
-## Codebase Guide
-
-We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization.
-
-We are currently putting together our own articles on VSCode and Void's sourcecode organization. The best way to get this information right now is by attending a weekly meeting.
-
-<!-- ADD BLOG HERE
-We wrote a [guide to working in VSCode].
--->
-
-For some miscellaneous useful links on VSCode we've put together, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
-
 
 
 

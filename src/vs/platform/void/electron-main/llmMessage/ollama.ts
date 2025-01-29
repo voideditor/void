@@ -54,10 +54,10 @@ export const sendOllamaFIM: _InternalOllamaFIMMessageFnType = ({ messages, onTex
 		suffix: messages.suffix,
 		options: {
 			stop: messages.stopTokens,
+			num_predict: 300 // max tokens
 		},
 		raw: true,
 		stream: true,
-		// options: { num_predict: parseMaxTokensStr(thisConfig.maxTokens) } // this is max_tokens
 	})
 		.then(async stream => {
 			_setAborter(() => stream.abort())

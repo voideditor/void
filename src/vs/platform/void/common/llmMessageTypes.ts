@@ -124,13 +124,6 @@ export type _InternalOllamaFIMMessageFnType = (
 
 
 
-
-
-
-
-
-
-
 // These are from 'ollama' SDK
 interface OllamaModelDetails {
 	parent_model: string;

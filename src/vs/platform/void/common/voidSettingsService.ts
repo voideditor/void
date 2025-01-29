@@ -117,9 +117,28 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		// read and update the actual state immediately
 		this._readState().then(readS => {
 
-			// THIS IS A HACK BECAUSE WE ADDED DEEPSEEK
-			const deepseekAdd = { deepseek: defaultSettingsOfProvider['deepseek'] }
-			readS = { ...readS, settingsOfProvider: { ...deepseekAdd, ...readS.settingsOfProvider, } }
+			// the stored data structure might be outdated, so we need to update it here (can do a more general solution later when we need to)
+			readS = {
+				...readS,
+				settingsOfProvider: {
+					// A HACK BECAUSE WE ADDED DEEPSEEK (did not exist before, comes before readS)
+					...{ deepseek: defaultSettingsOfProvider.deepseek },
+
+					// A HACK BECAUSE WE ADDED MISTRAL (did not exist before, comes before readS)
+					...{ mistral: defaultSettingsOfProvider.mistral },
+
+					...readS.settingsOfProvider,
+
+					// A HACK BECAUSE WE ADDED NEW GEMINI MODELS (existed before, comes after readS)
+					gemini: {
+						...readS.settingsOfProvider.gemini,
+						models: [
+							...readS.settingsOfProvider.gemini.models,
+							...defaultSettingsOfProvider.gemini.models.filter(m => /* if cant find the model in readS (yes this is O(n^2), very small) */ !readS.settingsOfProvider.gemini.models.find(m2 => m2.modelName === m.modelName))
+						]
+					}
+				}
+			}
 
 			this.state = readS
 			resolver()

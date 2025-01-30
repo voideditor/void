@@ -81,7 +81,7 @@ let _computeModelOptions = (settingsOfProvider: SettingsOfProvider) => {
 const defaultState = () => {
 	const d: VoidSettingsState = {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
-		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null },
+		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null, 'FastApply': null },
 		globalSettings: deepClone(defaultGlobalSettings),
 		_modelOptions: _computeModelOptions(defaultSettingsOfProvider), // computed
 	}
@@ -137,6 +137,11 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 							...defaultSettingsOfProvider.gemini.models.filter(m => /* if cant find the model in readS (yes this is O(n^2), very small) */ !readS.settingsOfProvider.gemini.models.find(m2 => m2.modelName === m.modelName))
 						]
 					}
+				},
+				modelSelectionOfFeature: {
+					// A HACK BECAUSE WE ADDED FastApply
+					...{ 'FastApply': null },
+					...readS.modelSelectionOfFeature,
 				}
 			}
 

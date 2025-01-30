@@ -436,7 +436,7 @@ const ChatBubble_ = ({ isEditMode, isLoading, children, role }: { role: ChatMess
 		className={`
 		relative
 		${isEditMode ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full`
+				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
 	`}
@@ -444,7 +444,7 @@ const ChatBubble_ = ({ isEditMode, isLoading, children, role }: { role: ChatMess
 		<div
 			// style chatbubble according to role
 			className={`
-		    text-left space-y-2 rounded-lg
+		    text-left rounded-lg
 			overflow-x-auto max-w-full
 			${role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1' : 'px-2'}
 		`}
@@ -603,129 +603,129 @@ export const SidebarChat = () => {
 		)
 	}, [previousMessages])
 
-	return <div
-		ref={sidebarRef}
-		className={`w-full h-full`}
+
+	const threadSelector = <div ref={historyRef}
+		className={`w-full h-auto ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}
 	>
-		{/* thread selector */}
-		<div ref={historyRef}
-			className={`w-full h-auto ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}
-		>
-			<SidebarThreadSelector />
-		</div>
-
-		{/* previous messages + current stream */}
-		<ScrollToBottomContainer
-			scrollContainerRef={scrollContainerRef}
-			className={`
-				w-full h-auto
-				flex flex-col
-				overflow-x-hidden
-				overflow-y-auto
-				gap-4
-			`}
-			style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
-		>
-			{/* previous messages */}
-			{prevMessagesHTML}
-
-			{/* message stream */}
-			<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isStreaming} />
+		<SidebarThreadSelector />
+	</div>
 
 
-			{/* error message */}
-			{latestError === undefined ? null :
-				<div className='px-2'>
-					<ErrorDisplay
-						message={latestError.message}
-						fullError={latestError.fullError}
-						onDismiss={() => { chatThreadsService.dismissStreamError(currentThread.id) }}
-						showDismiss={true}
-					/>
+	const messagesHTML = <ScrollToBottomContainer
+		scrollContainerRef={scrollContainerRef}
+		className={`
+		w-full h-auto
+		flex flex-col
+		overflow-x-hidden
+		overflow-y-auto
+		py-4
+	`}
+		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
+	>
+		{/* previous messages */}
+		{prevMessagesHTML}
 
-					<WarningBox className='text-sm my-2 pl-4' onClick={() => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }} text='Open settings' />
-				</div>
-			}
-
-		</ScrollToBottomContainer>
-
-
-		{/* input box */}
-		<div // this div is used to position the input box properly
-			className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
-		>
-			<div
-				ref={formRef}
-				className={`
-					flex flex-col gap-1 p-2 relative input text-left shrink-0
-					transition-all duration-200
-					rounded-md
-					bg-vscode-input-bg
-					max-h-[80vh] overflow-y-auto
-					border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
-				`}
-				onClick={(e) => {
-					textAreaRef.current?.focus()
-				}}
-			>
-				{/* top row */}
-				<>
-					{/* selections */}
-					<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0} />
-				</>
-
-				{/* middle row */}
-				<div>
-
-					{/* text input */}
-					<VoidInputBox2
-						className='min-h-[81px] p-1'
-						placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
-						onChangeText={useCallback((newStr: string) => { setInstructionsAreEmpty(!newStr) }, [setInstructionsAreEmpty])}
-						onKeyDown={(e) => {
-							if (e.key === 'Enter' && !e.shiftKey) {
-								onSubmit()
-							}
-						}}
-						ref={textAreaRef}
-						fnsRef={textAreaFnsRef}
-						multiline={true}
-					/>
-				</div>
-
-				{/* bottom row */}
-				<div
-					className='flex flex-row justify-between items-end gap-1'
-				>
-					{/* submit options */}
-					<div className='max-w-[150px]
-						@@[&_select]:!void-border-none
-						@@[&_select]:!void-outline-none
-						flex-grow
-						'
-					>
-						<ModelDropdown featureName='Ctrl+L' />
-					</div>
-
-					{/* submit / stop button */}
-					{isStreaming ?
-						// stop button
-						<ButtonStop
-							onClick={onAbort}
-						/>
-						:
-						// submit button (up arrow)
-						<ButtonSubmit
-							onClick={onSubmit}
-							disabled={isDisabled}
-						/>
-					}
-				</div>
+		{/* message stream */}
+		<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isStreaming} />
 
 
+		{/* error message */}
+		{latestError === undefined ? null :
+			<div className='px-2'>
+				<ErrorDisplay
+					message={latestError.message}
+					fullError={latestError.fullError}
+					onDismiss={() => { chatThreadsService.dismissStreamError(currentThread.id) }}
+					showDismiss={true}
+				/>
+
+				<WarningBox className='text-sm my-2 pl-4' onClick={() => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }} text='Open settings' />
 			</div>
-		</div >
-	</div >
+		}
+	</ScrollToBottomContainer>
+
+
+	const inputBox = <div // this div is used to position the input box properly
+		className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
+	>
+		<div
+			ref={formRef}
+			className={`
+		flex flex-col gap-1 p-2 relative input text-left shrink-0
+		transition-all duration-200
+		rounded-md
+		bg-vscode-input-bg
+		max-h-[80vh] overflow-y-auto
+		border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
+	`}
+			onClick={(e) => {
+				textAreaRef.current?.focus()
+			}}
+		>
+			{/* top row */}
+			<>
+				{/* selections */}
+				<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0} />
+			</>
+
+			{/* middle row */}
+			<div>
+
+				{/* text input */}
+				<VoidInputBox2
+					className='min-h-[81px] p-1'
+					placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
+					onChangeText={useCallback((newStr: string) => { setInstructionsAreEmpty(!newStr) }, [setInstructionsAreEmpty])}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter' && !e.shiftKey) {
+							onSubmit()
+						}
+					}}
+					ref={textAreaRef}
+					fnsRef={textAreaFnsRef}
+					multiline={true}
+				/>
+			</div>
+
+			{/* bottom row */}
+			<div
+				className='flex flex-row justify-between items-end gap-1'
+			>
+				{/* submit options */}
+				<div className='max-w-[150px]
+			@@[&_select]:!void-border-none
+			@@[&_select]:!void-outline-none
+			flex-grow
+			'
+				>
+					<ModelDropdown featureName='Ctrl+L' />
+				</div>
+
+				{/* submit / stop button */}
+				{isStreaming ?
+					// stop button
+					<ButtonStop
+						onClick={onAbort}
+					/>
+					:
+					// submit button (up arrow)
+					<ButtonSubmit
+						onClick={onSubmit}
+						disabled={isDisabled}
+					/>
+				}
+			</div>
+		</div>
+	</div>
+
+	return <div ref={sidebarRef} className={`w-full h-full`}>
+		{threadSelector}
+
+		{messagesHTML}
+
+		{inputBox}
+
+	</div>
 }
 
 

@@ -13,10 +13,9 @@ export const BlockCode = ({ buttonsOnHover, ...codeEditorProps }: { buttonsOnHov
 
 	return (
 		<>
-			<div className="relative group w-full overflow-hidden">
+			<div className="relative group w-full overflow-hidden my-4">
 				{buttonsOnHover === null ? null : (
-					<div className={`z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200 ${isSingleLine ? 'h-full flex items-center' : ''
-						}`}>
+					<div className={`z-[1] absolute top-0 right-0 opacity-0 group-hover:opacity-100 duration-200 ${isSingleLine ? 'h-full flex items-center' : ''}`}>
 						<div className={`flex space-x-1 ${isSingleLine ? 'pr-2' : 'p-2'}`}>
 							{buttonsOnHover}
 						</div>

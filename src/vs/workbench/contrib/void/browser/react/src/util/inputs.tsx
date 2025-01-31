@@ -15,6 +15,7 @@ import { useAccessor } from './services.js';
 import { ITextModel } from '../../../../../../../editor/common/model.js';
 import { asCssVariable } from '../../../../../../../platform/theme/common/colorUtils.js';
 import { inputBackground, inputForeground } from '../../../../../../../platform/theme/common/colorRegistry.js';
+import { useFloating, autoUpdate, offset, flip, shift, size, autoPlacement } from '@floating-ui/react';
 
 
 // type guard
@@ -296,6 +297,7 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 }
 
 
+
 export const VoidCustomSelectBox = <T extends any>({
 	options,
 	selectedOption: selectedOption_,
@@ -306,7 +308,6 @@ export const VoidCustomSelectBox = <T extends any>({
 	className,
 	arrowTouchesText = true,
 	matchInputWidth = false,
-	isMenuPositionFixed = true,
 	gap = 0,
 }: {
 	options: T[];
@@ -318,18 +319,58 @@ export const VoidCustomSelectBox = <T extends any>({
 	className?: string;
 	arrowTouchesText?: boolean;
 	matchInputWidth?: boolean;
-	isMenuPositionFixed?: boolean;
 	gap?: number;
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [readyToShow, setReadyToShow] = useState(false);
-	const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
-	const containerRef = useRef<HTMLDivElement | null>(null);
-	const buttonRef = useRef<HTMLButtonElement | null>(null);
-	const measureRef = useRef<HTMLDivElement | null>(null);
+	const measureRef = useRef<HTMLDivElement>(null);
 
+	// Replace manual positioning with floating-ui
+	const {
+		x,
+		y,
+		strategy,
+		refs,
+		middlewareData,
+		update
+	} = useFloating({
+		open: isOpen,
+		onOpenChange: setIsOpen,
+		placement:'bottom-start',
 
-	// if the selected option is null, use the 0th option as the selected, and set the option to options[0]
+		middleware: [
+			offset(gap),
+			flip({
+				boundary: document.body,
+				padding: 8
+			}),
+			shift({
+				boundary: document.body,
+				padding: 8,
+			}),
+			size({
+				apply({ availableHeight, elements, rects }) {
+					const maxHeight = Math.min(availableHeight)
+
+					Object.assign(elements.floating.style, {
+						maxHeight: `${maxHeight}px`,
+						overflowY: 'auto',
+						// Ensure the width isn't constrained by the parent
+						width: `${Math.max(
+							rects.reference.width,
+							measureRef.current?.offsetWidth ?? 0
+						)}px`
+					});
+				},
+				padding: 8,
+				// Use viewport as boundary instead of any parent element
+				boundary: document.body,
+			}),
+		],
+		whileElementsMounted: autoUpdate,
+		strategy:'fixed',
+	});
+
+	// if the selected option is null, use the 0th option
 	useEffect(() => {
 		if (!options[0]) return
 		if (!selectedOption_) {
@@ -338,84 +379,33 @@ export const VoidCustomSelectBox = <T extends any>({
 	}, [selectedOption_, options])
 	const selectedOption = !selectedOption_ ? options[0] : selectedOption_
 
-
-	const updatePosition = useCallback(() => {
-		if (!buttonRef.current || !containerRef.current || !measureRef.current) return;
-
-		const buttonRect = buttonRef.current.getBoundingClientRect();
-		const containerRect = containerRef.current.getBoundingClientRect();
-		const containerWidth = containerRef.current.offsetWidth;
-		const viewportHeight = window.innerHeight;
-		const spaceBelow = viewportHeight - buttonRect.bottom;
-		const spaceNeeded = options.length * 28;
-		const showAbove = spaceBelow < spaceNeeded && buttonRect.top > spaceBelow;
-
-		// Calculate the menu width
-		let menuWidth = matchInputWidth ? containerWidth : buttonRect.width;
-
-		// If not matchInputWidth, calculate content width from measurement div
-		if (!matchInputWidth) {
-			const contentWidth = measureRef.current.offsetWidth;
-			menuWidth = Math.max(buttonRect.width, contentWidth);
-		}
-
-		if (isMenuPositionFixed) {
-			// Fixed positioning (relative to viewport)
-			setPosition({
-				top: showAbove
-					? buttonRect.top - spaceNeeded
-					: buttonRect.bottom + gap,
-				left: buttonRect.left,
-				width: menuWidth,
-			});
-		} else {
-			// Absolute positioning (relative to parent container)
-			setPosition({
-				top: showAbove
-					? -(spaceNeeded + gap)
-					: buttonRect.height + gap,
-				left: 0,
-				width: menuWidth,
-			});
-		}
-
-		setReadyToShow(true);
-	}, [gap, matchInputWidth, options.length, isMenuPositionFixed]);
-
+	// Handle clicks outside
 	useEffect(() => {
-		if (isOpen) {
-			setReadyToShow(false);
-			updatePosition();
-			window.addEventListener('scroll', updatePosition, true);
-			window.addEventListener('resize', updatePosition);
+		if (!isOpen) return;
 
-			return () => {
-				window.removeEventListener('scroll', updatePosition, true);
-				window.removeEventListener('resize', updatePosition);
-			};
-		} else {
-			setReadyToShow(false);
-		}
-	}, [isOpen, updatePosition]);
-
-	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
-			if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+			const target = event.target as Node;
+			const floating = refs.floating.current;
+			const reference = refs.reference.current;
+
+			// Check if reference is an HTML element before using contains
+			const isReferenceHTMLElement = reference && 'contains' in reference;
+
+			if (
+				floating &&
+				(!isReferenceHTMLElement || !reference.contains(target)) &&
+				!floating.contains(target)
+			) {
 				setIsOpen(false);
 			}
 		};
 
-		if (isOpen) {
-			document.addEventListener('mousedown', handleClickOutside);
-			return () => document.removeEventListener('mousedown', handleClickOutside);
-		}
-	}, [isOpen]);
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, [isOpen, refs.floating, refs.reference]);
 
 	return (
-		<div
-			ref={containerRef}
-			className={`inline-block relative ${className}`}
-		>
+		<div className={`inline-block relative ${className}`}>
 			{/* Hidden measurement div */}
 			<div
 				ref={measureRef}
@@ -433,11 +423,9 @@ export const VoidCustomSelectBox = <T extends any>({
 			{/* Select Button */}
 			<button
 				type='button'
-				ref={buttonRef}
+				ref={refs.setReference}
 				className="flex items-center h-4 bg-transparent whitespace-nowrap hover:brightness-90 w-full"
-				onClick={() => {
-					setIsOpen(!isOpen);
-				}}
+				onClick={() => setIsOpen(!isOpen)}
 			>
 				<span className={`max-w-[120px] truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
 					{getOptionDisplayName(selectedOption)}
@@ -458,13 +446,20 @@ export const VoidCustomSelectBox = <T extends any>({
 			</button>
 
 			{/* Dropdown Menu */}
-			{isOpen && readyToShow && (
+			{isOpen && (
 				<div
-					className={`${isMenuPositionFixed ? 'fixed' : 'absolute'} z-10 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg`}
+					ref={refs.setFloating}
+					className="z-10 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg"
 					style={{
-						top: position.top,
-						left: position.left,
-						width: position.width,
+						position: strategy,
+						top: y ?? 0,
+						left: x ?? 0,
+						width: matchInputWidth
+							? (refs.reference.current instanceof HTMLElement ? refs.reference.current.offsetWidth : 0)
+							: Math.max(
+								(refs.reference.current instanceof HTMLElement ? refs.reference.current.offsetWidth : 0),
+								(measureRef.current instanceof HTMLElement ? measureRef.current.offsetWidth : 0)
+							),
 					}}
 				>
 					{options.map((option) => {

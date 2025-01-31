@@ -86,9 +86,10 @@ export const defaultDeepseekModels = modelInfoOfDefaultNames([
 
 // https://console.groq.com/docs/models
 export const defaultGroqModels = modelInfoOfDefaultNames([
-	"mixtral-8x7b-32768",
-	"llama2-70b-4096",
-	"gemma-7b-it"
+	"distil-whisper-large-v3-en",
+	"llama-3.3-70b-versatile",
+	"llama-3.1-8b-instant",
+	"gemma2-9b-it"
 ])
 
 
@@ -431,14 +432,22 @@ export const modelSelectionsEqual = (m1: ModelSelection, m2: ModelSelection) => 
 }
 
 // this is a state
-export type ModelSelectionOfFeature = {
-	'Ctrl+L': ModelSelection | null,
-	'Ctrl+K': ModelSelection | null,
-	'Autocomplete': ModelSelection | null,
-}
+export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete', 'FastApply'] as const
+export type ModelSelectionOfFeature = Record<(typeof featureNames)[number], ModelSelection | null>
 export type FeatureName = keyof ModelSelectionOfFeature
-export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete'] as const
 
+export const displayInfoOfFeatureName = (featureName: FeatureName) => {
+	if (featureName === 'Autocomplete')
+		return 'Autocomplete'
+	else if (featureName === 'Ctrl+K')
+		return 'Quick Edit'
+	else if (featureName === 'Ctrl+L')
+		return 'Sidebar Chat'
+	else if (featureName === 'FastApply')
+		return 'Fast Apply'
+	else
+		throw new Error(`Feature Name ${featureName} not allowed`)
+}
 
 
 

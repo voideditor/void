@@ -3,11 +3,11 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { LLMMMessageParams, OnText, OnFinalMessage, OnError, LLMMessage, _InternalLLMMessage } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError, LLMMessage, _InternalLLMMessage } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 
 import { sendAnthropicMsg } from './anthropic.js';
-import { sendOllamaMsg } from './ollama.js';
+import { sendOllamaFIM, sendOllamaMsg } from './ollama.js';
 import { sendOpenAIMsg } from './openai.js';
 import { sendGeminiMsg } from './gemini.js';
 import { sendGroqMsg } from './groq.js';
@@ -49,6 +49,8 @@ const cleanMessages = (messages: LLMMessage[]): _InternalLLMMessage[] => {
 
 
 export const sendLLMMessage = ({
+	type,
+	aiInstructions,
 	messages: messages_,
 	onText: onText_,
 	onFinalMessage: onFinalMessage_,
@@ -58,21 +60,28 @@ export const sendLLMMessage = ({
 	settingsOfProvider,
 	providerName,
 	modelName,
-}: LLMMMessageParams,
+}: SendLLMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
-	const messages = cleanMessages(messages_)
+	// messages.unshift({ role: 'system', content: aiInstructions })
+
+	const messagesArr = type === 'sendLLMMessage' ? cleanMessages(messages_) : []
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
-	const captureChatEvent = (eventId: string, extras?: object) => {
+	const captureLLMEvent = (eventId: string, extras?: object) => {
 		metricsService.capture(eventId, {
 			providerName,
 			modelName,
-			numMessages: messages?.length,
-			messagesShape: messages?.map(msg => ({ role: msg.role, length: msg.content.length })),
-			origNumMessages: messages_?.length,
-			origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
+			...type === 'sendLLMMessage' ? {
+				numMessages: messagesArr?.length,
+				messagesShape: messagesArr?.map(msg => ({ role: msg.role, length: msg.content.length })),
+				origNumMessages: messages_?.length,
+				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
+
+			} : type === 'ollamaFIM' ? {
+
+			} : {},
 
 			...extras,
 		})
@@ -92,49 +101,52 @@ export const sendLLMMessage = ({
 
 	const onFinalMessage: OnFinalMessage = ({ fullText }) => {
 		if (_didAbort) return
-		captureChatEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
 		onFinalMessage_({ fullText })
 	}
 
 	const onError: OnError = ({ message: error, fullError }) => {
 		if (_didAbort) return
 		console.error('sendLLMMessage onError:', error)
-		captureChatEvent(`${loggingName} - Error`, { error })
+		captureLLMEvent(`${loggingName} - Error`, { error })
 		onError_({ message: error, fullError })
 	}
 
 	const onAbort = () => {
-		captureChatEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
+		captureLLMEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
 		try { _aborter?.() } // aborter sometimes automatically throws an error
 		catch (e) { }
 		_didAbort = true
 	}
 	abortRef_.current = onAbort
 
-	captureChatEvent(`${loggingName} - Sending Message`, { messageLength: messages[messages.length - 1]?.content.length })
+	captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messagesArr[messagesArr.length - 1]?.content.length })
 
 	try {
 		switch (providerName) {
 			case 'anthropic':
-				sendAnthropicMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendAnthropicMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'deepseek':
 			case 'openAICompatible':
-				sendOpenAIMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendOpenAIMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'gemini':
-				sendGeminiMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendGeminiMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'ollama':
-				sendOllamaMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				if (type === 'ollamaFIM')
+					sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
+				else
+					sendOllamaMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'groq':
-				sendGroqMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendGroqMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'mistral':
-				sendMistralMsg({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendMistralMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
 				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })

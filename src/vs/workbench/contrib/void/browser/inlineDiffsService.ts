@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { ctrlKStream_prefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_userMessage, fastApply_systemMessage, defaultFimTags } from './prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_userMessage, fastApply_systemMessage, defaultFimTags } from './prompt/prompts.js';
 import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
@@ -1304,13 +1304,24 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
 
 			// __TODO__ use Ollama's FIM api, if (isOllamaFIM) {...} else:
-			const { prefix, suffix } = ctrlKStream_prefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
+			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
+			// if (isOllamaFIM) {
+			// 	messages = {
+			// 		type: 'ollamaFIM',
+			// 		prefix,
+			// 		suffix,
+			// 	}
+
+			// }
+			// else {
 			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: modelFimTags, language })
+			// type: 'messages',
 			messages = [
 				{ role: 'system', content: ctrlKStream_systemMessage({ fimTags: modelFimTags }), },
 				{ role: 'user', content: userContent, }
 			]
+			// }
 		}
 		else { throw new Error(`featureName ${featureName} is invalid`) }
 
@@ -1356,6 +1367,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let prevIgnoredSuffix = ''
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+			type: 'sendLLMMessage',
 			useProviderFor: featureName,
 			logging: { loggingName: `startApplying - ${featureName}` },
 			messages,
@@ -1400,7 +1412,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				onDone(true)
 			},
 
-			range: { startLineNumber: startLine, endLineNumber: endLine, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER },
 		})
 
 		return diffZone

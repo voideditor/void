@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { Ollama } from 'ollama';
-import { _InternalModelListFnType, _InternalSendLLMMessageFnType, OllamaModelResponse } from '../../common/llmMessageTypes.js';
+import { _InternalModelListFnType, _InternalOllamaFIMMessageFnType, _InternalSendLLMMessageFnType, OllamaModelResponse } from '../../common/llmMessageTypes.js';
 import { defaultProviderSettings } from '../../common/voidSettingsTypes.js';
 
 export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
@@ -38,6 +38,44 @@ export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async (
 }
 
 
+export const sendOllamaFIM: _InternalOllamaFIMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+
+	const thisConfig = settingsOfProvider.ollama
+	// if endpoint is empty, normally ollama will send to 11434, but we want it to fail - the user should type it in
+	if (!thisConfig.endpoint) throw new Error(`Ollama Endpoint was empty (please enter ${defaultProviderSettings.ollama.endpoint} if you want the default).`)
+
+	let fullText = ''
+
+	const ollama = new Ollama({ host: thisConfig.endpoint })
+
+	ollama.generate({
+		model: modelName,
+		prompt: messages.prefix,
+		suffix: messages.suffix,
+		options: {
+			stop: messages.stopTokens,
+		},
+		raw: true,
+		stream: true,
+		// options: { num_predict: parseMaxTokensStr(thisConfig.maxTokens) } // this is max_tokens
+	})
+		.then(async stream => {
+			_setAborter(() => stream.abort())
+			// iterate through the stream
+			for await (const chunk of stream) {
+				const newText = chunk.response;
+				fullText += newText;
+				onText({ newText, fullText });
+			}
+			onFinalMessage({ fullText });
+		})
+		// when error/fail
+		.catch((error) => {
+			onError({ message: error + '', fullError: error })
+		})
+};
+
+
 // Ollama
 export const sendOllamaMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
@@ -68,14 +106,6 @@ export const sendOllamaMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 		})
 		// when error/fail
 		.catch((error) => {
-			// if (typeof error === 'object') {
-			// 	const e = error.error as ErrorResponse['error']
-			// 	if (e) {
-			// 		const name = error.name ?? 'Error'
-			// 		onError({ error: `${name}: ${e}` })
-			// 		return;
-			// 	}
-			// }
 			onError({ message: error + '', fullError: error })
 		})
 

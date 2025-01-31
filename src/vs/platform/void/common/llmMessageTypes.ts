@@ -3,7 +3,6 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { IRange } from '../../../editor/common/core/range'
 import { ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
@@ -35,67 +34,84 @@ export type _InternalLLMMessage = {
 	content: string;
 }
 
-
-export type ServiceSendLLMFeatureParams = {
-	useProviderFor: 'Ctrl+K';
-	range: IRange;
-} | {
-	useProviderFor: 'Ctrl+L';
-} | {
-	useProviderFor: 'Autocomplete';
-	range: IRange;
+type _InternalOllamaFIMMessages = {
+	prefix: string;
+	suffix: string;
+	stopTokens: string[];
 }
 
-// params to the true sendLLMMessage function
-export type LLMMMessageParams = {
-	onText: OnText;
-	onFinalMessage: OnFinalMessage;
-	onError: OnError;
-	abortRef: AbortRef;
-
+type SendLLMType = {
+	type: 'sendLLMMessage';
 	messages: LLMMessage[];
-
-	logging: {
-		loggingName: string,
-	};
-	providerName: ProviderName;
-	modelName: string;
-	settingsOfProvider: SettingsOfProvider;
+} | {
+	type: 'ollamaFIM';
+	messages: _InternalOllamaFIMMessages;
 }
 
+// service types
 export type ServiceSendLLMMessageParams = {
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
+	logging: { loggingName: string, };
+	useProviderFor: 'Ctrl+K' | 'Ctrl+L' | 'Autocomplete';
+} & SendLLMType
 
-	messages: LLMMessage[];
+// params to the true sendLLMMessage function
+export type SendLLMMessageParams = {
+	onText: OnText;
+	onFinalMessage: OnFinalMessage;
+	onError: OnError;
+	logging: { loggingName: string, };
+	abortRef: AbortRef;
 
-	logging: {
-		loggingName: string,
-	};
-} & ServiceSendLLMFeatureParams
+	aiInstructions: string;
+
+	providerName: ProviderName;
+	modelName: string;
+	settingsOfProvider: SettingsOfProvider;
+} & SendLLMType
+
+
 
 // can't send functions across a proxy, use listeners instead
 export type BlockedMainLLMMessageParams = 'onText' | 'onFinalMessage' | 'onError' | 'abortRef'
+export type MainSendLLMMessageParams = Omit<SendLLMMessageParams, BlockedMainLLMMessageParams> & { requestId: string } & SendLLMType
 
-export type MainLLMMessageParams = Omit<LLMMMessageParams, BlockedMainLLMMessageParams> & { requestId: string }
 export type MainLLMMessageAbortParams = { requestId: string }
 
 export type EventLLMMessageOnTextParams = Parameters<OnText>[0] & { requestId: string }
 export type EventLLMMessageOnFinalMessageParams = Parameters<OnFinalMessage>[0] & { requestId: string }
 export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId: string }
 
-export type _InternalSendLLMMessageFnType = (params: {
-	messages: _InternalLLMMessage[];
-	onText: OnText;
-	onFinalMessage: OnFinalMessage;
-	onError: OnError;
-	settingsOfProvider: SettingsOfProvider;
-	providerName: ProviderName;
-	modelName: string;
 
-	_setAborter: (aborter: () => void) => void;
-}) => void
+export type _InternalSendLLMMessageFnType = (
+	params: {
+		onText: OnText;
+		onFinalMessage: OnFinalMessage;
+		onError: OnError;
+		providerName: ProviderName;
+		settingsOfProvider: SettingsOfProvider;
+		modelName: string;
+		_setAborter: (aborter: () => void) => void;
+
+		messages: _InternalLLMMessage[];
+	}
+) => void
+
+export type _InternalOllamaFIMMessageFnType = (
+	params: {
+		onText: OnText;
+		onFinalMessage: OnFinalMessage;
+		onError: OnError;
+		providerName: ProviderName;
+		settingsOfProvider: SettingsOfProvider;
+		modelName: string;
+		_setAborter: (aborter: () => void) => void;
+
+		messages: _InternalOllamaFIMMessages;
+	}
+) => void
 
 // service -> main -> internal -> event (back to main)
 // (browser)

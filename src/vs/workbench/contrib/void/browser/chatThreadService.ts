@@ -202,6 +202,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		this._setStreamState(threadId, { error: undefined })
 
 		const llmCancelToken = this._llmMessageService.sendLLMMessage({
+			type: 'sendLLMMessage',
 			logging: { loggingName: 'Chat' },
 			messages: [
 				{ role: 'system', content: chat_systemMessage },

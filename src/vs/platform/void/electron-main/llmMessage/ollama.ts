@@ -25,7 +25,6 @@ export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async (
 		const ollama = new Ollama({ host: thisConfig.endpoint })
 		ollama.list()
 			.then((response) => {
-				// console.log('MODELS!!!!!!!!!!!!!!!!!', response)
 				const { models } = response
 				onSuccess({ models })
 			})
@@ -69,7 +68,6 @@ export const sendOllamaFIM: _InternalOllamaFIMMessageFnType = ({ messages, onTex
 				onText({ newText, fullText });
 			}
 			onFinalMessage({ fullText });
-			console.log('!!!!! OLLAMA RESULT', JSON.stringify(fullText))
 		})
 		// when error/fail
 		.catch((error) => {

@@ -35,7 +35,7 @@ class VoidSettingsInput extends EditorInput {
 	static readonly ID: string = 'workbench.input.void.settings';
 
 	static readonly RESOURCE = URI.from({ // I think this scheme is invalid, it just shuts up TS
-		scheme: 'void',  // Custom scheme for our editor
+		scheme: 'void',  // Custom scheme for our editor (try Schemas.https)
 		path: 'settings'
 	})
 	readonly resource = VoidSettingsInput.RESOURCE;

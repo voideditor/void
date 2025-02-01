@@ -40,9 +40,8 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 		getOptionDisplayName={(option) => option.selection.modelName}
 		getOptionDropdownName={(option) => option.name}
 		getOptionsEqual={(a, b) => optionsEqual([a], [b])}
-		className={`text-xs text-void-fg-3 px-1`}
+		className='text-xs text-void-fg-3 px-1'
 		matchInputWidth={false}
-		// isMenuPositionFixed={featureName === 'Ctrl+K' ? false : true}
 	/>
 }
 // const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], featureName: FeatureName }) => {

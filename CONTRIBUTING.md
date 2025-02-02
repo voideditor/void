@@ -14,8 +14,6 @@ There are a few ways to contribute:
 
 We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization.
 
-We are currently putting together our own articles on VSCode and Void's sourcecode organization. The best way to get this information right now is by attending a weekly meeting.
-
 <!-- ADD BLOG HERE
 We wrote a [guide to working in VSCode].
 -->

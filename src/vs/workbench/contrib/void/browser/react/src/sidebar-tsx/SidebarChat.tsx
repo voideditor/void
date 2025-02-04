@@ -619,6 +619,7 @@ export const SidebarChat = () => {
 		overflow-x-hidden
 		overflow-y-auto
 		py-4
+		${prevMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
 	`}
 		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
 	>

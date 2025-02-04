@@ -21,6 +21,7 @@ import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
+import { Pencil } from 'lucide-react';
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -428,89 +429,88 @@ export const SelectedFiles = (
 }
 
 
-
-const ChatBubble_ = ({ isEditMode, isLoading, children, role }: { role: ChatMessage['role'], children: React.ReactNode, isLoading: boolean, isEditMode: boolean }) => {
-
-	return <div
-		// align chatbubble accoridng to role
-		className={`
-		relative
-		${isEditMode ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
-					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
-			}
-	`}
-	>
-		<div
-			// style chatbubble according to role
-			className={`
-		    text-left rounded-lg
-			overflow-x-auto max-w-full
-			${role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1' : 'px-2'}
-		`}
-		>
-			{children}
-			{isLoading && <IconLoading className='opacity-50 text-sm' />}
-		</div>
-
-		{/* edit button */}
-		{/* {role === 'user' &&
-		<Pencil
-			size={16}
-			className={`
-				absolute top-0 right-2
-				translate-x-0 -translate-y-0
-				cursor-pointer z-1
-			`}
-			onClick={() => { setIsEditMode(v => !v); }}
-		/>
-	} */}
-	</div>
-}
-
-
+type ChatBubbleMode = 'display' | 'edit'
 const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLoading?: boolean, }) => {
 
 	const role = chatMessage.role
 
 	// edit mode state
-	const [isEditMode, setIsEditMode] = useState(false)
-
+	const [mode, setMode] = useState<ChatBubbleMode>('display')
+	const [editText, setEditText] = useState(chatMessage.displayContent ?? '')
+	const [isHovered, setIsHovered] = useState(false)
 
 	if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show)
 		return null
 	}
 
+	// set chat bubble contents
 	let chatbubbleContents: React.ReactNode
-
 	if (role === 'user') {
-		chatbubbleContents = <>
-			<SelectedFiles type='past' selections={chatMessage.selections || []} />
-			{chatMessage.displayContent}
-
-			{/* {!isEditMode ? chatMessage.displayContent : <></>} */}
-			{/* edit mode content */}
-			{/* TODO this should be the same input box as in the Sidebar */}
-			{/* <textarea
-				value={editModeText}
-				className={`
+		if (mode === 'display') {
+			chatbubbleContents = <>
+				<SelectedFiles type='past' selections={chatMessage.selections || []} />
+				{chatMessage.displayContent}
+			</>
+		}
+		else if (mode === 'edit') {
+			chatbubbleContents = <>
+				<SelectedFiles type='past' selections={chatMessage.selections || []} />
+				<textarea
+					value={editText}
+					onChange={(e) => setEditText(e.target.value)}
+					className={`
 						w-full max-w-full
 						h-auto min-h-[81px] max-h-[500px]
 						bg-void-bg-1 resize-none
 					`}
-				style={{ marginTop: 0 }}
-				hidden={!isEditMode}
-			/> */}
-
-		</>
+					style={{ marginTop: 0 }}
+				/>
+			</>
+		}
 	}
 	else if (role === 'assistant') {
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} />
 	}
 
-	return <ChatBubble_ role={role} isEditMode={isEditMode} isLoading={!!isLoading}>
-		{chatbubbleContents}
-	</ChatBubble_>
+	return <div
+		// align chatbubble accoridng to role
+		className={`
+			relative
+			${mode === 'edit' ? 'px-2 w-full max-w-full'
+				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
+					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
+			}
+		`}
+		onMouseEnter={() => setIsHovered(true)}
+		onMouseLeave={() => setIsHovered(false)}
+	>
+		<div
+			// style chatbubble according to role
+			className={`
+				text-left rounded-lg
+				overflow-x-auto max-w-full
+				${role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1' : 'px-2'}
+			`}
+		>
+			{chatbubbleContents}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
+		</div>
+
+		{/* edit button */}
+		{role === 'user' && <Pencil
+			size={18}
+			className={`
+				absolute -top-1 right-1
+				translate-x-0 -translate-y-0
+				cursor-pointer z-1
+				p-[2px]
+				bg-void-bg-1 border border-void-border-1 rounded-md
+				transition-opacity duration-200 ease-in-out
+				${isHovered ? 'opacity-100' : 'opacity-0'}
+			`}
+			onClick={() => setMode(m => m === 'display' ? 'edit' : 'display')}
+		/>}
+	</div>
 }
 
 
@@ -652,13 +652,13 @@ export const SidebarChat = () => {
 		<div
 			ref={formRef}
 			className={`
-		flex flex-col gap-1 p-2 relative input text-left shrink-0
-		transition-all duration-200
-		rounded-md
-		bg-vscode-input-bg
-		max-h-[80vh] overflow-y-auto
-		border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
-	`}
+				flex flex-col gap-1 p-2 relative input text-left shrink-0
+				transition-all duration-200
+				rounded-md
+				bg-vscode-input-bg
+				max-h-[80vh] overflow-y-auto
+				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
+			`}
 			onClick={(e) => {
 				textAreaRef.current?.focus()
 			}}
@@ -694,10 +694,10 @@ export const SidebarChat = () => {
 			>
 				{/* submit options */}
 				<div className='max-w-[150px]
-			@@[&_select]:!void-border-none
-			@@[&_select]:!void-outline-none
-			flex-grow
-			'
+					@@[&_select]:!void-border-none
+					@@[&_select]:!void-outline-none
+					flex-grow
+					'
 				>
 					<ModelDropdown featureName='Ctrl+L' />
 				</div>

@@ -54,7 +54,8 @@ export const sendOllamaFIM: _InternalOllamaFIMMessageFnType = ({ messages, onTex
 		suffix: messages.suffix,
 		options: {
 			stop: messages.stopTokens,
-			num_predict: 300 // max tokens
+			num_predict: 300, // max tokens
+			// repeat_penalty: 1,
 		},
 		raw: true,
 		stream: true,

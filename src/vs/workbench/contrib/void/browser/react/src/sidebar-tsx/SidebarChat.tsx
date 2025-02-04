@@ -3,10 +3,10 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState } from '../util/services.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
 import { ChatMessage, StagingSelectionItem } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
@@ -22,6 +22,7 @@ import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { Pencil } from 'lucide-react';
+import { FeatureName } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -132,6 +133,103 @@ export const IconLoading = ({ className = '' }: { className?: string }) => {
 	return <div className={`${className}`}>{loadingText}</div>;
 
 }
+
+
+interface VoidInputFormProps {
+	// Required
+	children: React.ReactNode; // This will be the input component
+
+	// Form controls
+	onSubmit: () => void;
+	onAbort: () => void;
+	isStreaming: boolean;
+	isDisabled?: boolean;
+	formRef?: React.RefObject<HTMLFormElement>;
+
+	// UI customization
+	featureName: FeatureName;
+	className?: string;
+	showModelDropdown?: boolean;
+	showSelections?: boolean;
+	selections?: any[];
+	onSelectionsChange?: (selections: any[]) => void;
+
+	// Optional close button
+	onClose?: () => void;
+}
+
+export const VoidInputForm: React.FC<VoidInputFormProps> = ({
+	children,
+	onSubmit,
+	onAbort,
+	onClose,
+	formRef,
+	isStreaming = false,
+	isDisabled = false,
+	className = '',
+	showModelDropdown = true,
+	featureName,
+	showSelections = false,
+	selections = [],
+	onSelectionsChange,
+}) => {
+	return (
+		<form
+			ref={formRef}
+			className={`
+                flex flex-col gap-1 p-2 relative input text-left shrink-0
+                transition-all duration-200
+                rounded-md
+                bg-vscode-input-bg
+                border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
+                ${className}
+            `}
+		>
+			{/* Selections section */}
+			{showSelections && onSelectionsChange && (
+				<SelectedFiles
+					type='staging'
+					selections={selections}
+					setSelections={onSelectionsChange}
+				/>
+			)}
+
+			{/* Input section */}
+			<div className="relative w-full">
+				{children}
+
+				{/* Close button (X) if onClose is provided */}
+				{onClose && (
+					<div className='absolute -top-1 -right-1 cursor-pointer z-1'>
+						<IconX
+							size={12}
+							className="stroke-[2] opacity-80 text-void-fg-3 hover:brightness-95"
+							onClick={onClose}
+						/>
+					</div>
+				)}
+			</div>
+
+			{/* Bottom row */}
+			<div className='flex flex-row justify-between items-end gap-1'>
+				{showModelDropdown && (
+					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none flex-grow'>
+						<ModelDropdown featureName={featureName} />
+					</div>
+				)}
+
+				{isStreaming ? (
+					<ButtonStop onClick={onAbort} />
+				) : (
+					<ButtonSubmit
+						onClick={onSubmit}
+						disabled={isDisabled}
+					/>
+				)}
+			</div>
+		</form>
+	);
+};
 
 const useResizeObserver = () => {
 	const ref = useRef(null);
@@ -565,20 +663,31 @@ export const SidebarChat = () => {
 	useScrollbarStyles(sidebarRef)
 
 
-	const onSubmit = async () => {
+	const onSubmit = useCallback(async () => {
+
+		console.log('onSubmit')
 
 		if (isDisabled) return
 		if (isStreaming) return
 
+		console.log('chatThreadsService', chatThreadsService ? chatThreadsService : '!undefined')
+
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
+		console.log('userMessage', userMessage)
+		console.log('streaming...',)
 		await chatThreadsService.addUserMessageAndStreamResponse(userMessage)
+		console.log('done streaming',)
 
 		chatThreadsService.setStaging([]) // clear staging
+		console.log('set staging',)
 		textAreaFnsRef.current?.setValue('')
+		console.log('set value',)
 		textAreaRef.current?.focus() // focus input after submit
+		console.log('textAreaRef', textAreaRef.current)
+		console.log('focus',)
 
-	}
+	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef])
 
 	const onAbort = () => {
 		const threadId = currentThread.id
@@ -609,6 +718,7 @@ export const SidebarChat = () => {
 	>
 		<SidebarThreadSelector />
 	</div>
+
 
 
 	const messagesHTML = <ScrollToBottomContainer
@@ -646,77 +756,36 @@ export const SidebarChat = () => {
 	</ScrollToBottomContainer>
 
 
-	const inputBox = <div // this div is used to position the input box properly
-		className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
-	>
-		<div
-			ref={formRef}
-			className={`
-				flex flex-col gap-1 p-2 relative input text-left shrink-0
-				transition-all duration-200
-				rounded-md
-				bg-vscode-input-bg
-				max-h-[80vh] overflow-y-auto
-				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
-			`}
-			onClick={(e) => {
-				textAreaRef.current?.focus()
-			}}
+	const onChangeText = useCallback((newStr: string) => {
+		setInstructionsAreEmpty(!newStr)
+	}, [setInstructionsAreEmpty])
+	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			onSubmit()
+		}
+	}, [onSubmit])
+	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
+		<VoidInputForm
+			formRef={formRef}
+			onSubmit={onSubmit}
+			onAbort={onAbort}
+			isStreaming={isStreaming}
+			isDisabled={isDisabled}
+			showSelections={true}
+			selections={selections || []}
+			onSelectionsChange={chatThreadsService.setStaging.bind(chatThreadsService)}
+			featureName="Ctrl+L"
 		>
-			{/* top row */}
-			<>
-				{/* selections */}
-				<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0} />
-			</>
-
-			{/* middle row */}
-			<div>
-
-				{/* text input */}
-				<VoidInputBox2
-					className='min-h-[81px] p-1'
-					placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
-					onChangeText={useCallback((newStr: string) => { setInstructionsAreEmpty(!newStr) }, [setInstructionsAreEmpty])}
-					onKeyDown={(e) => {
-						if (e.key === 'Enter' && !e.shiftKey) {
-							onSubmit()
-						}
-					}}
-					ref={textAreaRef}
-					fnsRef={textAreaFnsRef}
-					multiline={true}
-				/>
-			</div>
-
-			{/* bottom row */}
-			<div
-				className='flex flex-row justify-between items-end gap-1'
-			>
-				{/* submit options */}
-				<div className='max-w-[150px]
-					@@[&_select]:!void-border-none
-					@@[&_select]:!void-outline-none
-					flex-grow
-					'
-				>
-					<ModelDropdown featureName='Ctrl+L' />
-				</div>
-
-				{/* submit / stop button */}
-				{isStreaming ?
-					// stop button
-					<ButtonStop
-						onClick={onAbort}
-					/>
-					:
-					// submit button (up arrow)
-					<ButtonSubmit
-						onClick={onSubmit}
-						disabled={isDisabled}
-					/>
-				}
-			</div>
-		</div>
+			<VoidInputBox2
+				className='min-h-[81px] p-1'
+				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
+				onChangeText={onChangeText}
+				onKeyDown={onKeyDown}
+				ref={textAreaRef}
+				fnsRef={textAreaFnsRef}
+				multiline={true}
+			/>
+		</VoidInputForm>
 	</div>
 
 	return <div ref={sidebarRef} className={`w-full h-full`}>
@@ -724,7 +793,7 @@ export const SidebarChat = () => {
 
 		{messagesHTML}
 
-		{inputBox}
+		{inputForm}
 
 	</div>
 }

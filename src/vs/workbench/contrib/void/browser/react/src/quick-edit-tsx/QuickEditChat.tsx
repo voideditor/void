@@ -7,7 +7,7 @@ import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'reac
 import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
-import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
+import { ButtonStop, ButtonSubmit, IconX, VoidInputForm } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 import { useRefState } from '../util/helpers.js';
@@ -49,12 +49,11 @@ export const QuickEditChat = ({
 	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
 	const isStreaming = currStreamingDiffZoneRef.current !== null
 
-	const onSubmit = useCallback((e: FormEvent) => {
+	const onSubmit = useCallback(() => {
 		if (isDisabled) return
 		if (currStreamingDiffZoneRef.current !== null) return
 		textAreaFnsRef.current?.disable()
 
-		const instructions = textAreaRef.current?.value ?? ''
 		const id = inlineDiffsService.startApplying({
 			featureName: 'Ctrl+K',
 			diffareaid: diffareaid,
@@ -80,109 +79,41 @@ export const QuickEditChat = ({
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
 
 	return <div ref={sizerRef} style={{ maxWidth: 450 }} className={`py-2 w-full`}>
-		<form
-			// copied from SidebarChat.tsx
-			className={`
-				flex flex-col gap-2 p-2 relative input text-left shrink-0
-				transition-all duration-200
-				rounded-md
-				bg-vscode-input-bg
-				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
-			`}
-			onClick={(e) => {
-				textAreaRef.current?.focus()
-			}}
+		<VoidInputForm
+			onSubmit={onSubmit}
+			onAbort={onInterrupt}
+			onClose={onX}
+			isStreaming={isStreaming}
+			isDisabled={isDisabled}
+			featureName="Ctrl+K"
+			className="py-2 w-full"
 		>
-
-			{/* // this div is used to position the input box properly */}
-			<div
-				className={`w-full z-[999] relative`}
-			>
-				<div className='flex flex-row items-center justify-between items-end gap-1'>
-
-					{/* input */}
-					<div // copied from SidebarChat.tsx
-						className={`w-full`}
-					>
-						{/* text input */}
-						<VoidInputBox2
-							className='px-1'
-							initValue={initText}
-
-							ref={useCallback((r: HTMLTextAreaElement | null) => {
-								textAreaRef.current = r
-								textAreaRef_(r)
-
-								// if presses the esc key, X
-								r?.addEventListener('keydown', (e) => {
-									if (e.key === 'Escape')
-										onX()
-								})
-
-							}, [textAreaRef_, onX])}
-
-							fnsRef={textAreaFnsRef}
-
-							placeholder={`Enter instructions...`}
-							// ${keybindingString} to select.
-
-							onChangeText={useCallback((newStr: string) => {
-								setInstructionsAreEmpty(!newStr)
-								onChangeText_(newStr)
-							}, [onChangeText_])}
-
-							onKeyDown={(e) => {
-								if (e.key === 'Enter' && !e.shiftKey) {
-									onSubmit(e)
-									return
-								}
-							}}
-
-							multiline={true}
-						/>
-					</div>
-
-					{/* X button */}
-					<div className='absolute -top-1 -right-1 cursor-pointer z-1'>
-						<IconX
-							size={12}
-							className="stroke-[2] opacity-80 text-void-fg-3 hover:brightness-95"
-							onClick={onX}
-						/>
-					</div>
-				</div>
-
-
-				{/* bottom row */}
-				<div
-					className='flex flex-row justify-between items-end gap-1'
-				>
-					{/* submit options */}
-					<div className='max-w-[150px]
-						@@[&_select]:!void-border-none
-						@@[&_select]:!void-outline-none'
-					>
-						<ModelDropdown featureName='Ctrl+K' />
-					</div>
-
-					{/* submit / stop button */}
-					{isStreaming ?
-						// stop button
-						<ButtonStop
-							onClick={onInterrupt}
-						/>
-						:
-						// submit button (up arrow)
-						<ButtonSubmit
-							onClick={onSubmit}
-							disabled={isDisabled}
-						/>
+			<VoidInputBox2
+				className='px-1'
+				initValue={initText}
+				ref={useCallback((r: HTMLTextAreaElement | null) => {
+					textAreaRef.current = r
+					textAreaRef_(r)
+					r?.addEventListener('keydown', (e) => {
+						if (e.key === 'Escape')
+							onX()
+					})
+				}, [textAreaRef_, onX])}
+				fnsRef={textAreaFnsRef}
+				placeholder="Enter instructions..."
+				onChangeText={useCallback((newStr: string) => {
+					setInstructionsAreEmpty(!newStr)
+					onChangeText_(newStr)
+				}, [onChangeText_])}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' && !e.shiftKey) {
+						onSubmit()
+						return
 					}
-				</div>
-			</div>
-
-
-		</form>
+				}}
+				multiline={true}
+			/>
+		</VoidInputForm>
 	</div>
 
 

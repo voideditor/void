@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { errorDetails } from '../../../../../../../platform/void/common/llmMessageTypes.js';
+import { useSettingsState } from '../util/services.js';
 
 
 export const ErrorDisplay = ({
@@ -23,8 +24,7 @@ export const ErrorDisplay = ({
 
 	const details = errorDetails(fullError)
 
-	const message = message_ === 'TypeError: fetch failed' ? 'TypeError: fetch failed. This likely means you specified the wrong endpoint in Void Settings.' : message_ + ''
-
+	const message = message_ === 'TypeError: fetch failed' ? `TypeError for : fetch failed. This likely means you specified the wrong endpoint in Void Settings, or your local model provider like Ollama is powered off.` : message_ + ''
 
 	return (
 		<div className={`rounded-lg border border-red-200 bg-red-50 p-4 overflow-auto`}>

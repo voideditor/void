@@ -533,19 +533,11 @@ const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantCont
 
 	let { prefix, suffix, prefixToTheLeftOfCursor, suffixToTheRightOfCursor, suffixLines, prefixLines } = prefixAndSuffix
 
-
-	console.log('old prefix', JSON.stringify(prefix))
-	console.log('old suffix', JSON.stringify(suffix))
-
 	// trim prefix and suffix to not be very large
 	suffixLines = suffix.split(_ln).slice(0, 25)
 	prefixLines = prefix.split(_ln).slice(-25)
 	prefix = prefixLines.join(_ln)
 	suffix = suffixLines.join(_ln)
-
-	console.log('new prefix', JSON.stringify(prefix))
-	console.log('new suffix', JSON.stringify(suffix))
-
 
 	let completionOptions: CompletionOptions
 

@@ -7,7 +7,7 @@ import { Content, GoogleGenerativeAI } from '@google/generative-ai';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 
 // Gemini
-export const sendGeminiMsg: _InternalSendLLMChatMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendGeminiChat: _InternalSendLLMChatMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	let fullText = ''
 

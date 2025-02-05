@@ -78,7 +78,7 @@ export const sendOllamaFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 
 
 // Ollama
-export const sendOllamaMsg: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendOllamaChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	const thisConfig = settingsOfProvider.ollama
 	// if endpoint is empty, normally ollama will send to 11434, but we want it to fail - the user should type it in

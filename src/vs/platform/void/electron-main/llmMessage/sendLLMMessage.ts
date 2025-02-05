@@ -6,12 +6,12 @@
 import { SendLLMMessageParams, OnText, OnFinalMessage, OnError, LLMChatMessage, _InternalLLMChatMessage } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 
-import { sendAnthropicMsg } from './anthropic.js';
-import { sendOllamaFIM, sendOllamaMsg } from './ollama.js';
-import { sendOpenAIMsg } from './openai.js';
-import { sendGeminiMsg } from './gemini.js';
-import { sendGroqMsg } from './groq.js';
-import { sendMistralMsg } from './mistral.js';
+import { sendAnthropicChat } from './anthropic.js';
+import { sendOllamaFIM, sendOllamaChat } from './ollama.js';
+import { sendOpenAIChat } from './openai.js';
+import { sendGeminiChat } from './gemini.js';
+import { sendGroqChat } from './groq.js';
+import { sendMistralChat } from './mistral.js';
 
 
 const cleanChatMessages = (messages: LLMChatMessage[]): _InternalLLMChatMessage[] => {
@@ -125,16 +125,16 @@ export const sendLLMMessage = ({
 	try {
 		switch (providerName) {
 			case 'anthropic':
-				sendAnthropicMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendAnthropicChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'deepseek':
 			case 'openAICompatible':
-				sendOpenAIMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendOpenAIChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'gemini':
-				sendGeminiMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendGeminiChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'ollama':
 				if ( // TODO @andrew in future we want to use our own templates instead of using ollamaFIM
@@ -144,13 +144,13 @@ export const sendLLMMessage = ({
 				)
 					sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
 				else
-					sendOllamaMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+					sendOllamaChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'groq':
-				sendGroqMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendGroqChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'mistral':
-				sendMistralMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendMistralChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
 				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })

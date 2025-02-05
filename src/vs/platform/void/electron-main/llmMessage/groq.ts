@@ -7,7 +7,7 @@ import Groq from 'groq-sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 
 // Groq
-export const sendGroqMsg: _InternalSendLLMChatMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendGroqChat: _InternalSendLLMChatMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 	let fullText = '';
 
 	const thisConfig = settingsOfProvider.groq

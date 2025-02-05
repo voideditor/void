@@ -48,7 +48,7 @@ export const openaiCompatibleList: _InternalModelListFnType<Model> = async ({ on
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIMsg: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
+export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
 
 	let fullText = ''
 

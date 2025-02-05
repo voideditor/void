@@ -7,7 +7,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
 
-export const sendAnthropicMsg: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	const thisConfig = settingsOfProvider.anthropic
 

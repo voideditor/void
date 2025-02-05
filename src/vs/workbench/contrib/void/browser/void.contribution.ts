@@ -23,7 +23,7 @@ import './autocompleteService.js'
 
 // register Context services
 import './contextGatheringService.js'
-import './contextUserChangesService.js'
+// import './contextUserChangesService.js'
 
 // settings pane
 import './voidSettingsPane.js'

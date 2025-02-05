@@ -289,7 +289,7 @@ export interface IFileTemplateData {
 	readonly templateDisposables: DisposableStore;
 	readonly elementDisposables: DisposableStore;
 	readonly label: IResourceLabel;
-	readonly voidLabels: IResourceLabel;
+	// readonly voidLabels: IResourceLabel;
 	readonly container: HTMLElement;
 	readonly contribs: IExplorerFileContribution[];
 	currentContext?: ExplorerItem;
@@ -349,18 +349,19 @@ export class FilesRenderer implements ICompressibleTreeRenderer<ExplorerItem, Fu
 	renderTemplate(container: HTMLElement): IFileTemplateData {
 		const templateDisposables = new DisposableStore();
 
-		// Create void buttons container
-		const voidButtonsContainer = DOM.append(container, DOM.$('div'));
-		voidButtonsContainer.style.position = 'absolute'
-		voidButtonsContainer.style.top = '0'
-		voidButtonsContainer.style.right = '0'
-		// const voidButtons = DOM.append(voidButtonsContainer, DOM.$('span'));
-		// voidButtons.textContent = 'voidbuttons'
-		// voidButtons.addEventListener('click', () => {
-		// 	console.log('ON CLICK', templateData.currentContext?.children)
-		// })
-		const voidLabels = this.labels.create(voidButtonsContainer, { supportHighlights: false, supportIcons: false, });
-		voidLabels.element.textContent = 'hi333'
+		// Void added this
+		// // Create void buttons container
+		// const voidButtonsContainer = DOM.append(container, DOM.$('div'));
+		// voidButtonsContainer.style.position = 'absolute'
+		// voidButtonsContainer.style.top = '0'
+		// voidButtonsContainer.style.right = '0'
+		// // const voidButtons = DOM.append(voidButtonsContainer, DOM.$('span'));
+		// // voidButtons.textContent = 'voidbuttons'
+		// // voidButtons.addEventListener('click', () => {
+		// // 	console.log('ON CLICK', templateData.currentContext?.children)
+		// // })
+		// const voidLabels = this.labels.create(voidButtonsContainer, { supportHighlights: false, supportIcons: false, });
+		// voidLabels.element.textContent = 'hi333'
 
 		const label = templateDisposables.add(this.labels.create(container, { supportHighlights: true }));
 		templateDisposables.add(label.onDidRender(() => {
@@ -375,7 +376,10 @@ export class FilesRenderer implements ICompressibleTreeRenderer<ExplorerItem, Fu
 			contr.setResource(templateData.currentContext?.resource);
 		}));
 
-		const templateData: IFileTemplateData = { templateDisposables, elementDisposables: templateDisposables.add(new DisposableStore()), label, voidLabels, container, contribs };
+
+		// const templateData: IFileTemplateData = { templateDisposables, elementDisposables: templateDisposables.add(new DisposableStore()), label, voidLabels, container, contribs };
+		const templateData: IFileTemplateData = { templateDisposables, elementDisposables: templateDisposables.add(new DisposableStore()), label, container, contribs };
+
 		return templateData;
 	}
 
@@ -489,11 +493,11 @@ export class FilesRenderer implements ICompressibleTreeRenderer<ExplorerItem, Fu
 			domId
 		});
 
-		templateData.voidLabels.setResource({ resource: undefined, name: 'hi', }, {
-			hideIcon: true,
-			extraClasses: realignNestedChildren ? [...extraClasses, 'align-nest-icon-with-parent-icon'] : extraClasses,
-			forceLabel: true,
-		});
+		// templateData.voidLabels.setResource({ resource: undefined, name: 'hi', }, {
+		// 	hideIcon: true,
+		// 	extraClasses: realignNestedChildren ? [...extraClasses, 'align-nest-icon-with-parent-icon'] : extraClasses,
+		// 	forceLabel: true,
+		// });
 
 	}
 

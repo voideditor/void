@@ -137,7 +137,11 @@ export const sendLLMMessage = ({
 				sendGeminiMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'ollama':
-				if (type === 'ollamaFIM')
+				if ( // TODO @andrew in future we want to use our own templates instead of using ollamaFIM
+					type === 'ollamaFIM'
+					&& settingsOfProvider['ollama']._enabled
+					&& settingsOfProvider['ollama'].models.some(m => !m.isHidden)
+				)
 					sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
 				else
 					sendOllamaMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });

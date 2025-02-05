@@ -79,7 +79,9 @@ export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText,
 	}
 	else if (providerName === 'openAICompatible') {
 		const thisConfig = settingsOfProvider.openAICompatible
-		openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true })
+		openai = new OpenAI({
+			baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true
+		})
 		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
 	}
 	else {

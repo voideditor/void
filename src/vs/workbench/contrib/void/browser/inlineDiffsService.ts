@@ -1368,7 +1368,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			type: 'sendLLMMessage',
-			useProviderFor: featureName,
+			useProviderFor: opts.featureName === 'Ctrl+L' ? 'FastApply' : 'Ctrl+K',
 			logging: { loggingName: `startApplying - ${featureName}` },
 			messages,
 			onText: ({ newText: newText_ }) => {

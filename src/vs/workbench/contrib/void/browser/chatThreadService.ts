@@ -204,6 +204,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const llmCancelToken = this._llmMessageService.sendLLMMessage({
 			type: 'sendLLMMessage',
 			logging: { loggingName: 'Chat' },
+			useProviderFor: 'Ctrl+L',
 			messages: [
 				{ role: 'system', content: chat_systemMessage },
 				...this.getCurrentThread().messages.map(m => ({ role: m.role, content: m.content || '(null)' })),
@@ -217,7 +218,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			onError: (error) => {
 				this.finishStreaming(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
 			},
-			useProviderFor: 'Ctrl+L',
 
 		})
 		if (llmCancelToken === null) return

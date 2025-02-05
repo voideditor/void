@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
+import { FeatureName, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
 export const errorDetails = (fullError: Error | null): string | null => {
@@ -54,7 +54,7 @@ export type ServiceSendLLMMessageParams = {
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
 	logging: { loggingName: string, };
-	useProviderFor: 'Ctrl+K' | 'Ctrl+L' | 'Autocomplete';
+	useProviderFor: FeatureName;
 } & SendLLMType
 
 // params to the true sendLLMMessage function

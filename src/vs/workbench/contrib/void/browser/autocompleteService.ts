@@ -797,6 +797,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					suffix: llmSuffix,
 					stopTokens: stopTokens,
 				},
+				useProviderFor: 'Autocomplete',
 				logging: { loggingName: 'Autocomplete' },
 				onText: async ({ fullText, newText }) => {
 
@@ -840,7 +841,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(message)
 				},
-				useProviderFor: 'Autocomplete',
 			})
 			newAutocompletion.requestId = requestId
 

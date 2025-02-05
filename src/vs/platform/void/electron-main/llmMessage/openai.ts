@@ -87,7 +87,7 @@ export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 	const openai: OpenAI = newOpenAI({ providerName, settingsOfProvider })
 
 	const options: OpenAI.Completions.CompletionCreateParamsStreaming = {
-		prompt: messages.suffix,
+		prompt: messages.prefix,
 		suffix: messages.suffix,
 		model: modelName,
 		stream: true,

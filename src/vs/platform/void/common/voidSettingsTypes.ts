@@ -399,36 +399,36 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...voidInitModelOptions.gemini,
 		_enabled: undefined,
 	},
-	groq: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.groq,
-		...voidInitModelOptions.groq,
-		_enabled: undefined,
-	},
-	ollama: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.ollama,
-		...voidInitModelOptions.ollama,
-		_enabled: undefined,
-	},
-	openRouter: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.openRouter,
-		...voidInitModelOptions.openRouter,
-		_enabled: undefined,
-	},
-	openAICompatible: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.openAICompatible,
-		...voidInitModelOptions.openAICompatible,
-		_enabled: undefined,
-	},
 	mistral: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.mistral,
 		...voidInitModelOptions.mistral,
 		_enabled: undefined,
-	}
+	},
+	groq: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.groq,
+		...voidInitModelOptions.groq,
+		_enabled: undefined,
+	},
+	openRouter: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.openRouter,
+		...voidInitModelOptions.openRouter,
+		_enabled: undefined,
+	},
+	openAICompatible: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.openAICompatible,
+		...voidInitModelOptions.openAICompatible,
+		_enabled: undefined,
+	},
+	ollama: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.ollama,
+		...voidInitModelOptions.ollama,
+		_enabled: undefined,
+	},
 }
 
 
@@ -485,3 +485,88 @@ export type GlobalSettingName = keyof GlobalSettings
 export const globalSettingNames = Object.keys(defaultGlobalSettings) as GlobalSettingName[]
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export const recognizedModels = [
+
+	// chat
+	'OpenAI 4o',
+	'Anthropic Claude',
+	'Llama 3.x',
+	'Deepseek Chat', // deepseek coder v2 is now merged into chat (V3) https://api-docs.deepseek.com/updates#deepseek-coder--deepseek-chat-upgraded-to-deepseek-v25-model
+	// 'xAI Grok',
+	// 'Google Gemini, Gemma',
+	// 'Microsoft Phi4',
+
+
+	// coding (autocomplete)
+	'Alibaba Qwen2.5 Coder Instruct', // we recommend this over Qwen2.5
+	'Mistral Codestral',
+
+	// thinking
+	'OpenAI o1, o3',
+	'Deepseek R1',
+
+	// general
+	'<General>'
+	// 'Mixtral 8x7b'
+	// 'Qwen2.5',
+
+] as const
+
+
+
+
+type RecognizedModel = (typeof recognizedModels)[number]
+
+
+// const modelCapabilities: { [recognizedModel in RecognizedModel]: ({ }) => string } = {
+// 	'OpenAI 4o': {
+// 		template: ({ prefix, suffix, }: { prefix: string; suffix: string; }) => `\
+// `
+// 	}
+// }
+
+export function getRecognizedModel(modelName: string): RecognizedModel {
+	const lower = modelName.toLowerCase();
+
+	if (lower.includes('gpt-4o')) {
+		return 'OpenAI 4o';
+	}
+	if (lower.includes('claude')) {
+		return 'Anthropic Claude';
+	}
+	if (lower.includes('llama')) {
+		return 'Llama 3.x';
+	}
+	if (lower.includes('qwen2.5-coder')) {
+		return 'Alibaba Qwen2.5 Coder Instruct';
+	}
+	if (lower.includes('mistral')) {
+		return 'Mistral Codestral';
+	}
+	// Check for "o1" or "o3"
+	if (/\bo1\b/.test(lower) || /\bo3\b/.test(lower)) {
+		return 'OpenAI o1, o3';
+	}
+	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) {
+		return 'Deepseek R1';
+	}
+
+
+
+	// Fallback:
+	return '<General>';
+}

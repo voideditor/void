@@ -80,7 +80,8 @@ export const sendLLMMessage = ({
 				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
 
 			} : type === 'sendFIMMessage' ? {
-
+				prefixLength: messages_.prefix.length,
+				suffixLength: messages_.suffix.length,
 			} : {},
 
 			...extras,

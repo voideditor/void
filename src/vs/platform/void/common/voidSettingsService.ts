@@ -11,7 +11,7 @@ import { registerSingleton, InstantiationType } from '../../instantiation/common
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultModelNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings } from './voidSettingsTypes.js';
 
 
 const STORAGE_KEY = 'void.settingsServiceStorage'
@@ -256,23 +256,23 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		const { models } = this.state.settingsOfProvider[providerName]
 
-		const old_names = models.map(m => m.modelName)
+		const oldModelNames = models.map(m => m.modelName)
 
-		const newDefaultModels = modelInfoOfDefaultNames(newDefaultModelNames, { isAutodetected: true, existingModels: models })
-		const newModels = [
-			...newDefaultModels,
-			...models.filter(m => !m.isDefault), // keep any non-default models
+		const newDefaultModelInfo = modelInfoOfDefaultModelNames(newDefaultModelNames, { isAutodetected: true, existingModels: models })
+		const newModelInfo = [
+			...newDefaultModelInfo, // swap out all the default models for the new default models
+			...models.filter(m => !m.isDefault), // keep any non-defaul (custom) models
 		]
 
 
-		this.setSettingOfProvider(providerName, 'models', newModels)
+		this.setSettingOfProvider(providerName, 'models', newModelInfo)
 
 		// if the models changed, log it
-		const new_names = newModels.map(m => m.modelName)
-		if (!(old_names.length === new_names.length
-			&& old_names.every((_, i) => old_names[i] === new_names[i])
-		)) {
-			this._metricsService.capture('Autodetect Models', { providerName, newModels, ...logging })
+		const new_names = newModelInfo.map(m => m.modelName)
+		if (!(oldModelNames.length === new_names.length
+			&& oldModelNames.every((_, i) => oldModelNames[i] === new_names[i]))
+		) {
+			this._metricsService.capture('Autodetect Models', { providerName, newModels: newModelInfo, ...logging })
 		}
 	}
 	toggleModelHidden(providerName: ProviderName, modelName: string) {

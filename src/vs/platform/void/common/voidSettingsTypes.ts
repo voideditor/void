@@ -10,22 +10,22 @@
 export type VoidModelInfo = {
 	modelName: string,
 	isDefault: boolean, // whether or not it's a default for its provider
-	isHidden: boolean, // whether or not the user is hiding it
+	isHidden: boolean, // whether or not the user is hiding it (switched off)
 	isAutodetected?: boolean, // whether the model was autodetected by polling
 }
 
 // creates `modelInfo` from `modelNames`
-export const modelInfoOfDefaultNames = (modelNames: string[], options?: { isAutodetected: true, existingModels: VoidModelInfo[] }): VoidModelInfo[] => {
+export const modelInfoOfDefaultModelNames = (defaultModelNames: string[], options?: { isAutodetected: true, existingModels: VoidModelInfo[] }): VoidModelInfo[] => {
 
 	const { isAutodetected, existingModels } = options ?? {}
 
 	if (!existingModels) { // default settings
 
-		return modelNames.map((modelName, i) => ({
+		return defaultModelNames.map((modelName, i) => ({
 			modelName,
 			isDefault: true,
 			isAutodetected: isAutodetected,
-			isHidden: modelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
+			isHidden: defaultModelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
 		}))
 
 	} else { // settings if there are existing models (keep existing `isHidden` property)
@@ -35,7 +35,7 @@ export const modelInfoOfDefaultNames = (modelNames: string[], options?: { isAuto
 			existingModelsMap[existingModel.modelName] = existingModel
 		}
 
-		return modelNames.map((modelName, i) => ({
+		return defaultModelNames.map((modelName, i) => ({
 			modelName,
 			isDefault: true,
 			isAutodetected: isAutodetected,
@@ -47,7 +47,7 @@ export const modelInfoOfDefaultNames = (modelNames: string[], options?: { isAuto
 }
 
 // https://docs.anthropic.com/en/docs/about-claude/models
-export const defaultAnthropicModels = modelInfoOfDefaultNames([
+export const defaultAnthropicModels = modelInfoOfDefaultModelNames([
 	'claude-3-5-sonnet-20241022',
 	'claude-3-5-haiku-20241022',
 	'claude-3-opus-20240229',
@@ -57,9 +57,10 @@ export const defaultAnthropicModels = modelInfoOfDefaultNames([
 
 
 // https://platform.openai.com/docs/models/gp
-export const defaultOpenAIModels = modelInfoOfDefaultNames([
-	'o1-preview',
+export const defaultOpenAIModels = modelInfoOfDefaultModelNames([
+	'o1',
 	'o1-mini',
+	'o3-mini',
 	'gpt-4o',
 	'gpt-4o-mini',
 	// 'gpt-4o-2024-05-13',
@@ -78,14 +79,14 @@ export const defaultOpenAIModels = modelInfoOfDefaultNames([
 ])
 
 // https://platform.openai.com/docs/models/gp
-export const defaultDeepseekModels = modelInfoOfDefaultNames([
+export const defaultDeepseekModels = modelInfoOfDefaultModelNames([
 	'deepseek-chat',
 	'deepseek-reasoner',
 ])
 
 
 // https://console.groq.com/docs/models
-export const defaultGroqModels = modelInfoOfDefaultNames([
+export const defaultGroqModels = modelInfoOfDefaultModelNames([
 	"distil-whisper-large-v3-en",
 	"llama-3.3-70b-versatile",
 	"llama-3.1-8b-instant",
@@ -93,7 +94,7 @@ export const defaultGroqModels = modelInfoOfDefaultNames([
 ])
 
 
-export const defaultGeminiModels = modelInfoOfDefaultNames([
+export const defaultGeminiModels = modelInfoOfDefaultModelNames([
 	'gemini-1.5-flash',
 	'gemini-1.5-pro',
 	'gemini-1.5-flash-8b',
@@ -102,7 +103,7 @@ export const defaultGeminiModels = modelInfoOfDefaultNames([
 	'learnlm-1.5-pro-experimental'
 ])
 
-export const defaultMistralModels = modelInfoOfDefaultNames([
+export const defaultMistralModels = modelInfoOfDefaultModelNames([
 	"codestral-latest",
 	"open-codestral-mamba",
 	"open-mistral-nemo",

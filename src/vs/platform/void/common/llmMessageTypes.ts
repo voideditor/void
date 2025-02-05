@@ -24,28 +24,28 @@ export type OnFinalMessage = (p: { fullText: string }) => void
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
-export type LLMMessage = {
+export type LLMChatMessage = {
 	role: 'system' | 'user' | 'assistant';
 	content: string;
 }
 
-export type _InternalLLMMessage = {
+export type _InternalLLMChatMessage = {
 	role: 'user' | 'assistant';
 	content: string;
 }
 
-type _InternalOllamaFIMMessages = {
+type _InternalSendFIMMessage = {
 	prefix: string;
 	suffix: string;
 	stopTokens: string[];
 }
 
 type SendLLMType = {
-	type: 'sendLLMMessage';
-	messages: LLMMessage[];
+	type: 'sendChatMessage';
+	messages: LLMChatMessage[];
 } | {
-	type: 'ollamaFIM';
-	messages: _InternalOllamaFIMMessages;
+	type: 'sendFIMMessage';
+	messages: _InternalSendFIMMessage;
 }
 
 // service types
@@ -85,7 +85,7 @@ export type EventLLMMessageOnFinalMessageParams = Parameters<OnFinalMessage>[0] 
 export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId: string }
 
 
-export type _InternalSendLLMMessageFnType = (
+export type _InternalSendLLMChatMessageFnType = (
 	params: {
 		onText: OnText;
 		onFinalMessage: OnFinalMessage;
@@ -95,11 +95,11 @@ export type _InternalSendLLMMessageFnType = (
 		modelName: string;
 		_setAborter: (aborter: () => void) => void;
 
-		messages: _InternalLLMMessage[];
+		messages: _InternalLLMChatMessage[];
 	}
 ) => void
 
-export type _InternalOllamaFIMMessageFnType = (
+export type _InternalSendLLMFIMMessageFnType = (
 	params: {
 		onText: OnText;
 		onFinalMessage: OnFinalMessage;
@@ -109,7 +109,7 @@ export type _InternalOllamaFIMMessageFnType = (
 		modelName: string;
 		_setAborter: (aborter: () => void) => void;
 
-		messages: _InternalOllamaFIMMessages;
+		messages: _InternalSendFIMMessage;
 	}
 ) => void
 

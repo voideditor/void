@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { SendLLMMessageParams, OnText, OnFinalMessage, OnError, LLMMessage, _InternalLLMMessage } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError, LLMChatMessage, _InternalLLMChatMessage } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 
 import { sendAnthropicMsg } from './anthropic.js';
@@ -14,7 +14,7 @@ import { sendGroqMsg } from './groq.js';
 import { sendMistralMsg } from './mistral.js';
 
 
-const cleanMessages = (messages: LLMMessage[]): _InternalLLMMessage[] => {
+const cleanChatMessages = (messages: LLMChatMessage[]): _InternalLLMChatMessage[] => {
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
 
@@ -26,7 +26,7 @@ const cleanMessages = (messages: LLMMessage[]): _InternalLLMMessage[] => {
 
 	// remove all system messages
 	const noSystemMessages = messages
-		.filter(msg => msg.role !== 'system') as _InternalLLMMessage[]
+		.filter(msg => msg.role !== 'system') as _InternalLLMChatMessage[]
 
 	// add system mesasges to first message (should be a user message)
 	if (systemMessage && (noSystemMessages.length !== 0)) {
@@ -66,20 +66,20 @@ export const sendLLMMessage = ({
 ) => {
 	// messages.unshift({ role: 'system', content: aiInstructions })
 
-	const messagesArr = type === 'sendLLMMessage' ? cleanMessages(messages_) : []
+	const messagesArr = type === 'sendChatMessage' ? cleanChatMessages(messages_) : []
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
 		metricsService.capture(eventId, {
 			providerName,
 			modelName,
-			...type === 'sendLLMMessage' ? {
+			...type === 'sendChatMessage' ? {
 				numMessages: messagesArr?.length,
 				messagesShape: messagesArr?.map(msg => ({ role: msg.role, length: msg.content.length })),
 				origNumMessages: messages_?.length,
 				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
 
-			} : type === 'ollamaFIM' ? {
+			} : type === 'sendFIMMessage' ? {
 
 			} : {},
 
@@ -138,7 +138,7 @@ export const sendLLMMessage = ({
 				break;
 			case 'ollama':
 				if ( // TODO @andrew in future we want to use our own templates instead of using ollamaFIM
-					type === 'ollamaFIM'
+					type === 'sendFIMMessage'
 					&& settingsOfProvider['ollama']._enabled
 					&& settingsOfProvider['ollama'].models.some(m => !m.isHidden)
 				)

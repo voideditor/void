@@ -30,7 +30,7 @@ import { ILLMMessageService } from '../../../../platform/void/common/llmMessageS
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
-import { errorDetails, LLMMessage } from '../../../../platform/void/common/llmMessageTypes.js';
+import { errorDetails, LLMChatMessage } from '../../../../platform/void/common/llmMessageTypes.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
@@ -1287,7 +1287,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		}
 
 		// now handle messages
-		let messages: LLMMessage[]
+		let messages: LLMChatMessage[]
 
 		if (featureName === 'Ctrl+L') {
 			const userContent = fastApply_userMessage({ originalCode, applyStr: opts.applyStr, uri })
@@ -1367,7 +1367,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let prevIgnoredSuffix = ''
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-			type: 'sendLLMMessage',
+			type: 'sendChatMessage',
 			useProviderFor: opts.featureName === 'Ctrl+L' ? 'FastApply' : 'Ctrl+K',
 			logging: { loggingName: `startApplying - ${featureName}` },
 			messages,

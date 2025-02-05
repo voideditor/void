@@ -791,7 +791,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
-				type: 'ollamaFIM',
+				type: 'sendFIMMessage',
 				messages: {
 					prefix: llmPrefix,
 					suffix: llmSuffix,

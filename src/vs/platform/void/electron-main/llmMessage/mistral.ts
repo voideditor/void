@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------*/
 
 import { Mistral } from '@mistralai/mistralai';
-import { _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
+import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 
 // Mistral
-export const sendMistralMsg: _InternalSendLLMMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendMistralMsg: _InternalSendLLMChatMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 	let fullText = '';
 
 	const thisConfig = settingsOfProvider.mistral;

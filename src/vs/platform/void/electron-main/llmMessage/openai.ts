@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import OpenAI from 'openai';
-import { _InternalModelListFnType, _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
+import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { Model } from 'openai/resources/models.js';
 // import { parseMaxTokensStr } from './util.js';
 
@@ -43,9 +43,12 @@ export const openaiCompatibleList: _InternalModelListFnType<Model> = async ({ on
 
 
 
+// export const sendOpenAIFimMsg: _InternalSendLLMFIMMessageFnType
+
+
 
 // OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
+export const sendOpenAIMsg: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
 
 	let fullText = ''
 

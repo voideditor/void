@@ -19,7 +19,7 @@ import { IModelService } from '../../../../editor/common/services/model.js';
 import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { isWindows } from '../../../../base/common/platform.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
-import { IContextGatheringService } from './contextGatheringService.js';
+// import { IContextGatheringService } from './contextGatheringService.js';
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
 
@@ -170,8 +170,11 @@ const processStartAndEndSpaces = (result: string) => {
 	// trim all whitespace except for a single leading/trailing space
 	// return result.trim()
 
+	[result,] = extractCodeFromRegular({ text: result, recentlyAddedTextLen: result.length })
+
 	const hasLeadingSpace = result.startsWith(' ');
 	const hasTrailingSpace = result.endsWith(' ');
+
 	return (hasLeadingSpace ? ' ' : '')
 		+ result.trim()
 		+ (hasTrailingSpace ? ' ' : '');
@@ -379,7 +382,7 @@ const toInlineCompletions = ({ autocompletionMatchup, autocompletion, prefixAndS
 			trimmedInsertText = trimmedInsertText.slice(0, lastMatchupIdx + 1)
 			const numCharsToReplace = oldSuffix.lastIndexOf(lastMatchingChar) + 1
 			rangeToReplace = new Range(position.lineNumber, position.column, position.lineNumber, position.column + numCharsToReplace)
-			console.log('show____', trimmedInsertText, rangeToReplace)
+			// console.log('show____', trimmedInsertText, rangeToReplace)
 		}
 	}
 
@@ -518,12 +521,7 @@ const getAutocompletionMatchup = ({ prefix, autocompletion }: { prefix: string, 
 
 }
 
-// const x = []
-// const
-// c[[]]
-// asd[[]] =
-// const [{{}}]
-//
+
 type CompletionOptions = {
 	predictionType: AutocompletionPredictionType,
 	shouldGenerate: boolean,
@@ -533,7 +531,21 @@ type CompletionOptions = {
 }
 const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantContext: string, justAcceptedAutocompletion: boolean): CompletionOptions => {
 
-	const { prefix, suffix, prefixToTheLeftOfCursor, suffixToTheRightOfCursor, suffixLines } = prefixAndSuffix
+	let { prefix, suffix, prefixToTheLeftOfCursor, suffixToTheRightOfCursor, suffixLines, prefixLines } = prefixAndSuffix
+
+
+	console.log('old prefix', JSON.stringify(prefix))
+	console.log('old suffix', JSON.stringify(suffix))
+
+	// trim prefix and suffix to not be very large
+	suffixLines = suffix.split(_ln).slice(0, 25)
+	prefixLines = prefix.split(_ln).slice(-25)
+	prefix = prefixLines.join(_ln)
+	suffix = suffixLines.join(_ln)
+
+	console.log('new prefix', JSON.stringify(prefix))
+	console.log('new suffix', JSON.stringify(suffix))
+
 
 	let completionOptions: CompletionOptions
 
@@ -566,7 +578,7 @@ const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantCont
 			stopTokens: allLinebreakSymbols
 		}
 	}
-	// if suffix is 3 or less characters, attempt to complete the line ignorning it
+	// if suffix is 3 or fewer characters, attempt to complete the line ignorning it
 	else if (removeAllWhitespace(suffixToTheRightOfCursor).length <= 3) {
 		const suffixLinesIgnoringThisLine = suffixLines.slice(1)
 		const suffixStringIgnoringThisLine = suffixLinesIgnoringThisLine.length === 0 ? '' : _ln + suffixLinesIgnoringThisLine.join(_ln)
@@ -628,8 +640,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		context: InlineCompletionContext,
 		token: CancellationToken,
 	): Promise<InlineCompletion[]> {
-
-		console.log('START_0')
 
 		const testMode = false
 
@@ -748,11 +758,12 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		// gather relevant context from the code around the user's selection and definitions
 		// const relevantSnippetsList = await this._contextGatheringService.readCachedSnippets(model, position, 3);
-		const relevantSnippetsList = this._contextGatheringService.getCachedSnippets();
-		const relevantSnippets = relevantSnippetsList.map((text) => `${text}`).join('\n-------------------------------\n')
-		console.log('@@---------------------\n' + relevantSnippets)
+		// const relevantSnippetsList = this._contextGatheringService.getCachedSnippets();
+		// const relevantSnippets = relevantSnippetsList.map((text) => `${text}`).join('\n-------------------------------\n')
+		// console.log('@@---------------------\n' + relevantSnippets)
+		const relevantContext = ''
 
-		const { shouldGenerate, predictionType, llmPrefix, llmSuffix, stopTokens } = getCompletionOptions(prefixAndSuffix, relevantSnippets, justAcceptedAutocompletion)
+		const { shouldGenerate, predictionType, llmPrefix, llmSuffix, stopTokens } = getCompletionOptions(prefixAndSuffix, relevantContext, justAcceptedAutocompletion)
 
 		if (!shouldGenerate) return []
 
@@ -817,7 +828,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				},
 				onFinalMessage: ({ fullText }) => {
 
-					console.log('____res: ', JSON.stringify(newAutocompletion.insertText))
+					// console.log('____res: ', JSON.stringify(newAutocompletion.insertText))
 
 					newAutocompletion.endTime = Date.now()
 					newAutocompletion.status = 'finished'
@@ -877,7 +888,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IModelService private readonly _modelService: IModelService,
-		@IContextGatheringService private readonly _contextGatheringService: IContextGatheringService,
+		// @IContextGatheringService private readonly _contextGatheringService: IContextGatheringService,
 	) {
 		super()
 

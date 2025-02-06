@@ -193,11 +193,11 @@ const RenderToken = ({ token, nested = false, noSpace = false }: { token: Token 
 
 	if (t.type === "html") {
 		return (
-			<pre className={`bg-void-bg-2 p-4 rounded-lg ${noSpace ? '' : 'my-4'} font-mono text-sm`}>
+			<div className={`bg-void-bg-2 p-4 rounded-lg ${noSpace ? '' : 'my-4'} font-mono text-sm`}>
 				<div>{`<html>`}</div>
 				{t.raw}
 				<div>{`</html>`}</div>
-			</pre>
+			</div>
 		)
 	}
 

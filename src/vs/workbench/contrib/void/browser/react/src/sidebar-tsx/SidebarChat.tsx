@@ -15,7 +15,7 @@ import { URI } from '../../../../../../../base/common/uri.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
-import { ModelDropdown, WarningBox } from '../void-settings-tsx/ModelDropdown.js';
+import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
@@ -23,6 +23,7 @@ import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { Pencil } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
+import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {

@@ -14,8 +14,9 @@ import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
 import { isWindows, isLinux, isMacintosh } from '../../../../../../../base/common/platform.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
-import { WarningBox, ModelDropdown } from './ModelDropdown.js'
+import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
+import { WarningBox } from './WarningBox.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 

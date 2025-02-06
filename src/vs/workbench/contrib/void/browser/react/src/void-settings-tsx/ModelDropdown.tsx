@@ -11,6 +11,7 @@ import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/select
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
 import { VOID_OPEN_SETTINGS_ACTION_ID, VOID_TOGGLE_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
 import { ModelOption } from '../../../../../../../platform/void/common/voidSettingsService.js'
+import { WarningBox } from './WarningBox.js'
 
 const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
 	if (m1.length !== m2.length) return false
@@ -75,30 +76,6 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 
 
 
-export const WarningBox = ({ text, onClick, className }: { text: string; onClick?: () => void; className?: string }) => {
-
-	return <div
-		className={`
-			text-void-warning brightness-90 opacity-90
-			text-xs text-ellipsis
-			${onClick ? `hover:brightness-75 transition-all duration-200 cursor-pointer` : ''}
-			flex items-center flex-nowrap
-			${className}
-		`}
-		onClick={onClick}
-	>
-		<IconWarning
-			size={14}
-			className='mr-1'
-		/>
-		<span>{text}</span>
-	</div>
-	// return <VoidSelectBox
-	// 	options={[{ text: 'Please add a model!', value: null }]}
-	// 	onChangeSelection={() => { }}
-	// />
-}
-
 const MemoizedModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
 	const settingsState = useSettingsState()
 	const oldOptionsRef = useRef<ModelOption[]>([])
@@ -128,8 +105,8 @@ export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => 
 	const isDisabled = isFeatureNameDisabled(featureName, settingsState)
 	if (isDisabled)
 		return <WarningBox onClick={openSettings} text={
-			isDisabled === 'needToEnableModel' ? 'Enable model'
-				: isDisabled === 'addModel' ? 'Add model'
+			isDisabled === 'needToEnableModel' ? 'Enable a model'
+				: isDisabled === 'addModel' ? 'Add a model'
 					: (isDisabled === 'addProvider' || isDisabled === 'notFilledIn' || isDisabled === 'providerNotAutoDetected') ? 'Provider required'
 						: 'Provider required'
 		} />

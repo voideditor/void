@@ -102,13 +102,13 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 
 // similar to ServiceLLM
 export type StartApplyingOpts = {
-	featureName: 'Ctrl+K';
+	from: 'QuickEdit';
 	diffareaid: number; // id of the CtrlK area (contains text selection)
 } | {
-	featureName: 'Ctrl+L';
+	from: 'Chat';
 	applyStr: string;
 } | {
-	featureName: 'Autocomplete';
+	from: 'Autocomplete';
 	range: IRange;
 	userMessage: string;
 }
@@ -1209,13 +1209,13 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 	private _initializeStartApplying(opts: StartApplyingOpts): DiffZone | undefined {
 
-		const { featureName } = opts
+		const { from } = opts
 
 		let startLine: number
 		let endLine: number
 		let uri: URI
 
-		if (featureName === 'Ctrl+L') {
+		if (from === 'Chat') {
 
 			const uri_ = this._getActiveEditorURI()
 			if (!uri_) return
@@ -1231,7 +1231,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			endLine = numLines
 
 		}
-		else if (featureName === 'Ctrl+K') {
+		else if (from === 'QuickEdit') {
 			const { diffareaid } = opts
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
 			if (ctrlKZone.type !== 'CtrlKZone') return
@@ -1242,7 +1242,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			endLine = endLine_
 		}
 		else {
-			throw new Error(`Void: diff.type not recognized on: ${featureName}`)
+			throw new Error(`Void: diff.type not recognized on: ${from}`)
 		}
 
 		const currentFileStr = this._readURI(uri)
@@ -1278,7 +1278,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
-		if (featureName === 'Ctrl+K') {
+		if (from === 'QuickEdit') {
 			const { diffareaid } = opts
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
 			if (ctrlKZone.type !== 'CtrlKZone') return
@@ -1289,14 +1289,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// now handle messages
 		let messages: LLMChatMessage[]
 
-		if (featureName === 'Ctrl+L') {
+		if (from === 'Chat') {
 			const userContent = fastApply_userMessage({ originalCode, applyStr: opts.applyStr, uri })
 			messages = [
 				{ role: 'system', content: fastApply_systemMessage, },
 				{ role: 'user', content: userContent, }
 			]
 		}
-		else if (featureName === 'Ctrl+K') {
+		else if (from === 'QuickEdit') {
 			const { diffareaid } = opts
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
 			if (ctrlKZone.type !== 'CtrlKZone') return
@@ -1323,14 +1323,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			]
 			// }
 		}
-		else { throw new Error(`featureName ${featureName} is invalid`) }
+		else { throw new Error(`featureName ${from} is invalid`) }
 
 
 		const onDone = (hadError: boolean) => {
 			diffZone._streamState = { isStreaming: false, }
 			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 
-			if (featureName === 'Ctrl+K') {
+			if (from === 'QuickEdit') {
 				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
 
 				ctrlKZone._linkedStreamingDiffZone = null
@@ -1350,11 +1350,11 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
-			if (featureName === 'Ctrl+K') {
+			if (from === 'QuickEdit') {
 				if (isOllamaFIM) return fullText
 				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: modelFimTags.midTag })
 			}
-			else if (featureName === 'Ctrl+L') {
+			else if (from === 'Chat') {
 				return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
 			}
 			throw 1
@@ -1367,9 +1367,9 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let prevIgnoredSuffix = ''
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-			type: 'sendChatMessage',
-			useProviderFor: opts.featureName === 'Ctrl+L' ? 'FastApply' : 'Ctrl+K',
-			logging: { loggingName: `startApplying - ${featureName}` },
+			messagesType: 'chatMessages',
+			useProviderFor: opts.from === 'Chat' ? 'FastApply' : 'Ctrl+K',
+			logging: { loggingName: `startApplying - ${from}` },
 			messages,
 			onText: ({ newText: newText_ }) => {
 

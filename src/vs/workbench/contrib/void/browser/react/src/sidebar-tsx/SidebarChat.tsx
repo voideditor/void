@@ -22,7 +22,7 @@ import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { Pencil } from 'lucide-react';
-import { FeatureName } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
+import { FeatureName, isFeatureNameDisabled } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -158,7 +158,7 @@ interface VoidInputFormProps {
 	onClose?: () => void;
 }
 
-export const VoidInputForm: React.FC<VoidInputFormProps> = ({
+export const VoidChatArea: React.FC<VoidInputFormProps> = ({
 	children,
 	onSubmit,
 	onAbort,
@@ -578,6 +578,7 @@ const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLo
 				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
+			${role !== 'assistant' ? 'my-2' : ''}
 		`}
 		onMouseEnter={() => setIsHovered(true)}
 		onMouseLeave={() => setIsHovered(false)}
@@ -621,6 +622,7 @@ export const SidebarChat = () => {
 	// const modelService = accessor.get('IModelService')
 	const commandService = accessor.get('ICommandService')
 
+	const settingsState = useSettingsState()
 	// ----- HIGHER STATE -----
 	// sidebar state
 	const sidebarStateService = accessor.get('ISidebarStateService')
@@ -654,7 +656,8 @@ export const SidebarChat = () => {
 	// state of current message
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
-	const isDisabled = instructionsAreEmpty
+
+	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+L', settingsState)
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
 	const [formRef, formDimensions] = useResizeObserver()
@@ -670,22 +673,13 @@ export const SidebarChat = () => {
 		if (isDisabled) return
 		if (isStreaming) return
 
-		console.log('chatThreadsService', chatThreadsService ? chatThreadsService : '!undefined')
-
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
-		console.log('userMessage', userMessage)
-		console.log('streaming...',)
 		await chatThreadsService.addUserMessageAndStreamResponse(userMessage)
-		console.log('done streaming',)
 
 		chatThreadsService.setStaging([]) // clear staging
-		console.log('set staging',)
 		textAreaFnsRef.current?.setValue('')
-		console.log('set value',)
 		textAreaRef.current?.focus() // focus input after submit
-		console.log('textAreaRef', textAreaRef.current)
-		console.log('focus',)
 
 	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef])
 
@@ -765,7 +759,7 @@ export const SidebarChat = () => {
 		}
 	}, [onSubmit])
 	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
-		<VoidInputForm
+		<VoidChatArea
 			formRef={formRef}
 			onSubmit={onSubmit}
 			onAbort={onAbort}
@@ -785,7 +779,7 @@ export const SidebarChat = () => {
 				fnsRef={textAreaFnsRef}
 				multiline={true}
 			/>
-		</VoidInputForm>
+		</VoidChatArea>
 	</div>
 
 	return <div ref={sidebarRef} className={`w-full h-full`}>

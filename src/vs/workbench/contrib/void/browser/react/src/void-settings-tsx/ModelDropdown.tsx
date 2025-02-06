@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------*/
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FeatureName, featureNames, getProvidersWithoutModels, ModelSelection, modelSelectionsEqual, ProviderName, providerNames, SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { FeatureName, featureNames, isFeatureNameDisabled, ModelSelection, modelSelectionsEqual, ProviderName, providerNames, SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import { useSettingsState, useRefreshModelState, useAccessor } from '../util/services.js'
-import { _VoidSelectBox, VoidCustomSelectBox } from '../util/inputs.js'
+import { _VoidSelectBox, VoidCustomDropdownBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
 import { VOID_OPEN_SETTINGS_ACTION_ID, VOID_TOGGLE_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
@@ -25,13 +25,13 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 
 	const selection = voidSettingsService.state.modelSelectionOfFeature[featureName]
-	const selectedOption = selection ? voidSettingsService.state._modelOptions.find(v => modelSelectionsEqual(v.selection, selection)) : options[0]
+	const selectedOption = selection ? voidSettingsService.state._modelOptions.find(v => modelSelectionsEqual(v.selection, selection))! : options[0]
 
 	const onChangeOption = useCallback((newOption: ModelOption) => {
 		voidSettingsService.setModelSelectionOfFeature(featureName, newOption.selection)
 	}, [voidSettingsService, featureName])
 
-	return <VoidCustomSelectBox
+	return <VoidCustomDropdownBox
 		options={options}
 		selectedOption={selectedOption}
 		onChangeOption={onChangeOption}
@@ -73,22 +73,7 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 // 	/>
 // }
 
-const MemoizedModelSelectBox = ({ featureName }: { featureName: FeatureName }) => {
-	const settingsState = useSettingsState()
-	const oldOptionsRef = useRef<ModelOption[]>([])
-	const [memoizedOptions, setMemoizedOptions] = useState(oldOptionsRef.current)
-	useEffect(() => {
-		const oldOptions = oldOptionsRef.current
-		const newOptions = settingsState._modelOptions
-		if (!optionsEqual(oldOptions, newOptions)) {
-			setMemoizedOptions(newOptions)
-		}
-		oldOptionsRef.current = newOptions
-	}, [settingsState._modelOptions])
 
-	return <ModelSelectBox featureName={featureName} options={memoizedOptions} />
-
-}
 
 export const WarningBox = ({ text, onClick, className }: { text: string; onClick?: () => void; className?: string }) => {
 
@@ -114,22 +99,40 @@ export const WarningBox = ({ text, onClick, className }: { text: string; onClick
 	// />
 }
 
+const MemoizedModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
+	const settingsState = useSettingsState()
+	const oldOptionsRef = useRef<ModelOption[]>([])
+	const [memoizedOptions, setMemoizedOptions] = useState(oldOptionsRef.current)
+
+	useEffect(() => {
+		const oldOptions = oldOptionsRef.current
+		const newOptions = settingsState._modelOptions
+		if (!optionsEqual(oldOptions, newOptions)) {
+			setMemoizedOptions(newOptions)
+		}
+		oldOptionsRef.current = newOptions
+	}, [settingsState._modelOptions])
+
+	return <ModelSelectBox featureName={featureName} options={memoizedOptions} />
+
+}
+
 export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
 	const settingsState = useSettingsState()
-
-	const providersWithMissingModels = getProvidersWithoutModels(settingsState.settingsOfProvider)
 
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 
 	const openSettings = () => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID); };
 
-	return <>
-		{providersWithMissingModels.length !== 0 ?
-			<WarningBox onClick={openSettings} text={`Model required for ${providersWithMissingModels[0]}`} />
-			: settingsState._modelOptions.length === 0 ?
-				<WarningBox onClick={openSettings} text='Provider required' />
-				: <MemoizedModelSelectBox featureName={featureName} />
-		}
-	</>
+	const isDisabled = isFeatureNameDisabled(featureName, settingsState)
+	if (isDisabled)
+		return <WarningBox onClick={openSettings} text={
+			isDisabled === 'needToEnableModel' ? 'Enable model'
+				: isDisabled === 'addModel' ? 'Add model'
+					: (isDisabled === 'addProvider' || isDisabled === 'notFilledIn' || isDisabled === 'providerNotAutoDetected') ? 'Provider required'
+						: 'Provider required'
+		} />
+
+	return <MemoizedModelDropdown featureName={featureName} />
 }

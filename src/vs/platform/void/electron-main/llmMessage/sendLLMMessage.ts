@@ -12,6 +12,7 @@ import { sendOpenAIChat } from './openai.js';
 import { sendGeminiChat } from './gemini.js';
 import { sendGroqChat } from './groq.js';
 import { sendMistralChat } from './mistral.js';
+import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 
 
 const cleanChatMessages = (messages: LLMChatMessage[]): _InternalLLMChatMessage[] => {
@@ -49,7 +50,7 @@ const cleanChatMessages = (messages: LLMChatMessage[]): _InternalLLMChatMessage[
 
 
 export const sendLLMMessage = ({
-	type,
+	messagesType,
 	aiInstructions,
 	messages: messages_,
 	onText: onText_,
@@ -66,20 +67,20 @@ export const sendLLMMessage = ({
 ) => {
 	// messages.unshift({ role: 'system', content: aiInstructions })
 
-	const messagesArr = type === 'sendChatMessage' ? cleanChatMessages(messages_) : []
+	const messagesArr = messagesType === 'chatMessages' ? cleanChatMessages(messages_) : []
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
 		metricsService.capture(eventId, {
 			providerName,
 			modelName,
-			...type === 'sendChatMessage' ? {
+			...messagesType === 'chatMessages' ? {
 				numMessages: messagesArr?.length,
 				messagesShape: messagesArr?.map(msg => ({ role: msg.role, length: msg.content.length })),
 				origNumMessages: messages_?.length,
 				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
 
-			} : type === 'sendFIMMessage' ? {
+			} : messagesType === 'FIMMessage' ? {
 				prefixLength: messages_.prefix.length,
 				suffixLength: messages_.suffix.length,
 			} : {},
@@ -109,6 +110,11 @@ export const sendLLMMessage = ({
 	const onError: OnError = ({ message: error, fullError }) => {
 		if (_didAbort) return
 		console.error('sendLLMMessage onError:', error)
+
+		// handle failed to fetch errors, which give 0 information by design
+		if (error === 'TypeError: fetch failed')
+			error = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void Settings, or your local model provider like Ollama is powered off.`
+
 		captureLLMEvent(`${loggingName} - Error`, { error })
 		onError_({ message: error, fullError })
 	}
@@ -139,8 +145,8 @@ export const sendLLMMessage = ({
 				break;
 			case 'ollama':
 				if ( // TODO @andrew in future we want to use our own templates instead of using ollamaFIM
-					type === 'sendFIMMessage'
-					&& settingsOfProvider['ollama']._enabled
+					messagesType === 'FIMMessage'
+					&& settingsOfProvider['ollama']._didFillInProviderSettings
 					&& settingsOfProvider['ollama'].models.some(m => !m.isHidden)
 				)
 					sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })

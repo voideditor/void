@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-
+import { VoidSettingsState } from './voidSettingsService.js'
 
 
 export type VoidModelInfo = {
@@ -186,28 +186,23 @@ export const customSettingNamesOfProvider = (providerName: ProviderName) => {
 	return Object.keys(defaultProviderSettings[providerName]) as CustomSettingName[]
 }
 
-export const getProvidersWithoutModels = (settingsOfProvider: SettingsOfProvider) => {
-	return Object.entries(settingsOfProvider)
-		.filter(([name, provider]) => provider._enabled && provider.models.length === 0)
-		.map(([name]) => name)
-}
 
 
 
 type CommonProviderSettings = {
-	_enabled: boolean | undefined, // undefined initially, computed when user types in all fields
+	_didFillInProviderSettings: boolean | undefined, // undefined initially, computed when user types in all fields
 	models: VoidModelInfo[],
 }
 
-export type SettingsForProvider<providerName extends ProviderName> = CustomProviderSettings<providerName> & CommonProviderSettings
+export type SettingsAtProvider<providerName extends ProviderName> = CustomProviderSettings<providerName> & CommonProviderSettings
 
 // part of state
 export type SettingsOfProvider = {
-	[providerName in ProviderName]: SettingsForProvider<providerName>
+	[providerName in ProviderName]: SettingsAtProvider<providerName>
 }
 
 
-export type SettingName = keyof SettingsForProvider<ProviderName>
+export type SettingName = keyof SettingsAtProvider<ProviderName>
 
 
 
@@ -316,7 +311,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				undefined,
 		}
 	}
-	else if (settingName === '_enabled') {
+	else if (settingName === '_didFillInProviderSettings') {
 		return {
 			title: '(never)',
 			placeholder: '(never)',
@@ -380,55 +375,55 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.anthropic,
 		...voidInitModelOptions.anthropic,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	openAI: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	deepseek: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.deepseek,
 		...voidInitModelOptions.deepseek,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	gemini: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.gemini,
 		...voidInitModelOptions.gemini,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	mistral: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.mistral,
 		...voidInitModelOptions.mistral,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	groq: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.groq,
 		...voidInitModelOptions.groq,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	openRouter: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.openRouter,
 		...voidInitModelOptions.openRouter,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	openAICompatible: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAICompatible,
 		...voidInitModelOptions.openAICompatible,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	ollama: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.ollama,
 		...voidInitModelOptions.ollama,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 }
 
@@ -458,13 +453,48 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 }
 
 
-
-
-
-
 // the models of these can be refreshed (in theory all can, but not all should)
 export const refreshableProviderNames = localProviderNames
 export type RefreshableProviderName = typeof refreshableProviderNames[number]
+
+
+
+
+
+
+// use this in isFeatuerNameDissbled
+export const isProviderNameDisabled = (providerName: ProviderName, settingsState: VoidSettingsState) => {
+
+	const settingsAtProvider = settingsState.settingsOfProvider[providerName]
+	const isAutodetected = (refreshableProviderNames as string[]).includes(providerName)
+
+	const isDisabled = settingsAtProvider.models.length === 0
+	if (isDisabled) {
+		return isAutodetected ? 'providerNotAutoDetected' : (!settingsAtProvider._didFillInProviderSettings ? 'notFilledIn' : 'addModel')
+	}
+	return false
+}
+
+export const isFeatureNameDisabled = (featureName: FeatureName, settingsState: VoidSettingsState) => {
+	// if has a selected provider, check if it's enabled
+	const selectedProvider = settingsState.modelSelectionOfFeature[featureName]
+
+	if (selectedProvider) {
+		const { providerName } = selectedProvider
+		return isProviderNameDisabled(providerName, settingsState)
+	}
+
+	// if there are any models they can turn on, tell them that
+	const canTurnOnAModel = !!providerNames.find(providerName => settingsState.settingsOfProvider[providerName].models.filter(m => m.isHidden).length !== 0)
+	if (canTurnOnAModel) return 'needToEnableModel'
+
+	// if there are any providers filled in, then they just need to add a model
+	const anyFilledIn = !!providerNames.find(providerName => settingsState.settingsOfProvider[providerName]._didFillInProviderSettings)
+	if (anyFilledIn) return 'addModel'
+
+	return 'addProvider'
+}
+
 
 
 

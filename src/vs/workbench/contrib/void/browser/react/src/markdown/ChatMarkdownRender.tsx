@@ -186,9 +186,11 @@ const RenderToken = ({ token, nested = false, noSpace = false }: { token: Token 
 				<RenderToken key={index} token={token} />
 			))}
 		</>
-		if (nested)
-			return contents
-		return <p className={`${noSpace ? '' : 'my-4'}`}>{contents}</p>
+		if (nested) return contents
+
+		return <p className={`${noSpace ? '' : 'my-4'}`}>
+			{contents}
+		</p>
 	}
 
 	if (t.type === "html") {

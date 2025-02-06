@@ -3,18 +3,19 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { SendLLMMessageParams, OnText, OnFinalMessage, OnError, LLMMessage, _InternalLLMMessage } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError, LLMChatMessage, _InternalLLMChatMessage } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 
-import { sendAnthropicMsg } from './anthropic.js';
-import { sendOllamaFIM, sendOllamaMsg } from './ollama.js';
-import { sendOpenAIMsg } from './openai.js';
-import { sendGeminiMsg } from './gemini.js';
-import { sendGroqMsg } from './groq.js';
-import { sendMistralMsg } from './mistral.js';
+import { sendAnthropicChat } from './anthropic.js';
+import { sendOllamaFIM, sendOllamaChat } from './ollama.js';
+import { sendOpenAIChat } from './openai.js';
+import { sendGeminiChat } from './gemini.js';
+import { sendGroqChat } from './groq.js';
+import { sendMistralChat } from './mistral.js';
+import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 
 
-const cleanMessages = (messages: LLMMessage[]): _InternalLLMMessage[] => {
+const cleanChatMessages = (messages: LLMChatMessage[]): _InternalLLMChatMessage[] => {
 	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
 	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
 
@@ -26,7 +27,7 @@ const cleanMessages = (messages: LLMMessage[]): _InternalLLMMessage[] => {
 
 	// remove all system messages
 	const noSystemMessages = messages
-		.filter(msg => msg.role !== 'system') as _InternalLLMMessage[]
+		.filter(msg => msg.role !== 'system') as _InternalLLMChatMessage[]
 
 	// add system mesasges to first message (should be a user message)
 	if (systemMessage && (noSystemMessages.length !== 0)) {
@@ -49,7 +50,7 @@ const cleanMessages = (messages: LLMMessage[]): _InternalLLMMessage[] => {
 
 
 export const sendLLMMessage = ({
-	type,
+	messagesType,
 	aiInstructions,
 	messages: messages_,
 	onText: onText_,
@@ -66,21 +67,22 @@ export const sendLLMMessage = ({
 ) => {
 	// messages.unshift({ role: 'system', content: aiInstructions })
 
-	const messagesArr = type === 'sendLLMMessage' ? cleanMessages(messages_) : []
+	const messagesArr = messagesType === 'chatMessages' ? cleanChatMessages(messages_) : []
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
 		metricsService.capture(eventId, {
 			providerName,
 			modelName,
-			...type === 'sendLLMMessage' ? {
+			...messagesType === 'chatMessages' ? {
 				numMessages: messagesArr?.length,
 				messagesShape: messagesArr?.map(msg => ({ role: msg.role, length: msg.content.length })),
 				origNumMessages: messages_?.length,
 				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
 
-			} : type === 'ollamaFIM' ? {
-
+			} : messagesType === 'FIMMessage' ? {
+				prefixLength: messages_.prefix.length,
+				suffixLength: messages_.suffix.length,
 			} : {},
 
 			...extras,
@@ -108,6 +110,11 @@ export const sendLLMMessage = ({
 	const onError: OnError = ({ message: error, fullError }) => {
 		if (_didAbort) return
 		console.error('sendLLMMessage onError:', error)
+
+		// handle failed to fetch errors, which give 0 information by design
+		if (error === 'TypeError: fetch failed')
+			error = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void Settings, or your local model provider like Ollama is powered off.`
+
 		captureLLMEvent(`${loggingName} - Error`, { error })
 		onError_({ message: error, fullError })
 	}
@@ -125,28 +132,32 @@ export const sendLLMMessage = ({
 	try {
 		switch (providerName) {
 			case 'anthropic':
-				sendAnthropicMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendAnthropicChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'deepseek':
 			case 'openAICompatible':
-				sendOpenAIMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendOpenAIChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'gemini':
-				sendGeminiMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendGeminiChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'ollama':
-				if (type === 'ollamaFIM')
+				if ( // TODO @andrew in future we want to use our own templates instead of using ollamaFIM
+					messagesType === 'FIMMessage'
+					&& settingsOfProvider['ollama']._didFillInProviderSettings
+					&& settingsOfProvider['ollama'].models.some(m => !m.isHidden)
+				)
 					sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
 				else
-					sendOllamaMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+					sendOllamaChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'groq':
-				sendGroqMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendGroqChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'mistral':
-				sendMistralMsg({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				sendMistralChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
 				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })

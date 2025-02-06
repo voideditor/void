@@ -8,7 +8,7 @@ import { EditorInput } from '../../../common/editor/editorInput.js';
 import * as nls from '../../../../nls.js';
 import { EditorExtensions } from '../../../common/editor.js';
 import { EditorPane } from '../../../browser/parts/editor/editorPane.js';
-import { IEditorGroup } from '../../../services/editor/common/editorGroupsService.js';
+import { IEditorGroup, IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
@@ -35,7 +35,7 @@ class VoidSettingsInput extends EditorInput {
 	static readonly ID: string = 'workbench.input.void.settings';
 
 	static readonly RESOURCE = URI.from({ // I think this scheme is invalid, it just shuts up TS
-		scheme: 'void',  // Custom scheme for our editor
+		scheme: 'void',  // Custom scheme for our editor (try Schemas.https)
 		path: 'settings'
 	})
 	readonly resource = VoidSettingsInput.RESOURCE;
@@ -141,18 +141,27 @@ registerAction2(class extends Action2 {
 
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const editorService = accessor.get(IEditorService);
+		const editorGroupService = accessor.get(IEditorGroupsService);
+
 		const instantiationService = accessor.get(IInstantiationService);
 
-		// close all instances if found
-		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE);
-		if (openEditors.length > 0) {
-			await editorService.closeEditors(openEditors);
+		// if is open, close it
+		const openEditors = editorService.findEditors(VoidSettingsInput.RESOURCE); // should only have 0 or 1 elements...
+		if (openEditors.length !== 0) {
+			const openEditor = openEditors[0].editor
+			const isCurrentlyOpen = editorService.activeEditor?.resource?.fsPath === openEditor.resource?.fsPath
+			if (isCurrentlyOpen)
+				await editorService.closeEditors(openEditors)
+			else
+				await editorGroupService.activeGroup.openEditor(openEditor)
 			return;
 		}
 
+
 		// else open it
 		const input = instantiationService.createInstance(VoidSettingsInput);
-		await editorService.openEditor(input);
+
+		await editorGroupService.activeGroup.openEditor(input);
 	}
 })
 

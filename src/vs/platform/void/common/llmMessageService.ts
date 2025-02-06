@@ -12,6 +12,7 @@ import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { Event } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
+import { displayInfoOfProviderName, isFeatureNameDisabled } from './voidSettingsTypes.js';
 // import { INotificationService } from '../../notification/common/notification.js';
 
 // calls channel to implement features
@@ -90,10 +91,24 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		const { onText, onFinalMessage, onError, ...proxyParams } = params;
 		const { useProviderFor: featureName } = proxyParams
 
-		// end early if no provider
+		// throw an error if no model/provider selected (this should usually never be reached, the UI should check this first, but might happen in cases like Apply where we haven't built much UI/checks yet, good practice to have check logic on backend)
+		const isDisabled = isFeatureNameDisabled(featureName, this.voidSettingsService.state)
 		const modelSelection = this.voidSettingsService.state.modelSelectionOfFeature[featureName]
-		if (modelSelection === null) {
-			onError({ message: 'Please add a Provider in Settings!', fullError: null })
+		if (isDisabled || modelSelection === null) {
+			let message: string
+
+			if (isDisabled === 'addProvider' || isDisabled === 'providerNotAutoDetected')
+				message = `Please add a provider in Void Settings.`
+			else if (isDisabled === 'addModel')
+				message = `Please add a model.`
+			else if (isDisabled === 'needToEnableModel')
+				message = `Please enable a model.`
+			else if (isDisabled === 'notFilledIn')
+				message = `Please fill in Void Settings${modelSelection !== null ? ` for ${displayInfoOfProviderName(modelSelection.providerName).title}` : ''}.`
+			else
+				message = 'Please add a provider in Void Settings.'
+
+			onError({ message, fullError: null })
 			return null
 		}
 

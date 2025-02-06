@@ -5,17 +5,18 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { VoidButton, VoidCheckBox, VoidCustomSelectBox, VoidInputBox, VoidInputBox2, VoidSwitch } from '../util/inputs.js'
+import { VoidButton, VoidCheckBox, VoidCustomDropdownBox, VoidInputBox, VoidInputBox2, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
 import { isWindows, isLinux, isMacintosh } from '../../../../../../../base/common/platform.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
-import { WarningBox, ModelDropdown } from './ModelDropdown.js'
+import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
+import { WarningBox } from './WarningBox.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
@@ -79,7 +80,7 @@ const RefreshableModels = () => {
 
 
 	const buttons = refreshableProviderNames.map(providerName => {
-		if (!settingsState.settingsOfProvider[providerName]._enabled) return null
+		if (!settingsState.settingsOfProvider[providerName]._didFillInProviderSettings) return null
 		return <div key={providerName} className='pb-4'>
 			<RefreshModelButton providerName={providerName} />
 		</div>
@@ -112,7 +113,7 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 		<div className='flex items-center gap-4'>
 
 			{/* provider */}
-			<VoidCustomSelectBox
+			<VoidCustomDropdownBox
 				options={providerNames}
 				selectedOption={providerName}
 				onChangeOption={(pn) => setProviderName(pn)}
@@ -199,7 +200,7 @@ export const ModelDump = () => {
 	for (let providerName of providerNames) {
 		const providerSettings = settingsState.settingsOfProvider[providerName]
 		// if (!providerSettings.enabled) continue
-		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName, providerEnabled: !!providerSettings._enabled })))
+		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName, providerEnabled: !!providerSettings._didFillInProviderSettings })))
 	}
 
 	// sort by hidden
@@ -223,7 +224,6 @@ export const ModelDump = () => {
 				<div className={`flex-grow flex items-center gap-4`}>
 					<span className='w-full max-w-32'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
 					<span className='w-fit truncate'>{modelName}</span>
-					{/* <span>{`${modelName} (${providerName})`}</span> */}
 				</div>
 				{/* right part is anything that fits */}
 				<div className='flex items-center gap-4'>
@@ -260,7 +260,6 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
-	const voidMetricsService = accessor.get('IMetricsService')
 
 	let weChangedTextRef = false
 
@@ -284,25 +283,8 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 						weChangedTextRef = true
 						instance.value = stateVal as string
 						weChangedTextRef = false
-
-						const isEverySettingPresent = Object.keys(defaultProviderSettings[providerName]).every(key => {
-							return !!settingsAtProvider[key as keyof typeof settingsAtProvider]
-						})
-
-						const shouldEnable = isEverySettingPresent && !settingsAtProvider._enabled // enable if all settings are present and not already enabled
-						const shouldDisable = !isEverySettingPresent && settingsAtProvider._enabled
-
-						if (shouldEnable) {
-							voidSettingsService.setSettingOfProvider(providerName, '_enabled', true)
-							voidMetricsService.capture('Enable Provider', { providerName })
-						}
-
-						if (shouldDisable) {
-							voidSettingsService.setSettingOfProvider(providerName, '_enabled', false)
-							voidMetricsService.capture('Disable Provider', { providerName })
-						}
-
 					}
+
 					syncInstance()
 					const disposable = voidSettingsService.onDidChangeState(syncInstance)
 					return [disposable]
@@ -318,7 +300,10 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 }
 
 const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
-	// const voidSettingsState = useSettingsState()
+	const voidSettingsState = useSettingsState()
+
+	const needsModel = isProviderNameDisabled(providerName, voidSettingsState) === 'addModel'
+
 	// const accessor = useAccessor()
 	// const voidSettingsService = accessor.get('IVoidSettingsService')
 
@@ -349,6 +334,12 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 			{settingNames.map((settingName, i) => {
 				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
 			})}
+
+			{needsModel ?
+				providerName === 'ollama' ?
+					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
+					: <WarningBox text={`Please add a model for ${providerTitle} below (Models).`} />
+				: null}
 		</div>
 	</div >
 }

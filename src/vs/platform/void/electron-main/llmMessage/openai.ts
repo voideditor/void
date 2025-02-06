@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import OpenAI from 'openai';
-import { _InternalModelListFnType, _InternalSendLLMMessageFnType } from '../../common/llmMessageTypes.js';
+import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { Model } from 'openai/resources/models.js';
 // import { parseMaxTokensStr } from './util.js';
 
@@ -43,48 +43,80 @@ export const openaiCompatibleList: _InternalModelListFnType<Model> = async ({ on
 
 
 
-
-// OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
-
-	let fullText = ''
-
-	let openai: OpenAI
-	let options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
-
+type NewParams = Pick<Parameters<_InternalSendLLMChatMessageFnType>[0] & Parameters<_InternalSendLLMFIMMessageFnType>[0], 'settingsOfProvider' | 'providerName'>
+const newOpenAI = ({ settingsOfProvider, providerName }: NewParams) => {
 
 	if (providerName === 'openAI') {
 		const thisConfig = settingsOfProvider.openAI
-		openai = new OpenAI({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
-		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
+		return new OpenAI({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 	}
 	else if (providerName === 'openRouter') {
 		const thisConfig = settingsOfProvider.openRouter
-		openai = new OpenAI({
+		return new OpenAI({
 			baseURL: 'https://openrouter.ai/api/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 			defaultHeaders: {
 				'HTTP-Referer': 'https://voideditor.com', // Optional, for including your app on openrouter.ai rankings.
 				'X-Title': 'Void Editor', // Optional. Shows in rankings on openrouter.ai.
 			},
-		});
-		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
+		})
 	}
 	else if (providerName === 'deepseek') {
 		const thisConfig = settingsOfProvider.deepseek
-		openai = new OpenAI({
+		return new OpenAI({
 			baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
-		});
-		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
+		})
 
 	}
 	else if (providerName === 'openAICompatible') {
 		const thisConfig = settingsOfProvider.openAICompatible
-		openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true })
-		options = { model: modelName, messages: messages, stream: true, /*max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)*/ }
+		return new OpenAI({
+			baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true
+		})
 	}
 	else {
 		console.error(`sendOpenAIMsg: invalid providerName: ${providerName}`)
 		throw new Error(`providerName was invalid: ${providerName}`)
+	}
+}
+
+
+
+export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
+
+
+	const openai: OpenAI = newOpenAI({ providerName, settingsOfProvider })
+
+	const options: OpenAI.Completions.CompletionCreateParamsStreaming = {
+		prompt: messages.prefix,
+		suffix: messages.suffix,
+		model: modelName,
+		stream: true,
+		// max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)
+	}
+
+
+	openai.completions
+		.create(options)
+		.then(async response => {
+			// TODO!!!
+			console.log('RESPONSE', response)
+		})
+
+}
+
+
+
+// OpenAI, OpenRouter, OpenAICompatible
+export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
+
+	let fullText = ''
+
+	const openai: OpenAI = newOpenAI({ providerName, settingsOfProvider })
+	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
+		model: modelName,
+		messages: messages,
+		stream: true,
+		// max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)
 	}
 
 	openai.chat.completions

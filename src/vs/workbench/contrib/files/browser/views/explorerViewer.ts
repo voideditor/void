@@ -289,6 +289,7 @@ export interface IFileTemplateData {
 	readonly templateDisposables: DisposableStore;
 	readonly elementDisposables: DisposableStore;
 	readonly label: IResourceLabel;
+	// readonly voidLabels: IResourceLabel;
 	readonly container: HTMLElement;
 	readonly contribs: IExplorerFileContribution[];
 	currentContext?: ExplorerItem;
@@ -347,15 +348,25 @@ export class FilesRenderer implements ICompressibleTreeRenderer<ExplorerItem, Fu
 
 	renderTemplate(container: HTMLElement): IFileTemplateData {
 		const templateDisposables = new DisposableStore();
+
+		// Void added this
+		// // Create void buttons container
+		// const voidButtonsContainer = DOM.append(container, DOM.$('div'));
+		// voidButtonsContainer.style.position = 'absolute'
+		// voidButtonsContainer.style.top = '0'
+		// voidButtonsContainer.style.right = '0'
+		// // const voidButtons = DOM.append(voidButtonsContainer, DOM.$('span'));
+		// // voidButtons.textContent = 'voidbuttons'
+		// // voidButtons.addEventListener('click', () => {
+		// // 	console.log('ON CLICK', templateData.currentContext?.children)
+		// // })
+		// const voidLabels = this.labels.create(voidButtonsContainer, { supportHighlights: false, supportIcons: false, });
+		// voidLabels.element.textContent = 'hi333'
+
 		const label = templateDisposables.add(this.labels.create(container, { supportHighlights: true }));
 		templateDisposables.add(label.onDidRender(() => {
-			try {
-				if (templateData.currentContext) {
-					this.updateWidth(templateData.currentContext);
-				}
-			} catch (e) {
-				// noop since the element might no longer be in the tree, no update of width necessary
-			}
+			try { if (templateData.currentContext) this.updateWidth(templateData.currentContext); }
+			catch (e) { /* noop since the element might no longer be in the tree, no update of width necessary*/ }
 		}));
 
 		const contribs = explorerFileContribRegistry.create(this.instantiationService, container, templateDisposables);
@@ -365,10 +376,15 @@ export class FilesRenderer implements ICompressibleTreeRenderer<ExplorerItem, Fu
 			contr.setResource(templateData.currentContext?.resource);
 		}));
 
+
+		// const templateData: IFileTemplateData = { templateDisposables, elementDisposables: templateDisposables.add(new DisposableStore()), label, voidLabels, container, contribs };
 		const templateData: IFileTemplateData = { templateDisposables, elementDisposables: templateDisposables.add(new DisposableStore()), label, container, contribs };
+
 		return templateData;
 	}
 
+
+	// Void cares about this function, this is where elements in the tree are rendered
 	renderElement(node: ITreeNode<ExplorerItem, FuzzyScore>, index: number, templateData: IFileTemplateData): void {
 		const stat = node.element;
 		templateData.currentContext = stat;
@@ -382,8 +398,7 @@ export class FilesRenderer implements ICompressibleTreeRenderer<ExplorerItem, Fu
 			templateData.label.element.style.display = 'flex';
 			this.renderStat(stat, stat.name, undefined, node.filterData, templateData);
 		}
-
-		// Input Box
+		// Input Box (Void - shown only if currently editing - this is the box that appears when user edits the name of the file)
 		else {
 			templateData.label.element.style.display = 'none';
 			templateData.contribs.forEach(c => c.setResource(undefined));
@@ -477,6 +492,13 @@ export class FilesRenderer implements ICompressibleTreeRenderer<ExplorerItem, Fu
 			separator: this.labelService.getSeparator(stat.resource.scheme, stat.resource.authority),
 			domId
 		});
+
+		// templateData.voidLabels.setResource({ resource: undefined, name: 'hi', }, {
+		// 	hideIcon: true,
+		// 	extraClasses: realignNestedChildren ? [...extraClasses, 'align-nest-icon-with-parent-icon'] : extraClasses,
+		// 	forceLabel: true,
+		// });
+
 	}
 
 	private renderInputBox(container: HTMLElement, stat: ExplorerItem, editableData: IEditableData): IDisposable {

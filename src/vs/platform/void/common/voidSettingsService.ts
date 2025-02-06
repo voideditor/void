@@ -11,7 +11,7 @@ import { registerSingleton, InstantiationType } from '../../instantiation/common
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultModelNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, displayInfoOfProviderName, defaultProviderSettings } from './voidSettingsTypes.js';
 
 
 const STORAGE_KEY = 'void.settingsServiceStorage'
@@ -42,8 +42,8 @@ export type VoidSettingsState = {
 	readonly _modelOptions: ModelOption[] // computed based on the two above items
 }
 
-type RealVoidSettings = Exclude<keyof VoidSettingsState, '_modelOptions'>
-type EventProp<T extends RealVoidSettings = RealVoidSettings> = T extends 'globalSettings' ? [T, keyof VoidSettingsState[T]] : T | 'all'
+// type RealVoidSettings = Exclude<keyof VoidSettingsState, '_modelOptions'>
+// type EventProp<T extends RealVoidSettings = RealVoidSettings> = T extends 'globalSettings' ? [T, keyof VoidSettingsState[T]] : T | 'all'
 
 
 export interface IVoidSettingsService {
@@ -51,7 +51,7 @@ export interface IVoidSettingsService {
 	readonly state: VoidSettingsState; // in order to play nicely with react, you should immutably change state
 	readonly waitForInitState: Promise<void>;
 
-	onDidChangeState: Event<EventProp>;
+	onDidChangeState: Event<void>;
 
 	setSettingOfProvider: SetSettingOfProviderFn;
 	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn;
@@ -64,18 +64,68 @@ export interface IVoidSettingsService {
 }
 
 
-let _computeModelOptions = (settingsOfProvider: SettingsOfProvider) => {
-	let modelOptions: ModelOption[] = []
+
+const _updatedValidatedState = (state: Omit<VoidSettingsState, '_modelOptions'>) => {
+
+	let newSettingsOfProvider = state.settingsOfProvider
+
+	// recompute _didFillInProviderSettings
 	for (const providerName of providerNames) {
-		const providerConfig = settingsOfProvider[providerName]
-		if (!providerConfig._enabled) continue // if disabled, don't display model options
-		for (const { modelName, isHidden } of providerConfig.models) {
-			if (isHidden) continue
-			modelOptions.push({ name: `${modelName} (${providerName})`, selection: { providerName, modelName } })
+		const settingsAtProvider = newSettingsOfProvider[providerName]
+
+		const didFillInProviderSettings = Object.keys(defaultProviderSettings[providerName]).every(key => !!settingsAtProvider[key as keyof typeof settingsAtProvider])
+
+		if (didFillInProviderSettings === settingsAtProvider._didFillInProviderSettings) continue
+
+		newSettingsOfProvider = {
+			...newSettingsOfProvider,
+			[providerName]: {
+				...settingsAtProvider,
+				_didFillInProviderSettings: didFillInProviderSettings,
+			},
 		}
 	}
-	return modelOptions
+
+	// update model options
+	let newModelOptions: ModelOption[] = []
+	for (const providerName of providerNames) {
+		const providerTitle = displayInfoOfProviderName(providerName).title.toLowerCase() // looks better lowercase, best practice to not use raw providerName
+		if (!newSettingsOfProvider[providerName]._didFillInProviderSettings) continue // if disabled, don't display model options
+		for (const { modelName, isHidden } of newSettingsOfProvider[providerName].models) {
+			if (isHidden) continue
+			newModelOptions.push({ name: `${modelName} (${providerTitle})`, selection: { providerName, modelName } })
+		}
+	}
+
+	// now that model options are updated, make sure the selection is valid
+	// if the user-selected model is no longer in the list, update the selection for each feature that needs it to something relevant (the 0th model available, or null)
+	let newModelSelectionOfFeature = state.modelSelectionOfFeature
+	for (const featureName of featureNames) {
+
+		const modelSelectionAtFeature = newModelSelectionOfFeature[featureName]
+		const selnIdx = modelSelectionAtFeature === null ? -1 : newModelOptions.findIndex(m => modelSelectionsEqual(m.selection, modelSelectionAtFeature))
+
+		if (selnIdx !== -1) continue
+
+		newModelSelectionOfFeature = {
+			...newModelSelectionOfFeature,
+			[featureName]: newModelOptions.length === 0 ? null : newModelOptions[0].selection
+		}
+	}
+
+
+	const newState = {
+		...state,
+		settingsOfProvider: newSettingsOfProvider,
+		modelSelectionOfFeature: newModelSelectionOfFeature,
+		_modelOptions: newModelOptions,
+	} satisfies VoidSettingsState
+
+	return newState
 }
+
+
+
 
 
 const defaultState = () => {
@@ -83,7 +133,7 @@ const defaultState = () => {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
 		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null, 'FastApply': null },
 		globalSettings: deepClone(defaultGlobalSettings),
-		_modelOptions: _computeModelOptions(defaultSettingsOfProvider), // computed
+		_modelOptions: [], // computed later
 	}
 	return d
 }
@@ -93,8 +143,8 @@ export const IVoidSettingsService = createDecorator<IVoidSettingsService>('VoidS
 class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	_serviceBrand: undefined;
 
-	private readonly _onDidChangeState = new Emitter<EventProp>();
-	readonly onDidChangeState: Event<EventProp> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
+	private readonly _onDidChangeState = new Emitter<void>();
+	readonly onDidChangeState: Event<void> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
 	state: VoidSettingsState;
 	waitForInitState: Promise<void> // await this if you need a valid state initially
@@ -118,38 +168,46 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		this._readState().then(readS => {
 
 			// the stored data structure might be outdated, so we need to update it here (can do a more general solution later when we need to)
-			readS = {
-				...readS,
-				settingsOfProvider: {
-					// A HACK BECAUSE WE ADDED DEEPSEEK (did not exist before, comes before readS)
-					...{ deepseek: defaultSettingsOfProvider.deepseek },
+			const newSettingsOfProvider = {
+				// A HACK BECAUSE WE ADDED DEEPSEEK (did not exist before, comes before readS)
+				...{ deepseek: defaultSettingsOfProvider.deepseek },
 
-					// A HACK BECAUSE WE ADDED MISTRAL (did not exist before, comes before readS)
-					...{ mistral: defaultSettingsOfProvider.mistral },
+				// A HACK BECAUSE WE ADDED MISTRAL (did not exist before, comes before readS)
+				...{ mistral: defaultSettingsOfProvider.mistral },
 
-					...readS.settingsOfProvider,
+				...readS.settingsOfProvider,
 
-					// A HACK BECAUSE WE ADDED NEW GEMINI MODELS (existed before, comes after readS)
-					gemini: {
-						...readS.settingsOfProvider.gemini,
-						models: [
-							...readS.settingsOfProvider.gemini.models,
-							...defaultSettingsOfProvider.gemini.models.filter(m => /* if cant find the model in readS (yes this is O(n^2), very small) */ !readS.settingsOfProvider.gemini.models.find(m2 => m2.modelName === m.modelName))
-						]
-					}
-				},
-				modelSelectionOfFeature: {
-					// A HACK BECAUSE WE ADDED FastApply
-					...{ 'FastApply': null },
-					...readS.modelSelectionOfFeature,
+				// A HACK BECAUSE WE ADDED NEW GEMINI MODELS (existed before, comes after readS)
+				gemini: {
+					...readS.settingsOfProvider.gemini,
+					models: [
+						...readS.settingsOfProvider.gemini.models,
+						...defaultSettingsOfProvider.gemini.models.filter(m => /* if cant find the model in readS (yes this is O(n^2), very small) */ !readS.settingsOfProvider.gemini.models.find(m2 => m2.modelName === m.modelName))
+					]
 				}
 			}
 
-			this.state = readS
+			const newModelSelectionOfFeature = {
+				// A HACK BECAUSE WE ADDED FastApply
+				...{ 'FastApply': null },
+				...readS.modelSelectionOfFeature,
+			}
+
+			readS = {
+				...readS,
+				settingsOfProvider: newSettingsOfProvider,
+				modelSelectionOfFeature: newModelSelectionOfFeature,
+			}
+
+			this.state = _updatedValidatedState(readS)
+
 			resolver()
-			this._onDidChangeState.fire('all')
+			this._onDidChangeState.fire()
 		})
+
+
 	}
+
 
 	private async _readState(): Promise<VoidSettingsState> {
 		const encryptedState = this._storageService.get(STORAGE_KEY, StorageScope.APPLICATION)
@@ -172,7 +230,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		const newModelSelectionOfFeature = this.state.modelSelectionOfFeature
 
-		const newSettingsOfProvider = {
+		const newSettingsOfProvider: SettingsOfProvider = {
 			...this.state.settingsOfProvider,
 			[providerName]: {
 				...this.state.settingsOfProvider[providerName],
@@ -182,38 +240,17 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		const newGlobalSettings = this.state.globalSettings
 
-		// if changed models or enabled a provider, recompute models list
-		const modelsListChanged = settingName === 'models' || settingName === '_enabled'
-		const newModelsList = modelsListChanged ? _computeModelOptions(newSettingsOfProvider) : this.state._modelOptions
-
-		const newState: VoidSettingsState = {
+		const newState = {
 			modelSelectionOfFeature: newModelSelectionOfFeature,
 			settingsOfProvider: newSettingsOfProvider,
 			globalSettings: newGlobalSettings,
-			_modelOptions: newModelsList,
 		}
 
-		// this must go above this.setanythingelse()
-		this.state = newState
-
-		// if the user-selected model is no longer in the list, update the selection for each feature that needs it to something relevant (the 0th model available, or null)
-		if (modelsListChanged) {
-			for (const featureName of featureNames) {
-
-				const currentSelection = newModelSelectionOfFeature[featureName]
-				const selnIdx = currentSelection === null ? -1 : newModelsList.findIndex(m => modelSelectionsEqual(m.selection, currentSelection))
-
-				if (selnIdx === -1) {
-					if (newModelsList.length !== 0)
-						this.setModelSelectionOfFeature(featureName, newModelsList[0].selection, { doNotApplyEffects: true })
-					else
-						this.setModelSelectionOfFeature(featureName, null, { doNotApplyEffects: true })
-				}
-			}
-		}
+		this.state = _updatedValidatedState(newState)
 
 		await this._storeState()
-		this._onDidChangeState.fire('settingsOfProvider')
+		this._onDidChangeState.fire()
+
 	}
 
 
@@ -227,7 +264,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		}
 		this.state = newState
 		await this._storeState()
-		this._onDidChangeState.fire(['globalSettings', settingName])
+		this._onDidChangeState.fire()
 
 	}
 
@@ -247,7 +284,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			return
 
 		await this._storeState()
-		this._onDidChangeState.fire('modelSelectionOfFeature')
+		this._onDidChangeState.fire()
 	}
 
 
@@ -256,23 +293,23 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		const { models } = this.state.settingsOfProvider[providerName]
 
-		const old_names = models.map(m => m.modelName)
+		const oldModelNames = models.map(m => m.modelName)
 
-		const newDefaultModels = modelInfoOfDefaultNames(newDefaultModelNames, { isAutodetected: true, existingModels: models })
-		const newModels = [
-			...newDefaultModels,
-			...models.filter(m => !m.isDefault), // keep any non-default models
+		const newDefaultModelInfo = modelInfoOfDefaultModelNames(newDefaultModelNames, { isAutodetected: true, existingModels: models })
+		const newModelInfo = [
+			...newDefaultModelInfo, // swap out all the default models for the new default models
+			...models.filter(m => !m.isDefault), // keep any non-defaul (custom) models
 		]
 
 
-		this.setSettingOfProvider(providerName, 'models', newModels)
+		this.setSettingOfProvider(providerName, 'models', newModelInfo)
 
 		// if the models changed, log it
-		const new_names = newModels.map(m => m.modelName)
-		if (!(old_names.length === new_names.length
-			&& old_names.every((_, i) => old_names[i] === new_names[i])
-		)) {
-			this._metricsService.capture('Autodetect Models', { providerName, newModels, ...logging })
+		const new_names = newModelInfo.map(m => m.modelName)
+		if (!(oldModelNames.length === new_names.length
+			&& oldModelNames.every((_, i) => oldModelNames[i] === new_names[i]))
+		) {
+			this._metricsService.capture('Autodetect Models', { providerName, newModels: newModelInfo, ...logging })
 		}
 	}
 	toggleModelHidden(providerName: ProviderName, modelName: string) {

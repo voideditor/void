@@ -70,7 +70,7 @@ export type ThreadsState = {
 
 export type ThreadStreamState = {
 	[threadId: string]: undefined | {
-		error?: { message: string, fullError: Error | null };
+		error?: { message: string, fullError: Error | null, };
 		messageSoFar?: string;
 		streamingToken?: string;
 	}
@@ -202,11 +202,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		this._setStreamState(threadId, { error: undefined })
 
 		const llmCancelToken = this._llmMessageService.sendLLMMessage({
-			type: 'sendLLMMessage',
+			messagesType: 'chatMessages',
 			logging: { loggingName: 'Chat' },
+			useProviderFor: 'Ctrl+L',
 			messages: [
 				{ role: 'system', content: chat_systemMessage },
-				...this.getCurrentThread().messages.map(m => ({ role: m.role, content: m.content || '(null)' })),
+				...this.getCurrentThread().messages.map(m => ({ role: m.role, content: m.content || '(empty model output)' })),
 			],
 			onText: ({ newText, fullText }) => {
 				this._setStreamState(threadId, { messageSoFar: fullText })
@@ -217,7 +218,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			onError: (error) => {
 				this.finishStreaming(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
 			},
-			useProviderFor: 'Ctrl+L',
 
 		})
 		if (llmCancelToken === null) return

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { Ollama } from 'ollama';
-import { _InternalModelListFnType, _InternalOllamaFIMMessageFnType, _InternalSendLLMMessageFnType, OllamaModelResponse } from '../../common/llmMessageTypes.js';
+import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType, OllamaModelResponse } from '../../common/llmMessageTypes.js';
 import { defaultProviderSettings } from '../../common/voidSettingsTypes.js';
 
 export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
@@ -38,7 +38,7 @@ export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async (
 }
 
 
-export const sendOllamaFIM: _InternalOllamaFIMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendOllamaFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	const thisConfig = settingsOfProvider.ollama
 	// if endpoint is empty, normally ollama will send to 11434, but we want it to fail - the user should type it in
@@ -54,10 +54,11 @@ export const sendOllamaFIM: _InternalOllamaFIMMessageFnType = ({ messages, onTex
 		suffix: messages.suffix,
 		options: {
 			stop: messages.stopTokens,
+			num_predict: 300, // max tokens
+			// repeat_penalty: 1,
 		},
 		raw: true,
 		stream: true,
-		// options: { num_predict: parseMaxTokensStr(thisConfig.maxTokens) } // this is max_tokens
 	})
 		.then(async stream => {
 			_setAborter(() => stream.abort())
@@ -77,7 +78,7 @@ export const sendOllamaFIM: _InternalOllamaFIMMessageFnType = ({ messages, onTex
 
 
 // Ollama
-export const sendOllamaMsg: _InternalSendLLMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendOllamaChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 
 	const thisConfig = settingsOfProvider.ollama
 	// if endpoint is empty, normally ollama will send to 11434, but we want it to fail - the user should type it in

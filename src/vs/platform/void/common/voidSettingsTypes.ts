@@ -4,28 +4,28 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-
+import { VoidSettingsState } from './voidSettingsService.js'
 
 
 export type VoidModelInfo = {
 	modelName: string,
 	isDefault: boolean, // whether or not it's a default for its provider
-	isHidden: boolean, // whether or not the user is hiding it
+	isHidden: boolean, // whether or not the user is hiding it (switched off)
 	isAutodetected?: boolean, // whether the model was autodetected by polling
 }
 
 // creates `modelInfo` from `modelNames`
-export const modelInfoOfDefaultNames = (modelNames: string[], options?: { isAutodetected: true, existingModels: VoidModelInfo[] }): VoidModelInfo[] => {
+export const modelInfoOfDefaultModelNames = (defaultModelNames: string[], options?: { isAutodetected: true, existingModels: VoidModelInfo[] }): VoidModelInfo[] => {
 
 	const { isAutodetected, existingModels } = options ?? {}
 
 	if (!existingModels) { // default settings
 
-		return modelNames.map((modelName, i) => ({
+		return defaultModelNames.map((modelName, i) => ({
 			modelName,
 			isDefault: true,
 			isAutodetected: isAutodetected,
-			isHidden: modelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
+			isHidden: defaultModelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
 		}))
 
 	} else { // settings if there are existing models (keep existing `isHidden` property)
@@ -35,7 +35,7 @@ export const modelInfoOfDefaultNames = (modelNames: string[], options?: { isAuto
 			existingModelsMap[existingModel.modelName] = existingModel
 		}
 
-		return modelNames.map((modelName, i) => ({
+		return defaultModelNames.map((modelName, i) => ({
 			modelName,
 			isDefault: true,
 			isAutodetected: isAutodetected,
@@ -47,7 +47,7 @@ export const modelInfoOfDefaultNames = (modelNames: string[], options?: { isAuto
 }
 
 // https://docs.anthropic.com/en/docs/about-claude/models
-export const defaultAnthropicModels = modelInfoOfDefaultNames([
+export const defaultAnthropicModels = modelInfoOfDefaultModelNames([
 	'claude-3-5-sonnet-20241022',
 	'claude-3-5-haiku-20241022',
 	'claude-3-opus-20240229',
@@ -57,9 +57,10 @@ export const defaultAnthropicModels = modelInfoOfDefaultNames([
 
 
 // https://platform.openai.com/docs/models/gp
-export const defaultOpenAIModels = modelInfoOfDefaultNames([
-	'o1-preview',
+export const defaultOpenAIModels = modelInfoOfDefaultModelNames([
+	'o1',
 	'o1-mini',
+	'o3-mini',
 	'gpt-4o',
 	'gpt-4o-mini',
 	// 'gpt-4o-2024-05-13',
@@ -78,14 +79,14 @@ export const defaultOpenAIModels = modelInfoOfDefaultNames([
 ])
 
 // https://platform.openai.com/docs/models/gp
-export const defaultDeepseekModels = modelInfoOfDefaultNames([
+export const defaultDeepseekModels = modelInfoOfDefaultModelNames([
 	'deepseek-chat',
 	'deepseek-reasoner',
 ])
 
 
 // https://console.groq.com/docs/models
-export const defaultGroqModels = modelInfoOfDefaultNames([
+export const defaultGroqModels = modelInfoOfDefaultModelNames([
 	"llama3-70b-8192",
 	"llama-3.3-70b-versatile",
 	"llama-3.1-8b-instant",
@@ -94,7 +95,7 @@ export const defaultGroqModels = modelInfoOfDefaultNames([
 ])
 
 
-export const defaultGeminiModels = modelInfoOfDefaultNames([
+export const defaultGeminiModels = modelInfoOfDefaultModelNames([
 	'gemini-1.5-flash',
 	'gemini-1.5-pro',
 	'gemini-1.5-flash-8b',
@@ -103,7 +104,7 @@ export const defaultGeminiModels = modelInfoOfDefaultNames([
 	'learnlm-1.5-pro-experimental'
 ])
 
-export const defaultMistralModels = modelInfoOfDefaultNames([
+export const defaultMistralModels = modelInfoOfDefaultModelNames([
 	"codestral-latest",
 	"open-codestral-mamba",
 	"open-mistral-nemo",
@@ -187,20 +188,22 @@ export const customSettingNamesOfProvider = (providerName: ProviderName) => {
 }
 
 
+
+
 type CommonProviderSettings = {
-	_enabled: boolean | undefined, // undefined initially, computed when user types in all fields
+	_didFillInProviderSettings: boolean | undefined, // undefined initially, computed when user types in all fields
 	models: VoidModelInfo[],
 }
 
-export type SettingsForProvider<providerName extends ProviderName> = CustomProviderSettings<providerName> & CommonProviderSettings
+export type SettingsAtProvider<providerName extends ProviderName> = CustomProviderSettings<providerName> & CommonProviderSettings
 
 // part of state
 export type SettingsOfProvider = {
-	[providerName in ProviderName]: SettingsForProvider<providerName>
+	[providerName in ProviderName]: SettingsAtProvider<providerName>
 }
 
 
-export type SettingName = keyof SettingsForProvider<ProviderName>
+export type SettingName = keyof SettingsAtProvider<ProviderName>
 
 
 
@@ -309,7 +312,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				undefined,
 		}
 	}
-	else if (settingName === '_enabled') {
+	else if (settingName === '_didFillInProviderSettings') {
 		return {
 			title: '(never)',
 			placeholder: '(never)',
@@ -373,56 +376,56 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.anthropic,
 		...voidInitModelOptions.anthropic,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	openAI: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAI,
 		...voidInitModelOptions.openAI,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	deepseek: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.deepseek,
 		...voidInitModelOptions.deepseek,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	gemini: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.gemini,
 		...voidInitModelOptions.gemini,
-		_enabled: undefined,
-	},
-	groq: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.groq,
-		...voidInitModelOptions.groq,
-		_enabled: undefined,
-	},
-	ollama: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.ollama,
-		...voidInitModelOptions.ollama,
-		_enabled: undefined,
-	},
-	openRouter: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.openRouter,
-		...voidInitModelOptions.openRouter,
-		_enabled: undefined,
-	},
-	openAICompatible: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.openAICompatible,
-		...voidInitModelOptions.openAICompatible,
-		_enabled: undefined,
+		_didFillInProviderSettings: undefined,
 	},
 	mistral: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.mistral,
 		...voidInitModelOptions.mistral,
-		_enabled: undefined,
-	}
+		_didFillInProviderSettings: undefined,
+	},
+	groq: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.groq,
+		...voidInitModelOptions.groq,
+		_didFillInProviderSettings: undefined,
+	},
+	openRouter: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.openRouter,
+		...voidInitModelOptions.openRouter,
+		_didFillInProviderSettings: undefined,
+	},
+	openAICompatible: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.openAICompatible,
+		...voidInitModelOptions.openAICompatible,
+		_didFillInProviderSettings: undefined,
+	},
+	ollama: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.ollama,
+		...voidInitModelOptions.ollama,
+		_didFillInProviderSettings: undefined,
+	},
 }
 
 
@@ -441,23 +444,58 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 	if (featureName === 'Autocomplete')
 		return 'Autocomplete'
 	else if (featureName === 'Ctrl+K')
-		return 'Quick Edit'
+		return 'Quick-Edit'
 	else if (featureName === 'Ctrl+L')
-		return 'Sidebar Chat'
+		return 'Chat'
 	else if (featureName === 'FastApply')
-		return 'Fast Apply'
+		return 'Apply'
 	else
 		throw new Error(`Feature Name ${featureName} not allowed`)
 }
 
 
-
-
-
-
 // the models of these can be refreshed (in theory all can, but not all should)
 export const refreshableProviderNames = localProviderNames
 export type RefreshableProviderName = typeof refreshableProviderNames[number]
+
+
+
+
+
+
+// use this in isFeatuerNameDissbled
+export const isProviderNameDisabled = (providerName: ProviderName, settingsState: VoidSettingsState) => {
+
+	const settingsAtProvider = settingsState.settingsOfProvider[providerName]
+	const isAutodetected = (refreshableProviderNames as string[]).includes(providerName)
+
+	const isDisabled = settingsAtProvider.models.length === 0
+	if (isDisabled) {
+		return isAutodetected ? 'providerNotAutoDetected' : (!settingsAtProvider._didFillInProviderSettings ? 'notFilledIn' : 'addModel')
+	}
+	return false
+}
+
+export const isFeatureNameDisabled = (featureName: FeatureName, settingsState: VoidSettingsState) => {
+	// if has a selected provider, check if it's enabled
+	const selectedProvider = settingsState.modelSelectionOfFeature[featureName]
+
+	if (selectedProvider) {
+		const { providerName } = selectedProvider
+		return isProviderNameDisabled(providerName, settingsState)
+	}
+
+	// if there are any models they can turn on, tell them that
+	const canTurnOnAModel = !!providerNames.find(providerName => settingsState.settingsOfProvider[providerName].models.filter(m => m.isHidden).length !== 0)
+	if (canTurnOnAModel) return 'needToEnableModel'
+
+	// if there are any providers filled in, then they just need to add a model
+	const anyFilledIn = !!providerNames.find(providerName => settingsState.settingsOfProvider[providerName]._didFillInProviderSettings)
+	if (anyFilledIn) return 'addModel'
+
+	return 'addProvider'
+}
+
 
 
 
@@ -479,3 +517,88 @@ export type GlobalSettingName = keyof GlobalSettings
 export const globalSettingNames = Object.keys(defaultGlobalSettings) as GlobalSettingName[]
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export const recognizedModels = [
+
+	// chat
+	'OpenAI 4o',
+	'Anthropic Claude',
+	'Llama 3.x',
+	'Deepseek Chat', // deepseek coder v2 is now merged into chat (V3) https://api-docs.deepseek.com/updates#deepseek-coder--deepseek-chat-upgraded-to-deepseek-v25-model
+	// 'xAI Grok',
+	// 'Google Gemini, Gemma',
+	// 'Microsoft Phi4',
+
+
+	// coding (autocomplete)
+	'Alibaba Qwen2.5 Coder Instruct', // we recommend this over Qwen2.5
+	'Mistral Codestral',
+
+	// thinking
+	'OpenAI o1, o3',
+	'Deepseek R1',
+
+	// general
+	'<General>'
+	// 'Mixtral 8x7b'
+	// 'Qwen2.5',
+
+] as const
+
+
+
+
+type RecognizedModel = (typeof recognizedModels)[number]
+
+
+// const modelCapabilities: { [recognizedModel in RecognizedModel]: ({ }) => string } = {
+// 	'OpenAI 4o': {
+// 		template: ({ prefix, suffix, }: { prefix: string; suffix: string; }) => `\
+// `
+// 	}
+// }
+
+export function getRecognizedModel(modelName: string): RecognizedModel {
+	const lower = modelName.toLowerCase();
+
+	if (lower.includes('gpt-4o')) {
+		return 'OpenAI 4o';
+	}
+	if (lower.includes('claude')) {
+		return 'Anthropic Claude';
+	}
+	if (lower.includes('llama')) {
+		return 'Llama 3.x';
+	}
+	if (lower.includes('qwen2.5-coder')) {
+		return 'Alibaba Qwen2.5 Coder Instruct';
+	}
+	if (lower.includes('mistral')) {
+		return 'Mistral Codestral';
+	}
+	// Check for "o1" or "o3"
+	if (/\bo1\b/.test(lower) || /\bo3\b/.test(lower)) {
+		return 'OpenAI o1, o3';
+	}
+	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) {
+		return 'Deepseek R1';
+	}
+
+
+
+	// Fallback:
+	return '<General>';
+}

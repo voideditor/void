@@ -3,10 +3,10 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState } from '../util/services.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
 import { ChatMessage, StagingSelectionItem } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
@@ -15,12 +15,15 @@ import { URI } from '../../../../../../../base/common/uri.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
-import { ModelDropdown, WarningBox } from '../void-settings-tsx/ModelDropdown.js';
+import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
+import { Pencil } from 'lucide-react';
+import { FeatureName, isFeatureNameDisabled } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
+import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -131,6 +134,109 @@ export const IconLoading = ({ className = '' }: { className?: string }) => {
 	return <div className={`${className}`}>{loadingText}</div>;
 
 }
+
+
+interface VoidChatAreaProps {
+	// Required
+	children: React.ReactNode; // This will be the input component
+
+	// Form controls
+	onSubmit: () => void;
+	onAbort: () => void;
+	isStreaming: boolean;
+	isDisabled?: boolean;
+	divRef: React.RefObject<HTMLDivElement>;
+
+	// UI customization
+	featureName: FeatureName;
+	className?: string;
+	showModelDropdown?: boolean;
+	showSelections?: boolean;
+	selections?: any[];
+	onSelectionsChange?: (selections: any[]) => void;
+
+	onClickAnywhere?: () => void;
+	// Optional close button
+	onClose?: () => void;
+}
+
+export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
+	children,
+	onSubmit,
+	onAbort,
+	onClose,
+	onClickAnywhere,
+	divRef,
+	isStreaming = false,
+	isDisabled = false,
+	className = '',
+	showModelDropdown = true,
+	featureName,
+	showSelections = false,
+	selections = [],
+	onSelectionsChange,
+}) => {
+	return (
+		<div
+			ref={divRef}
+			className={`
+                flex flex-col gap-1 p-2 relative input text-left shrink-0
+                transition-all duration-200
+                rounded-md
+                bg-vscode-input-bg
+                border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
+                ${className}
+            `}
+			onClick={(e) => {
+				onClickAnywhere?.()
+			}}
+		>
+			{/* Selections section */}
+			{showSelections && onSelectionsChange && (
+				<SelectedFiles
+					type='staging'
+					selections={selections}
+					setSelections={onSelectionsChange}
+				/>
+			)}
+
+			{/* Input section */}
+			<div className="relative w-full">
+				{children}
+
+				{/* Close button (X) if onClose is provided */}
+				{onClose && (
+					<div className='absolute -top-1 -right-1 cursor-pointer z-1'>
+						<IconX
+							size={12}
+							className="stroke-[2] opacity-80 text-void-fg-3 hover:brightness-95"
+							onClick={onClose}
+						/>
+					</div>
+				)}
+			</div>
+
+			{/* Bottom row */}
+			<div className='flex flex-row justify-between items-end gap-1'>
+				{showModelDropdown && (
+					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none flex-grow'
+						onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
+						<ModelDropdown featureName={featureName} />
+					</div>
+				)}
+
+				{isStreaming ? (
+					<ButtonStop onClick={onAbort} />
+				) : (
+					<ButtonSubmit
+						onClick={onSubmit}
+						disabled={isDisabled}
+					/>
+				)}
+			</div>
+		</div>
+	);
+};
 
 const useResizeObserver = () => {
 	const ref = useRef(null);
@@ -428,89 +534,89 @@ export const SelectedFiles = (
 }
 
 
-
-const ChatBubble_ = ({ isEditMode, isLoading, children, role }: { role: ChatMessage['role'], children: React.ReactNode, isLoading: boolean, isEditMode: boolean }) => {
-
-	return <div
-		// align chatbubble accoridng to role
-		className={`
-		relative
-		${isEditMode ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
-					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
-			}
-	`}
-	>
-		<div
-			// style chatbubble according to role
-			className={`
-		    text-left rounded-lg
-			overflow-x-auto max-w-full
-			${role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1' : 'px-2'}
-		`}
-		>
-			{children}
-			{isLoading && <IconLoading className='opacity-50 text-sm' />}
-		</div>
-
-		{/* edit button */}
-		{/* {role === 'user' &&
-		<Pencil
-			size={16}
-			className={`
-				absolute top-0 right-2
-				translate-x-0 -translate-y-0
-				cursor-pointer z-1
-			`}
-			onClick={() => { setIsEditMode(v => !v); }}
-		/>
-	} */}
-	</div>
-}
-
-
+type ChatBubbleMode = 'display' | 'edit'
 const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLoading?: boolean, }) => {
 
 	const role = chatMessage.role
 
 	// edit mode state
-	const [isEditMode, setIsEditMode] = useState(false)
-
+	const [mode, setMode] = useState<ChatBubbleMode>('display')
+	const [editText, setEditText] = useState(chatMessage.displayContent ?? '')
+	const [isHovered, setIsHovered] = useState(false)
 
 	if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show)
 		return null
 	}
 
+	// set chat bubble contents
 	let chatbubbleContents: React.ReactNode
-
 	if (role === 'user') {
-		chatbubbleContents = <>
-			<SelectedFiles type='past' selections={chatMessage.selections || []} />
-			{chatMessage.displayContent}
-
-			{/* {!isEditMode ? chatMessage.displayContent : <></>} */}
-			{/* edit mode content */}
-			{/* TODO this should be the same input box as in the Sidebar */}
-			{/* <textarea
-				value={editModeText}
-				className={`
+		if (mode === 'display') {
+			chatbubbleContents = <>
+				<SelectedFiles type='past' selections={chatMessage.selections || []} />
+				{chatMessage.displayContent}
+			</>
+		}
+		else if (mode === 'edit') {
+			chatbubbleContents = <>
+				<SelectedFiles type='past' selections={chatMessage.selections || []} />
+				<textarea
+					value={editText}
+					onChange={(e) => setEditText(e.target.value)}
+					className={`
 						w-full max-w-full
 						h-auto min-h-[81px] max-h-[500px]
 						bg-void-bg-1 resize-none
 					`}
-				style={{ marginTop: 0 }}
-				hidden={!isEditMode}
-			/> */}
-
-		</>
+					style={{ marginTop: 0 }}
+				/>
+			</>
+		}
 	}
 	else if (role === 'assistant') {
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} />
 	}
 
-	return <ChatBubble_ role={role} isEditMode={isEditMode} isLoading={!!isLoading}>
-		{chatbubbleContents}
-	</ChatBubble_>
+	return <div
+		// align chatbubble accoridng to role
+		className={`
+			relative
+			${mode === 'edit' ? 'px-2 w-full max-w-full'
+				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
+					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
+			}
+			${role !== 'assistant' ? 'my-2' : ''}
+		`}
+		onMouseEnter={() => setIsHovered(true)}
+		onMouseLeave={() => setIsHovered(false)}
+	>
+		<div
+			// style chatbubble according to role
+			className={`
+				text-left rounded-lg
+				overflow-x-auto max-w-full
+				${role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1' : 'px-2'}
+			`}
+		>
+			{chatbubbleContents}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
+		</div>
+
+		{/* edit button */}
+		{role === 'user' && <Pencil
+			size={18}
+			className={`
+				absolute -top-1 right-1
+				translate-x-0 -translate-y-0
+				cursor-pointer z-1
+				p-[2px]
+				bg-void-bg-1 border border-void-border-1 rounded-md
+				transition-opacity duration-200 ease-in-out
+				${isHovered ? 'opacity-100' : 'opacity-0'}
+			`}
+			onClick={() => setMode(m => m === 'display' ? 'edit' : 'display')}
+		/>}
+	</div>
 }
 
 
@@ -523,6 +629,7 @@ export const SidebarChat = () => {
 	// const modelService = accessor.get('IModelService')
 	const commandService = accessor.get('ICommandService')
 
+	const settingsState = useSettingsState()
 	// ----- HIGHER STATE -----
 	// sidebar state
 	const sidebarStateService = accessor.get('ISidebarStateService')
@@ -556,16 +663,19 @@ export const SidebarChat = () => {
 	// state of current message
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
-	const isDisabled = instructionsAreEmpty
+
+	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+L', settingsState)
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
-	const [formRef, formDimensions] = useResizeObserver()
+	const [chatAreaRef, chatAreaDimensions] = useResizeObserver()
 	const [historyRef, historyDimensions] = useResizeObserver()
 
 	useScrollbarStyles(sidebarRef)
 
 
-	const onSubmit = async () => {
+	const onSubmit = useCallback(async () => {
+
+		console.log('onSubmit')
 
 		if (isDisabled) return
 		if (isStreaming) return
@@ -578,7 +688,7 @@ export const SidebarChat = () => {
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}
+	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef])
 
 	const onAbort = () => {
 		const threadId = currentThread.id
@@ -611,6 +721,7 @@ export const SidebarChat = () => {
 	</div>
 
 
+
 	const messagesHTML = <ScrollToBottomContainer
 		scrollContainerRef={scrollContainerRef}
 		className={`
@@ -619,8 +730,9 @@ export const SidebarChat = () => {
 		overflow-x-hidden
 		overflow-y-auto
 		py-4
+		${prevMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
 	`}
-		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
+		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
 	>
 		{/* previous messages */}
 		{prevMessagesHTML}
@@ -639,83 +751,43 @@ export const SidebarChat = () => {
 					showDismiss={true}
 				/>
 
-				<WarningBox className='text-sm my-2 pl-4' onClick={() => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }} text='Open settings' />
+				<WarningBox className='text-sm my-2 mx-4' onClick={() => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }} text='Open settings' />
 			</div>
 		}
 	</ScrollToBottomContainer>
 
 
-	const inputBox = <div // this div is used to position the input box properly
-		className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}
-	>
-		<div
-			ref={formRef}
-			className={`
-		flex flex-col gap-1 p-2 relative input text-left shrink-0
-		transition-all duration-200
-		rounded-md
-		bg-vscode-input-bg
-		max-h-[80vh] overflow-y-auto
-		border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
-	`}
-			onClick={(e) => {
-				textAreaRef.current?.focus()
-			}}
+	const onChangeText = useCallback((newStr: string) => {
+		setInstructionsAreEmpty(!newStr)
+	}, [setInstructionsAreEmpty])
+	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			onSubmit()
+		}
+	}, [onSubmit])
+	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
+		<VoidChatArea
+			divRef={chatAreaRef}
+			onSubmit={onSubmit}
+			onAbort={onAbort}
+			isStreaming={isStreaming}
+			isDisabled={isDisabled}
+			showSelections={true}
+			selections={selections || []}
+			onSelectionsChange={chatThreadsService.setStaging.bind(chatThreadsService)}
+			onClickAnywhere={() => { textAreaRef.current?.focus() }}
+			featureName="Ctrl+L"
 		>
-			{/* top row */}
-			<>
-				{/* selections */}
-				<SelectedFiles type='staging' selections={selections || []} setSelections={chatThreadsService.setStaging.bind(chatThreadsService)} showProspectiveSelections={previousMessages.length === 0} />
-			</>
-
-			{/* middle row */}
-			<div>
-
-				{/* text input */}
-				<VoidInputBox2
-					className='min-h-[81px] p-1'
-					placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
-					onChangeText={useCallback((newStr: string) => { setInstructionsAreEmpty(!newStr) }, [setInstructionsAreEmpty])}
-					onKeyDown={(e) => {
-						if (e.key === 'Enter' && !e.shiftKey) {
-							onSubmit()
-						}
-					}}
-					ref={textAreaRef}
-					fnsRef={textAreaFnsRef}
-					multiline={true}
-				/>
-			</div>
-
-			{/* bottom row */}
-			<div
-				className='flex flex-row justify-between items-end gap-1'
-			>
-				{/* submit options */}
-				<div className='max-w-[150px]
-			@@[&_select]:!void-border-none
-			@@[&_select]:!void-outline-none
-			flex-grow
-			'
-				>
-					<ModelDropdown featureName='Ctrl+L' />
-				</div>
-
-				{/* submit / stop button */}
-				{isStreaming ?
-					// stop button
-					<ButtonStop
-						onClick={onAbort}
-					/>
-					:
-					// submit button (up arrow)
-					<ButtonSubmit
-						onClick={onSubmit}
-						disabled={isDisabled}
-					/>
-				}
-			</div>
-		</div>
+			<VoidInputBox2
+				className='min-h-[81px] p-1'
+				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
+				onChangeText={onChangeText}
+				onKeyDown={onKeyDown}
+				ref={textAreaRef}
+				fnsRef={textAreaFnsRef}
+				multiline={true}
+			/>
+		</VoidChatArea>
 	</div>
 
 	return <div ref={sidebarRef} className={`w-full h-full`}>
@@ -723,7 +795,7 @@ export const SidebarChat = () => {
 
 		{messagesHTML}
 
-		{inputBox}
+		{inputForm}
 
 	</div>
 }

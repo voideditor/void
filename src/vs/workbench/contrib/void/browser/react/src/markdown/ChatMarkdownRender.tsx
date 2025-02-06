@@ -45,7 +45,7 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 
 	const onApply = useCallback(() => {
 		inlineDiffService.startApplying({
-			featureName: 'Ctrl+L',
+			from: 'Chat',
 			applyStr: text,
 		})
 		metricsService.capture('Apply Code', { length: text.length }) // capture the length only

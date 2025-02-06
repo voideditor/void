@@ -25,6 +25,7 @@ import { Pencil } from 'lucide-react';
 import { FeatureName } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
 
 
+
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
 	return (
 		<svg
@@ -152,6 +153,7 @@ interface VoidInputFormProps {
 	showModelDropdown?: boolean;
 	showSelections?: boolean;
 	selections?: any[];
+	showProspectiveSelections?: boolean;
 	onSelectionsChange?: (selections: any[]) => void;
 
 	// Optional close button
@@ -171,6 +173,7 @@ export const VoidInputForm: React.FC<VoidInputFormProps> = ({
 	featureName,
 	showSelections = false,
 	selections = [],
+	showProspectiveSelections = true,
 	onSelectionsChange,
 }) => {
 	return (
@@ -191,6 +194,7 @@ export const VoidInputForm: React.FC<VoidInputFormProps> = ({
 					type='staging'
 					selections={selections}
 					setSelections={onSelectionsChange}
+					showProspectiveSelections={showProspectiveSelections}
 				/>
 			)}
 
@@ -528,14 +532,61 @@ export const SelectedFiles = (
 
 
 type ChatBubbleMode = 'display' | 'edit'
-const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLoading?: boolean, }) => {
+const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatMessage, messageIdx?: number, isLoading?: boolean, }) => {
 
 	const role = chatMessage.role
 
+
+	const accessor = useAccessor()
+	const chatThreadsService = accessor.get('IChatThreadService')
+
 	// edit mode state
+	const [staging, setStaging] = chatThreadsService._useStagingSelectionsState(messageIdx)
 	const [mode, setMode] = useState<ChatBubbleMode>('display')
-	const [editText, setEditText] = useState(chatMessage.displayContent ?? '')
 	const [isHovered, setIsHovered] = useState(false)
+	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
+	const [isDisabled, setIsDisabled] = useState(false)
+	useEffect(() => {
+		if (role === 'user') {
+			setStaging(chatMessage.selections || [])
+			if (textAreaFnsRef.current)
+				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
+			if (textAreaRef.current)
+				textAreaRef.current.value = chatMessage.displayContent || ''
+		}
+	}, [role])
+
+
+	const onSubmit = async () => {
+
+		if (isDisabled) return;
+		if (!textAreaRef.current) return;
+		if (messageIdx === undefined) return;
+
+		// reset visual state
+		setMode('display');
+
+		// stream the edit
+		const userMessage = textAreaRef.current.value;
+		await chatThreadsService.editUserMessageAndStreamResponse(userMessage, messageIdx)
+
+		textAreaFnsRef.current?.setValue('');
+	}
+
+	const onAbort = () => {
+		const threadId = chatThreadsService.state.currentThreadId
+		chatThreadsService.cancelStreaming(threadId)
+	}
+
+	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === 'Escape') {
+			setMode('display')
+		}
+		if (e.key === 'Enter' && !e.shiftKey) {
+			onSubmit()
+		}
+	}, [onSubmit, setMode])
 
 	if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show)
 		return null
@@ -552,17 +603,27 @@ const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLo
 		}
 		else if (mode === 'edit') {
 			chatbubbleContents = <>
-				<SelectedFiles type='past' selections={chatMessage.selections || []} />
-				<textarea
-					value={editText}
-					onChange={(e) => setEditText(e.target.value)}
-					className={`
-						w-full max-w-full
-						h-auto min-h-[81px] max-h-[500px]
-						bg-void-bg-1 resize-none
-					`}
-					style={{ marginTop: 0 }}
-				/>
+				<VoidInputForm
+					onSubmit={onSubmit}
+					onAbort={onAbort}
+					isStreaming={false}
+					isDisabled={isDisabled}
+					showSelections={true}
+					selections={staging || []}
+					showProspectiveSelections={false}
+					onSelectionsChange={setStaging}
+					featureName="Ctrl+L"
+				>
+					<VoidInputBox2
+						className='min-h-[81px] max-h-[500px] p-1'
+						placeholder="Edit your message..."
+						onChangeText={(text) => setIsDisabled(!text)}
+						onKeyDown={onKeyDown}
+						ref={textAreaRef}
+						fnsRef={textAreaFnsRef}
+						multiline={true}
+					/>
+				</VoidInputForm>
 			</>
 		}
 	}
@@ -606,7 +667,10 @@ const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLo
 				transition-opacity duration-200 ease-in-out
 				${isHovered ? 'opacity-100' : 'opacity-0'}
 			`}
-			onClick={() => setMode(m => m === 'display' ? 'edit' : 'display')}
+			onClick={() => {
+				setMode(m => m === 'display' ? 'edit' : 'display')
+				chatThreadsService.setFocusedMessageIdx(messageIdx)
+			}}
 		/>}
 	</div>
 }
@@ -641,7 +705,7 @@ export const SidebarChat = () => {
 
 	const currentThread = chatThreadsService.getCurrentThread()
 	const previousMessages = currentThread?.messages ?? []
-	const selections = chatThreadsState.currentStagingSelections
+	const [selections, setSelections] = chatThreadsService._useStagingSelectionsState()
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
@@ -679,7 +743,7 @@ export const SidebarChat = () => {
 		await chatThreadsService.addUserMessageAndStreamResponse(userMessage)
 		console.log('done streaming',)
 
-		chatThreadsService.setStaging([]) // clear staging
+		setSelections([]) // clear staging
 		console.log('set staging',)
 		textAreaFnsRef.current?.setValue('')
 		console.log('set value',)
@@ -687,7 +751,7 @@ export const SidebarChat = () => {
 		console.log('textAreaRef', textAreaRef.current)
 		console.log('focus',)
 
-	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef])
+	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, setSelections])
 
 	const onAbort = () => {
 		const threadId = currentThread.id
@@ -708,7 +772,7 @@ export const SidebarChat = () => {
 
 	const prevMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) =>
-			<ChatBubble key={i} chatMessage={message} />
+			<ChatBubble key={i} chatMessage={message} messageIdx={i} />
 		)
 	}, [previousMessages])
 
@@ -773,7 +837,9 @@ export const SidebarChat = () => {
 			isDisabled={isDisabled}
 			showSelections={true}
 			selections={selections || []}
-			onSelectionsChange={chatThreadsService.setStaging.bind(chatThreadsService)}
+			showProspectiveSelections={prevMessagesHTML.length === 0}
+			onSelectionsChange={setSelections}
+			// onSelectionsChange={chatThreadsService.setStagingSelections.bind(chatThreadsService)}
 			featureName="Ctrl+L"
 		>
 			<VoidInputBox2

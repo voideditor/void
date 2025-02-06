@@ -67,6 +67,13 @@ const getContentInRange = (model: ITextModel, range: IRange | null) => {
 }
 
 
+const findMatchingStagingIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem) => {
+	return currentSelections?.findIndex(s =>
+		s.fileURI.fsPath === newSelection.fileURI.fsPath
+		&& s.range?.startLineNumber === newSelection.range?.startLineNumber
+		&& s.range?.endLineNumber === newSelection.range?.endLineNumber
+	)
+}
 
 const VOID_OPEN_SIDEBAR_ACTION_ID = 'void.sidebar.open'
 registerAction2(class extends Action2 {
@@ -124,26 +131,25 @@ registerAction2(class extends Action2 {
 			range: selectionRange,
 		}
 
-		// add selection to staging
+		// update the staging selections
 		const chatThreadService = accessor.get(IChatThreadService)
-		const currentStaging = chatThreadService.state.currentStagingSelections
-		const currentStagingEltIdx = currentStaging?.findIndex(s =>
-			s.fileURI.fsPath === model.uri.fsPath
-			&& s.range?.startLineNumber === selection.range?.startLineNumber
-			&& s.range?.endLineNumber === selection.range?.endLineNumber
-		)
 
-		// if matches with existing selection, overwrite
+		const messageIdx = chatThreadService.getFocusedMessageIdx()
+		const [staging, setStaging] = chatThreadService._useStagingSelectionsState(messageIdx)
+
+		// if matches with existing selection, overwrite (since text may change)
+		const currentStagingEltIdx = findMatchingStagingIndex(staging, selection)
+
 		if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
-			chatThreadService.setStaging([
-				...currentStaging!.slice(0, currentStagingEltIdx),
+			setStaging([
+				...staging!.slice(0, currentStagingEltIdx),
 				selection,
-				...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
+				...staging!.slice(currentStagingEltIdx + 1, Infinity)
 			])
 		}
-		// if no match, add
+		// if no match, add it
 		else {
-			chatThreadService.setStaging([...(currentStaging ?? []), selection])
+			setStaging([...(staging ?? []), selection])
 		}
 
 	}

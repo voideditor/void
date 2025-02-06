@@ -1,7 +1,7 @@
 {
   "name": "void-dev",
   "productName": "Void",
-  "voidVersion": "1.0.5",
+  "voidVersion": "1.0.6",
   "version": "1.94.0",
   "distro": "this is a commit number if we want to publish on npm",
   "homepage": "https://voideditor.com",
@@ -77,9 +77,9 @@
     "extensions-ci-pr": "node ./node_modules/gulp/bin/gulp.js extensions-ci-pr",
     "perf": "node scripts/code-perf.js",
     "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json",
-    "void-version-patch": "node -e \"const p=require('./package.json');p.voidVersion=require('semver').inc(p.voidVersion,'patch');require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))\" && git add package.json && git commit -m \"bump: voidVersion patch\" && git tag v-$npm_package_voidVersion && git push && git push --tags",
-    "void-version-minor": "node -e \"const p=require('./package.json');p.voidVersion=require('semver').inc(p.voidVersion,'minor');require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))\" && git add package.json && git commit -m \"bump: voidVersion minor\" && git tag v-$npm_package_voidVersion && git push && git push --tags",
-    "void-version-major": "node -e \"const p=require('./package.json');p.voidVersion=require('semver').inc(p.voidVersion,'major');require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))\" && git add package.json && git commit -m \"bump: voidVersion major\" && git tag v-$npm_package_voidVersion && git push && git push --tags"
+    "void-version-patch": "node -e \"const p=require('./package.json');p.voidVersion=require('semver').inc(p.voidVersion,'patch');require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))\" && git add package.json && git commit -m \"bump: void-version patch\" && git tag v-voidVersion && git push && git push --tags",
+    "void-version-minor": "node -e \"const p=require('./package.json');p.voidVersion=require('semver').inc(p.voidVersion,'minor');require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))\" && git add package.json && git commit -m \"bump: void-version minor\" && git tag v-$voidVersion && git push && git push --tags",
+    "void-version-major": "node -e \"const p=require('./package.json');p.voidVersion=require('semver').inc(p.voidVersion,'major');require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2))\" && git add package.json && git commit -m \"bump: void-version major\" && git tag v-$voidVersion && git push && git push --tags"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

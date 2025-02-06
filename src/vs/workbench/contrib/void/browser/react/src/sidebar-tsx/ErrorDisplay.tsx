@@ -24,7 +24,7 @@ export const ErrorDisplay = ({
 
 	const details = errorDetails(fullError)
 
-	const message = message_ === 'TypeError: fetch failed' ? `TypeError for : fetch failed. This likely means you specified the wrong endpoint in Void Settings, or your local model provider like Ollama is powered off.` : message_ + ''
+	const message = message_ === 'TypeError: fetch failed' ? `TypeError: fetch failed. This likely means you specified the wrong endpoint in Void Settings, or a provider like Ollama is powered off.` : message_ + ''
 
 	return (
 		<div className={`rounded-lg border border-red-200 bg-red-50 p-4 overflow-auto`}>

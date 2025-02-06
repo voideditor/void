@@ -135,7 +135,7 @@ export const IconLoading = ({ className = '' }: { className?: string }) => {
 }
 
 
-interface VoidInputFormProps {
+interface VoidChatAreaProps {
 	// Required
 	children: React.ReactNode; // This will be the input component
 
@@ -144,7 +144,7 @@ interface VoidInputFormProps {
 	onAbort: () => void;
 	isStreaming: boolean;
 	isDisabled?: boolean;
-	formRef?: React.RefObject<HTMLFormElement>;
+	divRef: React.RefObject<HTMLDivElement>;
 
 	// UI customization
 	featureName: FeatureName;
@@ -154,16 +154,18 @@ interface VoidInputFormProps {
 	selections?: any[];
 	onSelectionsChange?: (selections: any[]) => void;
 
+	onClickAnywhere?: () => void;
 	// Optional close button
 	onClose?: () => void;
 }
 
-export const VoidChatArea: React.FC<VoidInputFormProps> = ({
+export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	children,
 	onSubmit,
 	onAbort,
 	onClose,
-	formRef,
+	onClickAnywhere,
+	divRef,
 	isStreaming = false,
 	isDisabled = false,
 	className = '',
@@ -174,8 +176,8 @@ export const VoidChatArea: React.FC<VoidInputFormProps> = ({
 	onSelectionsChange,
 }) => {
 	return (
-		<form
-			ref={formRef}
+		<div
+			ref={divRef}
 			className={`
                 flex flex-col gap-1 p-2 relative input text-left shrink-0
                 transition-all duration-200
@@ -184,6 +186,9 @@ export const VoidChatArea: React.FC<VoidInputFormProps> = ({
                 border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
                 ${className}
             `}
+			onClick={(e) => {
+				onClickAnywhere?.()
+			}}
 		>
 			{/* Selections section */}
 			{showSelections && onSelectionsChange && (
@@ -213,7 +218,8 @@ export const VoidChatArea: React.FC<VoidInputFormProps> = ({
 			{/* Bottom row */}
 			<div className='flex flex-row justify-between items-end gap-1'>
 				{showModelDropdown && (
-					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none flex-grow'>
+					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none flex-grow'
+						onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
 						<ModelDropdown featureName={featureName} />
 					</div>
 				)}
@@ -227,7 +233,7 @@ export const VoidChatArea: React.FC<VoidInputFormProps> = ({
 					/>
 				)}
 			</div>
-		</form>
+		</div>
 	);
 };
 
@@ -660,7 +666,7 @@ export const SidebarChat = () => {
 	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+L', settingsState)
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
-	const [formRef, formDimensions] = useResizeObserver()
+	const [chatAreaRef, chatAreaDimensions] = useResizeObserver()
 	const [historyRef, historyDimensions] = useResizeObserver()
 
 	useScrollbarStyles(sidebarRef)
@@ -725,7 +731,7 @@ export const SidebarChat = () => {
 		py-4
 		${prevMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
 	`}
-		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
+		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
 	>
 		{/* previous messages */}
 		{prevMessagesHTML}
@@ -760,7 +766,7 @@ export const SidebarChat = () => {
 	}, [onSubmit])
 	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
 		<VoidChatArea
-			formRef={formRef}
+			divRef={chatAreaRef}
 			onSubmit={onSubmit}
 			onAbort={onAbort}
 			isStreaming={isStreaming}
@@ -768,6 +774,7 @@ export const SidebarChat = () => {
 			showSelections={true}
 			selections={selections || []}
 			onSelectionsChange={chatThreadsService.setStaging.bind(chatThreadsService)}
+			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 			featureName="Ctrl+L"
 		>
 			<VoidInputBox2

@@ -81,8 +81,10 @@ export const QuickEditChat = ({
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
 
+	const chatAreaRef = useRef<HTMLDivElement | null>(null)
 	return <div ref={sizerRef} style={{ maxWidth: 450 }} className={`py-2 w-full`}>
 		<VoidChatArea
+			divRef={chatAreaRef}
 			onSubmit={onSubmit}
 			onAbort={onInterrupt}
 			onClose={onX}
@@ -90,6 +92,7 @@ export const QuickEditChat = ({
 			isDisabled={isDisabled}
 			featureName="Ctrl+K"
 			className="py-2 w-full"
+			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 		>
 			<VoidInputBox2
 				className='px-1'

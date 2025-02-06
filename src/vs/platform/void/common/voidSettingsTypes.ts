@@ -443,11 +443,11 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 	if (featureName === 'Autocomplete')
 		return 'Autocomplete'
 	else if (featureName === 'Ctrl+K')
-		return 'Quick Edit'
+		return 'Quick-Edit'
 	else if (featureName === 'Ctrl+L')
-		return 'Sidebar Chat'
+		return 'Chat'
 	else if (featureName === 'FastApply')
-		return 'Fast Apply'
+		return 'Apply'
 	else
 		throw new Error(`Feature Name ${featureName} not allowed`)
 }

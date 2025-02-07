@@ -539,13 +539,13 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 	const role = chatMessage.role
 
-
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 
 	// edit mode state
 	const [staging, setStaging] = chatThreadsService._useFocusedStagingState(messageIdx)
 	const mode: ChatBubbleMode = staging.isBeingEdited ? 'edit' : 'display'
+	const [isFocused, setIsFocused] = useState(false)
 	const [isHovered, setIsHovered] = useState(false)
 	const [isDisabled, setIsDisabled] = useState(false)
 	const [textAreaRefState, setTextAreaRef] = useState<HTMLTextAreaElement | null>(null)
@@ -560,7 +560,6 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 			setStaging({
 				...staging,
 				selections: chatMessage.selections || [],
-				text: chatMessage.displayContent || '',
 			})
 			if (textAreaFnsRef.current)
 				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
@@ -575,6 +574,18 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 	const EditSymbol = mode === 'display' ? Pencil : X
 
+	const onOpenEdit = () => {
+		setStaging({ ...staging, isBeingEdited: true })
+		chatThreadsService.setFocusedMessageIdx(messageIdx)
+		_justEnabledEdit.current = true
+	}
+	const onCloseEdit = () => {
+		setIsFocused(false)
+		setIsHovered(false)
+		setStaging({ ...staging, isBeingEdited: false })
+		chatThreadsService.setFocusedMessageIdx(undefined)
+
+	}
 	// set chat bubble contents
 	let chatbubbleContents: React.ReactNode
 	if (role === 'user') {
@@ -612,7 +623,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 			const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
 				if (e.key === 'Escape') {
-					setStaging({ ...staging, isBeingEdited: false })
+					onCloseEdit()
 				}
 				if (e.key === 'Enter' && !e.shiftKey) {
 					onSubmit()
@@ -640,7 +651,13 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 						className='min-h-[81px] max-h-[500px] p-1'
 						placeholder="Edit your message..."
 						onChangeText={(text) => setIsDisabled(!text)}
-						onFocus={() => { console.log('CHAT FOCUS'); chatThreadsService.setFocusedMessageIdx(messageIdx) }}
+						onFocus={() => {
+							setIsFocused(true)
+							chatThreadsService.setFocusedMessageIdx(messageIdx);
+						}}
+						onBlur={() => {
+							setIsFocused(false)
+						}}
 						onKeyDown={onKeyDown}
 						fnsRef={textAreaFnsRef}
 						multiline={true}
@@ -669,8 +686,11 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 			// style chatbubble according to role
 			className={`
 				text-left rounded-lg
-				overflow-x-auto max-w-full
-				${role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1' : 'px-2'}
+				max-w-full
+				${mode === 'edit' ? ''
+					: role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1 overflow-x-auto'
+						: role === 'assistant' ? 'px-2 overflow-x-auto' : ''
+				}
 			`}
 		>
 			{chatbubbleContents}
@@ -687,16 +707,13 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				p-[2px]
 				bg-void-bg-1 border border-void-border-1 rounded-md
 				transition-opacity duration-200 ease-in-out
-				${isHovered ? 'opacity-100' : 'opacity-0'}
+				${isHovered || (isFocused && mode === 'edit') ? 'opacity-100' : 'opacity-0'}
 			`}
 			onClick={() => {
 				if (mode === 'display') {
-					setStaging({ ...staging, isBeingEdited: true })
-					chatThreadsService.setFocusedMessageIdx(messageIdx)
-					_justEnabledEdit.current = true
+					onOpenEdit()
 				} else if (mode === 'edit') {
-					setStaging({ ...staging, isBeingEdited: false })
-					chatThreadsService.setFocusedMessageIdx(undefined)
+					onCloseEdit()
 				}
 			}}
 		/>}
@@ -757,25 +774,16 @@ export const SidebarChat = () => {
 
 	const onSubmit = useCallback(async () => {
 
-		console.log('onSubmit')
-
 		if (isDisabled) return
 		if (isStreaming) return
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
-		console.log('userMessage', userMessage)
-		console.log('streaming...',)
 		await chatThreadsService.addUserMessageAndStreamResponse(userMessage)
-		console.log('done streaming',)
 
-		setStaging({ ...staging, selections: [], text: '' }) // clear staging
-		console.log('set staging',)
+		setStaging({ ...staging, selections: [], }) // clear staging
 		textAreaFnsRef.current?.setValue('')
-		console.log('set value',)
 		textAreaRef.current?.focus() // focus input after submit
-		console.log('textAreaRef', textAreaRef.current)
-		console.log('focus',)
 
 	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, staging, setStaging])
 

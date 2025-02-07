@@ -36,7 +36,6 @@ export type StagingSelectionItem = CodeSelection | FileSelection
 export type StagingInfo = {
 	isBeingEdited: boolean;
 	selections: StagingSelectionItem[] | null; // staging selections in edit mode
-	text: string;
 }
 
 
@@ -97,7 +96,6 @@ const newThreadObject = () => {
 		staging: {
 			isBeingEdited: true,
 			selections: [],
-			text: '',
 		}
 	} satisfies ChatThreads[string]
 }
@@ -165,8 +163,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// for now just write the version, anticipating bigger changes in the future where we'll want to access this
 		this._storageService.store(THREAD_VERSION_KEY, THREAD_VERSION, StorageScope.APPLICATION, StorageTarget.USER)
 
-
-		setInterval(() => { console.log(this.getFocusedMessageIdx()) }, 1000)
 	}
 
 
@@ -265,15 +261,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				...this.getCurrentThread().messages.map(m => ({ role: m.role, content: m.content || '(null)' })),
 			],
 			onText: ({ newText, fullText }) => {
-				console.log('onText', fullText)
 				this._setStreamState(threadId, { messageSoFar: fullText })
 			},
 			onFinalMessage: ({ fullText: content }) => {
-				console.log('finalMessage', JSON.stringify(content))
 				this.finishStreaming(threadId, content)
 			},
 			onError: (error) => {
-				console.log('onError', content)
 				this.finishStreaming(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
 			},
 
@@ -322,8 +315,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	switchToThread(threadId: string) {
-		// console.log('threadId', threadId)
-		// console.log('messages', this.state.allThreads[threadId].messages)
 		this._setState({ currentThreadId: threadId }, true)
 	}
 
@@ -413,10 +404,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	// set thread.stagingSelections
 	private setDefaultStaging(staging: StagingInfo): void {
 
-		console.log('Default1')
 		const thread = this.getCurrentThread()
-
-		console.log('Default2')
 
 		this._setState({
 			allThreads: {

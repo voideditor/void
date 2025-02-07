@@ -60,6 +60,7 @@ export interface IProductConfiguration {
 	readonly quality?: string;
 	readonly commit?: string;
 
+	readonly voidVersion: string;
 	readonly nameShort: string;
 	readonly nameLong: string;
 

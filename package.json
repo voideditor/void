@@ -1,7 +1,7 @@
 {
   "name": "void-dev",
   "productName": "Void",
-  "voidVersion": "1.0.0",
+  "voidVersion": "1.0.1",
   "version": "1.94.0",
   "distro": "this is a commit number if we want to publish on npm",
   "homepage": "https://voideditor.com",

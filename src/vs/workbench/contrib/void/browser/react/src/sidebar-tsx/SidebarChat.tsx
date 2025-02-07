@@ -21,7 +21,7 @@ import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { Pencil } from 'lucide-react';
+import { Pencil, X } from 'lucide-react';
 import { FeatureName } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
 
 
@@ -546,7 +546,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	const [isHovered, setIsHovered] = useState(false)
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
-	const [isDisabled, setIsDisabled] = useState(false)
+	const [isEditDisabled, setIsEditDisabled] = useState(false)
 	useEffect(() => {
 		if (role === 'user') {
 			setStaging(chatMessage.selections || [])
@@ -557,40 +557,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		}
 	}, [role])
 
-
-	const onSubmit = async () => {
-
-		if (isDisabled) return;
-		if (!textAreaRef.current) return;
-		if (messageIdx === undefined) return;
-
-		// reset visual state
-		setMode('display');
-
-		// stream the edit
-		const userMessage = textAreaRef.current.value;
-		await chatThreadsService.editUserMessageAndStreamResponse(userMessage, messageIdx)
-
-		textAreaFnsRef.current?.setValue('');
-	}
-
-	const onAbort = () => {
-		const threadId = chatThreadsService.state.currentThreadId
-		chatThreadsService.cancelStreaming(threadId)
-	}
-
-	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
-		if (e.key === 'Escape') {
-			setMode('display')
-		}
-		if (e.key === 'Enter' && !e.shiftKey) {
-			onSubmit()
-		}
-	}, [onSubmit, setMode])
-
-	if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show)
-		return null
-	}
+	const EditSymbol = mode === 'edit' ? Pencil : X
 
 	// set chat bubble contents
 	let chatbubbleContents: React.ReactNode
@@ -602,12 +569,47 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 			</>
 		}
 		else if (mode === 'edit') {
+
+			const onSubmit = async () => {
+
+				if (isEditDisabled) return;
+				if (!textAreaRef.current) return;
+				if (messageIdx === undefined) return;
+
+				// reset visual state
+				setMode('display');
+
+				// stream the edit
+				const userMessage = textAreaRef.current.value;
+				await chatThreadsService.editUserMessageAndStreamResponse(userMessage, messageIdx)
+
+				textAreaFnsRef.current?.setValue('');
+			}
+
+			const onAbort = () => {
+				const threadId = chatThreadsService.state.currentThreadId
+				chatThreadsService.cancelStreaming(threadId)
+			}
+
+			const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+				if (e.key === 'Escape') {
+					setMode('display')
+				}
+				if (e.key === 'Enter' && !e.shiftKey) {
+					onSubmit()
+				}
+			}, [onSubmit, setMode])
+
+			if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show)
+				return null
+			}
+
 			chatbubbleContents = <>
 				<VoidInputForm
 					onSubmit={onSubmit}
 					onAbort={onAbort}
 					isStreaming={false}
-					isDisabled={isDisabled}
+					isDisabled={isEditDisabled}
 					showSelections={true}
 					selections={staging || []}
 					showProspectiveSelections={false}
@@ -617,7 +619,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 					<VoidInputBox2
 						className='min-h-[81px] max-h-[500px] p-1'
 						placeholder="Edit your message..."
-						onChangeText={(text) => setIsDisabled(!text)}
+						onChangeText={(text) => setIsEditDisabled(!text)}
 						onKeyDown={onKeyDown}
 						ref={textAreaRef}
 						fnsRef={textAreaFnsRef}
@@ -656,7 +658,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		</div>
 
 		{/* edit button */}
-		{role === 'user' && <Pencil
+		{role === 'user' && <EditSymbol
 			size={18}
 			className={`
 				absolute -top-1 right-1
@@ -684,6 +686,7 @@ export const SidebarChat = () => {
 	const accessor = useAccessor()
 	// const modelService = accessor.get('IModelService')
 	const commandService = accessor.get('ICommandService')
+	const chatThreadsService = accessor.get('IChatThreadService')
 
 	// ----- HIGHER STATE -----
 	// sidebar state
@@ -691,7 +694,7 @@ export const SidebarChat = () => {
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { textAreaRef.current?.focus() }),
+			sidebarStateService.onDidFocusChat(() => { textAreaRef.current?.focus(); chatThreadsService.setFocusedMessageIdx(undefined) }),
 			sidebarStateService.onDidBlurChat(() => { textAreaRef.current?.blur() })
 		)
 		return () => disposables.forEach(d => d.dispose())
@@ -701,7 +704,6 @@ export const SidebarChat = () => {
 
 	// threads state
 	const chatThreadsState = useChatThreadsState()
-	const chatThreadsService = accessor.get('IChatThreadService')
 
 	const currentThread = chatThreadsService.getCurrentThread()
 	const previousMessages = currentThread?.messages ?? []
@@ -733,8 +735,6 @@ export const SidebarChat = () => {
 
 		if (isDisabled) return
 		if (isStreaming) return
-
-		console.log('chatThreadsService', chatThreadsService ? chatThreadsService : '!undefined')
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''

@@ -134,22 +134,24 @@ registerAction2(class extends Action2 {
 		// update the staging selections
 		const chatThreadService = accessor.get(IChatThreadService)
 
-		const messageIdx = chatThreadService.getFocusedMessageIdx()
-		const [staging, setStaging] = chatThreadService._useStagingSelectionsState(messageIdx)
+		const focusedMessageIdx = chatThreadService.getFocusedMessageIdx()
+		const [staging, setStaging] = chatThreadService._useFocusedStagingState(focusedMessageIdx)
+		const selections = staging.selections || []
+		const setSelections = (s: StagingSelectionItem[]) => setStaging({ ...staging, selections: s })
 
 		// if matches with existing selection, overwrite (since text may change)
-		const currentStagingEltIdx = findMatchingStagingIndex(staging, selection)
+		const currentStagingEltIdx = findMatchingStagingIndex(selections, selection)
 
 		if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
-			setStaging([
-				...staging!.slice(0, currentStagingEltIdx),
+			setSelections([
+				...selections!.slice(0, currentStagingEltIdx),
 				selection,
-				...staging!.slice(currentStagingEltIdx + 1, Infinity)
+				...selections!.slice(currentStagingEltIdx + 1, Infinity)
 			])
 		}
 		// if no match, add it
 		else {
-			setStaging([...(staging ?? []), selection])
+			setSelections([...(selections ?? []), selection])
 		}
 
 	}

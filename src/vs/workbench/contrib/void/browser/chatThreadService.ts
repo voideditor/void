@@ -33,6 +33,13 @@ export type FileSelection = {
 export type StagingSelectionItem = CodeSelection | FileSelection
 
 
+export type StagingInfo = {
+	isBeingEdited: boolean;
+	selections: StagingSelectionItem[] | null; // staging selections in edit mode
+	text: string;
+}
+
+
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
 	| {
@@ -40,7 +47,7 @@ export type ChatMessage =
 		content: string | null; // content sent to the llm - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
 		selections: StagingSelectionItem[] | null; // the user's selection
-		stagingSelections: StagingSelectionItem[] | null; // staging selections in edit mode
+		staging: StagingInfo | null
 	}
 	| {
 		role: 'assistant';
@@ -60,7 +67,7 @@ export type ChatThreads = {
 		createdAt: string; // ISO string
 		lastModified: string; // ISO string
 		messages: ChatMessage[];
-		stagingSelections: StagingSelectionItem[] | null;
+		staging: StagingInfo
 		focusedMessageIdx?: number | undefined; // index of the message that is being edited (undefined if none)
 	};
 }
@@ -87,7 +94,11 @@ const newThreadObject = () => {
 		lastModified: now,
 		messages: [],
 		focusedMessageIdx: undefined,
-		stagingSelections: null,
+		staging: {
+			isBeingEdited: true,
+			selections: [],
+			text: '',
+		}
 	} satisfies ChatThreads[string]
 }
 
@@ -110,9 +121,10 @@ export interface IChatThreadService {
 	switchToThread(threadId: string): void;
 
 	getFocusedMessageIdx(): number | undefined;
+	isFocusingMessage(): boolean;
 	setFocusedMessageIdx(messageIdx: number | undefined): void;
 
-	_useStagingSelectionsState(messageIdx?: number | undefined): readonly [StagingSelectionItem[], (selections: StagingSelectionItem[]) => void];
+	_useFocusedStagingState(messageIdx?: number | undefined): readonly [StagingInfo, (selections: StagingInfo) => void];
 
 	editUserMessageAndStreamResponse(userMessage: string, messageIdx: number): Promise<void>;
 	addUserMessageAndStreamResponse(userMessage: string): Promise<void>;
@@ -152,6 +164,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// for now just write the version, anticipating bigger changes in the future where we'll want to access this
 		this._storageService.store(THREAD_VERSION_KEY, THREAD_VERSION, StorageScope.APPLICATION, StorageTarget.USER)
+
+
+		setInterval(() => { console.log(this.getFocusedMessageIdx()) }, 1000)
 	}
 
 
@@ -218,24 +233,25 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}, true)
 
 		// stream the edit
-		this.addUserMessageAndStreamResponse(userMessage, messageToReplace.stagingSelections)
+		this.addUserMessageAndStreamResponse(userMessage, messageToReplace.staging)
 
 	}
 
-	async addUserMessageAndStreamResponse(userMessage: string, selectionsOverride?: StagingSelectionItem[] | null) {
+	async addUserMessageAndStreamResponse(userMessage: string, stagingOverride?: StagingInfo | null) {
 
 
 		const thread = this.getCurrentThread()
 		const threadId = thread.id
 
-		let defaultThreadSelections = thread.stagingSelections
+		let defaultThreadSelections = thread.staging
 
-		const currSelns = selectionsOverride ?? defaultThreadSelections ?? [] // don't use _useFocusedStagingState to avoid race conditions with focusing
+		const currStaging = stagingOverride ?? defaultThreadSelections ?? [] // don't use _useFocusedStagingState to avoid race conditions with focusing
+		const { selections: currSelns, } = currStaging
 
 		// add user's message to chat history
 		const instructions = userMessage
 		const content = await chat_userMessage(instructions, currSelns, this._modelService)
-		const userHistoryElt: ChatMessage = { role: 'user', content: content, displayContent: instructions, selections: currSelns, stagingSelections: [], }
+		const userHistoryElt: ChatMessage = { role: 'user', content: content, displayContent: instructions, selections: currSelns, staging: null, }
 		this._addMessageToThread(threadId, userHistoryElt)
 
 		this._setStreamState(threadId, { error: undefined })
@@ -288,7 +304,21 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	getFocusedMessageIdx() {
 		const thread = this.getCurrentThread()
-		return thread.focusedMessageIdx
+
+		// get the focusedMessageIdx
+		const focusedMessageIdx = thread.focusedMessageIdx
+		if (focusedMessageIdx === undefined) return;
+
+		// check that the message is actually being edited
+		const focusedMessage = thread.messages[focusedMessageIdx]
+		if (focusedMessage.role !== 'user') return;
+		if (!focusedMessage.staging?.isBeingEdited) return;
+
+		return focusedMessageIdx
+	}
+
+	isFocusingMessage() {
+		return this.getFocusedMessageIdx() !== undefined
 	}
 
 	switchToThread(threadId: string) {
@@ -357,7 +387,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	// set thread.messages[messageIdx].stagingSelections
-	private setEditMessageStagingSelections(stagingSelections: StagingSelectionItem[], messageIdx: number): void {
+	private setEditMessageStaging(staging: StagingInfo, messageIdx: number): void {
 
 		const thread = this.getCurrentThread()
 		const message = thread.messages[messageIdx]
@@ -369,7 +399,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				[thread.id]: {
 					...thread,
 					messages: thread.messages.map((m, i) =>
-						i === messageIdx ? { ...m, stagingSelections } : m
+						i === messageIdx ? {
+							...m,
+							staging,
+						} : m
 					)
 				}
 			}
@@ -378,8 +411,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	// set thread.stagingSelections
-	private setDefaultStagingSelections(stagingSelections: StagingSelectionItem[]): void {
-
+	private setDefaultStaging(staging: StagingInfo): void {
 
 		console.log('Default1')
 		const thread = this.getCurrentThread()
@@ -391,7 +423,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				...this.state.allThreads,
 				[thread.id]: {
 					...thread,
-					stagingSelections
+					staging,
 				}
 			}
 		}, true)
@@ -399,10 +431,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	// gets `staging` and `setStaging` of the currently focused element, given the index of the currently selected message (or undefined if no message is selected)
-	_useStagingSelectionsState(messageIdx?: number | undefined) {
+	_useFocusedStagingState(messageIdx?: number | undefined) {
 
-		let staging: StagingSelectionItem[] = []
-		let setStaging: (selections: StagingSelectionItem[]) => void = () => { }
+		const defaultStaging = { isBeingEdited: false, selections: [], text: '' }
+
+		let staging: StagingInfo = defaultStaging
+		let setStaging: (selections: StagingInfo) => void = () => { }
 
 		const thread = this.getCurrentThread()
 		const isFocusingMessage = messageIdx !== undefined
@@ -410,19 +444,18 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			const message = thread.messages[messageIdx!]
 			if (message.role === 'user') {
-				staging = message.stagingSelections || []
-				setStaging = (s) => this.setEditMessageStagingSelections(s, messageIdx)
+				staging = message.staging || defaultStaging
+				setStaging = (s) => this.setEditMessageStaging(s, messageIdx)
 			}
 
 		}
 		else { // is editing the default input box
-			staging = thread.stagingSelections || []
-			setStaging = this.setDefaultStagingSelections.bind(this)
+			staging = thread.staging || defaultStaging
+			setStaging = this.setDefaultStaging.bind(this)
 		}
 
 		return [staging, setStaging] as const
 	}
-
 
 
 }

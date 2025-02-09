@@ -3,7 +3,7 @@ import { EndOfLinePreference } from '../../../../../editor/common/model'
 import { IModelService } from '../../../../../editor/common/services/model.js'
 import { IFileService } from '../../../../../platform/files/common/files'
 
-// read files from VSCode
+// read files from VSCode (looks like only works if model exists already, use raw if not)
 export const VSReadFile = async (modelService: IModelService, uri: URI): Promise<string | null> => {
 	const model = modelService.getModel(uri)
 	if (!model) return null

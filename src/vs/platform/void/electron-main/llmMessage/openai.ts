@@ -6,11 +6,33 @@
 import OpenAI from 'openai';
 import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { Model } from 'openai/resources/models.js';
+import { InternalToolInfo } from '../../common/toolsService.js';
 // import { parseMaxTokensStr } from './util.js';
 
 
-// https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
-// https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
+// developer command - https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
+// prompting - https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
+
+
+export const toOpenAITool = (toolName: string, toolInfo: InternalToolInfo) => {
+	const { description, params, required } = toolInfo
+	return {
+		type: 'function',
+		function: {
+			name: toolName,
+			description: description,
+			parameters: {
+				type: 'object',
+				properties: params,
+				required: required,
+			}
+		}
+	} satisfies OpenAI.Chat.Completions.ChatCompletionTool
+}
+
+
+
+
 
 
 // might not currently be used in the code

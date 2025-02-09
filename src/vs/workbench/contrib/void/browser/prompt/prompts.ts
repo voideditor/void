@@ -133,8 +133,8 @@ Store Result: After computing fib(n), the result is stored in memo for future re
 `
 
 
-type FileSelnLocal = FileSelection & { content: string }
-const stringifyFileSelection = ({ fileURI, selectionStr, range, content }: FileSelnLocal) => {
+type FileSelnLocal = { fileURI: URI, content: string }
+const stringifyFileSelection = ({ fileURI, content }: FileSelnLocal) => {
 	return `\
 ${fileURI.fsPath}
 \`\`\`${filenameToVscodeLanguage(fileURI.fsPath) ?? ''}

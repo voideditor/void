@@ -124,7 +124,7 @@ export interface IChatThreadService {
 	isFocusingMessage(): boolean;
 	setFocusedMessageIdx(messageIdx: number | undefined): void;
 
-	_useFocusedStagingState(messageIdx?: number | undefined): readonly [StagingInfo, (selections: StagingInfo) => void];
+	_useFocusedStagingState(messageIdx?: number | undefined): readonly [StagingInfo, (stagingInfo: StagingInfo) => void];
 
 	editUserMessageAndStreamResponse(userMessage: string, messageIdx: number): Promise<void>;
 	addUserMessageAndStreamResponse(userMessage: string): Promise<void>;

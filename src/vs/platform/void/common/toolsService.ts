@@ -179,7 +179,6 @@ export class ToolService implements IToolService {
 			list_dir: async ({ uri: uriStr }) => {
 				const uri = validateURI(uriStr)
 				const treeStr = await generateDirectoryTreeMd(fileService, uri)
-				console.log('!!PIZA', treeStr)
 				return treeStr
 			},
 			pathname_search: async ({ query: queryStr }) => {

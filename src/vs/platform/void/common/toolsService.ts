@@ -49,7 +49,7 @@ const contextTools = {
 	},
 
 	grep_search: {
-		description: `Returns all code excerpts containing the given string or grep query. Does not search filename. As a follow-up, you may want to use read_file to view the full file contents of the results. ${pagination.desc}`,
+		description: `Returns all code excerpts containing the given string or grep query. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${pagination.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
 			...pagination.param,
@@ -79,26 +79,7 @@ type ContextToolCallFns = {
 
 
 
-/*
-Generates something that looks like this:
-
-+ folder1
-│   ├── file1.py
-│   ├── subfolder1
-│   │   ├── file1.json
-│   │   └── file2.py
-│   └── another_file.txt
-└── folder2
-	├── script.js
-	└── styles.css
-*/
-
-
-/**
- * Generates a Markdown tree starting at the given URI.
- * The root folder is printed as a header (without a bullet).
- */
-export async function generateMarkdownTree(fileService: IFileService, uri: URI): Promise<string> {
+export async function generateDirectoryTreeMd(fileService: IFileService, uri: URI): Promise<string> {
 
 	let output = ''
 
@@ -149,8 +130,6 @@ export interface IToolService {
 
 export const IToolService = createDecorator<IToolService>('ToolService');
 
-
-// implemented by calling channel
 export class ToolService implements IToolService {
 
 	readonly _serviceBrand: undefined;
@@ -169,7 +148,7 @@ export class ToolService implements IToolService {
 			},
 			list_dir: async ({ uri: uriStr }) => {
 				const uri = validateURI(uriStr)
-				const treeStr = await generateMarkdownTree(fileService, uri)
+				const treeStr = await generateDirectoryTreeMd(fileService, uri)
 				return treeStr
 			},
 			pathname_search: async ({ query }) => {

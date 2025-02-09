@@ -45,7 +45,7 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 
 	const onApply = useCallback(() => {
 		inlineDiffService.startApplying({
-			featureName: 'Ctrl+L',
+			from: 'Chat',
 			applyStr: text,
 		})
 		metricsService.capture('Apply Code', { length: text.length }) // capture the length only
@@ -186,18 +186,18 @@ const RenderToken = ({ token, nested = false, noSpace = false }: { token: Token 
 				<RenderToken key={index} token={token} />
 			))}
 		</>
-		if (nested)
-			return contents
-		return <p className={`${noSpace ? '' : 'my-4'} leading`}>{contents}</p>
+		if (nested) return contents
+
+		return <p className={`${noSpace ? '' : 'my-4'}`}>
+			{contents}
+		</p>
 	}
 
 	if (t.type === "html") {
 		return (
-			<pre className={`bg-4oid-bg-2 p-4 rounded-lg ${noSpace ? '' : 'my-4'} font-mono text-sm`}>
-				{`<html>`}
+			<p className={`${noSpace ? '' : 'my-4'}`}>
 				{t.raw}
-				{`</html>`}
-			</pre>
+			</p>
 		)
 	}
 

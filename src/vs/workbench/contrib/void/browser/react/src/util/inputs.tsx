@@ -303,9 +303,9 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 
 
 
-export const VoidCustomSelectBox = <T extends any>({
+export const VoidCustomDropdownBox = <T extends any>({
 	options,
-	selectedOption: selectedOption_,
+	selectedOption,
 	onChangeOption,
 	getOptionDropdownName,
 	getOptionDisplayName,
@@ -316,7 +316,7 @@ export const VoidCustomSelectBox = <T extends any>({
 	gap = 0,
 }: {
 	options: T[];
-	selectedOption?: T;
+	selectedOption: T | undefined;
 	onChangeOption: (newValue: T) => void;
 	getOptionDropdownName: (option: T) => string;
 	getOptionDisplayName: (option: T) => string;
@@ -375,14 +375,12 @@ export const VoidCustomSelectBox = <T extends any>({
 		strategy: 'fixed',
 	});
 
-	// if the selected option is null, use the 0th option
+	// if the selected option is null, set the selection to the 0th option
 	useEffect(() => {
-		if (!options[0]) return
-		if (!selectedOption_) {
-			onChangeOption(options[0]);
-		}
-	}, [selectedOption_, options])
-	const selectedOption = !selectedOption_ ? options[0] : selectedOption_
+		if (options.length === 0) return
+		if (selectedOption) return
+		onChangeOption(options[0])
+	}, [selectedOption, onChangeOption, options])
 
 	// Handle clicks outside
 	useEffect(() => {
@@ -408,6 +406,9 @@ export const VoidCustomSelectBox = <T extends any>({
 		document.addEventListener('mousedown', handleClickOutside);
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, [isOpen, refs.floating, refs.reference]);
+
+	if (!selectedOption)
+		return null
 
 	return (
 		<div className={`inline-block relative ${className}`}>

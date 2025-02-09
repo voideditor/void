@@ -15,14 +15,15 @@ import { URI } from '../../../../../../../base/common/uri.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
-import { ModelDropdown, WarningBox } from '../void-settings-tsx/ModelDropdown.js';
+import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { Pencil, X } from 'lucide-react';
-import { FeatureName } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
+import { FeatureName, isFeatureNameDisabled } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
+import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 
 
 
@@ -136,7 +137,7 @@ export const IconLoading = ({ className = '' }: { className?: string }) => {
 }
 
 
-interface VoidInputFormProps {
+interface VoidChatAreaProps {
 	// Required
 	children: React.ReactNode; // This will be the input component
 
@@ -145,7 +146,7 @@ interface VoidInputFormProps {
 	onAbort: () => void;
 	isStreaming: boolean;
 	isDisabled?: boolean;
-	formRef?: React.RefObject<HTMLFormElement>;
+	divRef?: React.RefObject<HTMLDivElement>;
 
 	// UI customization
 	featureName: FeatureName;
@@ -159,16 +160,18 @@ interface VoidInputFormProps {
 	// selections?: any[];
 	// onSelectionsChange?: (selections: any[]) => void;
 
+	onClickAnywhere?: () => void;
 	// Optional close button
 	onClose?: () => void;
 }
 
-export const VoidInputForm: React.FC<VoidInputFormProps> = ({
+export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	children,
 	onSubmit,
 	onAbort,
 	onClose,
-	formRef,
+	onClickAnywhere,
+	divRef,
 	isStreaming = false,
 	isDisabled = false,
 	className = '',
@@ -180,8 +183,8 @@ export const VoidInputForm: React.FC<VoidInputFormProps> = ({
 	setStaging,
 }) => {
 	return (
-		<form
-			ref={formRef}
+		<div
+			ref={divRef}
 			className={`
                 flex flex-col gap-1 p-2 relative input text-left shrink-0
                 transition-all duration-200
@@ -190,6 +193,9 @@ export const VoidInputForm: React.FC<VoidInputFormProps> = ({
                 border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
                 ${className}
             `}
+			onClick={(e) => {
+				onClickAnywhere?.()
+			}}
 		>
 			{/* Selections section */}
 			{showSelections && staging && setStaging && (
@@ -220,7 +226,8 @@ export const VoidInputForm: React.FC<VoidInputFormProps> = ({
 			{/* Bottom row */}
 			<div className='flex flex-row justify-between items-end gap-1'>
 				{showModelDropdown && (
-					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none flex-grow'>
+					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none flex-grow'
+						onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
 						<ModelDropdown featureName={featureName} />
 					</div>
 				)}
@@ -234,7 +241,7 @@ export const VoidInputForm: React.FC<VoidInputFormProps> = ({
 					/>
 				)}
 			</div>
-		</form>
+		</div>
 	);
 };
 
@@ -635,7 +642,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 			}
 
 			chatbubbleContents = <>
-				<VoidInputForm
+				<VoidChatArea
 					onSubmit={onSubmit}
 					onAbort={onAbort}
 					isStreaming={false}
@@ -662,7 +669,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 						fnsRef={textAreaFnsRef}
 						multiline={true}
 					/>
-				</VoidInputForm>
+				</VoidChatArea>
 			</>
 		}
 	}
@@ -678,6 +685,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
+			${role !== 'assistant' ? 'my-2' : ''}
 		`}
 		onMouseEnter={() => setIsHovered(true)}
 		onMouseLeave={() => setIsHovered(false)}
@@ -731,6 +739,7 @@ export const SidebarChat = () => {
 	const commandService = accessor.get('ICommandService')
 	const chatThreadsService = accessor.get('IChatThreadService')
 
+	const settingsState = useSettingsState()
 	// ----- HIGHER STATE -----
 	// sidebar state
 	const sidebarStateService = accessor.get('ISidebarStateService')
@@ -763,10 +772,11 @@ export const SidebarChat = () => {
 	// state of current message
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
-	const isDisabled = instructionsAreEmpty
+
+	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+L', settingsState)
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
-	const [formRef, formDimensions] = useResizeObserver()
+	const [chatAreaRef, chatAreaDimensions] = useResizeObserver()
 	const [historyRef, historyDimensions] = useResizeObserver()
 
 	useScrollbarStyles(sidebarRef)
@@ -829,7 +839,7 @@ export const SidebarChat = () => {
 		py-4
 		${prevMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
 	`}
-		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - formDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
+		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
 	>
 		{/* previous messages */}
 		{prevMessagesHTML}
@@ -848,7 +858,7 @@ export const SidebarChat = () => {
 					showDismiss={true}
 				/>
 
-				<WarningBox className='text-sm my-2 pl-4' onClick={() => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }} text='Open settings' />
+				<WarningBox className='text-sm my-2 mx-4' onClick={() => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }} text='Open settings' />
 			</div>
 		}
 	</ScrollToBottomContainer>
@@ -863,8 +873,8 @@ export const SidebarChat = () => {
 		}
 	}, [onSubmit])
 	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
-		<VoidInputForm
-			formRef={formRef}
+		<VoidChatArea
+			divRef={chatAreaRef}
 			onSubmit={onSubmit}
 			onAbort={onAbort}
 			isStreaming={isStreaming}
@@ -873,7 +883,7 @@ export const SidebarChat = () => {
 			showProspectiveSelections={prevMessagesHTML.length === 0}
 			staging={staging}
 			setStaging={setStaging}
-			// onSelectionsChange={chatThreadsService.setStagingSelections.bind(chatThreadsService)}
+			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 			featureName="Ctrl+L"
 		>
 			<VoidInputBox2
@@ -886,7 +896,7 @@ export const SidebarChat = () => {
 				fnsRef={textAreaFnsRef}
 				multiline={true}
 			/>
-		</VoidInputForm>
+		</VoidChatArea>
 	</div>
 
 	return <div ref={sidebarRef} className={`w-full h-full`}>

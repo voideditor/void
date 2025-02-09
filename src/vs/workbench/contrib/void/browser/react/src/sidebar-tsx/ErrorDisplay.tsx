@@ -23,8 +23,9 @@ export const ErrorDisplay = ({
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const details = errorDetails(fullError)
+	const isExpandable = !!details
 
-	const message = message_ === 'TypeError: fetch failed' ? `TypeError: fetch failed. This likely means you specified the wrong endpoint in Void Settings, or a provider like Ollama is powered off.` : message_ + ''
+	const message = message_ + ''
 
 	return (
 		<div className={`rounded-lg border border-red-200 bg-red-50 p-4 overflow-auto`}>
@@ -45,7 +46,7 @@ export const ErrorDisplay = ({
 				</div>
 
 				<div className='flex gap-2'>
-					{details && (
+					{isExpandable && (
 						<button className='text-red-600 hover:text-red-800 p-1 rounded'
 							onClick={() => setIsExpanded(!isExpanded)}
 						>

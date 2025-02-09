@@ -785,13 +785,13 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		}
 
 		console.log('BB')
-		console.log(predictionType)
+		console.log('type', predictionType)
 
 		// set parameters of `newAutocompletion` appropriately
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
-				type: 'sendFIMMessage',
+				messagesType: 'FIMMessage',
 				messages: {
 					prefix: llmPrefix,
 					suffix: llmSuffix,

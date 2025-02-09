@@ -140,13 +140,12 @@ registerAction2(class extends Action2 {
 		const setSelections = (s: StagingSelectionItem[]) => setStaging({ ...staging, selections: s })
 
 		// if matches with existing selection, overwrite (since text may change)
-		const currentStagingEltIdx = findMatchingStagingIndex(selections, selection)
-
-		if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
+		const matchingStagingEltIdx = findMatchingStagingIndex(selections, selection)
+		if (matchingStagingEltIdx !== undefined && matchingStagingEltIdx !== -1) {
 			setSelections([
-				...selections!.slice(0, currentStagingEltIdx),
+				...selections!.slice(0, matchingStagingEltIdx),
 				selection,
-				...selections!.slice(currentStagingEltIdx + 1, Infinity)
+				...selections!.slice(matchingStagingEltIdx + 1, Infinity)
 			])
 		}
 		// if no match, add it

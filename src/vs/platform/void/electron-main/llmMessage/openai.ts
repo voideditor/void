@@ -99,6 +99,7 @@ export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 		.create(options)
 		.then(async response => {
 			// TODO!!!
+			console.log('RESPONSE', response)
 		})
 
 }

@@ -11,6 +11,7 @@ export const errorDetails = (fullError: Error | null): string | null => {
 		return null
 	}
 	else if (typeof fullError === 'object') {
+		if (Object.keys(fullError).length === 0) return null
 		return JSON.stringify(fullError, null, 2)
 	}
 	else if (typeof fullError === 'string') {
@@ -41,10 +42,10 @@ type _InternalSendFIMMessage = {
 }
 
 type SendLLMType = {
-	type: 'sendChatMessage';
+	messagesType: 'chatMessages';
 	messages: LLMChatMessage[];
 } | {
-	type: 'sendFIMMessage';
+	messagesType: 'FIMMessage';
 	messages: _InternalSendFIMMessage;
 }
 

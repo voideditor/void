@@ -9,7 +9,11 @@ import { Model } from 'openai/resources/models.js';
 // import { parseMaxTokensStr } from './util.js';
 
 
+// https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
+// https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
 
+
+// might not currently be used in the code
 export const openaiCompatibleList: _InternalModelListFnType<Model> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
 	const onSuccess = ({ models }: { models: Model[] }) => {
 		onSuccess_({ models })
@@ -116,7 +120,6 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 		model: modelName,
 		messages: messages,
 		stream: true,
-		// max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)
 	}
 
 	openai.chat.completions

@@ -66,7 +66,7 @@ export class LLMMessageChannel implements IServerChannel {
 		}
 	}
 
-	// browser uses this to call
+	// browser uses this to call (see this.channel.call() in llmMessageService.ts for all usages)
 	async call(_: unknown, command: string, params: any): Promise<any> {
 		try {
 			if (command === 'sendLLMMessage') {

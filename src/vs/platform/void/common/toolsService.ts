@@ -7,7 +7,6 @@ import { IFileService, IFileStat } from '../../files/common/files.js'
 import { registerSingleton, InstantiationType } from '../../instantiation/common/extensions.js'
 import { createDecorator, IInstantiationService } from '../../instantiation/common/instantiation.js'
 import { IWorkspaceContextService } from '../../workspace/common/workspace.js'
-// import { IWorkspacesService } from '../../workspaces/common/workspaces.js'
 
 
 // tool use for AI
@@ -109,33 +108,6 @@ async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI):
 	return output;
 }
 
-// async function searchPathnameRegex(fileService: IFileService, pathnameRegex: string, workspaceURI: URI) {
-// 	let output: string[] = []
-// 	let regex: RegExp
-// 	try {
-// 		regex = new RegExp(pathnameRegex)
-// 	} catch (e) {
-// 		return [`(Error: invalid regex: ${e})`]
-// 	}
-
-// 	function traverseChildren(children: IFileStat[]) {
-// 		for (const child of children) {
-// 			// if it's a file, match its name
-// 			if (child.isFile) {
-// 				if (regex.test(child.resource.fsPath)) { output.push(child.resource.fsPath) }
-// 			}
-// 			// otherwise traverse children
-// 			else {
-// 				traverseChildren(child.children ?? [])
-// 			}
-// 		}
-// 	}
-// 	const stat = await fileService.resolve(workspaceURI, { resolveMetadata: false });
-// 	traverseChildren(stat.children ?? []);
-// 	return output;
-// }
-
-
 
 const validateURI = (uriStr: unknown) => {
 	if (typeof uriStr !== 'string') throw new Error('(uri was not a string)')
@@ -158,8 +130,8 @@ export class ToolService implements IToolService {
 
 	constructor(
 		@IFileService fileService: IFileService,
-		@IWorkspaceContextService w: IWorkspaceContextService,
-		@ISearchService s: ISearchService,
+		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
+		@ISearchService searchService: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,
 	) {
 
@@ -179,17 +151,17 @@ export class ToolService implements IToolService {
 			},
 			pathname_search: async ({ query: queryStr }) => {
 				if (typeof queryStr !== 'string') return '(Error: query was not a string)'
-				const query = queryBuilder.file(w.getWorkspace().folders.map(f => f.uri), { filePattern: queryStr, });
+				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), { filePattern: queryStr, });
 
-				const data = await s.fileSearch(query, CancellationToken.None);
+				const data = await searchService.fileSearch(query, CancellationToken.None);
 				const str = data.results.map(({ resource, results }) => resource.fsPath).join('\n')
 				return str
 			},
 			search: async ({ query: queryStr }) => {
 				if (typeof queryStr !== 'string') return '(Error: query was not a string)'
-				const query = queryBuilder.text({ pattern: queryStr, }, w.getWorkspace().folders.map(f => f.uri));
+				const query = queryBuilder.text({ pattern: queryStr, }, workspaceContextService.getWorkspace().folders.map(f => f.uri));
 
-				const data = await s.textSearch(query, CancellationToken.None);
+				const data = await searchService.textSearch(query, CancellationToken.None);
 				const str = data.results.map(({ resource, results }) => resource.fsPath).join('\n')
 				return str
 			},

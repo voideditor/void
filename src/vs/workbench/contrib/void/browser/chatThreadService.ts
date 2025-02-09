@@ -38,6 +38,8 @@ export type StagingInfo = {
 	selections: StagingSelectionItem[] | null; // staging selections in edit mode
 }
 
+const defaultStaging: StagingInfo = { isBeingEdited: false, selections: [] }
+
 
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
@@ -66,7 +68,7 @@ export type ChatThreads = {
 		createdAt: string; // ISO string
 		lastModified: string; // ISO string
 		messages: ChatMessage[];
-		staging: StagingInfo
+		staging: StagingInfo | null;
 		focusedMessageIdx?: number | undefined; // index of the message that is being edited (undefined if none)
 	};
 }
@@ -101,7 +103,7 @@ const newThreadObject = () => {
 }
 
 const THREAD_VERSION_KEY = 'void.chatThreadVersion'
-const THREAD_VERSION = 'v1'
+const THREAD_VERSION = 'v2'
 
 const THREAD_STORAGE_KEY = 'void.chatThreadStorage'
 
@@ -169,8 +171,64 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	private _readAllThreads(): ChatThreads {
 		// PUT ANY VERSION CHANGE FORMAT CONVERSION CODE HERE
 		// CAN ADD "v0" TAG IN STORAGE AND CONVERT
-		const threads = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION)
-		return threads ? JSON.parse(threads) : {}
+
+
+		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION)
+
+		const threads: ChatThreads = threadsStr ? JSON.parse(threadsStr) : {}
+
+		this._updateThreadsToVersion(threads, THREAD_VERSION)
+
+		return threads
+	}
+
+
+	private _updateThreadsToVersion(oldThreadsObject: any, toVersion: string) {
+
+		if (toVersion === 'v2') {
+
+			const threads: ChatThreads = oldThreadsObject
+
+			/** v1 -> v2
+				- threadsState.currentStagingSelections: CodeStagingSelection[] | null;
+				+ thread.staging: StagingInfo
+				+ thread.focusedMessageIdx?: number | undefined;
+
+				+ chatMessage.staging: StagingInfo | null
+			*/
+
+			// check if we need to update
+			let shouldUpdate = false
+			for (const thread of Object.values(threads)) {
+				if (!thread.staging) {
+					shouldUpdate = true
+				}
+				for (const chatMessage of Object.values(thread.messages)) {
+					if (chatMessage.role === 'user' && !chatMessage.staging) {
+						shouldUpdate = true
+					}
+				}
+			}
+
+			if (!shouldUpdate) return;
+
+			// update the threads
+			for (const thread of Object.values(threads)) {
+				if (!thread.staging) {
+					thread.staging = defaultStaging
+					thread.focusedMessageIdx = undefined
+				}
+				for (const chatMessage of Object.values(thread.messages)) {
+					if (chatMessage.role === 'user' && !chatMessage.staging) {
+						chatMessage.staging = defaultStaging
+					}
+				}
+			}
+
+			// push the update
+			this._storeAllThreads(threads)
+		}
+
 	}
 
 	private _storeAllThreads(threads: ChatThreads) {
@@ -239,9 +297,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const thread = this.getCurrentThread()
 		const threadId = thread.id
 
-		let defaultThreadSelections = thread.staging
+		let threadStaging = thread.staging
 
-		const currStaging = stagingOverride ?? defaultThreadSelections ?? [] // don't use _useFocusedStagingState to avoid race conditions with focusing
+		const currStaging = stagingOverride ?? threadStaging ?? defaultStaging // don't use _useFocusedStagingState to avoid race conditions with focusing
 		const { selections: currSelns, } = currStaging
 
 		// add user's message to chat history

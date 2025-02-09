@@ -74,11 +74,11 @@ const contextTools = {
 } as const satisfies { [name: string]: InternalToolInfo }
 
 type ContextToolName = keyof typeof contextTools
-type ContextParamNames<T extends ContextToolName> = keyof typeof contextTools[T]['params']
-type ContextParams<T extends ContextToolName> = { [paramName in ContextParamNames<T>]: unknown }
+type ContextToolParamNames<T extends ContextToolName> = keyof typeof contextTools[T]['params']
+type ContextToolParams<T extends ContextToolName> = { [paramName in ContextToolParamNames<T>]: unknown }
 
-type ContextToolCallFns = {
-	[ToolName in ContextToolName]: ((p: (ContextParams<ToolName>)) => Promise<string>)
+type AllContextToolCallFns = {
+	[ToolName in ContextToolName]: ((p: (ContextToolParams<ToolName>)) => Promise<string>)
 }
 
 
@@ -145,7 +145,7 @@ const validateURI = (uriStr: unknown) => {
 
 export interface IToolService {
 	readonly _serviceBrand: undefined;
-	callContextTool: <T extends ContextToolName>(toolName: T, params: ContextParams<T>) => Promise<string>
+	callContextTool: <T extends ContextToolName>(toolName: T, params: ContextToolParams<T>) => Promise<string>
 }
 
 export const IToolService = createDecorator<IToolService>('ToolService');
@@ -154,7 +154,7 @@ export class ToolService implements IToolService {
 
 	readonly _serviceBrand: undefined;
 
-	contextToolCallFns: ContextToolCallFns
+	contextToolCallFns: AllContextToolCallFns
 
 	constructor(
 		@IFileService fileService: IFileService,

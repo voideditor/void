@@ -103,7 +103,6 @@ async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI):
 	}
 	const stat = await fileService.resolve(rootURI, { resolveMetadata: false });
 
-	console.log('statttttttttt', JSON.stringify(stat, null, 2))
 	// kickstart recursion
 	output += `${stat.name}\n`;
 	traverseChildren(stat.children ?? [], 1);

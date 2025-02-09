@@ -1,6 +1,5 @@
 import { CancellationToken } from '../../../base/common/cancellation.js'
 import { URI } from '../../../base/common/uri.js'
-import { IModelService } from '../../../editor/common/services/model.js'
 import { VSReadFileRaw } from '../../../workbench/contrib/void/browser/helpers/readFile.js'
 import { QueryBuilder } from '../../../workbench/services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../workbench/services/search/common/search.js'
@@ -140,9 +139,7 @@ async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI):
 
 const validateURI = (uriStr: unknown) => {
 	if (typeof uriStr !== 'string') throw new Error('(uri was not a string)')
-	console.log('uriStr!!!!', uriStr)
 	const uri = URI.file(uriStr)
-	console.log('uri!!!!', uri.fsPath)
 	return uri
 }
 
@@ -161,7 +158,6 @@ export class ToolService implements IToolService {
 
 	constructor(
 		@IFileService fileService: IFileService,
-		@IModelService modelService: IModelService,
 		@IWorkspaceContextService w: IWorkspaceContextService,
 		@ISearchService s: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,

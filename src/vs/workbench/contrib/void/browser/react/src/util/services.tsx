@@ -288,6 +288,17 @@ export const useChatThreadsState = () => {
 		return () => { chatThreadsStateListeners.delete(ss) }
 	}, [ss])
 	return s
+	// allow user to set state natively in react
+	// const ss: React.Dispatch<React.SetStateAction<ThreadsState>> = (action)=>{
+	// 	_ss(action)
+	// 	if (typeof action === 'function') {
+	// 		const newState = action(chatThreadsState)
+	// 		chatThreadsState = newState
+	// 	} else {
+	// 		chatThreadsState = action
+	// 	}
+	// }
+	// return [s, ss] as const
 }
 
 

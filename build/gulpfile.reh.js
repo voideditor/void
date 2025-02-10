@@ -516,7 +516,7 @@ function tweakProductForServerWeb(product) {
 
 		['', 'min'].forEach(minified => {
 			const sourceFolderName = `out-vscode-${type}${dashed(minified)}`;
-			const destinationFolderName = `vscode-${type}${dashed(platform)}${dashed(arch)}`;
+			const destinationFolderName = `void-${type}${dashed(platform)}${dashed(arch)}`;
 
 			const serverTaskCI = task.define(`vscode-${type}${dashed(platform)}${dashed(arch)}${dashed(minified)}-ci`, task.series(
 				gulp.task(`node-${platform}-${arch}`),

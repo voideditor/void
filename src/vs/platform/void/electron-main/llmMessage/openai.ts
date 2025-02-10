@@ -6,7 +6,7 @@
 import OpenAI from 'openai';
 import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { Model } from 'openai/resources/models.js';
-import { InternalToolInfo } from '../../common/toolsService.js';
+import { contextTools, InternalToolInfo } from '../../common/toolsService.js';
 // import { parseMaxTokensStr } from './util.js';
 
 
@@ -31,41 +31,6 @@ export const toOpenAITool = (toolName: string, toolInfo: InternalToolInfo) => {
 }
 
 
-
-
-
-
-// might not currently be used in the code
-export const openaiCompatibleList: _InternalModelListFnType<Model> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
-	const onSuccess = ({ models }: { models: Model[] }) => {
-		onSuccess_({ models })
-	}
-
-	const onError = ({ error }: { error: string }) => {
-		onError_({ error })
-	}
-
-	try {
-		const thisConfig = settingsOfProvider.openAICompatible
-		const openai = new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true })
-
-		openai.models.list()
-			.then(async (response) => {
-				const models: Model[] = []
-				models.push(...response.data)
-				while (response.hasNextPage()) {
-					models.push(...(await response.getNextPage()).data)
-				}
-				onSuccess({ models })
-			})
-			.catch((error) => {
-				onError({ error: error + '' })
-			})
-	}
-	catch (error) {
-		onError({ error: error + '' })
-	}
-}
 
 
 
@@ -107,6 +72,40 @@ const newOpenAI = ({ settingsOfProvider, providerName }: NewParams) => {
 
 
 
+// might not currently be used in the code
+export const openaiCompatibleList: _InternalModelListFnType<Model> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
+	const onSuccess = ({ models }: { models: Model[] }) => {
+		onSuccess_({ models })
+	}
+
+	const onError = ({ error }: { error: string }) => {
+		onError_({ error })
+	}
+
+	try {
+		const openai = newOpenAI({ providerName: 'openAICompatible', settingsOfProvider })
+
+		openai.models.list()
+			.then(async (response) => {
+				const models: Model[] = []
+				models.push(...response.data)
+				while (response.hasNextPage()) {
+					models.push(...(await response.getNextPage()).data)
+				}
+				onSuccess({ models })
+			})
+			.catch((error) => {
+				onError({ error: error + '' })
+			})
+	}
+	catch (error) {
+		onError({ error: error + '' })
+	}
+}
+
+
+
+
 export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
 
 
@@ -142,6 +141,7 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 		model: modelName,
 		messages: messages,
 		stream: true,
+		tools: [toOpenAITool('list_dir', contextTools['list_dir'])],
 	}
 
 	openai.chat.completions
@@ -150,7 +150,13 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 			_setAborter(() => response.controller.abort())
 			// when receive text
 			for await (const chunk of response) {
-				const newText = chunk.choices[0]?.delta?.content || '';
+				console.log('!!!', JSON.stringify(chunk, null, 2))
+
+
+				let newText = ''
+				newText += chunk.choices[0]?.delta?.tool_calls?.[0]?.function?.name ?? ''
+				newText += chunk.choices[0]?.delta?.tool_calls?.[0]?.function?.arguments ?? ''
+				newText += chunk.choices[0]?.delta?.content ?? ''
 				fullText += newText;
 				onText({ newText, fullText });
 			}

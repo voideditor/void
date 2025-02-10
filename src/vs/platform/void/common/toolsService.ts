@@ -13,7 +13,6 @@ import { IWorkspaceContextService } from '../../workspace/common/workspace.js'
 
 
 
-
 // we do this using Anthropic's style and convert to OpenAI style later
 export type InternalToolInfo = {
 	description: string,
@@ -29,7 +28,7 @@ const pagination = {
 	param: { pageNumber: { type: 'number', description: 'The page number (optional, defaults to 1).' }, }
 } as const
 
-const contextTools = {
+export const contextTools = {
 	read_file: {
 		description: 'Returns file contents of a given URI.',
 		params: {

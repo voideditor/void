@@ -1,12 +1,12 @@
-import { CancellationToken } from '../../../base/common/cancellation.js'
-import { URI } from '../../../base/common/uri.js'
-import { VSReadFileRaw } from '../../../workbench/contrib/void/browser/helpers/readFile.js'
-import { QueryBuilder } from '../../../workbench/services/search/common/queryBuilder.js'
-import { ISearchService } from '../../../workbench/services/search/common/search.js'
-import { IFileService, IFileStat } from '../../files/common/files.js'
-import { registerSingleton, InstantiationType } from '../../instantiation/common/extensions.js'
-import { createDecorator, IInstantiationService } from '../../instantiation/common/instantiation.js'
-import { IWorkspaceContextService } from '../../workspace/common/workspace.js'
+import { CancellationToken } from '../../../../base/common/cancellation.js'
+import { URI } from '../../../../base/common/uri.js'
+import { IFileService, IFileStat } from '../../../../platform/files/common/files.js'
+import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
+import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js'
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js'
+import { VSReadFileRaw } from '../../../../workbench/contrib/void/browser/helpers/readFile.js'
+import { QueryBuilder } from '../../../../workbench/services/search/common/queryBuilder.js'
+import { ISearchService } from '../../../../workbench/services/search/common/search.js'
 
 
 // tool use for AI

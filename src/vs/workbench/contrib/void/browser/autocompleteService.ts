@@ -11,7 +11,6 @@ import { Position } from '../../../../editor/common/core/position.js';
 import { InlineCompletion, InlineCompletionContext, } from '../../../../editor/common/languages.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Range } from '../../../../editor/common/core/range.js';
-import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
@@ -19,6 +18,7 @@ import { IModelService } from '../../../../editor/common/services/model.js';
 import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { isWindows } from '../../../../base/common/platform.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { ILLMMessageService } from '../common/llmMessageService.js';
 // import { IContextGatheringService } from './contextGatheringService.js';
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts

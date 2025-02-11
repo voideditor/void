@@ -12,7 +12,7 @@ import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 import { useRefState } from '../util/helpers.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
-import { isFeatureNameDisabled } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
+import { isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 
 export const QuickEditChat = ({
 	diffareaid,

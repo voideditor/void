@@ -9,8 +9,8 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 import { localize2 } from '../../../../nls.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
-import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
-import { IVoidUpdateService } from '../../../../platform/void/common/voidUpdateService.js';
+import { IMetricsService } from '../common/metricsService.js';
+import { IVoidUpdateService } from '../common/voidUpdateService.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 
 

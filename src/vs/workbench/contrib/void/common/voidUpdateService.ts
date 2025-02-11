@@ -3,10 +3,10 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { createDecorator } from '../../instantiation/common/instantiation.js';
-import { ProxyChannel } from '../../../base/parts/ipc/common/ipc.js';
-import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
-import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
+import { ProxyChannel } from '../../../../base/parts/ipc/common/ipc.js';
+import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 
 
 

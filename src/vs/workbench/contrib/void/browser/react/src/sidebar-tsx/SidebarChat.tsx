@@ -702,7 +702,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 			`}
 		>
 			{chatbubbleContents}
-			{isLoading && <IconLoading className='opacity-50 text-sm' />}
+			{isLoading && <IconLoading className='opacity-50 text-sm px-2' />}
 		</div>
 
 		{/* edit button */}

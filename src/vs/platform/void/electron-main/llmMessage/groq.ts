@@ -22,8 +22,6 @@ export const sendGroqChat: _InternalSendLLMChatMessageFnType = async ({ messages
 			messages: messages,
 			model: modelName,
 			stream: true,
-			// temperature: 0.7,
-			// max_tokens: parseMaxTokensStr(thisConfig.maxTokens),
 		})
 		.then(async response => {
 			_setAborter(() => response.controller.abort())

@@ -21,8 +21,6 @@ export const sendMistralChat: _InternalSendLLMChatMessageFnType = async ({ messa
 			messages: messages,
 			model: modelName,
 			stream: true,
-			// temperature: 0.7,
-			// maxTokens: 2048,
 		})
 		.then(async response => {
 			// Mistral has a really nonstandard API - no interrupt and weird stream types

@@ -25,7 +25,7 @@ export type InternalToolInfo = {
 // helper
 const pagination = {
 	desc: `Very large results may be paginated (indicated in the result). Pagination fails gracefully if out of bounds or invalid page number.`,
-	param: { pageNumber: { type: 'number', description: 'The page number (optional, defaults to 1).' }, }
+	param: { pageNumber: { type: 'number', description: 'The page number (optional, default is 1).' }, }
 } as const
 
 export const contextTools = {
@@ -71,7 +71,7 @@ export const contextTools = {
 
 } as const satisfies { [name: string]: InternalToolInfo }
 
-type ContextToolName = keyof typeof contextTools
+export type ContextToolName = keyof typeof contextTools
 type ContextToolParamNames<T extends ContextToolName> = keyof typeof contextTools[T]['params']
 type ContextToolParams<T extends ContextToolName> = { [paramName in ContextToolParamNames<T>]: unknown }
 

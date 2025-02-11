@@ -65,9 +65,14 @@ export const sendLLMMessage = ({
 
 	metricsService: IMetricsService
 ) => {
-	// messages.unshift({ role: 'system', content: aiInstructions })
 
-	const messagesArr = messagesType === 'chatMessages' ? cleanChatMessages(messages_) : []
+	let messagesArr: _InternalLLMChatMessage[] = []
+	if (messagesType === 'chatMessages') {
+		messagesArr = cleanChatMessages([
+			{ role: 'system', content: aiInstructions },
+			...messages_
+		])
+	}
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {

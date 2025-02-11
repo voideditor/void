@@ -6,7 +6,7 @@
 import OpenAI from 'openai';
 import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { Model } from 'openai/resources/models.js';
-import { contextTools, InternalToolInfo } from '../../common/toolsService.js';
+import { InternalToolInfo } from '../../common/toolsService.js';
 // import { parseMaxTokensStr } from './util.js';
 
 
@@ -141,7 +141,7 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 		model: modelName,
 		messages: messages,
 		stream: true,
-		tools: [toOpenAITool('list_dir', contextTools['list_dir'])],
+		// tools: Object.keys(contextTools).map(name => toOpenAITool(name, contextTools[name as ContextToolName])),
 	}
 
 	openai.chat.completions
@@ -150,8 +150,6 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 			_setAborter(() => response.controller.abort())
 			// when receive text
 			for await (const chunk of response) {
-				console.log('!!!', JSON.stringify(chunk, null, 2))
-
 
 				let newText = ''
 				newText += chunk.choices[0]?.delta?.tool_calls?.[0]?.function?.name ?? ''

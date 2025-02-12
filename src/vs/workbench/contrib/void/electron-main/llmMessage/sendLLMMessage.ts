@@ -8,7 +8,7 @@ import { IMetricsService } from '../../common/metricsService.js';
 
 import { sendAnthropicChat } from './anthropic.js';
 import { sendOllamaFIM, sendOllamaChat } from './ollama.js';
-import { sendOpenAIChat } from './openai.js';
+import { sendOpenAIChat, sendOpenAIFIM } from './openai.js';
 import { sendGeminiChat } from './gemini.js';
 import { sendGroqChat } from './groq.js';
 import { sendMistralChat } from './mistral.js';
@@ -143,20 +143,15 @@ export const sendLLMMessage = ({
 			case 'openRouter':
 			case 'deepseek':
 			case 'openAICompatible':
-				sendOpenAIChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				if (messagesType === 'FIMMessage') sendOpenAIFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				else /*                         */ sendOpenAIChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				break;
+			case 'ollama':
+				if (messagesType === 'FIMMessage') sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
+				else /*                         */ sendOllamaChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
 				break;
 			case 'gemini':
 				sendGeminiChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
-				break;
-			case 'ollama':
-				if ( // TODO @andrew in future we want to use our own templates instead of using ollamaFIM
-					messagesType === 'FIMMessage'
-					&& settingsOfProvider['ollama']._didFillInProviderSettings
-					&& settingsOfProvider['ollama'].models.some(m => !m.isHidden)
-				)
-					sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
-				else
-					sendOllamaChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'groq':
 				sendGroqChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });

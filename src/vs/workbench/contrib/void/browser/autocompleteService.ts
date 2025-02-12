@@ -784,8 +784,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			_newlineCount: 0,
 		}
 
-		console.log('BB')
-		console.log('type', predictionType)
+		console.log('starting autocomplete...', predictionType)
 
 		// set parameters of `newAutocompletion` appropriately
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {

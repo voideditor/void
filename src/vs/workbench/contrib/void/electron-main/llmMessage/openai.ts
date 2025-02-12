@@ -109,23 +109,9 @@ export const openaiCompatibleList: _InternalModelListFnType<Model> = async ({ on
 export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
 
 
-	const openai: OpenAI = newOpenAI({ providerName, settingsOfProvider })
+	// openai.completions has a FIM parameter called `suffix`, but it's deprecated and only works for ~GPT 3 era models
 
-	const options: OpenAI.Completions.CompletionCreateParamsStreaming = {
-		prompt: messages.prefix,
-		suffix: messages.suffix,
-		model: modelName,
-		stream: true,
-		// max_completion_tokens: parseMaxTokensStr(thisConfig.maxTokens)
-	}
-
-
-	openai.completions
-		.create(options)
-		.then(async response => {
-			// TODO!!!
-			console.log('RESPONSE', response)
-		})
+	onFinalMessage({ fullText: 'TODO' })
 
 }
 

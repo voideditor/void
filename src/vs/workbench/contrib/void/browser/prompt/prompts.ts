@@ -279,19 +279,19 @@ export const voidPrefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullF
 }
 
 
-export type FimTagsType = {
+export type QuickEditFimTagsType = {
 	preTag: string,
 	sufTag: string,
 	midTag: string
 }
-export const defaultFimTags: FimTagsType = {
+export const defaultQuickEditFimTags: QuickEditFimTagsType = {
 	preTag: 'ABOVE',
 	sufTag: 'BELOW',
 	midTag: 'SELECTION',
 }
 
 // this should probably be longer
-export const ctrlKStream_systemMessage = ({ fimTags: { preTag, midTag, sufTag } }: { fimTags: FimTagsType }) => {
+export const ctrlKStream_systemMessage = ({ quickEditFIMTags: { preTag, midTag, sufTag } }: { quickEditFIMTags: QuickEditFimTagsType }) => {
 	return `\
 You are a FIM (fill-in-the-middle) coding assistant. Your task is to fill in the middle SELECTION marked by <${midTag}> tags.
 
@@ -307,7 +307,7 @@ Instructions:
 }
 
 export const ctrlKStream_userMessage = ({ selection, prefix, suffix, instructions, fimTags, isOllamaFIM, language }: {
-	selection: string, prefix: string, suffix: string, instructions: string, fimTags: FimTagsType, language: string,
+	selection: string, prefix: string, suffix: string, instructions: string, fimTags: QuickEditFimTagsType, language: string,
 	isOllamaFIM: false, // we require this be false for clarity
 }) => {
 	const { preTag, sufTag, midTag } = fimTags

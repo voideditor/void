@@ -136,9 +136,6 @@ export const sendLLMMessage = ({
 
 	try {
 		switch (providerName) {
-			case 'anthropic':
-				sendAnthropicChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
-				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'deepseek':
@@ -150,14 +147,21 @@ export const sendLLMMessage = ({
 				if (messagesType === 'FIMMessage') sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
 				else /*                         */ sendOllamaChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
 				break;
+			case 'anthropic':
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Anthropic FIM' })
+				else /*                         */ sendAnthropicChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				break;
 			case 'gemini':
-				sendGeminiChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Gemini FIM' })
+				else /*                         */ sendGeminiChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'groq':
-				sendGroqChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Groq FIM' })
+				else /*                         */ sendGroqChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			case 'mistral':
-				sendMistralChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Mistral FIM' })
+				else /*                         */ sendMistralChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
 				break;
 			default:
 				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })

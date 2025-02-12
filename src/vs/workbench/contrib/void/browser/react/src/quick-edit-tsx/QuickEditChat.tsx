@@ -59,6 +59,7 @@ export const QuickEditChat = ({
 
 		const id = inlineDiffsService.startApplying({
 			from: 'QuickEdit',
+			type:'rewrite',
 			diffareaid: diffareaid,
 		})
 		setCurrentlyStreamingDiffZone(id ?? null)

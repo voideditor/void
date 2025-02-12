@@ -24,7 +24,7 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { ChatLocation } from '../../../searchAndReplaceService.js';
+import { ChatMessageLocation } from '../../../searchAndReplaceService.js';
 
 
 
@@ -675,12 +675,12 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	else if (role === 'assistant') {
 		const thread = chatThreadsService.getCurrentThread()
 
-		const chatLocation: ChatLocation = {
+		const chatMessageLocation: ChatMessageLocation = {
 			threadId: thread.id,
 			messageIdx: messageIdx!,
 		}
 
-		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatLocation={chatLocation} />
+		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatMessageLocation={chatMessageLocation} />
 	}
 
 	return <div

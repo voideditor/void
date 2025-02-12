@@ -1084,56 +1084,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 
-	// // if streaming, use diffs to figure out where to write new code
-	// 	// these are two different coordinate systems - new and old line number
-	// 	let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
-	// 	let originalCodeStartLine: number // get original[oldStartingPoint...]
-
-	// 	const lastDiff = computedDiffs.pop()
-
-	// 	if (!lastDiff) {
-	// 		// if the writing is identical so far, display no changes
-	// 		newFileEndLine = diffZone.startLine
-	// 		originalCodeStartLine = 1
-	// 	}
-	// 	else {
-	// 		if (lastDiff.type === 'insertion') {
-	// 			newFileEndLine = lastDiff.endLine
-	// 			originalCodeStartLine = lastDiff.originalStartLine
-	// 		}
-	// 		else if (lastDiff.type === 'deletion') {
-	// 			newFileEndLine = lastDiff.startLine
-	// 			originalCodeStartLine = lastDiff.originalStartLine
-	// 		}
-	// 		else if (lastDiff.type === 'edit') {
-	// 			newFileEndLine = lastDiff.endLine
-	// 			originalCodeStartLine = lastDiff.originalStartLine
-	// 		}
-	// 		else {
-	// 			throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
-	// 		}
-	// 	}
-
-	// 	diffZone._streamState.line = newFileEndLine
-
-	// 	// lines are 1-indexed
-	// 	const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1)).join('\n')
-	// 	const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), Infinity).join('\n')
-
-	// 	const newCode = `${newFileTop}\n${oldFileBottom}`
-
-	// 	this._writeText(uri, newCode,
-	// 		{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
-	// 		{ shouldRealignDiffAreas: true }
-	// 	)
-
-
-	// 	return computedDiffs
-
-
-
-
-
 
 	// called first, then call startApplying
 	public addCtrlKZone({ startLine, endLine, editor }: AddCtrlKOpts) {
@@ -1191,8 +1141,19 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	public startApplying(opts: StartApplyingOpts) {
-		const addedDiffZone = this._initializeRewriteStream(opts)
-		return addedDiffZone?.diffareaid
+
+		if (opts.type === 'rewrite') {
+			const addedDiffZone = this._initializeRewriteStream(opts)
+			return addedDiffZone?.diffareaid
+		}
+
+		else if (opts.type === 'searchReplace') {
+			this._initializeSearchAndReplaceStream(opts)
+			return undefined
+		}
+
+		else return undefined
+
 	}
 
 
@@ -1213,7 +1174,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	private async _generateSearchAndReplaceBlocks({ uri, applyStr }: { uri: URI, applyStr: string }): Promise<ExtractedCodeBlock[] | undefined> {
+	private async _initializeSearchAndReplaceStream({ applyStr }: { applyStr: string }) {
 		const ORIGINAL = `<<<<<<< ORIGINAL`
 		const DIVIDER = `=======`
 		const FINAL = `>>>>>>> UPDATED`
@@ -1268,6 +1229,14 @@ ${FINAL}
 ${tripleTick[1]}
 `
 
+		const uri_ = this._getActiveEditorURI()
+		if (!uri_) return
+		const uri = uri_
+
+		// generate search/replace block text
+		const fileContents = await VSReadFile(this._modelService, uri)
+		if (fileContents === null) return
+
 
 		const searchReplaceUserMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
 ORIGINAL_FILE
@@ -1280,7 +1249,7 @@ INSTRUCTIONS
 Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggested SEARCH/REPLACE blocks, without any explanation.
 `
 
-		function endsWithAnyPrefixOf(str: string, anyPrefix: string) {
+		const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
 			// for each prefix
 			for (let i = anyPrefix.length; i >= 0; i--) {
 				const prefix = anyPrefix.slice(0, i)
@@ -1344,9 +1313,6 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 			}
 		}
 
-		// generate search/replace block text
-		const fileContents = await VSReadFile(this._modelService, uri)
-		if (fileContents === null) return
 
 		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
 		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
@@ -1364,34 +1330,30 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 			const blocks = extractBlocks(fullText)
 
 			// find block.orig in fileContents and return its range in file
-			const findBlock = (block: { orig: string }, fileContents: string) => {
-				const origText = block.orig
-				const idx = fileContents.indexOf(origText)
+			const findTextInCode = (text: string, fileContents: string) => {
+				const idx = fileContents.indexOf(text)
 				if (idx === -1) return 'Not found' as const
-				const lastIdx = fileContents.lastIndexOf(origText)
+				const lastIdx = fileContents.lastIndexOf(text)
 				if (lastIdx !== idx) return 'Not unique' as const
-
 				const startLine = fileContents.substring(0, idx).split('\n').length
-				const numLines = origText.split('\n').length
+				const numLines = text.split('\n').length
 				const endLine = startLine + numLines - 1
-
 				return [startLine, endLine]
 			}
 
 			let latestStreamInfoMutable: any = {}
 
-
 			for (let blockNum = 0; blockNum < blocks.length; blockNum += 1) {
 				const block = blocks[blockNum]
-				const foundInCode = findBlock(block, fileContents)
+				if (block.state === 'writingOriginal') continue
+
+				const foundInCode = findTextInCode(block.orig, fileContents)
 				if (typeof foundInCode === 'string') {
 					console.log('ERROR!!!!', foundInCode)
 					continue
 				}
 
 				const [startLine, endLine] = foundInCode
-
-				if (block.state === 'writingOriginal') continue
 
 				// if should add new diffarea
 				if (blockNum > diffareaidOfBlockNum.length) {
@@ -1443,11 +1405,9 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 
 		})
 
-
-
-
-
 	}
+
+
 
 
 	private _initializeRewriteStream(opts: StartApplyingOpts): DiffZone | undefined {

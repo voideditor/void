@@ -10,16 +10,11 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 
 
 
-export type ChatLocation = {
+export type ChatMessageLocation = {
 	threadId: string;
 	messageIdx: number;
 }
 
-export type ApplyBoxLocation = ChatLocation & { codeblockId: string }
-
-export const getApplyBoxId = ({ threadId, messageIdx, codeblockId }: ApplyBoxLocation) => {
-	return `${threadId}-${messageIdx}-${codeblockId}}`
-}
 
 export type SearchAndReplaceBlock = {
 	search: string;

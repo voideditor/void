@@ -7,7 +7,7 @@ import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
 import { useAccessor, useChatThreadsState, useChatThreadsStreamState } from '../util/services.js'
-import { ChatLocation, getApplyBoxId, } from '../../../searchAndReplaceService.js'
+import { ChatMessageLocation, } from '../../../searchAndReplaceService.js'
 import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
 
 
@@ -18,6 +18,16 @@ enum CopyButtonState {
 }
 
 const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
+
+
+
+type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: number }
+
+const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
+	return `${threadId}-${messageIdx}-${tokenIdx}`
+}
+
+
 
 const ApplyButtonsOnHover = ({ applyStr, applyBoxId }: { applyStr: string, applyBoxId: string }) => {
 	const accessor = useAccessor()
@@ -47,9 +57,9 @@ const ApplyButtonsOnHover = ({ applyStr, applyBoxId }: { applyStr: string, apply
 	const onApply = useCallback(() => {
 
 		inlineDiffService.startApplying({
-			from: 'Chat',
+			from: 'ClickApply',
+			type: 'searchReplace',
 			applyStr,
-			applyBoxId,
 		})
 		metricsService.capture('Apply Code', { length: applyStr.length }) // capture the length only
 	}, [metricsService, inlineDiffService, applyStr])
@@ -87,7 +97,7 @@ export const CodeSpan = ({ children, className }: { children: React.ReactNode, c
 	</code>
 }
 
-const RenderToken = ({ token, nested = false, noSpace = false, chatLocation, tokenId = '', }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatLocation?: ChatLocation, tokenId?: string, }): JSX.Element => {
+const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocation: chatLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: number }): JSX.Element => {
 
 
 	// deal with built-in tokens first (assume marked token)
@@ -104,7 +114,7 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatLocation, tok
 		const applyBoxId = getApplyBoxId({
 			threadId: chatLocation!.threadId,
 			messageIdx: chatLocation!.messageIdx,
-			codeblockId: tokenId,
+			tokenIdx: tokenIdx,
 		})
 
 		return <BlockCode
@@ -196,7 +206,7 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatLocation, tok
 	if (t.type === "paragraph") {
 		const contents = <>
 			{t.tokens.map((token, index) => (
-				<RenderToken key={index} token={token} tokenId={`${tokenId}-${index}`} /> // assign a unique tokenId to nested components
+				<RenderToken key={index} token={token} tokenIdx={index} /> // assign a unique tokenId to nested components
 			))}
 		</>
 		if (nested) return contents
@@ -279,12 +289,12 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatLocation, tok
 	)
 }
 
-export const ChatMarkdownRender = ({ string, nested = false, noSpace, chatLocation }: { string: string, nested?: boolean, noSpace?: boolean, chatLocation?: ChatLocation }) => {
+export const ChatMarkdownRender = ({ string, nested = false, noSpace, chatMessageLocation }: { string: string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation }) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
-				<RenderToken key={index} token={token} nested={nested} noSpace={noSpace} chatLocation={chatLocation} />
+				<RenderToken key={index} token={token} nested={nested} noSpace={noSpace} chatMessageLocation={chatMessageLocation} tokenIdx={index} />
 			))}
 		</>
 	)

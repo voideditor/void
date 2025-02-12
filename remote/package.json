@@ -33,6 +33,7 @@
     "native-watchdog": "^1.4.1",
     "node-pty": "1.1.0-beta21",
     "tas-client-umd": "0.2.0",
+    "tslib": "^2.8.1",
     "vscode-oniguruma": "1.7.0",
     "vscode-regexpp": "^3.1.0",
     "vscode-textmate": "9.1.0",

@@ -12,7 +12,7 @@ import { IModelService } from '../../../../../editor/common/services/model.js';
 
 
 // this is just for ease of readability
-const tripleTick = ['```', '```']
+export const tripleTick = ['```', '```']
 
 export const chat_systemMessage = `\
 You are a coding assistant. You are given a list of instructions to follow \`INSTRUCTIONS\`, and optionally a list of relevant files \`FILES\`, and selections inside of files \`SELECTIONS\`.
@@ -74,7 +74,7 @@ ${tripleTick[1]}
 INSTRUCTIONS
 add a function that exponentiates a number below this, and use it to make a power function that raises all entries of a vector to a power
 
-ACCEPTED OUTPUT
+## ACCEPTED OUTPUT
 We can add the following code to the file:
 ${tripleTick[0]}typescript
 // existing code...
@@ -117,7 +117,7 @@ ${tripleTick[1]}
 INSTRUCTIONS
 memoize results
 
-ACCEPTED OUTPUT
+## ACCEPTED OUTPUT
 To implement memoization in your Fibonacci function, you can use a JavaScript object to store previously computed results. This will help avoid redundant calculations and improve performance. Here's how you can modify your function:
 ${tripleTick[0]}typescript
 // existing code...
@@ -221,36 +221,6 @@ Please finish writing the new file by applying the change to the original file. 
 
 
 
-
-export const fastApply_searchreplace_systemMessage = `\
-You are a coding assistant that re-writes an entire file to make a change. You are given the original file \`ORIGINAL_FILE\` and a change \`CHANGE\`.
-
-Directions:
-1. Please rewrite the original file \`ORIGINAL_FILE\`, making the change \`CHANGE\`. You must completely re-write the whole file.
-2. Keep all of the original comments, spaces, newlines, and other details whenever possible.
-3. ONLY output the full new file. Do not add any other explanations or text.
-`
-
-
-export const fastApply_searchreplace_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
-
-	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
-
-	return `\
-ORIGINAL_FILE
-\`\`\`${language}
-${originalCode}
-\`\`\`
-
-CHANGE
-\`\`\`
-${applyStr}
-\`\`\`
-
-INSTRUCTIONS
-Please finish writing the new file by applying the change to the original file. Return ONLY the completion of the file, without any explanation.
-`
-}
 
 
 

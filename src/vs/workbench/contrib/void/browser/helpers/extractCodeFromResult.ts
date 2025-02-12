@@ -62,7 +62,7 @@ class SurroundingsRemover {
 
 		if (index === -1) {
 			this.i = this.j + 1
-			return false
+			return null
 		}
 		// console.log('index', index, until.length)
 

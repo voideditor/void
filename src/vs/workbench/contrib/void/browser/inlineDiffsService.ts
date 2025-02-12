@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultFimTags, fastApply_searchreplace_systemMessage, fastApply_searchreplace_userMessage } from './prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultFimTags, fastApply_searchreplace_systemMessage, fastApply_searchreplace_userMessage, tripleTick } from './prompt/prompts.js';
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -41,6 +41,7 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { ILLMMessageService } from '../common/llmMessageService.js';
 import { LLMChatMessage, errorDetails } from '../common/llmMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
+import { string } from 'zod';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -1207,11 +1208,130 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		return null
 	}
 
+
 	private _generateSearchAndReplaceBlocks({ filename, applyStr }: { filename: URI, applyStr: string }): DiffZone | undefined {
+		const ORIGINAL = `<<<<<<< ORIGINAL`
+		const DIVIDER = `=======`
+		const FINAL = `>>>>>>> UPDATED`
 
-		// call LLM to generate search and replace blocks (outputs something like [{search: 'this is my code', replace: 'this is m'}, ... ])
+		const searchReplaceGenSysMessage = `\
+You are a coding assistant that generates SEARCH/REPLACE code blocks that will be used to edit a file.
 
-		// 1a output search block
+A SEARCH/REPLACE block describes the code before and after a change. Here is the format:
+${ORIGINAL}
+// ... original code goes here
+${DIVIDER}
+// ... final code goes here
+${FINAL}
+
+You will be given the original file \`ORIGINAL_FILE\` and a description of a change \`CHANGE\` to make.
+Output SEARCH/REPLACE blocks to edit the file according to the desired change. You may output multiple SEARCH/REPLACE blocks.
+
+Directions:
+1. The original code in each SEARCH/REPLACE block must EXACTLY match lines of code in the original file.
+2. The original code in each SEARCH/REPLACE block should include enough text to uniquely identify the change in the file.
+3. The original code cannot be empty.
+4. The SEARCH/REPLACE blocks you generate will be applied immediately, and so they **MUST** produce a file that the user can run IMMEDIATELY, with NO ERRORS.
+	- Make sure you add all necessary imports.
+5. Follow coding convention (spaces, semilcolons, comments, etc).
+
+## EXAMPLE 1
+ORIGINAL_FILE
+${tripleTick[0]}
+let w = 5
+let x = 6
+let y = 7
+let z = 8
+${tripleTick[1]}
+
+CHANGE
+Make x equal to 6.5, not 6.
+${tripleTick[0]}
+// ... existing code
+let x = 6.5
+// ... existing code
+${tripleTick[1]}
+
+
+## ACCEPTED OUTPUT
+${tripleTick[0]}
+${ORIGINAL}
+let x = 6
+${DIVIDER}
+let x = 6.5
+${FINAL}
+${tripleTick[1]}
+`
+
+		function endsWithAnyPrefixOf(str: string, anyPrefix: string) {
+			// for each prefix
+			for (let i = anyPrefix.length; i >= 0; i--) {
+				const prefix = anyPrefix.slice(0, i)
+				if (str.endsWith(prefix)) return prefix
+			}
+			return null
+		}
+
+		const extractBlocks = (str: string) => {
+
+			const ORIGINAL_ = ORIGINAL + `\n`
+			const DIVIDER_ = '\n' + DIVIDER + `\n`
+			const FINAL_ = '\n' + FINAL
+
+
+			const blocks: ({
+				state: 'writingOriginal' | 'writingFinal' | 'done',
+				orig: string,
+				final: string,
+			})[] = []
+
+			let i = 0 // search i and beyond (this is done by plain index, not by line number. much simpler this way)
+			while (true) {
+				let origStart = str.indexOf(ORIGINAL_, i)
+				if (origStart === -1) { return blocks }
+				origStart += ORIGINAL_.length
+				i = origStart
+				// wrote <<<< ORIGINAL
+
+				let dividerStart = str.indexOf(DIVIDER_, i)
+				if (dividerStart === -1) { // if didnt find DIVIDER_, either writing originalStr or DIVIDER_ right now
+					const isWritingDIVIDER = endsWithAnyPrefixOf(str, DIVIDER_)
+					blocks.push({
+						orig: str.substring(origStart, str.length - (isWritingDIVIDER?.length ?? 0)),
+						final: '',
+						state: 'writingOriginal'
+					})
+					return blocks
+				}
+				const origStrDone = str.substring(origStart, dividerStart)
+				dividerStart += DIVIDER_.length
+				i = dividerStart
+				// wrote =====
+
+				let finalStart = str.indexOf(FINAL_, i)
+				if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL_ right now
+					const isWritingFINAL = endsWithAnyPrefixOf(str, FINAL_)
+					blocks.push({
+						orig: origStrDone,
+						final: str.substring(origStart, str.length - (isWritingFINAL?.length ?? 0)),
+						state: 'writingFinal'
+					})
+					return blocks
+				}
+				const finalStrDone = str.substring(dividerStart, finalStart)
+				finalStart += FINAL_.length
+				i = finalStart
+				// wrote >>>>> FINAL
+
+				blocks.push({
+					orig: origStrDone,
+					final: finalStrDone,
+					state: 'done'
+				})
+			}
+
+		}
+
 
 		let uri: URI
 
@@ -1221,6 +1341,19 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
 		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
+
+
+
+		// generate search/replace block text
+
+
+		// parse output, make sure: 1. not redundant search and 2. valid output (retry if not)
+
+		// apply change to string, check if it looks good (retry if not)
+
+		// TODO check dirty
+
+		//
 
 		// in ctrl+L the start and end lines are the full document
 
@@ -1242,177 +1375,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// 1b find the start and end line that the search block lives on (if can't find it, retry 1a)
 
 
-
-
-
-
-
-		let streamRequestIdRef: { current: string | null } = { current: null }
-
-
-		// add to history
-		const { onFinishEdit } = this._addToHistory(uri)
-
-		// __TODO__ let users customize modelFimTags
-		const isOllamaFIM = false // this._voidSettingsService.state.modelSelectionOfFeature['Ctrl+K']?.providerName === 'ollama'
-		const modelFimTags = defaultFimTags
-
-		const adding: Omit<DiffZone, 'diffareaid'> = {
-			type: 'DiffZone',
-			originalCode,
-			startLine,
-			endLine,
-			_URI: uri,
-			_streamState: {
-				isStreaming: true,
-				streamRequestIdRef,
-				line: startLine,
-			},
-			_diffOfId: {}, // added later
-			_removeStylesFns: new Set(),
-		}
-		const diffZone = this._addDiffArea(adding)
-		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-		this._onDidAddOrDeleteDiffZones.fire({ uri })
-
-		if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
-
-			ctrlKZone._linkedStreamingDiffZone = diffZone.diffareaid
-		}
-
-		// now handle messages
-		let messages: LLMChatMessage[]
-
-		if (from === 'Chat') {
-			const userContent = fastApply_searchreplace_userMessage({ originalCode, applyStr: opts.applyStr, uri })
-			messages = [
-				{ role: 'system', content: fastApply_rewritewholething_systemMessage, },
-				{ role: 'user', content: userContent, }
-			]
-		}
-		else if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
-			const { _mountInfo } = ctrlKZone
-			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
-
-			// __TODO__ use Ollama's FIM api, if (isOllamaFIM) {...} else:
-			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			// if (isOllamaFIM) {
-			// 	messages = {
-			// 		type: 'ollamaFIM',
-			// 		prefix,
-			// 		suffix,
-			// 	}
-
-			// }
-			// else {
-			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
-			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: modelFimTags, language })
-			// type: 'messages',
-			messages = [
-				{ role: 'system', content: ctrlKStream_systemMessage({ fimTags: modelFimTags }), },
-				{ role: 'user', content: userContent, }
-			]
-			// }
-		}
-		else { throw new Error(`featureName ${from} is invalid`) }
-
-
-		const onDone = (hadError: boolean) => {
-			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-
-			if (from === 'QuickEdit') {
-				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
-
-				ctrlKZone._linkedStreamingDiffZone = null
-				this._deleteCtrlKZone(ctrlKZone)
-			}
-			this._refreshStylesAndDiffsInURI(uri)
-			onFinishEdit()
-
-			// if had error, revert!
-			if (hadError) {
-				this._undoHistory(diffZone._URI)
-			}
-		}
-
-		// refresh now in case onText takes a while to get 1st message
-		this._refreshStylesAndDiffsInURI(uri)
-
-
-		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
-			if (from === 'QuickEdit') {
-				if (isOllamaFIM) return fullText
-				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: modelFimTags.midTag })
-			}
-			else if (from === 'Chat') {
-				return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
-			}
-			throw 1
-		}
-
-		const latestStreamInfo = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-
-
-		// state used in onText:
-		let fullText = ''
-		let prevIgnoredSuffix = ''
-
-		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-			messagesType: 'chatMessages',
-			useProviderFor: opts.from === 'Chat' ? 'FastApply' : 'Ctrl+K',
-			logging: { loggingName: `startApplying - ${from}` },
-			messages,
-			onText: ({ newText: newText_ }) => {
-
-				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
-				fullText += prevIgnoredSuffix + newText
-
-				const [text, deltaText, ignoredSuffix] = extractText(fullText, newText.length)
-				this._writeStreamedDiffZoneLLMText(diffZone, text, deltaText, latestStreamInfo)
-				this._refreshStylesAndDiffsInURI(uri)
-
-				prevIgnoredSuffix = ignoredSuffix
-			},
-			onFinalMessage: ({ fullText }) => {
-				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
-				// at the end, re-write whole thing to make sure no sync errors
-				const [text, _] = extractText(fullText, 0)
-				this._writeText(uri, text,
-					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-					{ shouldRealignDiffAreas: true }
-				)
-				onDone(false)
-			},
-			onError: (e) => {
-				const details = errorDetails(e.fullError)
-				this._notificationService.notify({
-					severity: Severity.Warning,
-					message: `Void Error: ${e.message}`,
-					actions: {
-						secondary: [{
-							id: 'void.onerror.opensettings',
-							enabled: true,
-							label: 'Open Void settings',
-							tooltip: '',
-							class: undefined,
-							run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
-						}]
-					},
-					source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}` : undefined
-				})
-				onDone(true)
-			},
-
-		})
-
-		return diffZone
 
 	}
 

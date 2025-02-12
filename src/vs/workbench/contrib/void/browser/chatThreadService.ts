@@ -11,7 +11,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
-import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
+import { ILLMMessageService } from '../common/llmMessageService.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { chat_userMessage, chat_systemMessage } from './prompt/prompts.js';
 

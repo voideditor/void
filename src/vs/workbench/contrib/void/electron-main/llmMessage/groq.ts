@@ -3,37 +3,31 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { Mistral } from '@mistralai/mistralai';
+import Groq from 'groq-sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 
-// Mistral
-export const sendMistralChat: _InternalSendLLMChatMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+// Groq
+export const sendGroqChat: _InternalSendLLMChatMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 	let fullText = '';
 
-	const thisConfig = settingsOfProvider.mistral;
+	const thisConfig = settingsOfProvider.groq
 
-	const mistral = new Mistral({
+	const groq = new Groq({
 		apiKey: thisConfig.apiKey,
-	})
+		dangerouslyAllowBrowser: true
+	});
 
-	await mistral.chat
-		.stream({
+	await groq.chat.completions
+		.create({
 			messages: messages,
 			model: modelName,
 			stream: true,
-			// temperature: 0.7,
-			// maxTokens: 2048,
 		})
 		.then(async response => {
-			// Mistral has a really nonstandard API - no interrupt and weird stream types
-			_setAborter(() => { console.log('Mistral does not support interrupts! Further messages will just be ignored.') });
+			_setAborter(() => response.controller.abort())
 			// when receive text
 			for await (const chunk of response) {
-				const c = chunk.data.choices[0].delta.content || ''
-				const newText = (
-					typeof c === 'string' ? c
-						: c?.map(c => c.type === 'text' ? c.text : c.type).join('\n')
-				)
+				const newText = chunk.choices[0]?.delta?.content || '';
 				fullText += newText;
 				onText({ newText, fullText });
 			}
@@ -43,4 +37,6 @@ export const sendMistralChat: _InternalSendLLMChatMessageFnType = async ({ messa
 		.catch(error => {
 			onError({ message: error + '', fullError: error });
 		})
-}
+
+
+};

@@ -253,7 +253,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'groq') {
 		return {
-			title: 'Groq API',
+			title: 'Groq.com API',
 		}
 	}
 	else if (providerName === 'mistral') {

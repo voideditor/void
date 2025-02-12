@@ -3,33 +3,35 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import Groq from 'groq-sdk';
+import { Mistral } from '@mistralai/mistralai';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 
-// Groq
-export const sendGroqChat: _InternalSendLLMChatMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+// Mistral
+export const sendMistralChat: _InternalSendLLMChatMessageFnType = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 	let fullText = '';
 
-	const thisConfig = settingsOfProvider.groq
+	const thisConfig = settingsOfProvider.mistral;
 
-	const groq = new Groq({
+	const mistral = new Mistral({
 		apiKey: thisConfig.apiKey,
-		dangerouslyAllowBrowser: true
-	});
+	})
 
-	await groq.chat.completions
-		.create({
+	await mistral.chat
+		.stream({
 			messages: messages,
 			model: modelName,
 			stream: true,
-			// temperature: 0.7,
-			// max_tokens: parseMaxTokensStr(thisConfig.maxTokens),
 		})
 		.then(async response => {
-			_setAborter(() => response.controller.abort())
+			// Mistral has a really nonstandard API - no interrupt and weird stream types
+			_setAborter(() => { console.log('Mistral does not support interrupts! Further messages will just be ignored.') });
 			// when receive text
 			for await (const chunk of response) {
-				const newText = chunk.choices[0]?.delta?.content || '';
+				const c = chunk.data.choices[0].delta.content || ''
+				const newText = (
+					typeof c === 'string' ? c
+						: c?.map(c => c.type === 'text' ? c.text : c.type).join('\n')
+				)
 				fullText += newText;
 				onText({ newText, fullText });
 			}
@@ -39,6 +41,4 @@ export const sendGroqChat: _InternalSendLLMChatMessageFnType = async ({ messages
 		.catch(error => {
 			onError({ message: error + '', fullError: error });
 		})
-
-
-};
+}

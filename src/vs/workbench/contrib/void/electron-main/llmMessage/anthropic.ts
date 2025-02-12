@@ -6,6 +6,27 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
+import { InternalToolInfo } from '../../common/toolsService.js';
+
+
+
+
+export const toAnthropicTool = (toolName: string, toolInfo: InternalToolInfo) => {
+	const { description, params, required } = toolInfo
+	return {
+		name: toolName,
+		description: description,
+		input_schema: {
+			type: 'object',
+			properties: params,
+			required: required,
+		}
+	} satisfies Anthropic.Messages.Tool
+}
+
+
+
+
 
 export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
 

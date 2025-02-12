@@ -6,8 +6,8 @@
 // registered in app.ts
 // code convention is to make a service responsible for this stuff, and not a channel, but having fewer files is simpler...
 
-import { IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
-import { Emitter, Event } from '../../../base/common/event.js';
+import { IServerChannel } from '../../../../base/parts/ipc/common/ipc.js';
+import { Emitter, Event } from '../../../../base/common/event.js';
 import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, MainSendLLMMessageParams, AbortRef, SendLLMMessageParams, MainLLMMessageAbortParams, MainModelListParams, ModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from '../common/llmMessageTypes.js';
 import { sendLLMMessage } from './llmMessage/sendLLMMessage.js'
 import { IMetricsService } from '../common/metricsService.js';
@@ -66,7 +66,7 @@ export class LLMMessageChannel implements IServerChannel {
 		}
 	}
 
-	// browser uses this to call
+	// browser uses this to call (see this.channel.call() in llmMessageService.ts for all usages)
 	async call(_: unknown, command: string, params: any): Promise<any> {
 		try {
 			if (command === 'sendLLMMessage') {

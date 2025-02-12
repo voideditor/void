@@ -3,14 +3,13 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { Disposable } from '../../../base/common/lifecycle.js';
-import { isLinux, isMacintosh, isWindows } from '../../../base/common/platform.js';
-import { generateUuid } from '../../../base/common/uuid.js';
-import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
-
-import { IProductService } from '../../product/common/productService.js';
-import { StorageScope, StorageTarget } from '../../storage/common/storage.js';
-import { IApplicationStorageMainService } from '../../storage/electron-main/storageMainService.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
+import { isLinux, isMacintosh, isWindows } from '../../../../base/common/platform.js';
+import { generateUuid } from '../../../../base/common/uuid.js';
+import { IEnvironmentMainService } from '../../../../platform/environment/electron-main/environmentMainService.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
+import { StorageTarget, StorageScope } from '../../../../platform/storage/common/storage.js';
+import { IApplicationStorageMainService } from '../../../../platform/storage/electron-main/storageMainService.js';
 
 import { IMetricsService } from '../common/metricsService.js';
 import { PostHog } from 'posthog-node'

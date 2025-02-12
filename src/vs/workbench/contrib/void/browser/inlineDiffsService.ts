@@ -26,14 +26,11 @@ import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
 import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultFimTags, fastApply_searchreplace_systemMessage, fastApply_searchreplace_userMessage } from './prompt/prompts.js';
-import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
-import { errorDetails, LLMChatMessage } from '../../../../platform/void/common/llmMessageTypes.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
-import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
@@ -41,6 +38,9 @@ import { EditorOption } from '../../../../editor/common/config/editorOptions.js'
 import { Emitter } from '../../../../base/common/event.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
+import { ILLMMessageService } from '../common/llmMessageService.js';
+import { LLMChatMessage, errorDetails } from '../common/llmMessageTypes.js';
+import { IMetricsService } from '../common/metricsService.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }

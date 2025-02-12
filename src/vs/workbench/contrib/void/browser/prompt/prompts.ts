@@ -183,7 +183,7 @@ export const chat_userMessage = async (instructions: string, selections: Staging
 
 
 
-export const fastApply_systemMessage = `\
+export const fastApply_rewritewholething_systemMessage = `\
 You are a coding assistant that re-writes an entire file to make a change. You are given the original file \`ORIGINAL_FILE\` and a change \`CHANGE\`.
 
 Directions:
@@ -195,7 +195,7 @@ Directions:
 
 
 
-export const fastApply_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
+export const fastApply_rewritewholething_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
 
 	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 
@@ -214,6 +214,42 @@ INSTRUCTIONS
 Please finish writing the new file by applying the change to the original file. Return ONLY the completion of the file, without any explanation.
 `
 }
+
+
+
+
+export const fastApply_searchreplace_systemMessage = `\
+You are a coding assistant that re-writes an entire file to make a change. You are given the original file \`ORIGINAL_FILE\` and a change \`CHANGE\`.
+
+Directions:
+1. Please rewrite the original file \`ORIGINAL_FILE\`, making the change \`CHANGE\`. You must completely re-write the whole file.
+2. Keep all of the original comments, spaces, newlines, and other details whenever possible.
+3. ONLY output the full new file. Do not add any other explanations or text.
+`
+
+
+export const fastApply_searchreplace_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
+
+	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
+
+	return `\
+ORIGINAL_FILE
+\`\`\`${language}
+${originalCode}
+\`\`\`
+
+CHANGE
+\`\`\`
+${applyStr}
+\`\`\`
+
+INSTRUCTIONS
+Please finish writing the new file by applying the change to the original file. Return ONLY the completion of the file, without any explanation.
+`
+}
+
+
+
 
 
 

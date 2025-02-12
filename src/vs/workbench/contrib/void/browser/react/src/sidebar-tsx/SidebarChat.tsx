@@ -24,6 +24,7 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
+import { ChatLocation } from '../../../searchAndReplaceService.js';
 
 
 
@@ -578,9 +579,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		}
 
 	}, [role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
-
 	const EditSymbol = mode === 'display' ? Pencil : X
-
 	const onOpenEdit = () => {
 		setStaging({ ...staging, isBeingEdited: true })
 		chatThreadsService.setFocusedMessageIdx(messageIdx)
@@ -674,7 +673,14 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		}
 	}
 	else if (role === 'assistant') {
-		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} />
+		const thread = chatThreadsService.getCurrentThread()
+
+		const chatLocation: ChatLocation = {
+			threadId: thread.id,
+			messageIdx: messageIdx!,
+		}
+
+		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatLocation={chatLocation} />
 	}
 
 	return <div

@@ -211,6 +211,10 @@ type HistorySnapshot = {
 
 
 
+// line/col is the location, originalCodeStartLine is the start line of the original code being displayed
+type StreamLocationMutable = { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number }
+
+
 export interface IInlineDiffsService {
 	readonly _serviceBrand: undefined;
 	startApplying(opts: StartApplyingOpts): number | undefined;
@@ -996,7 +1000,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// @throttle(100)
-	private _writeStreamedDiffZoneLLMText(diffZone: DiffZone, llmText: string, deltaText: string, latestMutable: { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number }) {
+	private _writeStreamedDiffZoneLLMText(diffZone: DiffZone, llmText: string, deltaText: string, latestMutable: StreamLocationMutable) {
 
 		// ----------- 1. Write the new code to the document -----------
 		// figure out where to highlight based on where the AI is in the stream right now, use the last diff to figure that out
@@ -1256,13 +1260,11 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 		const diffareaidOfBlockNum: number[] = []
 
 		// TODO replace all these with whatever block we're on initially if already started
-		let latestStreamInfoMutable: { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number } | null = null
+		let latestStreamLocationMutable: StreamLocationMutable | null = null
 		let currStreamingBlockNum = 0
 		let oldBlocks: ExtractedSearchReplaceBlock[] = []
 
 		const onText = ({ newText, fullText }: { newText: string, fullText: string }) => {
-			console.log('FULLTEXT', fullText)
-			console.log('NEW', newText)
 
 			const blocks = extractSearchReplaceBlocks(fullText, { ORIGINAL, DIVIDER, FINAL })
 
@@ -1297,6 +1299,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 						break
 					}
 					const [startLine, endLine] = foundInCode
+					console.log('FOUND!', foundInCode)
 
 					console.log('ADDING', blockNum)
 					const adding: Omit<DiffZone, 'diffareaid'> = {
@@ -1319,7 +1322,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 
 					diffareaidOfBlockNum.push(diffZone.diffareaid)
 
-					latestStreamInfoMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+					latestStreamLocationMutable = { line: diffZone.endLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 
 					deltaFinalText = block.final
 				}
@@ -1327,7 +1330,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 					deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
 				}
 
-				console.log('DELTA', deltaFinalText)
+				console.log('FULLTEXT', block.final)
 				oldBlocks = blocks
 
 				// write new text to diffarea
@@ -1336,11 +1339,32 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 				if (diffZone?.type !== 'DiffZone') continue
 
 
-				if (!latestStreamInfoMutable) continue
-				this._writeStreamedDiffZoneLLMText(diffZone, block.final, deltaFinalText, latestStreamInfoMutable)
-			}
+				if (!latestStreamLocationMutable) continue
+				this._writeStreamedDiffZoneLLMText(diffZone, block.final, deltaFinalText, latestStreamLocationMutable)
+			} // end for
+
 			this._refreshStylesAndDiffsInURI(uri)
 		}
+
+
+
+		const onDone = (hadError: boolean) => {
+			for (const blockNum in diffareaidOfBlockNum) {
+				const diffareaid = diffareaidOfBlockNum[blockNum]
+				const diffZone = this.diffAreaOfId[diffareaid]
+				if (diffZone?.type !== 'DiffZone') continue
+
+				diffZone._streamState = { isStreaming: false, }
+				this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+
+				this._refreshStylesAndDiffsInURI(uri)
+				onFinishEdit()
+
+				// if had error, revert!
+				if (hadError) this._undoHistory(diffZone._URI)
+			}
+		}
+
 
 
 		const { onFinishEdit } = this._addToHistory(uri)
@@ -1352,18 +1376,18 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 			useProviderFor: 'FastApply',
 			logging: { loggingName: `generateSearchAndReplace` },
 			messages,
-			onText: ({ newText, fullText }) => { onText({ newText, fullText }) },
+			onText: ({ newText, fullText }) => {
+				onText({ newText, fullText })
+			},
 			onFinalMessage: ({ fullText }) => {
 				// 1. wait 500ms and fix lint errors - call lint error workflow
 				// (update react state to say "Fixing errors")
-				this._refreshStylesAndDiffsInURI(uri)
-				onFinishEdit()
+				onDone(false)
 
 			},
 			onError: (e) => {
 				console.log('ERROR', e);
-				this._refreshStylesAndDiffsInURI(uri)
-				onFinishEdit()
+				onDone(true)
 			},
 
 		})
@@ -1513,7 +1537,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 			throw 1
 		}
 
-		const latestStreamInfoMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+		const latestStreamInfoMutable: StreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 
 		// state used in onText:
 		let fullText = ''

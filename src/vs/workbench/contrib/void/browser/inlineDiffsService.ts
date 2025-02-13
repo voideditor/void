@@ -30,7 +30,7 @@ import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
-import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
+import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from './helpers/extractCodeFromResult.js';
 import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
@@ -137,12 +137,6 @@ export type Diff = {
 } & ComputedDiff
 
 
-
-type ExtractedCodeBlock = {
-	state: 'writingOriginal' | 'writingFinal' | 'done',
-	orig: string,
-	final: string,
-}
 
 // _ means anything we don't include if we clone it
 // DiffArea.originalStartLine is the line in originalCode (not the file)
@@ -1249,71 +1243,6 @@ INSTRUCTIONS
 Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggested SEARCH/REPLACE blocks, without any explanation.
 `
 
-		const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
-			// for each prefix
-			for (let i = anyPrefix.length; i >= 0; i--) {
-				const prefix = anyPrefix.slice(0, i)
-				if (str.endsWith(prefix)) return prefix
-			}
-			return null
-		}
-
-		const extractBlocks = (str: string) => {
-
-			const ORIGINAL_ = ORIGINAL + `\n`
-			const DIVIDER_ = '\n' + DIVIDER + `\n`
-			const FINAL_ = '\n' + FINAL
-
-
-			const blocks: ExtractedCodeBlock[] = []
-
-			let i = 0 // search i and beyond (this is done by plain index, not by line number. much simpler this way)
-			while (true) {
-				let origStart = str.indexOf(ORIGINAL_, i)
-				if (origStart === -1) { return blocks }
-				origStart += ORIGINAL_.length
-				i = origStart
-				// wrote <<<< ORIGINAL
-
-				let dividerStart = str.indexOf(DIVIDER_, i)
-				if (dividerStart === -1) { // if didnt find DIVIDER_, either writing originalStr or DIVIDER_ right now
-					const isWritingDIVIDER = endsWithAnyPrefixOf(str, DIVIDER_)
-					blocks.push({
-						orig: str.substring(origStart, str.length - (isWritingDIVIDER?.length ?? 0)),
-						final: '',
-						state: 'writingOriginal'
-					})
-					return blocks
-				}
-				const origStrDone = str.substring(origStart, dividerStart)
-				dividerStart += DIVIDER_.length
-				i = dividerStart
-				// wrote =====
-
-				let finalStart = str.indexOf(FINAL_, i)
-				if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL_ right now
-					const isWritingFINAL = endsWithAnyPrefixOf(str, FINAL_)
-					blocks.push({
-						orig: origStrDone,
-						final: str.substring(origStart, str.length - (isWritingFINAL?.length ?? 0)),
-						state: 'writingFinal'
-					})
-					return blocks
-				}
-				const finalStrDone = str.substring(dividerStart, finalStart)
-				finalStart += FINAL_.length
-				i = finalStart
-				// wrote >>>>> FINAL
-
-				blocks.push({
-					orig: origStrDone,
-					final: finalStrDone,
-					state: 'done'
-				})
-			}
-		}
-
-
 		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
 		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
 
@@ -1326,8 +1255,16 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 
 		const diffareaidOfBlockNum: number[] = []
 
+		// TODO replace all these with whatever block we're on initially if already started
+		let latestStreamInfoMutable: { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number } | null = null
+		let currStreamingBlockNum = 0
+		let oldBlocks: ExtractedSearchReplaceBlock[] = []
+
 		const onText = ({ newText, fullText }: { newText: string, fullText: string }) => {
-			const blocks = extractBlocks(fullText)
+			console.log('FULLTEXT', fullText)
+			console.log('NEW', newText)
+
+			const blocks = extractSearchReplaceBlocks(fullText, { ORIGINAL, DIVIDER, FINAL })
 
 			// find block.orig in fileContents and return its range in file
 			const findTextInCode = (text: string, fileContents: string) => {
@@ -1341,22 +1278,27 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 				return [startLine, endLine]
 			}
 
-			let latestStreamInfoMutable: any = {}
 
-			for (let blockNum = 0; blockNum < blocks.length; blockNum += 1) {
+			for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
 				const block = blocks[blockNum]
-				if (block.state === 'writingOriginal') continue
 
-				const foundInCode = findTextInCode(block.orig, fileContents)
-				if (typeof foundInCode === 'string') {
-					console.log('ERROR!!!!', foundInCode)
+				if (block.state === 'done')
+					currStreamingBlockNum = blockNum
+
+				if (block.state === 'writingOriginal')
 					continue
-				}
 
-				const [startLine, endLine] = foundInCode
-
+				let deltaFinalText: string
 				// if should add new diffarea
-				if (blockNum > diffareaidOfBlockNum.length) {
+				if (!(blockNum in diffareaidOfBlockNum)) {
+					const foundInCode = findTextInCode(block.orig, fileContents)
+					if (typeof foundInCode === 'string') {
+						console.log('NOT FOUND IN CODE!!!!', foundInCode)
+						break
+					}
+					const [startLine, endLine] = foundInCode
+
+					console.log('ADDING', blockNum)
 					const adding: Omit<DiffZone, 'diffareaid'> = {
 						type: 'DiffZone',
 						originalCode: block.orig,
@@ -1378,19 +1320,30 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 					diffareaidOfBlockNum.push(diffZone.diffareaid)
 
 					latestStreamInfoMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+
+					deltaFinalText = block.final
+				}
+				else {
+					deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
 				}
 
+				console.log('DELTA', deltaFinalText)
+				oldBlocks = blocks
+
+				// write new text to diffarea
 				const diffareaid = diffareaidOfBlockNum[blockNum]
 				const diffZone = this.diffAreaOfId[diffareaid]
-				if (diffZone.type !== 'DiffZone') continue
+				if (diffZone?.type !== 'DiffZone') continue
 
-				this._writeStreamedDiffZoneLLMText(diffZone, fullText, newText, latestStreamInfoMutable)
-				this._refreshStylesAndDiffsInURI(uri)
+
+				if (!latestStreamInfoMutable) continue
+				this._writeStreamedDiffZoneLLMText(diffZone, block.final, deltaFinalText, latestStreamInfoMutable)
 			}
-
+			this._refreshStylesAndDiffsInURI(uri)
 		}
 
 
+		const { onFinishEdit } = this._addToHistory(uri)
 
 
 		// TODO turn this into a service and provide it
@@ -1400,8 +1353,18 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 			logging: { loggingName: `generateSearchAndReplace` },
 			messages,
 			onText: ({ newText, fullText }) => { onText({ newText, fullText }) },
-			onFinalMessage: ({ fullText }) => { },
-			onError: (e) => { console.log('ERROR', e) },
+			onFinalMessage: ({ fullText }) => {
+				// 1. wait 500ms and fix lint errors - call lint error workflow
+				// (update react state to say "Fixing errors")
+				this._refreshStylesAndDiffsInURI(uri)
+				onFinishEdit()
+
+			},
+			onError: (e) => {
+				console.log('ERROR', e);
+				this._refreshStylesAndDiffsInURI(uri)
+				onFinishEdit()
+			},
 
 		})
 
@@ -1564,19 +1527,19 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 			onText: ({ newText: newText_ }) => {
 
 				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
-				fullText += prevIgnoredSuffix + newText
+				fullText += prevIgnoredSuffix + newText // full text, including ```, etc
 
-				const [text, deltaText, ignoredSuffix] = extractText(fullText, newText.length)
-				this._writeStreamedDiffZoneLLMText(diffZone, text, deltaText, latestStreamInfoMutable)
+				const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullText, newText.length)
+				this._writeStreamedDiffZoneLLMText(diffZone, croppedText, deltaCroppedText, latestStreamInfoMutable)
 				this._refreshStylesAndDiffsInURI(uri)
 
-				prevIgnoredSuffix = ignoredSuffix
+				prevIgnoredSuffix = croppedSuffix
 			},
 			onFinalMessage: ({ fullText }) => {
 				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
 				// at the end, re-write whole thing to make sure no sync errors
-				const [text, _] = extractText(fullText, 0)
-				this._writeText(uri, text,
+				const [croppedText, _1, _2] = extractText(fullText, 0)
+				this._writeText(uri, croppedText,
 					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 					{ shouldRealignDiffAreas: true }
 				)

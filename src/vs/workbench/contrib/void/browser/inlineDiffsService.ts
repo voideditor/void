@@ -700,7 +700,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 	weAreWriting = false
-	private async _writeText(uri: URI, text: string, range: IRange, { shouldRealignDiffAreas }: { shouldRealignDiffAreas: boolean }) {
+	private _writeText(uri: URI, text: string, range: IRange, { shouldRealignDiffAreas }: { shouldRealignDiffAreas: boolean }) {
 		const model = this._getModel(uri)
 		if (!model) return
 		const uriStr = this._readURI(uri, range)
@@ -1322,9 +1322,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 							continue
 						}
 						const [startLine, endLine] = foundInCode
-						console.log('FOUND!', foundInCode)
 
-						console.log('ADDING', blockNum)
 						const adding: Omit<DiffZone, 'diffareaid'> = {
 							type: 'DiffZone',
 							originalCode: block.orig,
@@ -1345,8 +1343,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 
 						diffareaidOfBlockNum.push(diffZone.diffareaid)
 
-						latestStreamLocationMutable = { line: diffZone.endLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-
+						latestStreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 
 					}
 					const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
@@ -1365,11 +1362,9 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 				this._refreshStylesAndDiffsInURI(uri)
 			},
 			onFinalMessage: async ({ fullText }) => {
-
 				// 1. wait 500ms and fix lint errors - call lint error workflow
 				// (update react state to say "Fixing errors")
 				const blocks = extractSearchReplaceBlocks(fullText, { ORIGINAL, DIVIDER, FINAL })
-				console.log('FULLTEXT', fullText, blocks)
 
 				for (let blockNum = 0; blockNum < blocks.length; blockNum += 1) {
 					const block = blocks[blockNum]
@@ -1377,7 +1372,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 					const diffZone = this.diffAreaOfId[diffareaid]
 					if (diffZone?.type !== 'DiffZone') continue
 
-					await this._writeText(uri, block.final,
+					this._writeText(uri, block.final,
 						{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 						{ shouldRealignDiffAreas: true }
 					)

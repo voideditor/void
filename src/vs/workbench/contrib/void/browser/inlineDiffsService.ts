@@ -25,15 +25,12 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_userMessage, fastApply_systemMessage, defaultFimTags } from './prompt/prompts.js';
-import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultQuickEditFimTags, tripleTick } from './prompt/prompts.js';
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
-import { errorDetails, LLMChatMessage } from '../../../../platform/void/common/llmMessageTypes.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
-import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
@@ -41,6 +38,10 @@ import { EditorOption } from '../../../../editor/common/config/editorOptions.js'
 import { Emitter } from '../../../../base/common/event.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
+import { ILLMMessageService } from '../common/llmMessageService.js';
+import { LLMChatMessage, _InternalLLMChatMessage, errorDetails } from '../common/llmMessageTypes.js';
+import { IMetricsService } from '../common/metricsService.js';
+import { VSReadFile } from './helpers/readFile.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -100,18 +101,18 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 	return paddingLeft;
 };
 
-// similar to ServiceLLM
+
+
 export type StartApplyingOpts = {
 	from: 'QuickEdit';
+	type: 'rewrite';
 	diffareaid: number; // id of the CtrlK area (contains text selection)
 } | {
-	from: 'Chat';
+	from: 'ClickApply';
+	type: 'searchReplace' | 'rewrite';
 	applyStr: string;
-} | {
-	from: 'Autocomplete';
-	range: IRange;
-	userMessage: string;
 }
+
 
 export type AddCtrlKOpts = {
 	startLine: number,
@@ -137,6 +138,11 @@ export type Diff = {
 
 
 
+type ExtractedCodeBlock = {
+	state: 'writingOriginal' | 'writingFinal' | 'done',
+	orig: string,
+	final: string,
+}
 
 // _ means anything we don't include if we clone it
 // DiffArea.originalStartLine is the line in originalCode (not the file)
@@ -996,7 +1002,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	// @throttle(100)
-	private _writeStreamedDiffZoneLLMText(diffZone: DiffZone, llmText: string, deltaText: string, latest: { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number }) {
+	private _writeStreamedDiffZoneLLMText(diffZone: DiffZone, llmText: string, deltaText: string, latestMutable: { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number }) {
 
 		// ----------- 1. Write the new code to the document -----------
 		// figure out where to highlight based on where the AI is in the stream right now, use the last diff to figure that out
@@ -1035,39 +1041,39 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 		// at the start, add a newline between the stream and originalCode to make reasoning easier
-		if (!latest.addedSplitYet) {
+		if (!latestMutable.addedSplitYet) {
 			this._writeText(uri, '\n',
-				{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col, },
+				{ startLineNumber: latestMutable.line, startColumn: latestMutable.col, endLineNumber: latestMutable.line, endColumn: latestMutable.col, },
 				{ shouldRealignDiffAreas: true }
 			)
-			latest.addedSplitYet = true
+			latestMutable.addedSplitYet = true
 		}
 
 		// insert deltaText at latest line and col
 		this._writeText(uri, deltaText,
-			{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col },
+			{ startLineNumber: latestMutable.line, startColumn: latestMutable.col, endLineNumber: latestMutable.line, endColumn: latestMutable.col },
 			{ shouldRealignDiffAreas: true }
 		)
-		latest.line += deltaText.split('\n').length - 1
+		latestMutable.line += deltaText.split('\n').length - 1
 		const lastNewlineIdx = deltaText.lastIndexOf('\n')
-		latest.col = lastNewlineIdx === -1 ? latest.col + deltaText.length : deltaText.length - lastNewlineIdx
+		latestMutable.col = lastNewlineIdx === -1 ? latestMutable.col + deltaText.length : deltaText.length - lastNewlineIdx
 
 		// delete or insert to get original up to speed
-		if (latest.originalCodeStartLine < originalCodeStartLine) {
+		if (latestMutable.originalCodeStartLine < originalCodeStartLine) {
 			// moved up, delete
-			const numLinesDeleted = originalCodeStartLine - latest.originalCodeStartLine
+			const numLinesDeleted = originalCodeStartLine - latestMutable.originalCodeStartLine
 			this._writeText(uri, '',
-				{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line + numLinesDeleted, endColumn: Number.MAX_SAFE_INTEGER, },
+				{ startLineNumber: latestMutable.line, startColumn: latestMutable.col, endLineNumber: latestMutable.line + numLinesDeleted, endColumn: Number.MAX_SAFE_INTEGER, },
 				{ shouldRealignDiffAreas: true }
 			)
 		}
-		else if (latest.originalCodeStartLine > originalCodeStartLine) {
-			this._writeText(uri, '\n' + diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), (latest.originalCodeStartLine - 1) - 1 + 1).join('\n'),
-				{ startLineNumber: latest.line, startColumn: latest.col, endLineNumber: latest.line, endColumn: latest.col },
+		else if (latestMutable.originalCodeStartLine > originalCodeStartLine) {
+			this._writeText(uri, '\n' + diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), (latestMutable.originalCodeStartLine - 1) - 1 + 1).join('\n'),
+				{ startLineNumber: latestMutable.line, startColumn: latestMutable.col, endLineNumber: latestMutable.line, endColumn: latestMutable.col },
 				{ shouldRealignDiffAreas: true }
 			)
 		}
-		latest.originalCodeStartLine = originalCodeStartLine
+		latestMutable.originalCodeStartLine = originalCodeStartLine
 
 		// add diffZone.startLine to convert to right coordinate system (line in file, not in diffarea)
 		diffZone._streamState.line = (diffZone.startLine - 1) + newCodeEndLine
@@ -1075,56 +1081,6 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		return computedDiffs
 
 	}
-
-
-
-	// // if streaming, use diffs to figure out where to write new code
-	// 	// these are two different coordinate systems - new and old line number
-	// 	let newFileEndLine: number // get new[0...newStoppingPoint] with line=newStoppingPoint highlighted
-	// 	let originalCodeStartLine: number // get original[oldStartingPoint...]
-
-	// 	const lastDiff = computedDiffs.pop()
-
-	// 	if (!lastDiff) {
-	// 		// if the writing is identical so far, display no changes
-	// 		newFileEndLine = diffZone.startLine
-	// 		originalCodeStartLine = 1
-	// 	}
-	// 	else {
-	// 		if (lastDiff.type === 'insertion') {
-	// 			newFileEndLine = lastDiff.endLine
-	// 			originalCodeStartLine = lastDiff.originalStartLine
-	// 		}
-	// 		else if (lastDiff.type === 'deletion') {
-	// 			newFileEndLine = lastDiff.startLine
-	// 			originalCodeStartLine = lastDiff.originalStartLine
-	// 		}
-	// 		else if (lastDiff.type === 'edit') {
-	// 			newFileEndLine = lastDiff.endLine
-	// 			originalCodeStartLine = lastDiff.originalStartLine
-	// 		}
-	// 		else {
-	// 			throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
-	// 		}
-	// 	}
-
-	// 	diffZone._streamState.line = newFileEndLine
-
-	// 	// lines are 1-indexed
-	// 	const newFileTop = llmText.split('\n').slice(diffZone.startLine, (newFileEndLine - 1)).join('\n')
-	// 	const oldFileBottom = diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), Infinity).join('\n')
-
-	// 	const newCode = `${newFileTop}\n${oldFileBottom}`
-
-	// 	this._writeText(uri, newCode,
-	// 		{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER, }, // 1-indexed
-	// 		{ shouldRealignDiffAreas: true }
-	// 	)
-
-
-	// 	return computedDiffs
-
-
 
 
 
@@ -1185,8 +1141,19 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	public startApplying(opts: StartApplyingOpts) {
-		const addedDiffZone = this._initializeStartApplying(opts)
-		return addedDiffZone?.diffareaid
+
+		if (opts.type === 'rewrite') {
+			const addedDiffZone = this._initializeRewriteStream(opts)
+			return addedDiffZone?.diffareaid
+		}
+
+		else if (opts.type === 'searchReplace') {
+			this._initializeSearchAndReplaceStream(opts)
+			return undefined
+		}
+
+		else return undefined
+
 	}
 
 
@@ -1207,7 +1174,243 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 	}
 
 
-	private _initializeStartApplying(opts: StartApplyingOpts): DiffZone | undefined {
+	private async _initializeSearchAndReplaceStream({ applyStr }: { applyStr: string }) {
+		const ORIGINAL = `<<<<<<< ORIGINAL`
+		const DIVIDER = `=======`
+		const FINAL = `>>>>>>> UPDATED`
+
+		const searchReplaceSysMessage = `\
+You are a coding assistant that generates SEARCH/REPLACE code blocks that will be used to edit a file.
+
+A SEARCH/REPLACE block describes the code before and after a change. Here is the format:
+${ORIGINAL}
+// ... original code goes here
+${DIVIDER}
+// ... final code goes here
+${FINAL}
+
+You will be given the original file \`ORIGINAL_FILE\` and a description of a change \`CHANGE\` to make.
+Output SEARCH/REPLACE blocks to edit the file according to the desired change. You may output multiple SEARCH/REPLACE blocks.
+
+Directions:
+1. Your OUTPUT should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
+2. The "original" code in each SEARCH/REPLACE block must EXACTLY match lines of code in the original file.
+3. The "original" code in each SEARCH/REPLACE block should include enough text to uniquely identify the change in the file.
+4. The SEARCH/REPLACE blocks you generate will be applied immediately, and so they **MUST** produce a file that the user can run IMMEDIATELY.
+	- Make sure you add all necessary imports.
+	- Make sure the "final" code is complete and will not result in syntax/lint errors.
+5. Follow coding convention (spaces, semilcolons, comments, etc).
+
+## EXAMPLE 1
+ORIGINAL_FILE
+${tripleTick[0]}
+let w = 5
+let x = 6
+let y = 7
+let z = 8
+${tripleTick[1]}
+
+CHANGE
+Make x equal to 6.5, not 6.
+${tripleTick[0]}
+// ... existing code
+let x = 6.5
+// ... existing code
+${tripleTick[1]}
+
+
+## ACCEPTED OUTPUT
+${tripleTick[0]}
+${ORIGINAL}
+let x = 6
+${DIVIDER}
+let x = 6.5
+${FINAL}
+${tripleTick[1]}
+`
+
+		const uri_ = this._getActiveEditorURI()
+		if (!uri_) return
+		const uri = uri_
+
+		// generate search/replace block text
+		const fileContents = await VSReadFile(this._modelService, uri)
+		if (fileContents === null) return
+
+
+		const searchReplaceUserMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
+ORIGINAL_FILE
+${originalCode}
+
+CHANGE
+${applyStr}
+
+INSTRUCTIONS
+Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggested SEARCH/REPLACE blocks, without any explanation.
+`
+
+		const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
+			// for each prefix
+			for (let i = anyPrefix.length; i >= 0; i--) {
+				const prefix = anyPrefix.slice(0, i)
+				if (str.endsWith(prefix)) return prefix
+			}
+			return null
+		}
+
+		const extractBlocks = (str: string) => {
+
+			const ORIGINAL_ = ORIGINAL + `\n`
+			const DIVIDER_ = '\n' + DIVIDER + `\n`
+			const FINAL_ = '\n' + FINAL
+
+
+			const blocks: ExtractedCodeBlock[] = []
+
+			let i = 0 // search i and beyond (this is done by plain index, not by line number. much simpler this way)
+			while (true) {
+				let origStart = str.indexOf(ORIGINAL_, i)
+				if (origStart === -1) { return blocks }
+				origStart += ORIGINAL_.length
+				i = origStart
+				// wrote <<<< ORIGINAL
+
+				let dividerStart = str.indexOf(DIVIDER_, i)
+				if (dividerStart === -1) { // if didnt find DIVIDER_, either writing originalStr or DIVIDER_ right now
+					const isWritingDIVIDER = endsWithAnyPrefixOf(str, DIVIDER_)
+					blocks.push({
+						orig: str.substring(origStart, str.length - (isWritingDIVIDER?.length ?? 0)),
+						final: '',
+						state: 'writingOriginal'
+					})
+					return blocks
+				}
+				const origStrDone = str.substring(origStart, dividerStart)
+				dividerStart += DIVIDER_.length
+				i = dividerStart
+				// wrote =====
+
+				let finalStart = str.indexOf(FINAL_, i)
+				if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL_ right now
+					const isWritingFINAL = endsWithAnyPrefixOf(str, FINAL_)
+					blocks.push({
+						orig: origStrDone,
+						final: str.substring(origStart, str.length - (isWritingFINAL?.length ?? 0)),
+						state: 'writingFinal'
+					})
+					return blocks
+				}
+				const finalStrDone = str.substring(dividerStart, finalStart)
+				finalStart += FINAL_.length
+				i = finalStart
+				// wrote >>>>> FINAL
+
+				blocks.push({
+					orig: origStrDone,
+					final: finalStrDone,
+					state: 'done'
+				})
+			}
+		}
+
+
+		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
+		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
+
+		const userMessageContent = searchReplaceUserMessage({ originalCode: fileContents, applyStr: applyStr })
+		const messages: LLMChatMessage[] = [
+			{ role: 'system', content: searchReplaceSysMessage },
+			{ role: 'user', content: userMessageContent }
+		]
+		let streamRequestIdRef: { current: string | null } = { current: null }
+
+		const diffareaidOfBlockNum: number[] = []
+
+		const onText = ({ newText, fullText }: { newText: string, fullText: string }) => {
+			const blocks = extractBlocks(fullText)
+
+			// find block.orig in fileContents and return its range in file
+			const findTextInCode = (text: string, fileContents: string) => {
+				const idx = fileContents.indexOf(text)
+				if (idx === -1) return 'Not found' as const
+				const lastIdx = fileContents.lastIndexOf(text)
+				if (lastIdx !== idx) return 'Not unique' as const
+				const startLine = fileContents.substring(0, idx).split('\n').length
+				const numLines = text.split('\n').length
+				const endLine = startLine + numLines - 1
+				return [startLine, endLine]
+			}
+
+			let latestStreamInfoMutable: any = {}
+
+			for (let blockNum = 0; blockNum < blocks.length; blockNum += 1) {
+				const block = blocks[blockNum]
+				if (block.state === 'writingOriginal') continue
+
+				const foundInCode = findTextInCode(block.orig, fileContents)
+				if (typeof foundInCode === 'string') {
+					console.log('ERROR!!!!', foundInCode)
+					continue
+				}
+
+				const [startLine, endLine] = foundInCode
+
+				// if should add new diffarea
+				if (blockNum > diffareaidOfBlockNum.length) {
+					const adding: Omit<DiffZone, 'diffareaid'> = {
+						type: 'DiffZone',
+						originalCode: block.orig,
+						startLine,
+						endLine,
+						_URI: uri,
+						_streamState: {
+							isStreaming: true,
+							streamRequestIdRef,
+							line: startLine,
+						},
+						_diffOfId: {}, // added later
+						_removeStylesFns: new Set(),
+					}
+					const diffZone = this._addDiffArea(adding)
+					this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+					this._onDidAddOrDeleteDiffZones.fire({ uri })
+
+					diffareaidOfBlockNum.push(diffZone.diffareaid)
+
+					latestStreamInfoMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+				}
+
+				const diffareaid = diffareaidOfBlockNum[blockNum]
+				const diffZone = this.diffAreaOfId[diffareaid]
+				if (diffZone.type !== 'DiffZone') continue
+
+				this._writeStreamedDiffZoneLLMText(diffZone, fullText, newText, latestStreamInfoMutable)
+				this._refreshStylesAndDiffsInURI(uri)
+			}
+
+		}
+
+
+
+
+		// TODO turn this into a service and provide it
+		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+			messagesType: 'chatMessages',
+			useProviderFor: 'FastApply',
+			logging: { loggingName: `generateSearchAndReplace` },
+			messages,
+			onText: ({ newText, fullText }) => { onText({ newText, fullText }) },
+			onFinalMessage: ({ fullText }) => { },
+			onError: (e) => { console.log('ERROR', e) },
+
+		})
+
+	}
+
+
+
+
+	private _initializeRewriteStream(opts: StartApplyingOpts): DiffZone | undefined {
 
 		const { from } = opts
 
@@ -1215,7 +1418,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		let endLine: number
 		let uri: URI
 
-		if (from === 'Chat') {
+		if (from === 'ClickApply') {
 
 			const uri_ = this._getActiveEditorURI()
 			if (!uri_) return
@@ -1257,8 +1460,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		const { onFinishEdit } = this._addToHistory(uri)
 
 		// __TODO__ let users customize modelFimTags
-		const isOllamaFIM = false // this._voidSettingsService.state.modelSelectionOfFeature['Ctrl+K']?.providerName === 'ollama'
-		const modelFimTags = defaultFimTags
+		const quickEditFIMTags = defaultQuickEditFimTags
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
@@ -1289,10 +1491,10 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// now handle messages
 		let messages: LLMChatMessage[]
 
-		if (from === 'Chat') {
-			const userContent = fastApply_userMessage({ originalCode, applyStr: opts.applyStr, uri })
+		if (from === 'ClickApply') {
+			const userContent = fastApply_rewritewholething_userMessage({ originalCode, applyStr: opts.applyStr, uri })
 			messages = [
-				{ role: 'system', content: fastApply_systemMessage, },
+				{ role: 'system', content: fastApply_rewritewholething_systemMessage, },
 				{ role: 'user', content: userContent, }
 			]
 		}
@@ -1303,25 +1505,14 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			const { _mountInfo } = ctrlKZone
 			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
 
-			// __TODO__ use Ollama's FIM api, if (isOllamaFIM) {...} else:
 			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			// if (isOllamaFIM) {
-			// 	messages = {
-			// 		type: 'ollamaFIM',
-			// 		prefix,
-			// 		suffix,
-			// 	}
-
-			// }
-			// else {
 			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
-			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: modelFimTags, language })
+			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: quickEditFIMTags, language })
 			// type: 'messages',
 			messages = [
-				{ role: 'system', content: ctrlKStream_systemMessage({ fimTags: modelFimTags }), },
+				{ role: 'system', content: ctrlKStream_systemMessage({ quickEditFIMTags: quickEditFIMTags }), },
 				{ role: 'user', content: userContent, }
 			]
-			// }
 		}
 		else { throw new Error(`featureName ${from} is invalid`) }
 
@@ -1351,16 +1542,15 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
 			if (from === 'QuickEdit') {
-				if (isOllamaFIM) return fullText
-				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: modelFimTags.midTag })
+				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: quickEditFIMTags.midTag })
 			}
-			else if (from === 'Chat') {
+			else if (from === 'ClickApply') {
 				return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
 			}
 			throw 1
 		}
 
-		const latestStreamInfo = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+		const latestStreamInfoMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 
 		// state used in onText:
 		let fullText = ''
@@ -1368,7 +1558,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			messagesType: 'chatMessages',
-			useProviderFor: opts.from === 'Chat' ? 'FastApply' : 'Ctrl+K',
+			useProviderFor: opts.from === 'ClickApply' ? 'FastApply' : 'Ctrl+K',
 			logging: { loggingName: `startApplying - ${from}` },
 			messages,
 			onText: ({ newText: newText_ }) => {
@@ -1377,7 +1567,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 				fullText += prevIgnoredSuffix + newText
 
 				const [text, deltaText, ignoredSuffix] = extractText(fullText, newText.length)
-				this._writeStreamedDiffZoneLLMText(diffZone, text, deltaText, latestStreamInfo)
+				this._writeStreamedDiffZoneLLMText(diffZone, text, deltaText, latestStreamInfoMutable)
 				this._refreshStylesAndDiffsInURI(uri)
 
 				prevIgnoredSuffix = ignoredSuffix

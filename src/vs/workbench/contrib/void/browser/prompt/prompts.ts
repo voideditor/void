@@ -10,6 +10,10 @@ import { CodeSelection, StagingSelectionItem, FileSelection } from '../chatThrea
 import { VSReadFile } from '../helpers/readFile.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
 
+
+// this is just for ease of readability
+export const tripleTick = ['```', '```']
+
 export const chat_systemMessage = `\
 You are a coding assistant. You are given a list of instructions to follow \`INSTRUCTIONS\`, and optionally a list of relevant files \`FILES\`, and selections inside of files \`SELECTIONS\`.
 
@@ -29,7 +33,7 @@ Do not tell the user anything about the examples below.
 ## EXAMPLE 1
 FILES
 math.ts
-\`\`\`typescript
+${tripleTick[0]}typescript
 const addNumbers = (a, b) => a + b
 const multiplyNumbers = (a, b) => a * b
 const subtractNumbers = (a, b) => a - b
@@ -58,21 +62,21 @@ const normalized = (vector: number[]) => {
 	const v2 = [...vector] // clone vector
 	return normalize(v2)
 }
-\`\`\`
+${tripleTick[1]}
 
 
 SELECTIONS
 math.ts (lines 3:3)
-\`\`\`typescript
+${tripleTick[0]}typescript
 const subtractNumbers = (a, b) => a - b
-\`\`\`
+${tripleTick[1]}
 
 INSTRUCTIONS
 add a function that exponentiates a number below this, and use it to make a power function that raises all entries of a vector to a power
 
-ACCEPTED OUTPUT
+## ACCEPTED OUTPUT
 We can add the following code to the file:
-\`\`\`typescript
+${tripleTick[0]}typescript
 // existing code...
 const subtractNumbers = (a, b) => a - b
 const exponentiateNumbers = (a, b) => Math.pow(a, b)
@@ -84,13 +88,13 @@ const raiseAll = (vector: number[], power: number) => {
 		vector[i] = exponentiateNumbers(vector[i], power)
 	return vector
 }
-\`\`\`
+${tripleTick[1]}
 
 
 ## EXAMPLE 2
 FILES
 fib.ts
-\`\`\`typescript
+${tripleTick[0]}typescript
 
 const dfs = (root) => {
 	if (!root) return;
@@ -102,20 +106,20 @@ const fib = (n) => {
 	if (n < 1) return 1
 	return fib(n - 1) + fib(n - 2)
 }
-\`\`\`
+${tripleTick[1]}
 
 SELECTIONS
 fib.ts (lines 10:10)
-\`\`\`typescript
+${tripleTick[0]}typescript
 	return fib(n - 1) + fib(n - 2)
-\`\`\`
+${tripleTick[1]}
 
 INSTRUCTIONS
 memoize results
 
-ACCEPTED OUTPUT
+## ACCEPTED OUTPUT
 To implement memoization in your Fibonacci function, you can use a JavaScript object to store previously computed results. This will help avoid redundant calculations and improve performance. Here's how you can modify your function:
-\`\`\`typescript
+${tripleTick[0]}typescript
 // existing code...
 const fib = (n, memo = {}) => {
     if (n < 1) return 1;
@@ -123,7 +127,7 @@ const fib = (n, memo = {}) => {
     memo[n] = fib(n - 1, memo) + fib(n - 2, memo); // Store result in memo
     return memo[n];
 }
-\`\`\`
+${tripleTick[1]}
 Explanation:
 Memoization Object: A memo object is used to store the results of Fibonacci calculations for each n.
 Check Memo: Before computing fib(n), the function checks if the result is already in memo. If it is, it returns the stored result.
@@ -133,21 +137,21 @@ Store Result: After computing fib(n), the result is stored in memo for future re
 `
 
 
-type FileSelnLocal = FileSelection & { content: string }
-const stringifyFileSelection = ({ fileURI, selectionStr, range, content }: FileSelnLocal) => {
+type FileSelnLocal = { fileURI: URI, content: string }
+const stringifyFileSelection = ({ fileURI, content }: FileSelnLocal) => {
 	return `\
 ${fileURI.fsPath}
-\`\`\`${filenameToVscodeLanguage(fileURI.fsPath) ?? ''}
+${tripleTick[0]}${filenameToVscodeLanguage(fileURI.fsPath) ?? ''}
 ${content}
-\`\`\`
+${tripleTick[1]}
 `
 }
 const stringifyCodeSelection = ({ fileURI, selectionStr, range }: CodeSelection) => {
 	return `\
 ${fileURI.fsPath} (lines ${range.startLineNumber}:${range.endLineNumber})
-\`\`\`${filenameToVscodeLanguage(fileURI.fsPath) ?? ''}
+${tripleTick[0]}${filenameToVscodeLanguage(fileURI.fsPath) ?? ''}
 ${selectionStr}
-\`\`\`
+${tripleTick[1]}
 `
 }
 
@@ -183,7 +187,7 @@ export const chat_userMessage = async (instructions: string, selections: Staging
 
 
 
-export const fastApply_systemMessage = `\
+export const fastApply_rewritewholething_systemMessage = `\
 You are a coding assistant that re-writes an entire file to make a change. You are given the original file \`ORIGINAL_FILE\` and a change \`CHANGE\`.
 
 Directions:
@@ -195,25 +199,31 @@ Directions:
 
 
 
-export const fastApply_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
+export const fastApply_rewritewholething_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
 
 	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 
 	return `\
 ORIGINAL_FILE
-\`\`\`${language}
+${tripleTick[0]}${language}
 ${originalCode}
-\`\`\`
+${tripleTick[1]}
 
 CHANGE
-\`\`\`
+${tripleTick[0]}
 ${applyStr}
-\`\`\`
+${tripleTick[1]}
 
 INSTRUCTIONS
 Please finish writing the new file by applying the change to the original file. Return ONLY the completion of the file, without any explanation.
 `
 }
+
+
+
+
+
+
 
 
 
@@ -269,19 +279,19 @@ export const voidPrefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullF
 }
 
 
-export type FimTagsType = {
+export type QuickEditFimTagsType = {
 	preTag: string,
 	sufTag: string,
 	midTag: string
 }
-export const defaultFimTags: FimTagsType = {
+export const defaultQuickEditFimTags: QuickEditFimTagsType = {
 	preTag: 'ABOVE',
 	sufTag: 'BELOW',
 	midTag: 'SELECTION',
 }
 
 // this should probably be longer
-export const ctrlKStream_systemMessage = ({ fimTags: { preTag, midTag, sufTag } }: { fimTags: FimTagsType }) => {
+export const ctrlKStream_systemMessage = ({ quickEditFIMTags: { preTag, midTag, sufTag } }: { quickEditFIMTags: QuickEditFimTagsType }) => {
 	return `\
 You are a FIM (fill-in-the-middle) coding assistant. Your task is to fill in the middle SELECTION marked by <${midTag}> tags.
 
@@ -297,7 +307,7 @@ Instructions:
 }
 
 export const ctrlKStream_userMessage = ({ selection, prefix, suffix, instructions, fimTags, isOllamaFIM, language }: {
-	selection: string, prefix: string, suffix: string, instructions: string, fimTags: FimTagsType, language: string,
+	selection: string, prefix: string, suffix: string, instructions: string, fimTags: QuickEditFimTagsType, language: string,
 	isOllamaFIM: false, // we require this be false for clarity
 }) => {
 	const { preTag, sufTag, midTag } = fimTags
@@ -309,9 +319,9 @@ export const ctrlKStream_userMessage = ({ selection, prefix, suffix, instruction
 	return `\
 
 CURRENT SELECTION
-\`\`\`${language}
+${tripleTick[0]}${language}
 <${midTag}>${selection}</${midTag}>
-\`\`\`
+${tripleTick[1]}
 
 INSTRUCTIONS
 ${instructions}
@@ -319,8 +329,8 @@ ${instructions}
 <${preTag}>${prefix}</${preTag}>
 <${sufTag}>${suffix}</${sufTag}>
 
-Return only the completion block of code (of the form \`\`\`${language}
+Return only the completion block of code (of the form ${tripleTick[0]}${language}
 <${midTag}>...new code</${midTag}>
-\`\`\`).`
+${tripleTick[1]}).`
 };
 

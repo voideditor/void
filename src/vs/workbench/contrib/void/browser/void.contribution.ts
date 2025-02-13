@@ -33,3 +33,26 @@ import './media/void.css'
 
 // update (frontend part, also see platform/)
 import './voidUpdateActions.js'
+
+
+
+
+// ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
+
+// llmMessage
+import '../common/llmMessageService.js'
+
+// voidSettings
+import '../common/voidSettingsService.js'
+
+// refreshModel
+import '../common/refreshModelService.js'
+
+// metrics
+import '../common/metricsService.js'
+
+// updates
+import '../common/voidUpdateService.js'
+
+// tools
+import '../common/toolsService.js'

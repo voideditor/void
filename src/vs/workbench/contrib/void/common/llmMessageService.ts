@@ -4,13 +4,14 @@
  *--------------------------------------------------------------------------------------*/
 
 import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainSendLLMMessageParams, MainLLMMessageAbortParams, ServiceModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, MainModelListParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from './llmMessageTypes.js';
-import { IChannel } from '../../../base/parts/ipc/common/ipc.js';
-import { IMainProcessService } from '../../ipc/common/mainProcessService.js';
-import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
-import { generateUuid } from '../../../base/common/uuid.js';
-import { createDecorator } from '../../instantiation/common/instantiation.js';
-import { Event } from '../../../base/common/event.js';
-import { Disposable } from '../../../base/common/lifecycle.js';
+
+import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
+import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
+import { generateUuid } from '../../../../base/common/uuid.js';
+import { Event } from '../../../../base/common/event.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
 import { displayInfoOfProviderName, isFeatureNameDisabled } from './voidSettingsTypes.js';
 // import { INotificationService } from '../../notification/common/notification.js';

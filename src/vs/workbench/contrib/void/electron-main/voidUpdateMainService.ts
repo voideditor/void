@@ -3,10 +3,9 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { Disposable } from '../../../base/common/lifecycle.js';
-import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
-
-import { IProductService } from '../../product/common/productService.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
+import { IEnvironmentMainService } from '../../../../platform/environment/electron-main/environmentMainService.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
 
 import { IVoidUpdateService } from '../common/voidUpdateService.js';
 

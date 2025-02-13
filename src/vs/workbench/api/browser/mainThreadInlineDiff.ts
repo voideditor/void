@@ -14,6 +14,8 @@ import { WorkspaceEdit } from '../../../editor/common/languages.js';
 // import { IHistoryService } from '../../services/history/common/history.js';
 
 
+// VOID: THIS FILE IS OUTDATED!!!!!! No longer used anywhere.
+
 @extHostNamedCustomer(MainContext.MainThreadInlineDiff)
 export class MainThreadInlineDiff extends Disposable implements MainThreadInlineDiffShape {
 

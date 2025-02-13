@@ -6,7 +6,8 @@
 import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
-import { useAccessor } from '../util/services.js'
+import { useAccessor, useChatThreadsState, useChatThreadsStreamState } from '../util/services.js'
+import { ChatMessageLocation, } from '../../../searchAndReplaceService.js'
 import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
 
 
@@ -18,7 +19,17 @@ enum CopyButtonState {
 
 const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
-const CodeButtonsOnHover = ({ text }: { text: string }) => {
+
+
+type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: number }
+
+const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
+	return `${threadId}-${messageIdx}-${tokenIdx}`
+}
+
+
+
+const ApplyButtonsOnHover = ({ applyStr, applyBoxId }: { applyStr: string, applyBoxId: string }) => {
 	const accessor = useAccessor()
 
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
@@ -36,22 +47,24 @@ const CodeButtonsOnHover = ({ text }: { text: string }) => {
 	}, [copyButtonState])
 
 	const onCopy = useCallback(() => {
-		clipboardService.writeText(text)
+		clipboardService.writeText(applyStr)
 			.then(() => { setCopyButtonState(CopyButtonState.Copied) })
 			.catch(() => { setCopyButtonState(CopyButtonState.Error) })
-		metricsService.capture('Copy Code', { length: text.length }) // capture the length only
+		metricsService.capture('Copy Code', { length: applyStr.length }) // capture the length only
 
-	}, [metricsService, clipboardService, text])
+	}, [metricsService, clipboardService, applyStr])
 
 	const onApply = useCallback(() => {
-		inlineDiffService.startApplying({
-			from: 'Chat',
-			applyStr: text,
-		})
-		metricsService.capture('Apply Code', { length: text.length }) // capture the length only
-	}, [metricsService, inlineDiffService, text])
 
-	const isSingleLine = !text.includes('\n')
+		inlineDiffService.startApplying({
+			from: 'ClickApply',
+			type: 'searchReplace',
+			applyStr,
+		})
+		metricsService.capture('Apply Code', { length: applyStr.length }) // capture the length only
+	}, [metricsService, inlineDiffService, applyStr])
+
+	const isSingleLine = !applyStr.includes('\n')
 
 	return <>
 		<button
@@ -84,20 +97,30 @@ export const CodeSpan = ({ children, className }: { children: React.ReactNode, c
 	</code>
 }
 
-const RenderToken = ({ token, nested = false, noSpace = false }: { token: Token | string, nested?: boolean, noSpace?: boolean }): JSX.Element => {
+const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocation: chatLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: number }): JSX.Element => {
+
 
 	// deal with built-in tokens first (assume marked token)
 	const t = token as MarkedToken
+	console.log(t.raw)
 
 	if (t.type === "space") {
 		return <span>{t.raw}</span>
 	}
 
 	if (t.type === "code") {
+		const isCodeblockClosed = t.raw?.startsWith('```') && t.raw?.endsWith('```');
+
+		const applyBoxId = getApplyBoxId({
+			threadId: chatLocation!.threadId,
+			messageIdx: chatLocation!.messageIdx,
+			tokenIdx: tokenIdx,
+		})
+
 		return <BlockCode
 			initValue={t.text}
-			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]} // use vscode to detect language
-			buttonsOnHover={<CodeButtonsOnHover text={t.text} />}
+			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
+			buttonsOnHover={<ApplyButtonsOnHover applyStr={t.text} applyBoxId={applyBoxId} />}
 		/>
 	}
 
@@ -183,21 +206,21 @@ const RenderToken = ({ token, nested = false, noSpace = false }: { token: Token 
 	if (t.type === "paragraph") {
 		const contents = <>
 			{t.tokens.map((token, index) => (
-				<RenderToken key={index} token={token} />
+				<RenderToken key={index} token={token} tokenIdx={index} /> // assign a unique tokenId to nested components
 			))}
 		</>
-		if (nested)
-			return contents
-		return <p className={`${noSpace ? '' : 'my-4'} leading`}>{contents}</p>
+		if (nested) return contents
+
+		return <p className={`${noSpace ? '' : 'my-4'}`}>
+			{contents}
+		</p>
 	}
 
 	if (t.type === "html") {
 		return (
-			<pre className={`bg-4oid-bg-2 p-4 rounded-lg ${noSpace ? '' : 'my-4'} font-mono text-sm`}>
-				{`<html>`}
+			<p className={`${noSpace ? '' : 'my-4'}`}>
 				{t.raw}
-				{`</html>`}
-			</pre>
+			</p>
 		)
 	}
 
@@ -266,12 +289,12 @@ const RenderToken = ({ token, nested = false, noSpace = false }: { token: Token 
 	)
 }
 
-export const ChatMarkdownRender = ({ string, nested = false, noSpace }: { string: string, nested?: boolean, noSpace?: boolean }) => {
+export const ChatMarkdownRender = ({ string, nested = false, noSpace, chatMessageLocation }: { string: string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation }) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
-				<RenderToken key={index} token={token} nested={nested} noSpace={noSpace} />
+				<RenderToken key={index} token={token} nested={nested} noSpace={noSpace} chatMessageLocation={chatMessageLocation} tokenIdx={index} />
 			))}
 		</>
 	)

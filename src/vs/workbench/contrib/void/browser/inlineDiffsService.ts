@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultFimTags, fastApply_searchreplace_systemMessage, fastApply_searchreplace_userMessage } from './prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultFimTags } from './prompt/prompts.js';
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -1207,214 +1207,214 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		return null
 	}
 
-	private _generateSearchAndReplaceBlocks({ filename, applyStr }: { filename: URI, applyStr: string }): DiffZone | undefined {
+	// private _generateSearchAndReplaceBlocks({ filename, applyStr }: { filename: URI, applyStr: string }): DiffZone | undefined {
 
-		// call LLM to generate search and replace blocks (outputs something like [{search: 'this is my code', replace: 'this is m'}, ... ])
+	// 	// call LLM to generate search and replace blocks (outputs something like [{search: 'this is my code', replace: 'this is m'}, ... ])
 
-		// 1a output search block
+	// 	// 1a output search block
 
-		let uri: URI
+	// 	let uri: URI
 
-		const uri_ = this._getActiveEditorURI()
-		if (!uri_) return
-		uri = uri_
+	// 	const uri_ = this._getActiveEditorURI()
+	// 	if (!uri_) return
+	// 	uri = uri_
 
-		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
-		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
+	// 	// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
+	// 	this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
 
-		// in ctrl+L the start and end lines are the full document
+	// 	// in ctrl+L the start and end lines are the full document
 
-		const numLines = this._getNumLines(uri)
-		if (numLines === null) return
+	// 	const numLines = this._getNumLines(uri)
+	// 	if (numLines === null) return
 
-		let startLine: number
-		let endLine: number
+	// 	let startLine: number
+	// 	let endLine: number
 
-		startLine = 1
-		endLine = numLines
+	// 	startLine = 1
+	// 	endLine = numLines
 
-		const currentFileStr = this._readURI(uri)
-		if (currentFileStr === null) return
-		const originalCode = currentFileStr.split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
-
-
-
-		// 1b find the start and end line that the search block lives on (if can't find it, retry 1a)
+	// 	const currentFileStr = this._readURI(uri)
+	// 	if (currentFileStr === null) return
+	// 	const originalCode = currentFileStr.split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
 
 
+
+	// 	// 1b find the start and end line that the search block lives on (if can't find it, retry 1a)
 
 
 
 
 
-		let streamRequestIdRef: { current: string | null } = { current: null }
 
 
-		// add to history
-		const { onFinishEdit } = this._addToHistory(uri)
-
-		// __TODO__ let users customize modelFimTags
-		const isOllamaFIM = false // this._voidSettingsService.state.modelSelectionOfFeature['Ctrl+K']?.providerName === 'ollama'
-		const modelFimTags = defaultFimTags
-
-		const adding: Omit<DiffZone, 'diffareaid'> = {
-			type: 'DiffZone',
-			originalCode,
-			startLine,
-			endLine,
-			_URI: uri,
-			_streamState: {
-				isStreaming: true,
-				streamRequestIdRef,
-				line: startLine,
-			},
-			_diffOfId: {}, // added later
-			_removeStylesFns: new Set(),
-		}
-		const diffZone = this._addDiffArea(adding)
-		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-		this._onDidAddOrDeleteDiffZones.fire({ uri })
-
-		if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
-
-			ctrlKZone._linkedStreamingDiffZone = diffZone.diffareaid
-		}
-
-		// now handle messages
-		let messages: LLMChatMessage[]
-
-		if (from === 'Chat') {
-			const userContent = fastApply_searchreplace_userMessage({ originalCode, applyStr: opts.applyStr, uri })
-			messages = [
-				{ role: 'system', content: fastApply_rewritewholething_systemMessage, },
-				{ role: 'user', content: userContent, }
-			]
-		}
-		else if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
-			const { _mountInfo } = ctrlKZone
-			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
-
-			// __TODO__ use Ollama's FIM api, if (isOllamaFIM) {...} else:
-			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			// if (isOllamaFIM) {
-			// 	messages = {
-			// 		type: 'ollamaFIM',
-			// 		prefix,
-			// 		suffix,
-			// 	}
-
-			// }
-			// else {
-			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
-			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: modelFimTags, language })
-			// type: 'messages',
-			messages = [
-				{ role: 'system', content: ctrlKStream_systemMessage({ fimTags: modelFimTags }), },
-				{ role: 'user', content: userContent, }
-			]
-			// }
-		}
-		else { throw new Error(`featureName ${from} is invalid`) }
+	// 	let streamRequestIdRef: { current: string | null } = { current: null }
 
 
-		const onDone = (hadError: boolean) => {
-			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+	// 	// add to history
+	// 	const { onFinishEdit } = this._addToHistory(uri)
 
-			if (from === 'QuickEdit') {
-				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
+	// 	// __TODO__ let users customize modelFimTags
+	// 	const isOllamaFIM = false // this._voidSettingsService.state.modelSelectionOfFeature['Ctrl+K']?.providerName === 'ollama'
+	// 	const modelFimTags = defaultFimTags
 
-				ctrlKZone._linkedStreamingDiffZone = null
-				this._deleteCtrlKZone(ctrlKZone)
-			}
-			this._refreshStylesAndDiffsInURI(uri)
-			onFinishEdit()
+	// 	const adding: Omit<DiffZone, 'diffareaid'> = {
+	// 		type: 'DiffZone',
+	// 		originalCode,
+	// 		startLine,
+	// 		endLine,
+	// 		_URI: uri,
+	// 		_streamState: {
+	// 			isStreaming: true,
+	// 			streamRequestIdRef,
+	// 			line: startLine,
+	// 		},
+	// 		_diffOfId: {}, // added later
+	// 		_removeStylesFns: new Set(),
+	// 	}
+	// 	const diffZone = this._addDiffArea(adding)
+	// 	this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+	// 	this._onDidAddOrDeleteDiffZones.fire({ uri })
 
-			// if had error, revert!
-			if (hadError) {
-				this._undoHistory(diffZone._URI)
-			}
-		}
+	// 	if (from === 'QuickEdit') {
+	// 		const { diffareaid } = opts
+	// 		const ctrlKZone = this.diffAreaOfId[diffareaid]
+	// 		if (ctrlKZone.type !== 'CtrlKZone') return
 
-		// refresh now in case onText takes a while to get 1st message
-		this._refreshStylesAndDiffsInURI(uri)
+	// 		ctrlKZone._linkedStreamingDiffZone = diffZone.diffareaid
+	// 	}
+
+	// 	// now handle messages
+	// 	let messages: LLMChatMessage[]
+
+	// 	if (from === 'Chat') {
+	// 		const userContent = fastApply_searchreplace_userMessage({ originalCode, applyStr: opts.applyStr, uri })
+	// 		messages = [
+	// 			{ role: 'system', content: fastApply_rewritewholething_systemMessage, },
+	// 			{ role: 'user', content: userContent, }
+	// 		]
+	// 	}
+	// 	else if (from === 'QuickEdit') {
+	// 		const { diffareaid } = opts
+	// 		const ctrlKZone = this.diffAreaOfId[diffareaid]
+	// 		if (ctrlKZone.type !== 'CtrlKZone') return
+	// 		const { _mountInfo } = ctrlKZone
+	// 		const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
+
+	// 		// __TODO__ use Ollama's FIM api, if (isOllamaFIM) {...} else:
+	// 		const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
+	// 		// if (isOllamaFIM) {
+	// 		// 	messages = {
+	// 		// 		type: 'ollamaFIM',
+	// 		// 		prefix,
+	// 		// 		suffix,
+	// 		// 	}
+
+	// 		// }
+	// 		// else {
+	// 		const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
+	// 		const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: modelFimTags, language })
+	// 		// type: 'messages',
+	// 		messages = [
+	// 			{ role: 'system', content: ctrlKStream_systemMessage({ fimTags: modelFimTags }), },
+	// 			{ role: 'user', content: userContent, }
+	// 		]
+	// 		// }
+	// 	}
+	// 	else { throw new Error(`featureName ${from} is invalid`) }
 
 
-		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
-			if (from === 'QuickEdit') {
-				if (isOllamaFIM) return fullText
-				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: modelFimTags.midTag })
-			}
-			else if (from === 'Chat') {
-				return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
-			}
-			throw 1
-		}
+	// 	const onDone = (hadError: boolean) => {
+	// 		diffZone._streamState = { isStreaming: false, }
+	// 		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 
-		const latestStreamInfo = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+	// 		if (from === 'QuickEdit') {
+	// 			const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
+
+	// 			ctrlKZone._linkedStreamingDiffZone = null
+	// 			this._deleteCtrlKZone(ctrlKZone)
+	// 		}
+	// 		this._refreshStylesAndDiffsInURI(uri)
+	// 		onFinishEdit()
+
+	// 		// if had error, revert!
+	// 		if (hadError) {
+	// 			this._undoHistory(diffZone._URI)
+	// 		}
+	// 	}
+
+	// 	// refresh now in case onText takes a while to get 1st message
+	// 	this._refreshStylesAndDiffsInURI(uri)
 
 
-		// state used in onText:
-		let fullText = ''
-		let prevIgnoredSuffix = ''
+	// 	const extractText = (fullText: string, recentlyAddedTextLen: number) => {
+	// 		if (from === 'QuickEdit') {
+	// 			if (isOllamaFIM) return fullText
+	// 			return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: modelFimTags.midTag })
+	// 		}
+	// 		else if (from === 'Chat') {
+	// 			return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
+	// 		}
+	// 		throw 1
+	// 	}
 
-		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-			messagesType: 'chatMessages',
-			useProviderFor: opts.from === 'Chat' ? 'FastApply' : 'Ctrl+K',
-			logging: { loggingName: `startApplying - ${from}` },
-			messages,
-			onText: ({ newText: newText_ }) => {
+	// 	const latestStreamInfo = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 
-				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
-				fullText += prevIgnoredSuffix + newText
 
-				const [text, deltaText, ignoredSuffix] = extractText(fullText, newText.length)
-				this._writeStreamedDiffZoneLLMText(diffZone, text, deltaText, latestStreamInfo)
-				this._refreshStylesAndDiffsInURI(uri)
+	// 	// state used in onText:
+	// 	let fullText = ''
+	// 	let prevIgnoredSuffix = ''
 
-				prevIgnoredSuffix = ignoredSuffix
-			},
-			onFinalMessage: ({ fullText }) => {
-				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
-				// at the end, re-write whole thing to make sure no sync errors
-				const [text, _] = extractText(fullText, 0)
-				this._writeText(uri, text,
-					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-					{ shouldRealignDiffAreas: true }
-				)
-				onDone(false)
-			},
-			onError: (e) => {
-				const details = errorDetails(e.fullError)
-				this._notificationService.notify({
-					severity: Severity.Warning,
-					message: `Void Error: ${e.message}`,
-					actions: {
-						secondary: [{
-							id: 'void.onerror.opensettings',
-							enabled: true,
-							label: 'Open Void settings',
-							tooltip: '',
-							class: undefined,
-							run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
-						}]
-					},
-					source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}` : undefined
-				})
-				onDone(true)
-			},
+	// 	streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+	// 		messagesType: 'chatMessages',
+	// 		useProviderFor: opts.from === 'Chat' ? 'FastApply' : 'Ctrl+K',
+	// 		logging: { loggingName: `startApplying - ${from}` },
+	// 		messages,
+	// 		onText: ({ newText: newText_ }) => {
 
-		})
+	// 			const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
+	// 			fullText += prevIgnoredSuffix + newText
 
-		return diffZone
+	// 			const [text, deltaText, ignoredSuffix] = extractText(fullText, newText.length)
+	// 			this._writeStreamedDiffZoneLLMText(diffZone, text, deltaText, latestStreamInfo)
+	// 			this._refreshStylesAndDiffsInURI(uri)
 
-	}
+	// 			prevIgnoredSuffix = ignoredSuffix
+	// 		},
+	// 		onFinalMessage: ({ fullText }) => {
+	// 			// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
+	// 			// at the end, re-write whole thing to make sure no sync errors
+	// 			const [text, _] = extractText(fullText, 0)
+	// 			this._writeText(uri, text,
+	// 				{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+	// 				{ shouldRealignDiffAreas: true }
+	// 			)
+	// 			onDone(false)
+	// 		},
+	// 		onError: (e) => {
+	// 			const details = errorDetails(e.fullError)
+	// 			this._notificationService.notify({
+	// 				severity: Severity.Warning,
+	// 				message: `Void Error: ${e.message}`,
+	// 				actions: {
+	// 					secondary: [{
+	// 						id: 'void.onerror.opensettings',
+	// 						enabled: true,
+	// 						label: 'Open Void settings',
+	// 						tooltip: '',
+	// 						class: undefined,
+	// 						run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
+	// 					}]
+	// 				},
+	// 				source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}` : undefined
+	// 			})
+	// 			onDone(true)
+	// 		},
+
+	// 	})
+
+	// 	return diffZone
+
+	// }
 
 
 

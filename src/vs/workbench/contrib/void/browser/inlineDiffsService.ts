@@ -1264,88 +1264,19 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 		let currStreamingBlockNum = 0
 		let oldBlocks: ExtractedSearchReplaceBlock[] = []
 
-		const onText = ({ newText, fullText }: { newText: string, fullText: string }) => {
-
-			const blocks = extractSearchReplaceBlocks(fullText, { ORIGINAL, DIVIDER, FINAL })
-
-			// find block.orig in fileContents and return its range in file
-			const findTextInCode = (text: string, fileContents: string) => {
-				const idx = fileContents.indexOf(text)
-				if (idx === -1) return 'Not found' as const
-				const lastIdx = fileContents.lastIndexOf(text)
-				if (lastIdx !== idx) return 'Not unique' as const
-				const startLine = fileContents.substring(0, idx).split('\n').length
-				const numLines = text.split('\n').length
-				const endLine = startLine + numLines - 1
-				return [startLine, endLine]
-			}
-
-
-			for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
-				const block = blocks[blockNum]
-
-				if (block.state === 'done')
-					currStreamingBlockNum = blockNum
-
-				if (block.state === 'writingOriginal') // must be done writing original
-					continue
-
-				let deltaFinalText: string
-				// if should add new diffarea
-				if (!(blockNum in diffareaidOfBlockNum)) {
-					const foundInCode = findTextInCode(block.orig, fileContents)
-					if (typeof foundInCode === 'string') {
-						console.log('NOT FOUND IN CODE!!!!', foundInCode)
-						break
-					}
-					const [startLine, endLine] = foundInCode
-					console.log('FOUND!', foundInCode)
-
-					console.log('ADDING', blockNum)
-					const adding: Omit<DiffZone, 'diffareaid'> = {
-						type: 'DiffZone',
-						originalCode: block.orig,
-						startLine,
-						endLine,
-						_URI: uri,
-						_streamState: {
-							isStreaming: true,
-							streamRequestIdRef,
-							line: startLine,
-						},
-						_diffOfId: {}, // added later
-						_removeStylesFns: new Set(),
-					}
-					const diffZone = this._addDiffArea(adding)
-					this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-					this._onDidAddOrDeleteDiffZones.fire({ uri })
-
-					diffareaidOfBlockNum.push(diffZone.diffareaid)
-
-					latestStreamLocationMutable = { line: diffZone.endLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-
-					deltaFinalText = block.final
-				}
-				else {
-					deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
-				}
-
-				console.log('FULLTEXT', block.final)
-				oldBlocks = blocks
-
-				// write new text to diffarea
-				const diffareaid = diffareaidOfBlockNum[blockNum]
-				const diffZone = this.diffAreaOfId[diffareaid]
-				if (diffZone?.type !== 'DiffZone') continue
-
-
-				if (!latestStreamLocationMutable) continue
-				this._writeStreamedDiffZoneLLMText(diffZone, block.final, deltaFinalText, latestStreamLocationMutable)
-			} // end for
-
-			this._refreshStylesAndDiffsInURI(uri)
+		// find block.orig in fileContents and return its range in file
+		const findTextInCode = (text: string, fileContents: string) => {
+			const idx = fileContents.indexOf(text)
+			if (idx === -1) return 'Not found' as const
+			const lastIdx = fileContents.lastIndexOf(text)
+			if (lastIdx !== idx) return 'Not unique' as const
+			const startLine = fileContents.substring(0, idx).split('\n').length
+			const numLines = text.split('\n').length
+			const endLine = startLine + numLines - 1
+			return [startLine, endLine]
 		}
 
+		const { onFinishEdit } = this._addToHistory(uri)
 
 
 		const onDone = (hadError: boolean) => {
@@ -1363,7 +1294,6 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 
 
 
-		const { onFinishEdit } = this._addToHistory(uri)
 
 
 		// TODO turn this into a service and provide it
@@ -1372,14 +1302,87 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 			useProviderFor: 'FastApply',
 			logging: { loggingName: `generateSearchAndReplace` },
 			messages,
-			onText: ({ newText, fullText }) => {
-				onText({ newText, fullText })
+			onText: ({ fullText }) => {
+				const blocks = extractSearchReplaceBlocks(fullText, { ORIGINAL, DIVIDER, FINAL })
+
+				for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
+					const block = blocks[blockNum]
+
+					if (block.state === 'done')
+						currStreamingBlockNum = blockNum
+
+					if (block.state === 'writingOriginal') // must be done writing original
+						continue
+
+					// if should add new diffarea
+					if (!(blockNum in diffareaidOfBlockNum)) {
+						const foundInCode = findTextInCode(block.orig, fileContents)
+						if (typeof foundInCode === 'string') {
+							console.log('NOT FOUND IN CODE!!!!', foundInCode)
+							continue
+						}
+						const [startLine, endLine] = foundInCode
+						console.log('FOUND!', foundInCode)
+
+						console.log('ADDING', blockNum)
+						const adding: Omit<DiffZone, 'diffareaid'> = {
+							type: 'DiffZone',
+							originalCode: block.orig,
+							startLine,
+							endLine,
+							_URI: uri,
+							_streamState: {
+								isStreaming: true,
+								streamRequestIdRef,
+								line: startLine,
+							},
+							_diffOfId: {}, // added later
+							_removeStylesFns: new Set(),
+						}
+						const diffZone = this._addDiffArea(adding)
+						this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+						this._onDidAddOrDeleteDiffZones.fire({ uri })
+
+						diffareaidOfBlockNum.push(diffZone.diffareaid)
+
+						latestStreamLocationMutable = { line: diffZone.endLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+
+
+					}
+					const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
+					oldBlocks = blocks
+
+					// write new text to diffarea
+					const diffareaid = diffareaidOfBlockNum[blockNum]
+					const diffZone = this.diffAreaOfId[diffareaid]
+					if (diffZone?.type !== 'DiffZone') continue
+
+
+					if (!latestStreamLocationMutable) continue
+					this._writeStreamedDiffZoneLLMText(diffZone, block.final, deltaFinalText, latestStreamLocationMutable)
+				} // end for
+
+				this._refreshStylesAndDiffsInURI(uri)
 			},
-			onFinalMessage: ({ fullText }) => {
+			onFinalMessage: async ({ fullText }) => {
+
 				// 1. wait 500ms and fix lint errors - call lint error workflow
 				// (update react state to say "Fixing errors")
-				onDone(false)
+				const blocks = extractSearchReplaceBlocks(fullText, { ORIGINAL, DIVIDER, FINAL })
+				console.log('FULLTEXT', fullText, blocks)
 
+				for (let blockNum = 0; blockNum < blocks.length; blockNum += 1) {
+					const block = blocks[blockNum]
+					const diffareaid = diffareaidOfBlockNum[blockNum]
+					const diffZone = this.diffAreaOfId[diffareaid]
+					if (diffZone?.type !== 'DiffZone') continue
+
+					await this._writeText(uri, block.final,
+						{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+						{ shouldRealignDiffAreas: true }
+					)
+				}
+				onDone(false)
 			},
 			onError: (e) => {
 				console.log('ERROR', e);

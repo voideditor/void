@@ -21,7 +21,7 @@ const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
 
 
-type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: number }
+type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }
 
 const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
 	return `${threadId}-${messageIdx}-${tokenIdx}`
@@ -97,7 +97,7 @@ export const CodeSpan = ({ children, className }: { children: React.ReactNode, c
 	</code>
 }
 
-const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocation: chatLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: number }): JSX.Element => {
+const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocation: chatLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
 
 
 	// deal with built-in tokens first (assume marked token)
@@ -206,7 +206,7 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocati
 	if (t.type === "paragraph") {
 		const contents = <>
 			{t.tokens.map((token, index) => (
-				<RenderToken key={index} token={token} tokenIdx={index} /> // assign a unique tokenId to nested components
+				<RenderToken key={index} token={token} tokenIdx={`${tokenIdx ? `${tokenIdx}-` : ''}${index}`} /> // assign a unique tokenId to nested components
 			))}
 		</>
 		if (nested) return contents
@@ -294,7 +294,7 @@ export const ChatMarkdownRender = ({ string, nested = false, noSpace, chatMessag
 	return (
 		<>
 			{tokens.map((token, index) => (
-				<RenderToken key={index} token={token} nested={nested} noSpace={noSpace} chatMessageLocation={chatMessageLocation} tokenIdx={index} />
+				<RenderToken key={index} token={token} nested={nested} noSpace={noSpace} chatMessageLocation={chatMessageLocation} tokenIdx={index + ''} />
 			))}
 		</>
 	)

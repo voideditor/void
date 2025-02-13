@@ -1287,7 +1287,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 				if (block.state === 'done')
 					currStreamingBlockNum = blockNum
 
-				if (block.state === 'writingOriginal')
+				if (block.state === 'writingOriginal') // must be done writing original
 					continue
 
 				let deltaFinalText: string
@@ -1353,16 +1353,12 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 				const diffareaid = diffareaidOfBlockNum[blockNum]
 				const diffZone = this.diffAreaOfId[diffareaid]
 				if (diffZone?.type !== 'DiffZone') continue
-
 				diffZone._streamState = { isStreaming: false, }
 				this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-
-				this._refreshStylesAndDiffsInURI(uri)
-				onFinishEdit()
-
-				// if had error, revert!
-				if (hadError) this._undoHistory(diffZone._URI)
 			}
+			this._refreshStylesAndDiffsInURI(uri)
+			if (hadError) this._undoHistory(uri)
+			onFinishEdit()
 		}
 
 

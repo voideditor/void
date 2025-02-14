@@ -7,44 +7,216 @@
 import { VoidSettingsState } from './voidSettingsService.js'
 
 
-export type VoidModelInfo = {
+
+// developer info used in sendLLMMessage
+type VoidModelDeveloperInfo = {
+	supportsSystemMessage: 'system' | 'developer' | false, // if null, we will just do a string of system message
+	supportsTools: boolean, // we will just do a string of tool use if it doesn't support
+	supportsAutocompleteFIM: boolean, // we will just do a description of FIM if it doens't support <|fim_hole|>
+	supportsStreaming: boolean, // (o1 does NOT) we will just dump the final result if doesn't support it
+	maxTokens: number, // required, DEFAULT is Infinity
+}
+
+export type VoidModelInfo = { // <-- STATEFUL
 	modelName: string,
 	isDefault: boolean, // whether or not it's a default for its provider
 	isHidden: boolean, // whether or not the user is hiding it (switched off)
 	isAutodetected?: boolean, // whether the model was autodetected by polling
-}
+} & VoidModelDeveloperInfo
 
-// creates `modelInfo` from `modelNames`
-export const modelInfoOfDefaultModelNames = (defaultModelNames: string[], options?: { isAutodetected: true, existingModels: VoidModelInfo[] }): VoidModelInfo[] => {
 
-	const { isAutodetected, existingModels } = options ?? {}
 
-	if (!existingModels) { // default settings
 
-		return defaultModelNames.map((modelName, i) => ({
-			modelName,
-			isDefault: true,
-			isAutodetected: isAutodetected,
-			isHidden: defaultModelNames.length >= 10 // hide all models if there are a ton of them, and make user enable them individually
-		}))
 
-	} else { // settings if there are existing models (keep existing `isHidden` property)
 
-		const existingModelsMap: Record<string, VoidModelInfo> = {}
-		for (const existingModel of existingModels) {
-			existingModelsMap[existingModel.modelName] = existingModel
-		}
 
-		return defaultModelNames.map((modelName, i) => ({
-			modelName,
-			isDefault: true,
-			isAutodetected: isAutodetected,
-			isHidden: !!existingModelsMap[modelName]?.isHidden,
-		}))
 
+export const recognizedModels = [
+	// chat
+	'OpenAI 4o',
+	'Anthropic Claude',
+	'Llama 3.x',
+	'Deepseek Chat', // deepseek coder v2 is now merged into chat (V3) https://api-docs.deepseek.com/updates#deepseek-coder--deepseek-chat-upgraded-to-deepseek-v25-model
+	// 'xAI Grok',
+	// 'Google Gemini, Gemma',
+	// 'Microsoft Phi4',
+
+
+	// coding (autocomplete)
+	'Alibaba Qwen2.5 Coder Instruct', // we recommend this over Qwen2.5
+	'Mistral Codestral',
+
+	// thinking
+	'OpenAI o1, o3',
+	'Deepseek R1',
+
+	// general
+	// 'Mixtral 8x7b'
+	// 'Qwen2.5',
+
+] as const
+
+
+
+
+type RecognizedModel = (typeof recognizedModels)[number] | '<GENERAL>'
+
+
+// const modelCapabilities: { [recognizedModel in RecognizedModel]: ({ }) => string } = {
+// 	'OpenAI 4o': {
+// 		template: ({ prefix, suffix, }: { prefix: string; suffix: string; }) => `\
+// `
+// 	}
+// }
+
+export function getRecognizedModel(modelName: string): RecognizedModel {
+	const lower = modelName.toLowerCase();
+
+	if (lower.includes('gpt-4o')) {
+		return 'OpenAI 4o';
+	}
+	if (lower.includes('claude')) {
+		return 'Anthropic Claude';
+	}
+	if (lower.includes('llama')) {
+		return 'Llama 3.x';
+	}
+	if (lower.includes('qwen2.5-coder')) {
+		return 'Alibaba Qwen2.5 Coder Instruct';
+	}
+	if (lower.includes('mistral')) {
+		return 'Mistral Codestral';
+	}
+	// Check for "o1" or "o3"
+	if (/\bo1\b/.test(lower) || /\bo3\b/.test(lower)) {
+		return 'OpenAI o1, o3';
+	}
+	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) {
+		return 'Deepseek R1';
 	}
 
+	// Fallback:
+	return '<GENERAL>';
 }
+
+
+
+export const developerInfoOfRecognizedModel = (modelName: string) => {
+	const devInfo: { [recognizedModel in RecognizedModel]: VoidModelDeveloperInfo } = {
+		'OpenAI 4o': {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: false,
+			maxTokens: 4096,
+		},
+
+		'Anthropic Claude': {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: false,
+			maxTokens: 4096,
+		},
+
+		'Llama 3.x': {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: false,
+			maxTokens: 4096,
+		},
+
+		'Deepseek Chat': {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: false,
+			maxTokens: 4096,
+		},
+
+		'Alibaba Qwen2.5 Coder Instruct': {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: false,
+			maxTokens: 4096,
+		},
+
+		'Mistral Codestral': {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: false,
+			maxTokens: 4096,
+		},
+
+		'OpenAI o1, o3': {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: false,
+			maxTokens: 4096,
+		},
+
+		'Deepseek R1': {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: false,
+			maxTokens: 4096,
+		},
+
+		'<GENERAL>': {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: false,
+			maxTokens: 4096,
+		},
+	}
+
+
+	const modelName_ = getRecognizedModel(modelName)
+	return devInfo[modelName_]
+}
+
+
+
+
+
+
+// creates `modelInfo` from `modelNames`
+export const modelInfoOfDefaultModelNames = (defaultModelNames: string[]): VoidModelInfo[] => {
+	return defaultModelNames.map((modelName, i) => ({
+		modelName,
+		isDefault: true,
+		isAutodetected: false,
+		isHidden: defaultModelNames.length >= 10, // hide all models if there are a ton of them, and make user enable them individually
+		...developerInfoOfRecognizedModel(modelName)
+	}))
+}
+
+export const modelInfoOfAutodetectedModelNames = (defaultModelNames: string[], options: { existingModels: VoidModelInfo[] }) => {
+	const { existingModels } = options
+
+	const existingModelsMap: Record<string, VoidModelInfo> = {}
+	for (const existingModel of existingModels) {
+		existingModelsMap[existingModel.modelName] = existingModel
+	}
+
+	return defaultModelNames.map((modelName, i) => ({
+		modelName,
+		isDefault: true,
+		isAutodetected: true,
+		isHidden: !!existingModelsMap[modelName]?.isHidden,
+		...developerInfoOfRecognizedModel(modelName)
+	}))
+}
+
+
+
+
 
 // https://docs.anthropic.com/en/docs/about-claude/models
 export const defaultAnthropicModels = modelInfoOfDefaultModelNames([
@@ -530,77 +702,3 @@ export const globalSettingNames = Object.keys(defaultGlobalSettings) as GlobalSe
 
 
 
-
-
-
-export const recognizedModels = [
-
-	// chat
-	'OpenAI 4o',
-	'Anthropic Claude',
-	'Llama 3.x',
-	'Deepseek Chat', // deepseek coder v2 is now merged into chat (V3) https://api-docs.deepseek.com/updates#deepseek-coder--deepseek-chat-upgraded-to-deepseek-v25-model
-	// 'xAI Grok',
-	// 'Google Gemini, Gemma',
-	// 'Microsoft Phi4',
-
-
-	// coding (autocomplete)
-	'Alibaba Qwen2.5 Coder Instruct', // we recommend this over Qwen2.5
-	'Mistral Codestral',
-
-	// thinking
-	'OpenAI o1, o3',
-	'Deepseek R1',
-
-	// general
-	'<General>'
-	// 'Mixtral 8x7b'
-	// 'Qwen2.5',
-
-] as const
-
-
-
-
-type RecognizedModel = (typeof recognizedModels)[number]
-
-
-// const modelCapabilities: { [recognizedModel in RecognizedModel]: ({ }) => string } = {
-// 	'OpenAI 4o': {
-// 		template: ({ prefix, suffix, }: { prefix: string; suffix: string; }) => `\
-// `
-// 	}
-// }
-
-export function getRecognizedModel(modelName: string): RecognizedModel {
-	const lower = modelName.toLowerCase();
-
-	if (lower.includes('gpt-4o')) {
-		return 'OpenAI 4o';
-	}
-	if (lower.includes('claude')) {
-		return 'Anthropic Claude';
-	}
-	if (lower.includes('llama')) {
-		return 'Llama 3.x';
-	}
-	if (lower.includes('qwen2.5-coder')) {
-		return 'Alibaba Qwen2.5 Coder Instruct';
-	}
-	if (lower.includes('mistral')) {
-		return 'Mistral Codestral';
-	}
-	// Check for "o1" or "o3"
-	if (/\bo1\b/.test(lower) || /\bo3\b/.test(lower)) {
-		return 'OpenAI o1, o3';
-	}
-	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) {
-		return 'Deepseek R1';
-	}
-
-
-
-	// Fallback:
-	return '<General>';
-}

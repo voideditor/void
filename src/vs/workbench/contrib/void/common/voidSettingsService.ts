@@ -11,7 +11,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultModelNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, displayInfoOfProviderName, defaultProviderSettings } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, displayInfoOfProviderName, defaultProviderSettings, developerInfoOfRecognizedModel, modelInfoOfAutodetectedModelNames } from './voidSettingsTypes.js';
 
 
 const STORAGE_KEY = 'void.settingsServiceStorage'
@@ -289,27 +289,26 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 
 
-	setAutodetectedModels(providerName: ProviderName, newDefaultModelNames: string[], logging: object) {
+	setAutodetectedModels(providerName: ProviderName, autodetectedModelNames: string[], logging: object) {
 
 		const { models } = this.state.settingsOfProvider[providerName]
-
 		const oldModelNames = models.map(m => m.modelName)
 
-		const newDefaultModelInfo = modelInfoOfDefaultModelNames(newDefaultModelNames, { isAutodetected: true, existingModels: models })
-		const newModelInfo = [
-			...newDefaultModelInfo, // swap out all the default models for the new default models
-			...models.filter(m => !m.isDefault), // keep any non-defaul (custom) models
+
+		const newDefaultModels = modelInfoOfAutodetectedModelNames(autodetectedModelNames, { existingModels: models })
+		const newModels = [
+			...newDefaultModels, // swap out all the default models for the new default models
+			...models.filter(m => !m.isDefault), // keep any non-default (custom) models
 		]
 
-
-		this.setSettingOfProvider(providerName, 'models', newModelInfo)
+		this.setSettingOfProvider(providerName, 'models', newModels)
 
 		// if the models changed, log it
-		const new_names = newModelInfo.map(m => m.modelName)
+		const new_names = newModels.map(m => m.modelName)
 		if (!(oldModelNames.length === new_names.length
 			&& oldModelNames.every((_, i) => oldModelNames[i] === new_names[i]))
 		) {
-			this._metricsService.capture('Autodetect Models', { providerName, newModels: newModelInfo, ...logging })
+			this._metricsService.capture('Autodetect Models', { providerName, newModels: newModels, ...logging })
 		}
 	}
 	toggleModelHidden(providerName: ProviderName, modelName: string) {
@@ -335,7 +334,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		if (existingIdx !== -1) return // if exists, do nothing
 		const newModels = [
 			...models,
-			{ modelName, isDefault: false, isHidden: false }
+			{ ...developerInfoOfRecognizedModel(modelName), modelName, isDefault: false, isHidden: false }
 		]
 		this.setSettingOfProvider(providerName, 'models', newModels)
 

@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, X } from 'lucide-react';
-import { errorDetails } from '../../../../../../../platform/void/common/llmMessageTypes.js';
+import { errorDetails } from '../../../../../../../workbench/contrib/void/common/llmMessageTypes.js';
 import { useSettingsState } from '../util/services.js';
 
 

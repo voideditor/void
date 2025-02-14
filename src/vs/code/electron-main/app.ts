@@ -121,11 +121,11 @@ import { normalizeNFC } from '../../base/common/normalization.js';
 import { ICSSDevelopmentService, CSSDevelopmentService } from '../../platform/cssDev/node/cssDevService.js';
 import { ExtensionSignatureVerificationService, IExtensionSignatureVerificationService } from '../../platform/extensionManagement/node/extensionSignatureVerificationService.js';
 
-import { LLMMessageChannel } from '../../platform/void/electron-main/llmMessageChannel.js';
-import { IMetricsService } from '../../platform/void/common/metricsService.js';
-import { MetricsMainService } from '../../platform/void/electron-main/metricsMainService.js';
-import { VoidMainUpdateService } from '../../platform/void/electron-main/voidUpdateMainService.js';
-import { IVoidUpdateService } from '../../platform/void/common/voidUpdateService.js';
+import { LLMMessageChannel } from '../../workbench/contrib/void/electron-main/llmMessageChannel.js';
+import { IMetricsService } from '../../workbench/contrib/void/common/metricsService.js';
+import { MetricsMainService } from '../../workbench/contrib/void/electron-main/metricsMainService.js';
+import { VoidMainUpdateService } from '../../workbench/contrib/void/electron-main/voidUpdateMainService.js';
+import { IVoidUpdateService } from '../../workbench/contrib/void/common/voidUpdateService.js';
 /**
  * The main VS Code application. There will only ever be one instance,
  * even if the user starts many instances (e.g. from the command line).

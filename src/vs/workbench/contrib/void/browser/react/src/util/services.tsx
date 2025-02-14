@@ -5,14 +5,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { ThreadStreamState, ThreadsState } from '../../../chatThreadService.js'
-import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
-import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
+import { VoidSettingsState } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
 import { VoidUriState } from '../../../voidUriStateService.js';
 import { VoidQuickEditState } from '../../../quickEditStateService.js'
-import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
+import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
 
 
 
@@ -25,9 +25,9 @@ import { IContextViewService, IContextMenuService } from '../../../../../../../p
 import { IFileService } from '../../../../../../../platform/files/common/files.js';
 import { IHoverService } from '../../../../../../../platform/hover/browser/hover.js';
 import { IThemeService } from '../../../../../../../platform/theme/common/themeService.js';
-import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
-import { IRefreshModelService } from '../../../../../../../platform/void/common/refreshModelService.js';
-import { IVoidSettingsService } from '../../../../../../../platform/void/common/voidSettingsService.js';
+import { ILLMMessageService } from '../../../../../../../workbench/contrib/void/common/llmMessageService.js';
+import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
+import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
 import { IInlineDiffsService } from '../../../inlineDiffsService.js';
 import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
@@ -46,7 +46,7 @@ import { IKeybindingService } from '../../../../../../../platform/keybinding/com
 import { IEnvironmentService } from '../../../../../../../platform/environment/common/environment.js'
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
-import { IMetricsService } from '../../../../../../../platform/void/common/metricsService.js'
+import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
 
 
 
@@ -288,6 +288,17 @@ export const useChatThreadsState = () => {
 		return () => { chatThreadsStateListeners.delete(ss) }
 	}, [ss])
 	return s
+	// allow user to set state natively in react
+	// const ss: React.Dispatch<React.SetStateAction<ThreadsState>> = (action)=>{
+	// 	_ss(action)
+	// 	if (typeof action === 'function') {
+	// 		const newState = action(chatThreadsState)
+	// 		chatThreadsState = newState
+	// 	} else {
+	// 		chatThreadsState = action
+	// 	}
+	// }
+	// return [s, ss] as const
 }
 
 

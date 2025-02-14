@@ -17,7 +17,7 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
 import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarPane.js';
-import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
+import { IMetricsService } from '../common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { VOID_TOGGLE_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
@@ -67,6 +67,13 @@ const getContentInRange = (model: ITextModel, range: IRange | null) => {
 }
 
 
+const findMatchingStagingIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem) => {
+	return currentSelections?.findIndex(s =>
+		s.fileURI.fsPath === newSelection.fileURI.fsPath
+		&& s.range?.startLineNumber === newSelection.range?.startLineNumber
+		&& s.range?.endLineNumber === newSelection.range?.endLineNumber
+	)
+}
 
 const VOID_OPEN_SIDEBAR_ACTION_ID = 'void.sidebar.open'
 registerAction2(class extends Action2 {
@@ -124,26 +131,26 @@ registerAction2(class extends Action2 {
 			range: selectionRange,
 		}
 
-		// add selection to staging
+		// update the staging selections
 		const chatThreadService = accessor.get(IChatThreadService)
-		const currentStaging = chatThreadService.state.currentStagingSelections
-		const currentStagingEltIdx = currentStaging?.findIndex(s =>
-			s.fileURI.fsPath === model.uri.fsPath
-			&& s.range?.startLineNumber === selection.range?.startLineNumber
-			&& s.range?.endLineNumber === selection.range?.endLineNumber
-		)
 
-		// if matches with existing selection, overwrite
-		if (currentStagingEltIdx !== undefined && currentStagingEltIdx !== -1) {
-			chatThreadService.setStaging([
-				...currentStaging!.slice(0, currentStagingEltIdx),
+		const focusedMessageIdx = chatThreadService.getFocusedMessageIdx()
+		const [staging, setStaging] = chatThreadService._useFocusedStagingState(focusedMessageIdx)
+		const selections = staging.selections || []
+		const setSelections = (s: StagingSelectionItem[]) => setStaging({ ...staging, selections: s })
+
+		// if matches with existing selection, overwrite (since text may change)
+		const matchingStagingEltIdx = findMatchingStagingIndex(selections, selection)
+		if (matchingStagingEltIdx !== undefined && matchingStagingEltIdx !== -1) {
+			setSelections([
+				...selections!.slice(0, matchingStagingEltIdx),
 				selection,
-				...currentStaging!.slice(currentStagingEltIdx + 1, Infinity)
+				...selections!.slice(matchingStagingEltIdx + 1, Infinity)
 			])
 		}
-		// if no match, add
+		// if no match, add it
 		else {
-			chatThreadService.setStaging([...(currentStaging ?? []), selection])
+			setSelections([...(selections ?? []), selection])
 		}
 
 	}

@@ -58,9 +58,11 @@ type InputBox2Props = {
 	className?: string;
 	onChangeText?: (value: string) => void;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+	onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
+	onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
 	onChangeHeight?: (newHeight: number) => void;
 }
-export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, className, onKeyDown, onChangeText }, ref) {
+export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, className, onKeyDown, onFocus, onBlur, onChangeText }, ref) {
 
 	// mirrors whatever is in ref
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -113,6 +115,9 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				else if (ref) ref.current = r
 				adjustHeight()
 			}, [fnsRef, fns, setEnabled, adjustHeight, ref])}
+
+			onFocus={onFocus}
+			onBlur={onBlur}
 
 			disabled={!isEnabled}
 

@@ -227,7 +227,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'deepseek') {
 		return {
-			title: 'DeepSeek',
+			title: 'DeepSeek.com API',
 		}
 	}
 	else if (providerName === 'openRouter') {
@@ -248,17 +248,17 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'gemini') {
 		return {
-			title: 'Gemini',
+			title: 'Gemini API',
 		}
 	}
 	else if (providerName === 'groq') {
 		return {
-			title: 'Groq',
+			title: 'Groq.com API',
 		}
 	}
 	else if (providerName === 'mistral') {
 		return {
-			title: 'Mistral',
+			title: 'Mistral API',
 		}
 	}
 

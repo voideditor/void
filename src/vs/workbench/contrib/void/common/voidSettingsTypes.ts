@@ -9,13 +9,22 @@ import { VoidSettingsState } from './voidSettingsService.js'
 
 
 // developer info used in sendLLMMessage
-type VoidModelDeveloperInfo = {
-	supportsSystemMessage: 'system' | 'developer' | false, // if null, we will just do a string of system message
+export type VoidModelDeveloperInfo = {
+	// USED:
+
+	// TODO!!!!
+	// UNUSED (coming soon):
+	recognizedModelName: RecognizedModel, // used to show user if model was auto-recognized
 	supportsTools: boolean, // we will just do a string of tool use if it doesn't support
+	supportsSystemMessage: 'system' | 'developer' | false, // if null, we will just do a string of system message
 	supportsAutocompleteFIM: boolean, // we will just do a description of FIM if it doens't support <|fim_hole|>
 	supportsStreaming: boolean, // (o1 does NOT) we will just dump the final result if doesn't support it
 	maxTokens: number, // required, DEFAULT is Infinity
 }
+
+
+
+
 
 export type VoidModelInfo = { // <-- STATEFUL
 	modelName: string,
@@ -23,9 +32,6 @@ export type VoidModelInfo = { // <-- STATEFUL
 	isHidden: boolean, // whether or not the user is hiding it (switched off)
 	isAutodetected?: boolean, // whether the model was autodetected by polling
 } & VoidModelDeveloperInfo
-
-
-
 
 
 
@@ -102,7 +108,7 @@ export function getRecognizedModel(modelName: string): RecognizedModel {
 
 
 export const developerInfoOfRecognizedModel = (modelName: string) => {
-	const devInfo: { [recognizedModel in RecognizedModel]: VoidModelDeveloperInfo } = {
+	const devInfo: { [recognizedModel in RecognizedModel]: Omit<VoidModelDeveloperInfo, 'recognizedModelName'> } = {
 		'OpenAI 4o': {
 			supportsSystemMessage: false,
 			supportsTools: false,
@@ -176,9 +182,12 @@ export const developerInfoOfRecognizedModel = (modelName: string) => {
 		},
 	}
 
+	const recognizedModelName = getRecognizedModel(modelName)
 
-	const modelName_ = getRecognizedModel(modelName)
-	return devInfo[modelName_]
+	return {
+		recognizedModelName: recognizedModelName,
+		...devInfo[recognizedModelName],
+	}
 }
 
 
@@ -193,7 +202,7 @@ export const modelInfoOfDefaultModelNames = (defaultModelNames: string[]): VoidM
 		isDefault: true,
 		isAutodetected: false,
 		isHidden: defaultModelNames.length >= 10, // hide all models if there are a ton of them, and make user enable them individually
-		...developerInfoOfRecognizedModel(modelName)
+		...developerInfoOfRecognizedModel(modelName),
 	}))
 }
 

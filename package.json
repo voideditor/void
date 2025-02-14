@@ -110,6 +110,7 @@
     "@xterm/headless": "^5.6.0-beta.64",
     "@xterm/xterm": "^5.6.0-beta.64",
     "ajv": "^8.17.1",
+    "cross-spawn": "^7.0.6",
     "diff": "^7.0.0",
     "groq-sdk": "^0.9.0",
     "http-proxy-agent": "^7.0.0",

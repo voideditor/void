@@ -131,7 +131,7 @@ const _updatedValidatedState = (state: Omit<VoidSettingsState, '_modelOptions'>)
 const defaultState = () => {
 	const d: VoidSettingsState = {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
-		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null, 'FastApply': null },
+		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null, 'Apply': null },
 		globalSettings: deepClone(defaultGlobalSettings),
 		_modelOptions: [], // computed later
 	}
@@ -189,7 +189,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 			const newModelSelectionOfFeature = {
 				// A HACK BECAUSE WE ADDED FastApply
-				...{ 'FastApply': null },
+				...{ 'Apply': null },
 				...readS.modelSelectionOfFeature,
 			}
 

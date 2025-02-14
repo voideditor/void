@@ -1238,7 +1238,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 		// TODO turn this into a service and provide it
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			messagesType: 'chatMessages',
-			useProviderFor: 'FastApply',
+			useProviderFor: 'Apply',
 			logging: { loggingName: `generateSearchAndReplace` },
 			messages,
 			onText: ({ fullText }) => {
@@ -1478,7 +1478,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			messagesType: 'chatMessages',
-			useProviderFor: opts.from === 'ClickApply' ? 'FastApply' : 'Ctrl+K',
+			useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
 			logging: { loggingName: `startApplying - ${from}` },
 			messages,
 			onText: ({ newText: newText_ }) => {

@@ -436,18 +436,20 @@ export const modelSelectionsEqual = (m1: ModelSelection, m2: ModelSelection) => 
 }
 
 // this is a state
-export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete', 'FastApply'] as const
+export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete', 'Apply'] as const
 export type ModelSelectionOfFeature = Record<(typeof featureNames)[number], ModelSelection | null>
 export type FeatureName = keyof ModelSelectionOfFeature
 
 export const displayInfoOfFeatureName = (featureName: FeatureName) => {
+	// editor:
 	if (featureName === 'Autocomplete')
 		return 'Autocomplete'
 	else if (featureName === 'Ctrl+K')
-		return 'Quick-Edit'
+		return 'Quick Edit'
+	// sidebar:
 	else if (featureName === 'Ctrl+L')
 		return 'Chat'
-	else if (featureName === 'FastApply')
+	else if (featureName === 'Apply')
 		return 'Apply'
 	else
 		throw new Error(`Feature Name ${featureName} not allowed`)

@@ -5,10 +5,10 @@
 
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { URI } from '../../../../base/common/uri.js';
+// import { URI } from '../../../../base/common/uri.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { IToolService, ToolService } from '../common/toolsService.js';
+// import { IToolService, ToolService } from '../common/toolsService.js';
 
 
 
@@ -54,7 +54,7 @@ class VoidFastApplyService extends Disposable implements IFastApplyService {
 	// state: ApplyState
 
 	constructor(
-		@IToolService private readonly toolService: ToolService
+		// @IToolService private readonly toolService: ToolService
 	) {
 		super()
 
@@ -88,97 +88,97 @@ class VoidFastApplyService extends Disposable implements IFastApplyService {
 	// -iterate on syntax errors (all files can be changed from a syntax error, not just the one with the error)
 
 
-	private async _searchUsingAI({ searchClause }: { searchClause: string }) {
+	// private async _searchUsingAI({ searchClause }: { searchClause: string }) {
 
-		const relevantURIs: URI[] = []
-		const gatherPrompt = `\
-asdasdas
-`
-		const filterPrompt = `\
-Is this file relevant?
-`
-
-
-		// optimizations (DO THESE LATER!!!!!!)
-		// if tool includes a uri in uriSet, skip it obviously
-		let uriSet = new Set<URI>()
-		// gather
-		let messages = []
-		while (true) {
-			const result = await new Promise((res, rej) => {
-				sendLLMMessage({
-					messages,
-					tools: ['search'],
-					onFinalMessage: ({ result: r, }) => {
-						res(r)
-					},
-					onError: (error) => {
-						rej(error)
-					}
-				})
-			})
-
-			messages.push({ role: 'tool', content: turnToString(result) })
-
-			sendLLMMessage({
-				messages: { 'Output ': result },
-				onFinalMessage: (r) => {
-					// output is file1\nfile2\nfile3\n...
-				}
-			})
-
-			uriSet.add(...)
-		}
-
-		// writes
-		if (!replaceClause) return
-
-		for (const uri of uriSet) {
-			// in future, batch these
-			applyWorkflow({ uri, applyStr: replaceClause })
-		}
+	// 	// 		const relevantURIs: URI[] = []
+	// 	// 		const gatherPrompt = `\
+	// 	// asdasdas
+	// 	// `
+	// 	// 		const filterPrompt = `\
+	// 	// Is this file relevant?
+	// 	// `
 
 
+	// 	// 		// optimizations (DO THESE LATER!!!!!!)
+	// 	// 		// if tool includes a uri in uriSet, skip it obviously
+	// 	// 		let uriSet = new Set<URI>()
+	// 	// 		// gather
+	// 	// 		let messages = []
+	// 	// 		while (true) {
+	// 	// 			const result = await new Promise((res, rej) => {
+	// 	// 				sendLLMMessage({
+	// 	// 					messages,
+	// 	// 					tools: ['search'],
+	// 	// 					onFinalMessage: ({ result: r, }) => {
+	// 	// 						res(r)
+	// 	// 					},
+	// 	// 					onError: (error) => {
+	// 	// 						rej(error)
+	// 	// 					}
+	// 	// 				})
+	// 	// 			})
+
+	// 	// 			messages.push({ role: 'tool', content: turnToString(result) })
+
+	// 	// 			sendLLMMessage({
+	// 	// 				messages: { 'Output ': result },
+	// 	// 				onFinalMessage: (r) => {
+	// 	// 					// output is file1\nfile2\nfile3\n...
+	// 	// 				}
+	// 	// 			})
+
+	// 	// 			uriSet.add(...)
+	// 	// 		}
+
+	// 	// 		// writes
+	// 	// 		if (!replaceClause) return
+
+	// 	// 		for (const uri of uriSet) {
+	// 	// 			// in future, batch these
+	// 	// 			applyWorkflow({ uri, applyStr: replaceClause })
+	// 	// 		}
 
 
 
 
-		// while (true) {
-		// 	const result = new Promise((res, rej) => {
-		// 		sendLLMMessage({
-		// 			messages,
-		// 			tools: ['search'],
-		// 			onResult: (r) => {
-		// 				res(r)
-		// 			}
-		// 		})
-		// 	})
-
-		// 	messages.push(result)
-
-		// }
 
 
-	}
+	// 	// while (true) {
+	// 	// 	const result = new Promise((res, rej) => {
+	// 	// 		sendLLMMessage({
+	// 	// 			messages,
+	// 	// 			tools: ['search'],
+	// 	// 			onResult: (r) => {
+	// 	// 				res(r)
+	// 	// 			}
+	// 	// 		})
+	// 	// 	})
+
+	// 	// 	messages.push(result)
+
+	// 	// }
 
 
-	private async _replaceUsingAI({ searchClause, replaceClause, relevantURIs }: { searchClause: string, replaceClause: string, relevantURIs: URI[] }) {
-
-		for (const uri of relevantURIs) {
-
-			uri
-
-		}
+	// }
 
 
+	// private async _replaceUsingAI({ searchClause, replaceClause, relevantURIs }: { searchClause: string, replaceClause: string, relevantURIs: URI[] }) {
 
-		// should I change this file?
-		// if so what changes to make?
+	// 	for (const uri of relevantURIs) {
+
+	// 		uri
+
+	// 	}
 
 
 
-		// fast apply the changes
-	}
+	// 	// should I change this file?
+	// 	// if so what changes to make?
+
+
+
+	// 	// fast apply the changes
+	// }
 
 
 

@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { DIVIDER, FINAL, ORIGINAL } from '../prompt/prompts'
+import { DIVIDER, FINAL, ORIGINAL } from '../prompt/prompts.js'
 
 class SurroundingsRemover {
 	readonly originalS: string

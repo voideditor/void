@@ -121,6 +121,7 @@ export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
 
 	let fullText = ''
+	const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
 
 	const openai: OpenAI = newOpenAI({ providerName, settingsOfProvider })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
@@ -137,11 +138,19 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 			// when receive text
 			for await (const chunk of response) {
 
+				// tool call
+				for (const tool of chunk.choices[0]?.delta?.tool_calls ?? []) {
+					const index = tool.index
+					if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', args: '' }
+					toolCallOfIndex[index].name += tool.function?.name ?? ''
+					toolCallOfIndex[index].args += tool.function?.arguments ?? ''
+				}
+
+				// message
 				let newText = ''
-				newText += chunk.choices[0]?.delta?.tool_calls?.[0]?.function?.name ?? ''
-				newText += chunk.choices[0]?.delta?.tool_calls?.[0]?.function?.arguments ?? ''
 				newText += chunk.choices[0]?.delta?.content ?? ''
 				fullText += newText;
+
 				onText({ newText, fullText });
 			}
 			onFinalMessage({ fullText });

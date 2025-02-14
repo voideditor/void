@@ -224,7 +224,7 @@ Please finish writing the new file by applying the change to the original file. 
 
 
 
-const aiRegex_computeReplacementsForFile_systemMessage = `\
+export const aiRegex_computeReplacementsForFile_systemMessage = `\
 You are a "search and replace" coding assistant.
 
 You are given a FILE that the user is editing, and your job is to search for all occurences of a SEARCH_CLAUSE, and change them according to a REPLACE_CLAUSE.
@@ -246,7 +246,7 @@ For example, if the user is asking you to "make this variable a better name", ma
    - Make sure you give enough context in the code block to apply the changes to the correct location in the code`
 
 
-const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, modelService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService }) => {
+export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, modelService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService }) => {
 
 	// we may want to do this in batches
 	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null }
@@ -273,7 +273,7 @@ Please return the changes you want to make to the file in a codeblock, or return
 
 
 // don't have to tell it it will be given the history; just give it to it
-const aiRegex_search_systemMessage = `\
+export const aiRegex_search_systemMessage = `\
 You are a coding assistant that executes the SEARCH part of a user's search and replace query.
 
 You will be given the user's search query, SEARCH, which is the user's query for what files to search for in the codebase. You may also be given the user's REPLACE query for additional context.

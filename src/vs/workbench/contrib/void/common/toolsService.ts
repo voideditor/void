@@ -162,7 +162,7 @@ export class ToolService implements IToolService {
 
 				const data = await searchService.textSearch(query, CancellationToken.None);
 				const str = data.results.map(({ resource, results }) => resource)
-				return str
+				return str as any
 			},
 
 		}

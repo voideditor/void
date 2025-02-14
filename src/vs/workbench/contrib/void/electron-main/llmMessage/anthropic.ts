@@ -53,11 +53,37 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 		onText({ newText, fullText })
 	})
 
+
+	// can do tool use streaming
+	const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
+	stream.on('streamEvent', e => {
+		if (e.type === 'content_block_start') {
+			if (e.content_block.type !== 'tool_use') return
+			const index = e.index
+			const tool = e.content_block
+			if (!toolCallOfIndex[index])
+				toolCallOfIndex[index] = { name: '', args: '' }
+			toolCallOfIndex[index].name += tool.name ?? ''
+			toolCallOfIndex[index].args += tool.input ?? ''
+
+		}
+		else if (e.type === 'content_block_delta') {
+			if (e.delta.type !== 'input_json_delta') return
+			toolCallOfIndex[e.index].args += e.delta.partial_json
+		}
+		// TODO!!!!!
+		// onText({})
+	})
+
 	// when we get the final message on this stream (or when error/fail)
-	stream.on('finalMessage', (claude_response) => {
+	stream.on('finalMessage', (response) => {
 		// stringify the response's content
-		const content = claude_response.content.map(c => c.type === 'text' ? c.text : c.type).join('\n');
-		onFinalMessage({ fullText: content })
+		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n')
+		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, input: c.input } : null)
+
+		console.log("TOOLS!!!!", typeof tools[0]?.input, JSON.stringify(tools, null, 2))
+
+		onFinalMessage({ fullText: content, })
 	})
 
 	stream.on('error', (error) => {

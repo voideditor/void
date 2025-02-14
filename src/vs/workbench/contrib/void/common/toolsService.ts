@@ -15,6 +15,7 @@ import { ISearchService } from '../../../../workbench/services/search/common/sea
 
 // we do this using Anthropic's style and convert to OpenAI style later
 export type InternalToolInfo = {
+	name: string,
 	description: string,
 	params: {
 		[paramName: string]: { type: string, description: string | undefined } // name -> type
@@ -23,13 +24,14 @@ export type InternalToolInfo = {
 }
 
 // helper
-const pagination = {
+const paginationHelper = {
 	desc: `Very large results may be paginated (indicated in the result). Pagination fails gracefully if out of bounds or invalid page number.`,
 	param: { pageNumber: { type: 'number', description: 'The page number (optional, default is 1).' }, }
 } as const
 
 export const contextTools = {
 	read_file: {
+		name: 'read_file',
 		description: 'Returns file contents of a given URI.',
 		params: {
 			uri: { type: 'string', description: undefined },
@@ -38,28 +40,31 @@ export const contextTools = {
 	},
 
 	list_dir: {
-		description: `Returns all file names and folder names in a given URI. ${pagination.desc}`,
+		name: 'list_dir',
+		description: `Returns all file names and folder names in a given URI. ${paginationHelper.desc}`,
 		params: {
 			uri: { type: 'string', description: undefined },
-			...pagination.param
+			...paginationHelper.param
 		},
 		required: ['uri'],
 	},
 
 	pathname_search: {
-		description: `Returns all pathnames that match a given grep query. You should use this when looking for a file with a specific name or path. This does NOT search file content. ${pagination.desc}`,
+		name: 'pathname_search',
+		description: `Returns all pathnames that match a given grep query. You should use this when looking for a file with a specific name or path. This does NOT search file content. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
-			...pagination.param,
+			...paginationHelper.param,
 		},
 		required: ['query']
 	},
 
 	search: {
-		description: `Returns all code excerpts containing the given string or grep query. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${pagination.desc}`,
+		name: 'search',
+		description: `Returns all code excerpts containing the given string or grep query. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
-			...pagination.param,
+			...paginationHelper.param,
 		},
 		required: ['query'],
 	},
@@ -69,24 +74,16 @@ export const contextTools = {
 	// 	// RAG
 	// },
 
-} as const satisfies { [name: string]: InternalToolInfo }
+}
 
 export type ContextToolName = keyof typeof contextTools
 type ContextToolParamNames<T extends ContextToolName> = keyof typeof contextTools[T]['params']
 type ContextToolParams<T extends ContextToolName> = { [paramName in ContextToolParamNames<T>]: unknown }
 
-type AllContextToolCallFns = {
-	[ToolName in ContextToolName]: ((p: (ContextToolParams<ToolName>)) => Promise<string>)
-}
 
 
 
 
-
-
-
-// TODO check to make sure in workspace
-// TODO check to make sure is not gitignored
 
 
 async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI): Promise<string> {
@@ -116,7 +113,6 @@ const validateURI = (uriStr: unknown) => {
 
 export interface IToolService {
 	readonly _serviceBrand: undefined;
-	callContextTool: <T extends ContextToolName>(toolName: T, params: ContextToolParams<T>) => Promise<string>
 }
 
 export const IToolService = createDecorator<IToolService>('ToolService');
@@ -125,7 +121,7 @@ export class ToolService implements IToolService {
 
 	readonly _serviceBrand: undefined;
 
-	contextToolCallFns: AllContextToolCallFns
+	public contextToolCallFns
 
 	constructor(
 		@IFileService fileService: IFileService,
@@ -138,43 +134,39 @@ export class ToolService implements IToolService {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.contextToolCallFns = {
-			read_file: async ({ uri: uriStr }) => {
+			read_file: async ({ uri: uriStr }: ContextToolParams<'read_file'>) => {
 				const uri = validateURI(uriStr)
 				const fileContents = await VSReadFileRaw(fileService, uri)
 				return fileContents ?? '(could not read file)'
 			},
-			list_dir: async ({ uri: uriStr }) => {
+			list_dir: async ({ uri: uriStr }: ContextToolParams<'list_dir'>) => {
 				const uri = validateURI(uriStr)
+				// TODO!!!! check to make sure in workspace
+				// TODO check to make sure is not gitignored
 				const treeStr = await generateDirectoryTreeMd(fileService, uri)
 				return treeStr
 			},
-			pathname_search: async ({ query: queryStr }) => {
+			pathname_search: async ({ query: queryStr }: ContextToolParams<'pathname_search'>) => {
 				if (typeof queryStr !== 'string') return '(Error: query was not a string)'
 				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), { filePattern: queryStr, });
 
 				const data = await searchService.fileSearch(query, CancellationToken.None);
-				const str = data.results.map(({ resource, results }) => resource.fsPath).join('\n')
-				return str
+				const URIs = data.results.map(({ resource, results }) => resource.fsPath)
+				return URIs
 			},
-			search: async ({ query: queryStr }) => {
+			search: async ({ query: queryStr }: ContextToolParams<'search'>) => {
 				if (typeof queryStr !== 'string') return '(Error: query was not a string)'
 				const query = queryBuilder.text({ pattern: queryStr, }, workspaceContextService.getWorkspace().folders.map(f => f.uri));
 
 				const data = await searchService.textSearch(query, CancellationToken.None);
-				const str = data.results.map(({ resource, results }) => resource)
-				return str as any
+				const URIs = data.results.map(({ resource, results }) => resource)
+				return URIs
 			},
 
 		}
 
 
 
-	}
-
-
-
-	callContextTool: IToolService['callContextTool'] = (toolName, params) => {
-		return this.contextToolCallFns[toolName](params)
 	}
 
 

@@ -99,6 +99,11 @@ export const sendOllamaChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 			// iterate through the stream
 			for await (const chunk of stream) {
 				const newText = chunk.message.content;
+
+
+
+				// chunk.message.tool_calls[0].function.arguments
+
 				fullText += newText;
 				onText({ newText, fullText });
 			}

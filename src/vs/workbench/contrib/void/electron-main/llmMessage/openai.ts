@@ -14,12 +14,12 @@ import { InternalToolInfo } from '../../common/toolsService.js';
 // prompting - https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
 
 
-export const toOpenAITool = (toolName: string, toolInfo: InternalToolInfo) => {
-	const { description, params, required } = toolInfo
+export const toOpenAITool = (toolInfo: InternalToolInfo) => {
+	const { name, description, params, required } = toolInfo
 	return {
 		type: 'function',
 		function: {
-			name: toolName,
+			name: name,
 			description: description,
 			parameters: {
 				type: 'object',

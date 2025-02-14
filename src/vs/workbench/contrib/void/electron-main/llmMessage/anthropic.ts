@@ -11,10 +11,10 @@ import { InternalToolInfo } from '../../common/toolsService.js';
 
 
 
-export const toAnthropicTool = (toolName: string, toolInfo: InternalToolInfo) => {
-	const { description, params, required } = toolInfo
+export const toAnthropicTool = (toolInfo: InternalToolInfo) => {
+	const { name, description, params, required } = toolInfo
 	return {
-		name: toolName,
+		name: name,
 		description: description,
 		input_schema: {
 			type: 'object',
@@ -45,6 +45,7 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 		messages: messages,
 		model: modelName,
 		max_tokens: maxTokens,
+		// tools: [toAnthropicTool(contextTools.list_dir)]
 	});
 
 
@@ -60,12 +61,9 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 		if (e.type === 'content_block_start') {
 			if (e.content_block.type !== 'tool_use') return
 			const index = e.index
-			const tool = e.content_block
-			if (!toolCallOfIndex[index])
-				toolCallOfIndex[index] = { name: '', args: '' }
-			toolCallOfIndex[index].name += tool.name ?? ''
-			toolCallOfIndex[index].args += tool.input ?? ''
-
+			if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', args: '' }
+			toolCallOfIndex[index].name += e.content_block.name ?? ''
+			toolCallOfIndex[index].args += e.content_block.input ?? ''
 		}
 		else if (e.type === 'content_block_delta') {
 			if (e.delta.type !== 'input_json_delta') return
@@ -79,7 +77,7 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 	stream.on('finalMessage', (response) => {
 		// stringify the response's content
 		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n')
-		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, input: c.input } : null)
+		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, input: c.input } : null).filter(c => !!c)
 
 		console.log("TOOLS!!!!", typeof tools[0]?.input, JSON.stringify(tools, null, 2))
 

@@ -3,6 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { InternalToolInfo } from './toolsService.js'
 import { FeatureName, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
@@ -44,9 +45,11 @@ type _InternalSendFIMMessage = {
 type SendLLMType = {
 	messagesType: 'chatMessages';
 	messages: LLMChatMessage[];
+	tools?: InternalToolInfo[];
 } | {
 	messagesType: 'FIMMessage';
 	messages: _InternalSendFIMMessage;
+	tools?: undefined;
 }
 
 // service types
@@ -95,6 +98,8 @@ export type _InternalSendLLMChatMessageFnType = (
 		settingsOfProvider: SettingsOfProvider;
 		modelName: string;
 		_setAborter: (aborter: () => void) => void;
+
+		tools?: InternalToolInfo[],
 
 		messages: _InternalLLMChatMessage[];
 	}

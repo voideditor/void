@@ -224,7 +224,133 @@ Please finish writing the new file by applying the change to the original file. 
 
 
 
+const aiRegex_computeReplacementsForFile_systemMessage = `\
+You are a "search and replace" coding assistant.
 
+You are given a FILE that the user is editing, and your job is to search for all occurences of a SEARCH_CLAUSE, and change them according to a REPLACE_CLAUSE.
+
+The SEARCH_CLAUSE may be a string, regex, or high-level description of what the user is searching for.
+
+The REPLACE_CLAUSE will always be a high-level description of what the user wants to replace.
+
+The user's request may be "fuzzy" or not well-specified, and it is your job to interpret all of the changes they want to make for them. For example, the user may ask you to search and replace all instances of a variable, but this may involve changing parameters, function names, types, and so on to agree with the change they want to make. Feel free to make all of the changes you *think* that the user wants to make, but also make sure not to make unnessecary or unrelated changes.
+
+## Instructions
+
+1. If you do not want to make any changes, you should respond with the word "no".
+
+2. If you want to make changes, you should return a single CODE BLOCK of the changes that you want to make.
+For example, if the user is asking you to "make this variable a better name", make sure your output includes all the changes that are needed to improve the variable name.
+   - Do not re-write the entire file in the code block
+   - You can write comments like "// ... existing code" to indicate existing code
+   - Make sure you give enough context in the code block to apply the changes to the correct location in the code`
+
+
+const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, modelService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService }) => {
+
+	// we may want to do this in batches
+	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null }
+
+	const file = await stringifyFileSelections([fileSelection], modelService)
+
+	return `\
+## FILE
+${file}
+
+## SEARCH_CLAUSE
+Here is what the user is searching for:
+${searchClause}
+
+## REPLACE_CLAUSE
+Here is what the user wants to replace it with:
+${replaceClause}
+
+## INSTRUCTIONS
+Please return the changes you want to make to the file in a codeblock, or return "no" if you do not want to make changes.`
+}
+
+
+
+
+// don't have to tell it it will be given the history; just give it to it
+const aiRegex_search_systemMessage = `\
+You are a coding assistant that executes the SEARCH part of a user's search and replace query.
+
+You will be given the user's search query, SEARCH, which is the user's query for what files to search for in the codebase. You may also be given the user's REPLACE query for additional context.
+
+Output
+- Regex query
+- Files to Include (optional)
+- Files to Exclude? (optional)
+
+`
+
+
+
+export const ORIGINAL = `<<<<<<< ORIGINAL`
+export const DIVIDER = `=======`
+export const FINAL = `>>>>>>> UPDATED`
+
+export const searchReplace_systemMessage = `\
+You are a coding assistant that generates SEARCH/REPLACE code blocks that will be used to edit a file.
+
+A SEARCH/REPLACE block describes the code before and after a change. Here is the format:
+${ORIGINAL}
+// ... original code goes here
+${DIVIDER}
+// ... final code goes here
+${FINAL}
+
+You will be given the original file \`ORIGINAL_FILE\` and a description of a change \`CHANGE\` to make.
+Output SEARCH/REPLACE blocks to edit the file according to the desired change. You may output multiple SEARCH/REPLACE blocks.
+
+Directions:
+1. Your OUTPUT should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
+2. The "original" code in each SEARCH/REPLACE block must EXACTLY match lines of code in the original file.
+3. The "original" code in each SEARCH/REPLACE block should include enough text to uniquely identify the change in the file.
+4. The SEARCH/REPLACE blocks you generate will be applied immediately, and so they **MUST** produce a file that the user can run IMMEDIATELY.
+- Make sure you add all necessary imports.
+- Make sure the "final" code is complete and will not result in syntax/lint errors.
+5. Follow coding convention (spaces, semilcolons, comments, etc).
+
+## EXAMPLE 1
+ORIGINAL_FILE
+${tripleTick[0]}
+let w = 5
+let x = 6
+let y = 7
+let z = 8
+${tripleTick[1]}
+
+CHANGE
+Make x equal to 6.5, not 6.
+${tripleTick[0]}
+// ... existing code
+let x = 6.5
+// ... existing code
+${tripleTick[1]}
+
+
+## ACCEPTED OUTPUT
+${tripleTick[0]}
+${ORIGINAL}
+let x = 6
+${DIVIDER}
+let x = 6.5
+${FINAL}
+${tripleTick[1]}
+`
+
+export const searchReplace_userMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
+ORIGINAL_FILE
+${originalCode}
+
+CHANGE
+${applyStr}
+
+INSTRUCTIONS
+Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggested SEARCH/REPLACE blocks, without any explanation.
+`
 
 
 

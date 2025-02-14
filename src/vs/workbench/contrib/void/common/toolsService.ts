@@ -161,7 +161,7 @@ export class ToolService implements IToolService {
 				const query = queryBuilder.text({ pattern: queryStr, }, workspaceContextService.getWorkspace().folders.map(f => f.uri));
 
 				const data = await searchService.textSearch(query, CancellationToken.None);
-				const str = data.results.map(({ resource, results }) => resource.fsPath).join('\n')
+				const str = data.results.map(({ resource, results }) => resource)
 				return str
 			},
 
@@ -170,6 +170,8 @@ export class ToolService implements IToolService {
 
 
 	}
+
+
 
 	callContextTool: IToolService['callContextTool'] = (toolName, params) => {
 		return this.contextToolCallFns[toolName](params)

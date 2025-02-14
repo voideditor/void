@@ -3,6 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { DIVIDER, FINAL, ORIGINAL } from '../prompt/prompts'
+
 class SurroundingsRemover {
 	readonly originalS: string
 	i: number
@@ -195,7 +197,7 @@ const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
 }
 
 // guarantees if you keep adding text, array length will strictly grow and state will progress without going back
-export const extractSearchReplaceBlocks = (str: string, { ORIGINAL, DIVIDER, FINAL }: { ORIGINAL: string, DIVIDER: string, FINAL: string }) => {
+export const extractSearchReplaceBlocks = (str: string) => {
 
 	const ORIGINAL_ = ORIGINAL + `\n`
 	const DIVIDER_ = '\n' + DIVIDER + `\n`

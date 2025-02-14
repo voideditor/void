@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultQuickEditFimTags, tripleTick } from './prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultQuickEditFimTags, searchReplace_userMessage, searchReplace_systemMessage } from './prompt/prompts.js';
 
 import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -1173,59 +1173,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 
 	private async _initializeSearchAndReplaceStream({ applyStr }: { applyStr: string }) {
-		const ORIGINAL = `<<<<<<< ORIGINAL`
-		const DIVIDER = `=======`
-		const FINAL = `>>>>>>> UPDATED`
 
-		const searchReplaceSysMessage = `\
-You are a coding assistant that generates SEARCH/REPLACE code blocks that will be used to edit a file.
-
-A SEARCH/REPLACE block describes the code before and after a change. Here is the format:
-${ORIGINAL}
-// ... original code goes here
-${DIVIDER}
-// ... final code goes here
-${FINAL}
-
-You will be given the original file \`ORIGINAL_FILE\` and a description of a change \`CHANGE\` to make.
-Output SEARCH/REPLACE blocks to edit the file according to the desired change. You may output multiple SEARCH/REPLACE blocks.
-
-Directions:
-1. Your OUTPUT should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
-2. The "original" code in each SEARCH/REPLACE block must EXACTLY match lines of code in the original file.
-3. The "original" code in each SEARCH/REPLACE block should include enough text to uniquely identify the change in the file.
-4. The SEARCH/REPLACE blocks you generate will be applied immediately, and so they **MUST** produce a file that the user can run IMMEDIATELY.
-	- Make sure you add all necessary imports.
-	- Make sure the "final" code is complete and will not result in syntax/lint errors.
-5. Follow coding convention (spaces, semilcolons, comments, etc).
-
-## EXAMPLE 1
-ORIGINAL_FILE
-${tripleTick[0]}
-let w = 5
-let x = 6
-let y = 7
-let z = 8
-${tripleTick[1]}
-
-CHANGE
-Make x equal to 6.5, not 6.
-${tripleTick[0]}
-// ... existing code
-let x = 6.5
-// ... existing code
-${tripleTick[1]}
-
-
-## ACCEPTED OUTPUT
-${tripleTick[0]}
-${ORIGINAL}
-let x = 6
-${DIVIDER}
-let x = 6.5
-${FINAL}
-${tripleTick[1]}
-`
 
 		const uri_ = this._getActiveEditorURI()
 		if (!uri_) return
@@ -1236,23 +1184,14 @@ ${tripleTick[1]}
 		if (fileContents === null) return
 
 
-		const searchReplaceUserMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
-ORIGINAL_FILE
-${originalCode}
 
-CHANGE
-${applyStr}
-
-INSTRUCTIONS
-Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggested SEARCH/REPLACE blocks, without any explanation.
-`
 
 		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
 		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
 
-		const userMessageContent = searchReplaceUserMessage({ originalCode: fileContents, applyStr: applyStr })
+		const userMessageContent = searchReplace_userMessage({ originalCode: fileContents, applyStr: applyStr })
 		const messages: LLMChatMessage[] = [
-			{ role: 'system', content: searchReplaceSysMessage },
+			{ role: 'system', content: searchReplace_systemMessage },
 			{ role: 'user', content: userMessageContent }
 		]
 		let streamRequestIdRef: { current: string | null } = { current: null }
@@ -1303,7 +1242,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 			logging: { loggingName: `generateSearchAndReplace` },
 			messages,
 			onText: ({ fullText }) => {
-				const blocks = extractSearchReplaceBlocks(fullText, { ORIGINAL, DIVIDER, FINAL })
+				const blocks = extractSearchReplaceBlocks(fullText)
 
 				for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
 					const block = blocks[blockNum]
@@ -1364,7 +1303,7 @@ Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggest
 			onFinalMessage: async ({ fullText }) => {
 				// 1. wait 500ms and fix lint errors - call lint error workflow
 				// (update react state to say "Fixing errors")
-				const blocks = extractSearchReplaceBlocks(fullText, { ORIGINAL, DIVIDER, FINAL })
+				const blocks = extractSearchReplaceBlocks(fullText)
 
 				for (let blockNum = 0; blockNum < blocks.length; blockNum += 1) {
 					const block = blocks[blockNum]

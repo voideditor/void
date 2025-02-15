@@ -35,7 +35,7 @@ import { MergeGroupMode, IMergeGroupOptions } from '../../../services/editor/com
 import { addDisposableListener, EventType, EventHelper, Dimension, scheduleAtNextAnimationFrame, findParentWithClass, clearNode, DragAndDropObserver, isMouseEvent, getWindow } from '../../../../base/browser/dom.js';
 import { localize } from '../../../../nls.js';
 import { IEditorGroupsView, EditorServiceImpl, IEditorGroupView, IInternalEditorOpenOptions, IEditorPartsView } from './editor.js';
-import { CloseEditorTabAction, UnpinEditorAction } from './editorActions.js';
+import { CloseEditorTabAction, PinEditorAction, UnpinEditorAction } from './editorActions.js';
 import { assertAllDefined, assertIsDefined } from '../../../../base/common/types.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { basenameOrAuthority } from '../../../../base/common/resources.js';
@@ -113,6 +113,7 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 
 	private readonly closeEditorAction = this._register(this.instantiationService.createInstance(CloseEditorTabAction, CloseEditorTabAction.ID, CloseEditorTabAction.LABEL));
 	private readonly unpinEditorAction = this._register(this.instantiationService.createInstance(UnpinEditorAction, UnpinEditorAction.ID, UnpinEditorAction.LABEL));
+	private readonly pinEditorAction = this._register(this.instantiationService.createInstance(PinEditorAction, PinEditorAction.ID, PinEditorAction.LABEL)); // Add this line
 
 	private readonly tabResourceLabels = this._register(this.instantiationService.createInstance(ResourceLabels, DEFAULT_LABELS_CONTAINER));
 	private tabLabels: IEditorInputLabel[] = [];
@@ -1518,28 +1519,28 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 		this.redrawTabLabel(editor, tabIndex, tabContainer, tabLabelWidget, tabLabel);
 
 		// Action
-		const hasUnpinAction = isTabSticky && options.tabActionUnpinVisibility;
-		const hasCloseAction = !hasUnpinAction && options.tabActionCloseVisibility;
-		const hasAction = hasUnpinAction || hasCloseAction;
+		const hasCloseAction = options.tabActionCloseVisibility;
+		const hasAction = true; // Always show actions
 
+		// Determine which action to show
 		let tabAction;
-		if (hasAction) {
-			tabAction = hasUnpinAction ? this.unpinEditorAction : this.closeEditorAction;
+		if (isTabSticky) {
+			tabAction = this.unpinEditorAction;
 		} else {
-			// Even if the action is not visible, add it as it contains the dirty indicator
-			tabAction = isTabSticky ? this.unpinEditorAction : this.closeEditorAction;
+			tabAction = this.pinEditorAction; // Use pin action instead of close action
 		}
 
+		// Update action bar
 		if (!tabActionBar.hasAction(tabAction)) {
 			if (!tabActionBar.isEmpty()) {
 				tabActionBar.clear();
 			}
-
 			tabActionBar.push(tabAction, { icon: true, label: false, keybinding: this.getKeybindingLabel(tabAction) });
 		}
 
-		tabContainer.classList.toggle(`pinned-action-off`, isTabSticky && !hasUnpinAction);
-		tabContainer.classList.toggle(`close-action-off`, !hasUnpinAction && !hasCloseAction);
+		tabContainer.classList.toggle('sticky', isTabSticky);
+		tabContainer.classList.toggle(`pinned-action-off`, false);
+		tabContainer.classList.toggle(`close-action-off`, !hasCloseAction);
 
 		for (const option of ['left', 'right']) {
 			tabContainer.classList.toggle(`tab-actions-${option}`, hasAction && options.tabActionLocation === option);

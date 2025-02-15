@@ -154,64 +154,56 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	) {
 		super()
 
+		const oldVersionNum = this._storageService.get(THREAD_VERSION_KEY, StorageScope.APPLICATION)
+
+
+		const readThreads = this._readAllThreads()
+		const updatedThreads = this._updatedThreadsToVersion(readThreads, oldVersionNum)
+
+		if (updatedThreads !== null) {
+			this._storeAllThreads(updatedThreads)
+		}
+
+		const allThreads = updatedThreads ?? readThreads
 		this.state = {
-			allThreads: this._readAllThreads(),
+			allThreads: allThreads,
 			currentThreadId: null as unknown as string, // gets set in startNewThread()
 		}
 
 		// always be in a thread
 		this.openNewThread()
 
-		// for now just write the version, anticipating bigger changes in the future where we'll want to access this
 		this._storageService.store(THREAD_VERSION_KEY, THREAD_VERSION, StorageScope.APPLICATION, StorageTarget.USER)
 
 	}
 
 
 	private _readAllThreads(): ChatThreads {
-		// PUT ANY VERSION CHANGE FORMAT CONVERSION CODE HERE
-		// CAN ADD "v0" TAG IN STORAGE AND CONVERT
-
-
 		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION)
-
 		const threads: ChatThreads = threadsStr ? JSON.parse(threadsStr) : {}
-
-		this._updateThreadsToVersion(threads, THREAD_VERSION)
 
 		return threads
 	}
 
 
-	private _updateThreadsToVersion(oldThreadsObject: any, toVersion: string) {
+	// returns if should update
+	private _updatedThreadsToVersion(oldThreadsObject: any, oldVersion: string | undefined): ChatThreads | null {
 
-		if (toVersion === 'v2') {
+		if (!oldVersion) {
 
-			const threads: ChatThreads = oldThreadsObject
+			// unknown, just reset chat?
+			return null
+		}
 
-			/** v1 -> v2
-				- threadsState.currentStagingSelections: CodeStagingSelection[] | null;
-				+ thread.staging: StagingInfo
-				+ thread.focusedMessageIdx?: number | undefined;
+		/** v1 -> v2
+			- threadsState.currentStagingSelections: CodeStagingSelection[] | null;
+			+ thread.staging: StagingInfo
+			+ thread.focusedMessageIdx?: number | undefined;
 
-				+ chatMessage.staging: StagingInfo | null
-			*/
-
-			// check if we need to update
-			let shouldUpdate = false
-			for (const thread of Object.values(threads)) {
-				if (!thread.staging) {
-					shouldUpdate = true
-				}
-				for (const chatMessage of Object.values(thread.messages)) {
-					if (chatMessage.role === 'user' && !chatMessage.staging) {
-						shouldUpdate = true
-					}
-				}
-			}
-
-			if (!shouldUpdate) return;
-
+			+ chatMessage.staging: StagingInfo | null
+		*/
+		else if (oldVersion === 'v1') {
+			const threads = oldThreadsObject as Omit<ChatThreads, 'staging' | 'focusedMessageIdx'>
 			// update the threads
 			for (const thread of Object.values(threads)) {
 				if (!thread.staging) {
@@ -226,8 +218,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 
 			// push the update
-			this._storeAllThreads(threads)
+			return threads
 		}
+		else if (oldVersion === 'v2') {
+			return null
+		}
+
+		// up to date
+		return null
 
 	}
 

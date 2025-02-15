@@ -27,7 +27,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
 import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultQuickEditFimTags, searchReplace_userMessage, searchReplace_systemMessage } from './prompt/prompts.js';
 
-import { mountCtrlK } from '../browser/react/out/quick-edit-tsx/index.js'
+import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from './helpers/extractCodeFromResult.js';
@@ -215,7 +215,7 @@ type HistorySnapshot = {
 type StreamLocationMutable = { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number }
 
 
-export interface IInlineDiffsService {
+export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
 	startApplying(opts: StartApplyingOpts): number | undefined;
 	interruptStreaming(diffareaid: number): void;
@@ -224,9 +224,9 @@ export interface IInlineDiffsService {
 	// testDiffs(): void;
 }
 
-export const IInlineDiffsService = createDecorator<IInlineDiffsService>('inlineDiffAreasService');
+export const IEditCodeService = createDecorator<IEditCodeService>('editCodeService');
 
-class InlineDiffsService extends Disposable implements IInlineDiffsService {
+class EditCodeService extends Disposable implements IEditCodeService {
 	_serviceBrand: undefined;
 
 
@@ -810,7 +810,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 			type: UndoRedoElementType.Resource,
 			resource: uri,
 			label: 'Void Changes',
-			code: 'undoredo.inlineDiffs',
+			code: 'undoredo.editCode',
 			undo: () => { restoreDiffAreas(beforeSnapshot) },
 			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }
 		}
@@ -1814,7 +1814,7 @@ class InlineDiffsService extends Disposable implements IInlineDiffsService {
 
 }
 
-registerSingleton(IInlineDiffsService, InlineDiffsService, InstantiationType.Eager);
+registerSingleton(IEditCodeService, EditCodeService, InstantiationType.Eager);
 
 const acceptBg = '#1a7431'
 const acceptAllBg = '#1e8538'
@@ -2018,17 +2018,3 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 
 
 
-// registerAction2(class extends Action2 {
-// 	constructor() {
-// 		super({
-// 			id: 'void.testDiff',
-// 			title: localize2('voidTestDiff', 'Void Test Diff'),
-// 			f1: true,
-// 		});
-// 	}
-// 	async run(accessor: ServicesAccessor): Promise<void> {
-// 		const inlineDiffsService = accessor.get(IInlineDiffsService)
-// 		// inlineDiffsService.testDiffs()
-
-// 	}
-// })

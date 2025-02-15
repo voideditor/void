@@ -7,7 +7,7 @@ import React, { JSX, useCallback, useEffect, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
 import { useAccessor, useChatThreadsState, useChatThreadsStreamState } from '../util/services.js'
-import { ChatMessageLocation, } from '../../../searchAndReplaceService.js'
+import { ChatMessageLocation, } from '../../../aiRegexService.js'
 import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
 
 
@@ -33,7 +33,7 @@ const ApplyButtonsOnHover = ({ applyStr, applyBoxId }: { applyStr: string, apply
 	const accessor = useAccessor()
 
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
-	const inlineDiffService = accessor.get('IInlineDiffsService')
+	const editCodeService = accessor.get('IEditCodeService')
 	const clipboardService = accessor.get('IClipboardService')
 	const metricsService = accessor.get('IMetricsService')
 
@@ -56,13 +56,13 @@ const ApplyButtonsOnHover = ({ applyStr, applyBoxId }: { applyStr: string, apply
 
 	const onApply = useCallback(() => {
 
-		inlineDiffService.startApplying({
+		editCodeService.startApplying({
 			from: 'ClickApply',
 			type: 'searchReplace',
 			applyStr,
 		})
 		metricsService.capture('Apply Code', { length: applyStr.length }) // capture the length only
-	}, [metricsService, inlineDiffService, applyStr])
+	}, [metricsService, editCodeService, applyStr])
 
 	const isSingleLine = !applyStr.includes('\n')
 

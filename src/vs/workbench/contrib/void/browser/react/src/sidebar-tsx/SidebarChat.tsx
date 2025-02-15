@@ -24,7 +24,7 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { ChatMessageLocation } from '../../../searchAndReplaceService.js';
+import { ChatMessageLocation } from '../../../aiRegexService.js';
 
 
 

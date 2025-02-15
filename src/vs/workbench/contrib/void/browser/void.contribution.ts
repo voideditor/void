@@ -5,7 +5,7 @@
 
 
 // register inline diffs
-import './inlineDiffsService.js'
+import './editCodeService.js'
 
 // register Sidebar pane, state, actions (keybinds, menus) (Ctrl+L)
 import './sidebarActions.js'

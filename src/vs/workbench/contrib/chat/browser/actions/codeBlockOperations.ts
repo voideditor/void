@@ -11,6 +11,7 @@ import { ResourceMap } from '../../../../../base/common/map.js';
 import { isEqual } from '../../../../../base/common/resources.js';
 import * as strings from '../../../../../base/common/strings.js';
 import { URI } from '../../../../../base/common/uri.js';
+import { stripThinkTags } from '../../common/chatModel.js';
 import { IActiveCodeEditor, isCodeEditor, isDiffEditor } from '../../../../../editor/browser/editorBrowser.js';
 import { IBulkEditService, ResourceTextEdit } from '../../../../../editor/browser/services/bulkEditService.js';
 import { ICodeEditorService } from '../../../../../editor/browser/services/codeEditorService.js';
@@ -382,13 +383,11 @@ function collectDocumentContextFromContext(context: ICodeBlockActionContext, res
 }
 
 function getChatConversation(context: ICodeBlockActionContext): (ConversationRequest | ConversationResponse)[] {
-	// TODO@aeschli for now create a conversation with just the current element
-	// this will be expanded in the future to include the request and any other responses
-
 	if (isResponseVM(context.element)) {
 		return [{
 			type: 'response',
-			message: context.element.response.toMarkdown(),
+			// Strip think tags before computing diffs
+			message: stripThinkTags(context.element.response.toMarkdown()),
 			references: getReferencesAsDocumentContext(context.element.contentReferences)
 		}];
 	} else if (isRequestVM(context.element)) {

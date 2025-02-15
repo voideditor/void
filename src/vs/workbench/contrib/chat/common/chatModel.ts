@@ -354,6 +354,36 @@ export class Response extends Disposable implements IResponse {
 	}
 }
 
+/**
+ * Strips <think> tags and their content from a text string.
+ * Handles nested tags using a stack-based approach.
+ * @param text The text to strip tags from
+ * @returns The text with all <think> tags and their content removed
+ */
+export function stripThinkTags(text: string): string {
+	// Handle nested tags with a stack-based approach
+	let result = '';
+	let depth = 0;
+	let i = 0;
+	
+	while (i < text.length) {
+		if (text.startsWith('<think>', i)) {
+			depth++;
+			i += 7; // length of '<think>'
+		} else if (text.startsWith('</think>', i)) {
+			depth--;
+			i += 8; // length of '</think>'
+		} else if (depth === 0) {
+			result += text[i];
+			i++;
+		} else {
+			i++;
+		}
+	}
+	
+	return result;
+}
+
 export class ChatResponseModel extends Disposable implements IChatResponseModel {
 	private readonly _onDidChange = this._register(new Emitter<void>());
 	readonly onDidChange = this._onDidChange.event;

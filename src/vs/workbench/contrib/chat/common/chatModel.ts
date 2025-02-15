@@ -371,7 +371,7 @@ export function stripThinkTags(text: string): string {
 			depth++;
 			i += 7; // length of '<think>'
 		} else if (text.startsWith('</think>', i)) {
-			depth--;
+			if (depth > 0) depth--;
 			i += 8; // length of '</think>'
 		} else if (depth === 0) {
 			result += text[i];

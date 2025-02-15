@@ -111,30 +111,32 @@ export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 
 	// openai.completions has a FIM parameter called `suffix`, but it's deprecated and only works for ~GPT 3 era models
 
-	onFinalMessage({ fullText: 'TODO' })
+
 
 }
 
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
+export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools }) => {
 
 	let fullText = ''
 	const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
+
 
 	const openai: OpenAI = newOpenAI({ providerName, settingsOfProvider })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
 		messages: messages,
 		stream: true,
-		// tools: Object.keys(contextTools).map(name => toOpenAITool(name, contextTools[name as ContextToolName])),
+		tools: tools?.map(tool => toOpenAITool(tool)),
 	}
 
 	openai.chat.completions
 		.create(options)
 		.then(async response => {
 			_setAborter(() => response.controller.abort())
+
 			// when receive text
 			for await (const chunk of response) {
 
@@ -153,7 +155,7 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 
 				onText({ newText, fullText });
 			}
-			onFinalMessage({ fullText });
+			onFinalMessage({ fullText, tools: Object.keys(toolCallOfIndex).map(index => toolCallOfIndex[index]) });
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {

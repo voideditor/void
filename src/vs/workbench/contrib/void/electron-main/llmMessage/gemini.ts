@@ -35,7 +35,7 @@ export const sendGeminiChat: _InternalSendLLMChatMessageFnType = async ({ messag
 				fullText += newText;
 				onText({ newText, fullText });
 			}
-			onFinalMessage({ fullText });
+			onFinalMessage({ fullText, tools: [] });
 		})
 		.catch((error) => {
 			onError({ message: error + '', fullError: error })

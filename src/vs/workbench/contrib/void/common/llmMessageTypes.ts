@@ -22,7 +22,7 @@ export const errorDetails = (fullError: Error | null): string | null => {
 }
 
 export type OnText = (p: { newText: string, fullText: string }) => void
-export type OnFinalMessage = (p: { fullText: string }) => void
+export type OnFinalMessage = (p: { fullText: string, tools: { name: string, args: string }[] }) => void
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 

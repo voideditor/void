@@ -6,7 +6,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
-import { InternalToolInfo } from '../../common/toolsService.js';
+import { InternalToolInfo, voidTools } from '../../common/toolsService.js';
 
 
 
@@ -45,7 +45,7 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 		messages: messages,
 		model: modelName,
 		max_tokens: maxTokens,
-		// tools: [toAnthropicTool(contextTools.list_dir)]
+		tools: [toAnthropicTool(voidTools.list_dir)]
 	});
 
 
@@ -55,33 +55,31 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 	})
 
 
-	// can do tool use streaming
-	const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
-	stream.on('streamEvent', e => {
-		if (e.type === 'content_block_start') {
-			if (e.content_block.type !== 'tool_use') return
-			const index = e.index
-			if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', args: '' }
-			toolCallOfIndex[index].name += e.content_block.name ?? ''
-			toolCallOfIndex[index].args += e.content_block.input ?? ''
-		}
-		else if (e.type === 'content_block_delta') {
-			if (e.delta.type !== 'input_json_delta') return
-			toolCallOfIndex[e.index].args += e.delta.partial_json
-		}
-		// TODO!!!!!
-		// onText({})
-	})
+	// // can do tool use streaming
+	// const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
+	// stream.on('streamEvent', e => {
+	// 	if (e.type === 'content_block_start') {
+	// 		if (e.content_block.type !== 'tool_use') return
+	// 		const index = e.index
+	// 		if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', args: '' }
+	// 		toolCallOfIndex[index].name += e.content_block.name ?? ''
+	// 		toolCallOfIndex[index].args += e.content_block.input ?? ''
+	// 	}
+	// 	else if (e.type === 'content_block_delta') {
+	// 		if (e.delta.type !== 'input_json_delta') return
+	// 		toolCallOfIndex[e.index].args += e.delta.partial_json
+	// 	}
+	// 	// TODO!!!!!
+	// 	// onText({})
+	// })
 
 	// when we get the final message on this stream (or when error/fail)
 	stream.on('finalMessage', (response) => {
 		// stringify the response's content
-		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n')
-		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, input: c.input } : null).filter(c => !!c)
+		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n\n')
+		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, args: JSON.stringify(c.input) } : null).filter(c => !!c)
 
-		console.log("TOOLS!!!!", typeof tools[0]?.input, JSON.stringify(tools, null, 2))
-
-		onFinalMessage({ fullText: content, })
+		onFinalMessage({ fullText: content, tools })
 	})
 
 	stream.on('error', (error) => {

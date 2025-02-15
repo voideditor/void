@@ -36,7 +36,7 @@ export const sendMistralChat: _InternalSendLLMChatMessageFnType = async ({ messa
 				onText({ newText, fullText });
 			}
 
-			onFinalMessage({ fullText });
+			onFinalMessage({ fullText, tools: [] });
 		})
 		.catch(error => {
 			onError({ message: error + '', fullError: error });

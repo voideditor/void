@@ -8,7 +8,7 @@ import { IMetricsService } from '../../common/metricsService.js';
 
 import { sendAnthropicChat } from './anthropic.js';
 import { sendOllamaFIM, sendOllamaChat } from './ollama.js';
-import { sendOpenAIChat, sendOpenAIFIM } from './openai.js';
+import { sendOpenAIChat } from './openai.js';
 import { sendGeminiChat } from './gemini.js';
 import { sendGroqChat } from './groq.js';
 import { sendMistralChat } from './mistral.js';
@@ -107,10 +107,10 @@ export const sendLLMMessage = ({
 		_fullTextSoFar = fullText
 	}
 
-	const onFinalMessage: OnFinalMessage = ({ fullText }) => {
+	const onFinalMessage: OnFinalMessage = ({ fullText, tools }) => {
 		if (_didAbort) return
 		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
-		onFinalMessage_({ fullText })
+		onFinalMessage_({ fullText, tools })
 	}
 
 	const onError: OnError = ({ message: error, fullError }) => {
@@ -141,7 +141,7 @@ export const sendLLMMessage = ({
 			case 'openRouter':
 			case 'deepseek':
 			case 'openAICompatible':
-				if (messagesType === 'FIMMessage') sendOpenAIFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - OpenAI FIM', tools: [] })
 				else /*                         */ sendOpenAIChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools });
 				break;
 			case 'ollama':
@@ -149,19 +149,19 @@ export const sendLLMMessage = ({
 				else /*                         */ sendOllamaChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools });
 				break;
 			case 'anthropic':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Anthropic FIM' })
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Anthropic FIM', tools: [] })
 				else /*                         */ sendAnthropicChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools });
 				break;
 			case 'gemini':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Gemini FIM' })
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Gemini FIM', tools: [] })
 				else /*                         */ sendGeminiChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools });
 				break;
 			case 'groq':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Groq FIM' })
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Groq FIM', tools: [] })
 				else /*                         */ sendGroqChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools });
 				break;
 			case 'mistral':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Mistral FIM' })
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Mistral FIM', tools: [] })
 				else /*                         */ sendMistralChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools });
 				break;
 			default:

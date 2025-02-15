@@ -32,7 +32,7 @@ export const sendGroqChat: _InternalSendLLMChatMessageFnType = async ({ messages
 				onText({ newText, fullText });
 			}
 
-			onFinalMessage({ fullText });
+			onFinalMessage({ fullText, tools: [] });
 		})
 		.catch(error => {
 			onError({ message: error + '', fullError: error });

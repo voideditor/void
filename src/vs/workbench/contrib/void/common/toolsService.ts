@@ -29,7 +29,7 @@ const paginationHelper = {
 	param: { pageNumber: { type: 'number', description: 'The page number (optional, default is 1).' }, }
 } as const
 
-export const contextTools = {
+export const voidTools: { [name: string]: InternalToolInfo } = {
 	read_file: {
 		name: 'read_file',
 		description: 'Returns file contents of a given URI.',
@@ -73,12 +73,11 @@ export const contextTools = {
 	// 	description: 'Searches files semantically for the given string query.',
 	// 	// RAG
 	// },
-
 }
 
-export type ContextToolName = keyof typeof contextTools
-type ContextToolParamNames<T extends ContextToolName> = keyof typeof contextTools[T]['params']
-type ContextToolParams<T extends ContextToolName> = { [paramName in ContextToolParamNames<T>]: unknown }
+export type ToolName = keyof typeof voidTools
+type ToolParamNames<T extends ToolName> = keyof typeof voidTools[T]['params']
+type ToolParamsObj<T extends ToolName> = { [paramName in ToolParamNames<T>]: unknown }
 
 
 
@@ -121,7 +120,7 @@ export class ToolService implements IToolService {
 
 	readonly _serviceBrand: undefined;
 
-	public contextToolCallFns
+	public toolFns
 
 	constructor(
 		@IFileService fileService: IFileService,
@@ -133,32 +132,32 @@ export class ToolService implements IToolService {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
-		this.contextToolCallFns = {
-			read_file: async ({ uri: uriStr }: ContextToolParams<'read_file'>) => {
+		this.toolFns = {
+			read_file: async ({ uri: uriStr }: ToolParamsObj<'read_file'>) => {
 				const uri = validateURI(uriStr)
 				const fileContents = await VSReadFileRaw(fileService, uri)
 				return fileContents ?? '(could not read file)'
 			},
-			list_dir: async ({ uri: uriStr }: ContextToolParams<'list_dir'>) => {
+			list_dir: async ({ uri: uriStr }: ToolParamsObj<'list_dir'>) => {
 				const uri = validateURI(uriStr)
 				// TODO!!!! check to make sure in workspace
 				// TODO check to make sure is not gitignored
 				const treeStr = await generateDirectoryTreeMd(fileService, uri)
 				return treeStr
 			},
-			pathname_search: async ({ query: queryStr }: ContextToolParams<'pathname_search'>) => {
+			pathname_search: async ({ query: queryStr }: ToolParamsObj<'pathname_search'>) => {
 				if (typeof queryStr !== 'string') return '(Error: query was not a string)'
-				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), { filePattern: queryStr, });
+				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), { filePattern: queryStr, })
 
-				const data = await searchService.fileSearch(query, CancellationToken.None);
+				const data = await searchService.fileSearch(query, CancellationToken.None)
 				const URIs = data.results.map(({ resource, results }) => resource.fsPath)
 				return URIs
 			},
-			search: async ({ query: queryStr }: ContextToolParams<'search'>) => {
+			search: async ({ query: queryStr }: ToolParamsObj<'search'>) => {
 				if (typeof queryStr !== 'string') return '(Error: query was not a string)'
-				const query = queryBuilder.text({ pattern: queryStr, }, workspaceContextService.getWorkspace().folders.map(f => f.uri));
+				const query = queryBuilder.text({ pattern: queryStr, }, workspaceContextService.getWorkspace().folders.map(f => f.uri))
 
-				const data = await searchService.textSearch(query, CancellationToken.None);
+				const data = await searchService.textSearch(query, CancellationToken.None)
 				const URIs = data.results.map(({ resource, results }) => resource)
 				return URIs
 			},

@@ -68,7 +68,7 @@ export const sendOllamaFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 				fullText += newText;
 				onText({ newText, fullText });
 			}
-			onFinalMessage({ fullText });
+			onFinalMessage({ fullText, tools: [] });
 		})
 		// when error/fail
 		.catch((error) => {
@@ -100,14 +100,13 @@ export const sendOllamaChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 			for await (const chunk of stream) {
 				const newText = chunk.message.content;
 
-
-
 				// chunk.message.tool_calls[0].function.arguments
 
 				fullText += newText;
 				onText({ newText, fullText });
 			}
-			onFinalMessage({ fullText });
+
+			onFinalMessage({ fullText, tools: [] });
 
 		})
 		// when error/fail

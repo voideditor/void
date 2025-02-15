@@ -100,7 +100,7 @@ export class LLMMessageChannel implements IServerChannel {
 		const mainThreadParams: SendLLMMessageParams = {
 			...params,
 			onText: ({ newText, fullText }) => { this._onText_llm.fire({ requestId, newText, fullText }); },
-			onFinalMessage: ({ fullText }) => { this._onFinalMessage_llm.fire({ requestId, fullText }); },
+			onFinalMessage: ({ fullText, tools }) => { this._onFinalMessage_llm.fire({ requestId, fullText, tools }); },
 			onError: ({ message: error, fullError }) => { console.log('sendLLM: firing err'); this._onError_llm.fire({ requestId, message: error, fullError }); },
 			abortRef: this._abortRefOfRequestId_llm[requestId],
 		}

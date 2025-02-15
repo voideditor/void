@@ -135,7 +135,7 @@ registerAction2(class extends Action2 {
 		const chatThreadService = accessor.get(IChatThreadService)
 
 		const focusedMessageIdx = chatThreadService.getFocusedMessageIdx()
-		const [staging, setStaging] = chatThreadService._useFocusedStagingState(focusedMessageIdx)
+		const [staging, setStaging] = chatThreadService.useFocusedStagingState(focusedMessageIdx)
 		const selections = staging.selections || []
 		const setSelections = (s: StagingSelectionItem[]) => setStaging({ ...staging, selections: s })
 

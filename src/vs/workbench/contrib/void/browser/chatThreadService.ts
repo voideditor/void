@@ -14,6 +14,7 @@ import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { chat_userMessage, chat_systemMessage } from './prompt/prompts.js';
+import { IToolsService, ToolName, voidTools } from '../common/toolsService.js';
 
 // one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
 export type CodeSelection = {
@@ -59,6 +60,13 @@ export type ChatMessage =
 		role: 'system';
 		content: string;
 		displayContent?: undefined;
+	}
+	| {
+		role: 'tool';
+		name: string; // internal use
+		params: string | null; // internal use
+		content: string | null; // summary of the tool to the LLM
+		displayContent: string | null; // text message of result
 	}
 
 // a 'thread' means a chat message history
@@ -124,7 +132,7 @@ export interface IChatThreadService {
 	isFocusingMessage(): boolean;
 	setFocusedMessageIdx(messageIdx: number | undefined): void;
 
-	_useFocusedStagingState(messageIdx?: number | undefined): readonly [StagingInfo, (stagingInfo: StagingInfo) => void];
+	useFocusedStagingState(messageIdx?: number | undefined): readonly [StagingInfo, (stagingInfo: StagingInfo) => void];
 
 	editUserMessageAndStreamResponse(userMessage: string, messageIdx: number): Promise<void>;
 	addUserMessageAndStreamResponse(userMessage: string): Promise<void>;
@@ -151,6 +159,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IStorageService private readonly _storageService: IStorageService,
 		@IModelService private readonly _modelService: IModelService,
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
+		@IToolsService private readonly _toolsService: IToolsService,
 	) {
 		super()
 
@@ -254,11 +263,117 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// ---------- streaming ----------
 
-	finishStreaming = (threadId: string, content: string, error?: { message: string, fullError: Error | null }) => {
+	private _finishStreamingTextMessage = (threadId: string, content: string, error?: { message: string, fullError: Error | null }) => {
 		// add assistant's message to chat history, and clear selection
-		const assistantHistoryElt: ChatMessage = { role: 'assistant', content, displayContent: content || null }
-		this._addMessageToThread(threadId, assistantHistoryElt)
+		this._addMessageToThread(threadId, { role: 'assistant', content, displayContent: content || null })
 		this._setStreamState(threadId, { messageSoFar: undefined, streamingToken: undefined, error })
+	}
+
+
+
+
+	async addUserMessageAndStreamResponse(userMessage: string, stagingOverride?: StagingInfo | null) {
+
+		const thread = this.getCurrentThread()
+		const threadId = thread.id
+
+		let threadStaging = thread.staging
+
+		const currStaging = stagingOverride ?? threadStaging ?? defaultStaging // don't use _useFocusedStagingState to avoid race conditions with focusing
+		const { selections: currSelns, } = currStaging
+
+		// add user's message to chat history
+		const instructions = userMessage
+		const content = await chat_userMessage(instructions, currSelns, this._modelService)
+		const userHistoryElt: ChatMessage = { role: 'user', content: content, displayContent: instructions, selections: currSelns, staging: null, }
+		this._addMessageToThread(threadId, userHistoryElt)
+
+		this._setStreamState(threadId, { error: undefined })
+
+
+
+		// agent loop
+
+
+		let shouldContinue = false
+		do {
+			shouldContinue = false
+
+			console.log('Q')
+
+			let res_: () => void
+			const awaitable = new Promise<void>((res, rej) => { res_ = res })
+
+			const llmCancelToken = this._llmMessageService.sendLLMMessage({
+				messagesType: 'chatMessages',
+				useProviderFor: 'Ctrl+L',
+				logging: { loggingName: `Agent` },
+				messages: [
+					{ role: 'system', content: chat_systemMessage },
+					...this.getCurrentThread().messages.map(m => ({ role: m.role, content: m.content || '(empty model output)' })),
+				],
+				tools: [voidTools['read_file']],
+
+				onText: ({ fullText }) => {
+					this._setStreamState(threadId, { messageSoFar: fullText })
+				},
+				onFinalMessage: async ({ fullText, tools }) => {
+					if (tools.length === 0) {
+						this._finishStreamingTextMessage(threadId, fullText)
+					}
+					else {
+						for (const tool of tools) {
+							if (!(tool.name in this._toolsService.toolFns)) {
+								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })
+							}
+							else {
+								const toolName = tool.name as ToolName
+								const toolResult = await this._toolsService.toolFns[toolName](JSON.parse(tool.args))
+								const string = this._toolsService.toolResultToString[toolName](toolResult as any)
+								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, content: string, displayContent: string, })
+								shouldContinue = true
+							}
+						}
+					}
+					res_()
+				},
+				onError: (error) => {
+					this._finishStreamingTextMessage(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
+					res_()
+				},
+			})
+			if (llmCancelToken === null) return
+			this._setStreamState(threadId, { streamingToken: llmCancelToken })
+
+			await awaitable
+		}
+		while (shouldContinue);
+
+
+
+
+		// const llmCancelToken = this._llmMessageService.sendLLMMessage({
+		// 	messagesType: 'chatMessages',
+		// 	logging: { loggingName: 'Chat' },
+		// 	useProviderFor: 'Ctrl+L',
+		// 	messages: [
+		// 		{ role: 'system', content: chat_systemMessage },
+		// 		...this.getCurrentThread().messages.map(m => ({ role: m.role, content: m.content || '(empty model output)' })),
+		// 	],
+		// 	onText: ({ newText, fullText }) => {
+		// 		this._setStreamState(threadId, { messageSoFar: fullText })
+		// 	},
+		// 	onFinalMessage: ({ fullText: content }) => {
+		// 		this._finishStreaming(threadId, content)
+		// 	},
+		// 	onError: (error) => {
+		// 		this._finishStreaming(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
+		// 	},
+
+		// })
+		// if (llmCancelToken === null) return
+		// this._setStreamState(threadId, { streamingToken: llmCancelToken })
+
 	}
 
 
@@ -284,58 +399,18 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 		}, true)
 
-		// stream the edit
+		// re-add the message and stream it
 		this.addUserMessageAndStreamResponse(userMessage, messageToReplace.staging)
 
 	}
 
-	async addUserMessageAndStreamResponse(userMessage: string, stagingOverride?: StagingInfo | null) {
 
 
-		const thread = this.getCurrentThread()
-		const threadId = thread.id
-
-		let threadStaging = thread.staging
-
-		const currStaging = stagingOverride ?? threadStaging ?? defaultStaging // don't use _useFocusedStagingState to avoid race conditions with focusing
-		const { selections: currSelns, } = currStaging
-
-		// add user's message to chat history
-		const instructions = userMessage
-		const content = await chat_userMessage(instructions, currSelns, this._modelService)
-		const userHistoryElt: ChatMessage = { role: 'user', content: content, displayContent: instructions, selections: currSelns, staging: null, }
-		this._addMessageToThread(threadId, userHistoryElt)
-
-		this._setStreamState(threadId, { error: undefined })
-
-		const llmCancelToken = this._llmMessageService.sendLLMMessage({
-			messagesType: 'chatMessages',
-			logging: { loggingName: 'Chat' },
-			useProviderFor: 'Ctrl+L',
-			messages: [
-				{ role: 'system', content: chat_systemMessage },
-				...this.getCurrentThread().messages.map(m => ({ role: m.role, content: m.content || '(empty model output)' })),
-			],
-			onText: ({ newText, fullText }) => {
-				this._setStreamState(threadId, { messageSoFar: fullText })
-			},
-			onFinalMessage: ({ fullText: content }) => {
-				this.finishStreaming(threadId, content)
-			},
-			onError: (error) => {
-				this.finishStreaming(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
-			},
-
-		})
-		if (llmCancelToken === null) return
-		this._setStreamState(threadId, { streamingToken: llmCancelToken })
-
-	}
 
 	cancelStreaming(threadId: string) {
 		const llmCancelToken = this.streamState[threadId]?.streamingToken
 		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
-		this.finishStreaming(threadId, this.streamState[threadId]?.messageSoFar ?? '')
+		this._finishStreamingTextMessage(threadId, this.streamState[threadId]?.messageSoFar ?? '')
 	}
 
 	dismissStreamError(threadId: string): void {
@@ -475,7 +550,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	// gets `staging` and `setStaging` of the currently focused element, given the index of the currently selected message (or undefined if no message is selected)
-	_useFocusedStagingState(messageIdx?: number | undefined) {
+	useFocusedStagingState(messageIdx?: number | undefined) {
 
 		const defaultStaging = { isBeingEdited: false, selections: [], text: '' }
 

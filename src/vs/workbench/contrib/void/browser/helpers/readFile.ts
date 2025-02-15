@@ -11,7 +11,11 @@ export const VSReadFile = async (modelService: IModelService, uri: URI): Promise
 }
 
 export const VSReadFileRaw = async (fileService: IFileService, uri: URI) => {
-	const res = await fileService.readFile(uri)
-	const str = res.value.toString()
-	return str
+	try {
+		const res = await fileService.readFile(uri)
+		const str = res.value.toString()
+		return str
+	} catch (e) {
+		return null
+	}
 }

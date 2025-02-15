@@ -6,7 +6,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
-import { InternalToolInfo, voidTools } from '../../common/toolsService.js';
+import { InternalToolInfo } from '../../common/toolsService.js';
 
 
 
@@ -28,7 +28,7 @@ export const toAnthropicTool = (toolInfo: InternalToolInfo) => {
 
 
 
-export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, tools }) => {
 
 	const thisConfig = settingsOfProvider.anthropic
 
@@ -45,8 +45,8 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 		messages: messages,
 		model: modelName,
 		max_tokens: maxTokens,
-		tools: [toAnthropicTool(voidTools.list_dir)]
-	});
+		tools: tools?.map(tool => toAnthropicTool(tool))
+	})
 
 
 	// when receive text

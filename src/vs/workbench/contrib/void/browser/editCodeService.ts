@@ -42,7 +42,6 @@ import { ILLMMessageService } from '../common/llmMessageService.js';
 import { LLMChatMessage, _InternalLLMChatMessage, errorDetails } from '../common/llmMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { VSReadFile } from './helpers/readFile.js';
-import { voidTools } from '../common/toolsService.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -1139,40 +1138,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-
-	async startAgent(queryStr: string) {
-		// agent loop
-		const messages: LLMChatMessage[] = []
-
-		while (true) {
-			await new Promise((res, rej) => {
-				this._llmMessageService.sendLLMMessage({
-					messagesType: 'chatMessages',
-					tools: [voidTools['read_file']],
-					useProviderFor: 'Apply',
-					logging: { loggingName: `Agent` },
-					messages,
-					onText: ({ fullText }) => {
-
-					},
-					onFinalMessage: async ({ fullText, tools }) => {
-						res(tools)
-					},
-					onError: (e) => {
-					},
-				})
-			})
-		}
-
-
-
-
-	}
-
-
-	stopAgent() {
-
-	}
 
 
 

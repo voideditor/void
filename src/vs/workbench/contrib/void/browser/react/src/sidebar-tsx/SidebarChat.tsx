@@ -551,7 +551,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	const chatThreadsService = accessor.get('IChatThreadService')
 
 	// edit mode state
-	const [staging, setStaging] = chatThreadsService._useFocusedStagingState(messageIdx)
+	const [staging, setStaging] = chatThreadsService.useFocusedStagingState(messageIdx)
 	const mode: ChatBubbleMode = staging.isBeingEdited ? 'edit' : 'display'
 	const [isFocused, setIsFocused] = useState(false)
 	const [isHovered, setIsHovered] = useState(false)
@@ -682,6 +682,9 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatMessageLocation={chatMessageLocation} />
 	}
+	else if (role === 'tool'){
+		chatbubbleContents = chatMessage.name
+	}
 
 	return <div
 		// align chatbubble accoridng to role
@@ -765,7 +768,7 @@ export const SidebarChat = () => {
 
 	const currentThread = chatThreadsService.getCurrentThread()
 	const previousMessages = currentThread?.messages ?? []
-	const [staging, setStaging] = chatThreadsService._useFocusedStagingState()
+	const [staging, setStaging] = chatThreadsService.useFocusedStagingState()
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
@@ -822,7 +825,7 @@ export const SidebarChat = () => {
 
 	const prevMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) =>
-			<ChatBubble key={`${message.displayContent}-${i}`} chatMessage={message} messageIdx={i} />
+			<ChatBubble key={i} chatMessage={message} messageIdx={i} />
 		)
 	}, [previousMessages])
 
@@ -836,6 +839,7 @@ export const SidebarChat = () => {
 
 
 	const messagesHTML = <ScrollToBottomContainer
+		key={currentThread.id} // force rerender on all children if id changes
 		scrollContainerRef={scrollContainerRef}
 		className={`
 		w-full h-auto

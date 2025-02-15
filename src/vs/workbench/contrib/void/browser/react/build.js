@@ -3,8 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { execSync } from 'child_process';
-import { spawn } from 'cross-spawn'
+import { spawn, execSync } from 'child_process';
 // Added lines below
 import fs from 'fs';
 import path from 'path';

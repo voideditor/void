@@ -8,6 +8,7 @@ import { DeferredPromise } from '../../../../base/common/async.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IMarkdownString, MarkdownString, isMarkdownString } from '../../../../base/common/htmlContent.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
+import { SurroundingsRemover } from '../../../void/browser/helpers/extractCodeFromResult.js';
 import { revive } from '../../../../base/common/marshalling.js';
 import { equals } from '../../../../base/common/objects.js';
 import { basename, isEqual } from '../../../../base/common/resources.js';
@@ -249,6 +250,11 @@ export class Response extends Disposable implements IResponse {
 
 	updateContent(progress: IChatProgressResponseContent | IChatTextEdit | IChatTask, quiet?: boolean): void {
 		if (progress.kind === 'markdownContent') {
+			// Handle streaming for think tags
+			const remover = new ThinkTagSurroundingsRemover(progress.content.value);
+			const [delta, ignoredSuffix] = remover.deltaInfo(progress.content.value.length);
+			progress.content.value = delta;
+
 			const responsePartLength = this._responseParts.length - 1;
 			const lastResponsePart = this._responseParts[responsePartLength];
 
@@ -365,6 +371,7 @@ export function stripThinkTags(text: string): string {
 	let result = '';
 	let depth = 0;
 	let i = 0;
+	let inPartialTag = false;
 	
 	while (i < text.length) {
 		if (text.startsWith('<think>', i)) {
@@ -373,15 +380,51 @@ export function stripThinkTags(text: string): string {
 		} else if (text.startsWith('</think>', i)) {
 			if (depth > 0) depth--;
 			i += 8; // length of '</think>'
-		} else if (depth === 0) {
+		} else if (text.startsWith('<thi', i)) {
+			// Handle partial opening tag during streaming
+			inPartialTag = true;
+			i += 4;
+		} else if (text.startsWith('</thi', i)) {
+			// Handle partial closing tag during streaming
+			inPartialTag = true;
+			i += 5;
+		} else if (depth === 0 && !inPartialTag) {
 			result += text[i];
 			i++;
 		} else {
 			i++;
 		}
+		// Reset partial tag flag after moving past potential tag
+		if (inPartialTag && !text.startsWith('nk>', i)) {
+			inPartialTag = false;
+		}
 	}
 	
 	return result;
+}
+
+class ThinkTagSurroundingsRemover extends SurroundingsRemover {
+	constructor(s: string) {
+		super(s);
+	}
+
+	removeThinkTags() {
+		const foundTag = this.removePrefix('<think>');
+		if (!foundTag) {
+			// Handle partial tags during streaming
+			if (this.originalS.startsWith('<thi', this.i)) {
+				this.i += 4;
+				return true;
+			}
+			return false;
+		}
+		return true;
+	}
+
+	deltaInfo(recentlyAddedTextLen: number) {
+		const [delta, ignoredSuffix] = super.deltaInfo(recentlyAddedTextLen);
+		return [stripThinkTags(delta), ignoredSuffix] as const;
+	}
 }
 
 export class ChatResponseModel extends Disposable implements IChatResponseModel {

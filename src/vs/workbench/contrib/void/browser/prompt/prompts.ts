@@ -7,8 +7,9 @@
 import { URI } from '../../../../../base/common/uri.js';
 import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
 import { CodeSelection, StagingSelectionItem, FileSelection } from '../chatThreadService.js';
-import { VSReadFile } from '../helpers/readFile.js';
+import { _VSReadModel, VSReadFile } from '../helpers/readFile.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
+import { IFileService } from '../../../../../platform/files/common/files.js';
 
 
 // this is just for ease of readability
@@ -156,10 +157,10 @@ ${tripleTick[1]}
 }
 
 const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
-const stringifyFileSelections = async (fileSelections: FileSelection[], modelService: IModelService) => {
+const stringifyFileSelections = async (fileSelections: FileSelection[], modelService: IModelService, fileService: IFileService) => {
 	if (fileSelections.length === 0) return null
 	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
-		const content = await VSReadFile(modelService, sel.fileURI) ?? failToReadStr
+		const content = await VSReadFile(modelService, fileService, sel.fileURI) ?? failToReadStr
 		return { ...sel, content }
 	}))
 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
@@ -167,23 +168,60 @@ const stringifyFileSelections = async (fileSelections: FileSelection[], modelSer
 const stringifyCodeSelections = (codeSelections: CodeSelection[]) => {
 	return codeSelections.map(sel => stringifyCodeSelection(sel)).join('\n')
 }
+const stringifySelectionNames = (currSelns: StagingSelectionItem[] | null): string => {
+	if (!currSelns) return ''
+	return currSelns.map(s => `${s.fileURI.fsPath}${s.range ? ` (lines ${s.range.startLineNumber}:${s.range.endLineNumber})` : ''}`).join('\n')
+}
 
+export const chat_userMessageContent = async (instructions: string, prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null) => {
 
-
-export const chat_userMessage = async (instructions: string, selections: StagingSelectionItem[] | null, modelService: IModelService) => {
-	const fileSelections = selections?.filter(s => s.type === 'File') as FileSelection[]
-	const codeSelections = selections?.filter(s => s.type === 'Selection') as CodeSelection[]
-
-	const filesStr = await stringifyFileSelections(fileSelections, modelService)
-	const codeStr = stringifyCodeSelections(codeSelections)
+	const selnsStr = stringifySelectionNames(currSelns)
 
 	let str = ''
-	if (filesStr) str += `FILES\n${filesStr}\n`
-	if (codeStr) str += `SELECTIONS\n${codeStr}\n`
-	str += `INSTRUCTIONS\n${instructions}`
+	if (selnsStr) { str += `SELECTIONS\n${selnsStr}\n` }
+	str += `\nINSTRUCTIONS\n${instructions}`
 	return str;
 };
 
+export const chat_userMessageContentWithAllFilesToo = async (instructions: string, prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null, modelService: IModelService, fileService: IFileService) => {
+
+	// ADD IN FILES AT TOP
+	const allSelections = [...currSelns || [], ...prevSelns || []]
+
+	const codeSelections: CodeSelection[] = []
+	const fileSelections: FileSelection[] = []
+	const filesURIs = new Set<string>()
+
+	for (const selection of allSelections) {
+		if (selection.type === 'Selection') {
+			codeSelections.push(selection)
+		}
+		else if (selection.type === 'File') {
+			const fileSelection = selection
+			const path = fileSelection.fileURI.fsPath
+			if (!filesURIs.has(path)) {
+				filesURIs.add(path)
+				fileSelections.push(fileSelection)
+			}
+		}
+	}
+
+	const filesStr = await stringifyFileSelections(fileSelections, modelService, fileService)
+	const selnsStr = stringifyCodeSelections(codeSelections)
+
+	// ACTUAL MESSAGE CONTENT
+	const messageContent = await chat_userMessageContent(instructions, prevSelns, currSelns)
+
+
+	let str = ''
+
+	str += 'ALL FILE CONTENTS\n'
+	if (filesStr) str += `${filesStr}\n`
+	if (selnsStr) str += `${selnsStr}\n`
+	if (messageContent) str += `\n${messageContent}\n`
+
+	return str;
+};
 
 
 

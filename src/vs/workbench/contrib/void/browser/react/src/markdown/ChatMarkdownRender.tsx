@@ -92,7 +92,6 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatLocation, tok
 
 	// deal with built-in tokens first (assume marked token)
 	const t = token as MarkedToken
-	console.log(t.raw)
 
 	if (t.type === "space") {
 		return <span>{t.raw}</span>

@@ -4,7 +4,7 @@ import { IFileService, IFileStat } from '../../../../platform/files/common/files
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js'
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js'
-import { VSReadFileRaw } from '../../../../workbench/contrib/void/browser/helpers/readFile.js'
+import { _VSReadFileRaw } from '../../../../workbench/contrib/void/browser/helpers/readFile.js'
 import { QueryBuilder } from '../../../../workbench/services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../../workbench/services/search/common/search.js'
 
@@ -140,7 +140,7 @@ export class ToolService implements IToolService {
 		this.contextToolCallFns = {
 			read_file: async ({ uri: uriStr }) => {
 				const uri = validateURI(uriStr)
-				const fileContents = await VSReadFileRaw(fileService, uri)
+				const fileContents = await _VSReadFileRaw(fileService, uri)
 				return fileContents ?? '(could not read file)'
 			},
 			list_dir: async ({ uri: uriStr }) => {

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { safeStorage as safeStorageElectron, app } from 'electron';
-import { isMacintosh, isWindows } from '../../../base/common/platform.js';
+import { isMacintosh, isWindows, isLinux } from '../../../base/common/platform.js';
 import { KnownStorageProvider, IEncryptionMainService, PasswordStoreCLIOption } from '../common/encryptionService.js';
 import { ILogService } from '../../log/common/log.js';
 
@@ -23,6 +23,11 @@ export class EncryptionMainService implements IEncryptionMainService {
 	constructor(
 		@ILogService private readonly logService: ILogService
 	) {
+		if (isLinux && !app.commandLine.getSwitchValue('password-store')) {
+			this.logService.trace('[EncryptionMainService] No password-store switch, defaulting to basic...');
+			app.commandLine.appendSwitch('password-store', PasswordStoreCLIOption.basic);
+		}
+
 		// if this commandLine switch is set, the user has opted in to using basic text encryption
 		if (app.commandLine.getSwitchValue('password-store') === PasswordStoreCLIOption.basic) {
 			this.logService.trace('[EncryptionMainService] setting usePlainTextEncryption to true...');

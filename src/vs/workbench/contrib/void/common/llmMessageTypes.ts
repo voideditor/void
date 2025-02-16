@@ -22,17 +22,28 @@ export const errorDetails = (fullError: Error | null): string | null => {
 }
 
 export type OnText = (p: { newText: string, fullText: string }) => void
-export type OnFinalMessage = (p: { fullText: string, tools: { name: string, args: string }[] }) => void
+export type OnFinalMessage = (p: { fullText: string, tools: { name: string, args: string, tool_use_id: string, }[] }) => void
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
 export type LLMChatMessage = {
-	role: 'system' | 'user' | 'assistant' | 'tool';
+	role: 'system' | 'user';
+	content: string;
+} | {
+	role: 'tool';
+	tool_use_id: string;
+	content: string;
+} | {
+	role: 'assistant',
+	tool_calls?: { name: string, tool_use_id: string, params: string }[];
 	content: string;
 }
 
+
+
 export type _InternalLLMChatMessage = {
-	role: 'user' | 'assistant';
+	role: any;
+	tool_use_id?: any;
 	content: string;
 }
 

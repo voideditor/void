@@ -65,6 +65,7 @@ export type ChatMessage =
 		role: 'tool';
 		name: string; // internal use
 		params: string | null; // internal use
+		tool_use_id: string; // apis require this
 		content: string | null; // summary of the tool to the LLM
 		displayContent: string | null; // text message of result
 	}
@@ -111,10 +112,12 @@ const newThreadObject = () => {
 }
 
 const THREAD_VERSION_KEY = 'void.chatThreadVersion'
-const THREAD_VERSION = 'v2'
+const LATEST_THREAD_VERSION = 'v2'
 
 const THREAD_STORAGE_KEY = 'void.chatThreadStorage'
 
+
+type ChatMode = 'agent' | 'chat'
 export interface IChatThreadService {
 	readonly _serviceBrand: undefined;
 
@@ -134,8 +137,8 @@ export interface IChatThreadService {
 
 	useFocusedStagingState(messageIdx?: number | undefined): readonly [StagingInfo, (stagingInfo: StagingInfo) => void];
 
-	editUserMessageAndStreamResponse(userMessage: string, messageIdx: number): Promise<void>;
-	addUserMessageAndStreamResponse(userMessage: string): Promise<void>;
+	editUserMessageAndStreamResponse({ userMessage, chatMode, messageIdx }: { userMessage: string, chatMode: ChatMode, messageIdx: number }): Promise<void>;
+	addUserMessageAndStreamResponse({ userMessage, chatMode }: { userMessage: string, chatMode: ChatMode }): Promise<void>;
 	cancelStreaming(threadId: string): void;
 	dismissStreamError(threadId: string): void;
 
@@ -182,7 +185,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// always be in a thread
 		this.openNewThread()
 
-		this._storageService.store(THREAD_VERSION_KEY, THREAD_VERSION, StorageScope.APPLICATION, StorageTarget.USER)
+		this._storageService.store(THREAD_VERSION_KEY, LATEST_THREAD_VERSION, StorageScope.APPLICATION, StorageTarget.USER)
 
 	}
 
@@ -272,7 +275,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 
-	async addUserMessageAndStreamResponse(userMessage: string, stagingOverride?: StagingInfo | null) {
+	async addUserMessageAndStreamResponse({ userMessage, chatMode, stagingOverride }: { userMessage: string, chatMode: ChatMode, stagingOverride?: StagingInfo | null }) {
 
 		const thread = this.getCurrentThread()
 		const threadId = thread.id
@@ -293,13 +296,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 		// agent loop
-
-
 		let shouldContinue = false
 		do {
 			shouldContinue = false
-
-			console.log('Q')
 
 			let res_: () => void
 			const awaitable = new Promise<void>((res, rej) => { res_ = res })
@@ -310,9 +309,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				logging: { loggingName: `Agent` },
 				messages: [
 					{ role: 'system', content: chat_systemMessage },
-					...this.getCurrentThread().messages.map(m => ({ role: m.role, content: m.content || '(empty model output)' })),
+					...this.getCurrentThread().messages.map(m => ({ ...m, content: m.content || '(empty model output)' })),
 				],
-				tools: [voidTools['read_file']],
+				tools: [voidTools['read_file']], // TODO!!!!! make this change on agent | chat | search
 
 				onText: ({ fullText }) => {
 					this._setStreamState(threadId, { messageSoFar: fullText })
@@ -324,13 +323,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					else {
 						for (const tool of tools) {
 							if (!(tool.name in this._toolsService.toolFns)) {
-								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })
+								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, tool_use_id: tool.tool_use_id, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })
 							}
 							else {
 								const toolName = tool.name as ToolName
-								const toolResult = await this._toolsService.toolFns[toolName](JSON.parse(tool.args))
-								const string = this._toolsService.toolResultToString[toolName](toolResult as any)
-								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, content: string, displayContent: string, })
+								const toolResult = await this._toolsService.toolFns[toolName](tool.args)
+								const string = this._toolsService.toolResultToString[toolName](toolResult as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
+								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, tool_use_id: tool.tool_use_id, content: string, displayContent: string, })
 								shouldContinue = true
 							}
 						}
@@ -377,7 +376,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
-	async editUserMessageAndStreamResponse(userMessage: string, messageIdx: number) {
+	async editUserMessageAndStreamResponse({ userMessage, chatMode, messageIdx }: { userMessage: string, chatMode: ChatMode, messageIdx: number }) {
 
 		const thread = this.getCurrentThread()
 
@@ -400,7 +399,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}, true)
 
 		// re-add the message and stream it
-		this.addUserMessageAndStreamResponse(userMessage, messageToReplace.staging)
+		this.addUserMessageAndStreamResponse({ userMessage, chatMode, stagingOverride: messageToReplace.staging })
 
 	}
 

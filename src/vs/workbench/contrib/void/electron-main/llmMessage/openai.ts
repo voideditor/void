@@ -64,6 +64,18 @@ const newOpenAI = ({ settingsOfProvider, providerName }: NewParams) => {
 			baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true
 		})
 	}
+	else if (providerName === 'mistral') {
+		const thisConfig = settingsOfProvider.mistral
+		return new OpenAI({
+			baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		})
+	}
+	else if (providerName === 'groq') {
+		const thisConfig = settingsOfProvider.groq
+		return new OpenAI({
+			baseURL: '"https://api.groq.com/openai/v1"', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		})
+	}
 	else {
 		console.error(`sendOpenAIMsg: invalid providerName: ${providerName}`)
 		throw new Error(`providerName was invalid: ${providerName}`)
@@ -167,4 +179,4 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 			}
 		})
 
-};
+}

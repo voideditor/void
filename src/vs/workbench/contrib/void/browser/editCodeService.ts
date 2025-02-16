@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, fastApply_rewritewholething_userMessage, fastApply_rewritewholething_systemMessage, defaultQuickEditFimTags, searchReplace_userMessage, searchReplace_systemMessage } from './prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, rewriteCode_userMessage, rewriteCode_systemMessage, defaultQuickEditFimTags, searchReplace_userMessage, searchReplace_systemMessage } from './prompt/prompts.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -1415,9 +1415,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let messages: LLMChatMessage[]
 
 		if (from === 'ClickApply') {
-			const userContent = fastApply_rewritewholething_userMessage({ originalCode, applyStr: opts.applyStr, uri })
+			const userContent = rewriteCode_userMessage({ originalCode, applyStr: opts.applyStr, uri })
 			messages = [
-				{ role: 'system', content: fastApply_rewritewholething_systemMessage, },
+				{ role: 'system', content: rewriteCode_systemMessage, },
 				{ role: 'user', content: userContent, }
 			]
 		}

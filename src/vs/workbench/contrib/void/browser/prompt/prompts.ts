@@ -187,7 +187,7 @@ export const chat_userMessage = async (instructions: string, selections: Staging
 
 
 
-export const fastApply_rewritewholething_systemMessage = `\
+export const rewriteCode_systemMessage = `\
 You are a coding assistant that re-writes an entire file to make a change. You are given the original file \`ORIGINAL_FILE\` and a change \`CHANGE\`.
 
 Directions:
@@ -199,7 +199,7 @@ Directions:
 
 
 
-export const fastApply_rewritewholething_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
+export const rewriteCode_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
 
 	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 
@@ -311,7 +311,7 @@ Directions:
 4. The SEARCH/REPLACE blocks you generate will be applied immediately, and so they **MUST** produce a file that the user can run IMMEDIATELY.
 - Make sure you add all necessary imports.
 - Make sure the "final" code is complete and will not result in syntax/lint errors.
-5. Follow coding convention (spaces, semilcolons, comments, etc).
+5. Follow coding conventions of the user (spaces, semilcolons, comments, etc). If the user spaces or formats things a certain way, CONTINUE formatting it that way, even if you prefer otherwise.
 
 ## EXAMPLE 1
 ORIGINAL_FILE

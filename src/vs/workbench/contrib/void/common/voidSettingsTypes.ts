@@ -9,17 +9,25 @@ import { VoidSettingsState } from './voidSettingsService.js'
 
 
 // developer info used in sendLLMMessage
-export type VoidModelDeveloperInfo = {
+export type DeveloperInfoAtModel = {
 	// USED:
+
+	// TODO!!! think tokens - deepseek
 
 	// TODO!!!!
 	// UNUSED (coming soon):
-	recognizedModelName: RecognizedModel, // used to show user if model was auto-recognized
+	recognizedModelName: RecognizedModelName, // used to show user if model was auto-recognized
 	supportsTools: boolean, // we will just do a string of tool use if it doesn't support
-	supportsSystemMessage: 'system' | 'developer' | false, // if null, we will just do a string of system message
+	supportsSystemMessage: 'developer' | 'system' | false, // if null, we will just do a string of system message
 	supportsAutocompleteFIM: boolean, // we will just do a description of FIM if it doens't support <|fim_hole|>
 	supportsStreaming: boolean, // (o1 does NOT) we will just dump the final result if doesn't support it
-	maxTokens: number, // required, DEFAULT is Infinity
+	maxTokens: number, // required
+}
+
+export type DeveloperInfoAtProvider = {
+	separateSystemMessage?: boolean;
+	toolsGoInRole?: boolean; // whether to do {role:'tool'} or {role:'user' tool:...}
+	modelOverrides?: Partial<DeveloperInfoAtModel>; // any overrides for models that a provider might have (e.g. if a provider always supports tool use, even if we don't recognize the model we can set tools to true)
 }
 
 
@@ -31,7 +39,7 @@ export type VoidModelInfo = { // <-- STATEFUL
 	isDefault: boolean, // whether or not it's a default for its provider
 	isHidden: boolean, // whether or not the user is hiding it (switched off)
 	isAutodetected?: boolean, // whether the model was autodetected by polling
-} & VoidModelDeveloperInfo
+} & DeveloperInfoAtModel
 
 
 
@@ -62,131 +70,155 @@ export const recognizedModels = [
 
 ] as const
 
+type RecognizedModelName = (typeof recognizedModels)[number] | '<GENERAL>'
 
 
-
-type RecognizedModel = (typeof recognizedModels)[number] | '<GENERAL>'
-
-
-// const modelCapabilities: { [recognizedModel in RecognizedModel]: ({ }) => string } = {
-// 	'OpenAI 4o': {
-// 		template: ({ prefix, suffix, }: { prefix: string; suffix: string; }) => `\
-// `
-// 	}
-// }
-
-export function getRecognizedModel(modelName: string): RecognizedModel {
+export function recognizedModelOfModelName(modelName: string): RecognizedModelName {
 	const lower = modelName.toLowerCase();
 
-	if (lower.includes('gpt-4o')) {
+	if (lower.includes('gpt-4o'))
 		return 'OpenAI 4o';
-	}
-	if (lower.includes('claude')) {
+	if (lower.includes('claude'))
 		return 'Anthropic Claude';
-	}
-	if (lower.includes('llama')) {
+	if (lower.includes('llama'))
 		return 'Llama 3.x';
-	}
-	if (lower.includes('qwen2.5-coder')) {
+	if (lower.includes('qwen2.5-coder'))
 		return 'Alibaba Qwen2.5 Coder Instruct';
-	}
-	if (lower.includes('mistral')) {
+	if (lower.includes('mistral'))
 		return 'Mistral Codestral';
-	}
-	// Check for "o1" or "o3"
-	if (/\bo1\b/.test(lower) || /\bo3\b/.test(lower)) {
+	if (/\bo1\b/.test(lower) || /\bo3\b/.test(lower)) // o1, o3
 		return 'OpenAI o1, o3';
-	}
-	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) {
+	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner'))
 		return 'Deepseek R1';
-	}
+	if (lower.includes('deepseek'))
+		return 'Deepseek Chat'
 
-	// Fallback:
 	return '<GENERAL>';
 }
 
 
+const developerInfoAtProvider: { [providerName in ProviderName]: DeveloperInfoAtProvider } = {
+	'anthropic': {
+		separateSystemMessage: true,
+		toolsGoInRole: false,
+		modelOverrides: {
+			supportsTools: true,
+		}
+	},
+	'deepseek': {
+		separateSystemMessage: true,
+	},
+	'openAI': {
+		separateSystemMessage: false,
+		toolsGoInRole: true,
+	},
+	'gemini': {
+		separateSystemMessage: true,
+		toolsGoInRole: false
+	},
+	'mistral': {
+		separateSystemMessage: true,
+	},
+	'groq': {
+		separateSystemMessage: true,
+	},
+	'ollama': {
+		separateSystemMessage: false,
+	},
+	'openRouter': {
+		separateSystemMessage: true,
+	},
+	'openAICompatible': {
+		separateSystemMessage: true,
+	},
+}
+export const developerInfoOfProviderName = (providerName: ProviderName): Partial<DeveloperInfoAtProvider> => {
+	return developerInfoAtProvider[providerName] ?? {}
+}
 
-export const developerInfoOfRecognizedModel = (modelName: string) => {
-	const devInfo: { [recognizedModel in RecognizedModel]: Omit<VoidModelDeveloperInfo, 'recognizedModelName'> } = {
-		'OpenAI 4o': {
-			supportsSystemMessage: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: false,
-			maxTokens: 4096,
-		},
 
-		'Anthropic Claude': {
-			supportsSystemMessage: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: false,
-			maxTokens: 4096,
-		},
 
-		'Llama 3.x': {
-			supportsSystemMessage: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: false,
-			maxTokens: 4096,
-		},
 
-		'Deepseek Chat': {
-			supportsSystemMessage: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: false,
-			maxTokens: 4096,
-		},
+// providerName is optional, but gives some extra fallbacks if provided
+const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelName]: Omit<DeveloperInfoAtModel, 'recognizedModelName'> } = {
+	'OpenAI 4o': {
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsAutocompleteFIM: false,
+		supportsStreaming: false,
+		maxTokens: 4096,
+	},
 
-		'Alibaba Qwen2.5 Coder Instruct': {
-			supportsSystemMessage: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: false,
-			maxTokens: 4096,
-		},
+	'Anthropic Claude': {
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsAutocompleteFIM: false,
+		supportsStreaming: false,
+		maxTokens: 4096,
+	},
 
-		'Mistral Codestral': {
-			supportsSystemMessage: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: false,
-			maxTokens: 4096,
-		},
+	'Llama 3.x': {
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsAutocompleteFIM: false,
+		supportsStreaming: false,
+		maxTokens: 4096,
+	},
 
-		'OpenAI o1, o3': {
-			supportsSystemMessage: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: false,
-			maxTokens: 4096,
-		},
+	'Deepseek Chat': {
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsAutocompleteFIM: false,
+		supportsStreaming: false,
+		maxTokens: 4096,
+	},
 
-		'Deepseek R1': {
-			supportsSystemMessage: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: false,
-			maxTokens: 4096,
-		},
+	'Alibaba Qwen2.5 Coder Instruct': {
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsAutocompleteFIM: false,
+		supportsStreaming: false,
+		maxTokens: 4096,
+	},
 
-		'<GENERAL>': {
-			supportsSystemMessage: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: false,
-			maxTokens: 4096,
-		},
-	}
+	'Mistral Codestral': {
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsAutocompleteFIM: false,
+		supportsStreaming: false,
+		maxTokens: 4096,
+	},
 
-	const recognizedModelName = getRecognizedModel(modelName)
+	'OpenAI o1, o3': {
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsAutocompleteFIM: false,
+		supportsStreaming: false,
+		maxTokens: 4096,
+	},
 
+	'Deepseek R1': {
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsAutocompleteFIM: false,
+		supportsStreaming: false,
+		maxTokens: 4096,
+	},
+
+	'<GENERAL>': {
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsAutocompleteFIM: false,
+		supportsStreaming: false,
+		maxTokens: 4096,
+	},
+}
+export const developerInfoOfModelName = (modelName: string, overrides?: Partial<DeveloperInfoAtModel>): DeveloperInfoAtModel => {
+	const recognizedModelName = recognizedModelOfModelName(modelName)
 	return {
 		recognizedModelName: recognizedModelName,
-		...devInfo[recognizedModelName],
+		...developerInfoOfRecognizedModelName[recognizedModelName],
+		...overrides
 	}
 }
 
@@ -202,7 +234,7 @@ export const modelInfoOfDefaultModelNames = (defaultModelNames: string[]): VoidM
 		isDefault: true,
 		isAutodetected: false,
 		isHidden: defaultModelNames.length >= 10, // hide all models if there are a ton of them, and make user enable them individually
-		...developerInfoOfRecognizedModel(modelName),
+		...developerInfoOfModelName(modelName),
 	}))
 }
 
@@ -219,7 +251,7 @@ export const modelInfoOfAutodetectedModelNames = (defaultModelNames: string[], o
 		isDefault: true,
 		isAutodetected: true,
 		isHidden: !!existingModelsMap[modelName]?.isHidden,
-		...developerInfoOfRecognizedModel(modelName)
+		...developerInfoOfModelName(modelName)
 	}))
 }
 

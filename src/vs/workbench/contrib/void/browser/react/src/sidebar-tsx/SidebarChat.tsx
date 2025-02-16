@@ -619,7 +619,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 				// stream the edit
 				const userMessage = textAreaRefState.value;
-				await chatThreadsService.editUserMessageAndStreamResponse(userMessage, messageIdx)
+				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx })
 			}
 
 			const onAbort = () => {
@@ -682,7 +682,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatMessageLocation={chatMessageLocation} />
 	}
-	else if (role === 'tool'){
+	else if (role === 'tool') {
 		chatbubbleContents = chatMessage.name
 	}
 
@@ -798,7 +798,7 @@ export const SidebarChat = () => {
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
-		await chatThreadsService.addUserMessageAndStreamResponse(userMessage)
+		await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode: 'agent' })
 
 		setStaging({ ...staging, selections: [], }) // clear staging
 		textAreaFnsRef.current?.setValue('')

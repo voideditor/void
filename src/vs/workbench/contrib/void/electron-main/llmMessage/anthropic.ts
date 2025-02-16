@@ -45,7 +45,8 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 		messages: messages,
 		model: modelName,
 		max_tokens: maxTokens,
-		tools: tools?.map(tool => toAnthropicTool(tool))
+		tools: tools?.map(tool => toAnthropicTool(tool)),
+		tool_choice: { type: 'auto', disable_parallel_tool_use: true } // one tool use at a time
 	})
 
 
@@ -77,7 +78,7 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 	stream.on('finalMessage', (response) => {
 		// stringify the response's content
 		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n\n')
-		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, args: JSON.stringify(c.input) } : null).filter(c => !!c)
+		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, args: JSON.stringify(c.input), tool_use_id: c.id } : null).filter(c => !!c)
 
 		onFinalMessage({ fullText: content, tools })
 	})

@@ -11,7 +11,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, displayInfoOfProviderName, defaultProviderSettings, developerInfoOfRecognizedModel, modelInfoOfAutodetectedModelNames } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, displayInfoOfProviderName, defaultProviderSettings, developerInfoOfModelName, modelInfoOfAutodetectedModelNames } from './voidSettingsTypes.js';
 
 
 const STORAGE_KEY = 'void.settingsServiceStorage'
@@ -334,7 +334,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		if (existingIdx !== -1) return // if exists, do nothing
 		const newModels = [
 			...models,
-			{ ...developerInfoOfRecognizedModel(modelName), modelName, isDefault: false, isHidden: false }
+			{ ...developerInfoOfModelName(modelName), modelName, isDefault: false, isHidden: false }
 		]
 		this.setSettingOfProvider(providerName, 'models', newModels)
 

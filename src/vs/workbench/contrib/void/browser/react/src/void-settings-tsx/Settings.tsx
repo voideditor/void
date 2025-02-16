@@ -385,7 +385,7 @@ export const AIInstructionsBox = () => {
 	return <VoidInputBox2
 		className='min-h-[81px] p-3 rounded-sm'
 		initValue={voidSettingsState.globalSettings.aiInstructions}
-		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Respond to all queries in French. `}
+		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Write new code using Rust if possible. `}
 		multiline
 		onChangeText={(newText) => {
 			voidSettingsService.setGlobalSetting('aiInstructions', newText)

@@ -32,12 +32,13 @@ export type LLMChatMessage = {
 	content: string;
 } | {
 	role: 'assistant',
-	tool_calls?: { name: string, id: string, params: string }[];
 	content: string;
 } | {
 	role: 'tool';
+	content: string; // result
+	name: string;
+	params: string;
 	id: string;
-	content: string;
 }
 
 export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
@@ -45,20 +46,14 @@ export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
 		return { role: c.role, content: c.content ?? '(empty)' }
 	}
 	else if (c.role === 'assistant')
-		return { role: c.role, tool_calls: c.tool_calls, content: c.content ?? '(empty model output)' }
+		return { role: c.role, content: c.content ?? '(empty model output)' }
 	else if (c.role === 'tool')
-		return { role: c.role, id: c.id, content: c.content ?? '(empty output)' }
+		return { role: c.role, id: c.id, name: c.name, params: c.params, content: c.content ?? '(empty output)' }
 	else {
 		throw 1
 	}
 }
 
-
-export type _InternalLLMChatMessage = {
-	role: any;
-	id?: any;
-	content: string;
-}
 
 type _InternalSendFIMMessage = {
 	prefix: string;
@@ -115,6 +110,8 @@ export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId:
 
 export type _InternalSendLLMChatMessageFnType = (
 	params: {
+		aiInstructions: string;
+
 		onText: OnText;
 		onFinalMessage: OnFinalMessage;
 		onError: OnError;

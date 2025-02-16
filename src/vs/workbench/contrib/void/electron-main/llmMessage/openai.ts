@@ -7,7 +7,7 @@ import OpenAI from 'openai';
 import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { Model } from 'openai/resources/models.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
-import { addSystemMessageAndToolSupport } from './addSupport.js';
+import { addSystemMessageAndToolSupport } from './processMessages.js';
 // import { parseMaxTokensStr } from './util.js';
 
 
@@ -144,12 +144,12 @@ export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools: tools_ }) => {
+export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }) => {
 
 	let fullText = ''
 	const toolCallOfIndex: { [index: string]: { name: string, args: string, id: string } } = {}
 
-	const { messages, devInfo } = addSystemMessageAndToolSupport(modelName, providerName, messages_, { separateSystemMessage: false })
+	const { messages, devInfo } = addSystemMessageAndToolSupport(modelName, providerName, messages_, aiInstructions, { separateSystemMessage: false })
 
 	const tools = devInfo?.supportsTools && (tools_?.length ?? 0) !== 0 ? tools_?.map(tool => toOpenAITool(tool)) : undefined
 

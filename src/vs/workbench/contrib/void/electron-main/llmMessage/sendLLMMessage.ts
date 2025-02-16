@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { SendLLMMessageParams, OnText, OnFinalMessage, OnError, _InternalLLMChatMessage } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 
@@ -104,11 +104,11 @@ export const sendLLMMessage = ({
 			case 'groq':
 			case 'gemini':
 				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - OpenAI FIM', tools: [] })
-				else /*                         */ sendOpenAIChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools });
+				else /*                         */ sendOpenAIChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools });
 				break;
 			case 'anthropic':
 				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Anthropic FIM', tools: [] })
-				else /*                         */ sendAnthropicChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools });
+				else /*                         */ sendAnthropicChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools });
 				break;
 			default:
 				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })

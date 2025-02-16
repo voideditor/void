@@ -1261,6 +1261,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					if (!(blockNum in diffareaidOfBlockNum)) {
 						const foundInCode = findTextInCode(block.orig, fileContents)
 						if (typeof foundInCode === 'string') {
+							// TODO!!! log and retry
 							console.log('NOT FOUND IN CODE!!!!', foundInCode)
 							continue
 						}
@@ -1305,7 +1306,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				this._refreshStylesAndDiffsInURI(uri)
 			},
 			onFinalMessage: async ({ fullText }) => {
-				console.log('/* ONFIN */', fullText)
+				console.log('/* ON FINALMESSAGE */', fullText)
 
 				// 1. wait 500ms and fix lint errors - call lint error workflow
 				// (update react state to say "Fixing errors")
@@ -1325,8 +1326,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				onDone(false)
 			},
 			onError: (e) => {
-				console.log('/* ERRRRRR */')
-
 				console.log('ERROR', e);
 				onDone(true)
 			},

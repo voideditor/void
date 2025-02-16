@@ -7,7 +7,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
-import { addSystemMessageAndToolSupport } from './addSupport.js';
+import { addSystemMessageAndToolSupport } from './processMessages.js';
 
 
 
@@ -29,7 +29,7 @@ export const toAnthropicTool = (toolInfo: InternalToolInfo) => {
 
 
 
-export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, tools: tools_ }) => {
+export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, aiInstructions, tools: tools_ }) => {
 
 	const thisConfig = settingsOfProvider.anthropic
 
@@ -39,7 +39,7 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages:
 		return
 	}
 
-	const { messages, separateSystemMessageStr, devInfo } = addSystemMessageAndToolSupport(modelName, providerName, messages_, { separateSystemMessage: true })
+	const { messages, separateSystemMessageStr, devInfo } = addSystemMessageAndToolSupport(modelName, providerName, messages_, aiInstructions, { separateSystemMessage: true })
 
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 

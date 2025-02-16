@@ -14,7 +14,7 @@ import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { chat_userMessage, chat_systemMessage } from './prompt/prompts.js';
-import { IToolsService, ToolName, voidTools } from '../common/toolsService.js';
+import { InternalToolInfo, IToolsService, ToolName, voidTools } from '../common/toolsService.js';
 import { toLLMChatMessage } from '../common/llmMessageTypes.js';
 
 // one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
@@ -66,10 +66,10 @@ export type ChatMessage =
 	| {
 		role: 'tool';
 		name: string; // internal use
-		params: string | null; // internal use
+		params: string; // internal use
 		id: string; // apis require this tool use id
-		content: string | null; // summary of the tool to the LLM
-		displayContent: string | null; // text message of result
+		content: string; // result
+		displayContent: string; // text message of result
 	}
 
 // a 'thread' means a chat message history
@@ -296,6 +296,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		this._setStreamState(threadId, { error: undefined })
 
 
+		const tools: InternalToolInfo[] | undefined = (
+			chatMode === 'chat' ? undefined
+				: chatMode === 'agent' ? Object.keys(voidTools).map(toolName => voidTools[toolName as ToolName])
+					: undefined)
 
 		// agent loop
 		const agentLoop = async () => {
@@ -316,8 +320,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						...this.getCurrentThread().messages.map(m => (toLLMChatMessage(m))),
 					],
 
-					// TODO!!!!! make this change on 'agent' | 'chat'
-					tools: Object.keys(voidTools).map(toolName => voidTools[toolName as ToolName]),
+					tools: tools,
 
 					onText: ({ fullText }) => {
 						this._setStreamState(threadId, { messageSoFar: fullText })

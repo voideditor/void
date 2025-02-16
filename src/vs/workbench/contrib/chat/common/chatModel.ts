@@ -396,14 +396,27 @@ class ThinkTagSurroundingsRemover extends SurroundingsRemover {
 	}
 
 	removeThinkTags() {
-		// Handle token streaming character by character
-		const chars = ['<', 't', 'h', 'i', 'n', 'k', '>'];
-		let foundTag = true;
+		// Handle token streaming at a more granular level
+		let foundTag = false;
 		
-		for (const char of chars) {
-			if (!this.removePrefix(char)) {
-				foundTag = false;
-				break;
+		// Try to remove opening tag, handling partial tokens
+		foundTag = this.removePrefix('<');
+		if (foundTag) {
+			foundTag = this.removePrefix('t');
+			if (foundTag) {
+				foundTag = this.removePrefix('h');
+				if (foundTag) {
+					foundTag = this.removePrefix('i');
+					if (foundTag) {
+						foundTag = this.removePrefix('n');
+						if (foundTag) {
+							foundTag = this.removePrefix('k');
+							if (foundTag) {
+								foundTag = this.removePrefix('>');
+							}
+						}
+					}
+				}
 			}
 		}
 		
@@ -411,7 +424,10 @@ class ThinkTagSurroundingsRemover extends SurroundingsRemover {
 	}
 
 	deltaInfo(recentlyAddedTextLen: number) {
+		// Get the delta and suffix from parent class
 		const [delta, ignoredSuffix] = super.deltaInfo(recentlyAddedTextLen);
+		
+		// Strip any think tags from the delta before returning
 		return [stripThinkTags(delta), ignoredSuffix] as const;
 	}
 }

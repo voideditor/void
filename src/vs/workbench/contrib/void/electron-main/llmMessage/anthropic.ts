@@ -5,7 +5,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
-import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
+import { anthropicMaxPossibleTokens, developerInfoOfModelName, developerInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
 import { addSystemMessageAndToolSupport } from './processMessages.js';
 
@@ -39,11 +39,14 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages:
 		return
 	}
 
-	const { messages, separateSystemMessageStr, devInfo } = addSystemMessageAndToolSupport(modelName, providerName, messages_, aiInstructions, { separateSystemMessage: true })
+	const { messages, separateSystemMessageStr } = addSystemMessageAndToolSupport(modelName, providerName, messages_, aiInstructions, { separateSystemMessage: true })
+
+	const { overrideSettingsForAllModels } = developerInfoOfProviderName(providerName)
+	const { supportsTools } = developerInfoOfModelName(modelName, overrideSettingsForAllModels)
 
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 
-	const tools = devInfo?.supportsTools && (tools_?.length ?? 0) !== 0 ? tools_?.map(tool => toAnthropicTool(tool)) : undefined
+	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toAnthropicTool(tool)) : undefined
 
 	const stream = anthropic.messages.stream({
 		system: separateSystemMessageStr,

@@ -1,7 +1,7 @@
 
 
 import { LLMChatMessage } from '../../common/llmMessageTypes.js';
-import { DeveloperInfoAtModel, developerInfoOfModelName, developerInfoOfProviderName, ProviderName } from '../../common/voidSettingsTypes.js';
+import { developerInfoOfModelName, developerInfoOfProviderName, ProviderName } from '../../common/voidSettingsTypes.js';
 import { deepClone } from '../../../../../base/common/objects.js';
 
 
@@ -9,13 +9,12 @@ import { deepClone } from '../../../../../base/common/objects.js';
 
 // no matter whether the model supports a system message or not (or what format it supports), add it in some way
 // also take into account tools if the model doesn't support tool use
-export const addSystemMessageAndToolSupport = (modelName: string, providerName: ProviderName, messages_: LLMChatMessage[], aiInstructions: string, { separateSystemMessage }: { separateSystemMessage: boolean }): { separateSystemMessageStr?: string, messages: any[], devInfo: DeveloperInfoAtModel } => {
+export const addSystemMessageAndToolSupport = (modelName: string, providerName: ProviderName, messages_: LLMChatMessage[], aiInstructions: string, { separateSystemMessage }: { separateSystemMessage: boolean }): { separateSystemMessageStr?: string, messages: any[] } => {
 
 	const messages = deepClone(messages_).map(m => ({ ...m, content: m.content.trim(), }))
 
 	const { overrideSettingsForAllModels } = developerInfoOfProviderName(providerName)
-	const devInfo = developerInfoOfModelName(modelName, overrideSettingsForAllModels)
-	const { supportsSystemMessage, supportsTools } = devInfo
+	const { supportsSystemMessageRole: supportsSystemMessage, supportsTools } = developerInfoOfModelName(modelName, overrideSettingsForAllModels)
 
 	// 1. SYSTEM MESSAGE
 	// find system messages and concatenate them
@@ -236,12 +235,13 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 	// TODO!!!
 
 
+	console.log('SYSMG', separateSystemMessage)
+	console.log('FINAL MESSAGES', finalMessages)
 
 
 	return {
 		separateSystemMessageStr,
 		messages: finalMessages,
-		devInfo,
 	}
 }
 

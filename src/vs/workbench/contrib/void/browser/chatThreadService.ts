@@ -326,19 +326,21 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						this._setStreamState(threadId, { messageSoFar: fullText })
 					},
 					onFinalMessage: async ({ fullText, tools }) => {
-						if (tools.length === 0) {
+						this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText, tool_calls: tools })
+
+						if ((tools?.length ?? 0) === 0) {
 							this._finishStreamingTextMessage(threadId, fullText)
 						}
 						else {
-							for (const tool of tools) {
+							for (const tool of tools ?? []) {
 								if (!(tool.name in this._toolsService.toolFns)) {
-									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, id: tool.id, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })
+									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.params, id: tool.id, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })
 								}
 								else {
 									const toolName = tool.name as ToolName
-									const toolResult = await this._toolsService.toolFns[toolName](tool.args)
+									const toolResult = await this._toolsService.toolFns[toolName](tool.params)
 									const string = this._toolsService.toolResultToString[toolName](toolResult as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
-									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, id: tool.id, content: string, displayContent: string, })
+									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.params, id: tool.id, content: string, displayContent: string, })
 									shouldContinue = true
 								}
 							}

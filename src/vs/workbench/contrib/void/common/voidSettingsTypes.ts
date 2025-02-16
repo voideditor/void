@@ -18,7 +18,7 @@ export type DeveloperInfoAtModel = {
 	// UNUSED (coming soon):
 	recognizedModelName: RecognizedModelName, // used to show user if model was auto-recognized
 	supportsTools: boolean, // we will just do a string of tool use if it doesn't support
-	supportsSystemMessage: 'developer' | 'system' | false, // if null, we will just do a string of system message
+	supportsSystemMessageRole: 'developer' | 'system' | false, // if null, we will just do a string of system message. this is independent from separateSystemMessage, which takes priority and is passed directly in each provider's implementation.
 	supportsAutocompleteFIM: boolean, // we will just do a description of FIM if it doens't support <|fim_hole|>
 	supportsStreaming: boolean, // (o1 does NOT) we will just dump the final result if doesn't support it
 	maxTokens: number, // required
@@ -98,7 +98,7 @@ export function recognizedModelOfModelName(modelName: string): RecognizedModelNa
 const developerInfoAtProvider: { [providerName in ProviderName]: DeveloperInfoAtProvider } = {
 	'anthropic': {
 		overrideSettingsForAllModels: {
-			supportsSystemMessage: 'system',
+			supportsSystemMessageRole: 'system',
 			supportsTools: true,
 			supportsAutocompleteFIM: false,
 			supportsStreaming: true,
@@ -106,7 +106,7 @@ const developerInfoAtProvider: { [providerName in ProviderName]: DeveloperInfoAt
 	},
 	'deepseek': {
 		overrideSettingsForAllModels: {
-			supportsSystemMessage: false,
+			supportsSystemMessageRole: false,
 			supportsTools: false,
 			supportsAutocompleteFIM: false,
 			supportsStreaming: true,
@@ -137,15 +137,15 @@ export const developerInfoOfProviderName = (providerName: ProviderName): Partial
 // providerName is optional, but gives some extra fallbacks if provided
 const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelName]: Omit<DeveloperInfoAtModel, 'recognizedModelName'> } = {
 	'OpenAI 4o': {
-		supportsSystemMessage: false,
-		supportsTools: false,
+		supportsSystemMessageRole: 'system',
+		supportsTools: true,
 		supportsAutocompleteFIM: false,
-		supportsStreaming: false,
+		supportsStreaming: true,
 		maxTokens: 4096,
 	},
 
 	'Anthropic Claude': {
-		supportsSystemMessage: false,
+		supportsSystemMessageRole: 'system',
 		supportsTools: false,
 		supportsAutocompleteFIM: false,
 		supportsStreaming: false,
@@ -153,7 +153,7 @@ const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelN
 	},
 
 	'Llama 3.x': {
-		supportsSystemMessage: false,
+		supportsSystemMessageRole: false,
 		supportsTools: false,
 		supportsAutocompleteFIM: false,
 		supportsStreaming: false,
@@ -161,7 +161,7 @@ const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelN
 	},
 
 	'Deepseek Chat': {
-		supportsSystemMessage: false,
+		supportsSystemMessageRole: false,
 		supportsTools: false,
 		supportsAutocompleteFIM: false,
 		supportsStreaming: false,
@@ -169,7 +169,7 @@ const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelN
 	},
 
 	'Alibaba Qwen2.5 Coder Instruct': {
-		supportsSystemMessage: false,
+		supportsSystemMessageRole: false,
 		supportsTools: false,
 		supportsAutocompleteFIM: false,
 		supportsStreaming: false,
@@ -177,7 +177,7 @@ const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelN
 	},
 
 	'Mistral Codestral': {
-		supportsSystemMessage: false,
+		supportsSystemMessageRole: false,
 		supportsTools: false,
 		supportsAutocompleteFIM: false,
 		supportsStreaming: false,
@@ -185,7 +185,7 @@ const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelN
 	},
 
 	'OpenAI o1, o3': {
-		supportsSystemMessage: false,
+		supportsSystemMessageRole: false,
 		supportsTools: false,
 		supportsAutocompleteFIM: false,
 		supportsStreaming: false,
@@ -193,7 +193,7 @@ const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelN
 	},
 
 	'Deepseek R1': {
-		supportsSystemMessage: false,
+		supportsSystemMessageRole: false,
 		supportsTools: false,
 		supportsAutocompleteFIM: false,
 		supportsStreaming: false,
@@ -201,7 +201,7 @@ const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelN
 	},
 
 	'<GENERAL>': {
-		supportsSystemMessage: false,
+		supportsSystemMessageRole: false,
 		supportsTools: false,
 		supportsAutocompleteFIM: false,
 		supportsStreaming: false,

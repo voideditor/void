@@ -8,6 +8,7 @@ import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSe
 import { Model } from 'openai/resources/models.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
 import { addSystemMessageAndToolSupport } from './processMessages.js';
+import { developerInfoOfModelName, developerInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 // import { parseMaxTokensStr } from './util.js';
 
 
@@ -147,12 +148,14 @@ export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }) => {
 
 	let fullText = ''
-	const toolCallOfIndex: { [index: string]: { name: string, args: string, id: string } } = {}
+	const toolCallOfIndex: { [index: string]: { name: string, params: string, id: string } } = {}
 
-	const { messages, devInfo } = addSystemMessageAndToolSupport(modelName, providerName, messages_, aiInstructions, { separateSystemMessage: false })
+	const { overrideSettingsForAllModels } = developerInfoOfProviderName(providerName)
+	const { supportsTools } = developerInfoOfModelName(modelName, overrideSettingsForAllModels)
 
-	const tools = devInfo?.supportsTools && (tools_?.length ?? 0) !== 0 ? tools_?.map(tool => toOpenAITool(tool)) : undefined
+	const { messages } = addSystemMessageAndToolSupport(modelName, providerName, messages_, aiInstructions, { separateSystemMessage: false })
 
+	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAITool(tool)) : undefined
 
 	const openai: OpenAI = newOpenAI({ providerName, settingsOfProvider })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
@@ -175,9 +178,9 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: me
 				// tool call
 				for (const tool of chunk.choices[0]?.delta?.tool_calls ?? []) {
 					const index = tool.index
-					if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', args: '', id: '' }
+					if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', params: '', id: '' }
 					toolCallOfIndex[index].name += tool.function?.name ?? ''
-					toolCallOfIndex[index].args += tool.function?.arguments ?? '';
+					toolCallOfIndex[index].params += tool.function?.arguments ?? '';
 					toolCallOfIndex[index].id = tool.id ?? ''
 
 				}

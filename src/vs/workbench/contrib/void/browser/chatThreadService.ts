@@ -15,6 +15,7 @@ import { ILLMMessageService } from '../common/llmMessageService.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { chat_userMessage, chat_systemMessage } from './prompt/prompts.js';
 import { IToolsService, ToolName, voidTools } from '../common/toolsService.js';
+import { toLLMChatMessage } from '../common/llmMessageTypes.js';
 
 // one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
 export type CodeSelection = {
@@ -53,6 +54,7 @@ export type ChatMessage =
 	}
 	| {
 		role: 'assistant';
+		tool_calls?: { name: string, id: string, params: string }[];
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
 	}
@@ -65,7 +67,7 @@ export type ChatMessage =
 		role: 'tool';
 		name: string; // internal use
 		params: string | null; // internal use
-		tool_use_id: string; // apis require this
+		id: string; // apis require this tool use id
 		content: string | null; // summary of the tool to the LLM
 		displayContent: string | null; // text message of result
 	}
@@ -296,82 +298,64 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 		// agent loop
-		let shouldContinue = false
-		do {
-			shouldContinue = false
+		const agentLoop = async () => {
 
-			let res_: () => void
-			const awaitable = new Promise<void>((res, rej) => { res_ = res })
+			let shouldContinue = false
+			do {
+				shouldContinue = false
 
-			const llmCancelToken = this._llmMessageService.sendLLMMessage({
-				messagesType: 'chatMessages',
-				useProviderFor: 'Ctrl+L',
-				logging: { loggingName: `Agent` },
-				messages: [
-					{ role: 'system', content: chat_systemMessage },
-					...this.getCurrentThread().messages.map(m => ({ ...m, content: m.content || '(empty model output)' })),
-				],
-				tools: [voidTools['read_file']], // TODO!!!!! make this change on agent | chat | search
+				let res_: () => void
+				const awaitable = new Promise<void>((res, rej) => { res_ = res })
 
-				onText: ({ fullText }) => {
-					this._setStreamState(threadId, { messageSoFar: fullText })
-				},
-				onFinalMessage: async ({ fullText, tools }) => {
-					if (tools.length === 0) {
-						this._finishStreamingTextMessage(threadId, fullText)
-					}
-					else {
-						for (const tool of tools) {
-							if (!(tool.name in this._toolsService.toolFns)) {
-								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, tool_use_id: tool.tool_use_id, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })
-							}
-							else {
-								const toolName = tool.name as ToolName
-								const toolResult = await this._toolsService.toolFns[toolName](tool.args)
-								const string = this._toolsService.toolResultToString[toolName](toolResult as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
-								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, tool_use_id: tool.tool_use_id, content: string, displayContent: string, })
-								shouldContinue = true
+				const llmCancelToken = this._llmMessageService.sendLLMMessage({
+					messagesType: 'chatMessages',
+					useProviderFor: 'Ctrl+L',
+					logging: { loggingName: `Agent` },
+					messages: [
+						{ role: 'system', content: chat_systemMessage },
+						...this.getCurrentThread().messages.map(m => (toLLMChatMessage(m))),
+					],
+
+					// TODO!!!!! make this change on 'agent' | 'chat'
+					tools: Object.keys(voidTools).map(toolName => voidTools[toolName as ToolName]),
+
+					onText: ({ fullText }) => {
+						this._setStreamState(threadId, { messageSoFar: fullText })
+					},
+					onFinalMessage: async ({ fullText, tools }) => {
+						if (tools.length === 0) {
+							this._finishStreamingTextMessage(threadId, fullText)
+						}
+						else {
+							for (const tool of tools) {
+								if (!(tool.name in this._toolsService.toolFns)) {
+									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, id: tool.id, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })
+								}
+								else {
+									const toolName = tool.name as ToolName
+									const toolResult = await this._toolsService.toolFns[toolName](tool.args)
+									const string = this._toolsService.toolResultToString[toolName](toolResult as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
+									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.args, id: tool.id, content: string, displayContent: string, })
+									shouldContinue = true
+								}
 							}
 						}
-					}
-					res_()
-				},
-				onError: (error) => {
-					this._finishStreamingTextMessage(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
-					res_()
-				},
-			})
-			if (llmCancelToken === null) return
-			this._setStreamState(threadId, { streamingToken: llmCancelToken })
+						res_()
+					},
+					onError: (error) => {
+						this._finishStreamingTextMessage(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
+						res_()
+					},
+				})
+				if (llmCancelToken === null) break
+				this._setStreamState(threadId, { streamingToken: llmCancelToken })
 
-			await awaitable
+				await awaitable
+			}
+			while (shouldContinue);
 		}
-		while (shouldContinue);
 
-
-
-
-		// const llmCancelToken = this._llmMessageService.sendLLMMessage({
-		// 	messagesType: 'chatMessages',
-		// 	logging: { loggingName: 'Chat' },
-		// 	useProviderFor: 'Ctrl+L',
-		// 	messages: [
-		// 		{ role: 'system', content: chat_systemMessage },
-		// 		...this.getCurrentThread().messages.map(m => ({ role: m.role, content: m.content || '(empty model output)' })),
-		// 	],
-		// 	onText: ({ newText, fullText }) => {
-		// 		this._setStreamState(threadId, { messageSoFar: fullText })
-		// 	},
-		// 	onFinalMessage: ({ fullText: content }) => {
-		// 		this._finishStreaming(threadId, content)
-		// 	},
-		// 	onError: (error) => {
-		// 		this._finishStreaming(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
-		// 	},
-
-		// })
-		// if (llmCancelToken === null) return
-		// this._setStreamState(threadId, { streamingToken: llmCancelToken })
+		agentLoop() // DO NOT AWAIT THIS, this fn should resolve when ready to clear inputs
 
 	}
 

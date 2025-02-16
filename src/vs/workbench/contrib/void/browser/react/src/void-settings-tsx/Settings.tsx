@@ -395,7 +395,16 @@ export const AIInstructionsBox = () => {
 
 export const FeaturesTab = () => {
 	return <>
-		<h2 className={`text-3xl mb-2`}>Local Providers</h2>
+		<h2 className={`text-3xl mb-2`}>Models</h2>
+		<ErrorBoundary>
+			<AutoRefreshToggle />
+			<RefreshableModels />
+			<ModelDump />
+			<AddModelMenuFull />
+		</ErrorBoundary>
+
+
+		<h2 className={`text-3xl mb-2 mt-12`}>Local Providers</h2>
 		{/* <h3 className={`opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
 		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
 		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
@@ -420,13 +429,20 @@ export const FeaturesTab = () => {
 			<VoidProviderSettings providerNames={nonlocalProviderNames} />
 		</ErrorBoundary>
 
-		<h2 className={`text-3xl mb-2 mt-12`}>Models</h2>
+
+
+		<h2 className={`text-3xl mb-2 mt-12`}>Feature Options</h2>
 		<ErrorBoundary>
-			<AutoRefreshToggle />
-			<RefreshableModels />
-			<ModelDump />
-			<AddModelMenuFull />
+			{featureNames.map(featureName =>
+				<div key={featureName}
+					className='mb-2'
+				>
+					<h4 className={`text-void-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
+					<ModelDropdown featureName={featureName} />
+				</div>
+			)}
 		</ErrorBoundary>
+
 	</>
 }
 
@@ -588,17 +604,6 @@ const GeneralTab = () => {
 			<AIInstructionsBox />
 		</div>
 
-		<div className='mt-12'>
-			<h2 className={`text-3xl mb-2`}>Model Selection</h2>
-			{featureNames.map(featureName =>
-				<div key={featureName}
-					className='mb-2'
-				>
-					<h4 className={`text-void-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
-					<ModelDropdown featureName={featureName} />
-				</div>
-			)}
-		</div>
 
 	</>
 }

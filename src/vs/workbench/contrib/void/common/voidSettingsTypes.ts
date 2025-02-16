@@ -25,9 +25,7 @@ export type DeveloperInfoAtModel = {
 }
 
 export type DeveloperInfoAtProvider = {
-	separateSystemMessage?: boolean;
-	toolsGoInRole?: boolean; // whether to do {role:'tool'} or {role:'user' tool:...}
-	modelOverrides?: Partial<DeveloperInfoAtModel>; // any overrides for models that a provider might have (e.g. if a provider always supports tool use, even if we don't recognize the model we can set tools to true)
+	overrideSettingsForAllModels?: Partial<DeveloperInfoAtModel>; // any overrides for models that a provider might have (e.g. if a provider always supports tool use, even if we don't recognize the model we can set tools to true)
 }
 
 
@@ -99,37 +97,34 @@ export function recognizedModelOfModelName(modelName: string): RecognizedModelNa
 
 const developerInfoAtProvider: { [providerName in ProviderName]: DeveloperInfoAtProvider } = {
 	'anthropic': {
-		separateSystemMessage: true,
-		toolsGoInRole: false,
-		modelOverrides: {
+		overrideSettingsForAllModels: {
+			supportsSystemMessage: 'system',
 			supportsTools: true,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: true,
 		}
 	},
 	'deepseek': {
-		separateSystemMessage: true,
-	},
-	'openAI': {
-		separateSystemMessage: false,
-		toolsGoInRole: true,
-	},
-	'gemini': {
-		separateSystemMessage: true,
-		toolsGoInRole: false
-	},
-	'mistral': {
-		separateSystemMessage: true,
-	},
-	'groq': {
-		separateSystemMessage: true,
+		overrideSettingsForAllModels: {
+			supportsSystemMessage: false,
+			supportsTools: false,
+			supportsAutocompleteFIM: false,
+			supportsStreaming: true,
+		}
 	},
 	'ollama': {
-		separateSystemMessage: false,
 	},
 	'openRouter': {
-		separateSystemMessage: true,
 	},
 	'openAICompatible': {
-		separateSystemMessage: true,
+	},
+	'openAI': {
+	},
+	'gemini': {
+	},
+	'mistral': {
+	},
+	'groq': {
 	},
 }
 export const developerInfoOfProviderName = (providerName: ProviderName): Partial<DeveloperInfoAtProvider> => {

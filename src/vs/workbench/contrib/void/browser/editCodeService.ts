@@ -39,7 +39,7 @@ import { Emitter } from '../../../../base/common/event.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
-import { LLMChatMessage, _InternalLLMChatMessage, errorDetails } from '../common/llmMessageTypes.js';
+import { LLMChatMessage, errorDetails } from '../common/llmMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { VSReadFile } from './helpers/readFile.js';
 
@@ -1178,13 +1178,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	private async _initializeSearchAndReplaceStream({ applyStr }: { applyStr: string }) {
 
 
+		console.log('SEARCHREPLACE')
 		const uri_ = this._getActiveEditorURI()
 		if (!uri_) return
 		const uri = uri_
 
+		console.log('/* AAAA */')
 		// generate search/replace block text
 		const fileContents = await VSReadFile(this._modelService, uri)
 		if (fileContents === null) return
+		console.log('/* BBB*/')
 
 
 
@@ -1236,9 +1239,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-
-
-		// TODO turn this into a service and provide it
+		// TODO!!! turn this into a service and provide it
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			messagesType: 'chatMessages',
 			useProviderFor: 'Apply',
@@ -1304,6 +1305,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				this._refreshStylesAndDiffsInURI(uri)
 			},
 			onFinalMessage: async ({ fullText }) => {
+				console.log('/* ONFIN */', fullText)
+
 				// 1. wait 500ms and fix lint errors - call lint error workflow
 				// (update react state to say "Fixing errors")
 				const blocks = extractSearchReplaceBlocks(fullText)
@@ -1322,6 +1325,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				onDone(false)
 			},
 			onError: (e) => {
+				console.log('/* ERRRRRR */')
+
 				console.log('ERROR', e);
 				onDone(true)
 			},

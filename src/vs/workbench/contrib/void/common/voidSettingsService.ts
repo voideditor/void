@@ -11,7 +11,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, displayInfoOfProviderName, defaultProviderSettings, developerInfoOfModelName, modelInfoOfAutodetectedModelNames } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings, developerInfoOfModelName, modelInfoOfAutodetectedModelNames } from './voidSettingsTypes.js';
 
 
 const STORAGE_KEY = 'void.settingsServiceStorage'
@@ -89,7 +89,7 @@ const _updatedValidatedState = (state: Omit<VoidSettingsState, '_modelOptions'>)
 	// update model options
 	let newModelOptions: ModelOption[] = []
 	for (const providerName of providerNames) {
-		const providerTitle = displayInfoOfProviderName(providerName).title.toLowerCase() // looks better lowercase, best practice to not use raw providerName
+		const providerTitle = providerName // displayInfoOfProviderName(providerName).title.toLowerCase() // looks better lowercase, best practice to not use raw providerName
 		if (!newSettingsOfProvider[providerName]._didFillInProviderSettings) continue // if disabled, don't display model options
 		for (const { modelName, isHidden } of newSettingsOfProvider[providerName].models) {
 			if (isHidden) continue

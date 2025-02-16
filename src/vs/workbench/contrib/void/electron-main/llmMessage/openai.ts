@@ -7,6 +7,7 @@ import OpenAI from 'openai';
 import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { Model } from 'openai/resources/models.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
+import { addSystemMessageAndToolSupport } from './addSupport.js';
 // import { parseMaxTokensStr } from './util.js';
 
 
@@ -38,11 +39,19 @@ type NewParams = Pick<Parameters<_InternalSendLLMChatMessageFnType>[0] & Paramet
 const newOpenAI = ({ settingsOfProvider, providerName }: NewParams) => {
 
 	if (providerName === 'openAI') {
-		const thisConfig = settingsOfProvider.openAI
-		return new OpenAI({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true
+		})
+	}
+	else if (providerName === 'ollama') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', dangerouslyAllowBrowser: true,
+		})
 	}
 	else if (providerName === 'openRouter') {
-		const thisConfig = settingsOfProvider.openRouter
+		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
 			baseURL: 'https://openrouter.ai/api/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 			defaultHeaders: {
@@ -51,33 +60,38 @@ const newOpenAI = ({ settingsOfProvider, providerName }: NewParams) => {
 			},
 		})
 	}
+	else if (providerName === 'gemini') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		})
+	}
 	else if (providerName === 'deepseek') {
-		const thisConfig = settingsOfProvider.deepseek
+		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
 			baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 		})
-
 	}
 	else if (providerName === 'openAICompatible') {
-		const thisConfig = settingsOfProvider.openAICompatible
+		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
-			baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true
+			baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 		})
 	}
 	else if (providerName === 'mistral') {
-		const thisConfig = settingsOfProvider.mistral
+		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
 			baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 		})
 	}
 	else if (providerName === 'groq') {
-		const thisConfig = settingsOfProvider.groq
+		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
-			baseURL: '"https://api.groq.com/openai/v1"', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+			baseURL: 'https://api.groq.com/openai/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 		})
 	}
 	else {
-		console.error(`sendOpenAIMsg: invalid providerName: ${providerName}`)
+		console.error(`sendOpenAICompatibleMsg: invalid providerName: ${providerName}`)
 		throw new Error(`providerName was invalid: ${providerName}`)
 	}
 }
@@ -130,10 +144,14 @@ export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools }) => {
+export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, tools: tools_ }) => {
 
 	let fullText = ''
-	const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
+	const toolCallOfIndex: { [index: string]: { name: string, args: string, id: string } } = {}
+
+	const { messages, devInfo } = addSystemMessageAndToolSupport(modelName, providerName, messages_, { separateSystemMessage: false })
+
+	const tools = devInfo?.supportsTools && (tools_?.length ?? 0) !== 0 ? tools_?.map(tool => toOpenAITool(tool)) : undefined
 
 
 	const openai: OpenAI = newOpenAI({ providerName, settingsOfProvider })
@@ -141,7 +159,9 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 		model: modelName,
 		messages: messages,
 		stream: true,
-		tools: tools?.map(tool => toOpenAITool(tool)),
+		tools: tools,
+		tool_choice: tools ? 'auto' : undefined,
+		parallel_tool_calls: tools ? false : undefined,
 	}
 
 	openai.chat.completions
@@ -155,9 +175,11 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 				// tool call
 				for (const tool of chunk.choices[0]?.delta?.tool_calls ?? []) {
 					const index = tool.index
-					if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', args: '' }
+					if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', args: '', id: '' }
 					toolCallOfIndex[index].name += tool.function?.name ?? ''
-					toolCallOfIndex[index].args += tool.function?.arguments ?? ''
+					toolCallOfIndex[index].args += tool.function?.arguments ?? '';
+					toolCallOfIndex[index].id = tool.id ?? ''
+
 				}
 
 				// message

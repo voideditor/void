@@ -7,6 +7,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
+import { addSystemMessageAndToolSupport } from './addSupport.js';
 
 
 
@@ -28,7 +29,7 @@ export const toAnthropicTool = (toolInfo: InternalToolInfo) => {
 
 
 
-export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, tools }) => {
+export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, tools: tools_ }) => {
 
 	const thisConfig = settingsOfProvider.anthropic
 
@@ -38,15 +39,19 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 		return
 	}
 
+	const { messages, separateSystemMessageStr, devInfo } = addSystemMessageAndToolSupport(modelName, providerName, messages_, { separateSystemMessage: true })
+
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 
+	const tools = devInfo?.supportsTools && (tools_?.length ?? 0) !== 0 ? tools_?.map(tool => toAnthropicTool(tool)) : undefined
+
 	const stream = anthropic.messages.stream({
-		// system: systemMessage,
+		system: separateSystemMessageStr,
 		messages: messages,
 		model: modelName,
 		max_tokens: maxTokens,
-		tools: tools?.map(tool => toAnthropicTool(tool)),
-		tool_choice: { type: 'auto', disable_parallel_tool_use: true } // one tool use at a time
+		tools: tools,
+		tool_choice: tools ? { type: 'auto', disable_parallel_tool_use: true } : undefined // one tool use at a time
 	})
 
 
@@ -78,9 +83,9 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 	stream.on('finalMessage', (response) => {
 		// stringify the response's content
 		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n\n')
-		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, args: JSON.stringify(c.input), tool_use_id: c.id } : null).filter(c => !!c)
+		// const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, args: JSON.stringify(c.input), tool_use_id: c.id } : null).filter(c => !!c)
 
-		onFinalMessage({ fullText: content, tools })
+		onFinalMessage({ fullText: content, tools: [] })
 	})
 
 	stream.on('error', (error) => {

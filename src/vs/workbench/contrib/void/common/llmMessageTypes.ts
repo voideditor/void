@@ -3,6 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { ChatMessage } from '../browser/chatThreadService.js'
 import { InternalToolInfo } from './toolsService.js'
 import { FeatureName, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
@@ -22,7 +23,7 @@ export const errorDetails = (fullError: Error | null): string | null => {
 }
 
 export type OnText = (p: { newText: string, fullText: string }) => void
-export type OnFinalMessage = (p: { fullText: string, tools: { name: string, args: string, tool_use_id: string, }[] }) => void
+export type OnFinalMessage = (p: { fullText: string, tools: { name: string, args: string, id: string, }[] }) => void // id is tool_use_id
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
@@ -30,20 +31,32 @@ export type LLMChatMessage = {
 	role: 'system' | 'user';
 	content: string;
 } | {
-	role: 'tool';
-	tool_use_id: string;
+	role: 'assistant',
+	tool_calls?: { name: string, id: string, params: string }[];
 	content: string;
 } | {
-	role: 'assistant',
-	tool_calls?: { name: string, tool_use_id: string, params: string }[];
+	role: 'tool';
+	id: string;
 	content: string;
 }
 
+export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
+	if (c.role === 'system' || c.role === 'user') {
+		return { role: c.role, content: c.content ?? '(empty)' }
+	}
+	else if (c.role === 'assistant')
+		return { role: c.role, tool_calls: c.tool_calls, content: c.content ?? '(empty model output)' }
+	else if (c.role === 'tool')
+		return { role: c.role, id: c.id, content: c.content ?? '(empty output)' }
+	else {
+		throw 1
+	}
+}
 
 
 export type _InternalLLMChatMessage = {
 	role: any;
-	tool_use_id?: any;
+	id?: any;
 	content: string;
 }
 
@@ -112,7 +125,7 @@ export type _InternalSendLLMChatMessageFnType = (
 
 		tools?: InternalToolInfo[],
 
-		messages: _InternalLLMChatMessage[];
+		messages: LLMChatMessage[];
 	}
 ) => void
 

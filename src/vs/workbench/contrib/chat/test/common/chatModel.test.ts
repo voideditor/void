@@ -8,8 +8,20 @@ import { Response, stripThinkTags } from '../../../common/chatModel';
 import { MarkdownString } from '../../../../../../base/common/htmlContent';
 
 suite('ChatModel - Think Tags', () => {
-	test('handles partial tags during streaming', () => {
-		const response = new Response(new MarkdownString('<thi'));
+	test('handles partial tokens during streaming', () => {
+		const response = new Response(new MarkdownString('<'));
+		assert.strictEqual(response.toString(), '');
+
+		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<t') });
+		assert.strictEqual(response.toString(), '');
+
+		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<thi') });
+		assert.strictEqual(response.toString(), '');
+
+		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<think') });
+		assert.strictEqual(response.toString(), '');
+
+		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<think>') });
 		assert.strictEqual(response.toString(), '');
 
 		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<think>test') });

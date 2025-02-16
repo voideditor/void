@@ -409,16 +409,15 @@ class ThinkTagSurroundingsRemover extends SurroundingsRemover {
 	}
 
 	removeThinkTags() {
-		const foundTag = this.removePrefix('<think>');
-		if (!foundTag) {
-			// Handle partial tags during streaming
-			if (this.originalS.startsWith('<thi', this.i)) {
-				this.i += 4;
-				return true;
-			}
-			return false;
+		// Try to remove opening tag, handling partial tokens during streaming
+		const foundOpenTag = this.removePrefix('<think>');
+		if (!foundOpenTag) {
+			// Let removePrefix handle partial matches character by character
+			this.removePrefix('<');
+			this.removePrefix('think');
+			this.removePrefix('>');
 		}
-		return true;
+		return foundOpenTag;
 	}
 
 	deltaInfo(recentlyAddedTextLen: number) {

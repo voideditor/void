@@ -371,7 +371,6 @@ export function stripThinkTags(text: string): string {
 	let result = '';
 	let depth = 0;
 	let i = 0;
-	let inPartialTag = false;
 	
 	while (i < text.length) {
 		if (text.startsWith('<think>', i)) {
@@ -380,23 +379,11 @@ export function stripThinkTags(text: string): string {
 		} else if (text.startsWith('</think>', i)) {
 			if (depth > 0) depth--;
 			i += 8; // length of '</think>'
-		} else if (text.startsWith('<thi', i)) {
-			// Handle partial opening tag during streaming
-			inPartialTag = true;
-			i += 4;
-		} else if (text.startsWith('</thi', i)) {
-			// Handle partial closing tag during streaming
-			inPartialTag = true;
-			i += 5;
-		} else if (depth === 0 && !inPartialTag) {
+		} else if (depth === 0) {
 			result += text[i];
 			i++;
 		} else {
 			i++;
-		}
-		// Reset partial tag flag after moving past potential tag
-		if (inPartialTag && !text.startsWith('nk>', i)) {
-			inPartialTag = false;
 		}
 	}
 	
@@ -409,15 +396,18 @@ class ThinkTagSurroundingsRemover extends SurroundingsRemover {
 	}
 
 	removeThinkTags() {
-		// Try to remove opening tag, handling partial tokens during streaming
-		const foundOpenTag = this.removePrefix('<think>');
-		if (!foundOpenTag) {
-			// Let removePrefix handle partial matches character by character
-			this.removePrefix('<');
-			this.removePrefix('think');
-			this.removePrefix('>');
+		// Handle token streaming character by character
+		const chars = ['<', 't', 'h', 'i', 'n', 'k', '>'];
+		let foundTag = true;
+		
+		for (const char of chars) {
+			if (!this.removePrefix(char)) {
+				foundTag = false;
+				break;
+			}
 		}
-		return foundOpenTag;
+		
+		return foundTag;
 	}
 
 	deltaInfo(recentlyAddedTextLen: number) {

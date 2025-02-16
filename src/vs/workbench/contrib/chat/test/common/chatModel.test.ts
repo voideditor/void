@@ -15,7 +15,13 @@ suite('ChatModel - Think Tags', () => {
 		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<t') });
 		assert.strictEqual(response.toString(), '');
 
+		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<th') });
+		assert.strictEqual(response.toString(), '');
+
 		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<thi') });
+		assert.strictEqual(response.toString(), '');
+
+		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<thin') });
 		assert.strictEqual(response.toString(), '');
 
 		response.updateContent({ kind: 'markdownContent', content: new MarkdownString('<think') });

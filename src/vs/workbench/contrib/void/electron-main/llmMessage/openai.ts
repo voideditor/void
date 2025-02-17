@@ -91,9 +91,15 @@ const newOpenAI = ({ settingsOfProvider, providerName }: NewParams) => {
 			baseURL: 'https://api.groq.com/openai/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 		})
 	}
+	else if (providerName === 'xAI') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		})
+	}
 	else {
 		console.error(`sendOpenAICompatibleMsg: invalid providerName: ${providerName}`)
-		throw new Error(`providerName was invalid: ${providerName}`)
+		throw new Error(`Void providerName was invalid: ${providerName}`)
 	}
 }
 

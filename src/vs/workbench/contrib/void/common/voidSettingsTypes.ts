@@ -11,17 +11,15 @@ import { VoidSettingsState } from './voidSettingsService.js'
 // developer info used in sendLLMMessage
 export type DeveloperInfoAtModel = {
 	// USED:
-
-	// TODO!!! think tokens - deepseek
-
-	// TODO!!!!
-	// UNUSED (coming soon):
-	recognizedModelName: RecognizedModelName, // used to show user if model was auto-recognized
+	supportsSystemMessage: 'developer' | boolean, // if null, we will just do a string of system message. this is independent from separateSystemMessage, which takes priority and is passed directly in each provider's implementation.
 	supportsTools: boolean, // we will just do a string of tool use if it doesn't support
-	supportsSystemMessageRole: 'developer' | 'system' | false, // if null, we will just do a string of system message. this is independent from separateSystemMessage, which takes priority and is passed directly in each provider's implementation.
-	supportsAutocompleteFIM: boolean, // we will just do a description of FIM if it doens't support <|fim_hole|>
-	supportsStreaming: boolean, // (o1 does NOT) we will just dump the final result if doesn't support it
-	maxTokens: number, // required
+
+	// UNUSED (coming soon):
+	// TODO!!! think tokens - deepseek
+	_recognizedModelName: RecognizedModelName, // used to show user if model was auto-recognized
+	_supportsStreaming: boolean, // we will just dump the final result if doesn't support it
+	_supportsAutocompleteFIM: boolean, // we will just do a description of FIM if it doens't support <|fim_hole|>
+	_maxTokens: number, // required
 }
 
 export type DeveloperInfoAtProvider = {
@@ -49,6 +47,7 @@ export const recognizedModels = [
 	'Anthropic Claude',
 	'Llama 3.x',
 	'Deepseek Chat', // deepseek coder v2 is now merged into chat (V3) https://api-docs.deepseek.com/updates#deepseek-coder--deepseek-chat-upgraded-to-deepseek-v25-model
+	'xAI Grok',
 	// 'xAI Grok',
 	// 'Google Gemini, Gemma',
 	// 'Microsoft Phi4',
@@ -59,7 +58,7 @@ export const recognizedModels = [
 	'Mistral Codestral',
 
 	// thinking
-	'OpenAI o1, o3',
+	'OpenAI o1',
 	'Deepseek R1',
 
 	// general
@@ -85,11 +84,13 @@ export function recognizedModelOfModelName(modelName: string): RecognizedModelNa
 	if (lower.includes('mistral'))
 		return 'Mistral Codestral';
 	if (/\bo1\b/.test(lower) || /\bo3\b/.test(lower)) // o1, o3
-		return 'OpenAI o1, o3';
+		return 'OpenAI o1';
 	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner'))
 		return 'Deepseek R1';
 	if (lower.includes('deepseek'))
 		return 'Deepseek Chat'
+	if (lower.includes('grok'))
+		return 'xAI Grok'
 
 	return '<GENERAL>';
 }
@@ -98,18 +99,14 @@ export function recognizedModelOfModelName(modelName: string): RecognizedModelNa
 const developerInfoAtProvider: { [providerName in ProviderName]: DeveloperInfoAtProvider } = {
 	'anthropic': {
 		overrideSettingsForAllModels: {
-			supportsSystemMessageRole: 'system',
+			supportsSystemMessage: true,
 			supportsTools: true,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: true,
+			_supportsAutocompleteFIM: false,
+			_supportsStreaming: true,
 		}
 	},
 	'deepseek': {
 		overrideSettingsForAllModels: {
-			supportsSystemMessageRole: false,
-			supportsTools: false,
-			supportsAutocompleteFIM: false,
-			supportsStreaming: true,
 		}
 	},
 	'ollama': {
@@ -126,6 +123,8 @@ const developerInfoAtProvider: { [providerName in ProviderName]: DeveloperInfoAt
 	},
 	'groq': {
 	},
+	'xAI': {
+	},
 }
 export const developerInfoOfProviderName = (providerName: ProviderName): Partial<DeveloperInfoAtProvider> => {
 	return developerInfoAtProvider[providerName] ?? {}
@@ -135,83 +134,93 @@ export const developerInfoOfProviderName = (providerName: ProviderName): Partial
 
 
 // providerName is optional, but gives some extra fallbacks if provided
-const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelName]: Omit<DeveloperInfoAtModel, 'recognizedModelName'> } = {
+const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelName]: Omit<DeveloperInfoAtModel, '_recognizedModelName'> } = {
 	'OpenAI 4o': {
-		supportsSystemMessageRole: 'system',
+		supportsSystemMessage: true,
 		supportsTools: true,
-		supportsAutocompleteFIM: false,
-		supportsStreaming: true,
-		maxTokens: 4096,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: true,
+		_maxTokens: 4096,
 	},
 
 	'Anthropic Claude': {
-		supportsSystemMessageRole: 'system',
+		supportsSystemMessage: true,
 		supportsTools: false,
-		supportsAutocompleteFIM: false,
-		supportsStreaming: false,
-		maxTokens: 4096,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: false,
+		_maxTokens: 4096,
 	},
 
 	'Llama 3.x': {
-		supportsSystemMessageRole: false,
-		supportsTools: false,
-		supportsAutocompleteFIM: false,
-		supportsStreaming: false,
-		maxTokens: 4096,
+		supportsSystemMessage: true,
+		supportsTools: true,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: false,
+		_maxTokens: 4096,
+	},
+
+	'xAI Grok': {
+		supportsSystemMessage: true,
+		supportsTools: true,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: true,
+		_maxTokens: 4096,
+
 	},
 
 	'Deepseek Chat': {
-		supportsSystemMessageRole: false,
+		supportsSystemMessage: true,
 		supportsTools: false,
-		supportsAutocompleteFIM: false,
-		supportsStreaming: false,
-		maxTokens: 4096,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: false,
+		_maxTokens: 4096,
 	},
 
 	'Alibaba Qwen2.5 Coder Instruct': {
-		supportsSystemMessageRole: false,
-		supportsTools: false,
-		supportsAutocompleteFIM: false,
-		supportsStreaming: false,
-		maxTokens: 4096,
+		supportsSystemMessage: true,
+		supportsTools: true,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: false,
+		_maxTokens: 4096,
 	},
 
 	'Mistral Codestral': {
-		supportsSystemMessageRole: false,
-		supportsTools: false,
-		supportsAutocompleteFIM: false,
-		supportsStreaming: false,
-		maxTokens: 4096,
+		supportsSystemMessage: true,
+		supportsTools: true,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: false,
+		_maxTokens: 4096,
 	},
 
-	'OpenAI o1, o3': {
-		supportsSystemMessageRole: false,
+	'OpenAI o1': {
+		supportsSystemMessage: 'developer',
 		supportsTools: false,
-		supportsAutocompleteFIM: false,
-		supportsStreaming: false,
-		maxTokens: 4096,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: true,
+		_maxTokens: 4096,
 	},
 
 	'Deepseek R1': {
-		supportsSystemMessageRole: false,
+		supportsSystemMessage: false,
 		supportsTools: false,
-		supportsAutocompleteFIM: false,
-		supportsStreaming: false,
-		maxTokens: 4096,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: false,
+		_maxTokens: 4096,
 	},
 
+
 	'<GENERAL>': {
-		supportsSystemMessageRole: false,
+		supportsSystemMessage: false,
 		supportsTools: false,
-		supportsAutocompleteFIM: false,
-		supportsStreaming: false,
-		maxTokens: 4096,
+		_supportsAutocompleteFIM: false,
+		_supportsStreaming: false,
+		_maxTokens: 4096,
 	},
 }
 export const developerInfoOfModelName = (modelName: string, overrides?: Partial<DeveloperInfoAtModel>): DeveloperInfoAtModel => {
 	const recognizedModelName = recognizedModelOfModelName(modelName)
 	return {
-		recognizedModelName: recognizedModelName,
+		_recognizedModelName: recognizedModelName,
 		...developerInfoOfRecognizedModelName[recognizedModelName],
 		...overrides
 	}
@@ -323,6 +332,10 @@ export const defaultMistralModels = modelInfoOfDefaultModelNames([
 	"mistral-small-latest",
 ])
 
+export const defaultXAIModels = modelInfoOfDefaultModelNames([
+	'grok-2-latest',
+	'grok-3-latest',
+])
 // export const parseMaxTokensStr = (maxTokensStr: string) => {
 // 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
 // 	const int = isNaN(Number(maxTokensStr)) ? undefined : parseInt(maxTokensStr)
@@ -377,6 +390,9 @@ export const defaultProviderSettings = {
 		apiKey: '',
 	},
 	mistral: {
+		apiKey: ''
+	},
+	xAI: {
 		apiKey: ''
 	}
 } as const
@@ -446,7 +462,6 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'ollama') {
 		return {
 			title: 'Ollama',
-
 		}
 	}
 	else if (providerName === 'openAICompatible') {
@@ -469,6 +484,12 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 			title: 'Mistral API',
 		}
 	}
+	else if (providerName === 'xAI') {
+		return {
+			title: 'xAI API',
+		}
+	}
+
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -493,7 +514,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 								providerName === 'groq' ? 'gsk_key...' :
 									providerName === 'mistral' ? 'key...' :
 										providerName === 'openAICompatible' ? 'sk-key...' :
-											'',
+											providerName === 'xAI' ? 'xai-key...' :
+												'',
 
 			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
 				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
@@ -502,8 +524,9 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 							providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 								providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
 									providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys/).' :
-										providerName === 'openAICompatible' ? undefined :
-											'',
+										providerName === 'xAI' ? 'Get your [API Key here](https://console.x.ai).' :
+											providerName === 'openAICompatible' ? undefined :
+												'',
 		}
 	}
 	else if (settingName === 'endpoint') {
@@ -574,6 +597,9 @@ export const voidInitModelOptions = {
 	},
 	mistral: {
 		models: defaultMistralModels,
+	},
+	xAI: {
+		models: defaultXAIModels,
 	}
 }
 
@@ -608,6 +634,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.mistral,
 		...voidInitModelOptions.mistral,
+		_didFillInProviderSettings: undefined,
+	},
+	xAI: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.xAI,
+		...voidInitModelOptions.xAI,
 		_didFillInProviderSettings: undefined,
 	},
 	groq: { // aggregator

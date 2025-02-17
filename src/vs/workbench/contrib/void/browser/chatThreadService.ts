@@ -16,6 +16,7 @@ import { IModelService } from '../../../../editor/common/services/model.js';
 import { chat_userMessage, chat_systemMessage } from './prompt/prompts.js';
 import { InternalToolInfo, IToolsService, ToolFns, ToolName, voidTools } from '../common/toolsService.js';
 import { toLLMChatMessage } from '../common/llmMessageTypes.js';
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 
 // one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
 export type CodeSelection = {
@@ -161,6 +162,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IModelService private readonly _modelService: IModelService,
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IToolsService private readonly _toolsService: IToolsService,
+		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 	) {
 		super()
 
@@ -312,7 +314,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					useProviderFor: 'Ctrl+L',
 					logging: { loggingName: `Agent` },
 					messages: [
-						{ role: 'system', content: chat_systemMessage },
+						{ role: 'system', content: chat_systemMessage(this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)) },
 						...this.getCurrentThread().messages.map(m => (toLLMChatMessage(m))),
 					],
 

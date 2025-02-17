@@ -103,6 +103,7 @@ export const sendLLMMessage = ({
 			case 'ollama':
 			case 'groq':
 			case 'gemini':
+			case 'xAI':
 				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - OpenAI FIM', toolCalls: [] })
 				else /*                         */ sendOpenAIChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools });
 				break;

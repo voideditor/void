@@ -97,7 +97,7 @@ export const CodeSpan = ({ children, className }: { children: React.ReactNode, c
 	</code>
 }
 
-const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocation: chatLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
+const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
 
 
 	// deal with built-in tokens first (assume marked token)
@@ -111,16 +111,17 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocati
 	if (t.type === "code") {
 		const isCodeblockClosed = t.raw?.startsWith('```') && t.raw?.endsWith('```');
 
-		const applyBoxId = getApplyBoxId({
-			threadId: chatLocation!.threadId,
-			messageIdx: chatLocation!.messageIdx,
+		// this should never be
+		const applyBoxId = chatMessageLocation ? getApplyBoxId({
+			threadId: chatMessageLocation.threadId,
+			messageIdx: chatMessageLocation.messageIdx,
 			tokenIdx: tokenIdx,
-		})
+		}) : null
 
 		return <BlockCode
 			initValue={t.text}
 			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
-			buttonsOnHover={<ApplyButtonsOnHover applyStr={t.text} applyBoxId={applyBoxId} />}
+			buttonsOnHover={applyBoxId && <ApplyButtonsOnHover applyStr={t.text} applyBoxId={applyBoxId} />}
 		/>
 	}
 
@@ -195,7 +196,7 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocati
 							<input type="checkbox" checked={item.checked} readOnly className="mr-2 form-checkbox" />
 						)}
 						<span className="ml-1">
-							<ChatMarkdownRender string={item.text} nested={true} />
+							<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} nested={true} />
 						</span>
 					</li>
 				))}

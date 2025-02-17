@@ -21,7 +21,7 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 	const messages = deepClone(messages_).map(m => ({ ...m, content: m.content.trim(), }))
 
 	const { overrideSettingsForAllModels } = developerInfoOfProviderName(providerName)
-	const { supportsSystemMessageRole: supportsSystemMessage, supportsTools } = developerInfoOfModelName(modelName, overrideSettingsForAllModels)
+	const { supportsSystemMessage, supportsTools } = developerInfoOfModelName(modelName, overrideSettingsForAllModels)
 
 	// 1. SYSTEM MESSAGE
 	// find system messages and concatenate them
@@ -52,7 +52,7 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 			if (separateSystemMessage)
 				separateSystemMessageStr = systemMessageStr
 			else {
-				newMessages.unshift({ role: supportsSystemMessage, content: systemMessageStr }) // add new first message
+				newMessages.unshift({ role: supportsSystemMessage === 'developer' ? 'developer' : 'system', content: systemMessageStr }) // add new first message
 			}
 		}
 		// if does not support system message

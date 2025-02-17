@@ -12,6 +12,3 @@ import { isLinux, isMacintosh, isWindows } from '../../../../../base/common/plat
 
 export const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
 
-export const arch = process.arch
-export const osplatform = process.platform;
-

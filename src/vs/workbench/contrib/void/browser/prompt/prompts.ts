@@ -9,7 +9,7 @@ import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
 import { CodeSelection, StagingSelectionItem, FileSelection } from '../chatThreadService.js';
 import { VSReadFile } from '../helpers/readFile.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
-import { os, arch, osplatform } from '../helpers/systemInfo.js';
+import { os } from '../helpers/systemInfo.js';
 
 
 // this is just for ease of readability
@@ -21,7 +21,7 @@ You are a coding assistant. You are given a list of instructions to follow \`INS
 Please respond to the user's query.
 
 The user has the following system information:
-   - ${os} ${arch} ${osplatform}
+   - ${os}
 
 In the case that the user asks you to make changes to code, you should make sure to return CODE BLOCKS of the changes, as well as explanations and descriptions of the changes.
 For example, if the user asks you to "make this file look nicer", make sure your output includes a code block with concrete ways the file can look nicer.

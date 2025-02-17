@@ -7,7 +7,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { anthropicMaxPossibleTokens, developerInfoOfModelName, developerInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
-import { addSystemMessageAndToolSupport } from './processMessages.js';
+import { addSystemMessageAndToolSupport } from './preprocessLLMMessages.js';
 
 
 
@@ -86,9 +86,9 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages:
 	stream.on('finalMessage', (response) => {
 		// stringify the response's content
 		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n\n')
-		// const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, args: JSON.stringify(c.input), tool_use_id: c.id } : null).filter(c => !!c)
+		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, params: JSON.stringify(c.input), id: c.id } : null).filter(c => !!c)
 
-		onFinalMessage({ fullText: content, tools: [] })
+		onFinalMessage({ fullText: content, toolCalls: tools })
 	})
 
 	stream.on('error', (error) => {

@@ -5,7 +5,14 @@ import { developerInfoOfModelName, developerInfoOfProviderName, ProviderName } f
 import { deepClone } from '../../../../../base/common/objects.js';
 
 
-
+export const parseObject = (args: unknown) => {
+	if (typeof args === 'object')
+		return args
+	if (typeof args === 'string')
+		try { return JSON.parse(args) }
+		catch (e) { return { args } }
+	return {}
+}
 
 // no matter whether the model supports a system message or not (or what format it supports), add it in some way
 // also take into account tools if the model doesn't support tool use
@@ -118,7 +125,7 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 				} | {
 					type: 'tool_use';
 					name: string;
-					input: string;
+					input: Record<string, any>;
 					id: string;
 				})[]
 			} | {
@@ -127,7 +134,7 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 					type: 'text';
 					text: string;
 				} | {
-					type: 'tool_response';
+					type: 'tool_result';
 					tool_use_id: string;
 					content: string;
 				})[]
@@ -141,17 +148,22 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 			if (currMsg.role !== 'tool') continue
 
 			const prevMsg = 0 <= i - 1 && i - 1 <= newMessagesTools.length ? newMessagesTools[i - 1] : undefined
-			const nextMsg = 0 <= i + 1 && i + 1 <= newMessagesTools.length ? newMessagesTools[i + 1] : undefined
 
 			if (prevMsg?.role === 'assistant') {
-				if (typeof prevMsg.content === 'string') prevMsg.content = [{ type: 'text', text: typeof prevMsg.content }]
-				prevMsg.content.push({ type: 'tool_use', name: currMsg.name, input: currMsg.params, id: currMsg.id })
+				if (typeof prevMsg.content === 'string') prevMsg.content = [{ type: 'text', text: prevMsg.content }]
+				prevMsg.content.push({ type: 'tool_use', id: currMsg.id, name: currMsg.name, input: parseObject(currMsg.params) })
 			}
-			if (nextMsg?.role === 'user') {
-				if (typeof nextMsg.content === 'string') nextMsg.content = [{ type: 'text', text: typeof nextMsg.content }]
-				nextMsg.content.push({ type: 'tool_response', tool_use_id: currMsg.id, content: currMsg.content })
+
+			// turn each tool into a user message with tool results at the end
+			newMessagesTools[i] = {
+				role: 'user',
+				content: [
+					...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content }] as const,
+					...currMsg.content ? [{ type: 'text', text: currMsg.content }] as const : [],
+				]
 			}
 		}
+
 		finalMessages = newMessagesTools
 	}
 
@@ -212,7 +224,7 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 					id: currMsg.id,
 					function: {
 						name: currMsg.name,
-						arguments: currMsg.params
+						arguments: JSON.stringify(currMsg.params)
 					}
 				}]
 			}
@@ -236,7 +248,7 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 
 
 	console.log('SYSMG', separateSystemMessage)
-	console.log('FINAL MESSAGES', finalMessages)
+	console.log('FINAL MESSAGES', JSON.stringify(finalMessages, null, 2))
 
 
 	return {

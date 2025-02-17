@@ -142,7 +142,7 @@ export class ToolsService implements IToolsService {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
-		const parseObj = <T extends ToolName,>(s: string): { [s: string]: unknown } | null => {
+		const parseObj = (s: string): { [s: string]: unknown } | null => {
 			try {
 				const o = JSON.parse(s)
 				return o

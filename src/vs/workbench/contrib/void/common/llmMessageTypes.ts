@@ -22,10 +22,6 @@ export const errorDetails = (fullError: Error | null): string | null => {
 	return null
 }
 
-export type OnText = (p: { newText: string, fullText: string }) => void
-export type OnFinalMessage = (p: { fullText: string, tools?: { name: string, params: string, id: string, }[] }) => void // id is tool_use_id
-export type OnError = (p: { message: string, fullError: Error | null }) => void
-export type AbortRef = { current: (() => void) | null }
 
 export type LLMChatMessage = {
 	role: 'system' | 'user';
@@ -40,6 +36,19 @@ export type LLMChatMessage = {
 	params: string;
 	id: string;
 }
+
+export type LLMToolCallType = {
+	name: string;
+	params: string;
+	id: string;
+}
+
+
+export type OnText = (p: { newText: string, fullText: string }) => void
+export type OnFinalMessage = (p: { fullText: string, toolCalls?: LLMToolCallType[] }) => void // id is tool_use_id
+export type OnError = (p: { message: string, fullError: Error | null }) => void
+export type AbortRef = { current: (() => void) | null }
+
 
 export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
 	if (c.role === 'system' || c.role === 'user') {

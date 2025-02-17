@@ -7,7 +7,7 @@ import OpenAI from 'openai';
 import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { Model } from 'openai/resources/models.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
-import { addSystemMessageAndToolSupport } from './processMessages.js';
+import { addSystemMessageAndToolSupport } from './preprocessLLMMessages.js';
 import { developerInfoOfModelName, developerInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 // import { parseMaxTokensStr } from './util.js';
 
@@ -192,7 +192,12 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: me
 
 				onText({ newText, fullText });
 			}
-			onFinalMessage({ fullText, tools: Object.keys(toolCallOfIndex).map(index => toolCallOfIndex[index]) });
+			onFinalMessage({
+				fullText, toolCalls: Object.keys(toolCallOfIndex).map(index => {
+					const tool = toolCallOfIndex[index]
+					return { name: tool.name, id: tool.id, params: tool.params }
+				})
+			});
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {

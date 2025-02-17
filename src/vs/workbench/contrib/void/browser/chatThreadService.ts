@@ -46,24 +46,25 @@ const defaultStaging: StagingInfo = { isBeingEdited: false, selections: [] }
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
 	| {
+		role: 'system';
+		content: string;
+		displayContent?: undefined;
+	} | {
 		role: 'user';
 		content: string | null; // content sent to the llm - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
 		selections: StagingSelectionItem[] | null; // the user's selection
 		staging: StagingInfo | null
-	}
-	| {
+	} | {
 		role: 'assistant';
-		tool_calls?: { name: string, id: string, params: string }[];
+		tool_calls?: {
+			name: string,
+			id: string,
+			params: string
+		}[];
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
-	}
-	| {
-		role: 'system';
-		content: string;
-		displayContent?: undefined;
-	}
-	| {
+	} | {
 		role: 'tool';
 		name: string; // internal use
 		params: string; // internal use
@@ -325,7 +326,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					onText: ({ fullText }) => {
 						this._setStreamState(threadId, { messageSoFar: fullText })
 					},
-					onFinalMessage: async ({ fullText, tools }) => {
+					onFinalMessage: async ({ fullText, toolCalls: tools }) => {
+						console.log('FINAL MESSAGE', fullText, tools)
 
 						if ((tools?.length ?? 0) === 0) {
 							this._finishStreamingTextMessage(threadId, fullText)

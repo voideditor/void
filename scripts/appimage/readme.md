@@ -1,7 +1,6 @@
-# Void Linux AppImage Creation Script
+# Void AppImage Creation Script
 
-This script automates the process of creating an AppImage for a Void Linux application using Docker. It works on macOS and Linux platforms and is designed for developers looking to package their Void Linux application as an AppImage for easy distribution.
-
+This script automates the process of creating an AppImage for the  Void Editor using Docker. It works on macOS and Linux platforms.
 ## Requirements
 
 *   **Docker:** The script relies on Docker to build the AppImage inside a container.

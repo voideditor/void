@@ -14,7 +14,7 @@ import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { chat_userMessage, chat_systemMessage } from './prompt/prompts.js';
-import { InternalToolInfo, IToolsService, ToolFns, ToolName, voidTools } from '../common/toolsService.js';
+import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from '../common/toolsService.js';
 import { toLLMChatMessage } from '../common/llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 
@@ -43,6 +43,15 @@ export type StagingInfo = {
 
 const defaultStaging: StagingInfo = { isBeingEdited: false, selections: [] }
 
+type ToolMessage<T extends ToolName> = {
+	role: 'tool';
+	name: T; // internal use
+	params: string; // internal use
+	id: string; // apis require this tool use id
+	content: string; // result
+	result: ToolCallReturnType<T>; // text message of result
+}
+
 
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
@@ -60,14 +69,7 @@ export type ChatMessage =
 		role: 'assistant';
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
-	} | {
-		role: 'tool';
-		name: string; // internal use
-		params: string; // internal use
-		id: string; // apis require this tool use id
-		content: string; // result
-		displayContent: string; // text message of result
-	}
+	} | ToolMessage<ToolName>
 
 // a 'thread' means a chat message history
 export type ChatThreads = {
@@ -323,8 +325,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					onText: ({ fullText }) => {
 						this._setStreamState(threadId, { messageSoFar: fullText })
 					},
-					onFinalMessage: async ({ fullText, toolCalls }) => {
-						toolCalls = toolCalls?.filter(tool => tool.name in this._toolsService.toolFns)
+					onFinalMessage: async ({ fullText, toolCalls: toolCalls_ }) => {
+						// make sure all tool names are valid so we can cast to ToolName below
+						const toolCalls = toolCalls_?.filter(tool => tool.name in this._toolsService.toolFns)
 
 						console.log('FINAL MESSAGE', fullText, toolCalls)
 
@@ -357,7 +360,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 									break
 								}
 
-								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.params, id: tool.id, content: toolResultStr, displayContent: toolResultStr, })
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, params: tool.params, id: tool.id, content: toolResultStr, result: toolResult, })
 								shouldContinue = true
 							}
 

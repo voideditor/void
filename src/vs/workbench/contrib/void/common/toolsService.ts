@@ -81,14 +81,14 @@ export type ToolParamsObj<T extends ToolName> = { [paramName in ToolParamNames<T
 
 
 export type ToolCallReturnType<T extends ToolName>
-	= T extends 'read_file' ? Promise<string>
-	: T extends 'list_dir' ? Promise<string>
-	: T extends 'pathname_search' ? Promise<string | URI[]>
-	: T extends 'search' ? Promise<string | URI[]>
+	= T extends 'read_file' ? string
+	: T extends 'list_dir' ? string
+	: T extends 'pathname_search' ? string | URI[]
+	: T extends 'search' ? string | URI[]
 	: never
 
-export type ToolFns = { [T in ToolName]: (p: string) => ToolCallReturnType<T> }
-export type ToolResultToString = { [T in ToolName]: (result: Awaited<ToolCallReturnType<T>>) => string }
+export type ToolFns = { [T in ToolName]: (p: string) => Promise<ToolCallReturnType<T>> }
+export type ToolResultToString = { [T in ToolName]: (result: ToolCallReturnType<T>) => string }
 
 
 async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI): Promise<string> {

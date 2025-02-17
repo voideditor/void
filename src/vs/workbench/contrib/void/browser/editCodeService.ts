@@ -1192,7 +1192,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const userMessageContent = searchReplace_userMessage({ originalCode: fileContents, applyStr: applyStr })
 		const messages: LLMChatMessage[] = [
 			{ role: 'system', content: searchReplace_systemMessage },
-			{ role: 'user', content: userMessageContent }
+			{ role: 'user', content: userMessageContent },
 		]
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
@@ -1232,8 +1232,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
+		// any time there's an error, add assistant's message, then user message saying the problem and to retry
 
 		// TODO!!! turn this into a service and provide it
+		// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 			messagesType: 'chatMessages',
 			useProviderFor: 'Apply',

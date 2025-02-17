@@ -326,12 +326,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						this._setStreamState(threadId, { messageSoFar: fullText })
 					},
 					onFinalMessage: async ({ fullText, tools }) => {
-						this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText, tool_calls: tools })
 
 						if ((tools?.length ?? 0) === 0) {
 							this._finishStreamingTextMessage(threadId, fullText)
 						}
 						else {
+							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText, tool_calls: tools })
 							for (const tool of tools ?? []) {
 								if (!(tool.name in this._toolsService.toolFns)) {
 									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.params, id: tool.id, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })

@@ -22,9 +22,7 @@ fi
 # Enable BuildKit
 export DOCKER_BUILDKIT=1
 
-BASE_IMAGE_NAME="void-appimage-base"
 BUILD_IMAGE_NAME="void-appimage-builder"
-CONTAINER_NAME="void-appimage-temp"
 
 # Check if Docker is running
 if ! docker info >/dev/null 2>&1; then
@@ -46,6 +44,9 @@ if [ ! -f "appimagetool" ]; then
     wget -O appimagetool "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
     chmod +x appimagetool
 fi
+
+# Delete any existing AppImage to avoid bloating the build
+rm -f Void-x86_64.AppImage
 
 # Create build Dockerfile
 echo "Creating build Dockerfile..."
@@ -70,9 +71,31 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 EOF
 
-# Build Docker image
-echo "Building Docker image..."
-docker build -t "$BUILD_IMAGE_NAME" -f Dockerfile.build .
+# Create .dockerignore file
+echo "Creating .dockerignore file..."
+cat > .dockerignore << EOF
+Dockerfile.build
+.dockerignore
+.git
+.gitignore
+.DS_Store
+*~
+*.swp
+*.swo
+*.tmp
+*.bak
+*.log
+*.err
+node_modules/
+venv/
+*.egg-info/
+*.tox/
+dist/
+EOF
+
+# Build Docker image without cache
+echo "Building Docker image (no cache)..."
+docker build --no-cache -t "$BUILD_IMAGE_NAME" -f Dockerfile.build .
 
 # Create AppImage using local appimagetool
 echo "Creating AppImage..."

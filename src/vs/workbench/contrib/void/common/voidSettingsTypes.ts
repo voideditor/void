@@ -125,6 +125,8 @@ const developerInfoAtProvider: { [providerName in ProviderName]: DeveloperInfoAt
 	},
 	'xAI': {
 	},
+	'vLLM': {
+	},
 }
 export const developerInfoOfProviderName = (providerName: ProviderName): Partial<DeveloperInfoAtProvider> => {
 	return developerInfoAtProvider[providerName] ?? {}
@@ -376,6 +378,9 @@ export const defaultProviderSettings = {
 	ollama: {
 		endpoint: 'http://127.0.0.1:11434',
 	},
+	vLLM: {
+		endpoint: 'http://localhost:8000',
+	},
 	openRouter: {
 		apiKey: '',
 	},
@@ -394,13 +399,13 @@ export const defaultProviderSettings = {
 	},
 	xAI: {
 		apiKey: ''
-	}
+	},
 } as const
 
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
-export const localProviderNames = ['ollama'] satisfies ProviderName[] // all local names
+export const localProviderNames = ['ollama', 'vLLM'] satisfies ProviderName[] // all local names
 export const nonlocalProviderNames = providerNames.filter((name) => !(localProviderNames as string[]).includes(name)) // all non-local names
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
@@ -462,6 +467,11 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'ollama') {
 		return {
 			title: 'Ollama',
+		}
+	}
+	else if (providerName === 'vLLM') {
+		return {
+			title: 'vLLM',
 		}
 	}
 	else if (providerName === 'openAICompatible') {
@@ -532,12 +542,14 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	else if (settingName === 'endpoint') {
 		return {
 			title: providerName === 'ollama' ? 'Endpoint' :
-				providerName === 'openAICompatible' ? 'baseURL' // (do not include /chat/completions)
-					: '(never)',
+				providerName === 'vLLM' ? 'Endpoint' :
+					providerName === 'openAICompatible' ? 'baseURL' :// (do not include /chat/completions)
+						'(never)',
 
 			placeholder: providerName === 'ollama' ? defaultProviderSettings.ollama.endpoint
-				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
-					: '(never)',
+				: providerName === 'vLLM' ? defaultProviderSettings.vLLM.endpoint
+					: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
+						: '(never)',
 
 			subTextMd: providerName === 'ollama' ? 'If you would like to change this endpoint, please read more about [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
 				undefined,
@@ -583,6 +595,9 @@ export const voidInitModelOptions = {
 	ollama: {
 		models: [],
 	},
+	vLLM: {
+		models: [],
+	},
 	openRouter: {
 		models: [], // any string
 	},
@@ -601,7 +616,7 @@ export const voidInitModelOptions = {
 	xAI: {
 		models: defaultXAIModels,
 	}
-}
+} satisfies Record<ProviderName, any>
 
 
 // used when waiting and for a type reference
@@ -664,6 +679,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.ollama,
 		...voidInitModelOptions.ollama,
+		_didFillInProviderSettings: undefined,
+	},
+	vLLM: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.vLLM,
+		...voidInitModelOptions.vLLM,
 		_didFillInProviderSettings: undefined,
 	},
 }

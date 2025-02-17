@@ -176,7 +176,11 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				...{ mistral: defaultSettingsOfProvider.mistral },
 
 				// A HACK BECAUSE WE ADDED XAI (did not exist before, comes before readS)
-				...{ mistral: defaultSettingsOfProvider.xAI },
+				...{ xAI: defaultSettingsOfProvider.xAI },
+
+				// A HACK BECAUSE WE ADDED VLLM (did not exist before, comes before readS)
+				...{ vLLM: defaultSettingsOfProvider.vLLM },
+
 
 				...readS.settingsOfProvider,
 

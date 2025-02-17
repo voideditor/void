@@ -1177,19 +1177,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	private async _initializeSearchAndReplaceStream({ applyStr }: { applyStr: string }) {
 
-
-		console.log('SEARCHREPLACE')
 		const uri_ = this._getActiveEditorURI()
 		if (!uri_) return
 		const uri = uri_
 
-		console.log('/* AAAA */')
 		// generate search/replace block text
 		const fileContents = await VSReadFile(this._modelService, uri)
 		if (fileContents === null) return
-		console.log('/* BBB*/')
-
-
 
 
 		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)

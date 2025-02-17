@@ -101,10 +101,11 @@ export const sendLLMMessage = ({
 			case 'openAICompatible':
 			case 'mistral':
 			case 'ollama':
+			case 'vLLM':
 			case 'groq':
 			case 'gemini':
 			case 'xAI':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - OpenAI FIM', toolCalls: [] })
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - OpenAI API FIM', toolCalls: [] })
 				else /*                         */ sendOpenAIChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools });
 				break;
 			case 'anthropic':

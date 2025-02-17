@@ -51,6 +51,12 @@ const newOpenAI = ({ settingsOfProvider, providerName }: NewParams) => {
 			baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', dangerouslyAllowBrowser: true,
 		})
 	}
+	else if (providerName === 'vLLM') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', dangerouslyAllowBrowser: true,
+		})
+	}
 	else if (providerName === 'openRouter') {
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({

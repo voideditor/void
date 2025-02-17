@@ -52,12 +52,12 @@ export type AbortRef = { current: (() => void) | null }
 
 export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
 	if (c.role === 'system' || c.role === 'user') {
-		return { role: c.role, content: c.content ?? '(empty)' }
+		return { role: c.role, content: c.content || '(empty message)' }
 	}
 	else if (c.role === 'assistant')
-		return { role: c.role, content: c.content ?? '(empty model output)' }
+		return { role: c.role, content: c.content || '(empty message)' }
 	else if (c.role === 'tool')
-		return { role: c.role, id: c.id, name: c.name, params: c.params, content: c.content ?? '(empty output)' }
+		return { role: c.role, id: c.id, name: c.name, params: c.params, content: c.content || '(empty output)' }
 	else {
 		throw 1
 	}

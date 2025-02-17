@@ -111,7 +111,7 @@ async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI):
 
 
 const validateURI = (uriStr: unknown) => {
-	if (typeof uriStr !== 'string') throw new Error('(uri was not a string)')
+	if (typeof uriStr !== 'string') throw new Error('(provided uri must be a string)')
 	const uri = URI.file(uriStr)
 	return uri
 }

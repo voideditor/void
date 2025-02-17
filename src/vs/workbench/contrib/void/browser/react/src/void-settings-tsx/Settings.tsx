@@ -17,6 +17,7 @@ import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
+import { os } from '../../../helpers/systemInfo.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
@@ -505,7 +506,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): Transfe
 	throw new Error(`os '${os}' not recognized`)
 }
 
-const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
+
 let transferTheseFiles: TransferFilesInfo = []
 let transferError: string | null = null
 

@@ -14,7 +14,7 @@ import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { chat_userMessage, chat_systemMessage } from './prompt/prompts.js';
-import { InternalToolInfo, IToolsService, ToolName, voidTools } from '../common/toolsService.js';
+import { InternalToolInfo, IToolsService, ToolFns, ToolName, voidTools } from '../common/toolsService.js';
 import { toLLMChatMessage } from '../common/llmMessageTypes.js';
 
 // one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
@@ -57,11 +57,6 @@ export type ChatMessage =
 		staging: StagingInfo | null
 	} | {
 		role: 'assistant';
-		tool_calls?: {
-			name: string,
-			id: string,
-			params: string
-		}[];
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
 	} | {
@@ -327,25 +322,43 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						this._setStreamState(threadId, { messageSoFar: fullText })
 					},
 					onFinalMessage: async ({ fullText, toolCalls }) => {
+						toolCalls = toolCalls?.filter(tool => tool.name in this._toolsService.toolFns)
+
 						console.log('FINAL MESSAGE', fullText, toolCalls)
 
 						if ((toolCalls?.length ?? 0) === 0) {
 							this._finishStreamingTextMessage(threadId, fullText)
 						}
 						else {
-							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText, tool_calls: toolCalls })
+							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText })
+							this._setStreamState(threadId, { messageSoFar: undefined }) // clear streaming message
 							for (const tool of toolCalls ?? []) {
-								if (!(tool.name in this._toolsService.toolFns)) {
-									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.params, id: tool.id, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })
+								const toolName = tool.name as ToolName
+
+								// 1.
+								let toolResult: Awaited<ReturnType<ToolFns[ToolName]>>
+								try {
+									toolResult = await this._toolsService.toolFns[toolName](tool.params)
+								} catch (e) {
+									this._setStreamState(threadId, { error: e })
+									shouldContinue = false
+									break
 								}
-								else {
-									const toolName = tool.name as ToolName
-									const toolResult = await this._toolsService.toolFns[toolName](tool.params)
-									const string = this._toolsService.toolResultToString[toolName](toolResult as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
-									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.params, id: tool.id, content: string, displayContent: string, })
-									shouldContinue = true
+
+								// 2.
+								let toolResultStr: string
+								try {
+									toolResultStr = this._toolsService.toolResultToString[toolName](toolResult as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
+								} catch (e) {
+									this._setStreamState(threadId, { error: e })
+									shouldContinue = false
+									break
 								}
+
+								this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.params, id: tool.id, content: toolResultStr, displayContent: toolResultStr, })
+								shouldContinue = true
 							}
+
 						}
 						res_()
 					},

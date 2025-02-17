@@ -43,21 +43,6 @@ This script automates the process of creating an AppImage for a Void Linux appli
     sudo systemctl start docker
     ```
 
-4.  **Install Buildx (Optional but Recommended):**
-
-    Buildx is used for efficient Docker builds. The script will automatically install Buildx if it is missing, but installing it beforehand can improve performance.
-
-    ```bash
-    docker buildx install
-    ```
-
-## Minimum Dependency Versions
-
-The script is executed inside an Ubuntu 20.04-based Docker container.  While the script handles dependencies within the container, these minimum versions on the host system are recommended for smoother operation:
-
-*   **Docker:** Minimum Version 19.03.0 or higher (required for BuildKit and Buildx).
-*   **Buildx:** Minimum Version 0.10.0 or higher.
-
 ## Ubuntu Dependencies (Installed via Docker)
 
 These dependencies are installed within the Docker container (Ubuntu 20.04 base). You generally don't need to install them manually:

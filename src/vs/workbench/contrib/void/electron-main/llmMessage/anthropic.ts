@@ -86,9 +86,9 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages:
 	stream.on('finalMessage', (response) => {
 		// stringify the response's content
 		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n\n')
-		const tools = response.content.map(c => c.type === 'tool_use' ? { name: c.name, params: JSON.stringify(c.input), id: c.id } : null).filter(c => !!c)
+		const toolCalls = response.content.map(c => c.type === 'tool_use' ? { name: c.name, params: JSON.stringify(c.input), id: c.id } : null).filter(c => !!c)
 
-		onFinalMessage({ fullText: content, toolCalls: tools })
+		onFinalMessage({ fullText: content, toolCalls })
 	})
 
 	stream.on('error', (error) => {

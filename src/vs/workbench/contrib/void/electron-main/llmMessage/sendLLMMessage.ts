@@ -62,10 +62,10 @@ export const sendLLMMessage = ({
 		_fullTextSoFar = fullText
 	}
 
-	const onFinalMessage: OnFinalMessage = ({ fullText, toolCalls: tools }) => {
+	const onFinalMessage: OnFinalMessage = ({ fullText, toolCalls }) => {
 		if (_didAbort) return
 		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
-		onFinalMessage_({ fullText, toolCalls: tools })
+		onFinalMessage_({ fullText, toolCalls })
 	}
 
 	const onError: OnError = ({ message: error, fullError }) => {

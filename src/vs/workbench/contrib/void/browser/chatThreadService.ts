@@ -326,15 +326,15 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					onText: ({ fullText }) => {
 						this._setStreamState(threadId, { messageSoFar: fullText })
 					},
-					onFinalMessage: async ({ fullText, toolCalls: tools }) => {
-						console.log('FINAL MESSAGE', fullText, tools)
+					onFinalMessage: async ({ fullText, toolCalls }) => {
+						console.log('FINAL MESSAGE', fullText, toolCalls)
 
-						if ((tools?.length ?? 0) === 0) {
+						if ((toolCalls?.length ?? 0) === 0) {
 							this._finishStreamingTextMessage(threadId, fullText)
 						}
 						else {
-							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText, tool_calls: tools })
-							for (const tool of tools ?? []) {
+							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText, tool_calls: toolCalls })
+							for (const tool of toolCalls ?? []) {
 								if (!(tool.name in this._toolsService.toolFns)) {
 									this._addMessageToThread(threadId, { role: 'tool', name: tool.name, params: tool.params, id: tool.id, content: `Error: This tool was not recognized, so it was not called.`, displayContent: `Error: tool not recognized.`, })
 								}

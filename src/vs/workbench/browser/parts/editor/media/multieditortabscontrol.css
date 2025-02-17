@@ -385,7 +385,7 @@
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.tab-actions-right.sizing-shrink > .tab-actions,
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.tab-actions-right.sizing-fixed > .tab-actions {
 	flex: 0;
-	overflow: hidden; /* let the tab actions be pushed out of view when sizing is set to shrink/fixed to make more room */
+	overflow: visible; /* ensure tab actions are always visible */
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.dirty.tab-actions-right.sizing-shrink > .tab-actions,
@@ -399,18 +399,8 @@
 	overflow: visible; /* ...but still show the tab actions on hover, focus and when dirty or sticky */
 }
 
-.monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.close-action-off:not(.dirty) > .tab-actions,
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.sticky-compact > .tab-actions {
-	display: none; /* hide the tab actions when we are configured to hide it (unless dirty, but always when sticky-compact) */
-}
-
-.monaco-workbench .part.editor > .content .editor-group-container.active > .title .tabs-container > .tab.active > .tab-actions .action-label,		/* always show tab actions for active tab */
-.monaco-workbench .part.editor > .content .editor-group-container.active > .title .tabs-container > .tab > .tab-actions .action-label:focus,		/* always show tab actions on focus */
-.monaco-workbench .part.editor > .content .editor-group-container.active > .title .tabs-container > .tab:hover > .tab-actions .action-label,		/* always show tab actions on hover */
-.monaco-workbench .part.editor > .content .editor-group-container.active > .title .tabs-container > .tab.active:hover > .tab-actions .action-label,	/* always show tab actions on hover */
-.monaco-workbench .part.editor > .content .editor-group-container.active > .title .tabs-container > .tab.sticky:not(.pinned-action-off) > .tab-actions .action-label,		/* always show tab actions for sticky tabs */
-.monaco-workbench .part.editor > .content .editor-group-container.active > .title .tabs-container > .tab.dirty > .tab-actions .action-label {		/* always show tab actions for dirty tabs */
-	opacity: 1;
+	display: none; /* only hide tab actions when sticky-compact */
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab > .tab-actions .actions-container {
@@ -444,11 +434,11 @@
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.dirty > .tab-actions .action-label,
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.sticky:not(.pinned-action-off) > .tab-actions .action-label,
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab:hover > .tab-actions .action-label {
-	opacity: 0.5; /* show tab actions dimmed for inactive group */
+	opacity: 1;
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab > .tab-actions .action-label {
-	opacity: 0;
+	opacity: 1;
 }
 
 /* Tab Actions: Off */

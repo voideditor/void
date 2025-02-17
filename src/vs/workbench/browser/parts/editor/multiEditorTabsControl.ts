@@ -35,7 +35,7 @@ import { MergeGroupMode, IMergeGroupOptions } from '../../../services/editor/com
 import { addDisposableListener, EventType, EventHelper, Dimension, scheduleAtNextAnimationFrame, findParentWithClass, clearNode, DragAndDropObserver, isMouseEvent, getWindow } from '../../../../base/browser/dom.js';
 import { localize } from '../../../../nls.js';
 import { IEditorGroupsView, EditorServiceImpl, IEditorGroupView, IInternalEditorOpenOptions, IEditorPartsView } from './editor.js';
-import { CloseEditorTabAction, UnpinEditorAction } from './editorActions.js';
+import { CloseEditorTabAction, PinEditorAction, UnpinEditorAction } from './editorActions.js';
 import { assertAllDefined, assertIsDefined } from '../../../../base/common/types.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { basenameOrAuthority } from '../../../../base/common/resources.js';
@@ -113,6 +113,7 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 
 	private readonly closeEditorAction = this._register(this.instantiationService.createInstance(CloseEditorTabAction, CloseEditorTabAction.ID, CloseEditorTabAction.LABEL));
 	private readonly unpinEditorAction = this._register(this.instantiationService.createInstance(UnpinEditorAction, UnpinEditorAction.ID, UnpinEditorAction.LABEL));
+	private readonly pinEditorAction = this._register(this.instantiationService.createInstance(PinEditorAction, PinEditorAction.ID, PinEditorAction.LABEL));
 
 	private readonly tabResourceLabels = this._register(this.instantiationService.createInstance(ResourceLabels, DEFAULT_LABELS_CONTAINER));
 	private tabLabels: IEditorInputLabel[] = [];
@@ -1510,6 +1511,8 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 		this.layout(this.dimensions, options);
 	}
 
+	// In MultiEditorTabsControl.ts, modify the redrawTab method:
+
 	private redrawTab(editor: EditorInput, tabIndex: number, tabContainer: HTMLElement, tabLabelWidget: IResourceLabel, tabLabel: IEditorInputLabel, tabActionBar: ActionBar): void {
 		const isTabSticky = this.tabsModel.isSticky(tabIndex);
 		const options = this.groupsView.partOptions;
@@ -1518,47 +1521,46 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 		this.redrawTabLabel(editor, tabIndex, tabContainer, tabLabelWidget, tabLabel);
 
 		// Action
-		const hasUnpinAction = isTabSticky && options.tabActionUnpinVisibility;
-		const hasCloseAction = !hasUnpinAction && options.tabActionCloseVisibility;
-		const hasAction = hasUnpinAction || hasCloseAction;
+		const hasCloseAction = options.tabActionCloseVisibility;
+		const hasAction = true; // Always show actions
 
-		let tabAction;
-		if (hasAction) {
-			tabAction = hasUnpinAction ? this.unpinEditorAction : this.closeEditorAction;
+		// Clear existing actions
+		if (!tabActionBar.isEmpty()) {
+			tabActionBar.clear();
+		}
+
+		// Add pin/unpin action based on sticky state
+		if (isTabSticky) {
+			tabActionBar.push(this.unpinEditorAction, { icon: true, label: false, keybinding: this.getKeybindingLabel(this.unpinEditorAction) });
 		} else {
-			// Even if the action is not visible, add it as it contains the dirty indicator
-			tabAction = isTabSticky ? this.unpinEditorAction : this.closeEditorAction;
+			tabActionBar.push(this.pinEditorAction, { icon: true, label: false, keybinding: this.getKeybindingLabel(this.pinEditorAction) });
 		}
 
-		if (!tabActionBar.hasAction(tabAction)) {
-			if (!tabActionBar.isEmpty()) {
-				tabActionBar.clear();
-			}
-
-			tabActionBar.push(tabAction, { icon: true, label: false, keybinding: this.getKeybindingLabel(tabAction) });
+		// Add close action
+		if (hasCloseAction) {
+			tabActionBar.push(this.closeEditorAction, { icon: true, label: false, keybinding: this.getKeybindingLabel(this.closeEditorAction) });
 		}
 
-		tabContainer.classList.toggle(`pinned-action-off`, isTabSticky && !hasUnpinAction);
-		tabContainer.classList.toggle(`close-action-off`, !hasUnpinAction && !hasCloseAction);
+		// Update tab classes and styles
+		tabContainer.classList.toggle('sticky', isTabSticky);
+		tabContainer.classList.toggle('close-action-off', !hasCloseAction);
+		tabContainer.classList.toggle('tab-actions-right', hasAction && options.tabActionLocation === 'right');
+		tabContainer.classList.toggle('tab-actions-left', hasAction && options.tabActionLocation === 'left');
 
-		for (const option of ['left', 'right']) {
-			tabContainer.classList.toggle(`tab-actions-${option}`, hasAction && options.tabActionLocation === option);
-		}
-
-		const tabSizing = isTabSticky && options.pinnedTabSizing === 'shrink' ? 'shrink' /* treat sticky shrink tabs as tabSizing: 'shrink' */ : options.tabSizing;
-		for (const option of ['fit', 'shrink', 'fixed']) {
-			tabContainer.classList.toggle(`sizing-${option}`, tabSizing === option);
-		}
+		// Update tab sizing classes
+		const tabSizing = isTabSticky && options.pinnedTabSizing === 'shrink' ? 'shrink' : options.tabSizing;
+		tabContainer.classList.toggle('sizing-fit', tabSizing === 'fit');
+		tabContainer.classList.toggle('sizing-shrink', tabSizing === 'shrink');
+		tabContainer.classList.toggle('sizing-fixed', tabSizing === 'fixed');
 
 		tabContainer.classList.toggle('has-icon', options.showIcons && options.hasIcons);
 
+		// Update sticky classes
 		tabContainer.classList.toggle('sticky', isTabSticky);
-		for (const option of ['normal', 'compact', 'shrink']) {
-			tabContainer.classList.toggle(`sticky-${option}`, isTabSticky && options.pinnedTabSizing === option);
-		}
+		tabContainer.classList.toggle('sticky-compact', isTabSticky && options.pinnedTabSizing === 'compact');
+		tabContainer.classList.toggle('sticky-shrink', isTabSticky && options.pinnedTabSizing === 'shrink');
 
-		// If not wrapping tabs, sticky compact/shrink tabs need a position to remain at their location
-		// when scrolling to stay in view (requirement for position: sticky)
+		// Update tab position if needed
 		if (!options.wrapTabs && isTabSticky && options.pinnedTabSizing !== 'normal') {
 			let stickyTabWidth = 0;
 			switch (options.pinnedTabSizing) {
@@ -1569,16 +1571,13 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 					stickyTabWidth = MultiEditorTabsControl.TAB_WIDTH.shrink;
 					break;
 			}
-
 			tabContainer.style.left = `${tabIndex * stickyTabWidth}px`;
 		} else {
 			tabContainer.style.left = 'auto';
 		}
 
-		// Borders / outline
+		// Draw borders and selection state
 		this.redrawTabBorders(tabIndex, tabContainer);
-
-		// Selection / active / dirty state
 		this.redrawTabSelectedActiveAndDirty(this.groupsView.activeGroup === this.groupView, editor, tabContainer, tabActionBar);
 	}
 

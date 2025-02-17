@@ -432,11 +432,29 @@ export class UnpinEditorAction extends Action {
 		label: string,
 		@ICommandService private readonly commandService: ICommandService
 	) {
-		super(id, label, ThemeIcon.asClassName(Codicon.pinned));
+		super(id, label, ThemeIcon.asClassName(Codicon.starFull));
 	}
 
 	override run(context?: IEditorCommandsContext): Promise<void> {
 		return this.commandService.executeCommand(UNPIN_EDITOR_COMMAND_ID, undefined, context);
+	}
+}
+
+export class PinEditorAction extends Action {
+
+	static readonly ID = 'workbench.action.pinEditor';
+	static readonly LABEL = localize('pinEditor', "Pin Editor");
+
+	constructor(
+		id: string,
+		label: string,
+		@ICommandService private readonly commandService: ICommandService
+	) {
+		super(id, label, ThemeIcon.asClassName(Codicon.star));
+	}
+
+	override async run(context?: IEditorCommandsContext): Promise<void> {
+		return this.commandService.executeCommand('workbench.action.pinEditor', undefined, context);
 	}
 }
 

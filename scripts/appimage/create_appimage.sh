@@ -130,6 +130,6 @@ ARCH=x86_64 ./appimagetool -n VoidApp.AppDir Void-x86_64.AppImage
 '
 
 # Clean up
-rm Dockerfile.build
+rm -rf VoidApp.AppDir .dockerignore appimagetool
 
 echo "AppImage creation complete! Your AppImage is: Void-x86_64.AppImage"

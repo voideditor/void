@@ -339,8 +339,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								let toolResult: Awaited<ReturnType<ToolFns[ToolName]>>
 								try {
 									toolResult = await this._toolsService.toolFns[toolName](tool.params)
-								} catch (e) {
-									this._setStreamState(threadId, { error: e })
+								} catch (error) {
+									this._setStreamState(threadId, { error })
 									shouldContinue = false
 									break
 								}
@@ -349,8 +349,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								let toolResultStr: string
 								try {
 									toolResultStr = this._toolsService.toolResultToString[toolName](toolResult as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
-								} catch (e) {
-									this._setStreamState(threadId, { error: e })
+								} catch (error) {
+									this._setStreamState(threadId, { error })
 									shouldContinue = false
 									break
 								}

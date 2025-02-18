@@ -761,26 +761,34 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ position, onSelect,
 	}, [onClose]);
 
 	return (
-		<div
-			className="mentions-dropdown absolute bg-vscode-input-bg border border-void-border-1 rounded-md shadow-md z-50"
-			style={{
-				top: `${position.top}px`,
-				left: `${position.left}px`,
-				minWidth: '200px'
-			}}
-		>
-			{mentions.map((mention) => (
-				<div
-					key={mention.label}
-					className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer"
-					onClick={() => onSelect(mention.label)}
-				>
-					<span className="text-void-fg-1">{mention.label}</span>
-					<span className="text-void-fg-3 text-xs">{mention.description}</span>
-				</div>
-			))}
-		</div>
-	);
+        <div
+            className="
+                absolute
+                top-full
+                left-0
+                mt-1
+                bg-vscode-input-bg
+                border border-void-border-1
+                rounded-md
+                shadow-md
+                z-50
+                min-w-[200px]
+            "
+        >
+            <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => onSelect('@model')}>
+                <span className="text-void-fg-1">@model</span>
+                <span className="text-void-fg-3 text-xs">Reference a model</span>
+            </div>
+            <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => onSelect('@file')}>
+                <span className="text-void-fg-1">@file</span>
+                <span className="text-void-fg-3 text-xs">Reference a file</span>
+            </div>
+            <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => onSelect('@settings')}>
+                <span className="text-void-fg-1">@settings</span>
+                <span className="text-void-fg-3 text-xs">Reference settings</span>
+            </div>
+        </div>
+    );
 };
 
 
@@ -835,7 +843,6 @@ export const SidebarChat = () => {
 	const [historyRef, historyDimensions] = useResizeObserver()
 
 	// dropdown state
-	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
     const [showDropdown, setShowDropdown] = useState(false);
 
 	useScrollbarStyles(sidebarRef)
@@ -922,89 +929,6 @@ export const SidebarChat = () => {
 		}
 	</ScrollToBottomContainer>
 
-	const findCursorCoords = (
-		textAreaRef: React.RefObject<HTMLTextAreaElement>,
-		cursorPosition: number
-	) => {
-		if (!textAreaRef.current) return { top: 0, left: 0 };
-
-		const textArea = textAreaRef.current;
-		const textAreaRect = textArea.getBoundingClientRect();
-		const computed = window.getComputedStyle(textArea);
-
-		// Create a mirror div and copy over essential styles
-		const mirror = document.createElement('div');
-		const stylesToCopy = [
-		'boxSizing',
-		'width',
-		'height',
-		'overflowX',
-		'overflowY',
-		'borderTopWidth',
-		'borderRightWidth',
-		'borderBottomWidth',
-		'borderLeftWidth',
-		'paddingTop',
-		'paddingRight',
-		'paddingBottom',
-		'paddingLeft',
-		'fontFamily',
-		'fontSize',
-		'fontWeight',
-		'fontStyle',
-		'lineHeight',
-		'letterSpacing',
-		'textTransform',
-		'textAlign'
-		];
-		stylesToCopy.forEach((prop) => {
-		mirror.style.setProperty(prop, computed.getPropertyValue(prop));
-		});
-
-		// Set up mirror styling so it doesn't show and mimics the textarea layout
-		mirror.style.position = 'absolute';
-		// Position the mirror at the textarea’s absolute position on the page
-		mirror.style.top = textAreaRect.top + 'px';
-		mirror.style.left = textAreaRect.left + 'px';
-		mirror.style.visibility = 'hidden';
-		mirror.style.whiteSpace = 'pre-wrap';
-		mirror.style.wordWrap = 'break-word';
-
-		// Set the mirror's text to all content before the cursor
-		const textBeforeCursor = textArea.value.substring(0, cursorPosition);
-		mirror.textContent = textBeforeCursor;
-
-		// Create a span to mark the caret position.
-		const span = document.createElement('span');
-		// Use a zero-width space to ensure the span has dimensions.
-		span.textContent = '\u200b';
-		mirror.appendChild(span);
-
-		// Append mirror to the document so we can measure it
-		document.body.appendChild(mirror);
-
-		// Get bounding rect for the span
-		const spanRect = span.getBoundingClientRect();
-
-		// Calculate coordinates relative to the textarea:
-		// We subtract the textarea’s rect and add its scroll offsets.
-		const cursorCoords = {
-		top: spanRect.top - textAreaRect.top + textArea.scrollTop,
-		left: spanRect.left - textAreaRect.left + textArea.scrollLeft,
-		};
-
-		// Clean up the mirror element
-		document.body.removeChild(mirror);
-
-		console.log('[Mentions] Cursor coordinates:', JSON.stringify(cursorCoords));
-		return cursorCoords;
-	};
-
-
-	useEffect(() => {
-		console.log('[Mentions] Dropdown position updated:', JSON.stringify(dropdownPosition));
-	}, [dropdownPosition]);
-
 	useEffect(() => {
 		console.log('[Mentions] Dropdown visibility updated:', showDropdown);
 	}, [showDropdown]);
@@ -1024,16 +948,14 @@ export const SidebarChat = () => {
 			// then we can assume that the user is trying to mention @
 			if ((charBeforeCursor === '@' && charBeforeCursor2 === ' ') || (charBeforeCursor === '@' && cursorPosition === 1)) {
 				console.log('[Mentions] @ detected!');
-				// Get the cursor coordinates
-				const cursorCoords = findCursorCoords(textAreaRef, cursorPosition);
-				console.log('[Mentions] Cursor coordinates:', JSON.stringify(cursorCoords));
-				// Set the dropdown position
-				setDropdownPosition({
-					top: cursorCoords.top,
-					left: cursorCoords.left + 20
-				});
+
+
+
 				// Show the dropdown
 				setShowDropdown(true);
+			} else {
+				// Hide the dropdown
+				setShowDropdown(false);
 			}
 		}
 	}
@@ -1081,25 +1003,44 @@ export const SidebarChat = () => {
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 			featureName="Ctrl+L"
 		>
-			<div className="relative">
-				<VoidInputBox2
-					className='min-h-[81px] p-1'
-					placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
-					onChangeText={onChangeText}
-					onKeyDown={onKeyDown}
-					onFocus={() => { chatThreadsService.setFocusedMessageIdx(undefined) }}
-					ref={textAreaRef}
-					fnsRef={textAreaFnsRef}
-					multiline={true}
-				/>
-				{showDropdown && (
-					<MentionsDropdown
-						position={dropdownPosition}
-						onSelect={handleMentionSelect}
-						onClose={() => setShowDropdown(false)}
-					/>
-				)}
-			</div>
+			<div className="flex flex-col overflow-hidden"> {/* Add this wrapper */}
+                <VoidInputBox2
+                    className='min-h-[81px] p-1'
+                    placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
+                    onChangeText={onChangeText}
+                    onKeyDown={onKeyDown}
+                    onFocus={() => { chatThreadsService.setFocusedMessageIdx(undefined) }}
+                    ref={textAreaRef}
+                    fnsRef={textAreaFnsRef}
+                    multiline={true}
+                />
+
+                {showDropdown && (
+                    <div className="
+                        mt-1
+						mb-8
+                        bg-vscode-input-bg
+                        border border-void-border-1
+                        rounded-md
+                        shadow-md
+                        z-50
+                    ">
+                        <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => handleMentionSelect('@model')}>
+                            <span className="text-void-fg-1">@model</span>
+                            <span className="text-void-fg-3 text-xs">Reference a model</span>
+                        </div>
+                        <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => handleMentionSelect('@file')}>
+                            <span className="text-void-fg-1">@file</span>
+                            <span className="text-void-fg-3 text-xs">Reference a file</span>
+                        </div>
+                        <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => handleMentionSelect('@settings')}>
+                            <span className="text-void-fg-1">@settings</span>
+                            <span className="text-void-fg-3 text-xs">Reference settings</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+
 
 		</VoidChatArea>
 	</div>

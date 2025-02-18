@@ -20,7 +20,7 @@ export const VSReadFile = async (modelService: IModelService, fileService: IFile
 // read files from VSCode. preferred (but appears to only work if the model of this URI already exists. If it doesn't use the other function.)
 export const _VSReadModel = async (modelService: IModelService, uri: URI): Promise<string | null> => {
 
-	// attempt to read saved model (sometimes doesn't work if page is reloaded)
+	// attempt to read saved model (doesn't work if application was reloaded...)
 	const model = modelService.getModel(uri)
 	if (model) {
 		return model.getValue(EndOfLinePreference.LF)
@@ -38,7 +38,12 @@ export const _VSReadModel = async (modelService: IModelService, uri: URI): Promi
 }
 
 export const _VSReadFileRaw = async (fileService: IFileService, uri: URI) => {
-	const res = await fileService.readFile(uri)
-	const str = res.value.toString()
-	return str
+	try {
+		const res = await fileService.readFile(uri)
+		const str = res.value.toString()
+		return str
+	} catch (e) {
+		return ''
+	}
+
 }

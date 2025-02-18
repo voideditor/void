@@ -870,7 +870,30 @@ export const SidebarChat = () => {
 	</ScrollToBottomContainer>
 
 
+
+	const detectMentions = (text: string) => {
+		console.log('Detecting mentions (@) in:', text);
+		if (textAreaRef.current) {
+			const cursorPosition = textAreaRef.current.selectionStart;
+			const charBeforeCursor = text.charAt(cursorPosition - 1);
+			// Checking for a space before the @
+			const charBeforeCursor2 = text.charAt(cursorPosition - 2);
+
+			console.log('Cursor position:', cursorPosition);
+			console.log('Char before cursor:', charBeforeCursor);
+
+			// If the cursor is at the beginning of the text or there is a space before the @
+			// then we can assume that the user is trying to mention @
+			if ((charBeforeCursor === '@' && charBeforeCursor2 === ' ') || (charBeforeCursor === '@' && cursorPosition === 1)) {
+				console.log('[Mentions] @ detected!');
+				// TODO: Show dropdown
+			}
+		}
+	}
+
+
 	const onChangeText = useCallback((newStr: string) => {
+		detectMentions(newStr);
 		setInstructionsAreEmpty(!newStr)
 	}, [setInstructionsAreEmpty])
 	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {

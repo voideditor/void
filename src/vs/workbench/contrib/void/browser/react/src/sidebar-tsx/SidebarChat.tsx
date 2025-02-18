@@ -734,6 +734,55 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	</div>
 }
 
+interface MentionsDropdownProps {
+	position: { top: number; left: number };
+	onSelect: (mention: string) => void;
+	onClose: () => void;
+}
+
+const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ position, onSelect, onClose }) => {
+	const mentions = [
+		{ label: '@model', description: 'Reference a model' },
+		{ label: '@file', description: 'Reference a file' },
+		{ label: '@settings', description: 'Reference settings' }
+	];
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			const target = event.target as HTMLElement;
+			if (!target.closest('.mentions-dropdown')) {
+				onClose();
+			}
+		};
+
+		document.addEventListener('click', handleClickOutside);
+		return () => document.removeEventListener('click', handleClickOutside);
+	}, [onClose]);
+
+	return (
+		<div
+			className="mentions-dropdown absolute bg-vscode-input-bg border border-void-border-1 rounded-md shadow-md z-50"
+			style={{
+				top: `${position.top}px`,
+				left: `${position.left}px`,
+				minWidth: '200px'
+			}}
+		>
+			{mentions.map((mention) => (
+				<div
+					key={mention.label}
+					className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer"
+					onClick={() => onSelect(mention.label)}
+				>
+					<span className="text-void-fg-1">{mention.label}</span>
+					<span className="text-void-fg-3 text-xs">{mention.description}</span>
+				</div>
+			))}
+		</div>
+	);
+};
+
 
 export const SidebarChat = () => {
 
@@ -784,6 +833,10 @@ export const SidebarChat = () => {
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
 	const [chatAreaRef, chatAreaDimensions] = useResizeObserver()
 	const [historyRef, historyDimensions] = useResizeObserver()
+
+	// dropdown state
+	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+    const [showDropdown, setShowDropdown] = useState(false);
 
 	useScrollbarStyles(sidebarRef)
 
@@ -869,7 +922,92 @@ export const SidebarChat = () => {
 		}
 	</ScrollToBottomContainer>
 
+	const findCursorCoords = (
+		textAreaRef: React.RefObject<HTMLTextAreaElement>,
+		cursorPosition: number
+	) => {
+		if (!textAreaRef.current) return { top: 0, left: 0 };
 
+		const textArea = textAreaRef.current;
+		const textAreaRect = textArea.getBoundingClientRect();
+		const computed = window.getComputedStyle(textArea);
+
+		// Create a mirror div and copy over essential styles
+		const mirror = document.createElement('div');
+		const stylesToCopy = [
+		'boxSizing',
+		'width',
+		'height',
+		'overflowX',
+		'overflowY',
+		'borderTopWidth',
+		'borderRightWidth',
+		'borderBottomWidth',
+		'borderLeftWidth',
+		'paddingTop',
+		'paddingRight',
+		'paddingBottom',
+		'paddingLeft',
+		'fontFamily',
+		'fontSize',
+		'fontWeight',
+		'fontStyle',
+		'lineHeight',
+		'letterSpacing',
+		'textTransform',
+		'textAlign'
+		];
+		stylesToCopy.forEach((prop) => {
+		mirror.style.setProperty(prop, computed.getPropertyValue(prop));
+		});
+
+		// Set up mirror styling so it doesn't show and mimics the textarea layout
+		mirror.style.position = 'absolute';
+		// Position the mirror at the textarea’s absolute position on the page
+		mirror.style.top = textAreaRect.top + 'px';
+		mirror.style.left = textAreaRect.left + 'px';
+		mirror.style.visibility = 'hidden';
+		mirror.style.whiteSpace = 'pre-wrap';
+		mirror.style.wordWrap = 'break-word';
+
+		// Set the mirror's text to all content before the cursor
+		const textBeforeCursor = textArea.value.substring(0, cursorPosition);
+		mirror.textContent = textBeforeCursor;
+
+		// Create a span to mark the caret position.
+		const span = document.createElement('span');
+		// Use a zero-width space to ensure the span has dimensions.
+		span.textContent = '\u200b';
+		mirror.appendChild(span);
+
+		// Append mirror to the document so we can measure it
+		document.body.appendChild(mirror);
+
+		// Get bounding rect for the span
+		const spanRect = span.getBoundingClientRect();
+
+		// Calculate coordinates relative to the textarea:
+		// We subtract the textarea’s rect and add its scroll offsets.
+		const cursorCoords = {
+		top: spanRect.top - textAreaRect.top + textArea.scrollTop,
+		left: spanRect.left - textAreaRect.left + textArea.scrollLeft,
+		};
+
+		// Clean up the mirror element
+		document.body.removeChild(mirror);
+
+		console.log('[Mentions] Cursor coordinates:', JSON.stringify(cursorCoords));
+		return cursorCoords;
+	};
+
+
+	useEffect(() => {
+		console.log('[Mentions] Dropdown position updated:', JSON.stringify(dropdownPosition));
+	}, [dropdownPosition]);
+
+	useEffect(() => {
+		console.log('[Mentions] Dropdown visibility updated:', showDropdown);
+	}, [showDropdown]);
 
 	const detectMentions = (text: string) => {
 		console.log('Detecting mentions (@) in:', text);
@@ -886,10 +1024,38 @@ export const SidebarChat = () => {
 			// then we can assume that the user is trying to mention @
 			if ((charBeforeCursor === '@' && charBeforeCursor2 === ' ') || (charBeforeCursor === '@' && cursorPosition === 1)) {
 				console.log('[Mentions] @ detected!');
-				// TODO: Show dropdown
+				// Get the cursor coordinates
+				const cursorCoords = findCursorCoords(textAreaRef, cursorPosition);
+				console.log('[Mentions] Cursor coordinates:', JSON.stringify(cursorCoords));
+				// Set the dropdown position
+				setDropdownPosition({
+					top: cursorCoords.top,
+					left: cursorCoords.left + 20
+				});
+				// Show the dropdown
+				setShowDropdown(true);
 			}
 		}
 	}
+
+	const handleMentionSelect = (mention: string) => {
+        if (textAreaRef.current) {
+            const cursorPosition = textAreaRef.current.selectionStart;
+            const currentValue = textAreaRef.current.value;
+
+            // Replace the @ with the full mention
+            const newValue =
+                currentValue.substring(0, cursorPosition - 1) +
+                mention + ' ' +
+                currentValue.substring(cursorPosition);
+
+            // Update the input value
+            textAreaFnsRef.current?.setValue(newValue);
+
+            // Close the dropdown
+            setShowDropdown(false);
+        }
+    };
 
 
 	const onChangeText = useCallback((newStr: string) => {
@@ -915,16 +1081,26 @@ export const SidebarChat = () => {
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 			featureName="Ctrl+L"
 		>
-			<VoidInputBox2
-				className='min-h-[81px] p-1'
-				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
-				onChangeText={onChangeText}
-				onKeyDown={onKeyDown}
-				onFocus={() => { chatThreadsService.setFocusedMessageIdx(undefined) }}
-				ref={textAreaRef}
-				fnsRef={textAreaFnsRef}
-				multiline={true}
-			/>
+			<div className="relative">
+				<VoidInputBox2
+					className='min-h-[81px] p-1'
+					placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
+					onChangeText={onChangeText}
+					onKeyDown={onKeyDown}
+					onFocus={() => { chatThreadsService.setFocusedMessageIdx(undefined) }}
+					ref={textAreaRef}
+					fnsRef={textAreaFnsRef}
+					multiline={true}
+				/>
+				{showDropdown && (
+					<MentionsDropdown
+						position={dropdownPosition}
+						onSelect={handleMentionSelect}
+						onClose={() => setShowDropdown(false)}
+					/>
+				)}
+			</div>
+
 		</VoidChatArea>
 	</div>
 

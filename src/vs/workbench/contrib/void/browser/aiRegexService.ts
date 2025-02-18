@@ -44,7 +44,7 @@ export const IVoidFastApplyService = createDecorator<IFastApplyService>('voidFas
 class VoidFastApplyService extends Disposable implements IFastApplyService {
 	_serviceBrand: undefined;
 
-	static readonly ID = 'voidFastApplyService';
+	// static readonly ID = 'voidFastApplyService';
 
 	private readonly _onDidChangeState = new Emitter<void>();
 	readonly onDidChangeState: Event<void> = this._onDidChangeState.event;

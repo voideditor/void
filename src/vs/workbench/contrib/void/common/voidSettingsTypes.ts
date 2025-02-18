@@ -552,7 +552,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 						: '(never)',
 
 			subTextMd: providerName === 'ollama' ? 'If you would like to change this endpoint, please read more about [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).' :
-				undefined,
+				providerName === 'vLLM' ? 'If you would like to change this endpoint, please read more about [Endpoints here](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).' :
+					undefined,
 		}
 	}
 	else if (settingName === '_didFillInProviderSettings') {

@@ -304,9 +304,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// agent loop
 		const agentLoop = async () => {
 
-			let shouldContinue = false
-			do {
-				shouldContinue = false
+			let shouldSendAnotherMessage = true
+			let nMessagesSent = 0
+
+			while (shouldSendAnotherMessage) {
+				shouldSendAnotherMessage = false
+				nMessagesSent += 1
 
 				let res_: () => void
 				const awaitable = new Promise<void>((res, rej) => { res_ = res })
@@ -329,8 +332,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						// make sure all tool names are valid so we can cast to ToolName below
 						const toolCalls = toolCalls_?.filter(tool => tool.name in this._toolsService.toolFns)
 
-						console.log('FINAL MESSAGE', fullText, toolCalls)
-
 						if ((toolCalls?.length ?? 0) === 0) {
 							this._finishStreamingTextMessage(threadId, fullText)
 						}
@@ -346,7 +347,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 									toolResult = await this._toolsService.toolFns[toolName](tool.params)
 								} catch (error) {
 									this._setStreamState(threadId, { error })
-									shouldContinue = false
+									shouldSendAnotherMessage = false
 									break
 								}
 
@@ -356,12 +357,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 									toolResultStr = this._toolsService.toolResultToString[toolName](toolResult as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
 								} catch (error) {
 									this._setStreamState(threadId, { error })
-									shouldContinue = false
+									shouldSendAnotherMessage = false
 									break
 								}
 
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, params: tool.params, id: tool.id, content: toolResultStr, result: toolResult, })
-								shouldContinue = true
+								shouldSendAnotherMessage = true
 							}
 
 						}
@@ -377,7 +378,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 				await awaitable
 			}
-			while (shouldContinue);
 		}
 
 		agentLoop() // DO NOT AWAIT THIS, this fn should resolve when ready to clear inputs

@@ -8,6 +8,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
+import { ServiceSendLLMMessageParams } from '../common/llmMessageTypes.js';
 
 
 
@@ -15,11 +16,9 @@ export interface ISearchReplaceService {
 	readonly _serviceBrand: undefined;
 }
 
-export const ISearchReplaceService = createDecorator<ISearchReplaceService>('SearchReplaceService');
+export const ISearchReplaceService = createDecorator<ISearchReplaceService>('SearchReplaceCacheService');
 class SearchReplaceService extends Disposable implements ISearchReplaceService {
 	_serviceBrand: undefined;
-
-	static readonly ID = 'SearchReplaceService';
 
 	private readonly _onDidChangeState = new Emitter<void>();
 	readonly onDidChangeState: Event<void> = this._onDidChangeState.event;
@@ -28,8 +27,18 @@ class SearchReplaceService extends Disposable implements ISearchReplaceService {
 		@ILLMMessageService private readonly llmMessageService: ILLMMessageService,
 	) {
 		super()
-		// this.llmMessageService.sendLLMMessage({})
+	}
 
+	send(params: Omit<ServiceSendLLMMessageParams, 'onText'> & { onText: (p: { newText: string, fullText: string }) => { retry: boolean } }) {
+		this.llmMessageService.sendLLMMessage({
+			...params as ServiceSendLLMMessageParams,
+			onText: (p) => {
+				const { retry } = params.onText(p)
+				if (retry) {
+
+				}
+			}
+		})
 	}
 
 }

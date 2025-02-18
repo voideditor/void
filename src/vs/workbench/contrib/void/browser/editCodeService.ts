@@ -1182,14 +1182,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const uri = uri_
 
 		// generate search/replace block text
-		const fileContents = await VSReadFile(this._modelService, uri)
-		if (fileContents === null) return
+		const origFileContents = await VSReadFile(this._modelService, uri)
+		if (origFileContents === null) return
 
 
 		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
 		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
 
-		const userMessageContent = searchReplace_userMessage({ originalCode: fileContents, applyStr: applyStr })
+		const userMessageContent = searchReplace_userMessage({ originalCode: origFileContents, applyStr: applyStr })
 		const messages: LLMChatMessage[] = [
 			{ role: 'system', content: searchReplace_systemMessage },
 			{ role: 'user', content: userMessageContent },
@@ -1197,6 +1197,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
 		const diffareaidOfBlockNum: number[] = []
+		const diffAreaOriginalLines: [number, number][] = []
 
 		// TODO replace all these with whatever block we're on initially if already started
 		let latestStreamLocationMutable: StreamLocationMutable | null = null
@@ -1215,10 +1216,15 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			return [startLine, endLine]
 		}
 
-		const { onFinishEdit } = this._addToHistory(uri)
+		let { onFinishEdit } = this._addToHistory(uri)
 
+		const revertAndContinueHistory = () => {
+			this._undoHistory(uri)
+			const { onFinishEdit: onFinishEdit_ } = this._addToHistory(uri)
+			onFinishEdit = onFinishEdit_
+		}
 
-		const onDone = (hadError: boolean) => {
+		const onDone = (errorMessage: false | string) => {
 			for (const blockNum in diffareaidOfBlockNum) {
 				const diffareaid = diffareaidOfBlockNum[blockNum]
 				const diffZone = this.diffAreaOfId[diffareaid]
@@ -1227,106 +1233,175 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 			}
 			this._refreshStylesAndDiffsInURI(uri)
-			if (hadError) this._undoHistory(uri)
+			if (errorMessage) {
+				this._notificationService.info(`Void had an error when running Apply: ${errorMessage}.\nIf this persists, feel free to [report](https://github.com/voideditor/void/issues/new) this error.`)
+				this._metricsService.capture('Error - Apply', { errorMessage })
+				this._undoHistory(uri)
+			}
 			onFinishEdit()
 		}
 
 
-		// any time there's an error, add assistant's message, then user message saying the problem and to retry
+		const onNewBlockStart = (blockNum: number, block: ExtractedSearchReplaceBlock): { errorStartingBlock?: undefined } | { errorStartingBlock: string } => {
+			console.log('STARTING BLOCK', JSON.stringify(block, null, 2))
 
-		// TODO!!! turn this into a service and provide it
+
+			const foundInCode = findTextInCode(block.orig, origFileContents)
+			if (typeof foundInCode === 'string') {
+				console.log('Apply error:', foundInCode, '; trying again.')
+				return { errorStartingBlock: foundInCode }
+			}
+			const [originalStart, originalEnd] = foundInCode
+
+			let lineOffset = 0
+			// compute line offset given multiple changes
+			for (let i = 0; i < blockNum; i += 1) {
+				const [diffAreaOriginalStart, diffAreaOriginalEnd] = diffAreaOriginalLines[i]
+				console.log('ROIGGINAL!!!', diffAreaOriginalStart, diffAreaOriginalEnd)
+				if (diffAreaOriginalStart > originalEnd) continue
+
+				const diffareaid = diffareaidOfBlockNum[i]
+				const diffArea = this.diffAreaOfId[diffareaid]
+
+
+				const numNewLines = diffArea.endLine - diffArea.startLine
+				const numOldLines = diffAreaOriginalEnd - diffAreaOriginalStart
+				console.log('NUM NEW', numNewLines, numOldLines)
+
+				lineOffset += numNewLines - numOldLines
+			}
+
+			const startLine = originalStart + lineOffset
+			const endLine = originalEnd + lineOffset
+			console.log('adding to', startLine, endLine)
+
+			const adding: Omit<DiffZone, 'diffareaid'> = {
+				type: 'DiffZone',
+				originalCode: block.orig,
+				startLine,
+				endLine,
+				_URI: uri,
+				_streamState: {
+					isStreaming: true,
+					streamRequestIdRef,
+					line: startLine,
+				},
+				_diffOfId: {}, // added later
+				_removeStylesFns: new Set(),
+			}
+			const diffZone = this._addDiffArea(adding)
+			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._onDidAddOrDeleteDiffZones.fire({ uri })
+
+			diffareaidOfBlockNum.push(diffZone.diffareaid)
+			diffAreaOriginalLines.push([originalStart, originalEnd])
+
+			latestStreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+			return { errorStartingBlock: undefined }
+		}
+
+
+
+
+
+
+		let shouldSendAnotherMessage = true
+		let nMessagesSent = 0
 		// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
-		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-			messagesType: 'chatMessages',
-			useProviderFor: 'Apply',
-			logging: { loggingName: `generateSearchAndReplace` },
-			messages,
-			onText: ({ fullText }) => {
-				const blocks = extractSearchReplaceBlocks(fullText)
+		while (shouldSendAnotherMessage) {
+			shouldSendAnotherMessage = false
+			nMessagesSent += 1
 
-				for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
-					const block = blocks[blockNum]
+			streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+				messagesType: 'chatMessages',
+				useProviderFor: 'Apply',
+				logging: { loggingName: `generateSearchAndReplace` },
+				messages,
+				onText: ({ fullText }) => {
+					const blocks = extractSearchReplaceBlocks(fullText)
 
-					if (block.state === 'done')
-						currStreamingBlockNum = blockNum
+					for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
+						const block = blocks[blockNum]
 
-					if (block.state === 'writingOriginal') // must be done writing original
-						continue
+						if (block.state === 'done')
+							currStreamingBlockNum = blockNum
 
-					// if should add new diffarea
-					if (!(blockNum in diffareaidOfBlockNum)) {
-						const foundInCode = findTextInCode(block.orig, fileContents)
-						if (typeof foundInCode === 'string') {
-							// TODO!!! log and retry
-							console.log('NOT FOUND IN CODE!!!!', foundInCode)
+						if (block.state === 'writingOriginal') // must be done writing original
 							continue
+
+						// if this is the first time we're seeing this block, add it as a diffarea
+						if (!(blockNum in diffareaidOfBlockNum)) {
+							console.log('FULLTEXT!!!!!\n', fullText)
+							const { errorStartingBlock } = onNewBlockStart(blockNum, block)
+
+							if (errorStartingBlock) {
+								console.log('ERROR STARTING BLOCK SPOT!!!!!', errorStartingBlock)
+
+								const errMsgForLLM = errorStartingBlock === 'Not found' ?
+									'I interrupted you because the latest ORIGINAL code could not be found in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in ORIGINAL is identical to a code snippet in the file.'
+									: errorStartingBlock === 'Not unique' ?
+										'I interrupted you because the latest ORIGINAL code shows up multiple times in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in each ORIGINAL section is unique in the file.'
+										: ''
+
+								messages.push(
+									{ role: 'assistant', content: fullText }, // latest output
+									{ role: 'user', content: errMsgForLLM } // user explanation of what's wrong
+								)
+								if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
+
+								shouldSendAnotherMessage = true
+								revertAndContinueHistory()
+								return
+							}
+
 						}
-						const [startLine, endLine] = foundInCode
+						const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
+						oldBlocks = blocks
 
-						const adding: Omit<DiffZone, 'diffareaid'> = {
-							type: 'DiffZone',
-							originalCode: block.orig,
-							startLine,
-							endLine,
-							_URI: uri,
-							_streamState: {
-								isStreaming: true,
-								streamRequestIdRef,
-								line: startLine,
-							},
-							_diffOfId: {}, // added later
-							_removeStylesFns: new Set(),
-						}
-						const diffZone = this._addDiffArea(adding)
-						this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-						this._onDidAddOrDeleteDiffZones.fire({ uri })
+						// write new text to diffarea
+						const diffareaid = diffareaidOfBlockNum[blockNum]
+						const diffZone = this.diffAreaOfId[diffareaid]
+						if (diffZone?.type !== 'DiffZone') continue
 
-						diffareaidOfBlockNum.push(diffZone.diffareaid)
 
-						latestStreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+						if (!latestStreamLocationMutable) continue
+						this._writeStreamedDiffZoneLLMText(diffZone, block.final, deltaFinalText, latestStreamLocationMutable)
+					} // end for
 
+					this._refreshStylesAndDiffsInURI(uri)
+				},
+				onFinalMessage: async ({ fullText }) => {
+					console.log('final message!!', fullText)
+
+					// 1. wait 500ms and fix lint errors - call lint error workflow
+					// (update react state to say "Fixing errors")
+					const blocks = extractSearchReplaceBlocks(fullText)
+
+					if (blocks.length === 0) {
+						this._notificationService.info(`Void: When running Apply, your model didn't output any changes we recognized. You might need to use a smarter model for Apply.`)
 					}
-					const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
-					oldBlocks = blocks
 
-					// write new text to diffarea
-					const diffareaid = diffareaidOfBlockNum[blockNum]
-					const diffZone = this.diffAreaOfId[diffareaid]
-					if (diffZone?.type !== 'DiffZone') continue
+					for (let blockNum = 0; blockNum < blocks.length; blockNum += 1) {
+						const block = blocks[blockNum]
+						const diffareaid = diffareaidOfBlockNum[blockNum]
+						const diffZone = this.diffAreaOfId[diffareaid]
+						if (diffZone?.type !== 'DiffZone') continue
 
+						this._writeText(uri, block.final,
+							{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+							{ shouldRealignDiffAreas: true }
+						)
+					}
+					onDone(false)
+				},
+				onError: (e) => {
+					console.log('ERROR in SearchReplace:', e.message)
+					onDone(e.message)
+				},
 
-					if (!latestStreamLocationMutable) continue
-					this._writeStreamedDiffZoneLLMText(diffZone, block.final, deltaFinalText, latestStreamLocationMutable)
-				} // end for
+			})
+		}
 
-				this._refreshStylesAndDiffsInURI(uri)
-			},
-			onFinalMessage: async ({ fullText }) => {
-				console.log('/* ON FINALMESSAGE */', fullText)
-
-				// 1. wait 500ms and fix lint errors - call lint error workflow
-				// (update react state to say "Fixing errors")
-				const blocks = extractSearchReplaceBlocks(fullText)
-
-				for (let blockNum = 0; blockNum < blocks.length; blockNum += 1) {
-					const block = blocks[blockNum]
-					const diffareaid = diffareaidOfBlockNum[blockNum]
-					const diffZone = this.diffAreaOfId[diffareaid]
-					if (diffZone?.type !== 'DiffZone') continue
-
-					this._writeText(uri, block.final,
-						{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-						{ shouldRealignDiffAreas: true }
-					)
-				}
-				onDone(false)
-			},
-			onError: (e) => {
-				console.log('ERROR', e);
-				onDone(true)
-			},
-
-		})
 
 	}
 

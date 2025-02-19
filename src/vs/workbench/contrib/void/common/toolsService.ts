@@ -5,9 +5,9 @@ import { IFileService } from '../../../../platform/files/common/files.js'
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js'
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js'
-import { VSReadFile } from '../../../../workbench/contrib/void/browser/helpers/readFile.js'
 import { QueryBuilder } from '../../../../workbench/services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../../workbench/services/search/common/search.js'
+import { IVoidFileService } from './voidFileService.js'
 
 
 // tool use for AI
@@ -196,6 +196,7 @@ export class ToolsService implements IToolsService {
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 		@ISearchService searchService: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,
+		@IVoidFileService voidFileService: IVoidFileService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -208,7 +209,7 @@ export class ToolsService implements IToolsService {
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
-				const readFileContents = await VSReadFile(uri, modelService, fileService)
+				const readFileContents = await voidFileService.readFile(uri)
 
 				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1

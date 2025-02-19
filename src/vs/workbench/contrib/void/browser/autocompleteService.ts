@@ -16,9 +16,9 @@ import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
-import { isWindows } from '../../../../base/common/platform.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
+import { _ln, allLinebreakSymbols } from '../common/voidFileService.js';
 // import { IContextGatheringService } from './contextGatheringService.js';
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
@@ -414,9 +414,6 @@ const toInlineCompletions = ({ autocompletionMatchup, autocompletion, prefixAndS
 
 // }
 
-
-const allLinebreakSymbols = ['\r\n', '\n']
-const _ln = isWindows ? allLinebreakSymbols[0] : allLinebreakSymbols[1]
 
 type PrefixAndSuffixInfo = { prefix: string, suffix: string, prefixLines: string[], suffixLines: string[], prefixToTheLeftOfCursor: string, suffixToTheRightOfCursor: string }
 const getPrefixAndSuffixInfo = (model: ITextModel, position: Position): PrefixAndSuffixInfo => {

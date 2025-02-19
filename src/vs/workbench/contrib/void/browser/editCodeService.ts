@@ -41,8 +41,7 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { ILLMMessageService } from '../common/llmMessageService.js';
 import { LLMChatMessage, errorDetails } from '../common/llmMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
-import { VSReadFile } from './helpers/readFile.js';
-import { IFileService } from '../../../../platform/files/common/files.js';
+import { IVoidFileService } from '../common/voidFileService.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -255,7 +254,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		@IMetricsService private readonly _metricsService: IMetricsService,
 		@INotificationService private readonly _notificationService: INotificationService,
 		@ICommandService private readonly _commandService: ICommandService,
-		@IFileService private readonly _fileService: IFileService,
+		@IVoidFileService private readonly _voidFileService: IVoidFileService,
 	) {
 		super();
 
@@ -1184,7 +1183,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const uri = uri_
 
 		// generate search/replace block text
-		const origFileContents = await VSReadFile(uri, this._modelService, this._fileService)
+		const origFileContents = await this._voidFileService.readFile(uri)
 		if (origFileContents === null) return
 
 

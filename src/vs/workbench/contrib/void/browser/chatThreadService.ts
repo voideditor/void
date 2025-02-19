@@ -12,12 +12,11 @@ import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
 import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo as chat_userMessageContentWithAllFiles, chat_selectionsString } from './prompt/prompts.js';
-import { IFileService } from '../../../../platform/files/common/files.js';
 import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from '../common/toolsService.js';
 import { toLLMChatMessage } from '../common/llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
+import { IVoidFileService } from '../common/voidFileService.js';
 
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
@@ -189,8 +188,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
-		@IModelService private readonly _modelService: IModelService,
-		@IFileService private readonly _fileService: IFileService,
+		@IVoidFileService private readonly _voidFileService: IVoidFileService,
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IToolsService private readonly _toolsService: IToolsService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
@@ -358,7 +356,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// add user's message to chat history
 		const instructions = userMessage
 		const userMessageContent = await chat_userMessageContent(instructions, currSelns)
-		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._modelService, this._fileService)
+		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidFileService)
 		const userMessageFullContent = chat_userMessageContentWithAllFiles(userMessageContent, selectionsStr)
 
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }

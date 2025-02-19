@@ -1,7 +1,7 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js'
 import { URI } from '../../../../base/common/uri.js'
 import { IModelService } from '../../../../editor/common/services/model.js'
-import { IFileService, IFileStat } from '../../../../platform/files/common/files.js'
+import { IFileService } from '../../../../platform/files/common/files.js'
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js'
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js'
@@ -93,22 +93,46 @@ export type ToolCallReturnType<T extends ToolName>
 export type ToolFns = { [T in ToolName]: (p: string) => Promise<ToolCallReturnType<T>> }
 export type ToolResultToString = { [T in ToolName]: (result: ToolCallReturnType<T>) => string }
 
+const MAX_DEPTH = 1
+const MAX_CHILDREN = 500
+async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI, pageNumber: number): Promise<string> {
+	let output = '';
 
-async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI): Promise<string> {
-	let output = ''
-	function traverseChildren(children: IFileStat[], depth: number) {
-		const indentation = '  '.repeat(depth);
-		for (const child of children) {
-			output += `${indentation}- ${child.name}\n`;
-			traverseChildren(child.children ?? [], depth + 1);
+	const indentation = (depth: number, isLast: boolean): string => {
+		if (depth === 0) return '';
+		return `${'|   '.repeat(depth - 1)}${isLast ? '└── ' : '├── '}`;
+	};
+
+	async function traverseChildren(uri: URI, depth: number, isLast: boolean) {
+		const stat = await fileService.resolve(uri, { resolveMetadata: false });
+
+		if ((depth === 0 && pageNumber === 1) || depth !== 0)
+			output += `${indentation(depth, isLast)}${stat.name}${stat.isDirectory ? '/' : ''}${stat.isSymbolicLink ? ` (symbolic link)` : ''}\n`; // TODO say where symlink links to
+
+		// list children
+		const originalChildrenLength = stat.children?.length ?? 0
+		const fromChildIdx = MAX_CHILDREN * (pageNumber - 1)
+		const toChildIdx = MAX_CHILDREN * pageNumber - 1 // INCLUSIVE
+		const listChildren = stat.children?.slice(fromChildIdx, toChildIdx + 1) ?? [];
+
+		if (!stat.isDirectory) return;
+
+		if (listChildren.length === 0) return
+		if (depth === MAX_DEPTH) return // right now MAX_DEPTH=1 to make pagination work nicely
+
+		for (let i = 0; i < Math.min(listChildren.length, MAX_CHILDREN); i++) {
+			await traverseChildren(listChildren[i].resource, depth + 1, i === listChildren.length - 1);
 		}
+		const nCutoffChildren = (originalChildrenLength - 1) - toChildIdx
+		if (nCutoffChildren > 0) {
+			output += `${indentation(depth + 1, true)}(${nCutoffChildren} results remaining...)\n`
+		}
+
 	}
-	const stat = await fileService.resolve(rootURI, { resolveMetadata: false });
 
-	// kickstart recursion
-	output += `${stat.name}\n`;
-	traverseChildren(stat.children ?? [], 1);
+	await traverseChildren(rootURI, 0, false);
 
+	console.log('OUTPUT', output);
 	return output;
 }
 
@@ -119,6 +143,12 @@ const validateURI = (uriStr: unknown) => {
 	return uri
 }
 
+const validatePageNum = (pageNumberUnknown: unknown) => {
+	const proposedPageNum = Number.parseInt(pageNumberUnknown + '')
+	const num = Number.isInteger(proposedPageNum) ? proposedPageNum : 1
+	const pageNumber = num < 1 ? 1 : num
+	return pageNumber
+}
 export interface IToolsService {
 	readonly _serviceBrand: undefined;
 	toolFns: ToolFns;
@@ -170,12 +200,13 @@ export class ToolsService implements IToolsService {
 			list_dir: async (s: string) => {
 				const o = parseObj(s)
 				if (!o) return invalidToolParamMsg
-				const { uri: uriStr } = o
+				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
 
 				const uri = validateURI(uriStr)
+				const pageNumber = validatePageNum(pageNumberUnknown)
+
 				// TODO!!!! check to make sure in workspace
-				// TODO check to make sure is not gitignored
-				const treeStr = await generateDirectoryTreeMd(fileService, uri)
+				const treeStr = await generateDirectoryTreeMd(fileService, uri, pageNumber)
 				return treeStr
 			},
 			pathname_search: async (s: string) => {

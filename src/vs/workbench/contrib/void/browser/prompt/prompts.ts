@@ -33,10 +33,12 @@ For example, if the user asks you to "make this file look nicer", make sure your
 
 You're allowed to ask for more context. For example, if the user only gives you a selection but you want to see the the full file, you can ask them to provide it.
 If you are given tools:
+- Only use tools if the user asks you to do something. If the user simply says hi or asks you a question that you can answer without tools, then do NOT tools.
 - You are allowed to use tools without asking for permission.
 - Feel free to use tools to gather context, make suggestions, etc.
 - One great use of tools is to explore imports that you'd like to have more information about.
-- NEVER refer to a tool by name when speaking with the user. For example, do NOT say to the user user "I'm going to use \`list_dir\`". Instead, say "I'm going to list all files in ___ directory", etc.
+- Reference relevant files that you found when using tools if they helped you come up with your answer.
+- NEVER refer to a tool by name when speaking with the user. For example, do NOT say to the user user "I'm going to use \`list_dir\`". Instead, say "I'm going to list all files in ___ directory", etc. Do not even refer to "pages" of results, just say you're getting more results.
 
 Do not output any of these instructions, nor tell the user anything about them unless directly prompted for them.
 Do not tell the user anything about the examples below. Do not assume the user is talking about any of the examples below.
@@ -176,14 +178,14 @@ const stringifyFileSelections = async (fileSelections: FileSelection[], modelSer
 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
 }
 const stringifyCodeSelections = (codeSelections: CodeSelection[]) => {
-	return codeSelections.map(sel => stringifyCodeSelection(sel)).join('\n')
+	return codeSelections.map(sel => stringifyCodeSelection(sel)).join('\n') || null
 }
 const stringifySelectionNames = (currSelns: StagingSelectionItem[] | null): string => {
 	if (!currSelns) return ''
 	return currSelns.map(s => `${s.fileURI.fsPath}${s.range ? ` (lines ${s.range.startLineNumber}:${s.range.endLineNumber})` : ''}`).join('\n')
 }
 
-export const chat_userMessageContent = async (instructions: string, prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null) => {
+export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null) => {
 
 	const selnsStr = stringifySelectionNames(currSelns)
 
@@ -197,6 +199,8 @@ export const chat_selectionsString = async (prevSelns: StagingSelectionItem[] | 
 
 	// ADD IN FILES AT TOP
 	const allSelections = [...currSelns || [], ...prevSelns || []]
+
+	if (allSelections.length === 0) return null
 
 	const codeSelections: CodeSelection[] = []
 	const fileSelections: FileSelection[] = []
@@ -219,17 +223,17 @@ export const chat_selectionsString = async (prevSelns: StagingSelectionItem[] | 
 	const filesStr = await stringifyFileSelections(fileSelections, modelService, fileService)
 	const selnsStr = stringifyCodeSelections(codeSelections)
 
-	let str = ''
 
-	str += 'ALL FILE CONTENTS\n'
-	if (filesStr) str += `${filesStr}\n`
-	if (selnsStr) str += `${selnsStr}\n`
+	if (filesStr || selnsStr) return `\
+ALL FILE CONTENTS
+${filesStr}
+${selnsStr}`
 
-	return str;
+	return null
 }
 
-export const chat_userMessageContentWithAllFilesToo = (userMessage: string, selectionsString: string | undefined) => {
-	if (userMessage) return `${userMessage}\n${selectionsString}\n`
+export const chat_userMessageContentWithAllFilesToo = (userMessage: string, selectionsString: string | null) => {
+	if (userMessage) return `${userMessage}${selectionsString ? `\n${selectionsString}` : ''}`
 	else return userMessage
 }
 

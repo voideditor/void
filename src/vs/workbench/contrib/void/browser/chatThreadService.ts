@@ -356,7 +356,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// add user's message to chat history
 		const instructions = userMessage
-		const userMessageContent = await chat_userMessageContent(instructions, currSelns, currSelns)
+		const userMessageContent = await chat_userMessageContent(instructions, currSelns)
 		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._modelService, this._fileService)
 		const userMessageFullContent = chat_userMessageContentWithAllFiles(userMessageContent, selectionsStr)
 

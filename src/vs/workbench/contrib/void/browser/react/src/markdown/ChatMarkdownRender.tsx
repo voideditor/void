@@ -29,7 +29,7 @@ const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => 
 
 
 
-const ApplyButtonsOnHover = ({ applyStr, applyBoxId }: { applyStr: string, applyBoxId: string }) => {
+const ApplyButtonsOnHover = ({ applyStr }: { applyStr: string }) => {
 	const accessor = useAccessor()
 
 	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
@@ -120,7 +120,7 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocati
 		return <BlockCode
 			initValue={t.text}
 			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
-			buttonsOnHover={applyBoxId && <ApplyButtonsOnHover applyStr={t.text} applyBoxId={applyBoxId} />}
+			buttonsOnHover={applyBoxId && <ApplyButtonsOnHover applyStr={t.text} />}
 		/>
 	}
 

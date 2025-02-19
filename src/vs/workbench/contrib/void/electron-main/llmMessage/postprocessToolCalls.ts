@@ -1,4 +1,4 @@
-import { ToolName, toolNames } from '../../common/toolsService';
+import { ToolName, toolNames } from '../../common/toolsService.js';
 
 
 

@@ -162,6 +162,7 @@ const validateQueryStr = (queryStr: unknown) => {
 }
 
 
+// TODO!!!! check to make sure in workspace
 const validateURI = (uriStr: unknown) => {
 	if (typeof uriStr !== 'string') throw new Error('Error calling tool: provided uri must be a string.')
 	const uri = URI.file(uriStr)
@@ -225,7 +226,6 @@ export class ToolsService implements IToolsService {
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
-				// TODO!!!! check to make sure in workspace
 				const [treeStr, hasNextPage] = await generateDirectoryTreeMd(fileService, uri, pageNumber)
 				return [treeStr, hasNextPage]
 			},

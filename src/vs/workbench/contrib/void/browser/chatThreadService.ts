@@ -78,7 +78,8 @@ export type ChatMessage =
 		role: 'assistant';
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
-	} | ToolMessage<ToolName>
+	}
+	| ToolMessage<ToolName>
 
 type UserMessageType = ChatMessage & { role: 'user' }
 type UserMessageState = UserMessageType['state']
@@ -422,8 +423,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 								// 1.
 								let toolResult: Awaited<ReturnType<ToolFns[ToolName]>>
+								let toolResultVal: ToolCallReturnType<ToolName>
 								try {
 									toolResult = await this._toolsService.toolFns[toolName](tool.params)
+									toolResultVal = toolResult[0]
 								} catch (error) {
 									this._setStreamState(threadId, { error })
 									shouldSendAnotherMessage = false
@@ -440,7 +443,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 									break
 								}
 
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, params: tool.params, id: tool.id, content: toolResultStr, result: toolResult, })
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, params: tool.params, id: tool.id, content: toolResultStr, result: toolResultVal, })
 								shouldSendAnotherMessage = true
 							}
 

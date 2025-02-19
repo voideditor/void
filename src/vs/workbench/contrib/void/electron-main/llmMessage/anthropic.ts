@@ -5,16 +5,18 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
-import { anthropicMaxPossibleTokens } from '../../common/voidSettingsTypes.js';
+import { anthropicMaxPossibleTokens, developerInfoOfModelName, developerInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
+import { addSystemMessageAndToolSupport } from './preprocessLLMMessages.js';
+import { isAToolName } from './postprocessToolCalls.js';
 
 
 
 
-export const toAnthropicTool = (toolName: string, toolInfo: InternalToolInfo) => {
-	const { description, params, required } = toolInfo
+export const toAnthropicTool = (toolInfo: InternalToolInfo) => {
+	const { name, description, params, required } = toolInfo
 	return {
-		name: toolName,
+		name: name,
 		description: description,
 		input_schema: {
 			type: 'object',
@@ -28,7 +30,7 @@ export const toAnthropicTool = (toolName: string, toolInfo: InternalToolInfo) =>
 
 
 
-export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, aiInstructions, tools: tools_ }) => {
 
 	const thisConfig = settingsOfProvider.anthropic
 
@@ -38,14 +40,23 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 		return
 	}
 
+	const { messages, separateSystemMessageStr } = addSystemMessageAndToolSupport(modelName, providerName, messages_, aiInstructions, { separateSystemMessage: true })
+
+	const { overrideSettingsForAllModels } = developerInfoOfProviderName(providerName)
+	const { supportsTools } = developerInfoOfModelName(modelName, overrideSettingsForAllModels)
+
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 
+	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toAnthropicTool(tool)) : undefined
+
 	const stream = anthropic.messages.stream({
-		// system: systemMessage,
+		system: separateSystemMessageStr,
 		messages: messages,
 		model: modelName,
 		max_tokens: maxTokens,
-	});
+		tools: tools,
+		tool_choice: tools ? { type: 'auto', disable_parallel_tool_use: true } : undefined // one tool use at a time
+	})
 
 
 	// when receive text
@@ -53,11 +64,38 @@ export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages,
 		onText({ newText, fullText })
 	})
 
+
+	// // can do tool use streaming
+	// const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
+	// stream.on('streamEvent', e => {
+	// 	if (e.type === 'content_block_start') {
+	// 		if (e.content_block.type !== 'tool_use') return
+	// 		const index = e.index
+	// 		if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', args: '' }
+	// 		toolCallOfIndex[index].name += e.content_block.name ?? ''
+	// 		toolCallOfIndex[index].args += e.content_block.input ?? ''
+	// 	}
+	// 	else if (e.type === 'content_block_delta') {
+	// 		if (e.delta.type !== 'input_json_delta') return
+	// 		toolCallOfIndex[e.index].args += e.delta.partial_json
+	// 	}
+	// 	// TODO!!!!!
+	// 	// onText({})
+	// })
+
 	// when we get the final message on this stream (or when error/fail)
-	stream.on('finalMessage', (claude_response) => {
+	stream.on('finalMessage', (response) => {
 		// stringify the response's content
-		const content = claude_response.content.map(c => c.type === 'text' ? c.text : c.type).join('\n');
-		onFinalMessage({ fullText: content })
+		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n\n')
+		const toolCalls = response.content
+			.map(c => {
+				if (c.type !== 'tool_use') return null
+				if (!isAToolName(c.name)) return null
+				return c.type === 'tool_use' ? { name: c.name, params: JSON.stringify(c.input), id: c.id } : null
+			})
+			.filter(t => !!t)
+
+		onFinalMessage({ fullText: content, toolCalls })
 	})
 
 	stream.on('error', (error) => {

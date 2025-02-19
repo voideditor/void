@@ -7,6 +7,9 @@ import OpenAI from 'openai';
 import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType } from '../../common/llmMessageTypes.js';
 import { Model } from 'openai/resources/models.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
+import { addSystemMessageAndToolSupport } from './preprocessLLMMessages.js';
+import { developerInfoOfModelName, developerInfoOfProviderName } from '../../common/voidSettingsTypes.js';
+import { isAToolName } from './postprocessToolCalls.js';
 // import { parseMaxTokensStr } from './util.js';
 
 
@@ -14,12 +17,12 @@ import { InternalToolInfo } from '../../common/toolsService.js';
 // prompting - https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
 
 
-export const toOpenAITool = (toolName: string, toolInfo: InternalToolInfo) => {
-	const { description, params, required } = toolInfo
+export const toOpenAITool = (toolInfo: InternalToolInfo) => {
+	const { name, description, params, required } = toolInfo
 	return {
 		type: 'function',
 		function: {
-			name: toolName,
+			name: name,
 			description: description,
 			parameters: {
 				type: 'object',
@@ -38,11 +41,25 @@ type NewParams = Pick<Parameters<_InternalSendLLMChatMessageFnType>[0] & Paramet
 const newOpenAI = ({ settingsOfProvider, providerName }: NewParams) => {
 
 	if (providerName === 'openAI') {
-		const thisConfig = settingsOfProvider.openAI
-		return new OpenAI({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true
+		})
+	}
+	else if (providerName === 'ollama') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', dangerouslyAllowBrowser: true,
+		})
+	}
+	else if (providerName === 'vLLM') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', dangerouslyAllowBrowser: true,
+		})
 	}
 	else if (providerName === 'openRouter') {
-		const thisConfig = settingsOfProvider.openRouter
+		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
 			baseURL: 'https://openrouter.ai/api/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 			defaultHeaders: {
@@ -51,22 +68,45 @@ const newOpenAI = ({ settingsOfProvider, providerName }: NewParams) => {
 			},
 		})
 	}
+	else if (providerName === 'gemini') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		})
+	}
 	else if (providerName === 'deepseek') {
-		const thisConfig = settingsOfProvider.deepseek
+		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
 			baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 		})
-
 	}
 	else if (providerName === 'openAICompatible') {
-		const thisConfig = settingsOfProvider.openAICompatible
+		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
-			baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true
+			baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		})
+	}
+	else if (providerName === 'mistral') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		})
+	}
+	else if (providerName === 'groq') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: 'https://api.groq.com/openai/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
+		})
+	}
+	else if (providerName === 'xAI') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true,
 		})
 	}
 	else {
-		console.error(`sendOpenAIMsg: invalid providerName: ${providerName}`)
-		throw new Error(`providerName was invalid: ${providerName}`)
+		console.error(`sendOpenAICompatibleMsg: invalid providerName: ${providerName}`)
+		throw new Error(`Void providerName was invalid: ${providerName}`)
 	}
 }
 
@@ -111,40 +151,71 @@ export const sendOpenAIFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onTe
 
 	// openai.completions has a FIM parameter called `suffix`, but it's deprecated and only works for ~GPT 3 era models
 
-	onFinalMessage({ fullText: 'TODO' })
+
 
 }
 
 
 
 // OpenAI, OpenRouter, OpenAICompatible
-export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName }) => {
+export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }) => {
 
 	let fullText = ''
+	const toolCallOfIndex: { [index: string]: { name: string, params: string, id: string } } = {}
+
+	const { overrideSettingsForAllModels } = developerInfoOfProviderName(providerName)
+	const { supportsTools } = developerInfoOfModelName(modelName, overrideSettingsForAllModels)
+
+	const { messages } = addSystemMessageAndToolSupport(modelName, providerName, messages_, aiInstructions, { separateSystemMessage: false })
+
+	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAITool(tool)) : undefined
 
 	const openai: OpenAI = newOpenAI({ providerName, settingsOfProvider })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
 		messages: messages,
 		stream: true,
-		// tools: Object.keys(contextTools).map(name => toOpenAITool(name, contextTools[name as ContextToolName])),
+		tools: tools,
+		tool_choice: tools ? 'auto' : undefined,
+		parallel_tool_calls: tools ? false : undefined,
 	}
 
 	openai.chat.completions
 		.create(options)
 		.then(async response => {
 			_setAborter(() => response.controller.abort())
+
 			// when receive text
 			for await (const chunk of response) {
 
+				// tool call
+				for (const tool of chunk.choices[0]?.delta?.tool_calls ?? []) {
+					const index = tool.index
+					if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', params: '', id: '' }
+					toolCallOfIndex[index].name += tool.function?.name ?? ''
+					toolCallOfIndex[index].params += tool.function?.arguments ?? '';
+					toolCallOfIndex[index].id = tool.id ?? ''
+
+				}
+
+				// message
 				let newText = ''
-				newText += chunk.choices[0]?.delta?.tool_calls?.[0]?.function?.name ?? ''
-				newText += chunk.choices[0]?.delta?.tool_calls?.[0]?.function?.arguments ?? ''
 				newText += chunk.choices[0]?.delta?.content ?? ''
 				fullText += newText;
+
 				onText({ newText, fullText });
 			}
-			onFinalMessage({ fullText });
+			onFinalMessage({
+				fullText,
+				toolCalls: Object.keys(toolCallOfIndex)
+					.map(index => {
+						const tool = toolCallOfIndex[index]
+						if (isAToolName(tool.name))
+							return { name: tool.name, id: tool.id, params: tool.params }
+						return null
+					})
+					.filter(t => !!t)
+			});
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
@@ -156,4 +227,4 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages, on
 			}
 		})
 
-};
+}

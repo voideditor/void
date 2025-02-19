@@ -135,9 +135,20 @@ registerAction2(class extends Action2 {
 		const chatThreadService = accessor.get(IChatThreadService)
 
 		const focusedMessageIdx = chatThreadService.getFocusedMessageIdx()
-		const [staging, setStaging] = chatThreadService._useFocusedStagingState(focusedMessageIdx)
-		const selections = staging.selections || []
-		const setSelections = (s: StagingSelectionItem[]) => setStaging({ ...staging, selections: s })
+
+		// set the selections to the proper value
+		let selections: StagingSelectionItem[] = []
+		let setSelections = (s: StagingSelectionItem[]) => { }
+
+		if (focusedMessageIdx === undefined) {
+			const [state, setState] = chatThreadService._useCurrentThreadState()
+			selections = state.stagingSelections
+			setSelections = (s) => setState({ stagingSelections: s })
+		} else {
+			const [state, setState] = chatThreadService._useCurrentMessageState(focusedMessageIdx)
+			selections = state.stagingSelections
+			setSelections = (s) => setState({ stagingSelections: s })
+		}
 
 		// if matches with existing selection, overwrite (since text may change)
 		const matchingStagingEltIdx = findMatchingStagingIndex(selections, selection)

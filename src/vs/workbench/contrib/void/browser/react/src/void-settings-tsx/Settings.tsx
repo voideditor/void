@@ -17,6 +17,7 @@ import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
+import { os } from '../../../helpers/systemInfo.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
@@ -385,7 +386,7 @@ export const AIInstructionsBox = () => {
 	return <VoidInputBox2
 		className='min-h-[81px] p-3 rounded-sm'
 		initValue={voidSettingsState.globalSettings.aiInstructions}
-		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Respond to all queries in French. `}
+		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Write new code using Rust if possible. `}
 		multiline
 		onChangeText={(newText) => {
 			voidSettingsService.setGlobalSetting('aiInstructions', newText)
@@ -395,7 +396,16 @@ export const AIInstructionsBox = () => {
 
 export const FeaturesTab = () => {
 	return <>
-		<h2 className={`text-3xl mb-2`}>Local Providers</h2>
+		<h2 className={`text-3xl mb-2`}>Models</h2>
+		<ErrorBoundary>
+			<AutoRefreshToggle />
+			<RefreshableModels />
+			<ModelDump />
+			<AddModelMenuFull />
+		</ErrorBoundary>
+
+
+		<h2 className={`text-3xl mb-2 mt-12`}>Local Providers</h2>
 		{/* <h3 className={`opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
 		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
 		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
@@ -420,13 +430,20 @@ export const FeaturesTab = () => {
 			<VoidProviderSettings providerNames={nonlocalProviderNames} />
 		</ErrorBoundary>
 
-		<h2 className={`text-3xl mb-2 mt-12`}>Models</h2>
+
+
+		<h2 className={`text-3xl mb-2 mt-12`}>Feature Options</h2>
 		<ErrorBoundary>
-			<AutoRefreshToggle />
-			<RefreshableModels />
-			<ModelDump />
-			<AddModelMenuFull />
+			{featureNames.map(featureName =>
+				<div key={featureName}
+					className='mb-2'
+				>
+					<h4 className={`text-void-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
+					<ModelDropdown featureName={featureName} />
+				</div>
+			)}
 		</ErrorBoundary>
+
 	</>
 }
 
@@ -489,7 +506,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): Transfe
 	throw new Error(`os '${os}' not recognized`)
 }
 
-const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
+
 let transferTheseFiles: TransferFilesInfo = []
 let transferError: string | null = null
 
@@ -588,17 +605,6 @@ const GeneralTab = () => {
 			<AIInstructionsBox />
 		</div>
 
-		<div className='mt-12'>
-			<h2 className={`text-3xl mb-2`}>Model Selection</h2>
-			{featureNames.map(featureName =>
-				<div key={featureName}
-					className='mb-2'
-				>
-					<h4 className={`text-void-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
-					<ModelDropdown featureName={featureName} />
-				</div>
-			)}
-		</div>
 
 	</>
 }

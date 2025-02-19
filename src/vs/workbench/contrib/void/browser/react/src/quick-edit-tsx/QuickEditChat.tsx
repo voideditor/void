@@ -24,7 +24,7 @@ export const QuickEditChat = ({
 }: QuickEditPropsType) => {
 
 	const accessor = useAccessor()
-	const inlineDiffsService = accessor.get('IInlineDiffsService')
+	const editCodeService = accessor.get('IEditCodeService')
 	const sizerRef = useRef<HTMLDivElement | null>(null)
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
@@ -57,26 +57,26 @@ export const QuickEditChat = ({
 		if (currStreamingDiffZoneRef.current !== null) return
 		textAreaFnsRef.current?.disable()
 
-		const id = inlineDiffsService.startApplying({
+		const id = editCodeService.startApplying({
 			from: 'QuickEdit',
 			type:'rewrite',
 			diffareaid: diffareaid,
 		})
 		setCurrentlyStreamingDiffZone(id ?? null)
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, inlineDiffsService, diffareaid])
+	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, editCodeService, diffareaid])
 
 	const onInterrupt = useCallback(() => {
 		if (currStreamingDiffZoneRef.current === null) return
-		inlineDiffsService.interruptStreaming(currStreamingDiffZoneRef.current)
+		editCodeService.interruptStreaming(currStreamingDiffZoneRef.current)
 		setCurrentlyStreamingDiffZone(null)
 		textAreaFnsRef.current?.enable()
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, inlineDiffsService])
+	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, editCodeService])
 
 
 	const onX = useCallback(() => {
 		onInterrupt()
-		inlineDiffsService.removeCtrlKZone({ diffareaid })
-	}, [inlineDiffsService, diffareaid])
+		editCodeService.removeCtrlKZone({ diffareaid })
+	}, [editCodeService, diffareaid])
 
 	useScrollbarStyles(sizerRef)
 

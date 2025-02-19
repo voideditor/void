@@ -3,6 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { DIVIDER, FINAL, ORIGINAL } from '../prompt/prompts.js'
+
 class SurroundingsRemover {
 	readonly originalS: string
 	i: number
@@ -175,3 +177,77 @@ export const extractCodeFromFIM = ({ text, recentlyAddedTextLen, midTag, }: { te
 
 }
 
+
+
+
+export type ExtractedSearchReplaceBlock = {
+	state: 'writingOriginal' | 'writingFinal' | 'done',
+	orig: string,
+	final: string,
+}
+
+
+const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
+	// for each prefix
+	for (let i = anyPrefix.length; i >= 0; i--) {
+		const prefix = anyPrefix.slice(0, i)
+		if (str.endsWith(prefix)) return prefix
+	}
+	return null
+}
+
+// guarantees if you keep adding text, array length will strictly grow and state will progress without going back
+export const extractSearchReplaceBlocks = (str: string) => {
+
+	const ORIGINAL_ = ORIGINAL + `\n`
+	const DIVIDER_ = '\n' + DIVIDER + `\n`
+	const FINAL_ = '\n' + FINAL
+
+
+	const blocks: ExtractedSearchReplaceBlock[] = []
+
+	let i = 0 // search i and beyond (this is done by plain index, not by line number. much simpler this way)
+	while (true) {
+		let origStart = str.indexOf(ORIGINAL_, i)
+		if (origStart === -1) { return blocks }
+		origStart += ORIGINAL_.length
+		i = origStart
+		// wrote <<<< ORIGINAL
+
+		let dividerStart = str.indexOf(DIVIDER_, i)
+		if (dividerStart === -1) { // if didnt find DIVIDER_, either writing originalStr or DIVIDER_ right now
+			const isWritingDIVIDER = endsWithAnyPrefixOf(str, DIVIDER_)
+			blocks.push({
+				orig: str.substring(origStart, str.length - (isWritingDIVIDER?.length ?? 0)),
+				final: '',
+				state: 'writingOriginal'
+			})
+			return blocks
+		}
+		const origStrDone = str.substring(origStart, dividerStart)
+		dividerStart += DIVIDER_.length
+		i = dividerStart
+		// wrote =====
+
+		let finalStart = str.indexOf(FINAL_, i)
+		if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL_ right now
+			const isWritingFINAL = endsWithAnyPrefixOf(str, FINAL_)
+			blocks.push({
+				orig: origStrDone,
+				final: str.substring(dividerStart, str.length - (isWritingFINAL?.length ?? 0)),
+				state: 'writingFinal'
+			})
+			return blocks
+		}
+		const finalStrDone = str.substring(dividerStart, finalStart)
+		finalStart += FINAL_.length
+		i = finalStart
+		// wrote >>>>> FINAL
+
+		blocks.push({
+			orig: origStrDone,
+			final: finalStrDone,
+			state: 'done'
+		})
+	}
+}

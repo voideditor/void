@@ -1,6 +1,5 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js'
 import { URI } from '../../../../base/common/uri.js'
-import { IModelService } from '../../../../editor/common/services/model.js'
 import { IFileService } from '../../../../platform/files/common/files.js'
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js'
@@ -113,7 +112,9 @@ async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI, 
 		const stat = await fileService.resolve(uri, { resolveMetadata: false });
 
 		// we might want to say where symlink links to
-		if ((depth === 0 && pageNumber === 1) || depth !== 0)
+		if (depth === 0 && pageNumber !== 1)
+			output += ''
+		else
 			output += `${indentation(depth, isLast)}${stat.name}${stat.isDirectory ? '/' : ''}${stat.isSymbolicLink ? ` (symbolic link)` : ''}\n`;
 
 		// list children
@@ -193,7 +194,6 @@ export class ToolsService implements IToolsService {
 
 	constructor(
 		@IFileService fileService: IFileService,
-		@IModelService modelService: IModelService,
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 		@ISearchService searchService: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,

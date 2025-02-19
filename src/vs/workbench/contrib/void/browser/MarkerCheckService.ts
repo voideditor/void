@@ -103,7 +103,7 @@ class MarkerCheckService extends Disposable implements IMarkerCheckService {
 
 
 	fixErrorsInFiles(uris: URI[], contextSoFar: []) {
-		const allMarkers = this._markerService.read();
+		// const allMarkers = this._markerService.read();
 
 
 		// check errors in files

@@ -9,6 +9,7 @@ import { Model } from 'openai/resources/models.js';
 import { InternalToolInfo } from '../../common/toolsService.js';
 import { addSystemMessageAndToolSupport } from './preprocessLLMMessages.js';
 import { developerInfoOfModelName, developerInfoOfProviderName } from '../../common/voidSettingsTypes.js';
+import { isAToolName } from './postprocessToolCalls.js';
 // import { parseMaxTokensStr } from './util.js';
 
 
@@ -205,10 +206,15 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: me
 				onText({ newText, fullText });
 			}
 			onFinalMessage({
-				fullText, toolCalls: Object.keys(toolCallOfIndex).map(index => {
-					const tool = toolCallOfIndex[index]
-					return { name: tool.name, id: tool.id, params: tool.params }
-				})
+				fullText,
+				toolCalls: Object.keys(toolCallOfIndex)
+					.map(index => {
+						const tool = toolCallOfIndex[index]
+						if (isAToolName(tool.name))
+							return { name: tool.name, id: tool.id, params: tool.params }
+						return null
+					})
+					.filter(t => !!t)
 			});
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)

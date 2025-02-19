@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { ChatMessage } from '../browser/chatThreadService.js'
-import { InternalToolInfo } from './toolsService.js'
+import { InternalToolInfo, ToolName } from './toolsService.js'
 import { FeatureName, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
@@ -37,15 +37,16 @@ export type LLMChatMessage = {
 	id: string;
 }
 
-export type LLMToolCallType = {
-	name: string;
+
+export type ToolCallType = {
+	name: ToolName;
 	params: string;
 	id: string;
 }
 
 
 export type OnText = (p: { newText: string, fullText: string }) => void
-export type OnFinalMessage = (p: { fullText: string, toolCalls?: LLMToolCallType[] }) => void // id is tool_use_id
+export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[] }) => void // id is tool_use_id
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 

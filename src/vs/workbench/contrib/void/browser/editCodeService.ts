@@ -42,6 +42,7 @@ import { ILLMMessageService } from '../common/llmMessageService.js';
 import { LLMChatMessage, errorDetails } from '../common/llmMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { VSReadFile } from './helpers/readFile.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -254,6 +255,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		@IMetricsService private readonly _metricsService: IMetricsService,
 		@INotificationService private readonly _notificationService: INotificationService,
 		@ICommandService private readonly _commandService: ICommandService,
+		@IFileService private readonly _fileService: IFileService,
 	) {
 		super();
 

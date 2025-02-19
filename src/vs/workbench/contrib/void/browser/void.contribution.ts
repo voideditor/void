@@ -22,7 +22,7 @@ import './chatThreadService.js'
 import './autocompleteService.js'
 
 // register Context services
-import './contextGatheringService.js'
+// import './contextGatheringService.js'
 // import './contextUserChangesService.js'
 
 // settings pane

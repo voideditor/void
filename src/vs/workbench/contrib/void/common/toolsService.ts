@@ -1,10 +1,11 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js'
 import { URI } from '../../../../base/common/uri.js'
+import { IModelService } from '../../../../editor/common/services/model.js'
 import { IFileService, IFileStat } from '../../../../platform/files/common/files.js'
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js'
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js'
-import { VSReadFileRaw } from '../../../../workbench/contrib/void/browser/helpers/readFile.js'
+import { VSReadFile } from '../../../../workbench/contrib/void/browser/helpers/readFile.js'
 import { QueryBuilder } from '../../../../workbench/services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../../workbench/services/search/common/search.js'
 
@@ -76,6 +77,8 @@ export const voidTools = {
 } satisfies { [name: string]: InternalToolInfo }
 
 export type ToolName = keyof typeof voidTools
+export const toolNames = Object.keys(voidTools) as ToolName[]
+
 export type ToolParamNames<T extends ToolName> = keyof typeof voidTools[T]['params']
 export type ToolParamsObj<T extends ToolName> = { [paramName in ToolParamNames<T>]: unknown }
 
@@ -134,6 +137,7 @@ export class ToolsService implements IToolsService {
 
 	constructor(
 		@IFileService fileService: IFileService,
+		@IModelService modelService: IModelService,
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 		@ISearchService searchService: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,
@@ -160,7 +164,7 @@ export class ToolsService implements IToolsService {
 				const { uri: uriStr } = o
 
 				const uri = validateURI(uriStr)
-				const fileContents = await VSReadFileRaw(fileService, uri)
+				const fileContents = await VSReadFile(uri, modelService, fileService)
 				return fileContents ?? invalidToolParamMsg
 			},
 			list_dir: async (s: string) => {

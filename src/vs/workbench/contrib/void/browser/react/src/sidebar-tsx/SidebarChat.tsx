@@ -7,7 +7,7 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
-import { ChatMessage, StagingInfo, StagingSelectionItem } from '../../../chatThreadService.js';
+import { ChatMessage, StagingSelectionItem } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
@@ -156,8 +156,8 @@ interface VoidChatAreaProps {
 	showSelections?: boolean;
 	showProspectiveSelections?: boolean;
 
-	staging?: StagingInfo
-	setStaging?: (s: StagingInfo) => void
+	selections?: StagingSelectionItem[]
+	setSelections?: (s: StagingSelectionItem[]) => void
 	// selections?: any[];
 	// onSelectionsChange?: (selections: any[]) => void;
 
@@ -180,8 +180,8 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	featureName,
 	showSelections = false,
 	showProspectiveSelections = true,
-	staging,
-	setStaging,
+	selections,
+	setSelections,
 }) => {
 	return (
 		<div
@@ -199,11 +199,11 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			}}
 		>
 			{/* Selections section */}
-			{showSelections && staging && setStaging && (
+			{showSelections && selections && setSelections && (
 				<SelectedFiles
 					type='staging'
-					selections={staging.selections || []}
-					setSelections={(selections) => setStaging({ ...staging, selections })}
+					selections={selections}
+					setSelections={setSelections}
 					showProspectiveSelections={showProspectiveSelections}
 				/>
 			)}
@@ -550,9 +550,23 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 
-	// edit mode state
-	const [staging, setStaging] = chatThreadsService.useFocusedStagingState(messageIdx)
-	const mode: ChatBubbleMode = staging.isBeingEdited ? 'edit' : 'display'
+	// global state
+	let isBeingEdited = false
+	let setIsBeingEdited = (v: boolean) => { }
+	let stagingSelections: StagingSelectionItem[] = []
+	let setStagingSelections = (s: StagingSelectionItem[]) => { }
+
+	if (messageIdx !== undefined) {
+		const [_state, _setState] = chatThreadsService._useCurrentMessageState(messageIdx)
+		isBeingEdited = _state.isBeingEdited
+		setIsBeingEdited = (v) => _setState({ isBeingEdited: v })
+		stagingSelections = _state.stagingSelections
+		setStagingSelections = (s) => { _setState({ stagingSelections: s }) }
+	}
+
+
+	// local state
+	const mode: ChatBubbleMode = isBeingEdited ? 'edit' : 'display'
 	const [isFocused, setIsFocused] = useState(false)
 	const [isHovered, setIsHovered] = useState(false)
 	const [isDisabled, setIsDisabled] = useState(false)
@@ -565,10 +579,8 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		const canInitialize = role === 'user' && mode === 'edit' && textAreaRefState
 		const shouldInitialize = _justEnabledEdit.current || _mustInitialize.current
 		if (canInitialize && shouldInitialize) {
-			setStaging({
-				...staging,
-				selections: chatMessage.selections || [],
-			})
+			setStagingSelections(chatMessage.selections || [])
+
 			if (textAreaFnsRef.current)
 				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
 
@@ -581,14 +593,14 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	}, [role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
 	const EditSymbol = mode === 'display' ? Pencil : X
 	const onOpenEdit = () => {
-		setStaging({ ...staging, isBeingEdited: true })
+		setIsBeingEdited(true)
 		chatThreadsService.setFocusedMessageIdx(messageIdx)
 		_justEnabledEdit.current = true
 	}
 	const onCloseEdit = () => {
 		setIsFocused(false)
 		setIsHovered(false)
-		setStaging({ ...staging, isBeingEdited: false })
+		setIsBeingEdited(false)
 		chatThreadsService.setFocusedMessageIdx(undefined)
 
 	}
@@ -614,7 +626,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				chatThreadsService.cancelStreaming(thread.id)
 
 				// reset state
-				setStaging({ ...staging, isBeingEdited: false })
+				setIsBeingEdited(false)
 				chatThreadsService.setFocusedMessageIdx(undefined)
 
 				// stream the edit
@@ -649,8 +661,8 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 					showSelections={true}
 					showProspectiveSelections={false}
 					featureName="Ctrl+L"
-					staging={staging}
-					setStaging={setStaging}
+					selections={stagingSelections}
+					setSelections={setStagingSelections}
 				>
 					<VoidInputBox2
 						ref={setTextAreaRef}
@@ -694,7 +706,6 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
-			${role !== 'assistant' ? 'my-2' : ''}
 		`}
 		onMouseEnter={() => setIsHovered(true)}
 		onMouseLeave={() => setIsHovered(false)}
@@ -768,7 +779,10 @@ export const SidebarChat = () => {
 
 	const currentThread = chatThreadsService.getCurrentThread()
 	const previousMessages = currentThread?.messages ?? []
-	const [staging, setStaging] = chatThreadsService.useFocusedStagingState()
+
+	const [_state, _setState] = chatThreadsService._useCurrentThreadState()
+	const selections = _state.stagingSelections
+	const setSelections = (s: StagingSelectionItem[]) => { _setState({ stagingSelections: s }) }
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
@@ -800,11 +814,11 @@ export const SidebarChat = () => {
 		const userMessage = textAreaRef.current?.value ?? ''
 		await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode: 'agent' })
 
-		setStaging({ ...staging, selections: [], }) // clear staging
+		setSelections([]) // clear staging
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, staging, setStaging])
+	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, selections, setSelections])
 
 	const onAbort = () => {
 		const threadId = currentThread.id
@@ -891,8 +905,8 @@ export const SidebarChat = () => {
 			isDisabled={isDisabled}
 			showSelections={true}
 			showProspectiveSelections={prevMessagesHTML.length === 0}
-			staging={staging}
-			setStaging={setStaging}
+			selections={selections}
+			setSelections={setSelections}
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 			featureName="Ctrl+L"
 		>

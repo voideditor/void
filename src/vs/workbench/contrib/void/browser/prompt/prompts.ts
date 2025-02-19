@@ -10,6 +10,7 @@ import { CodeSelection, StagingSelectionItem, FileSelection } from '../chatThrea
 import { VSReadFile } from '../helpers/readFile.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
 import { os } from '../helpers/systemInfo.js';
+import { IFileService } from '../../../../../platform/files/common/files.js';
 
 
 // this is just for ease of readability
@@ -166,10 +167,10 @@ ${tripleTick[1]}
 }
 
 const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
-const stringifyFileSelections = async (fileSelections: FileSelection[], modelService: IModelService) => {
+const stringifyFileSelections = async (fileSelections: FileSelection[], modelService: IModelService, fileService: IFileService) => {
 	if (fileSelections.length === 0) return null
 	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
-		const content = await VSReadFile(modelService, sel.fileURI) ?? failToReadStr
+		const content = await VSReadFile(sel.fileURI, modelService, fileService) ?? failToReadStr
 		return { ...sel, content }
 	}))
 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
@@ -177,24 +178,60 @@ const stringifyFileSelections = async (fileSelections: FileSelection[], modelSer
 const stringifyCodeSelections = (codeSelections: CodeSelection[]) => {
 	return codeSelections.map(sel => stringifyCodeSelection(sel)).join('\n')
 }
+const stringifySelectionNames = (currSelns: StagingSelectionItem[] | null): string => {
+	if (!currSelns) return ''
+	return currSelns.map(s => `${s.fileURI.fsPath}${s.range ? ` (lines ${s.range.startLineNumber}:${s.range.endLineNumber})` : ''}`).join('\n')
+}
 
+export const chat_userMessageContent = async (instructions: string, prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null) => {
 
-
-export const chat_userMessage = async (instructions: string, selections: StagingSelectionItem[] | null, modelService: IModelService) => {
-	const fileSelections = selections?.filter(s => s.type === 'File') as FileSelection[]
-	const codeSelections = selections?.filter(s => s.type === 'Selection') as CodeSelection[]
-
-	const filesStr = await stringifyFileSelections(fileSelections, modelService)
-	const codeStr = stringifyCodeSelections(codeSelections)
+	const selnsStr = stringifySelectionNames(currSelns)
 
 	let str = ''
-	if (filesStr) str += `FILES\n${filesStr}\n`
-	if (codeStr) str += `SELECTIONS\n${codeStr}\n`
-	str += `INSTRUCTIONS\n${instructions}`
+	if (selnsStr) { str += `SELECTIONS\n${selnsStr}\n` }
+	str += `\nINSTRUCTIONS\n${instructions}`
 	return str;
 };
 
+export const chat_selectionsString = async (prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null, modelService: IModelService, fileService: IFileService) => {
 
+	// ADD IN FILES AT TOP
+	const allSelections = [...currSelns || [], ...prevSelns || []]
+
+	const codeSelections: CodeSelection[] = []
+	const fileSelections: FileSelection[] = []
+	const filesURIs = new Set<string>()
+
+	for (const selection of allSelections) {
+		if (selection.type === 'Selection') {
+			codeSelections.push(selection)
+		}
+		else if (selection.type === 'File') {
+			const fileSelection = selection
+			const path = fileSelection.fileURI.fsPath
+			if (!filesURIs.has(path)) {
+				filesURIs.add(path)
+				fileSelections.push(fileSelection)
+			}
+		}
+	}
+
+	const filesStr = await stringifyFileSelections(fileSelections, modelService, fileService)
+	const selnsStr = stringifyCodeSelections(codeSelections)
+
+	let str = ''
+
+	str += 'ALL FILE CONTENTS\n'
+	if (filesStr) str += `${filesStr}\n`
+	if (selnsStr) str += `${selnsStr}\n`
+
+	return str;
+}
+
+export const chat_userMessageContentWithAllFilesToo = (userMessage: string, selectionsString: string | undefined) => {
+	if (userMessage) return `${userMessage}\n${selectionsString}\n`
+	else return userMessage
+}
 
 
 export const rewriteCode_systemMessage = `\
@@ -256,12 +293,12 @@ For example, if the user is asking you to "make this variable a better name", ma
 - Make sure you give enough context in the code block to apply the changes to the correct location in the code`
 
 
-export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, modelService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService }) => {
+export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, modelService, fileService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService, fileService: IFileService }) => {
 
 	// we may want to do this in batches
 	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null }
 
-	const file = await stringifyFileSelections([fileSelection], modelService)
+	const file = await stringifyFileSelections([fileSelection], modelService, fileService)
 
 	return `\
 ## FILE

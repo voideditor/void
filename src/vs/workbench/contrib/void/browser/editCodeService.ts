@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, rewriteCode_userMessage, rewriteCode_systemMessage, defaultQuickEditFimTags, searchReplace_userMessage, searchReplace_systemMessage } from './prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, } from './prompt/prompts.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -1182,12 +1182,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const uri = uri_
 
 		// generate search/replace block text
-		const origFileContents = await VSReadFile(this._modelService, uri)
+		const origFileContents = await VSReadFile(uri, this._modelService, this._fileService)
 		if (origFileContents === null) return
 
 
-		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
-		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
+		// 	// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
+		// 	this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
 
 		const userMessageContent = searchReplace_userMessage({ originalCode: origFileContents, applyStr: applyStr })
 		const messages: LLMChatMessage[] = [

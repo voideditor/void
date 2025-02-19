@@ -735,12 +735,11 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 }
 
 interface MentionsDropdownProps {
-	position: { top: number; left: number };
 	onSelect: (mention: string) => void;
 	onClose: () => void;
 }
 
-const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ position, onSelect, onClose }) => {
+const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onSelect, onClose }) => {
 	const mentions = [
 		{ label: '@model', description: 'Reference a model' },
 		{ label: '@file', description: 'Reference a file' },
@@ -763,30 +762,23 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ position, onSelect,
 	return (
         <div
             className="
-                absolute
-                top-full
-                left-0
-                mt-1
-                bg-vscode-input-bg
-                border border-void-border-1
-                rounded-md
-                shadow-md
-                z-50
-                min-w-[200px]
+				mt-1
+				mb-8
+				bg-vscode-input-bg
+				border border-void-border-1
+				rounded-md
+				shadow-md
+				z-50
             "
         >
-            <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => onSelect('@model')}>
-                <span className="text-void-fg-1">@model</span>
-                <span className="text-void-fg-3 text-xs">Reference a model</span>
-            </div>
-            <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => onSelect('@file')}>
-                <span className="text-void-fg-1">@file</span>
-                <span className="text-void-fg-3 text-xs">Reference a file</span>
-            </div>
-            <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => onSelect('@settings')}>
-                <span className="text-void-fg-1">@settings</span>
-                <span className="text-void-fg-3 text-xs">Reference settings</span>
-            </div>
+            <ul className="mt-2 border border-gray-700 rounded-lg divide-y divide-gray-700">
+				{mentions.map((mention, index) => (
+					<div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => onSelect('@model')} key={index}>
+                            <span className="text-void-fg-1">{ mention.label }</span>
+                            <span className="text-void-fg-3 text-xs">{ mention.description }</span>
+                        </div>
+				))}
+			</ul>
         </div>
     );
 };
@@ -844,6 +836,8 @@ export const SidebarChat = () => {
 
 	// dropdown state
     const [showDropdown, setShowDropdown] = useState(false);
+	const [mentions, setMentions] = useState(['@model', '@file', '@settings']);
+	const [filteredMentions, setFilteredMentions] = useState(mentions);
 
 	useScrollbarStyles(sidebarRef)
 
@@ -979,6 +973,10 @@ export const SidebarChat = () => {
         }
     };
 
+	const handleMentionClose = () => {
+		setShowDropdown(false);
+	}
+
 
 	const onChangeText = useCallback((newStr: string) => {
 		detectMentions(newStr);
@@ -1015,30 +1013,7 @@ export const SidebarChat = () => {
                     multiline={true}
                 />
 
-                {showDropdown && (
-                    <div className="
-                        mt-1
-						mb-8
-                        bg-vscode-input-bg
-                        border border-void-border-1
-                        rounded-md
-                        shadow-md
-                        z-50
-                    ">
-                        <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => handleMentionSelect('@model')}>
-                            <span className="text-void-fg-1">@model</span>
-                            <span className="text-void-fg-3 text-xs">Reference a model</span>
-                        </div>
-                        <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => handleMentionSelect('@file')}>
-                            <span className="text-void-fg-1">@file</span>
-                            <span className="text-void-fg-3 text-xs">Reference a file</span>
-                        </div>
-                        <div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => handleMentionSelect('@settings')}>
-                            <span className="text-void-fg-1">@settings</span>
-                            <span className="text-void-fg-3 text-xs">Reference settings</span>
-                        </div>
-                    </div>
-                )}
+                {showDropdown && <MentionsDropdown onSelect={handleMentionSelect} onClose={handleMentionClose} />}
             </div>
 
 

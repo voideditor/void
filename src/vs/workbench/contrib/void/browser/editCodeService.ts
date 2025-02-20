@@ -1207,6 +1207,194 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
+
+
+
+
+	private _initializeWriteoverStream(opts: StartApplyingOpts): DiffZone | undefined {
+
+		const { from } = opts
+
+		let startLine: number
+		let endLine: number
+		let uri: URI
+
+		if (from === 'ClickApply') {
+
+			const uri_ = this._getActiveEditorURI()
+			if (!uri_) return
+			uri = uri_
+
+			// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
+			this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
+
+			// in ctrl+L the start and end lines are the full document
+			const numLines = this._getNumLines(uri)
+			if (numLines === null) return
+			startLine = 1
+			endLine = numLines
+
+		}
+		else if (from === 'QuickEdit') {
+			const { diffareaid } = opts
+			const ctrlKZone = this.diffAreaOfId[diffareaid]
+			if (ctrlKZone.type !== 'CtrlKZone') return
+
+			const { startLine: startLine_, endLine: endLine_, _URI } = ctrlKZone
+			uri = _URI
+			startLine = startLine_
+			endLine = endLine_
+		}
+		else {
+			throw new Error(`Void: diff.type not recognized on: ${from}`)
+		}
+
+		const currentFileStr = this._readURI(uri)
+		if (currentFileStr === null) return
+		const originalCode = currentFileStr.split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
+
+
+		let streamRequestIdRef: { current: string | null } = { current: null }
+
+
+		// add to history
+		const { onFinishEdit } = this._addToHistory(uri)
+
+		// __TODO__ let users customize modelFimTags
+		const quickEditFIMTags = defaultQuickEditFimTags
+
+		const adding: Omit<DiffZone, 'diffareaid'> = {
+			type: 'DiffZone',
+			originalCode,
+			startLine,
+			endLine,
+			_URI: uri,
+			_streamState: {
+				isStreaming: true,
+				streamRequestIdRef,
+				line: startLine,
+			},
+			_diffOfId: {}, // added later
+			_removeStylesFns: new Set(),
+		}
+		const diffZone = this._addDiffArea(adding)
+		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+		this._onDidAddOrDeleteDiffZones.fire({ uri })
+
+		if (from === 'QuickEdit') {
+			const { diffareaid } = opts
+			const ctrlKZone = this.diffAreaOfId[diffareaid]
+			if (ctrlKZone.type !== 'CtrlKZone') return
+
+			ctrlKZone._linkedStreamingDiffZone = diffZone.diffareaid
+		}
+
+		// now handle messages
+		let messages: LLMChatMessage[]
+
+		if (from === 'ClickApply') {
+			const userContent = rewriteCode_userMessage({ originalCode, applyStr: opts.applyStr, uri })
+			messages = [
+				{ role: 'system', content: rewriteCode_systemMessage, },
+				{ role: 'user', content: userContent, }
+			]
+		}
+		else if (from === 'QuickEdit') {
+			const { diffareaid } = opts
+			const ctrlKZone = this.diffAreaOfId[diffareaid]
+			if (ctrlKZone.type !== 'CtrlKZone') return
+			const { _mountInfo } = ctrlKZone
+			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
+
+			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
+			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
+			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: quickEditFIMTags, language })
+			// type: 'messages',
+			messages = [
+				{ role: 'system', content: ctrlKStream_systemMessage({ quickEditFIMTags: quickEditFIMTags }), },
+				{ role: 'user', content: userContent, }
+			]
+		}
+		else { throw new Error(`featureName ${from} is invalid`) }
+
+
+		const onDone = () => {
+			diffZone._streamState = { isStreaming: false, }
+			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+
+			if (from === 'QuickEdit') {
+				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
+
+				ctrlKZone._linkedStreamingDiffZone = null
+				this._deleteCtrlKZone(ctrlKZone)
+			}
+			this._refreshStylesAndDiffsInURI(uri)
+			onFinishEdit()
+		}
+
+		// refresh now in case onText takes a while to get 1st message
+		this._refreshStylesAndDiffsInURI(uri)
+
+
+		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
+			if (from === 'QuickEdit') {
+				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: quickEditFIMTags.midTag })
+			}
+			else if (from === 'ClickApply') {
+				return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
+			}
+			throw 1
+		}
+
+		const latestStreamInfoMutable: StreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+
+		// state used in onText:
+		let fullText = ''
+		let prevIgnoredSuffix = ''
+
+		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+			messagesType: 'chatMessages',
+			useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
+			logging: { loggingName: `startApplying - ${from}` },
+			messages,
+			onText: ({ newText: newText_ }) => {
+
+				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
+				fullText += prevIgnoredSuffix + newText // full text, including ```, etc
+
+				const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullText, newText.length)
+				const latestEndLine = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamInfoMutable)
+				diffZone._streamState.line = (diffZone.startLine - 1) + latestEndLine // change coordinate systems from originalCode to full file
+
+				this._refreshStylesAndDiffsInURI(uri)
+
+				prevIgnoredSuffix = croppedSuffix
+			},
+			onFinalMessage: ({ fullText }) => {
+				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
+				// at the end, re-write whole thing to make sure no sync errors
+				const [croppedText, _1, _2] = extractText(fullText, 0)
+				this._writeText(uri, croppedText,
+					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+					{ shouldRealignDiffAreas: true }
+				)
+				onDone()
+			},
+			onError: (e) => {
+				this._notifyError(e)
+				onDone()
+				this._undoHistory(uri)
+			},
+
+		})
+
+		return diffZone
+
+	}
+
+
+
+
 	private async _initializeSearchAndReplaceStream({ applyStr }: { applyStr: string }) {
 
 		const uri_ = this._getActiveEditorURI()
@@ -1453,191 +1641,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	}
-
-
-
-
-	private _initializeWriteoverStream(opts: StartApplyingOpts): DiffZone | undefined {
-
-		const { from } = opts
-
-		let startLine: number
-		let endLine: number
-		let uri: URI
-
-		if (from === 'ClickApply') {
-
-			const uri_ = this._getActiveEditorURI()
-			if (!uri_) return
-			uri = uri_
-
-			// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
-			this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
-
-			// in ctrl+L the start and end lines are the full document
-			const numLines = this._getNumLines(uri)
-			if (numLines === null) return
-			startLine = 1
-			endLine = numLines
-
-		}
-		else if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
-
-			const { startLine: startLine_, endLine: endLine_, _URI } = ctrlKZone
-			uri = _URI
-			startLine = startLine_
-			endLine = endLine_
-		}
-		else {
-			throw new Error(`Void: diff.type not recognized on: ${from}`)
-		}
-
-		const currentFileStr = this._readURI(uri)
-		if (currentFileStr === null) return
-		const originalCode = currentFileStr.split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
-
-
-		let streamRequestIdRef: { current: string | null } = { current: null }
-
-
-		// add to history
-		const { onFinishEdit } = this._addToHistory(uri)
-
-		// __TODO__ let users customize modelFimTags
-		const quickEditFIMTags = defaultQuickEditFimTags
-
-		const adding: Omit<DiffZone, 'diffareaid'> = {
-			type: 'DiffZone',
-			originalCode,
-			startLine,
-			endLine,
-			_URI: uri,
-			_streamState: {
-				isStreaming: true,
-				streamRequestIdRef,
-				line: startLine,
-			},
-			_diffOfId: {}, // added later
-			_removeStylesFns: new Set(),
-		}
-		const diffZone = this._addDiffArea(adding)
-		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-		this._onDidAddOrDeleteDiffZones.fire({ uri })
-
-		if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
-
-			ctrlKZone._linkedStreamingDiffZone = diffZone.diffareaid
-		}
-
-		// now handle messages
-		let messages: LLMChatMessage[]
-
-		if (from === 'ClickApply') {
-			const userContent = rewriteCode_userMessage({ originalCode, applyStr: opts.applyStr, uri })
-			messages = [
-				{ role: 'system', content: rewriteCode_systemMessage, },
-				{ role: 'user', content: userContent, }
-			]
-		}
-		else if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
-			const { _mountInfo } = ctrlKZone
-			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
-
-			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
-			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: quickEditFIMTags, language })
-			// type: 'messages',
-			messages = [
-				{ role: 'system', content: ctrlKStream_systemMessage({ quickEditFIMTags: quickEditFIMTags }), },
-				{ role: 'user', content: userContent, }
-			]
-		}
-		else { throw new Error(`featureName ${from} is invalid`) }
-
-
-		const onDone = () => {
-			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-
-			if (from === 'QuickEdit') {
-				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
-
-				ctrlKZone._linkedStreamingDiffZone = null
-				this._deleteCtrlKZone(ctrlKZone)
-			}
-			this._refreshStylesAndDiffsInURI(uri)
-			onFinishEdit()
-		}
-
-		// refresh now in case onText takes a while to get 1st message
-		this._refreshStylesAndDiffsInURI(uri)
-
-
-		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
-			if (from === 'QuickEdit') {
-				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: quickEditFIMTags.midTag })
-			}
-			else if (from === 'ClickApply') {
-				return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
-			}
-			throw 1
-		}
-
-		const latestStreamInfoMutable: StreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-
-		// state used in onText:
-		let fullText = ''
-		let prevIgnoredSuffix = ''
-
-		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-			messagesType: 'chatMessages',
-			useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
-			logging: { loggingName: `startApplying - ${from}` },
-			messages,
-			onText: ({ newText: newText_ }) => {
-
-				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
-				fullText += prevIgnoredSuffix + newText // full text, including ```, etc
-
-				const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullText, newText.length)
-				const latestEndLine = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamInfoMutable)
-				diffZone._streamState.line = (diffZone.startLine - 1) + latestEndLine // change coordinate systems from originalCode to full file
-
-				this._refreshStylesAndDiffsInURI(uri)
-
-				prevIgnoredSuffix = croppedSuffix
-			},
-			onFinalMessage: ({ fullText }) => {
-				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
-				// at the end, re-write whole thing to make sure no sync errors
-				const [croppedText, _1, _2] = extractText(fullText, 0)
-				this._writeText(uri, croppedText,
-					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-					{ shouldRealignDiffAreas: true }
-				)
-				onDone()
-			},
-			onError: (e) => {
-				this._notifyError(e)
-				onDone()
-				this._undoHistory(uri)
-			},
-
-		})
-
-		return diffZone
-
-	}
-
 
 
 

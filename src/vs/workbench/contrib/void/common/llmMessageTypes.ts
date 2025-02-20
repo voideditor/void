@@ -3,6 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { ChatMessage } from '../browser/chatThreadService.js'
+import { InternalToolInfo, ToolName } from './toolsService.js'
 import { FeatureName, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
@@ -20,20 +22,48 @@ export const errorDetails = (fullError: Error | null): string | null => {
 	return null
 }
 
+
+export type LLMChatMessage = {
+	role: 'system' | 'user';
+	content: string;
+} | {
+	role: 'assistant',
+	content: string;
+} | {
+	role: 'tool';
+	content: string; // result
+	name: string;
+	params: string;
+	id: string;
+}
+
+
+export type ToolCallType = {
+	name: ToolName;
+	params: string;
+	id: string;
+}
+
+
 export type OnText = (p: { newText: string, fullText: string }) => void
-export type OnFinalMessage = (p: { fullText: string }) => void
+export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[] }) => void // id is tool_use_id
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
-export type LLMChatMessage = {
-	role: 'system' | 'user' | 'assistant';
-	content: string;
+
+export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
+	if (c.role === 'system' || c.role === 'user') {
+		return { role: c.role, content: c.content || '(empty message)' }
+	}
+	else if (c.role === 'assistant')
+		return { role: c.role, content: c.content || '(empty message)' }
+	else if (c.role === 'tool')
+		return { role: c.role, id: c.id, name: c.name, params: c.params, content: c.content || '(empty output)' }
+	else {
+		throw 1
+	}
 }
 
-export type _InternalLLMChatMessage = {
-	role: 'user' | 'assistant';
-	content: string;
-}
 
 type _InternalSendFIMMessage = {
 	prefix: string;
@@ -44,9 +74,11 @@ type _InternalSendFIMMessage = {
 type SendLLMType = {
 	messagesType: 'chatMessages';
 	messages: LLMChatMessage[];
+	tools?: InternalToolInfo[];
 } | {
 	messagesType: 'FIMMessage';
 	messages: _InternalSendFIMMessage;
+	tools?: undefined;
 }
 
 // service types
@@ -88,6 +120,8 @@ export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId:
 
 export type _InternalSendLLMChatMessageFnType = (
 	params: {
+		aiInstructions: string;
+
 		onText: OnText;
 		onFinalMessage: OnFinalMessage;
 		onError: OnError;
@@ -96,7 +130,9 @@ export type _InternalSendLLMChatMessageFnType = (
 		modelName: string;
 		_setAborter: (aborter: () => void) => void;
 
-		messages: _InternalLLMChatMessage[];
+		tools?: InternalToolInfo[],
+
+		messages: LLMChatMessage[];
 	}
 ) => void
 

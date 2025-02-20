@@ -45,6 +45,7 @@ export type RefreshModelStateOfProvider = Record<RefreshableProviderName, Refres
 
 const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvider[k])[] } = {
 	ollama: ['_didFillInProviderSettings', 'endpoint'],
+	vLLM: ['_didFillInProviderSettings', 'endpoint'],
 	// openAICompatible: ['_didFillInProviderSettings', 'endpoint', 'apiKey'],
 }
 const REFRESH_INTERVAL = 5_000
@@ -140,10 +141,11 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 	state: RefreshModelStateOfProvider = {
 		ollama: { state: 'init', timeoutId: null },
+		vLLM: { state: 'init', timeoutId: null },
 	}
 
 
-	// start listening for models (and don't stop until success)
+	// start listening for models (and don't stop)
 	startRefreshingModels: IRefreshModelService['startRefreshingModels'] = (providerName, options) => {
 
 		this._clearProviderTimeout(providerName)
@@ -158,8 +160,9 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			}
 		}
 		const listFn = providerName === 'ollama' ? this.llmMessageService.ollamaList
-			: providerName === 'openAICompatible' ? this.llmMessageService.openAICompatibleList
-				: () => { }
+			: providerName === 'vLLM' ? this.llmMessageService.openAICompatibleList
+				: providerName === 'openAICompatible' ? this.llmMessageService.openAICompatibleList
+					: () => { }
 
 		listFn({
 			onSuccess: ({ models }) => {
@@ -169,6 +172,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 					providerName,
 					models.map(model => {
 						if (providerName === 'ollama') return (model as OllamaModelResponse).name;
+						else if (providerName === 'vLLM') return (model as OpenaiCompatibleModelResponse).id;
 						else if (providerName === 'openAICompatible') return (model as OpenaiCompatibleModelResponse).id;
 						else throw new Error('refreshMode fn: unknown provider', providerName);
 					}),

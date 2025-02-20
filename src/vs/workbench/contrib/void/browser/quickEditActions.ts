@@ -8,7 +8,7 @@ import { Action2, registerAction2 } from '../../../../platform/actions/common/ac
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { IInlineDiffsService } from './inlineDiffsService.js';
+import { IEditCodeService } from './editCodeService.js';
 import { roundRangeToLines } from './sidebarActions.js';
 import { VOID_CTRL_K_ACTION_ID } from './actionIDs.js';
 import { localize2 } from '../../../../nls.js';
@@ -63,7 +63,7 @@ registerAction2(class extends Action2 {
 
 		const { startLineNumber: startLine, endLineNumber: endLine } = selection
 
-		const inlineDiffsService = accessor.get(IInlineDiffsService)
-		inlineDiffsService.addCtrlKZone({ startLine, endLine, editor })
+		const editCodeService = accessor.get(IEditCodeService)
+		editCodeService.addCtrlKZone({ startLine, endLine, editor })
 	}
 });

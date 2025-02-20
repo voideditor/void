@@ -28,7 +28,7 @@ import { IThemeService } from '../../../../../../../platform/theme/common/themeS
 import { ILLMMessageService } from '../../../../../../../workbench/contrib/void/common/llmMessageService.js';
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
-import { IInlineDiffsService } from '../../../inlineDiffsService.js';
+import { IEditCodeService } from '../../../editCodeService.js';
 import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
@@ -103,10 +103,10 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		settingsStateService: accessor.get(IVoidSettingsService),
 		refreshModelService: accessor.get(IRefreshModelService),
 		themeService: accessor.get(IThemeService),
-		inlineDiffsService: accessor.get(IInlineDiffsService),
+		editCodeService: accessor.get(IEditCodeService),
 	}
 
-	const { uriStateService, sidebarStateService, quickEditStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, inlineDiffsService } = stateServices
+	const { uriStateService, sidebarStateService, quickEditStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService } = stateServices
 
 	uriState = uriStateService.state
 	disposables.push(
@@ -192,7 +192,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILLMMessageService: accessor.get(ILLMMessageService),
 		IRefreshModelService: accessor.get(IRefreshModelService),
 		IVoidSettingsService: accessor.get(IVoidSettingsService),
-		IInlineDiffsService: accessor.get(IInlineDiffsService),
+		IEditCodeService: accessor.get(IEditCodeService),
 		IVoidUriStateService: accessor.get(IVoidUriStateService),
 		IQuickEditStateService: accessor.get(IQuickEditStateService),
 		ISidebarStateService: accessor.get(ISidebarStateService),

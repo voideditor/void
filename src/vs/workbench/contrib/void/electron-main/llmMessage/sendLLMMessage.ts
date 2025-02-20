@@ -74,7 +74,7 @@ export const sendLLMMessage = ({
 
 		// handle failed to fetch errors, which give 0 information by design
 		if (error === 'TypeError: fetch failed')
-			error = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void Settings, or your local model provider like Ollama is powered off.`
+			error = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void's Settings, or your local model provider like Ollama is powered off.`
 
 		captureLLMEvent(`${loggingName} - Error`, { error })
 		onError_({ message: error, fullError })

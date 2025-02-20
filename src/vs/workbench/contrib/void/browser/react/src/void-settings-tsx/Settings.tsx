@@ -624,7 +624,7 @@ export const Settings = () => {
 
 			<div className='max-w-5xl mx-auto'>
 
-				<h1 className='text-2xl w-full'>Void Settings</h1>
+				<h1 className='text-2xl w-full'>{`Void's Settings`}</h1>
 
 				{/* separator */}
 				<div className='w-full h-[1px] my-4' />

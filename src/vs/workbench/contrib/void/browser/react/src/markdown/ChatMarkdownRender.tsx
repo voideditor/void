@@ -201,6 +201,24 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocati
 				))}
 			</ListTag>
 		)
+		// attempt at indentation
+		// return (
+		// 	<ListTag
+		// 		start={t.start ? t.start : undefined}
+		// 			className={`pl-2 ${noSpace ? '' : 'my-4'} ${t.ordered ? "list-decimal" : "list-disc"}`}
+		// 		>
+		// 		{t.items.map((item, index) => (
+		// 			<li key={index} className={`${noSpace ? '' : 'mb-2'} ml-4`}>
+		// 				{item.task && (
+		// 					<input type="checkbox" className='mr-2 form-checkbox' checked={item.checked} readOnly />
+		// 				)}
+		// 				<span className-='inline-block pr-2'>
+		// 					<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} nested={true} />
+		// 				</span>
+		// 			</li>
+		// 		))}
+		// 	</ListTag>
+		// )
 	}
 
 	if (t.type === "paragraph") {

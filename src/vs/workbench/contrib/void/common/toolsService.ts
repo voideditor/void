@@ -23,7 +23,6 @@ export type InternalToolInfo = {
 	required: string[], // required paramNames
 }
 
-// helper
 const paginationHelper = {
 	desc: `Very large results may be paginated (indicated in the result). Pagination fails gracefully if out of bounds or invalid page number.`,
 	param: { pageNumber: { type: 'number', description: 'The page number (optional, default is 1).' }, }
@@ -166,6 +165,7 @@ const validateQueryStr = (queryStr: unknown) => {
 // TODO!!!! check to make sure in workspace
 const validateURI = (uriStr: unknown) => {
 	if (typeof uriStr !== 'string') throw new Error('Error calling tool: provided uri must be a string.')
+
 	const uri = URI.file(uriStr)
 	return uri
 }
@@ -269,6 +269,7 @@ export class ToolsService implements IToolsService {
 
 				return [URIs, hasNextPage]
 			},
+
 
 		}
 

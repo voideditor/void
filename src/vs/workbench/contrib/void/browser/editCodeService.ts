@@ -39,7 +39,7 @@ import { Emitter } from '../../../../base/common/event.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
-import { LLMChatMessage, errorDetails } from '../common/llmMessageTypes.js';
+import { LLMChatMessage, OnError, errorDetails } from '../common/llmMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { IVoidFileService } from '../common/voidFileService.js';
 
@@ -61,6 +61,8 @@ registerColor('void.highlightBG', configOfBG(highlightBG), '', true);
 
 const sweepIdxBG = new Color(new RGBA(100, 100, 100, .5));
 registerColor('void.sweepIdxBG', configOfBG(sweepIdxBG), '', true);
+
+
 
 
 
@@ -99,6 +101,25 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 
 	return paddingLeft;
 };
+
+
+
+// finds block.orig in fileContents and return its range in file
+const findTextInCode = (text: string, fileContents: string) => {
+	console.log('TEXTTTT', JSON.stringify(text))
+	const idx = fileContents.indexOf(text)
+	if (idx === -1) return 'Not found' as const
+	const lastIdx = fileContents.lastIndexOf(text)
+	if (lastIdx !== idx) return 'Not unique' as const
+	console.log('TEXTTTT22222', JSON.stringify(fileContents.substring(0, idx)))
+	const startLine = fileContents.substring(0, idx).split('\n').length
+	const numLines = text.split('\n').length
+	const endLine = startLine + numLines - 1
+	console.log('startline', startLine)
+	console.log('endline', endLine)
+	return [startLine, endLine]
+}
+
 
 
 
@@ -326,6 +347,29 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._refreshStylesAndDiffsInURI(uri)
 
 	}
+
+
+
+
+	private _notifyError = (e: Parameters<OnError>[0]) => {
+		const details = errorDetails(e.fullError)
+		this._notificationService.notify({
+			severity: Severity.Warning,
+			message: `Void Error: ${e.message}`,
+			actions: {
+				secondary: [{
+					id: 'void.onerror.opensettings',
+					enabled: true,
+					label: `Open Void's settings`,
+					tooltip: '',
+					class: undefined,
+					run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
+				}]
+			},
+			source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}\n\nIf this persists, feel free to [report](https://github.com/voideditor/void/issues/new) it.` : undefined
+		})
+	}
+
 
 
 	// highlight the region
@@ -1000,18 +1044,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	// @throttle(100)
-	private _writeStreamedDiffZoneLLMText(diffZone: DiffZone, llmText: string, deltaText: string, latestMutable: StreamLocationMutable) {
+	private _writeStreamedDiffZoneLLMText(uri: URI, originalCode: string, llmTextSoFar: string, deltaText: string, latestMutable: StreamLocationMutable) {
 
 		// ----------- 1. Write the new code to the document -----------
 		// figure out where to highlight based on where the AI is in the stream right now, use the last diff to figure that out
-		const uri = diffZone._URI
-		const computedDiffs = findDiffs(diffZone.originalCode, llmText)
-
-		// should always be in streaming state here
-		if (!diffZone._streamState.isStreaming) {
-			console.error('DiffZone was not in streaming state on _writeDiffZoneLLMText')
-			return
-		}
+		const computedDiffs = findDiffs(originalCode, llmTextSoFar)
 
 		// if streaming, use diffs to figure out where to write new code
 		// these are two different coordinate systems - new and old line number
@@ -1035,8 +1072,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			else
 				throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
 		}
-
-
 
 		// at the start, add a newline between the stream and originalCode to make reasoning easier
 		if (!latestMutable.addedSplitYet) {
@@ -1066,18 +1101,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			)
 		}
 		else if (latestMutable.originalCodeStartLine > originalCodeStartLine) {
-			this._writeText(uri, '\n' + diffZone.originalCode.split('\n').slice((originalCodeStartLine - 1), (latestMutable.originalCodeStartLine - 1) - 1 + 1).join('\n'),
+			this._writeText(uri, '\n' + originalCode.split('\n').slice((originalCodeStartLine - 1), (latestMutable.originalCodeStartLine - 1) - 1 + 1).join('\n'),
 				{ startLineNumber: latestMutable.line, startColumn: latestMutable.col, endLineNumber: latestMutable.line, endColumn: latestMutable.col },
 				{ shouldRealignDiffAreas: true }
 			)
 		}
 		latestMutable.originalCodeStartLine = originalCodeStartLine
 
-		// add diffZone.startLine to convert to right coordinate system (line in file, not in diffarea)
-		diffZone._streamState.line = (diffZone.startLine - 1) + newCodeEndLine
-
-		return computedDiffs
-
+		return newCodeEndLine
 	}
 
 
@@ -1145,7 +1176,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	public startApplying(opts: StartApplyingOpts) {
 
 		if (opts.type === 'rewrite') {
-			const addedDiffZone = this._initializeRewriteStream(opts)
+			const addedDiffZone = this._initializeWriteoverStream(opts)
 			return addedDiffZone?.diffareaid
 		}
 
@@ -1183,41 +1214,55 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const uri = uri_
 
 		// generate search/replace block text
-		const origFileContents = await this._voidFileService.readFile(uri)
-		if (origFileContents === null) return
+		const originalFileCode = await this._voidFileService.readFile(uri)
+		if (originalFileCode === null) return
 
+		const numLines = this._getNumLines(uri)
+		if (numLines === null) return
 
-		// 	// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
-		// 	this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
+		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
+		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
 
-		const userMessageContent = searchReplace_userMessage({ originalCode: origFileContents, applyStr: applyStr })
+		const startLine = 1
+		const endLine = numLines
+
+		const userMessageContent = searchReplace_userMessage({ originalCode: originalFileCode, applyStr: applyStr })
 		const messages: LLMChatMessage[] = [
 			{ role: 'system', content: searchReplace_systemMessage },
 			{ role: 'user', content: userMessageContent },
 		]
+
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
-		const diffareaidOfBlockNum: number[] = []
-		const diffAreaOriginalLines: [number, number][] = []
+		let { onFinishEdit } = this._addToHistory(uri)
 
-		// TODO replace all these with whatever block we're on initially if already started
-		let latestStreamLocationMutable: StreamLocationMutable | null = null
-		let currStreamingBlockNum = 0
+		// TODO replace these with whatever block we're on initially if already started
+		const infoOfBlockNum: {
+			originalLines: [number, number], // 1-indexed
+			finalStartLine: number, // 1-indexed
+			originalCode: string,
+		}[] = []
+
 		let oldBlocks: ExtractedSearchReplaceBlock[] = []
 
-		// find block.orig in fileContents and return its range in file
-		const findTextInCode = (text: string, fileContents: string) => {
-			const idx = fileContents.indexOf(text)
-			if (idx === -1) return 'Not found' as const
-			const lastIdx = fileContents.lastIndexOf(text)
-			if (lastIdx !== idx) return 'Not unique' as const
-			const startLine = fileContents.substring(0, idx).split('\n').length
-			const numLines = text.split('\n').length
-			const endLine = startLine + numLines - 1
-			return [startLine, endLine]
+		const adding: Omit<DiffZone, 'diffareaid'> = {
+			type: 'DiffZone',
+			originalCode: originalFileCode,
+			startLine,
+			endLine,
+			_URI: uri,
+			_streamState: {
+				isStreaming: true,
+				streamRequestIdRef,
+				line: startLine,
+			},
+			_diffOfId: {}, // added later
+			_removeStylesFns: new Set(),
 		}
+		const diffZone = this._addDiffArea(adding)
+		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
-		let { onFinishEdit } = this._addToHistory(uri)
 
 		const revertAndContinueHistory = () => {
 			this._undoHistory(uri)
@@ -1225,90 +1270,55 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			onFinishEdit = onFinishEdit_
 		}
 
-		const onDone = (errorMessage: false | string) => {
-			for (const blockNum in diffareaidOfBlockNum) {
-				const diffareaid = diffareaidOfBlockNum[blockNum]
-				const diffZone = this.diffAreaOfId[diffareaid]
-				if (diffZone?.type !== 'DiffZone') continue
-				diffZone._streamState = { isStreaming: false, }
-				this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-			}
-			this._refreshStylesAndDiffsInURI(uri)
-			if (errorMessage) {
-				this._notificationService.info(`Void had an error when running Apply: ${errorMessage}.\nIf this persists, feel free to [report](https://github.com/voideditor/void/issues/new) this error.`)
-				this._metricsService.capture('Error - Apply', { errorMessage })
-				this._undoHistory(uri)
-			}
-			onFinishEdit()
-		}
 
-
-		const onNewBlockStart = (blockNum: number, block: ExtractedSearchReplaceBlock): { errorStartingBlock?: undefined } | { errorStartingBlock: string } => {
-			console.log('STARTING BLOCK', JSON.stringify(block, null, 2))
-
-
-			const foundInCode = findTextInCode(block.orig, origFileContents)
+		const findTextInCodeWithAdjustedOffset = (blockNum: number, block: ExtractedSearchReplaceBlock): string | { originalLines: [number, number], currentLines: [number, number] } => {
+			const foundInCode = findTextInCode(block.orig, originalFileCode)
 			if (typeof foundInCode === 'string') {
 				console.log('Apply error:', foundInCode, '; trying again.')
-				return { errorStartingBlock: foundInCode }
+				return foundInCode
 			}
 			const [originalStart, originalEnd] = foundInCode
 
+			// compute line offset if there were changes in the past
 			let lineOffset = 0
-			// compute line offset given multiple changes
 			for (let i = 0; i < blockNum; i += 1) {
-				const [diffAreaOriginalStart, diffAreaOriginalEnd] = diffAreaOriginalLines[i]
-				console.log('ROIGGINAL!!!', diffAreaOriginalStart, diffAreaOriginalEnd)
-				if (diffAreaOriginalStart > originalEnd) continue
+				const { originalLines: [otherBlockOriginalStart, otherBlockOriginalEnd], } = infoOfBlockNum[i]
+				const finalCode = block.final
 
-				const diffareaid = diffareaidOfBlockNum[i]
-				const diffArea = this.diffAreaOfId[diffareaid]
+				if (otherBlockOriginalStart > originalEnd) continue
+				if (finalCode === null) continue
 
-
-				const numNewLines = diffArea.endLine - diffArea.startLine
-				const numOldLines = diffAreaOriginalEnd - diffAreaOriginalStart
-				console.log('NUM NEW', numNewLines, numOldLines)
+				const numNewLines = finalCode.split('\n').length
+				const numOldLines = otherBlockOriginalEnd - otherBlockOriginalStart + 1
 
 				lineOffset += numNewLines - numOldLines
 			}
 
-			const startLine = originalStart + lineOffset
-			const endLine = originalEnd + lineOffset
-			console.log('adding to', startLine, endLine)
-
-			const adding: Omit<DiffZone, 'diffareaid'> = {
-				type: 'DiffZone',
-				originalCode: block.orig,
-				startLine,
-				endLine,
-				_URI: uri,
-				_streamState: {
-					isStreaming: true,
-					streamRequestIdRef,
-					line: startLine,
-				},
-				_diffOfId: {}, // added later
-				_removeStylesFns: new Set(),
+			return {
+				originalLines: [originalStart, originalEnd],
+				currentLines: [originalStart + lineOffset, originalEnd + lineOffset],
 			}
-			const diffZone = this._addDiffArea(adding)
-			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
-			this._onDidAddOrDeleteDiffZones.fire({ uri })
-
-			diffareaidOfBlockNum.push(diffZone.diffareaid)
-			diffAreaOriginalLines.push([originalStart, originalEnd])
-
-			latestStreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-			return { errorStartingBlock: undefined }
 		}
 
 
+		let latestStreamLocationMutable: StreamLocationMutable | null = null
 
 
 
+		const onDone = () => {
+			diffZone._streamState = { isStreaming: false, }
+			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._refreshStylesAndDiffsInURI(uri)
+			onFinishEdit()
+		}
+
+		// refresh now in case onText takes a while to get 1st message
+		this._refreshStylesAndDiffsInURI(uri)
 
 		let shouldSendAnotherMessage = true
 		let nMessagesSent = 0
 		// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
+		let currStreamingBlockNum = 0
 		while (shouldSendAnotherMessage) {
 			shouldSendAnotherMessage = false
 			nMessagesSent += 1
@@ -1324,49 +1334,73 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
 						const block = blocks[blockNum]
 
-						if (block.state === 'done')
-							currStreamingBlockNum = blockNum
+						// if a block is done, finish it
+						if (block.state === 'done') {
+							console.log('FINISHING BLOCK')
 
-						if (block.state === 'writingOriginal') // must be done writing original
+							const { finalStartLine } = infoOfBlockNum[blockNum]
+							const numLines = block.final.split('\n').length
+
+							this._writeText(uri, block.final,
+								{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalStartLine + numLines, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+								{ shouldRealignDiffAreas: true }
+							)
+							currStreamingBlockNum = blockNum + 1
+						}
+
+						// must be done writing original to stream code
+						if (block.state === 'writingOriginal')
 							continue
 
-						// if this is the first time we're seeing this block, add it as a diffarea
-						if (!(blockNum in diffareaidOfBlockNum)) {
-							console.log('FULLTEXT!!!!!\n', fullText)
-							const { errorStartingBlock } = onNewBlockStart(blockNum, block)
+						// if this is the first time we're seeing this block, add it as a blocknum
+						if (!(blockNum in infoOfBlockNum)) {
+							console.log('----FULLTEXT!!!!!----\n', blockNum, fullText)
 
-							if (errorStartingBlock) {
+							const pos = findTextInCodeWithAdjustedOffset(blockNum, block)
+							console.log('OFFSET', pos)
+
+							if (typeof pos === 'string') {
+								const errorStartingBlock = pos
 								console.log('ERROR STARTING BLOCK SPOT!!!!!', errorStartingBlock)
-
 								const errMsgForLLM = errorStartingBlock === 'Not found' ?
 									'I interrupted you because the latest ORIGINAL code could not be found in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in ORIGINAL is identical to a code snippet in the file.'
 									: errorStartingBlock === 'Not unique' ?
 										'I interrupted you because the latest ORIGINAL code shows up multiple times in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in each ORIGINAL section is unique in the file.'
 										: ''
-
 								messages.push(
 									{ role: 'assistant', content: fullText }, // latest output
 									{ role: 'user', content: errMsgForLLM } // user explanation of what's wrong
 								)
 								if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
-
 								shouldSendAnotherMessage = true
 								revertAndContinueHistory()
-								return
+								continue
 							}
+
+							infoOfBlockNum.push({
+								originalLines: pos.originalLines,
+								finalStartLine: pos.currentLines[0],
+								originalCode: block.orig,
+							})
+
+							latestStreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 
 						}
 						const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
 						oldBlocks = blocks
 
-						// write new text to diffarea
-						const diffareaid = diffareaidOfBlockNum[blockNum]
-						const diffZone = this.diffAreaOfId[diffareaid]
-						if (diffZone?.type !== 'DiffZone') continue
-
 
 						if (!latestStreamLocationMutable) continue
-						this._writeStreamedDiffZoneLLMText(diffZone, block.final, deltaFinalText, latestStreamLocationMutable)
+
+						// should always be in streaming state here
+						if (!diffZone._streamState.isStreaming) {
+							console.error('DiffZone was not in streaming state in _initializeSearchAndReplaceStream')
+							continue
+						}
+
+						const latestEndLine = this._writeStreamedDiffZoneLLMText(uri, diffZone.originalCode, block.final, deltaFinalText, latestStreamLocationMutable)
+						diffZone._streamState.line = (diffZone.startLine - 1) + latestEndLine // change coordinate systems from originalCode to full file
+
 					} // end for
 
 					this._refreshStylesAndDiffsInURI(uri)
@@ -1379,25 +1413,39 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					const blocks = extractSearchReplaceBlocks(fullText)
 
 					if (blocks.length === 0) {
-						this._notificationService.info(`Void: When running Apply, your model didn't output any changes we recognized. You might need to use a smarter model for Apply.`)
+						this._notificationService.info(`Void: When running Apply, your model didn't output any changes that Void recognized. You might need to use a smarter model for Apply.`)
 					}
 
-					for (let blockNum = 0; blockNum < blocks.length; blockNum += 1) {
-						const block = blocks[blockNum]
-						const diffareaid = diffareaidOfBlockNum[blockNum]
-						const diffZone = this.diffAreaOfId[diffareaid]
-						if (diffZone?.type !== 'DiffZone') continue
+					// writeover the whole file
+					let newCode = originalFileCode
+					for (let blockNum = infoOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
+						const { originalLines } = infoOfBlockNum[blockNum]
+						const finalCode = blocks[blockNum].final
 
-						this._writeText(uri, block.final,
-							{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+						if (finalCode === null) continue
+
+						const [originalStart, originalEnd] = originalLines
+						const lines = newCode.split('\n')
+						newCode = [
+							...lines.slice(0, (originalStart - 1)),
+							...finalCode.split('\n'),
+							...lines.slice((originalEnd - 1) + 1, Infinity)
+						].join('\n')
+					}
+					const numLines = this._getNumLines(uri)
+					if (numLines !== null) {
+						this._writeText(uri, newCode,
+							{ startLineNumber: 1, startColumn: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
 							{ shouldRealignDiffAreas: true }
 						)
 					}
-					onDone(false)
+
+					onDone()
 				},
 				onError: (e) => {
-					console.log('ERROR in SearchReplace:', e.message)
-					onDone(e.message)
+					this._notifyError(e)
+					onDone()
+					this._undoHistory(uri)
 				},
 
 			})
@@ -1409,7 +1457,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	private _initializeRewriteStream(opts: StartApplyingOpts): DiffZone | undefined {
+	private _initializeWriteoverStream(opts: StartApplyingOpts): DiffZone | undefined {
 
 		const { from } = opts
 
@@ -1516,7 +1564,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		else { throw new Error(`featureName ${from} is invalid`) }
 
 
-		const onDone = (hadError: boolean) => {
+		const onDone = () => {
 			diffZone._streamState = { isStreaming: false, }
 			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 
@@ -1528,11 +1576,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			}
 			this._refreshStylesAndDiffsInURI(uri)
 			onFinishEdit()
-
-			// if had error, revert!
-			if (hadError) {
-				this._undoHistory(diffZone._URI)
-			}
 		}
 
 		// refresh now in case onText takes a while to get 1st message
@@ -1566,7 +1609,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				fullText += prevIgnoredSuffix + newText // full text, including ```, etc
 
 				const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullText, newText.length)
-				this._writeStreamedDiffZoneLLMText(diffZone, croppedText, deltaCroppedText, latestStreamInfoMutable)
+				const latestEndLine = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamInfoMutable)
+				diffZone._streamState.line = (diffZone.startLine - 1) + latestEndLine // change coordinate systems from originalCode to full file
+
 				this._refreshStylesAndDiffsInURI(uri)
 
 				prevIgnoredSuffix = croppedSuffix
@@ -1579,26 +1624,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 					{ shouldRealignDiffAreas: true }
 				)
-				onDone(false)
+				onDone()
 			},
 			onError: (e) => {
-				const details = errorDetails(e.fullError)
-				this._notificationService.notify({
-					severity: Severity.Warning,
-					message: `Void Error: ${e.message}`,
-					actions: {
-						secondary: [{
-							id: 'void.onerror.opensettings',
-							enabled: true,
-							label: `Open Void's settings`,
-							tooltip: '',
-							class: undefined,
-							run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
-						}]
-					},
-					source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}` : undefined
-				})
-				onDone(true)
+				this._notifyError(e)
+				onDone()
+				this._undoHistory(uri)
 			},
 
 		})

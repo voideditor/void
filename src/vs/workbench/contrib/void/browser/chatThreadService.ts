@@ -72,8 +72,7 @@ export type ChatMessage =
 			stagingSelections: StagingSelectionItem[];
 			isBeingEdited: boolean;
 		}
-	}
-	| {
+	} | {
 		role: 'assistant';
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
@@ -85,7 +84,7 @@ type UserMessageState = UserMessageType['state']
 
 export const defaultMessageState: UserMessageState = {
 	stagingSelections: [],
-	isBeingEdited: false
+	isBeingEdited: false,
 }
 
 // a 'thread' means a chat message history

@@ -270,7 +270,7 @@ export class EditorGroupWatermark extends Disposable {
 
 				const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
 				const button3 = append(recentsBox, $('button'));
-				button3.textContent = 'Void Settings'
+				button3.textContent = `Void's Settings`
 				button3.style.display = 'block'
 				button3.style.marginLeft = 'auto'
 				button3.style.marginRight = 'auto'

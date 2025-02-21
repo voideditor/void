@@ -105,8 +105,13 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 
 
 // finds block.orig in fileContents and return its range in file
-const findTextInCode = (text: string, fileContents: string) => {
-	const idx = fileContents.indexOf(text)
+// startingAtLine is 1-indexed and inclusive
+const findTextInCode = (text: string, fileContents: string, startingAtLine?: number) => {
+	const idx = fileContents.indexOf(text,
+		startingAtLine !== undefined ?
+			fileContents.split('\n').slice(0, startingAtLine).join('\n').length // num characters in all lines before startingAtLine
+			: 0
+	)
 	if (idx === -1) return 'Not found' as const
 	const lastIdx = fileContents.lastIndexOf(text)
 	if (lastIdx !== idx) return 'Not unique' as const
@@ -1473,36 +1478,30 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
-
-		const findTextInCodeWithAdjustedOffset = (blockNum: number, block: ExtractedSearchReplaceBlock): string | { originalBounds: [number, number], currentBounds: [number, number] } => {
-			// call findInText
-			const foundInCode = findTextInCode(block.orig, originalFileCode)
-
-			// if error, return error as a string
-			if (typeof foundInCode === 'string') {
-				return foundInCode
-			}
-
+		const convertOriginalRangeToFinalRange = (originalRange: readonly [number, number]): [number, number] => {
 			// adjust based on the changes by computing line offset
-			const [originalStart, originalEnd] = foundInCode
+			const [originalStart, originalEnd] = originalRange
 			let lineOffset = 0
-			for (let i = 0; i < blockNum; i += 1) {
-				const { originalBounds: [otherBlockOriginalStart, otherBlockOriginalEnd], } = addedDiffAreaOfBlockNum[i].metadata
-				const finalCode = block.final
-
-				if (otherBlockOriginalStart > originalEnd) continue
-				if (finalCode === null) continue
-
-				const numNewLines = finalCode.split('\n').length
-				const numOldLines = otherBlockOriginalEnd - otherBlockOriginalStart + 1
-
+			for (const blockDiffArea of addedDiffAreaOfBlockNum) {
+				const {
+					startLine, endLine,
+					metadata: { originalBounds: [originalStart2, originalEnd2], },
+				} = blockDiffArea
+				if (originalStart2 >= originalEnd) continue
+				const numNewLines = endLine - startLine + 1
+				const numOldLines = originalEnd2 - originalStart2 + 1
 				lineOffset += numNewLines - numOldLines
 			}
+			return [originalStart + lineOffset, originalEnd + lineOffset]
+		}
 
-			return {
-				originalBounds: [originalStart, originalEnd],
-				currentBounds: [originalStart + lineOffset, originalEnd + lineOffset],
-			}
+
+		const errMsgOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>) => {
+			return str === 'Not found' ?
+				'I interrupted you because the latest ORIGINAL code could not be found in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in ORIGINAL is identical to a code snippet in the file.'
+				: str === 'Not unique' ?
+					'I interrupted you because the latest ORIGINAL code shows up multiple times in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in each ORIGINAL section is unique in the file.'
+					: ''
 		}
 
 
@@ -1549,21 +1548,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						if (block.state === 'writingOriginal') {
 							// update stream state
 							if (shouldUpdateOrigStreamPos && block.orig.trim().length >= 20) {
-
 								const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
-
-								const originalCodeStartingAtLine = originalFileCode.split('\n').slice(startingAtLine, Infinity).join('\n')
-								const idxInAfter = originalCodeStartingAtLine.indexOf(block.orig)
-
-								console.log('SEARCHED FOR:\n', block.orig, '\nIN:\n', originalCodeStartingAtLine, '\nGOT:\n', idxInAfter)
-
-								if (idxInAfter !== -1) {
-									const numOriginalCodeLinesBefore = originalCodeStartingAtLine.substring(0, idxInAfter).split('\n').length
-									const lineNum = startingAtLine + numOriginalCodeLinesBefore
-
-									console.log('SWITCHING TO LINE', lineNum)
-
-									diffZone._streamState.line = lineNum
+								const originalRange = findTextInCode(block.orig, originalFileCode, startingAtLine)
+								if (typeof originalRange !== 'string') {
+									const [_, endLine] = convertOriginalRangeToFinalRange(originalRange)
+									diffZone._streamState.line = endLine
 									shouldUpdateOrigStreamPos = false
 								}
 							}
@@ -1574,20 +1563,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 						// if this is the first time we're seeing this block, add it as a blocknum
 						if (!(blockNum in addedDiffAreaOfBlockNum)) {
-							const pos = findTextInCodeWithAdjustedOffset(blockNum, block)
+							const originalBounds = findTextInCode(block.orig, originalFileCode)
 
 							// if error
-							if (typeof pos === 'string') {
-								const errorStartingBlock = pos
-								console.log('ERROR STARTING BLOCK SPOT!!!!!', errorStartingBlock)
-								const errMsgForLLM = errorStartingBlock === 'Not found' ?
-									'I interrupted you because the latest ORIGINAL code could not be found in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in ORIGINAL is identical to a code snippet in the file.'
-									: errorStartingBlock === 'Not unique' ?
-										'I interrupted you because the latest ORIGINAL code shows up multiple times in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in each ORIGINAL section is unique in the file.'
-										: ''
+							if (typeof originalBounds === 'string') {
 								messages.push(
 									{ role: 'assistant', content: fullText }, // latest output
-									{ role: 'user', content: errMsgForLLM } // user explanation of what's wrong
+									{ role: 'user', content: errMsgOfInvalidStr(originalBounds) } // user explanation of what's wrong
 								)
 								if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
 								shouldSendAnotherMessage = true
@@ -1595,20 +1577,22 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								continue
 							}
 
+							const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
+
 							// otherwise if no error, add the position as a diffarea
 							const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
 								type: 'TrackingZone',
-								startLine: pos.currentBounds[0],
-								endLine: pos.currentBounds[1],
+								startLine: startLine,
+								endLine: endLine,
 								_URI: uri,
 								metadata: {
-									originalBounds: pos.originalBounds,
+									originalBounds: [...originalBounds],
 									originalCode: block.orig,
 								},
 							}
 							const trackingZone = this._addDiffArea(adding)
 							addedDiffAreaOfBlockNum.push(trackingZone)
-							latestStreamLocationMutable = { line: pos.currentBounds[0], addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+							latestStreamLocationMutable = { line: startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 						} // <-- done adding diffarea
 
 						// if a block is done, finish it

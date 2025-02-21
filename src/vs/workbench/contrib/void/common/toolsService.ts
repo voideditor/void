@@ -31,7 +31,7 @@ const paginationHelper = {
 export const voidTools = {
 	read_file: {
 		name: 'read_file',
-		description: 'Returns file contents of a given URI.',
+		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
 		params: {
 			uri: { type: 'string', description: undefined },
 		},

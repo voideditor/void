@@ -156,6 +156,8 @@ export interface IChatThreadService {
 	openNewThread(): void;
 	switchToThread(threadId: string): void;
 
+	// you can edit multiple messages
+	// the one you're currently editing is "focused", and we add items to that one when you press cmd+L.
 	getFocusedMessageIdx(): number | undefined;
 	isFocusingMessage(): boolean;
 	setFocusedMessageIdx(messageIdx: number | undefined): void;
@@ -164,8 +166,12 @@ export interface IChatThreadService {
 	_useCurrentThreadState(): readonly [ThreadType['state'], (newState: Partial<ThreadType['state']>) => void];
 	_useCurrentMessageState(messageIdx: number): readonly [UserMessageState, (newState: Partial<UserMessageState>) => void];
 
+	// call to edit a message
 	editUserMessageAndStreamResponse({ userMessage, chatMode, messageIdx }: { userMessage: string, chatMode: ChatMode, messageIdx: number }): Promise<void>;
+
+	// call to add a message
 	addUserMessageAndStreamResponse({ userMessage, chatMode }: { userMessage: string, chatMode: ChatMode }): Promise<void>;
+
 	cancelStreaming(threadId: string): void;
 	dismissStreamError(threadId: string): void;
 

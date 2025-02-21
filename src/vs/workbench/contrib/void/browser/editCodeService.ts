@@ -1619,48 +1619,47 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 						console.log('delta', deltaFinalText)
 						console.log('currLines', infoOfAddedBlockNum[blockNum].currentBounds)
-
 					} // end for
 
 					console.log('diffZone._streamState.line', diffZone._streamState.line)
 					this._refreshStylesAndDiffsInURI(uri)
 				},
 				onFinalMessage: async ({ fullText }) => {
-					// console.log('final message!!', fullText)
+					console.log('final message!!', fullText)
 
-					// // 1. wait 500ms and fix lint errors - call lint error workflow
-					// // (update react state to say "Fixing errors")
-					// const blocks = extractSearchReplaceBlocks(fullText)
+					// 1. wait 500ms and fix lint errors - call lint error workflow
+					// (update react state to say "Fixing errors")
+					const blocks = extractSearchReplaceBlocks(fullText)
 
-					// if (blocks.length === 0) {
-					// 	this._notificationService.info(`Void: When running Apply, your model didn't output any changes that Void recognized. You might need to use a smarter model for Apply.`)
-					// }
+					if (blocks.length === 0) {
+						this._notificationService.info(`Void: When running Apply, your model didn't output any changes that Void recognized. You might need to use a smarter model for Apply.`)
+					}
 
-					// // writeover the whole file
-					// let newCode = originalFileCode
-					// for (let blockNum = infoOfAddedBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
-					// 	const { originalBounds } = infoOfAddedBlockNum[blockNum]
-					// 	const finalCode = blocks[blockNum].final
+					// writeover the whole file
+					let newCode = originalFileCode
+					for (let blockNum = infoOfAddedBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
+						const { originalBounds } = infoOfAddedBlockNum[blockNum]
+						const finalCode = blocks[blockNum].final
 
-					// 	if (finalCode === null) continue
+						if (finalCode === null) continue
 
-					// 	const [originalStart, originalEnd] = originalBounds
-					// 	const lines = newCode.split('\n')
-					// 	newCode = [
-					// 		...lines.slice(0, (originalStart - 1)),
-					// 		...finalCode.split('\n'),
-					// 		...lines.slice((originalEnd - 1) + 1, Infinity)
-					// 	].join('\n')
-					// }
-					// const numLines = this._getNumLines(uri)
-					// if (numLines !== null) {
-					// 	this._writeText(uri, newCode,
-					// 		{ startLineNumber: 1, startColumn: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
-					// 		{ shouldRealignDiffAreas: true }
-					// 	)
-					// }
+						const [originalStart, originalEnd] = originalBounds
+						const lines = newCode.split('\n')
+						newCode = [
+							...lines.slice(0, (originalStart - 1)),
+							...finalCode.split('\n'),
+							...lines.slice((originalEnd - 1) + 1, Infinity)
+						].join('\n')
+					}
+					const numLines = this._getNumLines(uri)
+					if (numLines !== null) {
+						this._writeText(uri, newCode,
+							{ startLineNumber: 1, startColumn: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
+							{ shouldRealignDiffAreas: true }
+						)
+					}
 
-					// onDone()
+					onDone()
 				},
 				onError: (e) => {
 					this._notifyError(e)

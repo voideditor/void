@@ -113,7 +113,7 @@ const findTextInCode = (text: string, fileContents: string) => {
 	const startLine = fileContents.substring(0, idx).split('\n').length
 	const numLines = text.split('\n').length
 	const endLine = startLine + numLines - 1
-	return [startLine, endLine]
+	return [startLine, endLine] as const
 }
 
 
@@ -164,7 +164,6 @@ type CommonZoneProps = {
 
 	_URI: URI; // typically we get the URI from model
 
-	_removeStylesFns: Set<Function>; // these don't remove diffs or this diffArea, only their styles
 }
 
 type CtrlKZone = {
@@ -180,6 +179,7 @@ type CtrlKZone = {
 	}
 
 	_linkedStreamingDiffZone: number | null; // diffareaid of the diffZone currently streaming here
+	_removeStylesFns: Set<Function> // these don't remove diffs or this diffArea, only their styles
 
 } & CommonZoneProps
 
@@ -199,12 +199,22 @@ type DiffZone = {
 	};
 	editorId?: undefined;
 	linkedStreamingDiffZone?: undefined;
+	_removeStylesFns: Set<Function> // these don't remove diffs or this diffArea, only their styles
 } & CommonZoneProps
 
 
 
+type TrackingZone<T> = {
+	type: 'TrackingZone';
+	metadata: T;
+	originalCode?: undefined;
+	editorId?: undefined;
+	_removeStylesFns?: undefined;
+} & CommonZoneProps
+
+
 // called DiffArea for historical purposes, we can rename to something like TextRegion if we want
-type DiffArea = CtrlKZone | DiffZone
+type DiffArea = CtrlKZone | DiffZone | TrackingZone<any>
 
 const diffAreaSnapshotKeys = [
 	'type',
@@ -823,7 +833,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					this.diffAreaOfId[diffareaid] = {
 						...snapshottedDiffArea as DiffAreaSnapshot<CtrlKZone>,
 						_URI: uri,
-						_removeStylesFns: new Set(),
+						_removeStylesFns: new Set<Function>(),
 						_mountInfo: null,
 						_linkedStreamingDiffZone: null, // when restoring, we will never be streaming
 					}
@@ -881,8 +891,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		if (diffArea.type === 'DiffZone')
 			this._deleteDiffs(diffArea)
 
-		diffArea._removeStylesFns.forEach(removeStyles => removeStyles())
-		diffArea._removeStylesFns.clear()
+		diffArea._removeStylesFns?.forEach(removeStyles => removeStyles())
+		diffArea._removeStylesFns?.clear()
 	}
 
 
@@ -1112,7 +1122,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		latestMutable.originalCodeStartLine = startLineInOriginalCode
 
-		return { endLineInLlmTextSoFar, numNewLines }
+		return { endLineInLlmTextSoFar, numNewLines } // numNewLines here might not be correct....
 	}
 
 
@@ -1429,13 +1439,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let { onFinishEdit } = this._addToHistory(uri)
 
 		// TODO replace these with whatever block we're on initially if already started
-		const infoOfAddedBlockNum: {
-			originalBounds: [number, number], // 1-indexed
-			currentBounds: [number, number], // 1-indexed
-			originalCode: string,
-		}[] = []
 
-		let oldBlocks: ExtractedSearchReplaceBlock[] = []
+		type SearchReplaceDiffAreaMetadata = {
+			originalBounds: [number, number], // 1-indexed
+			originalCode: string,
+		}
+
+		const addedDiffAreaOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
@@ -1463,18 +1473,21 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
+
 		const findTextInCodeWithAdjustedOffset = (blockNum: number, block: ExtractedSearchReplaceBlock): string | { originalBounds: [number, number], currentBounds: [number, number] } => {
+			// call findInText
 			const foundInCode = findTextInCode(block.orig, originalFileCode)
+
+			// if error, return error as a string
 			if (typeof foundInCode === 'string') {
-				console.log('Apply error:', foundInCode, '; trying again.')
 				return foundInCode
 			}
-			const [originalStart, originalEnd] = foundInCode
 
-			// compute line offset if there were changes in the past
+			// adjust based on the changes by computing line offset
+			const [originalStart, originalEnd] = foundInCode
 			let lineOffset = 0
 			for (let i = 0; i < blockNum; i += 1) {
-				const { originalBounds: [otherBlockOriginalStart, otherBlockOriginalEnd], } = infoOfAddedBlockNum[i]
+				const { originalBounds: [otherBlockOriginalStart, otherBlockOriginalEnd], } = addedDiffAreaOfBlockNum[i].metadata
 				const finalCode = block.final
 
 				if (otherBlockOriginalStart > originalEnd) continue
@@ -1493,9 +1506,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
-		let latestStreamLocationMutable: StreamLocationMutable | null = null
-
-
 
 		const onDone = () => {
 			diffZone._streamState = { isStreaming: false, }
@@ -1507,12 +1517,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		// refresh now in case onText takes a while to get 1st message
 		this._refreshStylesAndDiffsInURI(uri)
 
-
+		let latestStreamLocationMutable: StreamLocationMutable | null = null
 		let shouldUpdateOrigStreamPos = true
 
+		let oldBlocks: ExtractedSearchReplaceBlock[] = []
+
+		// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
 		let shouldSendAnotherMessage = true
 		let nMessagesSent = 0
-		// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
 		let currStreamingBlockNum = 0
 		while (shouldSendAnotherMessage) {
 			shouldSendAnotherMessage = false
@@ -1524,8 +1536,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				logging: { loggingName: `generateSearchAndReplace` },
 				messages,
 				onText: ({ fullText }) => {
+					// blocks are [done done done ... {writingFinal|writingOriginal}]
+					//               ^
+					//              currStreamingBlockNum
+
 					const blocks = extractSearchReplaceBlocks(fullText)
-					if (blocks.length === 2) return
 
 					for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
 						const block = blocks[blockNum]
@@ -1534,12 +1549,23 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						if (block.state === 'writingOriginal') {
 							// update stream state
 							if (shouldUpdateOrigStreamPos && block.orig.trim().length >= 20) {
-								console.log('or')
-								const startingAtLine = latestStreamLocationMutable?.line ?? 1 // dont go backwards if already have a stream line
-								const blockOrigLines = block.orig.split('\n')
-								const idx = originalFileCode.indexOf(blockOrigLines.slice(startingAtLine, Infinity).join('\n'), (startingAtLine - 1))
-								diffZone._streamState.line = originalFileCode.substring(0, idx).split('\n').length
-								shouldUpdateOrigStreamPos = false
+
+								const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
+
+								const originalCodeStartingAtLine = originalFileCode.split('\n').slice(startingAtLine, Infinity).join('\n')
+								const idxInAfter = originalCodeStartingAtLine.indexOf(block.orig)
+
+								console.log('SEARCHED FOR:\n', block.orig, '\nIN:\n', originalCodeStartingAtLine, '\nGOT:\n', idxInAfter)
+
+								if (idxInAfter !== -1) {
+									const numOriginalCodeLinesBefore = originalCodeStartingAtLine.substring(0, idxInAfter).split('\n').length
+									const lineNum = startingAtLine + numOriginalCodeLinesBefore
+
+									console.log('SWITCHING TO LINE', lineNum)
+
+									diffZone._streamState.line = lineNum
+									shouldUpdateOrigStreamPos = false
+								}
 							}
 							continue
 						}
@@ -1547,10 +1573,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 						// if this is the first time we're seeing this block, add it as a blocknum
-						if (!(blockNum in infoOfAddedBlockNum)) {
-
+						if (!(blockNum in addedDiffAreaOfBlockNum)) {
 							const pos = findTextInCodeWithAdjustedOffset(blockNum, block)
 
+							// if error
 							if (typeof pos === 'string') {
 								const errorStartingBlock = pos
 								console.log('ERROR STARTING BLOCK SPOT!!!!!', errorStartingBlock)
@@ -1569,34 +1595,29 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								continue
 							}
 
-							console.log('orig bounds', pos.originalBounds)
-							console.log('curr bounds', pos.currentBounds)
-
-							infoOfAddedBlockNum.push({
-								originalBounds: [...pos.originalBounds],
-								currentBounds: [...pos.currentBounds],
-								originalCode: block.orig,
-							})
-
+							// otherwise if no error, add the position as a diffarea
+							const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
+								type: 'TrackingZone',
+								startLine: pos.currentBounds[0],
+								endLine: pos.currentBounds[1],
+								_URI: uri,
+								metadata: {
+									originalBounds: pos.originalBounds,
+									originalCode: block.orig,
+								},
+							}
+							const trackingZone = this._addDiffArea(adding)
+							addedDiffAreaOfBlockNum.push(trackingZone)
 							latestStreamLocationMutable = { line: pos.currentBounds[0], addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-
-							console.log('latestStreamLocation', latestStreamLocationMutable)
-
-						}
-
+						} // <-- done adding diffarea
 
 						// if a block is done, finish it
 						if (block.state === 'done') {
-							const { currentBounds: [finalStartLine, finalEndLine] } = infoOfAddedBlockNum[blockNum]
-							console.log('FINISHING!!!!!!', blockNum, ':', finalStartLine, finalEndLine, block.final)
-
-
+							const { startLine: finalStartLine, endLine: finalEndLine } = addedDiffAreaOfBlockNum[blockNum]
 							this._writeText(uri, block.final,
 								{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalEndLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 								{ shouldRealignDiffAreas: true }
 							)
-							infoOfAddedBlockNum[blockNum].currentBounds[1] = infoOfAddedBlockNum[blockNum].currentBounds[0] + block.final.split('\n').length - 1
-
 							currStreamingBlockNum = blockNum + 1
 						}
 
@@ -1608,20 +1629,17 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						if (!latestStreamLocationMutable) continue
 
 
+						// write the added text to the file
+						const { endLine: currentEndLine } = addedDiffAreaOfBlockNum[blockNum]
 						const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
+						this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
+						diffZone._streamState.line = currentEndLine
+						console.log('CURRENT LINE', currentEndLine)
+
 						oldBlocks = blocks
 
-						const { numNewLines } = this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
-						const currLine = infoOfAddedBlockNum[blockNum].currentBounds[1] + numNewLines
-						console.log('currline A', currLine)
-						infoOfAddedBlockNum[blockNum].currentBounds[1] = currLine
-						diffZone._streamState.line = currLine
-
-						console.log('delta', deltaFinalText)
-						console.log('currLines', infoOfAddedBlockNum[blockNum].currentBounds)
 					} // end for
 
-					console.log('diffZone._streamState.line', diffZone._streamState.line)
 					this._refreshStylesAndDiffsInURI(uri)
 				},
 				onFinalMessage: async ({ fullText }) => {
@@ -1637,8 +1655,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 					// writeover the whole file
 					let newCode = originalFileCode
-					for (let blockNum = infoOfAddedBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
-						const { originalBounds } = infoOfAddedBlockNum[blockNum]
+					for (let blockNum = addedDiffAreaOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
+						const { originalBounds } = addedDiffAreaOfBlockNum[blockNum].metadata
 						const finalCode = blocks[blockNum].final
 
 						if (finalCode === null) continue

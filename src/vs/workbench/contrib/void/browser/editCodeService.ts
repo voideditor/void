@@ -1596,15 +1596,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							latestStreamLocationMutable = { line: startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 						} // <-- done adding diffarea
 
-						// if a block is done, finish it by writing all
-						if (block.state === 'done') {
-							const { startLine: finalStartLine, endLine: finalEndLine } = addedDiffAreaOfBlockNum[blockNum]
-							this._writeText(uri, block.final,
-								{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalEndLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-								{ shouldRealignDiffAreas: true }
-							)
-							currStreamingBlockNum = blockNum + 1
-						}
 
 						// should always be in streaming state here
 						if (!diffZone._streamState.isStreaming) {
@@ -1613,17 +1604,25 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						}
 						if (!latestStreamLocationMutable) continue
 
+						// if a block is done, finish it by writing all
+						if (block.state === 'done') {
+							const { startLine: finalStartLine, endLine: finalEndLine } = addedDiffAreaOfBlockNum[blockNum]
+							this._writeText(uri, block.final,
+								{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalEndLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+								{ shouldRealignDiffAreas: true }
+							)
+							diffZone._streamState.line = finalEndLine + 1
+							currStreamingBlockNum = blockNum + 1
+							continue
+						}
 
 						// write the added text to the file
 						const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
 						this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
-						oldBlocks = blocks
+						oldBlocks = blocks // oldblocks is only used if writingFinal
 
-						// update stream line if it's still streaming (otherwise another block might be streaming)
-						if (block.state !== 'done') {
-							const { endLine: currentEndLine } = addedDiffAreaOfBlockNum[blockNum]
-							diffZone._streamState.line = currentEndLine
-						}
+						const { endLine: currentEndLine } = addedDiffAreaOfBlockNum[blockNum]
+						diffZone._streamState.line = currentEndLine
 
 
 					} // end for

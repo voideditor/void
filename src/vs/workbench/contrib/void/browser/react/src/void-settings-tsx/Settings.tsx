@@ -21,7 +21,7 @@ import { os } from '../../../helpers/systemInfo.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
-	return <div className='flex items-center text-void-fg-3 mb-1 px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
+	return <div className='flex items-center text-void-fg-3 px-3 py-0.5 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
 		<button className='flex items-center' disabled={disabled} onClick={onClick}>
 			{icon}
 		</button>
@@ -82,9 +82,7 @@ const RefreshableModels = () => {
 
 	const buttons = refreshableProviderNames.map(providerName => {
 		if (!settingsState.settingsOfProvider[providerName]._didFillInProviderSettings) return null
-		return <div key={providerName} className='pb-4'>
-			<RefreshModelButton providerName={providerName} />
-		</div>
+		return <RefreshModelButton key={providerName} providerName={providerName} />
 	})
 
 	return <>
@@ -257,7 +255,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 
 	// const { title: providerTitle, } = displayInfoOfProviderName(providerName)
 
-	const { title: settingTitle, placeholder, subTextMd } = displayInfoOfSettingName(providerName, settingName)
+	const { title: settingTitle, placeholder, isPasswordField, subTextMd } = displayInfoOfSettingName(providerName, settingName)
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
@@ -269,6 +267,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 			<VoidInputBox
 				// placeholder={`${providerTitle} ${settingTitle} (${placeholder})`}
 				placeholder={`${settingTitle} (${placeholder})`}
+
 				onChangeText={useCallback((newVal) => {
 					if (weChangedTextRef) return
 					voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
@@ -291,6 +290,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 					return [disposable]
 				}, [voidSettingsService, providerName, settingName])}
 				multiline={false}
+				isPasswordField={isPasswordField}
 			/>
 			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-sm'>
 				<ChatMarkdownRender noSpace string={subTextMd} />
@@ -339,7 +339,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 			{needsModel ?
 				providerName === 'ollama' ?
 					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
-					: <WarningBox text={`Please add a model for ${providerTitle} below (Models).`} />
+					: <WarningBox text={`Please add a model for ${providerTitle} (Models section).`} />
 				: null}
 		</div>
 	</div >
@@ -368,15 +368,16 @@ export const AutoRefreshToggle = () => {
 	// right now this is just `enabled_autoRefreshModels`
 	const enabled = voidSettingsState.globalSettings[settingName]
 
-	return <SubtleButton
-		onClick={() => {
-			voidSettingsService.setGlobalSetting(settingName, !enabled)
-			metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: !enabled })
-		}}
-		text={`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
-		icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
-		disabled={false}
-	/>
+	return  <SubtleButton
+			onClick={() => {
+				voidSettingsService.setGlobalSetting(settingName, !enabled)
+				metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: !enabled })
+			}}
+			text={`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
+			icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
+			disabled={false}
+		/>
+
 }
 
 export const AIInstructionsBox = () => {
@@ -400,6 +401,7 @@ export const FeaturesTab = () => {
 		<ErrorBoundary>
 			<AutoRefreshToggle />
 			<RefreshableModels />
+			<div className='py-2'/>
 			<ModelDump />
 			<AddModelMenuFull />
 		</ErrorBoundary>

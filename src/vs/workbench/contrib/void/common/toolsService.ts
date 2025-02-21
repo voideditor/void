@@ -68,6 +68,18 @@ export const voidTools = {
 		required: ['query'],
 	},
 
+	// go_to_definition:
+
+	// go_to_usages:
+
+	// create_file: {
+	// 	name: 'create_file',
+	// 	description: `Creates a file at the given path. Fails gracefully if the file already exists by doing nothing.`
+	// 	params: {
+	// 		uri: { type: 'string', description: undefined },
+	// 	}
+	// }
+
 	// semantic_search: {
 	// 	description: 'Searches files semantically for the given string query.',
 	// 	// RAG
@@ -86,6 +98,7 @@ export type ToolCallReturnType<T extends ToolName>
 	: T extends 'list_dir' ? string
 	: T extends 'pathname_search' ? string | URI[]
 	: T extends 'search' ? string | URI[]
+	: T extends 'create_file' ? string
 	: never
 
 export type ToolFns = { [T in ToolName]: (p: string) => Promise<[ToolCallReturnType<T>, boolean]> }

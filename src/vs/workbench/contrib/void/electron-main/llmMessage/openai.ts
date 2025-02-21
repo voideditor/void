@@ -201,6 +201,7 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: me
 				// message
 				let newText = ''
 				newText += chunk.choices[0]?.delta?.content ?? ''
+				console.log('!!!!', chunk.choices[0]?.delta)
 				fullText += newText;
 
 				onText({ newText, fullText });

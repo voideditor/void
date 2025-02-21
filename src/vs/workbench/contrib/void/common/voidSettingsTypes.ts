@@ -505,9 +505,10 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 }
 
 type DisplayInfo = {
-	title: string,
-	placeholder: string,
-	subTextMd?: string,
+	title: string;
+	placeholder: string;
+	subTextMd?: string;
+	isPasswordField?: boolean;
 }
 export const displayInfoOfSettingName = (providerName: ProviderName, settingName: SettingName): DisplayInfo => {
 	if (settingName === 'apiKey') {
@@ -537,6 +538,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 										providerName === 'xAI' ? 'Get your [API Key here](https://console.x.ai).' :
 											providerName === 'openAICompatible' ? undefined :
 												'',
+			isPasswordField: true,
 		}
 	}
 	else if (settingName === 'endpoint') {

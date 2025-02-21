@@ -1517,7 +1517,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._refreshStylesAndDiffsInURI(uri)
 
 		let latestStreamLocationMutable: StreamLocationMutable | null = null
-		let shouldUpdateOrigStreamPos = true
+		let shouldUpdateOrigStreamStyle = true
 
 		let oldBlocks: ExtractedSearchReplaceBlock[] = []
 
@@ -1544,24 +1544,25 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
 						const block = blocks[blockNum]
 
-						// must be done writing original to stream code
 						if (block.state === 'writingOriginal') {
-							// update stream state
-							if (shouldUpdateOrigStreamPos && block.orig.trim().length >= 20) {
+							// update stream state to the first line of original if some portion of original has been written
+							if (shouldUpdateOrigStreamStyle && block.orig.trim().length >= 20) {
 								const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
 								const originalRange = findTextInCode(block.orig, originalFileCode, startingAtLine)
 								if (typeof originalRange !== 'string') {
-									const [_, endLine] = convertOriginalRangeToFinalRange(originalRange)
-									diffZone._streamState.line = endLine
-									shouldUpdateOrigStreamPos = false
+									const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
+									diffZone._streamState.line = startLine
+									console.log('CURRENT LINE A', startLine)
+									shouldUpdateOrigStreamStyle = false
 								}
 							}
+							// must be done writing original to move on to writing streamed content
 							continue
 						}
-						shouldUpdateOrigStreamPos = true
+						shouldUpdateOrigStreamStyle = true
 
 
-						// if this is the first time we're seeing this block, add it as a blocknum
+						// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming
 						if (!(blockNum in addedDiffAreaOfBlockNum)) {
 							const originalBounds = findTextInCode(block.orig, originalFileCode)
 
@@ -1595,7 +1596,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							latestStreamLocationMutable = { line: startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 						} // <-- done adding diffarea
 
-						// if a block is done, finish it
+						// if a block is done, finish it by writing all
 						if (block.state === 'done') {
 							const { startLine: finalStartLine, endLine: finalEndLine } = addedDiffAreaOfBlockNum[blockNum]
 							this._writeText(uri, block.final,
@@ -1614,13 +1615,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 						// write the added text to the file
-						const { endLine: currentEndLine } = addedDiffAreaOfBlockNum[blockNum]
 						const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
 						this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
-						diffZone._streamState.line = currentEndLine
-						console.log('CURRENT LINE', currentEndLine)
-
 						oldBlocks = blocks
+
+						// update stream line if it's still streaming (otherwise another block might be streaming)
+						if (block.state !== 'done') {
+							const { endLine: currentEndLine } = addedDiffAreaOfBlockNum[blockNum]
+							diffZone._streamState.line = currentEndLine
+						}
+
 
 					} // end for
 

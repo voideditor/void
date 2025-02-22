@@ -10,12 +10,12 @@ import { InternalToolInfo } from '../../common/toolsService.js';
 import { addSystemMessageAndToolSupport } from './preprocessLLMMessages.js';
 import { developerInfoOfModelName, developerInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 import { isAToolName } from './postprocessToolCalls.js';
-// import { parseMaxTokensStr } from './util.js';
 
 
 // developer command - https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
 // prompting - https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
 
+// npm i @openrouter/ai-sdk-provider ai ollama-ai-provider
 
 export const toOpenAITool = (toolInfo: InternalToolInfo) => {
 	const { name, description, params, required } = toolInfo
@@ -201,7 +201,7 @@ export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = ({ messages: me
 				// message
 				let newText = ''
 				newText += chunk.choices[0]?.delta?.content ?? ''
-				console.log('!!!!', chunk.choices[0]?.delta)
+				console.log('!!!!', JSON.stringify(chunk, null, 2))
 				fullText += newText;
 
 				onText({ newText, fullText });

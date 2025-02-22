@@ -703,7 +703,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		className={`
 			relative
 			${mode === 'edit' ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
+				: role === 'user' ? `my-0.5 px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
 		`}

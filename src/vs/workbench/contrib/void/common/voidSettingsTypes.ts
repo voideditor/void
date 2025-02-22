@@ -545,7 +545,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 		return {
 			title: providerName === 'ollama' ? 'Endpoint' :
 				providerName === 'vLLM' ? 'Endpoint' :
-					providerName === 'openAICompatible' ? 'baseURL' :// (do not include /chat/completions)
+					providerName === 'openAICompatible' ? 'baseURL' : // (do not include /chat/completions)
 						'(never)',
 
 			placeholder: providerName === 'ollama' ? defaultProviderSettings.ollama.endpoint

@@ -545,16 +545,16 @@ export const SelectedFiles = (
 
 type ToolReusltToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
 interface ToolResultProps {
-	title: string;
-	desc: string;
-	desc2?: number;
+	actionTitle: string;
+	actionParam: string;
+	actionNumResults?: number;
 	children?: React.ReactNode;
 }
 
 const ToolResult = ({
-	title,
-	desc,
-	desc2,
+	actionTitle,
+	actionParam,
+	actionNumResults,
 	children,
 }: ToolResultProps) => {
 	const [isExpanded, setIsExpanded] = useState(false);
@@ -563,7 +563,7 @@ const ToolResult = ({
 
 	return (
 		<div className="mx-4 select-none">
-			<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-2-alt">
+			<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
 				<div
 					className={`flex items-center min-h-[24px] ${isDropdown  ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : 'mx-1'}`}
 					onClick={() => children && setIsExpanded(!isExpanded)}
@@ -574,11 +574,11 @@ const ToolResult = ({
 						/>
 					)}
 					<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
-						<span className="text-void-fg-3">{title}</span>
-						<span className="text-void-fg-4 text-xs italic">{`"`}{desc}{`"`}</span>
-						{desc2 !== undefined && (
+						<span className="text-void-fg-3">{actionTitle}</span>
+						<span className="text-void-fg-4 text-xs italic">{`"`}{actionParam}{`"`}</span>
+						{actionNumResults !== undefined && (
 							<span className="text-void-fg-4 text-xs">
-								{`(`}{desc2}{` result`}{desc2 !== 1 ? 's' : ''}{`)`}
+								{`(`}{actionNumResults}{` result`}{actionNumResults !== 1 ? 's' : ''}{`)`}
 							</span>
 						)}
 					</div>
@@ -598,15 +598,15 @@ const ToolResult = ({
 const toolResultToComponent: ToolReusltToComponent = {
 	'read_file': ({ message }) => (
 		<ToolResult
-			title="Read file"
-			desc={getBasename(message.result.uri.fsPath)}
+			actionTitle="Read file"
+			actionParam={getBasename(message.result.uri.fsPath)}
 		/>
 	),
 	'list_dir': ({ message }) => (
 		<ToolResult
-			title="Inspected folder"
-			desc={`${getBasename(message.result.rootURI.fsPath)}/`}
-			desc2={message.result.children?.length}
+			actionTitle="Inspected folder"
+			actionParam={`${getBasename(message.result.rootURI.fsPath)}/`}
+			actionNumResults={message.result.children?.length}
 		>
 			<div className="text-void-fg-2">
 				{message.result.children?.map((item, i) => (
@@ -625,9 +625,9 @@ const toolResultToComponent: ToolReusltToComponent = {
 	),
 	'pathname_search': ({ message }) => (
 		<ToolResult
-			title="Searched filename"
-			desc={message.result.queryStr}
-			desc2={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+			actionTitle="Searched filename"
+			actionParam={message.result.queryStr}
+			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
 		>
 			<div className="text-void-fg-2">
 				{Array.isArray(message.result.uris) ?
@@ -653,9 +653,9 @@ const toolResultToComponent: ToolReusltToComponent = {
 	),
 	'search': ({ message }) => (
 		<ToolResult
-			title="Searched"
-			desc={message.result.queryStr}
-			desc2={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+			actionTitle="Searched"
+			actionParam={message.result.queryStr}
+			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
 		>
 			<div className="text-void-fg-2">
 				{typeof message.result.uris === 'string' ?

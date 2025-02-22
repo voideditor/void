@@ -590,7 +590,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 			_mustInitialize.current = false
 		}
 
-	}, [role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
+	}, [chatMessage, role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
 	const EditSymbol = mode === 'display' ? Pencil : X
 	const onOpenEdit = () => {
 		setIsBeingEdited(true)
@@ -631,7 +631,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 				// stream the edit
 				const userMessage = textAreaRefState.value;
-				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx })
+				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx, })
 			}
 
 			const onAbort = () => {

@@ -29,16 +29,23 @@ module.exports = {
 			colors: {
 				"void-bg-1": "var(--vscode-input-background)",
 				"void-bg-2": "var(--vscode-sideBar-background)",
+				"void-bg-2-alt": "color-mix(in srgb, var(--vscode-sideBar-background) 30%, var(--vscode-editor-background) 70%)",
 				"void-bg-3": "var(--vscode-editor-background)",
+
 
 				"void-fg-1": "var(--vscode-editor-foreground)",
 				"void-fg-2": "var(--vscode-input-foreground)",
 				"void-fg-3": "var(--vscode-input-placeholderForeground)",
+				// "void-fg-4": "var(--vscode-tab-inactiveForeground)",
+				"void-fg-4": "var(--vscode-list-deemphasizedForeground)",
+
+
 				"void-warning": "var(--vscode-charts-yellow)",
 
 				"void-border-1": "var(--vscode-commandCenter-activeBorder)",
 				"void-border-2": "var(--vscode-commandCenter-border)",
 				"void-border-3": "var(--vscode-commandCenter-inactiveBorder)",
+				"void-border-3": "var(--vscode-settings-sashBorder)",
 
 
 				vscode: {

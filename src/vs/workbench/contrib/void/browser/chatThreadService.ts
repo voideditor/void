@@ -48,13 +48,13 @@ export type FileSelection = {
 export type StagingSelectionItem = CodeSelection | FileSelection
 
 
-type ToolMessage<T extends ToolName> = {
+export type ToolMessage<T extends ToolName> = {
 	role: 'tool';
 	name: T; // internal use
 	params: string; // internal use
 	id: string; // apis require this tool use id
 	content: string; // result
-	result: ToolCallReturnType<T>; // text message of result
+	result: ToolCallReturnType[T]; // text message of result
 }
 
 
@@ -430,10 +430,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 								// 1.
 								let toolResult: Awaited<ReturnType<ToolFns[ToolName]>>
-								let toolResultVal: ToolCallReturnType<ToolName>
+								let toolResultVal: ToolCallReturnType[ToolName]
 								try {
 									toolResult = await this._toolsService.toolFns[toolName](tool.params)
-									toolResultVal = toolResult[0]
+									toolResultVal = toolResult
 								} catch (error) {
 									this._setStreamState(threadId, { error })
 									shouldSendAnotherMessage = false

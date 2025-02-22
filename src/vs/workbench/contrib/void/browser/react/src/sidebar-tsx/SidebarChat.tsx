@@ -7,7 +7,7 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
-import { ChatMessage, StagingSelectionItem } from '../../../chatThreadService.js';
+import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
@@ -21,10 +21,11 @@ import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { Pencil, X } from 'lucide-react';
+import { ChevronRight, Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { ChatMessageLocation } from '../../../aiRegexService.js';
+import { ToolCallReturnType, ToolName } from '../../../../common/toolsService.js';
 
 
 
@@ -542,6 +543,146 @@ export const SelectedFiles = (
 }
 
 
+type ToolReusltToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
+interface ToolResultProps {
+	title: string;
+	desc: string;
+	desc2?: number;
+	children?: React.ReactNode;
+}
+
+const ToolResult = ({
+	title,
+	desc,
+	desc2,
+	children,
+}: ToolResultProps) => {
+	const [isExpanded, setIsExpanded] = useState(false);
+
+	const isDropdown = !!children
+
+	return (
+		<div className="mx-4 select-none">
+			<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-2-alt">
+				<div
+					className={`flex items-center min-h-[24px] ${isDropdown  ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : 'mx-1'}`}
+					onClick={() => children && setIsExpanded(!isExpanded)}
+				>
+					{isDropdown  && (
+						<ChevronRight
+							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
+						/>
+					)}
+					<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+						<span className="text-void-fg-3">{title}</span>
+						<span className="text-void-fg-4 text-xs italic">{`"`}{desc}{`"`}</span>
+						{desc2 !== undefined && (
+							<span className="text-void-fg-4 text-xs">
+								{`(`}{desc2}{` result`}{desc2 !== 1 ? 's' : ''}{`)`}
+							</span>
+						)}
+					</div>
+				</div>
+				<div
+					className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+				>
+					{children}
+				</div>
+			</div>
+		</div>
+	);
+};
+
+
+
+const toolResultToComponent: ToolReusltToComponent = {
+	'read_file': ({ message }) => (
+		<ToolResult
+			title="Read file"
+			desc={getBasename(message.result.uri.fsPath)}
+		/>
+	),
+	'list_dir': ({ message }) => (
+		<ToolResult
+			title="Inspected folder"
+			desc={`${getBasename(message.result.rootURI.fsPath)}/`}
+			desc2={message.result.children?.length}
+		>
+			<div className="text-void-fg-2">
+				{message.result.children?.map((item, i) => (
+					<div key={i} className="pl-2">
+						• {item.name}
+						{item.isDirectory && '/'}
+					</div>
+				))}
+				{message.result.hasNextPage && (
+					<div className="pl-2 text-void-fg-3 italic">
+						{message.result.itemsRemaining} more items...
+					</div>
+				)}
+			</div>
+		</ToolResult>
+	),
+	'pathname_search': ({ message }) => (
+		<ToolResult
+			title="Searched filename"
+			desc={message.result.queryStr}
+			desc2={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+		>
+			<div className="text-void-fg-2">
+				{Array.isArray(message.result.uris) ?
+					message.result.uris.map((uri, i) => (
+						<div key={i} className="pl-2">
+							<a
+								href={uri.toString()}
+								className="text-void-accent hover:underline"
+							>
+								• {uri.fsPath.split('/').pop()}
+							</a>
+						</div>
+					)) :
+					<div className="pl-2">{message.result.uris}</div>
+				}
+				{message.result.hasNextPage && (
+					<div className="pl-2 text-void-fg-3 italic">
+						More results available...
+					</div>
+				)}
+			</div>
+		</ToolResult>
+	),
+	'search': ({ message }) => (
+		<ToolResult
+			title="Searched"
+			desc={message.result.queryStr}
+			desc2={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+		>
+			<div className="text-void-fg-2">
+				{typeof message.result.uris === 'string' ?
+					message.result.uris :
+					message.result.uris.map((uri, i) => (
+						<div key={i} className="pl-2">
+							<a
+								href={uri.toString()}
+								className="text-void-accent hover:underline"
+							>
+								• {uri.fsPath}
+							</a>
+						</div>
+					))
+				}
+				{message.result.hasNextPage && (
+					<div className="pl-2 text-void-fg-3 italic">
+						More results available...
+					</div>
+				)}
+			</div>
+		</ToolResult>
+	)
+};
+
+
+
 type ChatBubbleMode = 'display' | 'edit'
 const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatMessage, messageIdx?: number, isLoading?: boolean, }) => {
 
@@ -695,7 +836,13 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatMessageLocation={chatMessageLocation} />
 	}
 	else if (role === 'tool') {
-		chatbubbleContents = chatMessage.name
+
+		const ToolComponent = toolResultToComponent[chatMessage.name] as ({ message }: { message: any }) => React.ReactNode // ts isnt smart enough to deal with the types here...
+
+		chatbubbleContents = <ToolComponent message={chatMessage} />
+
+		console.log('tool result:', chatMessage.name, chatMessage.params, chatMessage.result)
+
 	}
 
 	return <div

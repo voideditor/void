@@ -552,9 +552,9 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 	// global state
 	let isBeingEdited = false
-	let setIsBeingEdited = (v: boolean) => { }
 	let stagingSelections: StagingSelectionItem[] = []
-	let setStagingSelections = (s: StagingSelectionItem[]) => { }
+	let setIsBeingEdited = (_: boolean) => { }
+	let setStagingSelections = (_: StagingSelectionItem[]) => { }
 
 	if (messageIdx !== undefined) {
 		const _state = chatThreadsService.getCurrentMessageState(messageIdx)

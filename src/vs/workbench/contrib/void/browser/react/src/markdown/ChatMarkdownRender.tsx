@@ -9,6 +9,7 @@ import { BlockCode } from './BlockCode.js'
 import { ChatMessageLocation, } from '../../../aiRegexService.js'
 import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
 import { ApplyBlockHoverButtons } from './ApplyBlockHoverButtons.js'
+import { URI } from '../../../../../../../base/common/uri.js'
 
 
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }
@@ -33,7 +34,7 @@ export const CodeSpan = ({ children, className }: { children: React.ReactNode, c
 	</code>
 }
 
-const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
+const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
 
 
 	// deal with built-in tokens first (assume marked token)

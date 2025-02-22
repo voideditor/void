@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAccessor, useIsURIStreaming } from '../util/services.js'
+import { useAccessor, useIsDiffZoneStreaming } from '../util/services.js'
 import { useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 
@@ -52,43 +52,33 @@ const ApplyButton = ({ codeStr, codeBoxId }: { codeStr: string, codeBoxId: strin
 	const metricsService = accessor.get('IMetricsService')
 
 
-	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
-	const isStreaming = currStreamingDiffZoneRef.current !== null
-	const isDisabled = !!isFeatureNameDisabled('Ctrl+K', settingsState)
-
-	useIsDiffZoneStreaming(isDiffAreaStreaming)
-
-
-	const onSubmit = useCallback(() => {
-
-		const diffareaid = editCodeService.startApplying({
-			from: 'ClickApply',
-			type: 'searchReplace',
-			applyStr: codeStr,
-		})
-
-		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
+	// const isStreaming = useIsDiffZoneStreaming(isDiffAreaStreaming)
 
 
 
-		if (isDisabled) return
-		if (currStreamingDiffZoneRef.current !== null) return
-		textAreaFnsRef.current?.disable()
+	// const onSubmit = useCallback(() => {
 
-		const id = editCodeService.startApplying({
-			from: 'QuickEdit',
-			type: 'rewrite',
-			diffareaid: diffareaid,
-		})
-		setCurrentlyStreamingDiffZone(id ?? null)
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, editCodeService, diffareaid])
+	// 	const uri = editCodeService.startApplying({
+	// 		from: 'ClickApply',
+	// 		type: 'searchReplace',
+	// 		applyStr: codeStr,
+	// 	})
 
-	const onInterrupt = useCallback(() => {
-		if (currStreamingDiffZoneRef.current === null) return
-		editCodeService.interruptStreaming(currStreamingDiffZoneRef.current)
-		setCurrentlyStreamingDiffZone(null)
-		textAreaFnsRef.current?.enable()
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, editCodeService])
+	// 	metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
+
+
+
+	// 	if (isStreaming) return
+
+	// 	setCurrentlyStreamingDiffZone(id ?? null)
+	// }, [isStreaming, editCodeService])
+
+	// const onInterrupt = useCallback(() => {
+	// 	if (currStreamingDiffZoneRef.current === null) return
+	// 	editCodeService.interruptStreaming(currStreamingDiffZoneRef.current)
+	// 	setCurrentlyStreamingDiffZone(null)
+	// 	textAreaFnsRef.current?.enable()
+	// }, [isStreaming, editCodeService])
 
 
 
@@ -101,7 +91,7 @@ const ApplyButton = ({ codeStr, codeBoxId }: { codeStr: string, codeBoxId: strin
 	return <button
 		// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
 		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
-		onClick={onApply}
+		// onClick={onApply}
 	>
 		Apply
 	</button>

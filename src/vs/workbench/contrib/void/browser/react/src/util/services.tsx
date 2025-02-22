@@ -14,10 +14,6 @@ import { VoidUriState } from '../../../voidUriStateService.js';
 import { VoidQuickEditState } from '../../../quickEditStateService.js'
 import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
 
-
-
-
-
 import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { IClipboardService } from '../../../../../../../platform/clipboard/common/clipboardService.js';
@@ -47,7 +43,6 @@ import { IEnvironmentService } from '../../../../../../../platform/environment/c
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
 import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
-import { URI } from '../../../../../../../base/common/uri.js'
 
 
 
@@ -79,6 +74,13 @@ const refreshModelProviderListeners: Set<(p: RefreshableProviderName, s: Refresh
 
 let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
+
+const ctrlKZoneStreamingStateListeners: Set<(diffareaid: number, s: boolean) => void> = new Set()
+
+let diffZoneStreamingState: Record<string, boolean>
+const diffZoneStreamingStateListeners: Set<(diffareaid: number, state: boolean) => void> = new Set()
+
+
 
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
@@ -163,7 +165,7 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		refreshModelService.onDidChangeState((providerName) => {
 			refreshModelState = refreshModelService.state
 			refreshModelStateListeners.forEach(l => l(refreshModelState))
-			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState))
+			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState)) // no state
 		})
 	)
 
@@ -174,6 +176,15 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 			colorThemeStateListeners.forEach(l => l(colorThemeState))
 		})
 	)
+
+	// no state
+	disposables.push(
+		editCodeService.onDidChangeCtrlKZoneStreaming(({ diffareaid }) => {
+			const isStreaming = editCodeService.isCtrlKZoneStreaming({ diffareaid })
+			ctrlKZoneStreamingStateListeners.forEach(l => l(diffareaid, isStreaming))
+		})
+	)
+
 
 
 	return disposables
@@ -341,6 +352,23 @@ export const useRefreshModelListener = (listener: (providerName: RefreshableProv
 }
 
 
+export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boolean) => void) => {
+	useEffect(() => {
+		ctrlKZoneStreamingStateListeners.add(listener)
+		return () => { ctrlKZoneStreamingStateListeners.delete(listener) }
+	}, [listener])
+}
+
+
+export const useIsDiffZoneStreaming = (diffareaid: number) => {
+	return { current: true }
+
+}
+
+
+
+
+
 export const useIsDark = () => {
 	const [s, ss] = useState(colorThemeState)
 	useEffect(() => {
@@ -355,16 +383,3 @@ export const useIsDark = () => {
 
 }
 
-
-
-
-export const useIsCtrlKZoneStreaming = (diffareaid: number) => {
-
-	return { current: true }
-
-}
-
-
-export const useIsDiffZoneStreaming = (uri: URI) => {
-
-}

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor, useIsCtrlKZoneStreaming } from '../util/services.js';
+import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor, useCtrlKZoneStreamingState } from '../util/services.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX, VoidChatArea } from '../sidebar-tsx/SidebarChat.js';
@@ -48,11 +48,17 @@ export const QuickEditChat = ({
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!(initText ?? '')) // the user's instructions
 	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+K', settingsState)
 
-	const isStreamingRefState = useIsCtrlKZoneStreaming(diffareaid)
+
+	const [isStreamingRef, setIsStreamingRef] = useRefState(false)
+	useCtrlKZoneStreamingState(useCallback((diffareaid2, isStreaming) => {
+		if (diffareaid !== diffareaid2) return
+		setIsStreamingRef(isStreaming)
+	}, [diffareaid, setIsStreamingRef]))
+
 
 	const onSubmit = useCallback(() => {
 		if (isDisabled) return
-		if (isStreamingRefState.current) return
+		if (isStreamingRef.current) return
 		textAreaFnsRef.current?.disable()
 
 		editCodeService.startApplying({
@@ -60,13 +66,13 @@ export const QuickEditChat = ({
 			type: 'rewrite',
 			diffareaid,
 		})
-	}, [isStreamingRefState, isDisabled, editCodeService, diffareaid])
+	}, [isStreamingRef, isDisabled, editCodeService, diffareaid])
 
 	const onInterrupt = useCallback(() => {
-		if (!isStreamingRefState.current ) return
+		if (!isStreamingRef.current) return
 		editCodeService.interruptCtrlKStreaming({ diffareaid })
 		textAreaFnsRef.current?.enable()
-	}, [isStreamingRefState, editCodeService])
+	}, [isStreamingRef, editCodeService])
 
 
 	const onX = useCallback(() => {
@@ -85,7 +91,7 @@ export const QuickEditChat = ({
 			onSubmit={onSubmit}
 			onAbort={onInterrupt}
 			onClose={onX}
-			isStreaming={isStreamingRefState.current}
+			isStreaming={isStreamingRef.current}
 			isDisabled={isDisabled}
 			featureName="Ctrl+K"
 			className="py-2 w-full"

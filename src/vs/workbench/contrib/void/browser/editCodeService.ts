@@ -128,12 +128,10 @@ export type StartApplyingOpts = {
 	from: 'QuickEdit';
 	type: 'rewrite';
 	diffareaid: number; // id of the CtrlK area (contains text selection)
-	chatApplyBoxId: string | null;
 } | {
 	from: 'ClickApply';
 	type: 'searchReplace' | 'rewrite';
 	applyStr: string;
-	chatApplyBoxId: string | null;
 }
 
 
@@ -177,7 +175,6 @@ type CommonZoneProps = {
 type CtrlKZone = {
 	type: 'CtrlKZone';
 	originalCode?: undefined;
-	chatApplyBoxId?: undefined;
 
 	editorId: string; // the editor the input lives on
 
@@ -197,7 +194,6 @@ type DiffZone = {
 	type: 'DiffZone',
 	originalCode: string;
 	_diffOfId: Record<string, Diff>; // diffid -> diff in this DiffArea
-	chatApplyBoxId: string | null;
 	_streamState: {
 		isStreaming: true;
 		streamRequestIdRef: { current: string | null };
@@ -220,7 +216,6 @@ type TrackingZone<T> = {
 	originalCode?: undefined;
 	editorId?: undefined;
 	_removeStylesFns?: undefined;
-	chatApplyBoxId?: undefined;
 } & CommonZoneProps
 
 
@@ -234,7 +229,6 @@ const diffAreaSnapshotKeys = [
 	'startLine',
 	'endLine',
 	'editorId',
-	'chatApplyBoxId',
 
 ] as const satisfies (keyof DiffArea)[]
 
@@ -1268,7 +1262,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	private _initializeWriteoverStream(opts: StartApplyingOpts): DiffZone | undefined {
 
-		const { from, chatApplyBoxId } = opts
+		const { from } = opts
 
 		let startLine: number
 		let endLine: number
@@ -1320,7 +1314,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
-			chatApplyBoxId,
 			originalCode,
 			startLine,
 			endLine,
@@ -1454,7 +1447,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }) {
-		const { applyStr, chatApplyBoxId } = opts
+		const { applyStr } = opts
 
 		const uri_ = this._getActiveEditorURI()
 		if (!uri_) return
@@ -1495,7 +1488,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
-			chatApplyBoxId,
 			originalCode: originalFileCode,
 			startLine,
 			endLine,

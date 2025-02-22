@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAccessor, useIsDiffZoneStreaming } from '../util/services.js'
+import { useAccessor, useCodeBoxIdStreamingState, useSettingsState } from '../util/services.js'
 import { useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 
@@ -44,54 +44,35 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 }
 
 
+const useStreamStateRef = ({ codeBoxId }: { codeBoxId: string | null }) => {
+	const accessor = useAccessor()
+	const editCodeService = accessor.get('IEditCodeService')
+	const [isStreamingRef, setIsStreamingRef] = useRefState(editCodeService.isCodeBoxIdStreaming({ codeBoxId }))
+	useCodeBoxIdStreamingState(useCallback((codeBoxId2, isStreaming) => {
+		if (codeBoxId !== codeBoxId2) return
+		setIsStreamingRef(isStreaming)
+	}, [codeBoxId, setIsStreamingRef]))
+	return [isStreamingRef, setIsStreamingRef] as const
+}
 
-const ApplyButton = ({ codeStr, codeBoxId }: { codeStr: string, codeBoxId: string }) => {
+
+
+const StopButton = ({ codeBoxId }: { codeBoxId: string }) => {
 	const accessor = useAccessor()
 
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
 
+	const settingsState = useSettingsState()
 
-	// const isStreaming = useIsDiffZoneStreaming(isDiffAreaStreaming)
-
-
-
-	// const onSubmit = useCallback(() => {
-
-	// 	const uri = editCodeService.startApplying({
-	// 		from: 'ClickApply',
-	// 		type: 'searchReplace',
-	// 		applyStr: codeStr,
-	// 	})
-
-	// 	metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
+	const [isStreamingRef, _] = useStreamStateRef({ codeBoxId })
 
 
-
-	// 	if (isStreaming) return
-
-	// 	setCurrentlyStreamingDiffZone(id ?? null)
-	// }, [isStreaming, editCodeService])
-
-	// const onInterrupt = useCallback(() => {
-	// 	if (currStreamingDiffZoneRef.current === null) return
-	// 	editCodeService.interruptStreaming(currStreamingDiffZoneRef.current)
-	// 	setCurrentlyStreamingDiffZone(null)
-	// 	textAreaFnsRef.current?.enable()
-	// }, [isStreaming, editCodeService])
-
-
-
-
-
-
-
-	const isSingleLine = !codeStr.includes('\n')
 
 	return <button
 		// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
 		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
-		// onClick={onApply}
+		onClick={onInterrupt}
 	>
 		Apply
 	</button>
@@ -103,8 +84,57 @@ const ApplyButton = ({ codeStr, codeBoxId }: { codeStr: string, codeBoxId: strin
 
 
 export const ApplyBlockHoverButtons = ({ codeStr, codeBoxId }: { codeStr: string, codeBoxId: string | null }) => {
+
+
+
+	const accessor = useAccessor()
+
+	const editCodeService = accessor.get('IEditCodeService')
+	const metricsService = accessor.get('IMetricsService')
+
+	const settingsState = useSettingsState()
+
+	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState)
+
+	const [isStreamingRef, _] = useStreamStateRef({ codeBoxId })
+
+	const onSubmit = useCallback(() => {
+		if (isDisabled) return
+		if (isStreamingRef.current) return
+		editCodeService.startApplying({
+			from: 'ClickApply',
+			type: 'searchReplace',
+			applyStr: codeStr,
+			chatCodeBoxId: codeBoxId,
+		})
+		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
+	}, [isStreamingRef, editCodeService, codeBoxId, codeStr, metricsService])
+
+
+	const onInterrupt = useCallback(() => {
+		if (isStreamingRef.current) return
+		if (codeBoxId === null) return
+		editCodeService.interruptCodeBoxId({ codeBoxId, })
+		metricsService.capture('Stop Apply', {})
+	}, [isStreamingRef, editCodeService, codeBoxId, metricsService])
+
+
+
+	const isSingleLine = !codeStr.includes('\n')
+
+	const applyButton = <button
+		// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
+		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+		onClick={onSubmit}
+	>
+		Apply
+	</button>
+
+
+
 	return <>
-		<CopyButton codeStr={codeStr} />
-		{codeBoxId !== null && <ApplyButton codeBoxId={codeBoxId} codeStr={codeStr} />}
+		{!isStreamingRef.current && <CopyButton codeStr={codeStr} />}
+		{!isStreamingRef.current && codeBoxId !== null && <ApplyButton codeBoxId={codeBoxId} codeStr={codeStr} />}
+		{!isStreamingRef.current && <StopButton codeStr={codeStr} />}
 	</>
 }

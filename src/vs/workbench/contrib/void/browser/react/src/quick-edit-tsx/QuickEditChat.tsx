@@ -65,6 +65,7 @@ export const QuickEditChat = ({
 			from: 'QuickEdit',
 			type: 'rewrite',
 			diffareaid,
+			chatCodeBoxId: null,
 		})
 	}, [isStreamingRef, isDisabled, editCodeService, diffareaid])
 

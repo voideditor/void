@@ -76,9 +76,7 @@ let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 
 const ctrlKZoneStreamingStateListeners: Set<(diffareaid: number, s: boolean) => void> = new Set()
-
-let diffZoneStreamingState: Record<string, boolean>
-const diffZoneStreamingStateListeners: Set<(diffareaid: number, state: boolean) => void> = new Set()
+const codeBoxIdStreamingStateListeners: Set<(codeBoxId: string, s: boolean) => void> = new Set()
 
 
 
@@ -182,6 +180,12 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		editCodeService.onDidChangeCtrlKZoneStreaming(({ diffareaid }) => {
 			const isStreaming = editCodeService.isCtrlKZoneStreaming({ diffareaid })
 			ctrlKZoneStreamingStateListeners.forEach(l => l(diffareaid, isStreaming))
+		})
+	)
+	disposables.push(
+		editCodeService.onDidChangeCodeBoxIdStreaming(({ codeBoxId }) => {
+			const isStreaming = editCodeService.isCodeBoxIdStreaming({ codeBoxId })
+			codeBoxIdStreamingStateListeners.forEach(l => l(codeBoxId, isStreaming))
 		})
 	)
 
@@ -351,7 +355,6 @@ export const useRefreshModelListener = (listener: (providerName: RefreshableProv
 	}, [listener, refreshModelProviderListeners])
 }
 
-
 export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boolean) => void) => {
 	useEffect(() => {
 		ctrlKZoneStreamingStateListeners.add(listener)
@@ -359,11 +362,13 @@ export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boo
 	}, [listener, ctrlKZoneStreamingStateListeners])
 }
 
-
-export const useIsDiffZoneStreaming = (diffareaid: number) => {
-	return { current: true }
-
+export const useCodeBoxIdStreamingState = (listener: (codeBoxId: string, s: boolean) => void) => {
+	useEffect(() => {
+		codeBoxIdStreamingStateListeners.add(listener)
+		return () => { codeBoxIdStreamingStateListeners.delete(listener) }
+	}, [listener, codeBoxIdStreamingStateListeners])
 }
+
 
 
 

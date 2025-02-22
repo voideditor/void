@@ -3,6 +3,7 @@ import { useAccessor, useURIStreamState, useSettingsState } from '../util/servic
 import { useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
+import { IEditCodeService, URIStreamState } from '../../../editCodeService.js'
 
 enum CopyButtonText {
 	Idle = 'Copy',
@@ -52,6 +53,7 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 const applyingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undefined } } = { current: {} }
 
 
+
 export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: string, applyBoxId: string }) => {
 
 	console.log('applyboxid', applyBoxId, applyingURIOfApplyBoxIdRef)
@@ -63,46 +65,43 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
 
-	const [applyingUriRef, setApplyingUri_] = useRefState(applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null)
-	const [streamStateRef, setStreamState_] = useRefState(editCodeService.getURIStreamState({ uri: applyingUriRef.current ?? null }))
+	const [_, rerender] = useState(0)
 
-	const setApplyingUri = useCallback((uri: URI | null) => { // switched the box's URI to whatever they clicked on most recently
-		setApplyingUri_(uri)
-		const newStreamState = editCodeService.getURIStreamState({ uri })
-		if (uri) applyingURIOfApplyBoxIdRef.current[applyBoxId] = uri
-		setStreamState_(newStreamState)
-	}, [applyBoxId, setApplyingUri_, editCodeService, setStreamState_])
+	const applyingUri = useCallback(() => applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null, [applyBoxId])
+	const streamState = useCallback(() => editCodeService.getURIStreamState({ uri: applyingUri() }), [editCodeService, applyingUri])
 
 	// listen for stream updates
 	useURIStreamState(
-		useCallback((uri, streamState) => {
-			const shouldUpdate = applyingUriRef.current?.fsPath === uri.fsPath
-			if (!shouldUpdate) return
-			setStreamState_(streamState) // editCodeService.getURIStreamState({ uri: applyingUriRef.current ?? null })
-		}, [applyingUriRef, setStreamState_])
+		useCallback((uri, newStreamState) => {
+			const shouldUpdate = applyingUri()?.fsPath !== uri.fsPath
+			if (shouldUpdate) return
+			rerender(c => c + 1)
+			if (newStreamState !== streamState()) console.log('AAAAAAAAAAAAAAAAAAA')
+		}, [applyBoxId, editCodeService, applyingUri, rerender, streamState])
 	)
 
 	const onSubmit = useCallback(() => {
 		if (isDisabled) return
-		if (streamStateRef.current === 'streaming') return
-		const uri = editCodeService.startApplying({
+		if (streamState() === 'streaming') return
+		const newApplyingUri = editCodeService.startApplying({
 			from: 'ClickApply',
 			type: 'searchReplace',
 			applyStr: codeStr,
-			chatApplyBoxId: applyBoxId,
 		})
-		setApplyingUri(uri)
+		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
+		rerender(c => c + 1)
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
-	}, [editCodeService, applyBoxId, codeStr, metricsService, isDisabled, streamStateRef, setApplyingUri])
+	}, [isDisabled, streamState, editCodeService, codeStr, applyBoxId, metricsService])
 
 
 	const onInterrupt = useCallback(() => {
-		if (streamStateRef.current !== 'streaming') return
-		if (!applyingUriRef.current) return
+		if (streamState() !== 'streaming') return
+		const uri = applyingUri()
+		if (!uri) return
 
-		editCodeService.interruptURIStreaming({ uri: applyingUriRef.current, })
+		editCodeService.interruptURIStreaming({ uri })
 		metricsService.capture('Stop Apply', {})
-	}, [editCodeService, metricsService, streamStateRef, applyingUriRef])
+	}, [streamState, applyingUri,editCodeService, metricsService])
 
 
 	const isSingleLine = !codeStr.includes('\n')
@@ -128,8 +127,8 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
 			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
 			onClick={() => {
-				if (!applyingUriRef.current) return
-				editCodeService.removeDiffAreas({ uri: applyingUriRef.current, behavior: 'accept', removeCtrlKs: false })
+				const uri = applyingUri()
+				if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
 			}}
 		>
 			Accept
@@ -138,20 +137,21 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
 			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
 			onClick={() => {
-				if (!applyingUriRef.current) return
-				editCodeService.removeDiffAreas({ uri: applyingUriRef.current, behavior: 'reject', removeCtrlKs: false })
+				const uri = applyingUri()
+				if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
 			}}
 		>
 			Reject
 		</button>
 	</>
 
-	console.log('streamStateRef.current', streamStateRef.current)
+	console.log('streamStateRef.current', streamState())
 
+	const currStreamState = streamState()
 	return <>
-		{streamStateRef.current !== 'streaming' && <CopyButton codeStr={codeStr} />}
-		{streamStateRef.current === 'idle' && !isDisabled && applyButton}
-		{streamStateRef.current === 'streaming' && stopButton}
-		{streamStateRef.current === 'acceptRejectAll' && acceptRejectButtons}
+		{currStreamState !== 'streaming' && <CopyButton codeStr={codeStr} />}
+		{currStreamState === 'idle' && !isDisabled && applyButton}
+		{currStreamState === 'streaming' && stopButton}
+		{currStreamState === 'acceptRejectAll' && acceptRejectButtons}
 	</>
 }

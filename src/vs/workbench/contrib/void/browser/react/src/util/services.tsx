@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { ThreadStreamState, ThreadsState } from '../../../chatThreadService.js'
 import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
@@ -24,7 +24,7 @@ import { IThemeService } from '../../../../../../../platform/theme/common/themeS
 import { ILLMMessageService } from '../../../../../../../workbench/contrib/void/common/llmMessageService.js';
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
-import { IEditCodeService } from '../../../editCodeService.js';
+import { IEditCodeService, URIStreamState } from '../../../editCodeService.js';
 import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
@@ -43,6 +43,7 @@ import { IEnvironmentService } from '../../../../../../../platform/environment/c
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
 import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
+import { URI } from '../../../../../../../base/common/uri.js'
 
 
 
@@ -76,7 +77,7 @@ let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 
 const ctrlKZoneStreamingStateListeners: Set<(diffareaid: number, s: boolean) => void> = new Set()
-const codeBoxIdStreamingStateListeners: Set<(codeBoxId: string, s: boolean) => void> = new Set()
+const uriStreamingStateListeners: Set<(uri: URI, s: URIStreamState) => void> = new Set()
 
 
 
@@ -183,9 +184,9 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		})
 	)
 	disposables.push(
-		editCodeService.onDidChangeCodeBoxIdStreaming(({ codeBoxId }) => {
-			const isStreaming = editCodeService.isCodeBoxIdStreaming({ codeBoxId })
-			codeBoxIdStreamingStateListeners.forEach(l => l(codeBoxId, isStreaming))
+		editCodeService.onDidChangeURIStreamState(({ uri }) => {
+			const isStreaming = editCodeService.getURIStreamState({ uri })
+			uriStreamingStateListeners.forEach(l => l(uri, isStreaming))
 		})
 	)
 
@@ -362,16 +363,12 @@ export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boo
 	}, [listener, ctrlKZoneStreamingStateListeners])
 }
 
-export const useCodeBoxIdStreamingState = (listener: (codeBoxId: string, s: boolean) => void) => {
+export const useURIStreamState = (listener: (uri: URI, s: URIStreamState) => void) => {
 	useEffect(() => {
-		codeBoxIdStreamingStateListeners.add(listener)
-		return () => { codeBoxIdStreamingStateListeners.delete(listener) }
-	}, [listener, codeBoxIdStreamingStateListeners])
+		uriStreamingStateListeners.add(listener)
+		return () => { uriStreamingStateListeners.delete(listener) }
+	}, [listener, uriStreamingStateListeners])
 }
-
-
-
-
 
 
 export const useIsDark = () => {

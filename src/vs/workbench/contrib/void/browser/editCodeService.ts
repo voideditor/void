@@ -121,19 +121,19 @@ const findTextInCode = (text: string, fileContents: string, startingAtLine?: num
 }
 
 
-type AcceptRejectAllState = 'idle' | 'acceptRejectAll' | 'streaming'
+export type URIStreamState = 'idle' | 'acceptRejectAll' | 'streaming'
 
 
 export type StartApplyingOpts = {
 	from: 'QuickEdit';
 	type: 'rewrite';
 	diffareaid: number; // id of the CtrlK area (contains text selection)
-	chatCodeBoxId: string | null;
+	chatApplyBoxId: string | null;
 } | {
 	from: 'ClickApply';
 	type: 'searchReplace' | 'rewrite';
 	applyStr: string;
-	chatCodeBoxId: string | null;
+	chatApplyBoxId: string | null;
 }
 
 
@@ -177,6 +177,7 @@ type CommonZoneProps = {
 type CtrlKZone = {
 	type: 'CtrlKZone';
 	originalCode?: undefined;
+	chatApplyBoxId?: undefined;
 
 	editorId: string; // the editor the input lives on
 
@@ -196,11 +197,11 @@ type DiffZone = {
 	type: 'DiffZone',
 	originalCode: string;
 	_diffOfId: Record<string, Diff>; // diffid -> diff in this DiffArea
+	chatApplyBoxId: string | null;
 	_streamState: {
 		isStreaming: true;
 		streamRequestIdRef: { current: string | null };
 		line: number;
-		codeBoxId: string | null;
 	} | {
 		isStreaming: false;
 		streamRequestIdRef?: undefined;
@@ -219,6 +220,7 @@ type TrackingZone<T> = {
 	originalCode?: undefined;
 	editorId?: undefined;
 	_removeStylesFns?: undefined;
+	chatApplyBoxId?: undefined;
 } & CommonZoneProps
 
 
@@ -232,6 +234,7 @@ const diffAreaSnapshotKeys = [
 	'startLine',
 	'endLine',
 	'editorId',
+	'chatApplyBoxId',
 
 ] as const satisfies (keyof DiffArea)[]
 
@@ -256,6 +259,7 @@ export interface IEditCodeService {
 
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 	removeCtrlKZone(opts: { diffareaid: number }): void;
+	removeDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept' }): void;
 
 	// CtrlKZone streaming state
 	isCtrlKZoneStreaming(opts: { diffareaid: number }): boolean;
@@ -263,9 +267,9 @@ export interface IEditCodeService {
 	onDidChangeCtrlKZoneStreaming: Event<{ uri: URI; diffareaid: number }>;
 
 	// // DiffZone codeBoxId streaming state
-	isCodeBoxIdStreaming(opts: { codeBoxId: string }): boolean;
-	interruptCodeBoxId(opts: { codeBoxId: string }): void;
-	onDidChangeCodeBoxIdStreaming: Event<{ codeBoxId: string }>;
+	getURIStreamState(opts: { uri: URI | null }): URIStreamState;
+	interruptURIStreaming(opts: { uri: URI }): void;
+	onDidChangeURIStreamState: Event<{ uri: URI; state: URIStreamState }>;
 
 	// testDiffs(): void;
 }
@@ -291,8 +295,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	private readonly _onDidChangeCtrlKZoneStreaming = new Emitter<{ uri: URI; diffareaid: number }>();
 	onDidChangeCtrlKZoneStreaming = this._onDidChangeCtrlKZoneStreaming.event
 
-	private readonly _onDidChangeCodeBoxIdStreaming = new Emitter<{ uri: URI; diffareaid: number; codeBoxId: string }>();
-	onDidChangeCodeBoxIdStreaming = this._onDidChangeCodeBoxIdStreaming.event
+	private readonly _onDidChangeURIStreamState = new Emitter<{ uri: URI; state: URIStreamState }>();
+	onDidChangeURIStreamState = this._onDidChangeURIStreamState.event
+
+
+
 
 	constructor(
 		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
@@ -327,36 +334,30 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				})
 			)
 
-			// when a stream starts or ends, add/remove the accept|reject UI
-			let _removeAcceptRejectAllUI: (() => void) | null = null
+			// when a stream starts or ends, fire the event for onDidChangeURIStreamState
+			let prevStreamState = this.getURIStreamState({ uri: model.uri })
 			const updateAcceptRejectAllUI = () => {
-				const uri = model.uri
-				const diffZones = [...this.diffAreasOfURI[uri.fsPath].values()]
-					.map(diffareaid => this.diffAreaOfId[diffareaid])
-					.filter(diffArea => !!diffArea && diffArea.type === 'DiffZone')
-				const isStreaming = diffZones.find(diffZone => !!diffZone._streamState.isStreaming)
+				const state = this.getURIStreamState({ uri: model.uri })
+				if (prevStreamState === state) return
+				this._onDidChangeURIStreamState.fire({ uri: model.uri, state })
+			}
 
-				const state: AcceptRejectAllState = isStreaming ? 'streaming' : (diffZones.length === 0 ? 'idle' : 'acceptRejectAll')
+			// add/remove the accept|reject UI
+			let _removeAcceptRejectAllUI: (() => void) | null = null
+			this._register(this._onDidChangeURIStreamState.event(({ uri: uri_ }) => {
+				if (uri_.fsPath !== model.uri.fsPath) return
+				const state = this.getURIStreamState({ uri: model.uri })
 				if (state === 'acceptRejectAll' && !_removeAcceptRejectAllUI) {
-					_removeAcceptRejectAllUI = this._addAcceptRejectAllUI(uri) ?? null
+					_removeAcceptRejectAllUI = this._addAcceptRejectAllUI(model.uri) ?? null
 				} else {
 					_removeAcceptRejectAllUI?.()
 					_removeAcceptRejectAllUI = null
 				}
-			}
+			}))
 
 			this._register(this._onDidChangeDiffZoneStreaming.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
 			this._register(this._onDidAddOrDeleteDiffZones.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
 
-			// codeBoxId
-			this._register(this._onDidChangeDiffZoneStreaming.event(({ diffareaid }) => {
-				const diffZone = this.diffAreaOfId[diffareaid]
-				if (diffZone?.type !== 'DiffZone') return
-				if (!diffZone._streamState.isStreaming) return
-				const { codeBoxId } = diffZone._streamState
-				if (codeBoxId === null) return
-				this._onDidChangeCodeBoxIdStreaming.fire({ uri: model.uri, codeBoxId, diffareaid })
-			}))
 
 		}
 		// initialize all existing models + initialize when a new model mounts
@@ -505,7 +506,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				const buttonsWidget = new AcceptAllRejectAllWidget({
 					editor,
 					onAcceptAll: () => {
-						this.removeDiffAreas({ uri, behavior: 'keep', removeCtrlKs: false })
+						this.removeDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
 						this._metricsService.capture('Accept All', {})
 					},
 					onRejectAll: () => {
@@ -1266,7 +1267,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	private _initializeWriteoverStream(opts: StartApplyingOpts): DiffZone | undefined {
 
-		const { from, chatCodeBoxId } = opts
+		const { from, chatApplyBoxId } = opts
 
 		let startLine: number
 		let endLine: number
@@ -1318,6 +1319,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
+			chatApplyBoxId,
 			originalCode,
 			startLine,
 			endLine,
@@ -1326,7 +1328,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				isStreaming: true,
 				streamRequestIdRef,
 				line: startLine,
-				codeBoxId: chatCodeBoxId,
 			},
 			_diffOfId: {}, // added later
 			_removeStylesFns: new Set(),
@@ -1452,7 +1453,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }) {
-		const { applyStr, chatCodeBoxId } = opts
+		const { applyStr, chatApplyBoxId } = opts
 
 		const uri_ = this._getActiveEditorURI()
 		if (!uri_) return
@@ -1493,6 +1494,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
+			chatApplyBoxId,
 			originalCode: originalFileCode,
 			startLine,
 			endLine,
@@ -1501,7 +1503,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				isStreaming: true,
 				streamRequestIdRef,
 				line: startLine,
-				codeBoxId: chatCodeBoxId,
 			},
 			_diffOfId: {}, // added later
 			_removeStylesFns: new Set(),
@@ -1555,7 +1556,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				this._deleteTrackingZone(trackingZone)
 
 			onFinishEdit()
-			shouldSendAnotherMessage = false
 		}
 
 		// refresh now in case onText takes a while to get 1st message
@@ -1746,7 +1746,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	_interruptDiffZoneStreaming({ diffareaid }: { diffareaid: number }) {
+	_interruptSingleDiffZoneStreaming({ diffareaid }: { diffareaid: number }) {
 		const diffZone = this.diffAreaOfId[diffareaid]
 		if (diffZone?.type !== 'DiffZone') return
 		if (!diffZone._streamState.isStreaming) return
@@ -1774,35 +1774,33 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		if (!linkedStreamingDiffZone) return
 		if (linkedStreamingDiffZone.type !== 'DiffZone') return
 
-		this._interruptDiffZoneStreaming({ diffareaid: linkedStreamingDiffZone.diffareaid })
+		this._interruptSingleDiffZoneStreaming({ diffareaid: linkedStreamingDiffZone.diffareaid })
 	}
 
 
 
-	isCodeBoxIdStreaming({ codeBoxId }: { codeBoxId: string }) {
-		// brute force is OK for now
-		for (const diffareaid in this.diffAreaOfId) {
-			const diffArea = this.diffAreaOfId[diffareaid]
-			if (!diffArea) continue
-			if (diffArea.type !== 'DiffZone') continue
-			if (!diffArea._streamState.isStreaming) continue
-			if (diffArea._streamState.codeBoxId === codeBoxId) return true
-		}
-		return false
+
+	getURIStreamState = ({ uri }: { uri: URI | null }) => {
+		if (uri === null) return 'idle'
+
+		const diffZones = [...this.diffAreasOfURI[uri.fsPath].values()]
+			.map(diffareaid => this.diffAreaOfId[diffareaid])
+			.filter(diffArea => !!diffArea && diffArea.type === 'DiffZone')
+		const isStreaming = diffZones.find(diffZone => !!diffZone._streamState.isStreaming)
+
+		const state: URIStreamState = isStreaming ? 'streaming' : (diffZones.length === 0 ? 'idle' : 'acceptRejectAll')
+		return state
 	}
 
-	interruptCodeBoxId({ codeBoxId }: { codeBoxId: string }) {
+	interruptURIStreaming({ uri }: { uri: URI }) {
 		// brute force for now is OK
-		for (const diffareaid in this.diffAreaOfId) {
+		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
 			const diffArea = this.diffAreaOfId[diffareaid]
-			if (!diffArea) continue
-			if (diffArea.type !== 'DiffZone') continue
+			if (diffArea?.type !== 'DiffZone') continue
 			if (!diffArea._streamState.isStreaming) continue
-			if (diffArea._streamState.codeBoxId === codeBoxId) {
-				this._interruptDiffZoneStreaming({ diffareaid: diffArea.diffareaid })
-				return
-			}
+			this._stopIfStreaming(diffArea)
 		}
+		this._undoHistory(uri)
 	}
 
 
@@ -1829,7 +1827,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	// remove a batch of diffareas all at once (and handle accept/reject of their diffs)
-	public removeDiffAreas({ uri, removeCtrlKs, behavior }: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'keep' }) {
+	public removeDiffAreas({ uri, removeCtrlKs, behavior }: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept' }) {
 
 		const diffareaids = this.diffAreasOfURI[uri.fsPath]
 		if (diffareaids.size === 0) return // do nothing
@@ -1842,7 +1840,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 			if (diffArea.type == 'DiffZone') {
 				if (behavior === 'reject') this._revertAndDeleteDiffZone(diffArea)
-				else if (behavior === 'keep') this._deleteDiffZone(diffArea)
+				else if (behavior === 'accept') this._deleteDiffZone(diffArea)
 			}
 			else if (diffArea.type === 'CtrlKZone' && removeCtrlKs) {
 				this._deleteCtrlKZone(diffArea)

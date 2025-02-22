@@ -14,7 +14,7 @@ import { URI } from '../../../../../../../base/common/uri.js'
 
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }
 
-const getCodeBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
+const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
 	return `${threadId}-${messageIdx}-${tokenIdx}`
 }
 
@@ -46,7 +46,7 @@ const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: 
 
 	if (t.type === "code") {
 
-		const codeBoxId = chatMessageLocation ? getCodeBoxId({
+		const applyBoxId = chatMessageLocation ? getApplyBoxId({
 			threadId: chatMessageLocation.threadId,
 			messageIdx: chatMessageLocation.messageIdx,
 			tokenIdx: tokenIdx,
@@ -55,7 +55,7 @@ const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: 
 		return <BlockCode
 			initValue={t.text}
 			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
-			buttonsOnHover={<ApplyBlockHoverButtons codeBoxId={codeBoxId} codeStr={t.text} />}
+			buttonsOnHover={<ApplyBlockHoverButtons applyBoxId={applyBoxId} codeStr={t.text} />}
 		/>
 	}
 

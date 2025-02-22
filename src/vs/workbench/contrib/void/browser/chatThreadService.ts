@@ -17,6 +17,7 @@ import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName,
 import { toLLMChatMessage } from '../common/llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IVoidFileService } from '../common/voidFileService.js';
+import { generateUuid } from '../../../../base/common/uuid.js';
 
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
@@ -123,7 +124,7 @@ export type ThreadStreamState = {
 const newThreadObject = () => {
 	const now = new Date().toISOString()
 	return {
-		id: new Date().getTime().toString(),
+		id: generateUuid(),
 		createdAt: now,
 		lastModified: now,
 		messages: [],

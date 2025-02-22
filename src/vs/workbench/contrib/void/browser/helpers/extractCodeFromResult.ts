@@ -201,7 +201,7 @@ export const extractSearchReplaceBlocks = (str: string) => {
 
 	const ORIGINAL_ = ORIGINAL + `\n`
 	const DIVIDER_ = '\n' + DIVIDER + `\n`
-	const FINAL_ = '\n' + FINAL
+	// logic for FINAL_ is slightly more complicated - should be '\n' + FINAL, but that ignores if the final output is empty
 
 
 	const blocks: ExtractedSearchReplaceBlock[] = []
@@ -229,7 +229,13 @@ export const extractSearchReplaceBlocks = (str: string) => {
 		i = dividerStart
 		// wrote =====
 
-		let finalStart = str.indexOf(FINAL_, i)
+
+
+		const finalStartA = str.indexOf(FINAL, i)
+		const finalStartB = str.indexOf('\n' + FINAL, i) // go with B if possible, else fallback to A, it's more permissive
+		const FINAL_ = finalStartB !== -1 ? '\n' + FINAL : FINAL
+		let finalStart = finalStartB !== -1 ? finalStartB : finalStartA
+
 		if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL_ right now
 			const isWritingFINAL = endsWithAnyPrefixOf(str, FINAL_)
 			blocks.push({

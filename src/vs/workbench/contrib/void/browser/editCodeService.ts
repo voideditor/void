@@ -338,23 +338,24 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			let prevStreamState = this.getURIStreamState({ uri: model.uri })
 			const updateAcceptRejectAllUI = () => {
 				const state = this.getURIStreamState({ uri: model.uri })
-				if (prevStreamState === state) return
+				let prevStateActual = prevStreamState
+				prevStreamState = state
+				if (state === prevStateActual) return
 				this._onDidChangeURIStreamState.fire({ uri: model.uri, state })
 			}
 
-			// add/remove the accept|reject UI
+
 			let _removeAcceptRejectAllUI: (() => void) | null = null
-			this._register(this._onDidChangeURIStreamState.event(({ uri: uri_ }) => {
-				if (uri_.fsPath !== model.uri.fsPath) return
-				const state = this.getURIStreamState({ uri: model.uri })
-				if (state === 'acceptRejectAll' && !_removeAcceptRejectAllUI) {
-					_removeAcceptRejectAllUI = this._addAcceptRejectAllUI(model.uri) ?? null
+			this._register(this._onDidChangeURIStreamState.event(({ uri, state }) => {
+				if (uri.fsPath !== model.uri.fsPath) return
+				if (state === 'acceptRejectAll') {
+					if (!_removeAcceptRejectAllUI)
+						_removeAcceptRejectAllUI = this._addAcceptRejectAllUI(model.uri) ?? null
 				} else {
 					_removeAcceptRejectAllUI?.()
 					_removeAcceptRejectAllUI = null
 				}
 			}))
-
 			this._register(this._onDidChangeDiffZoneStreaming.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
 			this._register(this._onDidAddOrDeleteDiffZones.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
 
@@ -1666,8 +1667,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
 						oldBlocks = blocks // oldblocks is only used if writingFinal
 
-						const { endLine: currentEndLine } = addedTrackingZoneOfBlockNum[blockNum]
-						diffZone._streamState.line = currentEndLine
+						// const { endLine: currentEndLine } = addedTrackingZoneOfBlockNum[blockNum] // would be bad to do this because a lot of the bottom lines might be the same. more accurate to go with latestStreamLocationMutable
+						// diffZone._streamState.line = currentEndLine
+						diffZone._streamState.line = latestStreamLocationMutable.line
+
 
 
 					} // end for
@@ -1682,7 +1685,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					const blocks = extractSearchReplaceBlocks(fullText)
 
 					if (blocks.length === 0) {
-						this._notificationService.info(`Void: When running Apply, your model didn't output any changes that Void recognized. You might need to use a smarter model for Apply.`)
+						this._notificationService.info(`Void: We ran Apply, but the LLM didn't output any changes.`)
 					}
 
 					// writeover the whole file

@@ -32,7 +32,7 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 			.then(() => { setCopyButtonText(CopyButtonText.Copied) })
 			.catch(() => { setCopyButtonText(CopyButtonText.Error) })
 		metricsService.capture('Copy Code', { length: codeStr.length }) // capture the length only
-	}, [metricsService, clipboardService, codeStr])
+	}, [metricsService, clipboardService, codeStr, setCopyButtonText])
 
 	const isSingleLine = !codeStr.includes('\n')
 
@@ -49,67 +49,60 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 
 
 // state persisted for duration of react only
-const streamingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undefined } } = { current: {} }
-const useStreamingURIOfApplyBoxId = (applyBoxId: string | null) => {
-	const [_, ss] = useState(0)
-	const uri = applyBoxId === null ? null : streamingURIOfApplyBoxIdRef.current[applyBoxId]
-	const setUri = useCallback((uri: URI | null) => {
-		if (applyBoxId === null) return
-		ss(c => c + 1)
-		if (uri === null) {
-			delete streamingURIOfApplyBoxIdRef.current[applyBoxId]
-		}
-		else {
-			streamingURIOfApplyBoxIdRef.current = {
-				...streamingURIOfApplyBoxIdRef.current,
-				[applyBoxId]: uri,
-			}
-		}
-	}, [applyBoxId])
-	return [uri, setUri] as const
-}
+const applyingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undefined } } = { current: {} }
 
 
-export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: string, applyBoxId: string | null }) => {
+export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: string, applyBoxId: string }) => {
 
+	console.log('applyboxid', applyBoxId, applyingURIOfApplyBoxIdRef)
 
 	const settingsState = useSettingsState()
-
-	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || applyBoxId === null
+	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
 
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
 
-	// get streaming URI of this applyBlockId (cached in react)
-	const [appliedURI, setAppliedURI] = useStreamingURIOfApplyBoxId(applyBoxId)
+	const [applyingUriRef, setApplyingUri_] = useRefState(applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null)
+	const [streamStateRef, setStreamState_] = useRefState(editCodeService.getURIStreamState({ uri: applyingUriRef.current ?? null }))
 
-	// get stream state of this URI
-	const [streamStateRef, setStreamState] = useRefState(editCodeService.getURIStreamState({ uri: appliedURI ?? null }))
-	useURIStreamState(useCallback((uri, streamState) => {
-		if (appliedURI?.fsPath !== uri.fsPath) return
-		setStreamState(streamState)
-	}, [appliedURI, setStreamState]))
+	const setApplyingUri = useCallback((uri: URI | null) => { // switched the box's URI to whatever they clicked on most recently
+		setApplyingUri_(uri)
+		const newStreamState = editCodeService.getURIStreamState({ uri })
+		if (uri) applyingURIOfApplyBoxIdRef.current[applyBoxId] = uri
+		setStreamState_(newStreamState)
+	}, [applyBoxId, setApplyingUri_, editCodeService, setStreamState_])
 
+	// listen for stream updates
+	useURIStreamState(
+		useCallback((uri, streamState) => {
+			const shouldUpdate = applyingUriRef.current?.fsPath === uri.fsPath
+			if (!shouldUpdate) return
+			setStreamState_(streamState) // editCodeService.getURIStreamState({ uri: applyingUriRef.current ?? null })
+		}, [applyingUriRef, setStreamState_])
+	)
 
 	const onSubmit = useCallback(() => {
 		if (isDisabled) return
+		if (streamStateRef.current === 'streaming') return
 		const uri = editCodeService.startApplying({
 			from: 'ClickApply',
 			type: 'searchReplace',
 			applyStr: codeStr,
 			chatApplyBoxId: applyBoxId,
 		})
-		setAppliedURI(uri)
+		setApplyingUri(uri)
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
-	}, [streamStateRef, setAppliedURI, editCodeService, applyBoxId, codeStr, metricsService])
+	}, [editCodeService, applyBoxId, codeStr, metricsService, isDisabled, streamStateRef, setApplyingUri])
 
 
 	const onInterrupt = useCallback(() => {
-		if (!appliedURI) return
-		editCodeService.interruptURIStreaming({ uri: appliedURI, })
+		if (streamStateRef.current !== 'streaming') return
+		if (!applyingUriRef.current) return
+
+		editCodeService.interruptURIStreaming({ uri: applyingUriRef.current, })
 		metricsService.capture('Stop Apply', {})
-	}, [streamStateRef, editCodeService, appliedURI, metricsService])
+	}, [editCodeService, metricsService, streamStateRef, applyingUriRef])
 
 
 	const isSingleLine = !codeStr.includes('\n')
@@ -135,8 +128,8 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
 			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
 			onClick={() => {
-				if (!appliedURI) return
-				editCodeService.removeDiffAreas({ uri: appliedURI, behavior: 'accept', removeCtrlKs: false })
+				if (!applyingUriRef.current) return
+				editCodeService.removeDiffAreas({ uri: applyingUriRef.current, behavior: 'accept', removeCtrlKs: false })
 			}}
 		>
 			Accept
@@ -145,14 +138,15 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
 			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
 			onClick={() => {
-				if (!appliedURI) return
-				editCodeService.removeDiffAreas({ uri: appliedURI, behavior: 'reject', removeCtrlKs: false })
+				if (!applyingUriRef.current) return
+				editCodeService.removeDiffAreas({ uri: applyingUriRef.current, behavior: 'reject', removeCtrlKs: false })
 			}}
 		>
 			Reject
 		</button>
 	</>
 
+	console.log('streamStateRef.current', streamStateRef.current)
 
 	return <>
 		{streamStateRef.current !== 'streaming' && <CopyButton codeStr={codeStr} />}

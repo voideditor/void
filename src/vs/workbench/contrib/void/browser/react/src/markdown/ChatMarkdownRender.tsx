@@ -55,7 +55,7 @@ const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: 
 		return <BlockCode
 			initValue={t.text}
 			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
-			buttonsOnHover={<ApplyBlockHoverButtons applyBoxId={applyBoxId} codeStr={t.text} />}
+			buttonsOnHover={applyBoxId && <ApplyBlockHoverButtons applyBoxId={applyBoxId} codeStr={t.text} />}
 		/>
 	}
 

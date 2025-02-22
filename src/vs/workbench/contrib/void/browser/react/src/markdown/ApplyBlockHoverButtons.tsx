@@ -76,8 +76,7 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			const shouldUpdate = applyingUri()?.fsPath !== uri.fsPath
 			if (shouldUpdate) return
 			rerender(c => c + 1)
-			if (newStreamState !== streamState()) console.log('AAAAAAAAAAAAAAAAAAA')
-		}, [applyBoxId, editCodeService, applyingUri, rerender, streamState])
+		}, [applyBoxId, editCodeService, applyingUri])
 	)
 
 	const onSubmit = useCallback(() => {
@@ -101,7 +100,7 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 
 		editCodeService.interruptURIStreaming({ uri })
 		metricsService.capture('Stop Apply', {})
-	}, [streamState, applyingUri,editCodeService, metricsService])
+	}, [streamState, applyingUri, editCodeService, metricsService])
 
 
 	const isSingleLine = !codeStr.includes('\n')

@@ -162,9 +162,12 @@ export interface IChatThreadService {
 	isFocusingMessage(): boolean;
 	setFocusedMessageIdx(messageIdx: number | undefined): void;
 
-	// _useFocusedStagingState(messageIdx?: number | undefined): readonly [StagingInfo, (stagingInfo: StagingInfo) => void];
-	_useCurrentThreadState(): readonly [ThreadType['state'], (newState: Partial<ThreadType['state']>) => void];
-	_useCurrentMessageState(messageIdx: number): readonly [UserMessageState, (newState: Partial<UserMessageState>) => void];
+	// exposed getters/setters
+	getCurrentMessageState: (messageIdx: number) => UserMessageState
+	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
+	getCurrentThreadStagingSelections: () => StagingSelectionItem[]
+	setCurrentThreadStagingSelections: (stagingSelections: StagingSelectionItem[]) => void
+
 
 	// call to edit a message
 	editUserMessageAndStreamResponse({ userMessage, chatMode, messageIdx }: { userMessage: string, chatMode: ChatMode, messageIdx: number }): Promise<void>;
@@ -622,33 +625,27 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	}
 
+	getCurrentThreadStagingSelections = () => {
+		return this.getCurrentThread().state.stagingSelections
+	}
+
+	setCurrentThreadStagingSelections = (stagingSelections: StagingSelectionItem[]) => {
+		this._setCurrentThreadState({ stagingSelections })
+	}
+
 	// gets `staging` and `setStaging` of the currently focused element, given the index of the currently selected message (or undefined if no message is selected)
 
-	_useCurrentMessageState(messageIdx: number) {
-
-		const thread = this.getCurrentThread()
-		const messages = thread.messages
-		const currMessage = messages[messageIdx]
-
-		if (currMessage.role !== 'user') {
-			return [defaultMessageState, (s: any) => { }] as const
-		}
-
-		const state = currMessage.state
-		const setState = (newState: Partial<UserMessageState>) => this._setCurrentMessageState(newState, messageIdx)
-
-		return [state, setState] as const
-
+	getCurrentMessageState(messageIdx: number): UserMessageState {
+		const currMessage = this.getCurrentThread()?.messages?.[messageIdx]
+		if (!currMessage || currMessage.role !== 'user') return defaultMessageState
+		return currMessage.state
+	}
+	setCurrentMessageState(messageIdx: number, newState: Partial<UserMessageState>) {
+		const currMessage = this.getCurrentThread()?.messages?.[messageIdx]
+		if (!currMessage || currMessage.role !== 'user') return
+		this._setCurrentMessageState(newState, messageIdx)
 	}
 
-	_useCurrentThreadState() {
-		const thread = this.getCurrentThread()
-
-		const state = thread.state
-		const setState = this._setCurrentThreadState.bind(this)
-
-		return [state, setState] as const
-	}
 
 
 }

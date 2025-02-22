@@ -557,11 +557,11 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	let setStagingSelections = (s: StagingSelectionItem[]) => { }
 
 	if (messageIdx !== undefined) {
-		const [_state, _setState] = chatThreadsService._useCurrentMessageState(messageIdx)
+		const _state = chatThreadsService.getCurrentMessageState(messageIdx)
 		isBeingEdited = _state.isBeingEdited
-		setIsBeingEdited = (v) => _setState({ isBeingEdited: v })
 		stagingSelections = _state.stagingSelections
-		setStagingSelections = (s) => { _setState({ stagingSelections: s }) }
+		setIsBeingEdited = (v) => chatThreadsService.setCurrentMessageState(messageIdx, { isBeingEdited: v })
+		setStagingSelections = (s) => chatThreadsService.setCurrentMessageState(messageIdx, { stagingSelections: s })
 	}
 
 
@@ -780,9 +780,8 @@ export const SidebarChat = () => {
 	const currentThread = chatThreadsService.getCurrentThread()
 	const previousMessages = currentThread?.messages ?? []
 
-	const [_state, _setState] = chatThreadsService._useCurrentThreadState()
-	const selections = _state.stagingSelections
-	const setSelections = (s: StagingSelectionItem[]) => { _setState({ stagingSelections: s }) }
+	const selections = chatThreadsService.getCurrentThread().state.stagingSelections
+	const setSelections = (s: StagingSelectionItem[]) => { chatThreadsService.setCurrentThreadStagingSelections(s) }
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
@@ -818,7 +817,7 @@ export const SidebarChat = () => {
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, selections, setSelections])
+	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, setSelections])
 
 	const onAbort = () => {
 		const threadId = currentThread.id

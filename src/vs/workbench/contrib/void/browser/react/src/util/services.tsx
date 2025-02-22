@@ -47,6 +47,7 @@ import { IEnvironmentService } from '../../../../../../../platform/environment/c
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
 import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
+import { URI } from '../../../../../../../base/common/uri.js'
 
 
 
@@ -351,5 +352,19 @@ export const useIsDark = () => {
 	// s is the theme, return isDark instead of s
 	const isDark = s === ColorScheme.DARK || s === ColorScheme.HIGH_CONTRAST_DARK
 	return isDark
+
+}
+
+
+
+
+export const useIsCtrlKZoneStreaming = (diffareaid: number) => {
+
+	return { current: true }
+
+}
+
+
+export const useIsDiffZoneStreaming = (uri: URI) => {
 
 }

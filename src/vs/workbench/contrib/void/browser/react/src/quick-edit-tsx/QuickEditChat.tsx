@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
+import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor, useIsCtrlKZoneStreaming } from '../util/services.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX, VoidChatArea } from '../sidebar-tsx/SidebarChat.js';
@@ -16,7 +16,6 @@ import { isFeatureNameDisabled } from '../../../../../../../workbench/contrib/vo
 
 export const QuickEditChat = ({
 	diffareaid,
-	initStreamingDiffZoneId,
 	onChangeHeight,
 	onChangeText: onChangeText_,
 	textAreaRef: textAreaRef_,
@@ -49,28 +48,25 @@ export const QuickEditChat = ({
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!(initText ?? '')) // the user's instructions
 	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+K', settingsState)
 
-	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
-	const isStreaming = currStreamingDiffZoneRef.current !== null
+	const isStreamingRefState = useIsCtrlKZoneStreaming(diffareaid)
 
 	const onSubmit = useCallback(() => {
 		if (isDisabled) return
-		if (currStreamingDiffZoneRef.current !== null) return
+		if (isStreamingRefState.current) return
 		textAreaFnsRef.current?.disable()
 
-		const id = editCodeService.startApplying({
+		editCodeService.startApplying({
 			from: 'QuickEdit',
-			type:'rewrite',
-			diffareaid: diffareaid,
+			type: 'rewrite',
+			diffareaid,
 		})
-		setCurrentlyStreamingDiffZone(id ?? null)
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, editCodeService, diffareaid])
+	}, [isStreamingRefState, isDisabled, editCodeService, diffareaid])
 
 	const onInterrupt = useCallback(() => {
-		if (currStreamingDiffZoneRef.current === null) return
-		editCodeService.interruptStreaming(currStreamingDiffZoneRef.current)
-		setCurrentlyStreamingDiffZone(null)
+		if (!isStreamingRefState.current ) return
+		editCodeService.interruptCtrlKStreaming({ diffareaid })
 		textAreaFnsRef.current?.enable()
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, editCodeService])
+	}, [isStreamingRefState, editCodeService])
 
 
 	const onX = useCallback(() => {
@@ -89,7 +85,7 @@ export const QuickEditChat = ({
 			onSubmit={onSubmit}
 			onAbort={onInterrupt}
 			onClose={onX}
-			isStreaming={isStreaming}
+			isStreaming={isStreamingRefState.current}
 			isDisabled={isDisabled}
 			featureName="Ctrl+K"
 			className="py-2 w-full"

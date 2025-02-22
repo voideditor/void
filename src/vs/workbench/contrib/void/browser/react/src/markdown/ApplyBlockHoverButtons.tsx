@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAccessor } from '../util/services.js'
+import { useAccessor, useIsURIStreaming } from '../util/services.js'
+import { useRefState } from '../util/helpers.js'
+import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 
 enum CopyButtonText {
 	Idle = 'Copy',
@@ -50,7 +52,15 @@ const ApplyButton = ({ codeStr, codeBoxId }: { codeStr: string, codeBoxId: strin
 	const metricsService = accessor.get('IMetricsService')
 
 
-	const onApply = useCallback(() => {
+	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
+	const isStreaming = currStreamingDiffZoneRef.current !== null
+	const isDisabled = !!isFeatureNameDisabled('Ctrl+K', settingsState)
+
+	useIsDiffZoneStreaming(isDiffAreaStreaming)
+
+
+	const onSubmit = useCallback(() => {
+
 		const diffareaid = editCodeService.startApplying({
 			from: 'ClickApply',
 			type: 'searchReplace',
@@ -60,7 +70,31 @@ const ApplyButton = ({ codeStr, codeBoxId }: { codeStr: string, codeBoxId: strin
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
 
 
-	}, [metricsService, editCodeService, codeStr])
+
+		if (isDisabled) return
+		if (currStreamingDiffZoneRef.current !== null) return
+		textAreaFnsRef.current?.disable()
+
+		const id = editCodeService.startApplying({
+			from: 'QuickEdit',
+			type: 'rewrite',
+			diffareaid: diffareaid,
+		})
+		setCurrentlyStreamingDiffZone(id ?? null)
+	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, editCodeService, diffareaid])
+
+	const onInterrupt = useCallback(() => {
+		if (currStreamingDiffZoneRef.current === null) return
+		editCodeService.interruptStreaming(currStreamingDiffZoneRef.current)
+		setCurrentlyStreamingDiffZone(null)
+		textAreaFnsRef.current?.enable()
+	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, editCodeService])
+
+
+
+
+
+
 
 	const isSingleLine = !codeStr.includes('\n')
 

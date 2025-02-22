@@ -248,10 +248,17 @@ type StreamLocationMutable = { line: number, col: number, addedSplitYet: boolean
 
 export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
-	startApplying(opts: StartApplyingOpts): number | void;
-	interruptStreaming(diffareaid: number): void;
+	startApplying(opts: StartApplyingOpts): URI | null;
+
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 	removeCtrlKZone(opts: { diffareaid: number }): void;
+
+	isDiffZoneStreaming(opts: { diffareaid: number }): boolean;
+	isCtrlKZoneStreaming(opts: { diffareaid: number }): boolean;
+
+	interruptDiffZoneStreaming(opts: { diffareaid: number }): void;
+	interruptCtrlKStreaming(opts: { diffareaid: number }): void;
+
 	// testDiffs(): void;
 }
 
@@ -272,6 +279,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	// streamingDiffZones: Set<number> = new Set()
 	private readonly _onDidChangeStreaming = new Emitter<{ uri: URI }>();
 	private readonly _onDidAddOrDeleteDiffZones = new Emitter<{ uri: URI }>();
+
 
 
 	constructor(
@@ -309,7 +317,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 			// when a stream starts or ends
 			let removeAcceptRejectAllUI: (() => void) | null = null
-			const onChangeUriState = () => {
+			const changeUriState = () => {
 				const uri = model.uri
 				const diffZones = [...this.diffAreasOfURI[uri.fsPath].values()]
 					.map(diffareaid => this.diffAreaOfId[diffareaid])
@@ -322,8 +330,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					removeAcceptRejectAllUI = null
 				}
 			}
-			this._register(this._onDidAddOrDeleteDiffZones.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) onChangeUriState() }))
-			this._register(this._onDidChangeStreaming.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) onChangeUriState() }))
+			this._register(this._onDidAddOrDeleteDiffZones.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) changeUriState() }))
+			this._register(this._onDidChangeStreaming.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) changeUriState() }))
 		}
 		// initialize all existing models + initialize when a new model mounts
 		for (let model of this._modelService.getModels()) { initializeModel(model) }
@@ -526,7 +534,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				mountCtrlK(domNode, accessor, {
 
 					diffareaid: ctrlKZone.diffareaid,
-					initStreamingDiffZoneId: ctrlKZone._linkedStreamingDiffZone,
 
 					textAreaRef: (r) => {
 						textAreaRef.current = r
@@ -1198,19 +1205,15 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	public startApplying(opts: StartApplyingOpts) {
-
 		if (opts.type === 'rewrite') {
-			const addedDiffZone = this._initializeWriteoverStream(opts)
-			return addedDiffZone?.diffareaid
+			const addedDiffArea = this._initializeWriteoverStream(opts)
+			return addedDiffArea?._URI ?? null
 		}
-
 		else if (opts.type === 'searchReplace') {
-			const addedDiffZone = this._initializeSearchAndReplaceStream(opts)
-			return addedDiffZone?.diffareaid
+			const addedDiffArea = this._initializeSearchAndReplaceStream(opts)
+			return addedDiffArea?._URI ?? null
 		}
-
-		return undefined
-
+		return null
 	}
 
 
@@ -1708,18 +1711,46 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._undoRedoService.undo(uri)
 	}
 
-	// call this outside undo/redo (it calls undo). this is only for aborting a diffzone stream
-	interruptStreaming(diffareaid: number) {
-		const diffArea = this.diffAreaOfId[diffareaid]
 
-		if (!diffArea) return
-		if (diffArea.type !== 'DiffZone') return
-		if (!diffArea._streamState.isStreaming) return
 
-		this._stopIfStreaming(diffArea)
-		this._undoHistory(diffArea._URI)
+
+
+	isCtrlKZoneStreaming({ diffareaid }: { diffareaid: number }) {
+		const ctrlKZone = this.diffAreaOfId[diffareaid]
+		if (!ctrlKZone) return false
+		if (ctrlKZone.type !== 'CtrlKZone') return false
+		return !!ctrlKZone._linkedStreamingDiffZone
 	}
 
+	isDiffZoneStreaming({ diffareaid }: { diffareaid: number }) {
+		const diffZone = this.diffAreaOfId[diffareaid]
+		if (diffZone?.type !== 'DiffZone') return false
+		return diffZone._streamState.isStreaming
+	}
+
+
+	// call this outside undo/redo (it calls undo). this is only for aborting a diffzone stream
+	interruptDiffZoneStreaming({ diffareaid }: { diffareaid: number }) {
+		const diffZone = this.diffAreaOfId[diffareaid]
+		if (diffZone?.type !== 'DiffZone') return
+		if (!diffZone._streamState.isStreaming) return
+
+		this._stopIfStreaming(diffZone)
+		this._undoHistory(diffZone._URI)
+	}
+
+	interruptCtrlKStreaming({ diffareaid }: { diffareaid: number }) {
+		const ctrlKZone = this.diffAreaOfId[diffareaid]
+		if (ctrlKZone?.type !== 'CtrlKZone') return
+		if (!ctrlKZone._linkedStreamingDiffZone) return
+
+		const linkedStreamingDiffZone = this.diffAreaOfId[ctrlKZone._linkedStreamingDiffZone]
+		if (!linkedStreamingDiffZone) return
+		if (linkedStreamingDiffZone.type !== 'DiffZone') return
+
+		this.interruptDiffZoneStreaming({ diffareaid: linkedStreamingDiffZone.diffareaid })
+
+	}
 
 
 

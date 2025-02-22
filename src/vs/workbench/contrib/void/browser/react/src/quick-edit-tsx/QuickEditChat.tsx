@@ -49,7 +49,7 @@ export const QuickEditChat = ({
 	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+K', settingsState)
 
 
-	const [isStreamingRef, setIsStreamingRef] = useRefState(false)
+	const [isStreamingRef, setIsStreamingRef] = useRefState(editCodeService.isCtrlKZoneStreaming({ diffareaid }))
 	useCtrlKZoneStreamingState(useCallback((diffareaid2, isStreaming) => {
 		if (diffareaid !== diffareaid2) return
 		setIsStreamingRef(isStreaming)

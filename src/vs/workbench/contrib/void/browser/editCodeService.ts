@@ -287,8 +287,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	private readonly _onDidChangeCtrlKZoneStreaming = new Emitter<{ uri: URI; diffareaid: number }>();
 	private readonly _onDidAddOrDeleteDiffZone = new Emitter<{ uri: URI }>();
 
-	private readonly _onDidChangeAcceptRejectAllState = new Emitter<{ uri: URI, state: AcceptRejectAllState }>(); // was going to be used, but decided not to
-
 	onDidChangeDiffZoneStreaming = this._onDidChangeDiffZoneStreaming.event
 	onDidChangeCtrlKZoneStreaming = this._onDidChangeCtrlKZoneStreaming.event
 
@@ -325,19 +323,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				})
 			)
 
-			// add the accept|reject UI here
-			let removeAcceptRejectAllUI: (() => void) | null = null
-			this._register(this._onDidChangeAcceptRejectAllState.event(({ uri, state }) => {
-				if (state === 'acceptRejectAll' && !removeAcceptRejectAllUI) {
-					removeAcceptRejectAllUI = this._addAcceptRejectAllUI(uri) ?? null
-				} else {
-					removeAcceptRejectAllUI?.()
-					removeAcceptRejectAllUI = null
-				}
-			}))
-
-			// when a stream starts or ends
-			const changeUriState = () => {
+			// when a stream starts or ends, add/remove the accept|reject UI
+			let _removeAcceptRejectAllUI: (() => void) | null = null
+			const updateAcceptRejectAllUI = () => {
 				const uri = model.uri
 				const diffZones = [...this.diffAreasOfURI[uri.fsPath].values()]
 					.map(diffareaid => this.diffAreaOfId[diffareaid])
@@ -345,12 +333,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				const isStreaming = diffZones.find(diffZone => !!diffZone._streamState.isStreaming)
 
 				const state: AcceptRejectAllState = isStreaming ? 'streaming' : (diffZones.length === 0 ? 'idle' : 'acceptRejectAll')
-				this._onDidChangeAcceptRejectAllState.fire({ uri, state })
+				if (state === 'acceptRejectAll' && !_removeAcceptRejectAllUI) {
+					_removeAcceptRejectAllUI = this._addAcceptRejectAllUI(uri) ?? null
+				} else {
+					_removeAcceptRejectAllUI?.()
+					_removeAcceptRejectAllUI = null
+				}
 			}
-			this._register(this._onDidChangeDiffZoneStreaming.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) changeUriState() }))
-			this._register(this._onDidAddOrDeleteDiffZone.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) changeUriState() }))
 
-
+			this._register(this._onDidChangeDiffZoneStreaming.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
+			this._register(this._onDidAddOrDeleteDiffZone.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
 
 		}
 		// initialize all existing models + initialize when a new model mounts

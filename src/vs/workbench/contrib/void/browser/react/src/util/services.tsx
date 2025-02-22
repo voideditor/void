@@ -348,7 +348,7 @@ export const useRefreshModelListener = (listener: (providerName: RefreshableProv
 	useEffect(() => {
 		refreshModelProviderListeners.add(listener)
 		return () => { refreshModelProviderListeners.delete(listener) }
-	}, [listener])
+	}, [listener, refreshModelProviderListeners])
 }
 
 
@@ -356,7 +356,7 @@ export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boo
 	useEffect(() => {
 		ctrlKZoneStreamingStateListeners.add(listener)
 		return () => { ctrlKZoneStreamingStateListeners.delete(listener) }
-	}, [listener])
+	}, [listener, ctrlKZoneStreamingStateListeners])
 }
 
 

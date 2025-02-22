@@ -13,7 +13,7 @@ import { ApplyBlockHoverButtons } from './ApplyBlockHoverButtons.js'
 
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }
 
-const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
+const getCodeBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
 	return `${threadId}-${messageIdx}-${tokenIdx}`
 }
 
@@ -45,10 +45,16 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocati
 
 	if (t.type === "code") {
 
+		const codeBoxId = chatMessageLocation ? getCodeBoxId({
+			threadId: chatMessageLocation.threadId,
+			messageIdx: chatMessageLocation.messageIdx,
+			tokenIdx: tokenIdx,
+		}) : null
+
 		return <BlockCode
 			initValue={t.text}
 			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
-			buttonsOnHover={<ApplyBlockHoverButtons codeStr={t.text} />}
+			buttonsOnHover={<ApplyBlockHoverButtons codeBoxId={codeBoxId} codeStr={t.text} />}
 		/>
 	}
 

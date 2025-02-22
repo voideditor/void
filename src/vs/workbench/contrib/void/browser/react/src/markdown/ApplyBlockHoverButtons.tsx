@@ -43,7 +43,7 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 
 
 
-const ApplyButton = ({ codeStr }: { codeStr: string }) => {
+const ApplyButton = ({ codeStr, codeBoxId }: { codeStr: string, codeBoxId: string }) => {
 	const accessor = useAccessor()
 
 	const editCodeService = accessor.get('IEditCodeService')
@@ -51,13 +51,15 @@ const ApplyButton = ({ codeStr }: { codeStr: string }) => {
 
 
 	const onApply = useCallback(() => {
-
-		editCodeService.startApplying({
+		const diffareaid = editCodeService.startApplying({
 			from: 'ClickApply',
 			type: 'searchReplace',
 			applyStr: codeStr,
 		})
+
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
+
+
 	}, [metricsService, editCodeService, codeStr])
 
 	const isSingleLine = !codeStr.includes('\n')
@@ -76,9 +78,9 @@ const ApplyButton = ({ codeStr }: { codeStr: string }) => {
 
 
 
-export const ApplyBlockHoverButtons = ({ codeStr }: { codeStr: string }) => {
+export const ApplyBlockHoverButtons = ({ codeStr, codeBoxId }: { codeStr: string, codeBoxId: string | null }) => {
 	return <>
 		<CopyButton codeStr={codeStr} />
-		<ApplyButton codeStr={codeStr} />
+		{codeBoxId !== null && <ApplyButton codeBoxId={codeBoxId} codeStr={codeStr} />}
 	</>
 }

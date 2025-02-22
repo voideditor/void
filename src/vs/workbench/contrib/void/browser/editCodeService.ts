@@ -248,7 +248,7 @@ type StreamLocationMutable = { line: number, col: number, addedSplitYet: boolean
 
 export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
-	startApplying(opts: StartApplyingOpts): number | undefined;
+	startApplying(opts: StartApplyingOpts): number | void;
 	interruptStreaming(diffareaid: number): void;
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 	removeCtrlKZone(opts: { diffareaid: number }): void;
@@ -270,7 +270,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	// only applies to diffZones
 	// streamingDiffZones: Set<number> = new Set()
-	private readonly _onDidChangeStreaming = new Emitter<{ uri: URI; diffareaid: number }>();
+	private readonly _onDidChangeStreaming = new Emitter<{ uri: URI }>();
 	private readonly _onDidAddOrDeleteDiffZones = new Emitter<{ uri: URI }>();
 
 
@@ -471,7 +471,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				const buttonsWidget = new AcceptAllRejectAllWidget({
 					editor,
 					onAcceptAll: () => {
-						this.removeDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
+						this.removeDiffAreas({ uri, behavior: 'keep', removeCtrlKs: false })
 						this._metricsService.capture('Accept All', {})
 					},
 					onRejectAll: () => {
@@ -918,6 +918,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._onDidAddOrDeleteDiffZones.fire({ uri: diffZone._URI })
 	}
 
+	private _deleteTrackingZone(trackingZone: TrackingZone<unknown>) {
+		delete this.diffAreaOfId[trackingZone.diffareaid]
+		this.diffAreasOfURI[trackingZone._URI.fsPath].delete(trackingZone.diffareaid.toString())
+	}
+
 	private _deleteCtrlKZone(ctrlKZone: CtrlKZone) {
 		this._clearAllEffects(ctrlKZone._URI)
 		ctrlKZone._mountInfo?.dispose()
@@ -1200,11 +1205,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 		else if (opts.type === 'searchReplace') {
-			this._initializeSearchAndReplaceStream(opts)
-			return undefined
+			const addedDiffZone = this._initializeSearchAndReplaceStream(opts)
+			return addedDiffZone?.diffareaid
 		}
 
-		else return undefined
+		return undefined
 
 	}
 
@@ -1297,7 +1302,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			_removeStylesFns: new Set(),
 		}
 		const diffZone = this._addDiffArea(adding)
-		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+		this._onDidChangeStreaming.fire({ uri })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
 		if (from === 'QuickEdit') {
@@ -1339,7 +1344,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const onDone = () => {
 			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._onDidChangeStreaming.fire({ uri })
 
 			if (from === 'QuickEdit') {
 				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
@@ -1414,14 +1419,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	private async _initializeSearchAndReplaceStream({ applyStr }: { applyStr: string }) {
+	private _initializeSearchAndReplaceStream({ applyStr }: { applyStr: string }) {
 
 		const uri_ = this._getActiveEditorURI()
 		if (!uri_) return
 		const uri = uri_
 
 		// generate search/replace block text
-		const originalFileCode = await this._voidFileService.readFile(uri)
+		const originalFileCode = this._voidFileService.readModel(uri)
 		if (originalFileCode === null) return
 
 		const numLines = this._getNumLines(uri)
@@ -1439,6 +1444,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			{ role: 'user', content: userMessageContent },
 		]
 
+		// can use this as a proxy to set the diffArea's stream state requestId
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
 		let { onFinishEdit } = this._addToHistory(uri)
@@ -1450,7 +1456,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			originalCode: string,
 		}
 
-		const addedDiffAreaOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
+		const addedTrackingZoneOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
@@ -1467,7 +1473,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			_removeStylesFns: new Set(),
 		}
 		const diffZone = this._addDiffArea(adding)
-		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+		this._onDidChangeStreaming.fire({ uri })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
 
@@ -1482,7 +1488,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			// adjust based on the changes by computing line offset
 			const [originalStart, originalEnd] = originalRange
 			let lineOffset = 0
-			for (const blockDiffArea of addedDiffAreaOfBlockNum) {
+			for (const blockDiffArea of addedTrackingZoneOfBlockNum) {
 				const {
 					startLine, endLine,
 					metadata: { originalBounds: [originalStart2, originalEnd2], },
@@ -1505,17 +1511,23 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
-
 		const onDone = () => {
 			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._onDidChangeStreaming.fire({ uri })
 			this._refreshStylesAndDiffsInURI(uri)
+
+			// delete the tracking zones
+			for (const trackingZone of addedTrackingZoneOfBlockNum)
+				this._deleteTrackingZone(trackingZone)
+
 			onFinishEdit()
+			shouldSendAnotherMessage = false
 		}
 
 		// refresh now in case onText takes a while to get 1st message
 		this._refreshStylesAndDiffsInURI(uri)
 
+		// stream style related
 		let latestStreamLocationMutable: StreamLocationMutable | null = null
 		let shouldUpdateOrigStreamStyle = true
 
@@ -1552,7 +1564,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								if (typeof originalRange !== 'string') {
 									const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
 									diffZone._streamState.line = startLine
-									console.log('CURRENT LINE A', startLine)
 									shouldUpdateOrigStreamStyle = false
 								}
 							}
@@ -1563,7 +1574,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 						// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming
-						if (!(blockNum in addedDiffAreaOfBlockNum)) {
+						if (!(blockNum in addedTrackingZoneOfBlockNum)) {
 							const originalBounds = findTextInCode(block.orig, originalFileCode)
 
 							// if error
@@ -1592,7 +1603,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								},
 							}
 							const trackingZone = this._addDiffArea(adding)
-							addedDiffAreaOfBlockNum.push(trackingZone)
+							addedTrackingZoneOfBlockNum.push(trackingZone)
 							latestStreamLocationMutable = { line: startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 						} // <-- done adding diffarea
 
@@ -1606,7 +1617,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 						// if a block is done, finish it by writing all
 						if (block.state === 'done') {
-							const { startLine: finalStartLine, endLine: finalEndLine } = addedDiffAreaOfBlockNum[blockNum]
+							const { startLine: finalStartLine, endLine: finalEndLine } = addedTrackingZoneOfBlockNum[blockNum]
 							this._writeText(uri, block.final,
 								{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalEndLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
 								{ shouldRealignDiffAreas: true }
@@ -1621,7 +1632,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
 						oldBlocks = blocks // oldblocks is only used if writingFinal
 
-						const { endLine: currentEndLine } = addedDiffAreaOfBlockNum[blockNum]
+						const { endLine: currentEndLine } = addedTrackingZoneOfBlockNum[blockNum]
 						diffZone._streamState.line = currentEndLine
 
 
@@ -1642,8 +1653,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 					// writeover the whole file
 					let newCode = originalFileCode
-					for (let blockNum = addedDiffAreaOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
-						const { originalBounds } = addedDiffAreaOfBlockNum[blockNum].metadata
+					for (let blockNum = addedTrackingZoneOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
+						const { originalBounds } = addedTrackingZoneOfBlockNum[blockNum].metadata
 						const finalCode = blocks[blockNum].final
 
 						if (finalCode === null) continue
@@ -1676,6 +1687,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
+		return diffZone
 	}
 
 
@@ -1689,7 +1701,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._llmMessageService.abort(streamRequestId)
 
 		diffZone._streamState = { isStreaming: false, }
-		this._onDidChangeStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+		this._onDidChangeStreaming.fire({ uri })
 	}
 
 	_undoHistory(uri: URI) {
@@ -1737,7 +1749,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	// remove a batch of diffareas all at once (and handle accept/reject of their diffs)
-	public removeDiffAreas({ uri, removeCtrlKs, behavior }: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept' }) {
+	public removeDiffAreas({ uri, removeCtrlKs, behavior }: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'keep' }) {
 
 		const diffareaids = this.diffAreasOfURI[uri.fsPath]
 		if (diffareaids.size === 0) return // do nothing
@@ -1750,7 +1762,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 			if (diffArea.type == 'DiffZone') {
 				if (behavior === 'reject') this._revertAndDeleteDiffZone(diffArea)
-				else if (behavior === 'accept') this._deleteDiffZone(diffArea)
+				else if (behavior === 'keep') this._deleteDiffZone(diffArea)
 			}
 			else if (diffArea.type === 'CtrlKZone' && removeCtrlKs) {
 				this._deleteCtrlKZone(diffArea)

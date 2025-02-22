@@ -20,7 +20,7 @@ export interface IVoidFileService {
 	readonly _serviceBrand: undefined;
 
 	readFile(uri: URI, range?: { startLineNumber: number, endLineNumber: number }): Promise<string>;
-
+	readModel(uri: URI, range?: { startLineNumber: number, endLineNumber: number }): string | null;
 }
 
 export const IVoidFileService = createDecorator<IVoidFileService>('VoidFileService');
@@ -39,7 +39,7 @@ export class VoidFileService implements IVoidFileService {
 	readFile = async (uri: URI, range?: { startLineNumber: number, endLineNumber: number }): Promise<string> => {
 
 		// attempt to read the model
-		const modelResult = await this._readModel(uri, range);
+		const modelResult = this.readModel(uri, range);
 		if (modelResult) return modelResult;
 
 		// if no model, read the raw file
@@ -71,7 +71,7 @@ export class VoidFileService implements IVoidFileService {
 	}
 
 
-	_readModel = async (uri: URI, range?: { startLineNumber: number, endLineNumber: number }): Promise<string | null> => {
+	readModel = (uri: URI, range?: { startLineNumber: number, endLineNumber: number }): string | null => {
 
 		// read saved model (sometimes null if the user reloads application)
 		let model = this.modelService.getModel(uri);

@@ -610,8 +610,8 @@ const toolResultToComponent: ToolReusltToComponent = {
 		>
 			<div className="text-void-fg-2">
 				{message.result.children?.map((item, i) => (
-					<div key={i} className="pl-2">
-						• {item.name}
+					<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
+						{item.name}
 						{item.isDirectory && '/'}
 					</div>
 				))}
@@ -632,12 +632,12 @@ const toolResultToComponent: ToolReusltToComponent = {
 			<div className="text-void-fg-2">
 				{Array.isArray(message.result.uris) ?
 					message.result.uris.map((uri, i) => (
-						<div key={i} className="pl-2">
+						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
 							<a
 								href={uri.toString()}
 								className="text-void-accent hover:underline"
 							>
-								• {uri.fsPath.split('/').pop()}
+								{uri.fsPath.split('/').pop()}
 							</a>
 						</div>
 					)) :
@@ -661,12 +661,12 @@ const toolResultToComponent: ToolReusltToComponent = {
 				{typeof message.result.uris === 'string' ?
 					message.result.uris :
 					message.result.uris.map((uri, i) => (
-						<div key={i} className="pl-2">
+						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
 							<a
 								href={uri.toString()}
 								className="text-void-accent hover:underline"
 							>
-								• {uri.fsPath}
+								{uri.fsPath}
 							</a>
 						</div>
 					))

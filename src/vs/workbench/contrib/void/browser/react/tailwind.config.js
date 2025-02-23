@@ -28,6 +28,7 @@ module.exports = {
 
 			colors: {
 				"void-bg-1": "var(--vscode-input-background)",
+				"void-bg-1-alt": "var(--vscode-badge-background)",
 				"void-bg-2": "var(--vscode-sideBar-background)",
 				"void-bg-2-alt": "color-mix(in srgb, var(--vscode-sideBar-background) 30%, var(--vscode-editor-background) 70%)",
 				"void-bg-3": "var(--vscode-editor-background)",

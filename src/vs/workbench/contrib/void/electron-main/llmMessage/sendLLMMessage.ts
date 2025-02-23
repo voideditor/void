@@ -35,8 +35,8 @@ export const sendLLMMessage = ({
 		metricsService.capture(eventId, {
 			providerName,
 			modelName,
-			customEndpointURL: settingsOfProvider[providerName].endpoint,
-			numModelsAtEndpoint: settingsOfProvider[providerName].models.length,
+			customEndpointURL: settingsOfProvider[providerName]?.endpoint,
+			numModelsAtEndpoint: settingsOfProvider[providerName].models?.length,
 			...messagesType === 'chatMessages' ? {
 				numMessages: messages_?.length,
 				messagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),

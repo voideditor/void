@@ -36,7 +36,7 @@ export const sendLLMMessage = ({
 			providerName,
 			modelName,
 			customEndpointURL: settingsOfProvider[providerName]?.endpoint,
-			numModelsAtEndpoint: settingsOfProvider[providerName].models?.length,
+			numModelsAtEndpoint: settingsOfProvider[providerName]?.models?.length,
 			...messagesType === 'chatMessages' ? {
 				numMessages: messages_?.length,
 				messagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),

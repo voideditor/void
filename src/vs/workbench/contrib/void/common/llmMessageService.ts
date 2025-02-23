@@ -157,6 +157,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this.channel.call('ollamaList', {
 			...proxyParams,
 			settingsOfProvider,
+			providerName: 'ollama',
 			requestId: requestId_,
 		} satisfies MainModelListParams<OllamaModelResponse>)
 	}
@@ -175,6 +176,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this.channel.call('openAICompatibleList', {
 			...proxyParams,
 			settingsOfProvider,
+			providerName: 'openAICompatible',
 			requestId: requestId_,
 		} satisfies MainModelListParams<OpenaiCompatibleModelResponse>)
 	}

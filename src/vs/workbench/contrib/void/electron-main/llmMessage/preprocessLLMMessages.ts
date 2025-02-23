@@ -1,7 +1,6 @@
 
 
 import { LLMChatMessage } from '../../common/llmMessageTypes.js';
-import { developerInfoOfModelName, developerInfoOfProviderName, ProviderName } from '../../common/voidSettingsTypes.js';
 import { deepClone } from '../../../../../base/common/objects.js';
 
 
@@ -14,16 +13,24 @@ export const parseObject = (args: unknown) => {
 	return {}
 }
 
-// no matter whether the model supports a system message or not (or what format it supports), add it in some way
-// also take into account tools if the model doesn't support tool use
-export const addSystemMessageAndToolSupport = (modelName: string, providerName: ProviderName, messages_: LLMChatMessage[], aiInstructions: string, { separateSystemMessage }: { separateSystemMessage: boolean }): { separateSystemMessageStr?: string, messages: any[] } => {
 
+const prepareMessages_cloneAndTrim = ({ messages: messages_ }: { messages: LLMChatMessage[] }) => {
 	const messages = deepClone(messages_).map(m => ({ ...m, content: m.content.trim(), }))
+	return { messages }
+}
 
-	const { overrideSettingsForAllModels } = developerInfoOfProviderName(providerName)
-	const { supportsSystemMessage, supportsTools } = developerInfoOfModelName(modelName, overrideSettingsForAllModels)
+// no matter whether the model supports a system message or not (or what format it supports), add it in some way
+const prepareMessages_systemMessage = ({
+	messages,
+	aiInstructions,
+	supportsSystemMessage,
+}: {
+	messages: LLMChatMessage[],
+	aiInstructions: string,
+	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
+})
+	: { separateSystemMessageStr?: string, messages: any[] } => {
 
-	// 1. SYSTEM MESSAGE
 	// find system messages and concatenate them
 	let systemMessageStr = messages
 		.filter(msg => msg.role === 'system')
@@ -32,7 +39,6 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 
 	if (aiInstructions)
 		systemMessageStr = `${(systemMessageStr ? `${systemMessageStr}\n\n` : '')}GUIDELINES\n${aiInstructions}`
-
 
 	let separateSystemMessageStr: string | undefined = undefined
 
@@ -49,11 +55,12 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 	if (systemMessageStr) {
 		// if supports system message
 		if (supportsSystemMessage) {
-			if (separateSystemMessage)
+			if (supportsSystemMessage === 'separated')
 				separateSystemMessageStr = systemMessageStr
-			else {
-				newMessages.unshift({ role: supportsSystemMessage === 'developer' ? 'developer' : 'system', content: systemMessageStr }) // add new first message
-			}
+			else if (supportsSystemMessage === 'system-role')
+				newMessages.unshift({ role: 'system', content: systemMessageStr }) // add new first message
+			else if (supportsSystemMessage === 'developer-role')
+				newMessages.unshift({ role: 'developer', content: systemMessageStr }) // add new first message
 		}
 		// if does not support system message
 		else {
@@ -79,225 +86,240 @@ export const addSystemMessageAndToolSupport = (modelName: string, providerName: 
 		}
 	}
 
+	return { messages: newMessages, separateSystemMessageStr }
+}
 
 
 
 
 
-	// 2. MAKE TOOLS FORMAT CORRECT in messages
-	let finalMessages: any[]
-	if (!supportsTools) {
-		// do nothing
-		finalMessages = newMessages
-	}
+// convert messages as if about to send to openai
+/*
+reference - https://platform.openai.com/docs/guides/function-calling#function-calling-steps
+openai MESSAGE (role=assistant):
+"tool_calls":[{
+	"type": "function",
+	"id": "call_12345xyz",
+	"function": {
+	"name": "get_weather",
+	"arguments": "{\"latitude\":48.8566,\"longitude\":2.3522}"
+}]
 
-	// 	anthropic assistant message will have: https://docs.anthropic.com/en/docs/build-with-claude/tool-use#tool-use-examples
-	// 	"content": [
-	// 		{
-	// 			"type": "text",
-	// 			"text": "<thinking>I need to call the get_weather function, and the user wants SF, which is likely San Francisco, CA.</thinking>"
-	// 		},
-	// 		{
-	// 			"type": "tool_use",
-	// 			"id": "toolu_01A09q90qw90lq917835lq9",
-	// 			"name": "get_weather",
-	// 			"input": { "location": "San Francisco, CA", "unit": "celsius" }
-	// 		}
-	// 	]
+openai RESPONSE (role=user):
+{   "role": "tool",
+	"tool_call_id": tool_call.id,
+	"content": str(result)    }
 
-	// anthropic user message response will be:
-	// 	"content": [
-	// 		{
-	// 			"type": "tool_result",
-	// 			"tool_use_id": "toolu_01A09q90qw90lq917835lq9",
-	// 			"content": "15 degrees"
-	// 		}
-	// 	]
+also see
+openai on prompting - https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
+openai on developer system message - https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
+*/
 
+const prepareMessages_tools_openai = ({ messages }: { messages: LLMChatMessage[], }) => {
 
-	else if (providerName === 'anthropic') { // convert role:'tool' to anthropic's type
-		const newMessagesTools: (
-			Exclude<typeof newMessages[0], { role: 'assistant' | 'user' }> | {
-				role: 'assistant',
-				content: string | ({
-					type: 'text';
-					text: string;
-				} | {
-					type: 'tool_use';
+	const newMessages: (
+		Exclude<LLMChatMessage, { role: 'assistant' | 'tool' }> | {
+			role: 'assistant',
+			content: string;
+			tool_calls?: {
+				type: 'function';
+				id: string;
+				function: {
 					name: string;
-					input: Record<string, any>;
-					id: string;
-				})[]
-			} | {
-				role: 'user',
-				content: string | ({
-					type: 'text';
-					text: string;
-				} | {
-					type: 'tool_result';
-					tool_use_id: string;
-					content: string;
-				})[]
-			}
-		)[] = newMessages;
+					arguments: string;
+				}
+			}[]
+		} | {
+			role: 'tool',
+			id: string; // old val
+			tool_call_id: string; // new val
+			content: string;
+		}
+	)[] = [];
 
+	for (let i = 0; i < messages.length; i += 1) {
+		const currMsg = messages[i]
 
-		for (let i = 0; i < newMessagesTools.length; i += 1) {
-			const currMsg = newMessagesTools[i]
-
-			if (currMsg.role !== 'tool') continue
-
-			const prevMsg = 0 <= i - 1 && i - 1 <= newMessagesTools.length ? newMessagesTools[i - 1] : undefined
-
-			if (prevMsg?.role === 'assistant') {
-				if (typeof prevMsg.content === 'string') prevMsg.content = [{ type: 'text', text: prevMsg.content }]
-				prevMsg.content.push({ type: 'tool_use', id: currMsg.id, name: currMsg.name, input: parseObject(currMsg.params) })
-			}
-
-			// turn each tool into a user message with tool results at the end
-			newMessagesTools[i] = {
-				role: 'user',
-				content: [
-					...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content }] as const,
-					...currMsg.content ? [{ type: 'text', text: currMsg.content }] as const : [],
-				]
-			}
+		if (currMsg.role !== 'tool') {
+			newMessages.push(currMsg)
+			continue
 		}
 
-		finalMessages = newMessagesTools
-	}
-
-	// openai assistant message will have: https://platform.openai.com/docs/guides/function-calling#function-calling-steps
-	// "tool_calls":[
-	// {
-	// "type": "function",
-	// "id": "call_12345xyz",
-	// "function": {
-	// "name": "get_weather",
-	// "arguments": "{\"latitude\":48.8566,\"longitude\":2.3522}"
-	// }
-	// }]
-
-	// openai user response will be:
-	// {
-	// "role": "tool",
-	// "tool_call_id": tool_call.id,
-	// "content": str(result)
-	// }
-
-	// treat all other providers like openai tool message for now
-	else {
-
-		const newMessagesTools: (
-			Exclude<typeof newMessages[0], { role: 'assistant' | 'tool' }> | {
-				role: 'assistant',
-				content: string;
-				tool_calls?: {
-					type: 'function';
-					id: string;
-					function: {
-						name: string;
-						arguments: string;
-					}
-				}[]
-			} | {
-				role: 'tool',
-				id: string; // old val
-				tool_call_id: string; // new val
-				content: string;
-			}
-		)[] = [];
-
-		for (let i = 0; i < newMessages.length; i += 1) {
-			const currMsg = newMessages[i]
-
-			if (currMsg.role !== 'tool') {
-				newMessagesTools.push(currMsg)
-				continue
-			}
-
-			// edit previous assistant message to have called the tool
-			const prevMsg = 0 <= i - 1 && i - 1 <= newMessagesTools.length ? newMessagesTools[i - 1] : undefined
-			if (prevMsg?.role === 'assistant') {
-				prevMsg.tool_calls = [{
-					type: 'function',
-					id: currMsg.id,
-					function: {
-						name: currMsg.name,
-						arguments: JSON.stringify(currMsg.params)
-					}
-				}]
-			}
-
-			// add the tool
-			newMessagesTools.push({
-				role: 'tool',
+		// edit previous assistant message to have called the tool
+		const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
+		if (prevMsg?.role === 'assistant') {
+			prevMsg.tool_calls = [{
+				type: 'function',
 				id: currMsg.id,
-				content: currMsg.content,
-				tool_call_id: currMsg.id,
-			})
+				function: {
+					name: currMsg.name,
+					arguments: JSON.stringify(currMsg.params)
+				}
+			}]
 		}
-		finalMessages = newMessagesTools
+
+		// add the tool
+		newMessages.push({
+			role: 'tool',
+			id: currMsg.id,
+			content: currMsg.content,
+			tool_call_id: currMsg.id,
+		})
 	}
+	return { messages: newMessages }
+
+}
+
+
+// convert messages as if about to send to anthropic
+/*
+https://docs.anthropic.com/en/docs/build-with-claude/tool-use#tool-use-examples
+anthropic MESSAGE (role=assistant):
+"content": [{
+	"type": "text",
+	"text": "<thinking>I need to call the get_weather function, and the user wants SF, which is likely San Francisco, CA.</thinking>"
+}, {
+	"type": "tool_use",
+	"id": "toolu_01A09q90qw90lq917835lq9",
+	"name": "get_weather",
+	"input": { "location": "San Francisco, CA", "unit": "celsius" }
+}]
+anthropic RESPONSE (role=user):
+"content": [{
+	"type": "tool_result",
+	"tool_use_id": "toolu_01A09q90qw90lq917835lq9",
+	"content": "15 degrees"
+}]
+*/
+
+const prepareMessages_tools_anthropic = ({ messages }: { messages: LLMChatMessage[], }) => {
+	const newMessages: (
+		Exclude<LLMChatMessage, { role: 'assistant' | 'user' }> | {
+			role: 'assistant',
+			content: string | ({
+				type: 'text';
+				text: string;
+			} | {
+				type: 'tool_use';
+				name: string;
+				input: Record<string, any>;
+				id: string;
+			})[]
+		} | {
+			role: 'user',
+			content: string | ({
+				type: 'text';
+				text: string;
+			} | {
+				type: 'tool_result';
+				tool_use_id: string;
+				content: string;
+			})[]
+		}
+	)[] = messages;
+
+
+	for (let i = 0; i < newMessages.length; i += 1) {
+		const currMsg = newMessages[i]
+
+		if (currMsg.role !== 'tool') continue
+
+		const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
+
+		if (prevMsg?.role === 'assistant') {
+			if (typeof prevMsg.content === 'string') prevMsg.content = [{ type: 'text', text: prevMsg.content }]
+			prevMsg.content.push({ type: 'tool_use', id: currMsg.id, name: currMsg.name, input: parseObject(currMsg.params) })
+		}
+
+		// turn each tool into a user message with tool results at the end
+		newMessages[i] = {
+			role: 'user',
+			content: [
+				...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content }] as const,
+				...currMsg.content ? [{ type: 'text', text: currMsg.content }] as const : [],
+			]
+		}
+	}
+	return { messages: newMessages }
+}
 
 
 
 
-	// 3. CROP MESSAGES SO EVERYTHING FITS IN CONTEXT
-	// TODO!!!
 
-
-	console.log('SYSMG', separateSystemMessage)
-	console.log('FINAL MESSAGES', JSON.stringify(finalMessages, null, 2))
-
-
-	return {
-		separateSystemMessageStr,
-		messages: finalMessages,
+const prepareMessages_tools = ({ messages, supportsTools }: { messages: LLMChatMessage[], supportsTools: false | 'anthropic-style' | 'openai-style' }) => {
+	if (!supportsTools) {
+		return { messages: messages }
+	}
+	else if (supportsTools === 'anthropic-style') {
+		return prepareMessages_tools_anthropic({ messages })
+	}
+	else if (supportsTools === 'openai-style') {
+		return prepareMessages_tools_openai({ messages })
+	}
+	else {
+		throw 1
 	}
 }
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+export const prepareMessages = ({
+	messages,
+	aiInstructions,
+	supportsSystemMessage,
+	supportsTools,
+}: {
+	messages: LLMChatMessage[],
+	aiInstructions: string,
+	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
+	supportsTools: false | 'anthropic-style' | 'openai-style',
+}) => {
+	const { messages: messages1 } = prepareMessages_cloneAndTrim({ messages })
+	const { messages: messages2, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages1, aiInstructions, supportsSystemMessage })
+	const { messages: messages3 } = prepareMessages_tools({ messages: messages2, supportsTools })
+	return {
+		messages: messages3 as any,
+		separateSystemMessageStr
+	} as const
+}
 
 
 /*
-
-
 ACCORDING TO 4o: gemini: similar to openai, but function_call, and only 1 call per message (no id because only 1 message)
-gemini request: {
-"role": "assistant",
-"content": null,
-"function_call": {
-"name": "get_weather",
-"arguments": {
-"latitude": 48.8566,
-"longitude": 2.3522
+gemini request:
+{   "role": "assistant",
+	"content": null,
+	"function_call": {
+		"name": "get_weather",
+		"arguments": {
+			"latitude": 48.8566,
+			"longitude": 2.3522
+		}
+	}
 }
-}
-}
+
 gemini response:
-{
-"role": "assistant",
-"function_response": {
-"name": "get_weather",
-"response": {
-"temperature": "15°C",
-"condition": "Cloudy"
+{   "role": "assistant",
+	"function_response": {
+		"name": "get_weather",
+			"response": {
+			"temperature": "15°C",
+				"condition": "Cloudy"
+		}
+	}
 }
-}
-}
-
-
-+ anthropic
-
-+ openai-compat (4)
-+ gemini
-
-ollama
-
-
-mistral: same as openai
-
 */

@@ -6,9 +6,7 @@
 import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
-
-import { sendAnthropicChat } from './anthropic.js';
-import { sendOpenAIChat } from './openai.js';
+import { sendAnthropicChat, sendOpenAIChat } from './MODELS.js';
 
 
 export const sendLLMMessage = ({
@@ -97,6 +95,10 @@ export const sendLLMMessage = ({
 
 	try {
 		switch (providerName) {
+			case 'anthropic':
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Anthropic FIM' })
+				else /*                         */ sendAnthropicChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools });
+				break;
 			case 'openAI':
 			case 'openRouter':
 			case 'deepseek':
@@ -107,12 +109,8 @@ export const sendLLMMessage = ({
 			case 'groq':
 			case 'gemini':
 			case 'xAI':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - OpenAI API FIM', toolCalls: [] })
+				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - OpenAI API FIM' })
 				else /*                         */ sendOpenAIChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools });
-				break;
-			case 'anthropic':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Anthropic FIM', toolCalls: [] })
-				else /*                         */ sendAnthropicChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools });
 				break;
 			default:
 				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })

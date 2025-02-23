@@ -795,26 +795,27 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				},
 				useProviderFor: 'Autocomplete',
 				logging: { loggingName: 'Autocomplete' },
-				onText: async ({ fullText, newText }) => {
+				onText: () => { }, // unused in FIMMessage
+				// onText: async ({ fullText, newText }) => {
 
-					newAutocompletion.insertText = fullText
+				// 	newAutocompletion.insertText = fullText
 
-					// count newlines in newText
-					const numNewlines = newText.match(/\n|\r\n/g)?.length || 0
-					newAutocompletion._newlineCount += numNewlines
+				// 	// count newlines in newText
+				// 	const numNewlines = newText.match(/\n|\r\n/g)?.length || 0
+				// 	newAutocompletion._newlineCount += numNewlines
 
-					// if too many newlines, resolve up to last newline
-					if (newAutocompletion._newlineCount > 10) {
-						const lastNewlinePos = fullText.lastIndexOf('\n')
-						newAutocompletion.insertText = fullText.substring(0, lastNewlinePos)
-						resolve(newAutocompletion.insertText)
-						return
-					}
+				// 	// if too many newlines, resolve up to last newline
+				// 	if (newAutocompletion._newlineCount > 10) {
+				// 		const lastNewlinePos = fullText.lastIndexOf('\n')
+				// 		newAutocompletion.insertText = fullText.substring(0, lastNewlinePos)
+				// 		resolve(newAutocompletion.insertText)
+				// 		return
+				// 	}
 
-					// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
-					// 	reject('LLM response did not match user\'s text.')
-					// }
-				},
+				// 	// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
+				// 	// 	reject('LLM response did not match user\'s text.')
+				// 	// }
+				// },
 				onFinalMessage: ({ fullText }) => {
 
 					// console.log('____res: ', JSON.stringify(newAutocompletion.insertText))

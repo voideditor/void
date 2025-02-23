@@ -191,6 +191,7 @@ export type OpenaiCompatibleModelResponse = {
 
 // params to the true list fn
 export type ModelListParams<modelResponse> = {
+	providerName: ProviderName;
 	settingsOfProvider: SettingsOfProvider;
 	onSuccess: (param: { models: modelResponse[] }) => void;
 	onError: (param: { error: string }) => void;

@@ -9,7 +9,6 @@ import { BlockCode } from './BlockCode.js'
 import { ChatMessageLocation, } from '../../../aiRegexService.js'
 import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
 import { ApplyBlockHoverButtons } from './ApplyBlockHoverButtons.js'
-import { URI } from '../../../../../../../base/common/uri.js'
 
 
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }

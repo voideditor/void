@@ -2,20 +2,20 @@ import { URI } from '../../../../base/common/uri.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-// import { IFileService } from '../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 
 // Using the ISearchService imports
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ISearchService, IFileQuery, QueryType } from '../../../../workbench/services/search/common/search.js';
+import { IExpression } from '../../../../base/common/glob.js';
 
 // Minimal least path import
 import { shorten } from '../../../../base/common/labels.js';
 
 export interface IRepoFilesService {
 	readonly _serviceBrand: undefined;
-	searchFilesByName(searchText?: string): Promise<URI[]>;
+	// searchFilesByName(searchText?: string): Promise<URI[]>;
 	getFilesByName(searchText?: string): Promise<IFileDisplayInfo[]>;
 	refreshFileList(searchText?: string): Promise<void>;
 }
@@ -33,10 +33,23 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 	_serviceBrand: undefined;
 
 	private _fileCache: URI[] = [];
-	private _excludePatterns: string[] = ['**/node_modules/**', '**/.git/**'];
-	// Limit for the number of files to scan
+	// Limit for the number of files to scan.
+	// Note that this affects showing duplicates and filepaths because
+	// it only shows the duplicates of the loaded files.
 	private _maxFiles = 50;
 	private _workspaceFolders: URI[] = [];
+	private _excludePatterns: string[] = [
+		'out/**',
+		'build/**',
+		'.git/**',
+		'node_modules/**',
+		'**/__pycache__/**',
+		'**/*.egg-info/**',
+		'**/env/**',
+		'**/venv/**',
+		'**/.venv/**',
+		'**/.env/**'
+	];
 
 	constructor(
 		// @IFileService private readonly fileService: IFileService,
@@ -60,20 +73,15 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 
 		// Get workspace folders
 		this._workspaceFolders = this.workspaceService.getWorkspace().folders.map(folder => folder.uri);
-
-		// await this.refreshFileList();
-
-		// Watch for workspace changes
-		// this._register(this.workspaceService.onDidChangeWorkspaceFolders(() => {
-		// 	this.refreshFileList();
-		// }));
 	}
 
-	// public async getWorkspaceFiles(searchText?: string): Promise<URI[]> {
-	// 	await this.refreshFileList(searchText);
-	// 	console.log(`Returning ${this._fileCache.length} files`);
-	// 	return this._fileCache;
-	// }
+	private _getExcludePatternObject(): IExpression {
+		const excludePatternObject: IExpression = {};
+		this._excludePatterns.forEach(pattern => {
+			excludePatternObject[pattern] = true;
+		});
+		return excludePatternObject;
+	}
 
 	public async refreshFileList(searchText?: string): Promise<void> {
 
@@ -94,6 +102,7 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 			type: QueryType.File,
 			folderQueries,
 			filePattern: globPattern,
+			excludePattern: this._getExcludePatternObject(),
 			maxResults: this._maxFiles,
 			shouldGlobMatchFilePattern: true, // Use glob pattern for file search
 		};
@@ -102,149 +111,15 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		this._fileCache = result.results.map(match => match.resource);
 	};
 
-	// private getDuplicateFiles(): Map<string, URI[]> {
-	// 	const fileMap = new Map<string, URI[]>();
-	// 	this._fileCache.forEach(file => {
-	// 		const fileName = file.path.split('/').pop();
-	// 		if (fileName) {
-	// 			const files = fileMap.get(fileName) || [];
-	// 			files.push(file);
-	// 			fileMap.set(fileName, files);
-	// 		}
-	// 	});
-
-	// 	return new Map([...fileMap.entries()].filter(entry => entry[1].length > 1));
-	// }
-
-
-
-	// private async _getFilesInFolder(folderUri: URI): Promise<URI[]> {
-	// 	const files: URI[] = [];
-
+	// public async searchFilesByName(searchText?: string): Promise<URI[]> {
 	// 	try {
-	// 		const stat = await this.fileService.resolve(folderUri, {
-	// 			resolveMetadata: false
-	// 		});
-
-	// 		if (!stat.isDirectory) {
-	// 			return files;
-	// 		}
-
-	// 		// Process all children
-	// 		if (stat.children) {
-	// 			for (const child of stat.children) {
-	// 				// Stop if we have reached the limit
-	// 				if (files.length >= this._maxFiles) {
-	// 					break;
-	// 				}
-
-	// 				const childUri = child.resource;
-
-	// 				// Skip if matches exclude patterns
-	// 				if (this._shouldExclude(childUri)) {
-	// 					continue;
-	// 				}
-
-	// 				if (child.isDirectory) {
-	// 					// Recursively get files from subdirectory
-	// 					const subFiles = await this._getFilesInFolder(childUri);
-	// 					for (const file of subFiles) {
-	// 						if (files.length >= this._maxFiles) {
-	// 							break;
-	// 						}
-	// 						files.push(file);
-	// 					}
-	// 				} else {
-	// 					files.push(childUri);
-	// 				}
-	// 			}
-	// 		}
+	// 		await this.refreshFileList(searchText);
+	// 		return this._fileCache;
 	// 	} catch (error) {
-	// 		console.error(`Error processing ${folderUri.toString()}:`, error);
+	// 		console.error(`Error searching files:`, error);
+	// 		return [];
 	// 	}
-
-	// 	return files;
 	// }
-
-	// private async _getFilteredFilesInFolder(folderUri: URI, searchText: string): Promise<URI[]> {
-	// 	const files: URI[] = [];
-
-	// 	try {
-	// 		const stat = await this.fileService.resolve(folderUri, {
-	// 			resolveMetadata: false
-	// 		});
-
-	// 		if (!stat.isDirectory) {
-	// 			return files;
-	// 		}
-
-	// 		// Process all children
-	// 		if (stat.children) {
-	// 			for (const child of stat.children) {
-	// 				// Stop if we have reached the limit
-	// 				if (files.length >= this._maxFiles) {
-	// 					break;
-	// 				}
-
-
-	// 				const childUri = child.resource;
-
-	// 				// Skip if matches exclude patterns
-	// 				if (this._shouldExclude(childUri)) {
-	// 					continue;
-	// 				}
-
-	// 				if (child.isDirectory) {
-	// 					// Recursively get files from subdirectory
-	// 					const subFiles = await this._getFilesInFolder(childUri);
-	// 					for (const file of subFiles) {
-	// 						if (files.length >= this._maxFiles) {
-	// 							break;
-	// 						}
-	// 						const fileName = file.path.split('/').pop();
-	// 						if (fileName?.toLowerCase().startsWith(searchText.toLowerCase())) {
-	// 							files.push(file);
-	// 						}
-	// 					}
-	// 				} else {
-	// 					const fileName = childUri.path.split('/').pop();
-	// 					if (fileName?.toLowerCase().startsWith(searchText.toLowerCase())) {
-	// 						files.push(childUri);
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	} catch (error) {
-	// 		console.error(`Error processing ${folderUri.toString()}:`, error);
-	// 	}
-
-	// 	return files;
-	// }
-
-	// private _shouldExclude(uri: URI): boolean {
-	// 	const path = uri.path;
-	// 	return this._excludePatterns.some(pattern => {
-	// 		// Convert glob pattern to regex
-	// 		const regexPattern = pattern
-	// 			.replace(/\*/g, '.*')
-	// 			.replace(/\?/g, '.')
-	// 			.replace(/\//g, '\\/');
-	// 		return new RegExp(regexPattern).test(path);
-	// 	});
-	// }
-
-	// ISearchService implementation methods
-	// private currentSearchCancellationTokenSource: CancellationTokenSource | null = null;
-
-	public async searchFilesByName(searchText?: string): Promise<URI[]> {
-		try {
-			await this.refreshFileList(searchText);
-			return this._fileCache;
-		} catch (error) {
-			console.error(`Error searching files:`, error);
-			return [];
-		}
-	}
 
 	public async getFilesByName(searchText?: string): Promise<IFileDisplayInfo[]> {
 		// Update the file cache with the latest files
@@ -272,7 +147,7 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 			if (group.length > 1) {
 				group.forEach(info => info.hasDuplicate = true);
 				const fullPaths = group.map(info => info.uri.toString());
-				const shortenedPaths = shorten(fullPaths);
+				const shortenedPaths = shorten(fullPaths); // Get short file path to be rendered for duplicates fileNames
 				group.forEach((info, index) => {
 					info.shortPath = shortenedPaths[index];
 				});

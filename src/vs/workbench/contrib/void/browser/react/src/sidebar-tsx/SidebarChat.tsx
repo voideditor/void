@@ -754,12 +754,11 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 }
 
 interface MentionsDropdownProps {
-	onSelect: (fileObject: IFileDisplayInfo) => void;
 	onClose: () => void;
 	searchText?: string;
 }
 
-const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onSelect, onClose, searchText }) => {
+const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onClose, searchText }) => {
 
 	// Mention dropdown state
 	const accessor = useAccessor();
@@ -798,6 +797,9 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onSelect, onClose, 
 	};
 
 	// TODO: Handle OnSelect to actually add a file to state using the methodology of Matthew
+	const onSelectFile = (file: IFileDisplayInfo) => {
+		console.log(file)
+	}
 
 	// Add this effect to load and log files when component mounts
 	useEffect(() => {
@@ -866,7 +868,7 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onSelect, onClose, 
 						workspaceFiles.map((file, index) => (
 							<div
 								className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer"
-								onClick={() => onSelect(file)}
+								onClick={() => onSelectFile(file)}
 								key={index}
 							>
 								<span className="text-void-fg-1">{file.fileName}</span>
@@ -1068,9 +1070,9 @@ export const SidebarChat = () => {
 		}
 	}, [setShowDropdown, textAreaRef])
 
-	const handleMentionSelect = (file: IFileDisplayInfo) => {
-        console.log(file)
-    };
+	// const handleMentionSelect = (file: IFileDisplayInfo) => {
+    //     console.log(file)
+    // };
 
 	const handleMentionClose = () => {
 		setShowDropdown(false);
@@ -1113,7 +1115,7 @@ export const SidebarChat = () => {
                     multiline={true}
                 />
 
-                {showDropdown && <MentionsDropdown onSelect={handleMentionSelect} onClose={handleMentionClose} searchText={searchText} />}
+                {showDropdown && <MentionsDropdown onClose={handleMentionClose} searchText={searchText} />}
             </div>
 
 

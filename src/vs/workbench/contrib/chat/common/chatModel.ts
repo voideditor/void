@@ -8,7 +8,6 @@ import { DeferredPromise } from '../../../../base/common/async.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IMarkdownString, MarkdownString, isMarkdownString } from '../../../../base/common/htmlContent.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { SurroundingsRemover } from '../../../void/browser/helpers/extractCodeFromResult.js';
 import { revive } from '../../../../base/common/marshalling.js';
 import { equals } from '../../../../base/common/objects.js';
 import { basename, isEqual } from '../../../../base/common/resources.js';
@@ -250,11 +249,6 @@ export class Response extends Disposable implements IResponse {
 
 	updateContent(progress: IChatProgressResponseContent | IChatTextEdit | IChatTask, quiet?: boolean): void {
 		if (progress.kind === 'markdownContent') {
-			// Handle streaming for think tags
-			const remover = new ThinkTagSurroundingsRemover(progress.content.value);
-			const [delta, ignoredSuffix] = remover.deltaInfo(progress.content.value.length);
-			progress.content.value = delta;
-
 			const responsePartLength = this._responseParts.length - 1;
 			const lastResponsePart = this._responseParts[responsePartLength];
 
@@ -357,78 +351,6 @@ export class Response extends Disposable implements IResponse {
 		if (!quiet) {
 			this._onDidChangeValue.fire();
 		}
-	}
-}
-
-/**
- * Strips <think> tags and their content from a text string.
- * Handles nested tags using a stack-based approach.
- * @param text The text to strip tags from
- * @returns The text with all <think> tags and their content removed
- */
-export function stripThinkTags(text: string): string {
-	// Handle nested tags with a stack-based approach
-	let result = '';
-	let depth = 0;
-	let i = 0;
-	
-	while (i < text.length) {
-		if (text.startsWith('<think>', i)) {
-			depth++;
-			i += 7; // length of '<think>'
-		} else if (text.startsWith('</think>', i)) {
-			if (depth > 0) depth--;
-			i += 8; // length of '</think>'
-		} else if (depth === 0) {
-			result += text[i];
-			i++;
-		} else {
-			i++;
-		}
-	}
-	
-	return result;
-}
-
-class ThinkTagSurroundingsRemover extends SurroundingsRemover {
-	constructor(s: string) {
-		super(s);
-	}
-
-	removeThinkTags() {
-		// Handle token streaming at a more granular level
-		let foundTag = false;
-		
-		// Try to remove opening tag, handling partial tokens
-		foundTag = this.removePrefix('<');
-		if (foundTag) {
-			foundTag = this.removePrefix('t');
-			if (foundTag) {
-				foundTag = this.removePrefix('h');
-				if (foundTag) {
-					foundTag = this.removePrefix('i');
-					if (foundTag) {
-						foundTag = this.removePrefix('n');
-						if (foundTag) {
-							foundTag = this.removePrefix('k');
-							if (foundTag) {
-								foundTag = this.removePrefix('>');
-							}
-						}
-					}
-				}
-			}
-		}
-		
-		return foundTag;
-	}
-
-	deltaInfo(recentlyAddedTextLen: number) {
-		// Get the delta and suffix from parent class
-		const [delta, ignoredSuffix] = super.deltaInfo(recentlyAddedTextLen);
-		
-		// Strip any think tags from the delta before returning
-		return [stripThinkTags(delta), ignoredSuffix] as const;
 	}
 }
 

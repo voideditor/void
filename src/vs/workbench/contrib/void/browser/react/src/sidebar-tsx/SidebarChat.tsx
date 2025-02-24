@@ -763,7 +763,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		if (mode === 'display') {
 			chatbubbleContents = <>
 				<SelectedFiles type='past' selections={chatMessage.selections || []} />
-				{chatMessage.displayContent}
+				<span className='px-0.5'>{chatMessage.displayContent}</span>
 			</>
 		}
 		else if (mode === 'edit') {
@@ -862,7 +862,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		className={`
 			relative
 			${mode === 'edit' ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `my-0.5 px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
+				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
 		`}
@@ -875,7 +875,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				text-left rounded-lg
 				max-w-full
 				${mode === 'edit' ? ''
-					: role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1 overflow-x-auto'
+					: role === 'user' ? 'p-2 flex flex-col gap-1 bg-void-bg-1 text-void-fg-1 overflow-x-auto'
 						: role === 'assistant' ? 'px-2 overflow-x-auto' : ''
 				}
 			`}

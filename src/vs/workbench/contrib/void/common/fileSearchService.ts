@@ -17,7 +17,6 @@ export interface IRepoFilesService {
 	readonly _serviceBrand: undefined;
 	// searchFilesByName(searchText?: string): Promise<URI[]>;
 	getFilesByName(searchText?: string): Promise<IFileDisplayInfo[]>;
-	refreshFileList(searchText?: string): Promise<void>;
 }
 
 export interface IFileDisplayInfo {
@@ -83,7 +82,7 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		return excludePatternObject;
 	}
 
-	public async refreshFileList(searchText?: string): Promise<void> {
+	private async _refreshFileList(searchText?: string): Promise<void> {
 
 		try {
 			await this._getFiles(searchText || '');
@@ -111,19 +110,9 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		this._fileCache = result.results.map(match => match.resource);
 	};
 
-	// public async searchFilesByName(searchText?: string): Promise<URI[]> {
-	// 	try {
-	// 		await this.refreshFileList(searchText);
-	// 		return this._fileCache;
-	// 	} catch (error) {
-	// 		console.error(`Error searching files:`, error);
-	// 		return [];
-	// 	}
-	// }
-
 	public async getFilesByName(searchText?: string): Promise<IFileDisplayInfo[]> {
 		// Update the file cache with the latest files
-		await this.refreshFileList(searchText);
+		await this._refreshFileList(searchText);
 
 		// Create fileInfo objects in the original order.
 		const fileInfos: IFileDisplayInfo[] = this._fileCache.map(uri => ({

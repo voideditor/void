@@ -25,6 +25,11 @@ import { Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { ChatMessageLocation } from '../../../aiRegexService.js';
+import { IFileDisplayInfo } from '../../../../common/fileSearchService.js';
+
+
+
+
 
 
 
@@ -749,16 +754,73 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 }
 
 interface MentionsDropdownProps {
-	onSelect: (mention: string) => void;
+	onSelect: (fileObject: IFileDisplayInfo) => void;
 	onClose: () => void;
+	searchText?: string;
 }
 
-const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onSelect, onClose }) => {
-	const mentions = [
-		{ label: '@model', description: 'Reference a model' },
-		{ label: '@file', description: 'Reference a file' },
-		{ label: '@settings', description: 'Reference settings' }
-	];
+const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onSelect, onClose, searchText }) => {
+
+	// Mention dropdown state
+	const accessor = useAccessor();
+	const repoFilesService = accessor.get('IRepoFilesService');
+	const [workspaceFiles, setWorkspaceFiles] = useState<IFileDisplayInfo[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
+
+	const debounce = <T extends (...args: any[]) => Promise<any>>(func: T, delay: number) => {
+		console.log("Setting up debounce for function:", func.name);
+		// let timeoutId: NodeJS.Timeout;
+		const debouncedFunction = async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+			return await new Promise((resolve, reject) => {
+				if (timeoutId) clearTimeout(timeoutId);
+				setTimeoutId(setTimeout(async () => {
+					try {
+						console.log("Debounced function called with args:", args);
+						const result = await func(...args);
+						// Remove previous timeout
+						setTimeoutId(null)
+						resolve(result);
+					} catch (error) {
+						reject(error);
+					}
+				}, delay))
+			});
+		};
+		debouncedFunction.cancel = () => {
+			if (timeoutId) {
+				// Remove previous timeout and function
+				clearTimeout(timeoutId)
+				setTimeoutId(null)
+			};
+		};
+		return debouncedFunction as T & { cancel: () => void };
+	};
+
+	// TODO: Handle OnSelect to actually add a file to state using the methodology of Matthew
+
+	// Add this effect to load and log files when component mounts
+	useEffect(() => {
+		const loadFiles = async () => {
+			try {
+				setLoading(true);
+				// Clean up state
+				setWorkspaceFiles([]);
+
+				// Create debounced wrapper of getFilesByName
+				const debouncedGetFilesByName = debounce(repoFilesService.getFilesByName, 300)
+
+				const files = await debouncedGetFilesByName(searchText);
+
+				setWorkspaceFiles(files)
+			} catch (error) {
+				console.error('Error loading workspace files:', error);
+			} finally {
+				setLoading(false);
+			}
+		};
+		loadFiles()
+	}, [repoFilesService, searchText]);
 
 	// Close dropdown when clicking outside
 	useEffect(() => {
@@ -774,8 +836,8 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onSelect, onClose }
 	}, [onClose]);
 
 	return (
-        <div
-            className="
+		<div
+			className="
 				mt-1
 				mb-8
 				bg-vscode-input-bg
@@ -783,19 +845,43 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onSelect, onClose }
 				rounded-md
 				shadow-md
 				z-50
-            "
-        >
-            <ul className="mt-2 border border-gray-700 rounded-lg divide-y divide-gray-700">
-				{mentions.map((mention, index) => (
-					<div className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer" onClick={() => onSelect('@model')} key={index}>
-                            <span className="text-void-fg-1">{ mention.label }</span>
-                            <span className="text-void-fg-3 text-xs">{ mention.description }</span>
-                        </div>
-				))}
-			</ul>
-        </div>
-    );
+				h-64
+				overflow-y-scroll
+			"
+		>
+			{loading ? (
+				<div className="flex justify-center items-center h-full">
+					<div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 animate-spin"></div>
+				</div>
+			) : (
+				<ul className="mt-2 border-gray-700 rounded-lg divide-y divide-gray-500">
+					<div className="flex flex-col px-3 py-1 mb-2">
+						<span className="text-white-700 font-semibold">Type to search:</span>
+					</div>
+					{workspaceFiles.length === 0 ? (
+						<div className="flex flex-col px-3 py-2">
+							<span className="text-void-fg-3">No files found</span>
+						</div>
+					) : (
+						workspaceFiles.map((file, index) => (
+							<div
+								className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer"
+								onClick={() => onSelect(file)}
+								key={index}
+							>
+								<span className="text-void-fg-1">{file.fileName}</span>
+								{file.hasDuplicate && file.shortPath && (
+									<span className="text-void-fg-3 text-xs">{file.shortPath}</span>
+								)}
+							</div>
+						))
+					)}
+				</ul>
+			)}
+		</div>
+	);
 };
+
 
 
 export const SidebarChat = () => {
@@ -820,6 +906,7 @@ export const SidebarChat = () => {
 		)
 		return () => disposables.forEach(d => d.dispose())
 	}, [sidebarStateService, textAreaRef])
+
 
 	const { isHistoryOpen } = useSidebarState()
 
@@ -853,8 +940,7 @@ export const SidebarChat = () => {
 
 	// dropdown state
     const [showDropdown, setShowDropdown] = useState(false);
-	const [mentions, setMentions] = useState(['@model', '@file', '@settings']);
-	const [filteredMentions, setFilteredMentions] = useState(mentions);
+	const [searchText, setSearchText] = useState('');
 
 	useScrollbarStyles(sidebarRef)
 
@@ -941,54 +1027,49 @@ export const SidebarChat = () => {
 		}
 	</ScrollToBottomContainer>
 
-	useEffect(() => {
-		console.log('[Mentions] Dropdown visibility updated:', showDropdown);
-	}, [showDropdown]);
-
-	const detectMentions = (text: string) => {
+	const detectMentions = useCallback((text: string) => {
 		console.log('Detecting mentions (@) in:', text);
 		if (textAreaRef.current) {
+			// Remove previous search text
+			setSearchText('')
+
 			const cursorPosition = textAreaRef.current.selectionStart;
 			const charBeforeCursor = text.charAt(cursorPosition - 1);
 			// Checking for a space before the @
 			const charBeforeCursor2 = text.charAt(cursorPosition - 2);
 
-			console.log('Cursor position:', cursorPosition);
 			console.log('Char before cursor:', charBeforeCursor);
 
 			// If the cursor is at the beginning of the text or there is a space before the @
 			// then we can assume that the user is trying to mention @
 			if ((charBeforeCursor === '@' && charBeforeCursor2 === ' ') || (charBeforeCursor === '@' && cursorPosition === 1)) {
 				console.log('[Mentions] @ detected!');
-
-
-
 				// Show the dropdown
 				setShowDropdown(true);
+
+			// Check for "@" with text after (e.g. @anything_written_without_spaces)
+			} else if (text.substring(text.lastIndexOf(' ', cursorPosition - 1) + 1, cursorPosition).startsWith('@')) {
+				const atWithText = text.substring(text.lastIndexOf(' ', cursorPosition - 1) + 1, cursorPosition);
+				console.log('[Mentions] @ with text after detected!');
+
+				// Get the text after the @
+				const textAfterAt = atWithText.slice(atWithText.lastIndexOf('@') + 1);
+				console.log("Text after @:", textAfterAt);
+
+				// Update searchText
+				setSearchText(textAfterAt);
+				setShowDropdown(true);
+
+			// No @ detected
 			} else {
 				// Hide the dropdown
 				setShowDropdown(false);
 			}
 		}
-	}
+	}, [setShowDropdown, textAreaRef])
 
-	const handleMentionSelect = (mention: string) => {
-        if (textAreaRef.current) {
-            const cursorPosition = textAreaRef.current.selectionStart;
-            const currentValue = textAreaRef.current.value;
-
-            // Replace the @ with the full mention
-            const newValue =
-                currentValue.substring(0, cursorPosition - 1) +
-                mention + ' ' +
-                currentValue.substring(cursorPosition);
-
-            // Update the input value
-            textAreaFnsRef.current?.setValue(newValue);
-
-            // Close the dropdown
-            setShowDropdown(false);
-        }
+	const handleMentionSelect = (file: IFileDisplayInfo) => {
+        console.log(file)
     };
 
 	const handleMentionClose = () => {
@@ -996,10 +1077,11 @@ export const SidebarChat = () => {
 	}
 
 
+
 	const onChangeText = useCallback((newStr: string) => {
 		detectMentions(newStr);
 		setInstructionsAreEmpty(!newStr)
-	}, [setInstructionsAreEmpty])
+	}, [setInstructionsAreEmpty, detectMentions])
 	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			onSubmit()
@@ -1031,7 +1113,7 @@ export const SidebarChat = () => {
                     multiline={true}
                 />
 
-                {showDropdown && <MentionsDropdown onSelect={handleMentionSelect} onClose={handleMentionClose} />}
+                {showDropdown && <MentionsDropdown onSelect={handleMentionSelect} onClose={handleMentionClose} searchText={searchText} />}
             </div>
 
 

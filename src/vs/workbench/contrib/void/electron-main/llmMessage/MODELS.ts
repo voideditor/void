@@ -5,8 +5,8 @@
 
 import OpenAI from 'openai';
 import { Model as OpenAIModel } from 'openai/resources/models.js';
-import { _InternalModelListFnType, _InternalSendLLMFIMMessageFnType, _InternalSendLLMChatMessageFnType, OllamaModelResponse } from '../../common/llmMessageTypes.js';
-import { InternalToolInfo, ToolName, toolNames } from '../../common/toolsService.js';
+import { OllamaModelResponse, OnText, OnFinalMessage, OnError, LLMChatMessage, LLMFIMMessage, ModelListParams } from '../../common/llmMessageTypes.js';
+import { InternalToolInfo, isAToolName } from '../../common/toolsService.js';
 import { defaultProviderSettings, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareMessages } from './preprocessLLMMessages.js';
 import Anthropic from '@anthropic-ai/sdk';
@@ -80,12 +80,13 @@ type ProviderSettings = {
 				output: number;
 				cache_read?: number;
 				cache_write?: number;
-			};
+			}
 			supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated';
 			supportsTools: false | 'anthropic-style' | 'openai-style';
-		};
-	};
-};
+			supportsFIM: false | 'TODO_FIM_FORMAT'
+		}
+	}
+}
 
 
 const openAIProviderSettings: ProviderSettings = {
@@ -97,21 +98,24 @@ const openAIProviderSettings: ProviderSettings = {
 	FIMFormat: '',
 
 	modelOptions: {
-		"o1": {
+		'o1': {
 			contextWindow: 128_000,
 			cost: { input: 15.00, cache_read: 7.50, output: 60.00, },
+			supportsFIM: false,
 			supportsTools: false,
 			supportsSystemMessage: 'developer-role',
 		},
-		"o3-mini": {
+		'o3-mini': {
 			contextWindow: 200_000,
 			cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
+			supportsFIM: false,
 			supportsTools: false,
 			supportsSystemMessage: 'developer-role',
 		},
-		"gpt-4o": {
+		'gpt-4o': {
 			contextWindow: 128_000,
 			cost: { input: 2.50, cache_read: 1.25, output: 10.00, },
+			supportsFIM: false,
 			supportsTools: 'openai-style',
 			supportsSystemMessage: 'system-role',
 		},
@@ -134,6 +138,7 @@ const anthropicProviderSettings: ProviderSettings = {
 		"claude-3-5-sonnet-20241022": {
 			contextWindow: 200_000,
 			cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+			supportsFIM: false,
 			supportsSystemMessage: 'system-role',
 			supportsTools: 'anthropic-style',
 
@@ -141,17 +146,20 @@ const anthropicProviderSettings: ProviderSettings = {
 		"claude-3-5-haiku-20241022": {
 			contextWindow: 200_000,
 			cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
+			supportsFIM: false,
 			supportsSystemMessage: 'system-role',
 			supportsTools: 'anthropic-style',
 		},
 		"claude-3-opus-20240229": {
 			contextWindow: 200_000,
 			cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
+			supportsFIM: false,
 			supportsSystemMessage: 'system-role',
 			supportsTools: 'anthropic-style',
 		},
 		"claude-3-sonnet-20240229": {
 			contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
+			supportsFIM: false,
 			supportsSystemMessage: 'system-role',
 			supportsTools: 'anthropic-style',
 		}
@@ -168,30 +176,13 @@ const grokProviderSettings: ProviderSettings = {
 	FIMFormat: '',
 
 	modelOptions: {
-		"claude-3-5-sonnet-20241022": {
-			contextWindow: 200_000,
-			cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		"grok-2-latest": {
+			contextWindow: 131_072,
+			cost: { input: 2.00, output: 10.00 },
+			supportsFIM: false,
 			supportsSystemMessage: 'system-role',
-			supportsTools: 'anthropic-style',
-
+			supportsTools: 'openai-style',
 		},
-		"claude-3-5-haiku-20241022": {
-			contextWindow: 200_000,
-			cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
-			supportsSystemMessage: 'system-role',
-			supportsTools: 'anthropic-style',
-		},
-		"claude-3-opus-20240229": {
-			contextWindow: 200_000,
-			cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
-			supportsSystemMessage: 'system-role',
-			supportsTools: 'anthropic-style',
-		},
-		"claude-3-sonnet-20240229": {
-			contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
-			supportsSystemMessage: 'system-role',
-			supportsTools: 'anthropic-style',
-		}
 	}
 
 }
@@ -199,13 +190,21 @@ const grokProviderSettings: ProviderSettings = {
 
 
 
-// helpers
 
-const toolNamesSet = new Set<string>(toolNames)
-const isAToolName = (toolName: string): toolName is ToolName => {
-	const isAToolName = toolNamesSet.has(toolName)
-	return isAToolName
+type InternalCommonMessageParams = {
+	aiInstructions: string;
+	onText: OnText;
+	onFinalMessage: OnFinalMessage;
+	onError: OnError;
+	providerName: ProviderName;
+	settingsOfProvider: SettingsOfProvider;
+	modelName: string;
+	_setAborter: (aborter: () => void) => void;
 }
+
+type SendChatParams_Internal = InternalCommonMessageParams & { messages: LLMChatMessage[]; tools?: InternalToolInfo[] }
+type SendFIMParams_Internal = InternalCommonMessageParams & { messages: LLMFIMMessage; }
+export type ListParams_Internal<ModelResponse> = ModelListParams<ModelResponse>
 
 
 // ------------ OPENAI-COMPATIBLE (HELPERS) ------------
@@ -251,7 +250,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName }: { settings
 	else throw new Error(`Invalid providerName ${providerName}`)
 }
 
-export const _sendOpenAICompatibleChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }) => {
+export const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
 	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage: '', supportsTools: '', })
 	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAICompatibleTool(tool)) : undefined
 
@@ -291,7 +290,7 @@ export const _sendOpenAICompatibleChat: _InternalSendLLMChatMessageFnType = ({ m
 }
 
 
-export const _openaiCompatibleList: _InternalModelListFnType<OpenAIModel> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider, providerName }) => {
+export const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider, providerName }: ListParams_Internal<OpenAIModel>) => {
 	const onSuccess = ({ models }: { models: OpenAIModel[] }) => {
 		onSuccess_({ models })
 	}
@@ -320,7 +319,7 @@ export const _openaiCompatibleList: _InternalModelListFnType<OpenAIModel> = asyn
 
 
 // ------------ OPENAI ------------
-export const sendOpenAIChat: _InternalSendLLMChatMessageFnType = (params) => {
+export const sendOpenAIChat = (params: SendChatParams_Internal) => {
 	return _sendOpenAICompatibleChat(params)
 }
 
@@ -346,7 +345,7 @@ const toolCallsFromAnthropicContent = (content: Anthropic.Messages.ContentBlock[
 	}).filter(t => !!t)
 }
 
-export const sendAnthropicChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, aiInstructions, tools: tools_ }) => {
+export const sendAnthropicChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
 	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage: 'separated', supportsTools: 'anthropic-style', })
 
 	const thisConfig = settingsOfProvider.anthropic
@@ -405,7 +404,7 @@ const newOllamaSDK = ({ endpoint }: { endpoint: string }) => {
 	return ollama
 }
 
-export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }) => {
+export const ollamaList = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }: ListParams_Internal<OllamaModelResponse>) => {
 	const onSuccess = ({ models }: { models: OllamaModelResponse[] }) => {
 		onSuccess_({ models })
 	}
@@ -429,7 +428,7 @@ export const ollamaList: _InternalModelListFnType<OllamaModelResponse> = async (
 	}
 }
 
-export const sendOllamaFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendOllamaFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }: SendFIMParams_Internal) => {
 	const thisConfig = settingsOfProvider.ollama
 	const ollama = newOllamaSDK({ endpoint: thisConfig.endpoint })
 
@@ -462,7 +461,7 @@ export const sendOllamaFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onFi
 
 
 // ollama's implementation of openai-compatible SDK dumps all reasoning tokens out with message, and supports tools, so we can use it for chat!
-export const sendOllamaMessage: _InternalSendLLMChatMessageFnType = (params) => {
+export const sendOllamaChat = (params: SendChatParams_Internal) => {
 	return _sendOpenAICompatibleChat(params)
 	// TODO!!! filter out reasoning <think> tags...
 }
@@ -470,24 +469,24 @@ export const sendOllamaMessage: _InternalSendLLMChatMessageFnType = (params) => 
 
 
 // ------------ OPENROUTER ------------
-export const sendOpenRouterFIM: _InternalSendLLMFIMMessageFnType = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }) => {
+export const sendOpenRouterFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }: SendFIMParams_Internal) => {
 	// TODO!!!
 }
 
-export const sendOpenRouterChat: _InternalSendLLMChatMessageFnType = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }) => {
-	// payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
-	// response.choices[0].delta.reasoning
+export const sendOpenRouterChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+	// reasoning: response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
+	//
 }
 
 // ------------ OPENAI-COMPATIBLE ------------
-export const openAICompatibleList: _InternalModelListFnType<OpenAIModel> = async (params) => {
+export const openAICompatibleList = async (params: ListParams_Internal<OpenAIModel>) => {
 	return _openaiCompatibleList(params)
 }
 
 // TODO!!! FIM
 
 // using openai's SDK is not ideal (your implementation might not do tools, reasoning, FIM etc correctly), talk to us for a custom integration
-export const sendOpenAICompatibleChat: _InternalSendLLMChatMessageFnType = (params) => {
+export const sendOpenAICompatibleChat = (params: SendChatParams_Internal) => {
 	return _sendOpenAICompatibleChat(params)
 }
 
@@ -496,13 +495,23 @@ export const sendOpenAICompatibleChat: _InternalSendLLMChatMessageFnType = (para
 // TODO!!! FIM
 
 // using openai's SDK is not ideal (your implementation might not do tools, reasoning, FIM etc correctly), talk to us for a custom integration
-export const sendVLLMChat: _InternalSendLLMChatMessageFnType = (params) => {
+export const sendVLLMChat = (params: SendChatParams_Internal) => {
 	return _sendOpenAICompatibleChat(params)
-	// response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
+	// reasoning: response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
 }
 
 
+// ------------ DEEPSEEK API ------------
+export const sendDeepSeekAPIChat = (params: SendChatParams_Internal) => {
+	return _sendOpenAICompatibleChat(params)
+	// reasoning: response.choices[0].delta.reasoning_content // https://api-docs.deepseek.com/guides/reasoning_model
+}
 
+
+// ------------ GEMINI ------------
+// ------------ MISTRAL ------------
+// ------------ GROQ ------------
+// ------------ GROK ------------
 
 
 

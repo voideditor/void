@@ -65,7 +65,7 @@ export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
 }
 
 
-type _InternalSendFIMMessage = {
+export type LLMFIMMessage = {
 	prefix: string;
 	suffix: string;
 	stopTokens: string[];
@@ -77,7 +77,7 @@ type SendLLMType = {
 	tools?: InternalToolInfo[];
 } | {
 	messagesType: 'FIMMessage';
-	messages: _InternalSendFIMMessage;
+	messages: LLMFIMMessage;
 	tools?: undefined;
 }
 
@@ -117,38 +117,6 @@ export type EventLLMMessageOnTextParams = Parameters<OnText>[0] & { requestId: s
 export type EventLLMMessageOnFinalMessageParams = Parameters<OnFinalMessage>[0] & { requestId: string }
 export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId: string }
 
-
-export type _InternalSendLLMChatMessageFnType = (
-	params: {
-		aiInstructions: string;
-
-		onText: OnText;
-		onFinalMessage: OnFinalMessage;
-		onError: OnError;
-		providerName: ProviderName;
-		settingsOfProvider: SettingsOfProvider;
-		modelName: string;
-		_setAborter: (aborter: () => void) => void;
-
-		tools?: InternalToolInfo[],
-
-		messages: LLMChatMessage[];
-	}
-) => void
-
-export type _InternalSendLLMFIMMessageFnType = (
-	params: {
-		onText: OnText;
-		onFinalMessage: OnFinalMessage;
-		onError: OnError;
-		providerName: ProviderName;
-		settingsOfProvider: SettingsOfProvider;
-		modelName: string;
-		_setAborter: (aborter: () => void) => void;
-
-		messages: _InternalSendFIMMessage;
-	}
-) => void
 
 // service -> main -> internal -> event (back to main)
 // (browser)
@@ -190,10 +158,10 @@ export type OpenaiCompatibleModelResponse = {
 
 
 // params to the true list fn
-export type ModelListParams<modelResponse> = {
+export type ModelListParams<ModelResponse> = {
 	providerName: ProviderName;
 	settingsOfProvider: SettingsOfProvider;
-	onSuccess: (param: { models: modelResponse[] }) => void;
+	onSuccess: (param: { models: ModelResponse[] }) => void;
 	onError: (param: { error: string }) => void;
 }
 
@@ -212,4 +180,3 @@ export type EventModelListOnErrorParams<modelResponse> = Parameters<ModelListPar
 
 
 
-export type _InternalModelListFnType<modelResponse> = (params: ModelListParams<modelResponse>) => void

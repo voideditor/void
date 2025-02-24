@@ -113,7 +113,7 @@
 		"files.insertFinalNewline": false
 	},
 	"[typescript]": {
-		"editor.defaultFormatter": "ms-vsliveshare.vsliveshare",
+		"editor.defaultFormatter": "vscode.typescript-language-features",
 		"editor.formatOnSave": true
 	},
 	"[javascript]": {

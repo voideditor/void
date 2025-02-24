@@ -266,6 +266,31 @@ const prepareMessages_tools = ({ messages, supportsTools }: { messages: LLMChatM
 
 
 
+/*
+Gemini has this, but they're openai-compat so we don't need to implement this
+gemini request:
+{   "role": "assistant",
+	"content": null,
+	"function_call": {
+		"name": "get_weather",
+		"arguments": {
+			"latitude": 48.8566,
+			"longitude": 2.3522
+		}
+	}
+}
+
+gemini response:
+{   "role": "assistant",
+	"function_response": {
+		"name": "get_weather",
+			"response": {
+			"temperature": "15°C",
+				"condition": "Cloudy"
+		}
+	}
+}
+*/
 
 
 
@@ -297,29 +322,3 @@ export const prepareMessages = ({
 	} as const
 }
 
-
-/*
-ACCORDING TO 4o: gemini: similar to openai, but function_call, and only 1 call per message (no id because only 1 message)
-gemini request:
-{   "role": "assistant",
-	"content": null,
-	"function_call": {
-		"name": "get_weather",
-		"arguments": {
-			"latitude": 48.8566,
-			"longitude": 2.3522
-		}
-	}
-}
-
-gemini response:
-{   "role": "assistant",
-	"function_response": {
-		"name": "get_weather",
-			"response": {
-			"temperature": "15°C",
-				"condition": "Cloudy"
-		}
-	}
-}
-*/

@@ -6,7 +6,7 @@
 import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
-import { sendAnthropicChat, sendOpenAIChat } from './MODELS.js';
+import { sendLLMMessageToProviderImplementation } from './MODELS.js';
 
 
 export const sendLLMMessage = ({
@@ -56,9 +56,10 @@ export const sendLLMMessage = ({
 	let _setAborter = (fn: () => void) => { _aborter = fn }
 	let _didAbort = false
 
-	const onText: OnText = ({ newText, fullText }) => {
+	const onText: OnText = (params) => {
+		const { fullText } = params
 		if (_didAbort) return
-		onText_({ newText, fullText })
+		onText_(params)
 		_fullTextSoFar = fullText
 	}
 
@@ -93,29 +94,27 @@ export const sendLLMMessage = ({
 	else if (messagesType === 'FIMMessage')
 		captureLLMEvent(`${loggingName} - Sending FIM`, {}) // TODO!!! add more metrics
 
+
 	try {
-		switch (providerName) {
-			case 'anthropic':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Anthropic FIM' })
-				else /*                         */ sendAnthropicChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools });
-				break;
-			case 'openAI':
-			case 'openRouter':
-			case 'deepseek':
-			case 'openAICompatible':
-			case 'mistral':
-			case 'ollama':
-			case 'vLLM':
-			case 'groq':
-			case 'gemini':
-			case 'xAI':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - OpenAI API FIM' })
-				else /*                         */ sendOpenAIChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools });
-				break;
-			default:
-				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })
-				break;
+		const implementation = sendLLMMessageToProviderImplementation[providerName]
+		if (!implementation) {
+			onError({ message: `Error: Provider "${providerName}" not recognized.`, fullError: null })
+			return
 		}
+		const { sendFIM, sendChat } = implementation
+		if (messagesType === 'chatMessages') {
+			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools })
+			return
+		}
+		if (messagesType === 'FIMMessage') {
+			if (sendFIM) {
+				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions })
+				return
+			}
+			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })
+			return
+		}
+		onError({ message: `Error: Message type "${messagesType}" not recognized.`, fullError: null })
 	}
 
 	catch (error) {

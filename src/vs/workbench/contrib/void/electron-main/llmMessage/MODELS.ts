@@ -3,11 +3,11 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import OpenAI from 'openai';
+import OpenAI, { ClientOptions } from 'openai';
 import { Model as OpenAIModel } from 'openai/resources/models.js';
 import { OllamaModelResponse, OnText, OnFinalMessage, OnError, LLMChatMessage, LLMFIMMessage, ModelListParams } from '../../common/llmMessageTypes.js';
 import { InternalToolInfo, isAToolName } from '../../common/toolsService.js';
-import { defaultProviderSettings, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { defaultProviderSettings, displayInfoOfProviderName, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareMessages } from './preprocessLLMMessages.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
@@ -68,126 +68,212 @@ export const defaultModelsOfProvider = {
 
 
 
+type ModelOptions = {
+	contextWindow: number;
+	cost: {
+		input: number;
+		output: number;
+		cache_read?: number;
+		cache_write?: number;
+	}
+	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated';
+	supportsTools: false | 'anthropic-style' | 'openai-style';
+	supportsFIM: false | 'TODO_FIM_FORMAT';
+
+	supportsReasoning: boolean; // not whether it reasons, but whether it outputs reasoning tokens
+	manualMatchReasoningTokens?: [string, string]; // reasoning tokens if it's an OSS model
+}
+
+type ProviderReasoningOptions = {
+	// include this in payload to get reasoning
+	input?: { includeInPayload?: { [key: string]: any }, };
+	// nameOfFieldInDelta: reasoning output is in response.choices[0].delta[deltaReasoningField]
+	// needsManualParse: whether we must manually parse out the <think> tags
+	output?:
+	| { nameOfFieldInDelta?: string, needsManualParse?: undefined, }
+	| { nameOfFieldInDelta?: undefined, needsManualParse?: true, };
+}
+
 type ProviderSettings = {
-	thinkingFormat: string;
-	toolsFormat: string;
-	FIMFormat: string;
-	modelOptions: {
-		[key: string]: {
-			contextWindow: number;
-			cost: {
-				input: number;
-				output: number;
-				cache_read?: number;
-				cache_write?: number;
-			}
-			supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated';
-			supportsTools: false | 'anthropic-style' | 'openai-style';
-			supportsFIM: false | 'TODO_FIM_FORMAT'
+	providerReasoningOptions?: ProviderReasoningOptions;
+	modelOptions: { [key: string]: ModelOptions };
+	modelOptionsFallback: (modelName: string) => ModelOptions; // allowed to throw error if modeName is totally invalid
+}
+
+
+type ModelSettingsOfProvider = {
+	[providerName in ProviderName]: ProviderSettings
+}
+
+
+
+
+
+const modelNotRecognizedErrorMessage = (modelName: string, providerName: ProviderName) => `Void could not find a model matching ${modelName} for ${displayInfoOfProviderName(providerName).title}.`
+
+
+
+// ---------------- OPENAI ----------------
+const openAIModelOptions = {
+	"o1": {
+		contextWindow: 128_000,
+		cost: { input: 15.00, cache_read: 7.50, output: 60.00, },
+		supportsFIM: false,
+		supportsTools: false,
+		supportsSystemMessage: 'developer-role',
+		supportsReasoning: false,
+	},
+	"o3-mini": {
+		contextWindow: 200_000,
+		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
+		supportsFIM: false,
+		supportsTools: false,
+		supportsSystemMessage: 'developer-role',
+		supportsReasoning: false,
+	},
+	"gpt-4o": {
+		contextWindow: 128_000,
+		cost: { input: 2.50, cache_read: 1.25, output: 10.00, },
+		supportsFIM: false,
+		supportsTools: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		supportsReasoning: false,
+	},
+} as const
+
+const openAISettings: ProviderSettings = {
+	modelOptions: openAIModelOptions,
+	modelOptionsFallback: (modelName) => {
+		if (modelName.includes('o1')) return openAIModelOptions['o1']
+		if (modelName.includes('o3-mini')) return openAIModelOptions['o3-mini']
+		if (modelName.includes('gpt-4o')) return openAIModelOptions['gpt-4o']
+		throw new Error(modelNotRecognizedErrorMessage(modelName, 'openAI'))
+	}
+}
+
+// ---------------- ANTHROPIC ----------------
+const anthropicModelOptions = {
+	"claude-3-5-sonnet-20241022": {
+		contextWindow: 200_000,
+		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoning: false,
+
+	},
+	"claude-3-5-haiku-20241022": {
+		contextWindow: 200_000,
+		cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoning: false,
+	},
+	"claude-3-opus-20240229": {
+		contextWindow: 200_000,
+		cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoning: false,
+	},
+	"claude-3-sonnet-20240229": {
+		contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoning: false,
+	}
+} as const
+
+const anthropicSettings: ProviderSettings = {
+	modelOptions: anthropicModelOptions,
+	modelOptionsFallback: (modelName) => {
+		throw new Error(modelNotRecognizedErrorMessage(modelName, 'anthropic'))
+	}
+}
+
+
+// ---------------- XAI ----------------
+const XAIModelOptions = {
+	"grok-2-latest": {
+		contextWindow: 131_072,
+		cost: { input: 2.00, output: 10.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoning: false,
+	},
+} as const
+
+const XAISettings: ProviderSettings = {
+	modelOptions: XAIModelOptions,
+	modelOptionsFallback: (modelName) => {
+		throw new Error(modelNotRecognizedErrorMessage(modelName, 'xAI'))
+	}
+}
+
+
+
+const modelSettingsOfProvider: ModelSettingsOfProvider = {
+	openAI: openAISettings,
+	anthropic: anthropicSettings,
+	xAI: XAISettings,
+	gemini: {
+		modelOptions: {
+
 		}
-	}
-}
+	},
+	googleVertex: {
 
+	},
+	microsoftAzure: {
 
-const openAIProviderSettings: ProviderSettings = {
-
-	thinkingFormat: '',
-
-	toolsFormat: '',
-
-	FIMFormat: '',
-
-	modelOptions: {
-		'o1': {
-			contextWindow: 128_000,
-			cost: { input: 15.00, cache_read: 7.50, output: 60.00, },
-			supportsFIM: false,
-			supportsTools: false,
-			supportsSystemMessage: 'developer-role',
-		},
-		'o3-mini': {
-			contextWindow: 200_000,
-			cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
-			supportsFIM: false,
-			supportsTools: false,
-			supportsSystemMessage: 'developer-role',
-		},
-		'gpt-4o': {
-			contextWindow: 128_000,
-			cost: { input: 2.50, cache_read: 1.25, output: 10.00, },
-			supportsFIM: false,
-			supportsTools: 'openai-style',
-			supportsSystemMessage: 'system-role',
-		},
-	}
-
-}
-
-
-
-
-
-const anthropicProviderSettings: ProviderSettings = {
-	thinkingFormat: '',
-
-	toolsFormat: '',
-
-	FIMFormat: '',
-
-	modelOptions: {
-		"claude-3-5-sonnet-20241022": {
-			contextWindow: 200_000,
-			cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
-			supportsFIM: false,
-			supportsSystemMessage: 'system-role',
-			supportsTools: 'anthropic-style',
-
-		},
-		"claude-3-5-haiku-20241022": {
-			contextWindow: 200_000,
-			cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
-			supportsFIM: false,
-			supportsSystemMessage: 'system-role',
-			supportsTools: 'anthropic-style',
-		},
-		"claude-3-opus-20240229": {
-			contextWindow: 200_000,
-			cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
-			supportsFIM: false,
-			supportsSystemMessage: 'system-role',
-			supportsTools: 'anthropic-style',
-		},
-		"claude-3-sonnet-20240229": {
-			contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
-			supportsFIM: false,
-			supportsSystemMessage: 'system-role',
-			supportsTools: 'anthropic-style',
+	},
+	openRouter: {
+		providerReasoningOptions: {
+			// reasoning: OAICompat + response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
+			input: { includeInPayload: { include_reasoning: true } },
+			output: { nameOfFieldInDelta: 'reasoning' },
 		}
-	}
-}
-
-
-
-const grokProviderSettings: ProviderSettings = {
-	thinkingFormat: '',
-
-	toolsFormat: '',
-
-	FIMFormat: '',
-
-	modelOptions: {
-		"grok-2-latest": {
-			contextWindow: 131_072,
-			cost: { input: 2.00, output: 10.00 },
-			supportsFIM: false,
-			supportsSystemMessage: 'system-role',
-			supportsTools: 'openai-style',
+	},
+	vLLM: {
+		providerReasoningOptions: {
+			// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
+			output: { nameOfFieldInDelta: 'reasoning_content' },
+		}
+	},
+	deepseek: {
+		providerReasoningOptions: {
+			// reasoning: OAICompat +  response.choices[0].delta.reasoning_content // https://api-docs.deepseek.com/guides/reasoning_model
+			output: { nameOfFieldInDelta: 'reasoning_content' },
 		},
-	}
+	},
+	ollama: {
+		providerReasoningOptions: {
+			// reasoning: we need to filter out reasoning <think> tags manually
+			output: { needsManualParse: true },
+		},
+	},
 
+	openAICompatible: {
+	},
+	mistral: {
+	},
+	groq: {
+	},
+
+
+
+} as const satisfies ModelSettingsOfProvider
+
+
+const modelOptionsOfProvider = (providerName: ProviderName, modelName: string) => {
+	const { modelOptions, modelOptionsFallback } = modelSettingsOfProvider[providerName]
+	if (modelName in modelOptions) return modelOptions[modelName]
+	return modelOptionsFallback(modelName)
 }
-
-
 
 
 
@@ -234,30 +320,94 @@ const toolCallsFrom_OpenAICompat = (toolCallOfIndex: ToolCallOfIndex) => {
 }
 
 
-const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName }) => {
+const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPayload }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName, includeInPayload?: { [s: string]: any } }) => {
+	const commonPayloadOpts: ClientOptions = {
+		dangerouslyAllowBrowser: true,
+		...includeInPayload,
+	}
 	if (providerName === 'openAI') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true, })
+		return new OpenAI({ apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 	else if (providerName === 'ollama') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', dangerouslyAllowBrowser: true, })
+		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
 	}
 	else if (providerName === 'vLLM') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', dangerouslyAllowBrowser: true, })
+		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
 	}
-	else throw new Error(`Invalid providerName ${providerName}`)
+	else if (providerName === 'openRouter') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+			baseURL: 'https://openrouter.ai/api/v1',
+			apiKey: thisConfig.apiKey,
+			defaultHeaders: {
+				'HTTP-Referer': 'https://voideditor.com', // Optional, for including your app on openrouter.ai rankings.
+				'X-Title': 'Void', // Optional. Shows in rankings on openrouter.ai.
+			},
+			...commonPayloadOpts,
+		})
+	}
+	else if (providerName === 'gemini') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+	else if (providerName === 'deepseek') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+	else if (providerName === 'openAICompatible') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+	else if (providerName === 'mistral') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+	else if (providerName === 'groq') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+	else if (providerName === 'xAI') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+
+	else throw new Error(`Void providerName was invalid: ${providerName}.`)
 }
 
-export const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
-	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage: '', supportsTools: '', })
+
+
+const manualParseOnText = (
+	providerName: ProviderName,
+	modelName: string,
+	onText_: OnText
+): OnText => {
+	return onText_
+}
+
+
+const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+	const {
+		supportsReasoning: modelSupportsReasoning,
+		supportsSystemMessage,
+		supportsTools,
+	} = modelOptionsOfProvider(providerName, modelName)
+
+	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, })
 	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAICompatibleTool(tool)) : undefined
 
+	const includeInPayload = modelSupportsReasoning ? {} : modelSettingsOfProvider[providerName].providerReasoningOptions?.input?.includeInPayload || {}
+
 	const toolsObj = tools ? { tools: tools, tool_choice: 'auto', parallel_tool_calls: false, } as const : {}
-	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider })
+	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = { model: modelName, messages: messages, stream: true, ...toolsObj }
 
+	const { nameOfFieldInDelta: nameOfReasoningFieldInDelta, needsManualParse: needsManualReasoningParse } = modelSettingsOfProvider[providerName].providerReasoningOptions?.output ?? {}
+	if (needsManualReasoningParse) onText = manualParseOnText(providerName, modelName, onText)
+
+	let fullReasoning = ''
 	let fullText = ''
 	const toolCallOfIndex: ToolCallOfIndex = {}
 	openai.chat.completions
@@ -275,10 +425,18 @@ export const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinal
 					toolCallOfIndex[index].id = tool.id ?? ''
 				}
 				// message
-				let newText = ''
-				newText += chunk.choices[0]?.delta?.content ?? ''
+				const newText = chunk.choices[0]?.delta?.content ?? ''
 				fullText += newText
-				onText({ newText, fullText })
+
+				// reasoning
+				let newReasoning = ''
+				if (nameOfReasoningFieldInDelta) {
+					// @ts-ignore
+					newReasoning = (chunk.choices[0]?.delta?.[nameOfFieldInDelta] || '') + ''
+					fullReasoning += newReasoning
+				}
+
+				onText({ newText, fullText, newReasoning, fullReasoning })
 			}
 			onFinalMessage({ fullText, toolCalls: toolCallsFrom_OpenAICompat(toolCallOfIndex) });
 		})
@@ -290,7 +448,7 @@ export const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinal
 }
 
 
-export const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider, providerName }: ListParams_Internal<OpenAIModel>) => {
+const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider, providerName }: ListParams_Internal<OpenAIModel>) => {
 	const onSuccess = ({ models }: { models: OpenAIModel[] }) => {
 		onSuccess_({ models })
 	}
@@ -318,8 +476,9 @@ export const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: on
 }
 
 
+
 // ------------ OPENAI ------------
-export const sendOpenAIChat = (params: SendChatParams_Internal) => {
+const sendOpenAIChat = (params: SendChatParams_Internal) => {
 	return _sendOpenAICompatibleChat(params)
 }
 
@@ -345,25 +504,31 @@ const toolCallsFromAnthropicContent = (content: Anthropic.Messages.ContentBlock[
 	}).filter(t => !!t)
 }
 
-export const sendAnthropicChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
-	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage: 'separated', supportsTools: 'anthropic-style', })
+const sendAnthropicChat = ({ messages: messages_, onText, providerName, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+	const {
+		// supportsReasoning: modelSupportsReasoning,
+		supportsSystemMessage,
+		supportsTools,
+		contextWindow,
+	} = modelOptionsOfProvider(providerName, modelName)
+
+	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, })
 
 	const thisConfig = settingsOfProvider.anthropic
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 	const tools = ((tools_?.length ?? 0) !== 0) ? tools_?.map(tool => toAnthropicTool(tool)) : undefined
 
-	const maxTokens = ;
 	const stream = anthropic.messages.stream({
 		system: separateSystemMessageStr,
 		messages: messages,
 		model: modelName,
-		max_tokens: maxTokens,
+		max_tokens: contextWindow,
 		tools: tools,
 		tool_choice: tools ? { type: 'auto', disable_parallel_tool_use: true } : undefined // one tool use at a time
 	})
 	// when receive text
 	stream.on('text', (newText, fullText) => {
-		onText({ newText, fullText })
+		onText({ newText, fullText, newReasoning: '', fullReasoning: '' })
 	})
 	// when we get the final message on this stream (or when error/fail)
 	stream.on('finalMessage', (response) => {
@@ -377,7 +542,7 @@ export const sendAnthropicChat = ({ messages: messages_, onText, onFinalMessage,
 		else { onError({ message: error + '', fullError: error }) }
 	})
 	_setAborter(() => stream.controller.abort())
-};
+}
 
 // //  in future, can do tool_use streaming in anthropic, but it's pretty fast even without streaming...
 // const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
@@ -396,6 +561,16 @@ export const sendAnthropicChat = ({ messages: messages_, onText, onFinalMessage,
 // })
 
 
+// ------------ XAI ------------
+const sendXAIChat = (params: SendChatParams_Internal) => {
+	return _sendOpenAICompatibleChat(params)
+}
+
+// ------------ GEMINI ------------
+const sendGeminiAPIChat = (params: SendChatParams_Internal) => {
+	return _sendOpenAICompatibleChat(params)
+}
+
 // ------------ OLLAMA ------------
 const newOllamaSDK = ({ endpoint }: { endpoint: string }) => {
 	// if endpoint is empty, normally ollama will send to 11434, but we want it to fail - the user should type it in
@@ -404,7 +579,7 @@ const newOllamaSDK = ({ endpoint }: { endpoint: string }) => {
 	return ollama
 }
 
-export const ollamaList = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }: ListParams_Internal<OllamaModelResponse>) => {
+const ollamaList = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider }: ListParams_Internal<OllamaModelResponse>) => {
 	const onSuccess = ({ models }: { models: OllamaModelResponse[] }) => {
 		onSuccess_({ models })
 	}
@@ -428,7 +603,7 @@ export const ollamaList = async ({ onSuccess: onSuccess_, onError: onError_, set
 	}
 }
 
-export const sendOllamaFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }: SendFIMParams_Internal) => {
+const sendOllamaFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }: SendFIMParams_Internal) => {
 	const thisConfig = settingsOfProvider.ollama
 	const ollama = newOllamaSDK({ endpoint: thisConfig.endpoint })
 
@@ -461,58 +636,141 @@ export const sendOllamaFIM = ({ messages, onFinalMessage, onError, settingsOfPro
 
 
 // ollama's implementation of openai-compatible SDK dumps all reasoning tokens out with message, and supports tools, so we can use it for chat!
-export const sendOllamaChat = (params: SendChatParams_Internal) => {
+const sendOllamaChat = (params: SendChatParams_Internal) => {
 	return _sendOpenAICompatibleChat(params)
-	// TODO!!! filter out reasoning <think> tags...
-}
-
-
-
-// ------------ OPENROUTER ------------
-export const sendOpenRouterFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }: SendFIMParams_Internal) => {
-	// TODO!!!
-}
-
-export const sendOpenRouterChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
-	// reasoning: response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
-	//
 }
 
 // ------------ OPENAI-COMPATIBLE ------------
-export const openAICompatibleList = async (params: ListParams_Internal<OpenAIModel>) => {
-	return _openaiCompatibleList(params)
-}
-
 // TODO!!! FIM
 
 // using openai's SDK is not ideal (your implementation might not do tools, reasoning, FIM etc correctly), talk to us for a custom integration
-export const sendOpenAICompatibleChat = (params: SendChatParams_Internal) => {
+const sendOpenAICompatibleChat = (params: SendChatParams_Internal) => {
 	return _sendOpenAICompatibleChat(params)
+}
+
+// ------------ OPENROUTER ------------
+const sendOpenRouterChat = (params: SendChatParams_Internal) => {
+	_sendOpenAICompatibleChat(params)
 }
 
 // ------------ VLLM ------------
-
-// TODO!!! FIM
+const vLLMList = async (params: ListParams_Internal<OpenAIModel>) => {
+	return _openaiCompatibleList(params)
+}
+const sendVLLMFIM = (params: SendFIMParams_Internal) => {
+	// TODO!!!
+}
 
 // using openai's SDK is not ideal (your implementation might not do tools, reasoning, FIM etc correctly), talk to us for a custom integration
-export const sendVLLMChat = (params: SendChatParams_Internal) => {
+const sendVLLMChat = (params: SendChatParams_Internal) => {
 	return _sendOpenAICompatibleChat(params)
-	// reasoning: response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
 }
-
 
 // ------------ DEEPSEEK API ------------
-export const sendDeepSeekAPIChat = (params: SendChatParams_Internal) => {
+const sendDeepSeekAPIChat = (params: SendChatParams_Internal) => {
 	return _sendOpenAICompatibleChat(params)
-	// reasoning: response.choices[0].delta.reasoning_content // https://api-docs.deepseek.com/guides/reasoning_model
+}
+
+// ------------ MISTRAL ------------
+const sendMistralAPIChat = (params: SendChatParams_Internal) => {
+	return _sendOpenAICompatibleChat(params)
+}
+
+// ------------ GROQ ------------
+const sendGroqAPIChat = (params: SendChatParams_Internal) => {
+	return _sendOpenAICompatibleChat(params)
 }
 
 
-// ------------ GEMINI ------------
-// ------------ MISTRAL ------------
-// ------------ GROQ ------------
-// ------------ GROK ------------
+
+
+/*
+FIM:
+
+qwen2.5-coder https://ollama.com/library/qwen2.5-coder/blobs/e94a8ecb9327
+<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
+
+codestral https://ollama.com/library/codestral/blobs/51707752a87c
+[SUFFIX]{{ .Suffix }}[PREFIX] {{ .Prompt }}
+
+deepseek-coder-v2 https://ollama.com/library/deepseek-coder-v2/blobs/22091531faf0
+<｜fim▁begin｜>{{ .Prompt }}<｜fim▁hole｜>{{ .Suffix }}<｜fim▁end｜>
+
+starcoder2 https://ollama.com/library/starcoder2/blobs/3b190e68fefe
+<file_sep>
+<fim_prefix>
+{{ .Prompt }}<fim_suffix>{{ .Suffix }}<fim_middle>
+<|end_of_text|>
+
+codegemma https://ollama.com/library/codegemma:2b/blobs/48d9a8140749
+<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
+
+*/
 
 
 
+type CallFnOfProvider = {
+	[providerName in ProviderName]: {
+		sendChat: (params: SendChatParams_Internal) => void;
+		sendFIM: ((params: SendFIMParams_Internal) => void) | null;
+		list: ((params: ListParams_Internal<any>) => void) | null;
+	}
+}
+export const sendLLMMessageToProviderImplementation = {
+	openAI: {
+		sendChat: sendOpenAIChat,
+		sendFIM: null,
+		list: null,
+	},
+	anthropic: {
+		sendChat: sendAnthropicChat,
+		sendFIM: null,
+		list: null,
+	},
+	xAI: {
+		sendChat: sendXAIChat,
+		sendFIM: null,
+		list: null,
+	},
+	gemini: {
+		sendChat: sendGeminiAPIChat,
+		sendFIM: null,
+		list: null,
+	},
+	ollama: {
+		sendChat: sendOllamaChat,
+		sendFIM: sendOllamaFIM,
+		list: ollamaList,
+	},
+	openAICompatible: {
+		sendChat: sendOpenAICompatibleChat,
+		sendFIM: null,
+		list: null,
+	},
+	openRouter: {
+		sendChat: sendOpenRouterChat,
+		sendFIM: null,
+		list: null,
+	},
+	vLLM: {
+		sendChat: sendVLLMChat,
+		sendFIM: sendVLLMFIM,
+		list: vLLMList,
+	},
+	deepseek: {
+		sendChat: sendDeepSeekAPIChat,
+		sendFIM: null,
+		list: null,
+	},
+	groq: {
+		sendChat: sendGroqAPIChat,
+		sendFIM: null,
+		list: null,
+	},
+	mistral: {
+		sendChat: sendMistralAPIChat,
+		sendFIM: null,
+		list: null,
+	},
 
+} satisfies CallFnOfProvider

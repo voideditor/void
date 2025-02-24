@@ -45,7 +45,7 @@ export type ToolCallType = {
 }
 
 
-export type OnText = (p: { newText: string, fullText: string }) => void
+export type OnText = (p: { newText: string, fullText: string; newReasoning: string; fullReasoning: string }) => void
 export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[] }) => void // id is tool_use_id
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
@@ -149,12 +149,15 @@ export type OllamaModelResponse = {
 	size_vram: number;
 }
 
-export type OpenaiCompatibleModelResponse = {
+type OpenaiCompatibleModelResponse = {
 	id: string;
 	created: number;
 	object: 'model';
 	owned_by: string;
 }
+
+export type VLLMModelResponse = OpenaiCompatibleModelResponse
+
 
 
 // params to the true list fn

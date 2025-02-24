@@ -51,11 +51,13 @@ const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: 
 			tokenIdx: tokenIdx,
 		}) : null
 
-		return <BlockCode
+		return <div className='my-4'>
+			<BlockCode
 			initValue={t.text}
 			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
 			buttonsOnHover={applyBoxId && <ApplyBlockHoverButtons applyBoxId={applyBoxId} codeStr={t.text} />}
 		/>
+		</div>
 	}
 
 	if (t.type === "heading") {

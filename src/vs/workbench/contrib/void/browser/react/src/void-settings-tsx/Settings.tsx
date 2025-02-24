@@ -5,7 +5,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled } from '../../../../common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButton, VoidCheckBox, VoidCustomDropdownBox, VoidInputBox, VoidInputBox2, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -368,15 +368,15 @@ export const AutoRefreshToggle = () => {
 	// right now this is just `enabled_autoRefreshModels`
 	const enabled = voidSettingsState.globalSettings[settingName]
 
-	return  <SubtleButton
-			onClick={() => {
-				voidSettingsService.setGlobalSetting(settingName, !enabled)
-				metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: !enabled })
-			}}
-			text={`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
-			icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
-			disabled={false}
-		/>
+	return <SubtleButton
+		onClick={() => {
+			voidSettingsService.setGlobalSetting(settingName, !enabled)
+			metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: !enabled })
+		}}
+		text={`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
+		icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
+		disabled={false}
+	/>
 
 }
 
@@ -401,7 +401,7 @@ export const FeaturesTab = () => {
 		<ErrorBoundary>
 			<AutoRefreshToggle />
 			<RefreshableModels />
-			<div className='py-2'/>
+			<div className='py-2' />
 			<ModelDump />
 			<AddModelMenuFull />
 		</ErrorBoundary>
@@ -437,12 +437,13 @@ export const FeaturesTab = () => {
 		<h2 className={`text-3xl mb-2 mt-12`}>Feature Options</h2>
 		<ErrorBoundary>
 			{featureNames.map(featureName =>
-				<div key={featureName}
-					className='mb-2'
-				>
-					<h4 className={`text-void-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
-					<ModelDropdown featureName={featureName} />
-				</div>
+				(['Ctrl+L', 'Ctrl+K'] as FeatureName[]).includes(featureName) ? null :
+					<div key={featureName}
+						className='mb-2'
+					>
+						<h4 className={`text-void-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
+						<ModelDropdown featureName={featureName} />
+					</div>
 			)}
 		</ErrorBoundary>
 

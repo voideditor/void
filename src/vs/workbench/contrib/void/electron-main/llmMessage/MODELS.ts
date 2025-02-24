@@ -429,7 +429,7 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 	if (modelName.includes('deepseek-r1') || modelName.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('qwen2.5-coder')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
 	return toFallback(modelOptionDefaults)
@@ -482,6 +482,15 @@ const openRouterModelOptions = {
 		supportsTools: 'openai-style',
 		supportsReasoningOutput: false,
 	},
+	'qwen/qwen-2.5-coder-32b-instruct': {
+		...openSourceModelDefaultOptionsAssumingOAICompat['qwen2.5coder'],
+		contextWindow: 33_000,
+		maxOutputTokens: null,
+		supportsTools: false, // openrouter qwen doesn't seem to support tools...?
+		cost: { input: 0.07, output: 0.16 },
+	}
+
+
 } as const satisfies { [s: string]: ModelOptions }
 
 const openRouterSettings: ProviderSettings = {
@@ -520,7 +529,7 @@ const modelSettingsOfProvider: ModelSettingsOfProvider = {
 
 
 
-export const modelOptionsOfProvider = (providerName: ProviderName, modelName: string): ModelOptions & { modelName: string } => {
+export const getModelCapabilities = (providerName: ProviderName, modelName: string): ModelOptions & { modelName: string } => {
 	const { modelOptions, modelOptionsFallback } = modelSettingsOfProvider[providerName]
 	if (modelName in modelOptions) return { modelName, ...modelOptions[modelName] }
 	const result = modelOptionsFallback(modelName)
@@ -629,7 +638,15 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 
 
 const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, }: SendFIMParams_Internal) => {
-	const { modelName } = modelOptionsOfProvider(providerName, modelName_)
+	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
+	if (!supportsFIM) {
+		if (modelName === modelName_)
+			onFinalMessage({ fullText: `Model ${modelName} does not support FIM.` })
+		else
+			onFinalMessage({ fullText: `Model ${modelName_} (${modelName}) does not support FIM.` })
+		return
+	}
+
 	const messages = prepareFIMMessage({ messages: messages_, aiInstructions, })
 
 	const openai = newOpenAICompatibleSDK({ providerName, settingsOfProvider })
@@ -661,7 +678,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 		supportsSystemMessage,
 		supportsTools,
 		maxOutputTokens,
-	} = modelOptionsOfProvider(providerName, modelName_)
+	} = getModelCapabilities(providerName, modelName_)
 
 	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, })
 	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAICompatibleTool(tool)) : undefined
@@ -777,7 +794,7 @@ const sendAnthropicChat = ({ messages: messages_, onText, providerName, onFinalM
 		supportsSystemMessage,
 		supportsTools,
 		maxOutputTokens,
-	} = modelOptionsOfProvider(providerName, modelName_)
+	} = getModelCapabilities(providerName, modelName_)
 
 	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, })
 

@@ -55,7 +55,7 @@ export const voidTools = {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,
 		},
-		required: ['query']
+		required: ['query'],
 	},
 
 	search: {
@@ -305,6 +305,8 @@ export class ToolsService implements IToolsService {
 				return { queryStr, uris, hasNextPage }
 			},
 			search: async (s: string) => {
+
+
 				console.log('search')
 
 				const o = validateJSON(s)

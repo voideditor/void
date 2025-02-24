@@ -335,14 +335,16 @@ export const prepareFIMMessage = ({
 }) => {
 
 	let prefix = `\
-## You are a helpful coding assistant that performs autocomplete.
 ${!aiInstructions ? '' : `\
-## Instructions:
-${aiInstructions.split('\n').map(line => `##${line}`).join('\n')}`}
+// Instructions:
+// Do not output an explanation. Try to avoid outputting comments. Only output the middle code.
+${aiInstructions.split('\n').map(line => `//${line}`).join('\n')}`}
 
 ${messages.prefix}`
 
 	const suffix = messages.suffix
 	const stopTokens = messages.stopTokens
-	return { prefix, suffix, stopTokens, maxTokens: 300 } as const
+	const ret = { prefix, suffix, stopTokens, maxTokens: 300 } as const
+	console.log('ret', ret)
+	return ret
 }

@@ -10,7 +10,7 @@ import { Ollama } from 'ollama';
 import { Model as OpenAIModel } from 'openai/resources/models.js';
 import { OllamaModelResponse, OnText, OnFinalMessage, OnError, LLMChatMessage, LLMFIMMessage, ModelListParams } from '../../common/llmMessageTypes.js';
 import { InternalToolInfo, isAToolName } from '../../common/toolsService.js';
-import { defaultProviderSettings, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { defaultProviderSettings, displayInfoOfProviderName, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { extractReasoningFromText } from '../../browser/helpers/extractCodeFromResult.js';
 
@@ -78,6 +78,8 @@ const modelOptionDefaults: ModelOptions = {
 	supportsFIM: false,
 	supportsReasoningOutput: false,
 }
+
+const invalidApiKeyMessage = (providerName: ProviderName) => `Invalid ${displayInfoOfProviderName(providerName).title} API key.`
 
 
 // ---------------- OPENAI ----------------
@@ -644,7 +646,7 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 			onFinalMessage({ fullText, });
 		})
 		.catch(error => {
-			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: 'Invalid API key.', fullError: error }); }
+			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }); }
 			else { onError({ message: error + '', fullError: error }); }
 		})
 }
@@ -710,7 +712,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
-			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: 'Invalid API key.', fullError: error }); }
+			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }); }
 			else { onError({ message: error + '', fullError: error }); }
 		})
 }
@@ -803,7 +805,7 @@ const sendAnthropicChat = ({ messages: messages_, onText, providerName, onFinalM
 	})
 	// on error
 	stream.on('error', (error) => {
-		if (error instanceof Anthropic.APIError && error.status === 401) { onError({ message: 'Invalid API key.', fullError: error }) }
+		if (error instanceof Anthropic.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }) }
 		else { onError({ message: error + '', fullError: error }) }
 	})
 	_setAborter(() => stream.controller.abort())

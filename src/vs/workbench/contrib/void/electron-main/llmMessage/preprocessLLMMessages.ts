@@ -335,9 +335,9 @@ export const prepareFIMMessage = ({
 }) => {
 
 	let prefix = `\
-## You are a helpful coding assistant that performs autocomplete (fill-in-the middle or "FIM") for the user.
+## You are a helpful coding assistant that performs autocomplete.
 ${!aiInstructions ? '' : `\
-## Special user instructions:
+## Instructions:
 ${aiInstructions.split('\n').map(line => `##${line}`).join('\n')}`}
 
 ${messages.prefix}`

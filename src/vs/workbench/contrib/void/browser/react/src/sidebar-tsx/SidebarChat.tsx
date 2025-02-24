@@ -1020,7 +1020,7 @@ export const SidebarChat = () => {
 
 		{/* error message */}
 		{latestError === undefined ? null :
-			<div className='px-2'>
+			<div className='px-2 my-1'>
 				<ErrorDisplay
 					message={latestError.message}
 					fullError={latestError.fullError}

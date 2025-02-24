@@ -543,12 +543,13 @@ export const SelectedFiles = (
 }
 
 
-type ToolReusltToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
+type ToolResultToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
 interface ToolResultProps {
 	actionTitle: string;
 	actionParam: string;
 	actionNumResults?: number;
 	children?: React.ReactNode;
+	onClick?: () => void;
 }
 
 const ToolResult = ({
@@ -556,26 +557,31 @@ const ToolResult = ({
 	actionParam,
 	actionNumResults,
 	children,
+	onClick,
 }: ToolResultProps) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const isDropdown = !!children
+	const isClickable = !!isDropdown || !!onClick
 
 	return (
 		<div className="mx-4 select-none">
-			<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
+			<div className="border border-void-border-3 rounded px-2 py-1 bg-void-bg-2-alt overflow-hidden">
 				<div
-					className={`flex items-center min-h-[24px] ${isDropdown  ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : 'mx-1'}`}
-					onClick={() => children && setIsExpanded(!isExpanded)}
+					className={`flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
+					onClick={() => {
+						if (children) { setIsExpanded(v => !v); }
+						if (onClick) { onClick(); }
+					}}
 				>
-					{isDropdown  && (
+					{isDropdown && (
 						<ChevronRight
 							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
 						/>
 					)}
-					<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+					<div className="flex items-center flex-nowrap whitespace-nowrap gap-x-2">
 						<span className="text-void-fg-3">{actionTitle}</span>
-						<span className="text-void-fg-4 text-xs italic">{`"`}{actionParam}{`"`}</span>
+						<span className="text-void-fg-4 text-xs italic">{actionParam}</span>
 						{actionNumResults !== undefined && (
 							<span className="text-void-fg-4 text-xs">
 								{`(`}{actionNumResults}{` result`}{actionNumResults !== 1 ? 's' : ''}{`)`}
@@ -584,7 +590,8 @@ const ToolResult = ({
 					</div>
 				</div>
 				<div
-					className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+					// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
+					className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
 				>
 					{children}
 				</div>
@@ -595,90 +602,127 @@ const ToolResult = ({
 
 
 
-const toolResultToComponent: ToolReusltToComponent = {
-	'read_file': ({ message }) => (
-		<ToolResult
-			actionTitle="Read file"
-			actionParam={getBasename(message.result.uri.fsPath)}
-		/>
-	),
-	'list_dir': ({ message }) => (
-		<ToolResult
-			actionTitle="Inspected folder"
-			actionParam={`${getBasename(message.result.rootURI.fsPath)}/`}
-			actionNumResults={message.result.children?.length}
-		>
-			<div className="text-void-fg-2">
-				{message.result.children?.map((item, i) => (
-					<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
-						{item.name}
-						{item.isDirectory && '/'}
-					</div>
-				))}
-				{message.result.hasNextPage && (
-					<div className="pl-2 text-void-fg-3 italic">
-						{message.result.itemsRemaining} more items...
-					</div>
-				)}
-			</div>
-		</ToolResult>
-	),
-	'pathname_search': ({ message }) => (
-		<ToolResult
-			actionTitle="Searched filename"
-			actionParam={message.result.queryStr}
-			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
-		>
-			<div className="text-void-fg-2">
-				{Array.isArray(message.result.uris) ?
-					message.result.uris.map((uri, i) => (
-						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
-							<a
-								href={uri.toString()}
-								className="text-void-accent hover:underline"
+const toolResultToComponent: ToolResultToComponent = {
+	'read_file': ({ message }) => {
+
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+
+		return (
+			<ToolResult
+				actionTitle="Read file"
+				actionParam={getBasename(message.result.uri.fsPath)}
+				onClick={() => { commandService.executeCommand('vscode.open', message.result.uri, { preview: true }) }}
+			/>
+		)
+	},
+	'list_dir': ({ message }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const explorerService = accessor.get('IExplorerService')
+		// message.result.hasNextPage = true
+		// message.result.itemsRemaining = 400
+		return (
+			<ToolResult
+				actionTitle="Inspected folder"
+				actionParam={`${getBasename(message.result.rootURI.fsPath)}/`}
+				actionNumResults={message.result.children?.length}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					{message.result.children?.map((child, i) => (
+						<div
+							key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => {
+								commandService.executeCommand('workbench.view.explorer');
+								explorerService.select(child.uri, true);
+							}}
+						>
+							<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+							{`${child.name}${child.isDirectory ? '/' : ''}`}
+						</div>
+					))}
+					{message.result.hasNextPage && (
+						<div className="italic">
+							{message.result.itemsRemaining} more items...
+						</div>
+					)}
+				</div>
+			</ToolResult>
+		)
+	},
+	'pathname_search': ({ message }) => {
+
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+
+		return (
+			<ToolResult
+				actionTitle="Searched filename"
+				actionParam={`"${message.result.queryStr}"`}
+				actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					{Array.isArray(message.result.uris) ?
+						message.result.uris.map((uri, i) => (
+							<div
+								key={i}
+								className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+								onClick={() => {
+									commandService.executeCommand('vscode.open', uri, { preview: true })
+								}}
 							>
+								<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
 								{uri.fsPath.split('/').pop()}
-							</a>
+							</div>
+						)) :
+						<div className="">{message.result.uris}</div>
+					}
+					{message.result.hasNextPage && (
+						<div className="italic">
+							More results available...
 						</div>
-					)) :
-					<div className="pl-2">{message.result.uris}</div>
-				}
-				{message.result.hasNextPage && (
-					<div className="pl-2 text-void-fg-3 italic">
-						More results available...
-					</div>
-				)}
-			</div>
-		</ToolResult>
-	),
-	'search': ({ message }) => (
-		<ToolResult
-			actionTitle="Searched"
-			actionParam={message.result.queryStr}
-			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
-		>
-			<div className="text-void-fg-2">
-				{typeof message.result.uris === 'string' ?
-					message.result.uris :
-					message.result.uris.map((uri, i) => (
-						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
-							<a
-								href={uri.toString()}
-								className="text-void-accent hover:underline"
+					)}
+				</div>
+			</ToolResult>
+		)
+	},
+	'search': ({ message }) => {
+
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+
+		return (
+			<ToolResult
+				actionTitle="Searched"
+				actionParam={`"${message.result.queryStr}"`}
+				actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					{Array.isArray(message.result.uris) ?
+						message.result.uris.map((uri, i) => (
+							<div
+								key={i}
+								className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+								onClick={() => {
+									commandService.executeCommand('vscode.open', uri, { preview: true })
+								}}
 							>
-								{uri.fsPath}
-							</a>
+								<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+								{uri.fsPath.split('/').pop()}
+							</div>
+						)) :
+						<div className="">{message.result.uris}</div>
+					}
+					{message.result.hasNextPage && (
+						<div className="italic">
+							More results available...
 						</div>
-					))
-				}
-				{message.result.hasNextPage && (
-					<div className="pl-2 text-void-fg-3 italic">
-						More results available...
-					</div>
-				)}
-			</div>
-		</ToolResult>
-	)
+					)}
+				</div>
+			</ToolResult>
+		)
+	}
 };
 
 

@@ -101,6 +101,7 @@ export type ToolCallReturnType = {
 }
 
 type DirectoryItem = {
+	uri: URI;
 	name: string;
 	isDirectory: boolean;
 	isSymbolicLink: boolean;
@@ -133,8 +134,9 @@ const computeDirectoryResult = async (
 
 	const children: DirectoryItem[] = listChildren.map(child => ({
 		name: child.name,
+		uri: child.resource,
 		isDirectory: child.isDirectory,
-		isSymbolicLink: child.isSymbolicLink || false
+		isSymbolicLink: child.isSymbolicLink
 	}));
 
 	const hasNextPage = (originalChildrenLength - 1) > toChildIdx;

@@ -310,6 +310,7 @@ export const VoidCustomDropdownBox = <T extends any>({
 	selectedOption,
 	onChangeOption,
 	getOptionDropdownName,
+	getOptionDropdownDetail,
 	getOptionDisplayName,
 	getOptionsEqual,
 	className,
@@ -321,6 +322,7 @@ export const VoidCustomDropdownBox = <T extends any>({
 	selectedOption: T | undefined;
 	onChangeOption: (newValue: T) => void;
 	getOptionDropdownName: (option: T) => string;
+	getOptionDropdownDetail?: (option: T) => string;
 	getOptionDisplayName: (option: T) => string;
 	getOptionsEqual: (a: T, b: T) => boolean;
 	className?: string;
@@ -420,12 +422,21 @@ export const VoidCustomDropdownBox = <T extends any>({
 				className="opacity-0 pointer-events-none absolute -left-[999999px] -top-[999999px] flex flex-col"
 				aria-hidden="true"
 			>
-				{options.map((option) => (
-					<div key={getOptionDropdownName(option)} className="flex items-center whitespace-nowrap">
-						<div className="w-4" />
-						<span className="px-2">{getOptionDropdownName(option)}</span>
-					</div>
-				))}
+				{options.map((option) => {
+					const optionName = getOptionDropdownName(option);
+					const optionDetail = getOptionDropdownDetail?.(option) || '';
+
+					return (
+						<div key={optionName + optionDetail} className="flex items-center whitespace-nowrap">
+							<div className="w-4" />
+							<span className="flex justify-between w-full">
+								<span>{optionName}</span>
+								<span>{optionDetail}</span>
+								<span>______</span>
+							</span>
+						</div>
+					)
+				})}
 			</div>
 
 			{/* Select Button */}
@@ -473,6 +484,7 @@ export const VoidCustomDropdownBox = <T extends any>({
 					{options.map((option) => {
 						const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
 						const optionName = getOptionDropdownName(option);
+						const optionDetail = getOptionDropdownDetail?.(option) || '';
 
 						return (
 							<div
@@ -500,7 +512,10 @@ export const VoidCustomDropdownBox = <T extends any>({
 										</svg>
 									)}
 								</div>
-								<span>{optionName}</span>
+								<span className="flex justify-between w-full">
+									<span>{optionName}</span>
+									<span className='text-void-fg-4 opacity-50'>{optionDetail}</span>
+								</span>
 							</div>
 						);
 					})}

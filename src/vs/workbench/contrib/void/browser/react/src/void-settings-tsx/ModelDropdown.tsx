@@ -37,7 +37,8 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 		selectedOption={selectedOption}
 		onChangeOption={onChangeOption}
 		getOptionDisplayName={(option) => option.selection.modelName}
-		getOptionDropdownName={(option) => option.name}
+		getOptionDropdownName={(option) => option.selection.modelName}
+		getOptionDropdownDetail={(option) => option.selection.providerName }
 		getOptionsEqual={(a, b) => optionsEqual([a], [b])}
 		className='text-xs text-void-fg-3 px-1'
 		matchInputWidth={false}

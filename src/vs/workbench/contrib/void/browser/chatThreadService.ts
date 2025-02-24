@@ -12,12 +12,12 @@ import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
 import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo as chat_userMessageContentWithAllFiles, chat_selectionsString } from './prompt/prompts.js';
-import { IFileService } from '../../../../platform/files/common/files.js';
 import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from '../common/toolsService.js';
 import { toLLMChatMessage } from '../common/llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
+import { IVoidFileService } from '../common/voidFileService.js';
+import { generateUuid } from '../../../../base/common/uuid.js';
 
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
@@ -48,13 +48,13 @@ export type FileSelection = {
 export type StagingSelectionItem = CodeSelection | FileSelection
 
 
-type ToolMessage<T extends ToolName> = {
+export type ToolMessage<T extends ToolName> = {
 	role: 'tool';
 	name: T; // internal use
 	params: string; // internal use
 	id: string; // apis require this tool use id
 	content: string; // result
-	result: ToolCallReturnType<T>; // text message of result
+	result: ToolCallReturnType[T]; // text message of result
 }
 
 
@@ -73,8 +73,7 @@ export type ChatMessage =
 			stagingSelections: StagingSelectionItem[];
 			isBeingEdited: boolean;
 		}
-	}
-	| {
+	} | {
 		role: 'assistant';
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
@@ -86,7 +85,7 @@ type UserMessageState = UserMessageType['state']
 
 export const defaultMessageState: UserMessageState = {
 	stagingSelections: [],
-	isBeingEdited: false
+	isBeingEdited: false,
 }
 
 // a 'thread' means a chat message history
@@ -125,7 +124,7 @@ export type ThreadStreamState = {
 const newThreadObject = () => {
 	const now = new Date().toISOString()
 	return {
-		id: new Date().getTime().toString(),
+		id: generateUuid(),
 		createdAt: now,
 		lastModified: now,
 		messages: [],
@@ -158,16 +157,25 @@ export interface IChatThreadService {
 	openNewThread(): void;
 	switchToThread(threadId: string): void;
 
+	// you can edit multiple messages
+	// the one you're currently editing is "focused", and we add items to that one when you press cmd+L.
 	getFocusedMessageIdx(): number | undefined;
 	isFocusingMessage(): boolean;
 	setFocusedMessageIdx(messageIdx: number | undefined): void;
 
-	// _useFocusedStagingState(messageIdx?: number | undefined): readonly [StagingInfo, (stagingInfo: StagingInfo) => void];
-	_useCurrentThreadState(): readonly [ThreadType['state'], (newState: Partial<ThreadType['state']>) => void];
-	_useCurrentMessageState(messageIdx: number): readonly [UserMessageState, (newState: Partial<UserMessageState>) => void];
+	// exposed getters/setters
+	getCurrentMessageState: (messageIdx: number) => UserMessageState
+	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
+	getCurrentThreadStagingSelections: () => StagingSelectionItem[]
+	setCurrentThreadStagingSelections: (stagingSelections: StagingSelectionItem[]) => void
 
+
+	// call to edit a message
 	editUserMessageAndStreamResponse({ userMessage, chatMode, messageIdx }: { userMessage: string, chatMode: ChatMode, messageIdx: number }): Promise<void>;
+
+	// call to add a message
 	addUserMessageAndStreamResponse({ userMessage, chatMode }: { userMessage: string, chatMode: ChatMode }): Promise<void>;
+
 	cancelStreaming(threadId: string): void;
 	dismissStreamError(threadId: string): void;
 
@@ -189,8 +197,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
-		@IModelService private readonly _modelService: IModelService,
-		@IFileService private readonly _fileService: IFileService,
+		@IVoidFileService private readonly _voidFileService: IVoidFileService,
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IToolsService private readonly _toolsService: IToolsService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
@@ -358,7 +365,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// add user's message to chat history
 		const instructions = userMessage
 		const userMessageContent = await chat_userMessageContent(instructions, currSelns)
-		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._modelService, this._fileService)
+		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidFileService)
 		const userMessageFullContent = chat_userMessageContentWithAllFiles(userMessageContent, selectionsStr)
 
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
@@ -423,10 +430,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 								// 1.
 								let toolResult: Awaited<ReturnType<ToolFns[ToolName]>>
-								let toolResultVal: ToolCallReturnType<ToolName>
+								let toolResultVal: ToolCallReturnType[ToolName]
 								try {
 									toolResult = await this._toolsService.toolFns[toolName](tool.params)
-									toolResultVal = toolResult[0]
+									toolResultVal = toolResult
 								} catch (error) {
 									this._setStreamState(threadId, { error })
 									shouldSendAnotherMessage = false
@@ -619,33 +626,27 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	}
 
+	getCurrentThreadStagingSelections = () => {
+		return this.getCurrentThread().state.stagingSelections
+	}
+
+	setCurrentThreadStagingSelections = (stagingSelections: StagingSelectionItem[]) => {
+		this._setCurrentThreadState({ stagingSelections })
+	}
+
 	// gets `staging` and `setStaging` of the currently focused element, given the index of the currently selected message (or undefined if no message is selected)
 
-	_useCurrentMessageState(messageIdx: number) {
-
-		const thread = this.getCurrentThread()
-		const messages = thread.messages
-		const currMessage = messages[messageIdx]
-
-		if (currMessage.role !== 'user') {
-			return [defaultMessageState, (s: any) => { }] as const
-		}
-
-		const state = currMessage.state
-		const setState = (newState: Partial<UserMessageState>) => this._setCurrentMessageState(newState, messageIdx)
-
-		return [state, setState] as const
-
+	getCurrentMessageState(messageIdx: number): UserMessageState {
+		const currMessage = this.getCurrentThread()?.messages?.[messageIdx]
+		if (!currMessage || currMessage.role !== 'user') return defaultMessageState
+		return currMessage.state
+	}
+	setCurrentMessageState(messageIdx: number, newState: Partial<UserMessageState>) {
+		const currMessage = this.getCurrentThread()?.messages?.[messageIdx]
+		if (!currMessage || currMessage.role !== 'user') return
+		this._setCurrentMessageState(newState, messageIdx)
 	}
 
-	_useCurrentThreadState() {
-		const thread = this.getCurrentThread()
-
-		const state = thread.state
-		const setState = this._setCurrentThreadState.bind(this)
-
-		return [state, setState] as const
-	}
 
 
 }

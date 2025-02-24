@@ -1,13 +1,12 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js'
 import { URI } from '../../../../base/common/uri.js'
-import { IModelService } from '../../../../editor/common/services/model.js'
 import { IFileService } from '../../../../platform/files/common/files.js'
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js'
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js'
-import { VSReadFile } from '../../../../workbench/contrib/void/browser/helpers/readFile.js'
 import { QueryBuilder } from '../../../../workbench/services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../../workbench/services/search/common/search.js'
+import { IVoidFileService } from './voidFileService.js'
 
 
 // tool use for AI
@@ -24,7 +23,6 @@ export type InternalToolInfo = {
 	required: string[], // required paramNames
 }
 
-// helper
 const paginationHelper = {
 	desc: `Very large results may be paginated (indicated in the result). Pagination fails gracefully if out of bounds or invalid page number.`,
 	param: { pageNumber: { type: 'number', description: 'The page number (optional, default is 1).' }, }
@@ -33,7 +31,7 @@ const paginationHelper = {
 export const voidTools = {
 	read_file: {
 		name: 'read_file',
-		description: 'Returns file contents of a given URI.',
+		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
 		params: {
 			uri: { type: 'string', description: undefined },
 		},
@@ -57,7 +55,7 @@ export const voidTools = {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,
 		},
-		required: ['query']
+		required: ['query'],
 	},
 
 	search: {
@@ -70,6 +68,18 @@ export const voidTools = {
 		required: ['query'],
 	},
 
+	// go_to_definition:
+
+	// go_to_usages:
+
+	// create_file: {
+	// 	name: 'create_file',
+	// 	description: `Creates a file at the given path. Fails gracefully if the file already exists by doing nothing.`
+	// 	params: {
+	// 		uri: { type: 'string', description: undefined },
+	// 	}
+	// }
+
 	// semantic_search: {
 	// 	description: 'Searches files semantically for the given string query.',
 	// 	// RAG
@@ -79,69 +89,103 @@ export const voidTools = {
 export type ToolName = keyof typeof voidTools
 export const toolNames = Object.keys(voidTools) as ToolName[]
 
+const toolNamesSet = new Set<string>(toolNames)
+export const isAToolName = (toolName: string): toolName is ToolName => {
+	const isAToolName = toolNamesSet.has(toolName)
+	return isAToolName
+}
+
+
 export type ToolParamNames<T extends ToolName> = keyof typeof voidTools[T]['params']
 export type ToolParamsObj<T extends ToolName> = { [paramName in ToolParamNames<T>]: unknown }
 
+export type ToolCallReturnType = {
+	'read_file': { uri: URI, fileContents: string, hasNextPage: boolean },
+	'list_dir': { rootURI: URI, children: DirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
+	'pathname_search': { queryStr: string, uris: URI[] | string, hasNextPage: boolean },
+	'search': { queryStr: string, uris: URI[] | string, hasNextPage: boolean }
+	'create_file': {}
+}
 
-export type ToolCallReturnType<T extends ToolName>
-	= T extends 'read_file' ? string
-	: T extends 'list_dir' ? string
-	: T extends 'pathname_search' ? string | URI[]
-	: T extends 'search' ? string | URI[]
-	: never
+type DirectoryItem = {
+	name: string;
+	isDirectory: boolean;
+	isSymbolicLink: boolean;
+}
 
-export type ToolFns = { [T in ToolName]: (p: string) => Promise<[ToolCallReturnType<T>, boolean]> }
-export type ToolResultToString = { [T in ToolName]: (result: [ToolCallReturnType<T>, boolean]) => string }
+export type ToolFns = { [T in ToolName]: (p: string) => Promise<ToolCallReturnType[T]> }
+export type ToolResultToString = { [T in ToolName]: (result: ToolCallReturnType[T]) => string }
 
 
 // pagination info
 const MAX_FILE_CHARS_PAGE = 50_000
 const MAX_CHILDREN_URIs_PAGE = 500
 
-const MAX_DEPTH = 1
-async function generateDirectoryTreeMd(fileService: IFileService, rootURI: URI, pageNumber: number): Promise<[string, boolean]> {
-	let output = '';
 
-	const indentation = (depth: number, isLast: boolean): string => {
-		if (depth === 0) return '';
-		return `${'|   '.repeat(depth - 1)}${isLast ? '└── ' : '├── '}`;
-	};
 
-	let hasNextPage = false
-
-	async function traverseChildren(uri: URI, depth: number, isLast: boolean) {
-		const stat = await fileService.resolve(uri, { resolveMetadata: false });
-
-		// we might want to say where symlink links to
-		if ((depth === 0 && pageNumber === 1) || depth !== 0)
-			output += `${indentation(depth, isLast)}${stat.name}${stat.isDirectory ? '/' : ''}${stat.isSymbolicLink ? ` (symbolic link)` : ''}\n`;
-
-		// list children
-		const originalChildrenLength = stat.children?.length ?? 0
-		const fromChildIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1)
-		const toChildIdx = MAX_CHILDREN_URIs_PAGE * pageNumber - 1 // INCLUSIVE
-		const listChildren = stat.children?.slice(fromChildIdx, toChildIdx + 1) ?? [];
-
-		if (!stat.isDirectory) return;
-
-		if (listChildren.length === 0) return
-		if (depth === MAX_DEPTH) return // right now MAX_DEPTH=1 to make pagination work nicely
-
-		for (let i = 0; i < Math.min(listChildren.length, MAX_CHILDREN_URIs_PAGE); i++) {
-			await traverseChildren(listChildren[i].resource, depth + 1, i === listChildren.length - 1);
-		}
-		const nCutoffResults = (originalChildrenLength - 1) - toChildIdx
-		if (nCutoffResults >= 1) {
-			output += `${indentation(depth + 1, true)}(${nCutoffResults} results remaining...)\n`
-			hasNextPage = true
-		}
-
+const computeDirectoryResult = async (
+	fileService: IFileService,
+	rootURI: URI,
+	pageNumber: number = 1
+): Promise<ToolCallReturnType['list_dir']> => {
+	const stat = await fileService.resolve(rootURI, { resolveMetadata: false });
+	if (!stat.isDirectory) {
+		return { rootURI, children: null, hasNextPage: false, hasPrevPage: false, itemsRemaining: 0 };
 	}
 
-	await traverseChildren(rootURI, 0, false);
+	const originalChildrenLength = stat.children?.length ?? 0;
+	const fromChildIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1);
+	const toChildIdx = MAX_CHILDREN_URIs_PAGE * pageNumber - 1; // INCLUSIVE
+	const listChildren = stat.children?.slice(fromChildIdx, toChildIdx + 1) ?? [];
 
-	return [output, hasNextPage]
-}
+	const children: DirectoryItem[] = listChildren.map(child => ({
+		name: child.name,
+		isDirectory: child.isDirectory,
+		isSymbolicLink: child.isSymbolicLink || false
+	}));
+
+	const hasNextPage = (originalChildrenLength - 1) > toChildIdx;
+	const hasPrevPage = pageNumber > 1;
+	const itemsRemaining = Math.max(0, originalChildrenLength - (toChildIdx + 1));
+
+	return {
+		rootURI,
+		children,
+		hasNextPage,
+		hasPrevPage,
+		itemsRemaining
+	};
+};
+
+const directoryResultToString = (result: ToolCallReturnType['list_dir']): string => {
+	if (!result.children) {
+		return `Error: ${result.rootURI} is not a directory`;
+	}
+
+	let output = '';
+	const entries = result.children;
+
+	if (!result.hasPrevPage) {
+		output += `${result.rootURI}\n`;
+	}
+
+	for (let i = 0; i < entries.length; i++) {
+		const entry = entries[i];
+		const isLast = i === entries.length - 1 && !result.hasNextPage;
+		const prefix = isLast ? '└── ' : '├── ';
+
+		output += `${prefix}${entry.name}${entry.isDirectory ? '/' : ''}${entry.isSymbolicLink ? ' (symbolic link)' : ''}\n`;
+	}
+
+	if (result.hasNextPage) {
+		output += `└── (${result.itemsRemaining} results remaining...)\n`;
+	}
+
+	return output;
+};
+
+
+
 
 
 const validateJSON = (s: string): { [s: string]: unknown } => {
@@ -162,8 +206,10 @@ const validateQueryStr = (queryStr: unknown) => {
 }
 
 
+// TODO!!!! check to make sure in workspace
 const validateURI = (uriStr: unknown) => {
 	if (typeof uriStr !== 'string') throw new Error('Error calling tool: provided uri must be a string.')
+
 	const uri = URI.file(uriStr)
 	return uri
 }
@@ -192,43 +238,52 @@ export class ToolsService implements IToolsService {
 
 	constructor(
 		@IFileService fileService: IFileService,
-		@IModelService modelService: IModelService,
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 		@ISearchService searchService: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,
+		@IVoidFileService voidFileService: IVoidFileService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.toolFns = {
 			read_file: async (s: string) => {
+				console.log('read_file')
+
 				const o = validateJSON(s)
 				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
 
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
-				const readFileContents = await VSReadFile(uri, modelService, fileService)
+				const readFileContents = await voidFileService.readFile(uri)
 
 				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
-				let fileContents = readFileContents.slice(fromIdx, toIdx + 1) // paginate
+				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) || '(empty)' // paginate
 				const hasNextPage = (readFileContents.length - 1) - toIdx >= 1
 
-				return [fileContents || '(empty)', hasNextPage]
+
+				console.log('read_file result:', fileContents)
+
+
+				return { uri, fileContents, hasNextPage }
 			},
 			list_dir: async (s: string) => {
+				console.log('list_dir')
 				const o = validateJSON(s)
 				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
 
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
-				// TODO!!!! check to make sure in workspace
-				const [treeStr, hasNextPage] = await generateDirectoryTreeMd(fileService, uri, pageNumber)
-				return [treeStr, hasNextPage]
+				const dirResult = await computeDirectoryResult(fileService, uri, pageNumber)
+				console.log('list_dir result:', dirResult)
+
+				return dirResult
 			},
 			pathname_search: async (s: string) => {
+				console.log('pathname_search')
 				const o = validateJSON(s)
 				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
 
@@ -240,15 +295,20 @@ export class ToolsService implements IToolsService {
 
 				const fromIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1)
 				const toIdx = MAX_CHILDREN_URIs_PAGE * pageNumber - 1
-				const URIs = data.results
+				const uris = data.results
 					.slice(fromIdx, toIdx + 1) // paginate
 					.map(({ resource, results }) => resource)
 
 				const hasNextPage = (data.results.length - 1) - toIdx >= 1
+				console.log('pathname_search result:', uris)
 
-				return [URIs, hasNextPage]
+				return { queryStr, uris, hasNextPage }
 			},
 			search: async (s: string) => {
+
+
+				console.log('search')
+
 				const o = validateJSON(s)
 				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
 
@@ -260,34 +320,37 @@ export class ToolsService implements IToolsService {
 
 				const fromIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1)
 				const toIdx = MAX_CHILDREN_URIs_PAGE * pageNumber - 1
-				const URIs = data.results
+				const uris = data.results
 					.slice(fromIdx, toIdx + 1) // paginate
 					.map(({ resource, results }) => resource)
 
 				const hasNextPage = (data.results.length - 1) - toIdx >= 1
 
-				return [URIs, hasNextPage]
+				console.log('search result:', uris)
+
+				return { queryStr, uris, hasNextPage }
 			},
 
-		}
 
+		}
 
 		const nextPageStr = (hasNextPage: boolean) => hasNextPage ? '\n\n(more on next page...)' : ''
 
 		this.toolResultToString = {
-			read_file: ([fileContents, hasNextPage]) => {
-				return fileContents + nextPageStr(hasNextPage)
+			read_file: (result) => {
+				return nextPageStr(result.hasNextPage)
 			},
-			list_dir: ([dirTreeStr, hasNextPage]) => {
-				return dirTreeStr + nextPageStr(hasNextPage)
+			list_dir: (result) => {
+				const dirTreeStr = directoryResultToString(result)
+				return dirTreeStr + nextPageStr(result.hasNextPage)
 			},
-			pathname_search: ([URIs, hasNextPage]) => {
-				if (typeof URIs === 'string') return URIs
-				return URIs.map(uri => uri.fsPath).join('\n') + nextPageStr(hasNextPage)
+			pathname_search: (result) => {
+				if (typeof result.uris === 'string') return result.uris
+				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
-			search: ([URIs, hasNextPage]) => {
-				if (typeof URIs === 'string') return URIs
-				return URIs.map(uri => uri.fsPath).join('\n') + nextPageStr(hasNextPage)
+			search: (result) => {
+				if (typeof result.uris === 'string') return result.uris
+				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
 		}
 
@@ -299,4 +362,3 @@ export class ToolsService implements IToolsService {
 }
 
 registerSingleton(IToolsService, ToolsService, InstantiationType.Eager);
-

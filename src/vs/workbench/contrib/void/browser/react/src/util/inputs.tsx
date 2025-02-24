@@ -152,12 +152,13 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 })
 
-export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, multiline }: {
+export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, isPasswordField, multiline }: {
 	onChangeText: (value: string) => void;
 	styles?: Partial<IInputBoxStyles>,
 	onCreateInstance?: (instance: InputBox) => void | IDisposable[];
 	inputBoxRef?: { current: InputBox | null };
 	placeholder: string;
+	isPasswordField?: boolean;
 	multiline: boolean;
 }) => {
 
@@ -182,6 +183,7 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 				},
 				placeholder,
 				tooltip: '',
+				type: isPasswordField ? 'password' : undefined,
 				flexibleHeight: multiline,
 				flexibleMaxHeight: 500,
 				flexibleWidth: false,
@@ -711,7 +713,7 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
 				const model = modelOfEditorId[id] ?? modelService.createModel(
-					initValueRef.current, {
+					initValueRef.current + '\n', {
 					languageId: languageRef.current ? languageRef.current : 'typescript',
 					onDidChange: (e) => { return { dispose: () => { } } } // no idea why they'd require this
 				})

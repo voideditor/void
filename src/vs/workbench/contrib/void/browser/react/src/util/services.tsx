@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { ThreadStreamState, ThreadsState } from '../../../chatThreadService.js'
 import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
@@ -13,10 +13,6 @@ import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js
 import { VoidUriState } from '../../../voidUriStateService.js';
 import { VoidQuickEditState } from '../../../quickEditStateService.js'
 import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
-
-
-
-
 
 import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
@@ -28,7 +24,7 @@ import { IThemeService } from '../../../../../../../platform/theme/common/themeS
 import { ILLMMessageService } from '../../../../../../../workbench/contrib/void/common/llmMessageService.js';
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
-import { IEditCodeService } from '../../../editCodeService.js';
+import { IEditCodeService, URIStreamState } from '../../../editCodeService.js';
 import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
@@ -47,6 +43,7 @@ import { IEnvironmentService } from '../../../../../../../platform/environment/c
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
 import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
+import { URI } from '../../../../../../../base/common/uri.js'
 
 
 
@@ -78,6 +75,11 @@ const refreshModelProviderListeners: Set<(p: RefreshableProviderName, s: Refresh
 
 let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
+
+const ctrlKZoneStreamingStateListeners: Set<(diffareaid: number, s: boolean) => void> = new Set()
+const uriStreamingStateListeners: Set<(uri: URI, s: URIStreamState) => void> = new Set()
+
+
 
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
@@ -162,7 +164,7 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		refreshModelService.onDidChangeState((providerName) => {
 			refreshModelState = refreshModelService.state
 			refreshModelStateListeners.forEach(l => l(refreshModelState))
-			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState))
+			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState)) // no state
 		})
 	)
 
@@ -173,6 +175,21 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 			colorThemeStateListeners.forEach(l => l(colorThemeState))
 		})
 	)
+
+	// no state
+	disposables.push(
+		editCodeService.onDidChangeCtrlKZoneStreaming(({ diffareaid }) => {
+			const isStreaming = editCodeService.isCtrlKZoneStreaming({ diffareaid })
+			ctrlKZoneStreamingStateListeners.forEach(l => l(diffareaid, isStreaming))
+		})
+	)
+	disposables.push(
+		editCodeService.onDidChangeURIStreamState(({ uri }) => {
+			const isStreaming = editCodeService.getURIStreamState({ uri })
+			uriStreamingStateListeners.forEach(l => l(uri, isStreaming))
+		})
+	)
+
 
 
 	return disposables
@@ -336,7 +353,21 @@ export const useRefreshModelListener = (listener: (providerName: RefreshableProv
 	useEffect(() => {
 		refreshModelProviderListeners.add(listener)
 		return () => { refreshModelProviderListeners.delete(listener) }
-	}, [listener])
+	}, [listener, refreshModelProviderListeners])
+}
+
+export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boolean) => void) => {
+	useEffect(() => {
+		ctrlKZoneStreamingStateListeners.add(listener)
+		return () => { ctrlKZoneStreamingStateListeners.delete(listener) }
+	}, [listener, ctrlKZoneStreamingStateListeners])
+}
+
+export const useURIStreamState = (listener: (uri: URI, s: URIStreamState) => void) => {
+	useEffect(() => {
+		uriStreamingStateListeners.add(listener)
+		return () => { uriStreamingStateListeners.delete(listener) }
+	}, [listener, uriStreamingStateListeners])
 }
 
 
@@ -353,3 +384,4 @@ export const useIsDark = () => {
 	return isDark
 
 }
+

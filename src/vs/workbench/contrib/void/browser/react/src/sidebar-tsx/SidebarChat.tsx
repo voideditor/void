@@ -7,7 +7,7 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
-import { ChatMessage, StagingSelectionItem } from '../../../chatThreadService.js';
+import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
@@ -21,10 +21,11 @@ import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { Pencil, X } from 'lucide-react';
+import { ChevronRight, Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { ChatMessageLocation } from '../../../aiRegexService.js';
+import { ToolCallReturnType, ToolName } from '../../../../common/toolsService.js';
 
 
 
@@ -542,6 +543,146 @@ export const SelectedFiles = (
 }
 
 
+type ToolReusltToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
+interface ToolResultProps {
+	actionTitle: string;
+	actionParam: string;
+	actionNumResults?: number;
+	children?: React.ReactNode;
+}
+
+const ToolResult = ({
+	actionTitle,
+	actionParam,
+	actionNumResults,
+	children,
+}: ToolResultProps) => {
+	const [isExpanded, setIsExpanded] = useState(false);
+
+	const isDropdown = !!children
+
+	return (
+		<div className="mx-4 select-none">
+			<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
+				<div
+					className={`flex items-center min-h-[24px] ${isDropdown  ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : 'mx-1'}`}
+					onClick={() => children && setIsExpanded(!isExpanded)}
+				>
+					{isDropdown  && (
+						<ChevronRight
+							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
+						/>
+					)}
+					<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+						<span className="text-void-fg-3">{actionTitle}</span>
+						<span className="text-void-fg-4 text-xs italic">{`"`}{actionParam}{`"`}</span>
+						{actionNumResults !== undefined && (
+							<span className="text-void-fg-4 text-xs">
+								{`(`}{actionNumResults}{` result`}{actionNumResults !== 1 ? 's' : ''}{`)`}
+							</span>
+						)}
+					</div>
+				</div>
+				<div
+					className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+				>
+					{children}
+				</div>
+			</div>
+		</div>
+	);
+};
+
+
+
+const toolResultToComponent: ToolReusltToComponent = {
+	'read_file': ({ message }) => (
+		<ToolResult
+			actionTitle="Read file"
+			actionParam={getBasename(message.result.uri.fsPath)}
+		/>
+	),
+	'list_dir': ({ message }) => (
+		<ToolResult
+			actionTitle="Inspected folder"
+			actionParam={`${getBasename(message.result.rootURI.fsPath)}/`}
+			actionNumResults={message.result.children?.length}
+		>
+			<div className="text-void-fg-2">
+				{message.result.children?.map((item, i) => (
+					<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
+						{item.name}
+						{item.isDirectory && '/'}
+					</div>
+				))}
+				{message.result.hasNextPage && (
+					<div className="pl-2 text-void-fg-3 italic">
+						{message.result.itemsRemaining} more items...
+					</div>
+				)}
+			</div>
+		</ToolResult>
+	),
+	'pathname_search': ({ message }) => (
+		<ToolResult
+			actionTitle="Searched filename"
+			actionParam={message.result.queryStr}
+			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+		>
+			<div className="text-void-fg-2">
+				{Array.isArray(message.result.uris) ?
+					message.result.uris.map((uri, i) => (
+						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
+							<a
+								href={uri.toString()}
+								className="text-void-accent hover:underline"
+							>
+								{uri.fsPath.split('/').pop()}
+							</a>
+						</div>
+					)) :
+					<div className="pl-2">{message.result.uris}</div>
+				}
+				{message.result.hasNextPage && (
+					<div className="pl-2 text-void-fg-3 italic">
+						More results available...
+					</div>
+				)}
+			</div>
+		</ToolResult>
+	),
+	'search': ({ message }) => (
+		<ToolResult
+			actionTitle="Searched"
+			actionParam={message.result.queryStr}
+			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+		>
+			<div className="text-void-fg-2">
+				{typeof message.result.uris === 'string' ?
+					message.result.uris :
+					message.result.uris.map((uri, i) => (
+						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
+							<a
+								href={uri.toString()}
+								className="text-void-accent hover:underline"
+							>
+								{uri.fsPath}
+							</a>
+						</div>
+					))
+				}
+				{message.result.hasNextPage && (
+					<div className="pl-2 text-void-fg-3 italic">
+						More results available...
+					</div>
+				)}
+			</div>
+		</ToolResult>
+	)
+};
+
+
+
 type ChatBubbleMode = 'display' | 'edit'
 const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatMessage, messageIdx?: number, isLoading?: boolean, }) => {
 
@@ -552,16 +693,16 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 	// global state
 	let isBeingEdited = false
-	let setIsBeingEdited = (v: boolean) => { }
 	let stagingSelections: StagingSelectionItem[] = []
-	let setStagingSelections = (s: StagingSelectionItem[]) => { }
+	let setIsBeingEdited = (_: boolean) => { }
+	let setStagingSelections = (_: StagingSelectionItem[]) => { }
 
 	if (messageIdx !== undefined) {
-		const [_state, _setState] = chatThreadsService._useCurrentMessageState(messageIdx)
+		const _state = chatThreadsService.getCurrentMessageState(messageIdx)
 		isBeingEdited = _state.isBeingEdited
-		setIsBeingEdited = (v) => _setState({ isBeingEdited: v })
 		stagingSelections = _state.stagingSelections
-		setStagingSelections = (s) => { _setState({ stagingSelections: s }) }
+		setIsBeingEdited = (v) => chatThreadsService.setCurrentMessageState(messageIdx, { isBeingEdited: v })
+		setStagingSelections = (s) => chatThreadsService.setCurrentMessageState(messageIdx, { stagingSelections: s })
 	}
 
 
@@ -590,7 +731,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 			_mustInitialize.current = false
 		}
 
-	}, [role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
+	}, [chatMessage, role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
 	const EditSymbol = mode === 'display' ? Pencil : X
 	const onOpenEdit = () => {
 		setIsBeingEdited(true)
@@ -631,7 +772,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 				// stream the edit
 				const userMessage = textAreaRefState.value;
-				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx })
+				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx, })
 			}
 
 			const onAbort = () => {
@@ -695,7 +836,13 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatMessageLocation={chatMessageLocation} />
 	}
 	else if (role === 'tool') {
-		chatbubbleContents = chatMessage.name
+
+		const ToolComponent = toolResultToComponent[chatMessage.name] as ({ message }: { message: any }) => React.ReactNode // ts isnt smart enough to deal with the types here...
+
+		chatbubbleContents = <ToolComponent message={chatMessage} />
+
+		console.log('tool result:', chatMessage.name, chatMessage.params, chatMessage.result)
+
 	}
 
 	return <div
@@ -703,7 +850,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		className={`
 			relative
 			${mode === 'edit' ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
+				: role === 'user' ? `my-0.5 px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
 		`}
@@ -780,9 +927,8 @@ export const SidebarChat = () => {
 	const currentThread = chatThreadsService.getCurrentThread()
 	const previousMessages = currentThread?.messages ?? []
 
-	const [_state, _setState] = chatThreadsService._useCurrentThreadState()
-	const selections = _state.stagingSelections
-	const setSelections = (s: StagingSelectionItem[]) => { _setState({ stagingSelections: s }) }
+	const selections = chatThreadsService.getCurrentThread().state.stagingSelections
+	const setSelections = (s: StagingSelectionItem[]) => { chatThreadsService.setCurrentThreadStagingSelections(s) }
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
@@ -818,7 +964,7 @@ export const SidebarChat = () => {
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, selections, setSelections])
+	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, setSelections])
 
 	const onAbort = () => {
 		const threadId = currentThread.id
@@ -874,7 +1020,7 @@ export const SidebarChat = () => {
 
 		{/* error message */}
 		{latestError === undefined ? null :
-			<div className='px-2'>
+			<div className='px-2 my-1'>
 				<ErrorDisplay
 					message={latestError.message}
 					fullError={latestError.fullError}

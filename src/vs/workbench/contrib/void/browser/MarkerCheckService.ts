@@ -12,6 +12,7 @@ import { ITextModelService } from '../../../../editor/common/services/resolverSe
 import { Range } from '../../../../editor/common/core/range.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { CodeActionContext, CodeActionTriggerType } from '../../../../editor/common/languages.js';
+import { URI } from '../../../../base/common/uri.js';
 
 export interface IMarkerCheckService {
 	readonly _serviceBrand: undefined;
@@ -98,6 +99,21 @@ class MarkerCheckService extends Disposable implements IMarkerCheckService {
 		}, 5000);
 	}
 
+
+
+
+	fixErrorsInFiles(uris: URI[], contextSoFar: []) {
+		// const allMarkers = this._markerService.read();
+
+
+		// check errors in files
+
+
+		// give LLM errors in files
+
+
+
+	}
 
 	// private _onMarkersChanged = (changedResources: readonly URI[]): void => {
 	// 	for (const resource of changedResources) {

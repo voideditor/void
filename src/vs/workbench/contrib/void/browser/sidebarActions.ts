@@ -141,13 +141,11 @@ registerAction2(class extends Action2 {
 		let setSelections = (s: StagingSelectionItem[]) => { }
 
 		if (focusedMessageIdx === undefined) {
-			const [state, setState] = chatThreadService._useCurrentThreadState()
-			selections = state.stagingSelections
-			setSelections = (s) => setState({ stagingSelections: s })
+			selections = chatThreadService.getCurrentThreadStagingSelections()
+			setSelections = (s: StagingSelectionItem[]) => chatThreadService.setCurrentThreadStagingSelections(s)
 		} else {
-			const [state, setState] = chatThreadService._useCurrentMessageState(focusedMessageIdx)
-			selections = state.stagingSelections
-			setSelections = (s) => setState({ stagingSelections: s })
+			selections = chatThreadService.getCurrentMessageState(focusedMessageIdx).stagingSelections
+			setSelections = (s) => chatThreadService.setCurrentMessageState(focusedMessageIdx, { stagingSelections: s })
 		}
 
 		// if matches with existing selection, overwrite (since text may change)
@@ -241,7 +239,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'void.settingsAction',
-			title: 'Void Settings',
+			title: `Void's Settings`,
 			icon: { id: 'settings-gear' },
 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
 		});

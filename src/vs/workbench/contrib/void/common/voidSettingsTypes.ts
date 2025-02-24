@@ -4,7 +4,6 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { defaultModelsOfProvider } from '../electron-main/llmMessage/MODELS.js';
 import { VoidSettingsState } from './voidSettingsService.js'
 
 
@@ -40,13 +39,69 @@ export const defaultProviderSettings = {
 	groq: {
 		apiKey: '',
 	},
-	mistral: {
-		apiKey: ''
-	},
 	xAI: {
 		apiKey: ''
 	},
 } as const
+
+
+
+
+export const defaultModelsOfProvider = {
+	openAI: [ // https://platform.openai.com/docs/models/gp
+		'o1',
+		'o3-mini',
+		'o1-mini',
+		'gpt-4o',
+		'gpt-4o-mini',
+	],
+	anthropic: [ // https://docs.anthropic.com/en/docs/about-claude/models
+		'claude-3-5-sonnet-latest',
+		'claude-3-5-haiku-latest',
+		'claude-3-opus-latest',
+	],
+	xAI: [ // https://docs.x.ai/docs/models?cluster=us-east-1
+		'grok-2-latest',
+		'grok-3-latest',
+	],
+	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
+		'gemini-2.0-flash',
+		'gemini-1.5-flash',
+		'gemini-1.5-pro',
+		'gemini-1.5-flash-8b',
+		'gemini-2.0-flash-thinking-exp',
+	],
+	deepseek: [ // https://api-docs.deepseek.com/quick_start/pricing
+		'deepseek-chat',
+		'deepseek-reasoner',
+	],
+	ollama: [ // autodetected
+	],
+	vLLM: [ // autodetected
+	],
+	openRouter: [ // https://openrouter.ai/models
+		'anthropic/claude-3.5-sonnet',
+		'deepseek/deepseek-r1',
+		'mistralai/codestral-2501',
+		'qwen/qwen2.5-vl-72b-instruct:free',
+	],
+	groq: [ // https://console.groq.com/docs/models
+		'llama-3.3-70b-versatile',
+		'llama-3.1-8b-instant',
+		'qwen-2.5-coder-32b', // preview mode (experimental)
+	],
+	// not supporting mistral right now- it's last on Void usage, and a huge pain to set up since it's nonstandard (it supports codestral FIM but it's on v1/fim/completions, etc)
+	// mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
+	// 	'codestral-latest',
+	// 	'mistral-large-latest',
+	// 	'ministral-3b-latest',
+	// 	'ministral-8b-latest',
+	// ],
+	openAICompatible: [], // fallback
+} as const satisfies Record<ProviderName, string[]>
+
+
+
 
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
@@ -139,11 +194,6 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 			title: 'Groq.com API',
 		}
 	}
-	else if (providerName === 'mistral') {
-		return {
-			title: 'Mistral API',
-		}
-	}
 	else if (providerName === 'xAI') {
 		return {
 			title: 'xAI API',
@@ -173,10 +223,9 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 						providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
 							providerName === 'gemini' ? 'key...' :
 								providerName === 'groq' ? 'gsk_key...' :
-									providerName === 'mistral' ? 'key...' :
-										providerName === 'openAICompatible' ? 'sk-key...' :
-											providerName === 'xAI' ? 'xai-key...' :
-												'',
+									providerName === 'openAICompatible' ? 'sk-key...' :
+										providerName === 'xAI' ? 'xai-key...' :
+											'',
 
 			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
 				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
@@ -184,10 +233,9 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 						providerName === 'openRouter' ? 'Get your [API Key here](https://openrouter.ai/settings/keys).' :
 							providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 								providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
-									providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys/).' :
-										providerName === 'xAI' ? 'Get your [API Key here](https://console.x.ai).' :
-											providerName === 'openAICompatible' ? undefined :
-												'',
+									providerName === 'xAI' ? 'Get your [API Key here](https://console.x.ai).' :
+										providerName === 'openAICompatible' ? undefined :
+											'',
 			isPasswordField: true,
 		}
 	}
@@ -269,12 +317,6 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.gemini,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.gemini),
-		_didFillInProviderSettings: undefined,
-	},
-	mistral: {
-		...defaultCustomSettings,
-		...defaultProviderSettings.mistral,
-		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
 		_didFillInProviderSettings: undefined,
 	},
 	xAI: {

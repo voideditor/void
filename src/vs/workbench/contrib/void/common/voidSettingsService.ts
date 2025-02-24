@@ -11,7 +11,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings, developerInfoOfModelName, modelInfoOfAutodetectedModelNames } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings } from './voidSettingsTypes.js';
 
 
 const STORAGE_KEY = 'void.settingsServiceStorage'
@@ -31,8 +31,6 @@ type SetModelSelectionOfFeatureFn = <K extends FeatureName>(
 type SetGlobalSettingFn = <T extends GlobalSettingName, >(settingName: T, newVal: GlobalSettings[T]) => void;
 
 export type ModelOption = { name: string, selection: ModelSelection }
-
-
 
 export type VoidSettingsState = {
 	readonly settingsOfProvider: SettingsOfProvider; // optionsOfProvider
@@ -172,9 +170,6 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				// A HACK BECAUSE WE ADDED DEEPSEEK (did not exist before, comes before readS)
 				...{ deepseek: defaultSettingsOfProvider.deepseek },
 
-				// A HACK BECAUSE WE ADDED MISTRAL (did not exist before, comes before readS)
-				...{ mistral: defaultSettingsOfProvider.mistral },
-
 				// A HACK BECAUSE WE ADDED XAI (did not exist before, comes before readS)
 				...{ xAI: defaultSettingsOfProvider.xAI },
 
@@ -295,19 +290,35 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 
+	private _updatedModelsAfterAutodetection = (defaultModelNames: string[], options: { existingModels: VoidModelInfo[] }) => {
+		const { existingModels } = options
+
+		const existingModelsMap: Record<string, VoidModelInfo> = {}
+		for (const existingModel of existingModels) {
+			existingModelsMap[existingModel.modelName] = existingModel
+		}
+
+		const newDefaultModels = defaultModelNames.map((modelName, i) => ({
+			modelName,
+			isDefault: true,
+			isAutodetected: true,
+			isHidden: !!existingModelsMap[modelName]?.isHidden,
+		}))
+
+		return [
+			...newDefaultModels, // swap out all the default models for the new default models
+			...existingModels.filter(m => !m.isDefault), // keep any non-default (custom) models
+		]
+	}
+
+
 
 	setAutodetectedModels(providerName: ProviderName, autodetectedModelNames: string[], logging: object) {
 
 		const { models } = this.state.settingsOfProvider[providerName]
 		const oldModelNames = models.map(m => m.modelName)
 
-
-		const newDefaultModels = modelInfoOfAutodetectedModelNames(autodetectedModelNames, { existingModels: models })
-		const newModels = [
-			...newDefaultModels, // swap out all the default models for the new default models
-			...models.filter(m => !m.isDefault), // keep any non-default (custom) models
-		]
-
+		const newModels = this._updatedModelsAfterAutodetection(autodetectedModelNames, { existingModels: models })
 		this.setSettingOfProvider(providerName, 'models', newModels)
 
 		// if the models changed, log it
@@ -341,7 +352,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		if (existingIdx !== -1) return // if exists, do nothing
 		const newModels = [
 			...models,
-			{ ...developerInfoOfModelName(modelName), modelName, isDefault: false, isHidden: false }
+			{ modelName, isDefault: false, isHidden: false }
 		]
 		this.setSettingOfProvider(providerName, 'models', newModels)
 

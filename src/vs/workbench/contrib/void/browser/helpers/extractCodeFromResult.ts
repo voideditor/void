@@ -3,6 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { OnText } from '../../common/llmMessageTypes.js'
 import { DIVIDER, FINAL, ORIGINAL } from '../prompt/prompts.js'
 
 class SurroundingsRemover {
@@ -239,4 +240,97 @@ export const extractSearchReplaceBlocks = (str: string) => {
 			state: 'done'
 		})
 	}
+}
+
+
+
+
+
+
+
+
+
+
+export const extractReasoningFromText = (
+	onText_: OnText,
+	thinkTags: [string, string],
+): OnText => {
+
+	let latestAddIdx = 0 // exclusive
+	let foundTag1 = false
+	let foundTag2 = false
+
+	let fullText = ''
+	let fullReasoning = ''
+
+	const onText: OnText = ({ newText: newText_, fullText: fullText_ }) => {
+		//     abcdef<t|hin|k>ghi
+		//           |
+		// until found the first think tag, keep adding to fullText
+		if (!foundTag1) {
+			const endsWithTag1 = endsWithAnyPrefixOf(fullText_, thinkTags[0])
+			if (endsWithTag1) {
+				// wait until we get the full tag or know more
+				return
+			}
+			// if found the first tag
+			const tag1Index = fullText_.lastIndexOf(thinkTags[0])
+			if (tag1Index !== -1) {
+				foundTag1 = true
+				const newText = fullText.substring(latestAddIdx, tag1Index)
+				const newReasoning = fullText.substring(tag1Index + thinkTags[0].length, Infinity)
+
+				fullText += newText
+				fullReasoning += newReasoning
+				latestAddIdx += newText.length + newReasoning.length
+				onText_({ newText, fullText, newReasoning: newReasoning, fullReasoning })
+				return
+			}
+
+			// add the text to fullText
+			const newText = fullText.substring(latestAddIdx, Infinity)
+			fullText += newText
+			latestAddIdx += newText.length
+			onText_({ newText, fullText, newReasoning: '', fullReasoning })
+			return
+		}
+		// at this point, we found <tag1>
+
+		// until found the second think tag, keep adding to fullReasoning
+		if (!foundTag2) {
+			const endsWithTag2 = endsWithAnyPrefixOf(fullText_, thinkTags[1])
+			if (endsWithTag2) {
+				// wait until we get the full tag or know more
+				return
+			}
+			// if found the second tag
+			const tag2Index = fullText_.lastIndexOf(thinkTags[1])
+			if (tag2Index !== -1) {
+				foundTag2 = true
+				const newReasoning = fullText.substring(latestAddIdx, tag2Index)
+				const newText = fullText.substring(tag2Index + thinkTags[1].length, Infinity)
+
+				fullText += newText
+				fullReasoning += newReasoning
+				latestAddIdx += newText.length + newReasoning.length
+				onText_({ newText, fullText, newReasoning: newReasoning, fullReasoning })
+				return
+			}
+
+			// add the text to fullReasoning
+			const newReasoning = fullText.substring(latestAddIdx, Infinity)
+			fullReasoning += newReasoning
+			latestAddIdx += newReasoning.length
+			onText_({ newText: '', fullText, newReasoning, fullReasoning })
+			return
+		}
+		// at this point, we found <tag2>
+
+		fullText += newText_
+		const newText = fullText.substring(latestAddIdx, Infinity)
+		latestAddIdx += newText.length
+		onText_({ newText, fullText, newReasoning: '', fullReasoning })
+	}
+
+	return onText
 }

@@ -1,6 +1,6 @@
 
 
-import { LLMChatMessage } from '../../common/llmMessageTypes.js';
+import { LLMChatMessage, LLMFIMMessage } from '../../common/llmMessageTypes.js';
 import { deepClone } from '../../../../../base/common/objects.js';
 
 
@@ -322,3 +322,27 @@ export const prepareMessages = ({
 	} as const
 }
 
+
+
+
+
+export const prepareFIMMessage = ({
+	messages,
+	aiInstructions,
+}: {
+	messages: LLMFIMMessage,
+	aiInstructions: string,
+}) => {
+
+	let prefix = `\
+## You are a helpful coding assistant that performs autocomplete (fill-in-the middle or "FIM") for the user.
+${!aiInstructions ? '' : `\
+## Special user instructions:
+${aiInstructions.split('\n').map(line => `##${line}`).join('\n')}`}
+
+${messages.prefix}`
+
+	const suffix = messages.suffix
+	const stopTokens = messages.stopTokens
+	return { prefix, suffix, stopTokens, maxTokens: 300 } as const
+}

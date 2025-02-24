@@ -250,7 +250,7 @@ export const extractSearchReplaceBlocks = (str: string) => {
 
 
 
-
+// could simplify this - this assumes we can never add a tag without committing it to the user's screen, but that's not true
 export const extractReasoningFromText = (
 	onText_: OnText,
 	thinkTags: [string, string],

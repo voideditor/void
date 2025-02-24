@@ -627,7 +627,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 
 
 const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, }: SendFIMParams_Internal) => {
-	const { modelName, } = modelOptionsOfProvider(providerName, modelName_)
+	const { modelName } = modelOptionsOfProvider(providerName, modelName_)
 	const messages = prepareFIMMessage({ messages: messages_, aiInstructions, })
 
 	const openai = newOpenAICompatibleSDK({ providerName, settingsOfProvider })
@@ -658,6 +658,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 		supportsReasoningOutput,
 		supportsSystemMessage,
 		supportsTools,
+		maxOutputTokens,
 	} = modelOptionsOfProvider(providerName, modelName_)
 
 	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, })
@@ -666,8 +667,9 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 	const includeInPayload = supportsReasoningOutput ? modelSettingsOfProvider[providerName].ifSupportsReasoningOutput?.input?.includeInPayload || {} : {}
 
 	const toolsObj = tools ? { tools: tools, tool_choice: 'auto', parallel_tool_calls: false, } as const : {}
+	const maxTokensObj = maxOutputTokens ? { max_tokens: maxOutputTokens } : {}
 	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
-	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = { model: modelName, messages: messages, stream: true, ...toolsObj }
+	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = { model: modelName, messages: messages, stream: true, ...toolsObj, ...maxTokensObj }
 
 	const { nameOfFieldInDelta: nameOfReasoningFieldInDelta, needsManualParse: needsManualReasoningParse } = modelSettingsOfProvider[providerName].ifSupportsReasoningOutput?.output ?? {}
 	if (needsManualReasoningParse && supportsReasoningOutput && supportsReasoningOutput.openSourceThinkTags)
@@ -772,7 +774,7 @@ const sendAnthropicChat = ({ messages: messages_, onText, providerName, onFinalM
 		modelName,
 		supportsSystemMessage,
 		supportsTools,
-		contextWindow,
+		maxOutputTokens,
 	} = modelOptionsOfProvider(providerName, modelName_)
 
 	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, })
@@ -785,7 +787,7 @@ const sendAnthropicChat = ({ messages: messages_, onText, providerName, onFinalM
 		system: separateSystemMessageStr,
 		messages: messages,
 		model: modelName,
-		max_tokens: contextWindow,
+		max_tokens: maxOutputTokens ?? 4_096, // anthropic requires this
 		tools: tools,
 		tool_choice: tools ? { type: 'auto', disable_parallel_tool_use: true } : undefined // one tool use at a time
 	})

@@ -227,12 +227,32 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	}
 
+	// !!! this is important for properly restoring URIs from storage
+	private _convertThreadDataFromStorage(threadsStr: string): ChatThreads {
+		return JSON.parse(threadsStr, (key, value) => {
+			if (value && typeof value === 'object' && value.$mid === 1) { //$mid is the MarshalledId. $mid === 1 means it is a URI
+				return URI.from(value);
+			}
+			return value;
+		});
+	}
 
 	private _readAllThreads(): ChatThreads {
-		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION)
-		const threads: ChatThreads = threadsStr ? JSON.parse(threadsStr) : {}
+		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION);
+		if (!threadsStr) {
+			return {};
+		}
+		return this._convertThreadDataFromStorage(threadsStr);
+	}
 
-		return threads
+	private _storeAllThreads(threads: ChatThreads) {
+		const serializedThreads = JSON.stringify(threads);
+		this._storageService.store(
+			THREAD_STORAGE_KEY,
+			serializedThreads,
+			StorageScope.APPLICATION,
+			StorageTarget.USER
+		);
 	}
 
 
@@ -277,9 +297,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	}
 
-	private _storeAllThreads(threads: ChatThreads) {
-		this._storageService.store(THREAD_STORAGE_KEY, JSON.stringify(threads), StorageScope.APPLICATION, StorageTarget.USER)
-	}
 
 	// this should be the only place this.state = ... appears besides constructor
 	private _setState(state: Partial<ThreadsState>, affectsCurrent: boolean) {
@@ -652,4 +669,3 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 }
 
 registerSingleton(IChatThreadService, ChatThreadService, InstantiationType.Eager);
-

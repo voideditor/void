@@ -17,7 +17,8 @@ import { extractReasoningFromText } from '../../browser/helpers/extractCodeFromR
 
 
 type ModelOptions = {
-	contextWindow: number;
+	contextWindow: number; // input tokens
+	maxOutputTokens: number | null; // output tokens
 	cost: {
 		input: number;
 		output: number;
@@ -70,6 +71,7 @@ type ModelSettingsOfProvider = {
 
 const modelOptionDefaults: ModelOptions = {
 	contextWindow: 32_000,
+	maxOutputTokens: null,
 	cost: { input: 0, output: 0 },
 	supportsSystemMessage: false,
 	supportsTools: false,
@@ -82,6 +84,7 @@ const modelOptionDefaults: ModelOptions = {
 const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	'o1': {
 		contextWindow: 128_000,
+		maxOutputTokens: 100_000,
 		cost: { input: 15.00, cache_read: 7.50, output: 60.00, },
 		supportsFIM: false,
 		supportsTools: false,
@@ -90,6 +93,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'o3-mini': {
 		contextWindow: 200_000,
+		maxOutputTokens: 100_000,
 		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
 		supportsFIM: false,
 		supportsTools: false,
@@ -98,6 +102,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'gpt-4o': {
 		contextWindow: 128_000,
+		maxOutputTokens: 16_384,
 		cost: { input: 2.50, cache_read: 1.25, output: 10.00, },
 		supportsFIM: false,
 		supportsTools: 'openai-style',
@@ -106,6 +111,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'o1-mini': {
 		contextWindow: 128_000,
+		maxOutputTokens: 65_536,
 		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
 		supportsFIM: false,
 		supportsTools: false,
@@ -114,6 +120,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'gpt-4o-mini': {
 		contextWindow: 128_000,
+		maxOutputTokens: 16_384,
 		cost: { input: 0.15, cache_read: 0.075, output: 0.60, },
 		supportsFIM: false,
 		supportsTools: 'openai-style',
@@ -139,6 +146,7 @@ const openAISettings: ProviderSettings = {
 const anthropicModelOptions = {
 	'claude-3-5-sonnet-20241022': {
 		contextWindow: 200_000,
+		maxOutputTokens: 8_192,
 		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
@@ -147,6 +155,7 @@ const anthropicModelOptions = {
 	},
 	'claude-3-5-haiku-20241022': {
 		contextWindow: 200_000,
+		maxOutputTokens: 8_192,
 		cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
@@ -155,6 +164,7 @@ const anthropicModelOptions = {
 	},
 	'claude-3-opus-20240229': {
 		contextWindow: 200_000,
+		maxOutputTokens: 4_096,
 		cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
@@ -163,6 +173,7 @@ const anthropicModelOptions = {
 	},
 	'claude-3-sonnet-20240229': { // no point of using this, but including this for people who put it in
 		contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
+		maxOutputTokens: 4_096,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
@@ -177,8 +188,9 @@ const anthropicSettings: ProviderSettings = {
 		if (modelName.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
 		if (modelName.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
 		if (modelName.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
+		if (modelName.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
 		if (fallbackName) return { modelName: fallbackName, ...anthropicModelOptions[fallbackName] }
-		return null
+		return { modelName, ...modelOptionDefaults, maxOutputTokens: 4_096 }
 	}
 }
 
@@ -187,6 +199,7 @@ const anthropicSettings: ProviderSettings = {
 const xAIModelOptions = {
 	'grok-2-latest': {
 		contextWindow: 131_072,
+		maxOutputTokens: null, // 131_072,
 		cost: { input: 2.00, output: 10.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -210,6 +223,7 @@ const xAISettings: ProviderSettings = {
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	'gemini-2.0-flash': {
 		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
 		cost: { input: 0.10, output: 0.40 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -218,6 +232,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
 		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
 		cost: { input: 0.075, output: 0.30 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -226,6 +241,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-1.5-flash': {
 		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
 		cost: { input: 0.075, output: 0.30 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -234,6 +250,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-1.5-pro': {
 		contextWindow: 2_097_152,
+		maxOutputTokens: null, // 8_192,
 		cost: { input: 1.25, output: 5.00 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -242,6 +259,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-1.5-flash-8b': {
 		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
 		cost: { input: 0.0375, output: 0.15 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -332,11 +350,13 @@ const deepseekModelOptions = {
 	'deepseek-chat': {
 		...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1,
 		contextWindow: 64_000, // https://api-docs.deepseek.com/quick_start/pricing
+		maxOutputTokens: null, // 8_000,
 		cost: { cache_read: .07, input: .27, output: 1.10, },
 	},
 	'deepseek-reasoner': {
 		...openSourceModelDefaultOptionsAssumingOAICompat.deepseekCoderV2,
 		contextWindow: 64_000,
+		maxOutputTokens: null, // 8_000,
 		cost: { cache_read: .14, input: .55, output: 2.19, },
 	},
 } as const satisfies { [s: string]: ModelOptions }
@@ -357,6 +377,7 @@ const deepseekSettings: ProviderSettings = {
 const groqModelOptions = {
 	'llama-3.3-70b-versatile': {
 		contextWindow: 128_000,
+		maxOutputTokens: null, // 32_768,
 		cost: { input: 0.59, output: 0.79 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -365,6 +386,7 @@ const groqModelOptions = {
 	},
 	'llama-3.1-8b-instant': {
 		contextWindow: 128_000,
+		maxOutputTokens: null, // 8_192,
 		cost: { input: 0.05, output: 0.08 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -373,6 +395,7 @@ const groqModelOptions = {
 	},
 	'qwen-2.5-coder-32b': {
 		contextWindow: 128_000,
+		maxOutputTokens: null, // not specified?
 		cost: { input: 0.79, output: 0.79 },
 		supportsFIM: false, // unfortunately looks like no FIM support on groq
 		supportsSystemMessage: 'system-role',
@@ -401,11 +424,11 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 	if (modelName.includes('gpt-4o')) return toFallback(openAIModelOptions['gpt-4o'])
 	if (modelName.includes('claude')) return toFallback(anthropicModelOptions['claude-3-5-sonnet-20241022'])
 	if (modelName.includes('grok')) return toFallback(xAIModelOptions['grok-2-latest'])
-	if (modelName.includes('deepseek-r1') || modelName.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1, contextWindow: 32_000, })
-	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekCoderV2, contextWindow: 32_000, })
-	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.llama3, contextWindow: 32_000, })
-	if (modelName.includes('qwen2.5-coder')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat['qwen2.5coder'], contextWindow: 32_000, })
-	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.codestral, contextWindow: 32_000, })
+	if (modelName.includes('deepseek-r1') || modelName.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('qwen2.5-coder')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
 	return toFallback(modelOptionDefaults)
 }
@@ -437,10 +460,12 @@ const openRouterModelOptions = {
 	'deepseek/deepseek-r1': {
 		...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1,
 		contextWindow: 128_000,
+		maxOutputTokens: null,
 		cost: { input: 0.8, output: 2.4 },
 	},
 	'anthropic/claude-3.5-sonnet': {
 		contextWindow: 200_000,
+		maxOutputTokens: null,
 		cost: { input: 3.00, output: 15.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -450,6 +475,7 @@ const openRouterModelOptions = {
 	'mistralai/codestral-2501': {
 		...openSourceModelDefaultOptionsAssumingOAICompat.codestral,
 		contextWindow: 256_000,
+		maxOutputTokens: null,
 		cost: { input: 0.3, output: 0.9 },
 		supportsTools: 'openai-style',
 		supportsReasoningOutput: false,

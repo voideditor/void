@@ -514,7 +514,7 @@ export const VoidCustomDropdownBox = <T extends any>({
 								</div>
 								<span className="flex justify-between w-full">
 									<span>{optionName}</span>
-									<span className='text-void-fg-4 opacity-50'>{optionDetail}</span>
+									<span className='text-void-fg-4 opacity-60'>{optionDetail}</span>
 								</span>
 							</div>
 						);

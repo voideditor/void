@@ -7,7 +7,7 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
-import { ChatMessage, StagingInfo, StagingSelectionItem } from '../../../chatThreadService.js';
+import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
@@ -21,10 +21,11 @@ import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { Pencil, X } from 'lucide-react';
+import { ChevronRight, Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { ChatMessageLocation } from '../../../searchAndReplaceService.js';
+import { ChatMessageLocation } from '../../../aiRegexService.js';
+import { ToolCallReturnType, ToolName } from '../../../../common/toolsService.js';
 
 
 
@@ -156,8 +157,8 @@ interface VoidChatAreaProps {
 	showSelections?: boolean;
 	showProspectiveSelections?: boolean;
 
-	staging?: StagingInfo
-	setStaging?: (s: StagingInfo) => void
+	selections?: StagingSelectionItem[]
+	setSelections?: (s: StagingSelectionItem[]) => void
 	// selections?: any[];
 	// onSelectionsChange?: (selections: any[]) => void;
 
@@ -180,8 +181,8 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	featureName,
 	showSelections = false,
 	showProspectiveSelections = true,
-	staging,
-	setStaging,
+	selections,
+	setSelections,
 }) => {
 	return (
 		<div
@@ -199,11 +200,11 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			}}
 		>
 			{/* Selections section */}
-			{showSelections && staging && setStaging && (
+			{showSelections && selections && setSelections && (
 				<SelectedFiles
 					type='staging'
-					selections={staging.selections || []}
-					setSelections={(selections) => setStaging({ ...staging, selections })}
+					selections={selections}
+					setSelections={setSelections}
 					showProspectiveSelections={showProspectiveSelections}
 				/>
 			)}
@@ -542,6 +543,146 @@ export const SelectedFiles = (
 }
 
 
+type ToolReusltToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
+interface ToolResultProps {
+	actionTitle: string;
+	actionParam: string;
+	actionNumResults?: number;
+	children?: React.ReactNode;
+}
+
+const ToolResult = ({
+	actionTitle,
+	actionParam,
+	actionNumResults,
+	children,
+}: ToolResultProps) => {
+	const [isExpanded, setIsExpanded] = useState(false);
+
+	const isDropdown = !!children
+
+	return (
+		<div className="mx-4 select-none">
+			<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
+				<div
+					className={`flex items-center min-h-[24px] ${isDropdown  ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : 'mx-1'}`}
+					onClick={() => children && setIsExpanded(!isExpanded)}
+				>
+					{isDropdown  && (
+						<ChevronRight
+							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
+						/>
+					)}
+					<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+						<span className="text-void-fg-3">{actionTitle}</span>
+						<span className="text-void-fg-4 text-xs italic">{`"`}{actionParam}{`"`}</span>
+						{actionNumResults !== undefined && (
+							<span className="text-void-fg-4 text-xs">
+								{`(`}{actionNumResults}{` result`}{actionNumResults !== 1 ? 's' : ''}{`)`}
+							</span>
+						)}
+					</div>
+				</div>
+				<div
+					className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+				>
+					{children}
+				</div>
+			</div>
+		</div>
+	);
+};
+
+
+
+const toolResultToComponent: ToolReusltToComponent = {
+	'read_file': ({ message }) => (
+		<ToolResult
+			actionTitle="Read file"
+			actionParam={getBasename(message.result.uri.fsPath)}
+		/>
+	),
+	'list_dir': ({ message }) => (
+		<ToolResult
+			actionTitle="Inspected folder"
+			actionParam={`${getBasename(message.result.rootURI.fsPath)}/`}
+			actionNumResults={message.result.children?.length}
+		>
+			<div className="text-void-fg-2">
+				{message.result.children?.map((item, i) => (
+					<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
+						{item.name}
+						{item.isDirectory && '/'}
+					</div>
+				))}
+				{message.result.hasNextPage && (
+					<div className="pl-2 text-void-fg-3 italic">
+						{message.result.itemsRemaining} more items...
+					</div>
+				)}
+			</div>
+		</ToolResult>
+	),
+	'pathname_search': ({ message }) => (
+		<ToolResult
+			actionTitle="Searched filename"
+			actionParam={message.result.queryStr}
+			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+		>
+			<div className="text-void-fg-2">
+				{Array.isArray(message.result.uris) ?
+					message.result.uris.map((uri, i) => (
+						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
+							<a
+								href={uri.toString()}
+								className="text-void-accent hover:underline"
+							>
+								{uri.fsPath.split('/').pop()}
+							</a>
+						</div>
+					)) :
+					<div className="pl-2">{message.result.uris}</div>
+				}
+				{message.result.hasNextPage && (
+					<div className="pl-2 text-void-fg-3 italic">
+						More results available...
+					</div>
+				)}
+			</div>
+		</ToolResult>
+	),
+	'search': ({ message }) => (
+		<ToolResult
+			actionTitle="Searched"
+			actionParam={message.result.queryStr}
+			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+		>
+			<div className="text-void-fg-2">
+				{typeof message.result.uris === 'string' ?
+					message.result.uris :
+					message.result.uris.map((uri, i) => (
+						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
+							<a
+								href={uri.toString()}
+								className="text-void-accent hover:underline"
+							>
+								{uri.fsPath}
+							</a>
+						</div>
+					))
+				}
+				{message.result.hasNextPage && (
+					<div className="pl-2 text-void-fg-3 italic">
+						More results available...
+					</div>
+				)}
+			</div>
+		</ToolResult>
+	)
+};
+
+
+
 type ChatBubbleMode = 'display' | 'edit'
 const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatMessage, messageIdx?: number, isLoading?: boolean, }) => {
 
@@ -550,9 +691,23 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 
-	// edit mode state
-	const [staging, setStaging] = chatThreadsService._useFocusedStagingState(messageIdx)
-	const mode: ChatBubbleMode = staging.isBeingEdited ? 'edit' : 'display'
+	// global state
+	let isBeingEdited = false
+	let stagingSelections: StagingSelectionItem[] = []
+	let setIsBeingEdited = (_: boolean) => { }
+	let setStagingSelections = (_: StagingSelectionItem[]) => { }
+
+	if (messageIdx !== undefined) {
+		const _state = chatThreadsService.getCurrentMessageState(messageIdx)
+		isBeingEdited = _state.isBeingEdited
+		stagingSelections = _state.stagingSelections
+		setIsBeingEdited = (v) => chatThreadsService.setCurrentMessageState(messageIdx, { isBeingEdited: v })
+		setStagingSelections = (s) => chatThreadsService.setCurrentMessageState(messageIdx, { stagingSelections: s })
+	}
+
+
+	// local state
+	const mode: ChatBubbleMode = isBeingEdited ? 'edit' : 'display'
 	const [isFocused, setIsFocused] = useState(false)
 	const [isHovered, setIsHovered] = useState(false)
 	const [isDisabled, setIsDisabled] = useState(false)
@@ -565,10 +720,8 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		const canInitialize = role === 'user' && mode === 'edit' && textAreaRefState
 		const shouldInitialize = _justEnabledEdit.current || _mustInitialize.current
 		if (canInitialize && shouldInitialize) {
-			setStaging({
-				...staging,
-				selections: chatMessage.selections || [],
-			})
+			setStagingSelections(chatMessage.selections || [])
+
 			if (textAreaFnsRef.current)
 				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
 
@@ -578,17 +731,17 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 			_mustInitialize.current = false
 		}
 
-	}, [role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
+	}, [chatMessage, role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
 	const EditSymbol = mode === 'display' ? Pencil : X
 	const onOpenEdit = () => {
-		setStaging({ ...staging, isBeingEdited: true })
+		setIsBeingEdited(true)
 		chatThreadsService.setFocusedMessageIdx(messageIdx)
 		_justEnabledEdit.current = true
 	}
 	const onCloseEdit = () => {
 		setIsFocused(false)
 		setIsHovered(false)
-		setStaging({ ...staging, isBeingEdited: false })
+		setIsBeingEdited(false)
 		chatThreadsService.setFocusedMessageIdx(undefined)
 
 	}
@@ -614,12 +767,12 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				chatThreadsService.cancelStreaming(thread.id)
 
 				// reset state
-				setStaging({ ...staging, isBeingEdited: false })
+				setIsBeingEdited(false)
 				chatThreadsService.setFocusedMessageIdx(undefined)
 
 				// stream the edit
 				const userMessage = textAreaRefState.value;
-				await chatThreadsService.editUserMessageAndStreamResponse(userMessage, messageIdx)
+				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx, })
 			}
 
 			const onAbort = () => {
@@ -649,8 +802,8 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 					showSelections={true}
 					showProspectiveSelections={false}
 					featureName="Ctrl+L"
-					staging={staging}
-					setStaging={setStaging}
+					selections={stagingSelections}
+					setSelections={setStagingSelections}
 				>
 					<VoidInputBox2
 						ref={setTextAreaRef}
@@ -682,16 +835,24 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatMessageLocation={chatMessageLocation} />
 	}
+	else if (role === 'tool') {
+
+		const ToolComponent = toolResultToComponent[chatMessage.name] as ({ message }: { message: any }) => React.ReactNode // ts isnt smart enough to deal with the types here...
+
+		chatbubbleContents = <ToolComponent message={chatMessage} />
+
+		console.log('tool result:', chatMessage.name, chatMessage.params, chatMessage.result)
+
+	}
 
 	return <div
 		// align chatbubble accoridng to role
 		className={`
 			relative
 			${mode === 'edit' ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
+				: role === 'user' ? `my-0.5 px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
-			${role !== 'assistant' ? 'my-2' : ''}
 		`}
 		onMouseEnter={() => setIsHovered(true)}
 		onMouseLeave={() => setIsHovered(false)}
@@ -765,7 +926,9 @@ export const SidebarChat = () => {
 
 	const currentThread = chatThreadsService.getCurrentThread()
 	const previousMessages = currentThread?.messages ?? []
-	const [staging, setStaging] = chatThreadsService._useFocusedStagingState()
+
+	const selections = chatThreadsService.getCurrentThread().state.stagingSelections
+	const setSelections = (s: StagingSelectionItem[]) => { chatThreadsService.setCurrentThreadStagingSelections(s) }
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
@@ -795,13 +958,13 @@ export const SidebarChat = () => {
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
-		await chatThreadsService.addUserMessageAndStreamResponse(userMessage)
+		await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode: 'agent' })
 
-		setStaging({ ...staging, selections: [], }) // clear staging
+		setSelections([]) // clear staging
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, staging, setStaging])
+	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, setSelections])
 
 	const onAbort = () => {
 		const threadId = currentThread.id
@@ -822,7 +985,7 @@ export const SidebarChat = () => {
 
 	const prevMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) =>
-			<ChatBubble key={`${message.displayContent}-${i}`} chatMessage={message} messageIdx={i} />
+			<ChatBubble key={i} chatMessage={message} messageIdx={i} />
 		)
 	}, [previousMessages])
 
@@ -836,6 +999,7 @@ export const SidebarChat = () => {
 
 
 	const messagesHTML = <ScrollToBottomContainer
+		key={currentThread.id} // force rerender on all children if id changes
 		scrollContainerRef={scrollContainerRef}
 		className={`
 		w-full h-auto
@@ -856,7 +1020,7 @@ export const SidebarChat = () => {
 
 		{/* error message */}
 		{latestError === undefined ? null :
-			<div className='px-2'>
+			<div className='px-2 my-1'>
 				<ErrorDisplay
 					message={latestError.message}
 					fullError={latestError.fullError}
@@ -887,8 +1051,8 @@ export const SidebarChat = () => {
 			isDisabled={isDisabled}
 			showSelections={true}
 			showProspectiveSelections={prevMessagesHTML.length === 0}
-			staging={staging}
-			setStaging={setStaging}
+			selections={selections}
+			setSelections={setSelections}
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 			featureName="Ctrl+L"
 		>

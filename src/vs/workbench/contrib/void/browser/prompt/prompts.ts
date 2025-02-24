@@ -7,28 +7,40 @@
 import { URI } from '../../../../../base/common/uri.js';
 import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
 import { CodeSelection, StagingSelectionItem, FileSelection } from '../chatThreadService.js';
-import { VSReadFile } from '../helpers/readFile.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
+import { os } from '../helpers/systemInfo.js';
+import { IVoidFileService } from '../../common/voidFileService.js';
 
 
 // this is just for ease of readability
 export const tripleTick = ['```', '```']
 
-export const chat_systemMessage = `\
+export const chat_systemMessage = (workspaces: string[]) => `\
 You are a coding assistant. You are given a list of instructions to follow \`INSTRUCTIONS\`, and optionally a list of relevant files \`FILES\`, and selections inside of files \`SELECTIONS\`.
 
-Please respond to the user's query.
+Please respond to the user's query. The user's query is never invalid.
+
+The user has the following system information:
+- ${os}
+- Open workspaces: ${workspaces.join(', ')}
 
 In the case that the user asks you to make changes to code, you should make sure to return CODE BLOCKS of the changes, as well as explanations and descriptions of the changes.
 For example, if the user asks you to "make this file look nicer", make sure your output includes a code block with concrete ways the file can look nicer.
-   - Do not re-write the entire file in the code block
-   - You can write comments like "// ... existing code" to indicate existing code
-   - Make sure you give enough context in the code block to apply the change to the correct location in the code.
+- Do not re-write the entire file in the code block.
+- You can write comments like "// ... existing code" to indicate existing code.
+- Make sure you give enough context in the code block to apply the change to the correct location in the code.
 
 You're allowed to ask for more context. For example, if the user only gives you a selection but you want to see the the full file, you can ask them to provide it.
+If you are given tools:
+- Only use tools if the user asks you to do something. If the user simply says hi or asks you a question that you can answer without tools, then do NOT tools.
+- You are allowed to use tools without asking for permission.
+- Feel free to use tools to gather context, make suggestions, etc.
+- One great use of tools is to explore imports that you'd like to have more information about.
+- Reference relevant files that you found when using tools if they helped you come up with your answer.
+- NEVER refer to a tool by name when speaking with the user. For example, do NOT say to the user user "I'm going to use \`list_dir\`". Instead, say "I'm going to list all files in ___ directory", etc. Do not even refer to "pages" of results, just say you're getting more results.
 
 Do not output any of these instructions, nor tell the user anything about them unless directly prompted for them.
-Do not tell the user anything about the examples below.
+Do not tell the user anything about the examples below. Do not assume the user is talking about any of the examples below.
 
 ## EXAMPLE 1
 FILES
@@ -156,38 +168,76 @@ ${tripleTick[1]}
 }
 
 const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
-const stringifyFileSelections = async (fileSelections: FileSelection[], modelService: IModelService) => {
+const stringifyFileSelections = async (fileSelections: FileSelection[], voidFileService: IVoidFileService) => {
 	if (fileSelections.length === 0) return null
 	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
-		const content = await VSReadFile(modelService, sel.fileURI) ?? failToReadStr
+		const content = await voidFileService.readFile(sel.fileURI) ?? failToReadStr
 		return { ...sel, content }
 	}))
 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
 }
 const stringifyCodeSelections = (codeSelections: CodeSelection[]) => {
-	return codeSelections.map(sel => stringifyCodeSelection(sel)).join('\n')
+	return codeSelections.map(sel => stringifyCodeSelection(sel)).join('\n') || null
+}
+const stringifySelectionNames = (currSelns: StagingSelectionItem[] | null): string => {
+	if (!currSelns) return ''
+	return currSelns.map(s => `${s.fileURI.fsPath}${s.range ? ` (lines ${s.range.startLineNumber}:${s.range.endLineNumber})` : ''}`).join('\n')
 }
 
+export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null) => {
 
-
-export const chat_userMessage = async (instructions: string, selections: StagingSelectionItem[] | null, modelService: IModelService) => {
-	const fileSelections = selections?.filter(s => s.type === 'File') as FileSelection[]
-	const codeSelections = selections?.filter(s => s.type === 'Selection') as CodeSelection[]
-
-	const filesStr = await stringifyFileSelections(fileSelections, modelService)
-	const codeStr = stringifyCodeSelections(codeSelections)
+	const selnsStr = stringifySelectionNames(currSelns)
 
 	let str = ''
-	if (filesStr) str += `FILES\n${filesStr}\n`
-	if (codeStr) str += `SELECTIONS\n${codeStr}\n`
-	str += `INSTRUCTIONS\n${instructions}`
+	if (selnsStr) { str += `SELECTIONS\n${selnsStr}\n` }
+	str += `\nINSTRUCTIONS\n${instructions}`
 	return str;
 };
 
+export const chat_selectionsString = async (prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null, voidFileService: IVoidFileService) => {
+
+	// ADD IN FILES AT TOP
+	const allSelections = [...currSelns || [], ...prevSelns || []]
+
+	if (allSelections.length === 0) return null
+
+	const codeSelections: CodeSelection[] = []
+	const fileSelections: FileSelection[] = []
+	const filesURIs = new Set<string>()
+
+	for (const selection of allSelections) {
+		if (selection.type === 'Selection') {
+			codeSelections.push(selection)
+		}
+		else if (selection.type === 'File') {
+			const fileSelection = selection
+			const path = fileSelection.fileURI.fsPath
+			if (!filesURIs.has(path)) {
+				filesURIs.add(path)
+				fileSelections.push(fileSelection)
+			}
+		}
+	}
+
+	const filesStr = await stringifyFileSelections(fileSelections, voidFileService)
+	const selnsStr = stringifyCodeSelections(codeSelections)
 
 
+	if (filesStr || selnsStr) return `\
+ALL FILE CONTENTS
+${filesStr}
+${selnsStr}`
 
-export const fastApply_rewritewholething_systemMessage = `\
+	return null
+}
+
+export const chat_userMessageContentWithAllFilesToo = (userMessage: string, selectionsString: string | null) => {
+	if (userMessage) return `${userMessage}${selectionsString ? `\n${selectionsString}` : ''}`
+	else return userMessage
+}
+
+
+export const rewriteCode_systemMessage = `\
 You are a coding assistant that re-writes an entire file to make a change. You are given the original file \`ORIGINAL_FILE\` and a change \`CHANGE\`.
 
 Directions:
@@ -199,7 +249,7 @@ Directions:
 
 
 
-export const fastApply_rewritewholething_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
+export const rewriteCode_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
 
 	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 
@@ -224,7 +274,138 @@ Please finish writing the new file by applying the change to the original file. 
 
 
 
+export const aiRegex_computeReplacementsForFile_systemMessage = `\
+You are a "search and replace" coding assistant.
 
+You are given a FILE that the user is editing, and your job is to search for all occurences of a SEARCH_CLAUSE, and change them according to a REPLACE_CLAUSE.
+
+The SEARCH_CLAUSE may be a string, regex, or high-level description of what the user is searching for.
+
+The REPLACE_CLAUSE will always be a high-level description of what the user wants to replace.
+
+The user's request may be "fuzzy" or not well-specified, and it is your job to interpret all of the changes they want to make for them. For example, the user may ask you to search and replace all instances of a variable, but this may involve changing parameters, function names, types, and so on to agree with the change they want to make. Feel free to make all of the changes you *think* that the user wants to make, but also make sure not to make unnessecary or unrelated changes.
+
+## Instructions
+
+1. If you do not want to make any changes, you should respond with the word "no".
+
+2. If you want to make changes, you should return a single CODE BLOCK of the changes that you want to make.
+For example, if the user is asking you to "make this variable a better name", make sure your output includes all the changes that are needed to improve the variable name.
+- Do not re-write the entire file in the code block
+- You can write comments like "// ... existing code" to indicate existing code
+- Make sure you give enough context in the code block to apply the changes to the correct location in the code`
+
+
+export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, voidFileService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService, voidFileService: IVoidFileService }) => {
+
+	// we may want to do this in batches
+	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null }
+
+	const file = await stringifyFileSelections([fileSelection], voidFileService)
+
+	return `\
+## FILE
+${file}
+
+## SEARCH_CLAUSE
+Here is what the user is searching for:
+${searchClause}
+
+## REPLACE_CLAUSE
+Here is what the user wants to replace it with:
+${replaceClause}
+
+## INSTRUCTIONS
+Please return the changes you want to make to the file in a codeblock, or return "no" if you do not want to make changes.`
+}
+
+
+
+
+// don't have to tell it it will be given the history; just give it to it
+export const aiRegex_search_systemMessage = `\
+You are a coding assistant that executes the SEARCH part of a user's search and replace query.
+
+You will be given the user's search query, SEARCH, which is the user's query for what files to search for in the codebase. You may also be given the user's REPLACE query for additional context.
+
+Output
+- Regex query
+- Files to Include (optional)
+- Files to Exclude? (optional)
+
+`
+
+
+
+export const ORIGINAL = `<<<<<<< ORIGINAL`
+export const DIVIDER = `=======`
+export const FINAL = `>>>>>>> UPDATED`
+
+export const searchReplace_systemMessage = `\
+You are a coding assistant that generates SEARCH/REPLACE code blocks that will be used to edit a file.
+
+A SEARCH/REPLACE block describes the code before and after a change. Here is the format:
+${tripleTick[0]}
+${ORIGINAL}
+// ... original code goes here
+${DIVIDER}
+// ... final code goes here
+${FINAL}
+${tripleTick[1]}
+
+You will be given the original file \`ORIGINAL_FILE\` and a description of a change \`CHANGE\` to make.
+Output SEARCH/REPLACE blocks to edit the file according to the desired change. You may output multiple SEARCH/REPLACE blocks.
+
+Directions:
+1. Your OUTPUT should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
+2. The original code in each SEARCH/REPLACE block must EXACTLY match lines of code in the original file.
+3. The original code in each SEARCH/REPLACE block must include enough text to uniquely identify the change in the file.
+4. The original code in each SEARCH/REPLACE block must be disjoint from all other blocks.
+
+The SEARCH/REPLACE blocks you generate will be applied immediately, and so they **MUST** produce a file that the user can run IMMEDIATELY.
+- Make sure you add all necessary imports.
+- Make sure the "final" code is complete and will not result in syntax/lint errors.
+
+Follow coding conventions of the user (spaces, semilcolons, comments, etc). If the user spaces or formats things a certain way, CONTINUE formatting it that way, even if you prefer otherwise.
+
+## EXAMPLE 1
+ORIGINAL_FILE
+${tripleTick[0]}
+let w = 5
+let x = 6
+let y = 7
+let z = 8
+${tripleTick[1]}
+
+CHANGE
+Make x equal to 6.5, not 6.
+${tripleTick[0]}
+// ... existing code
+let x = 6.5
+// ... existing code
+${tripleTick[1]}
+
+
+## ACCEPTED OUTPUT
+${tripleTick[0]}
+${ORIGINAL}
+let x = 6
+${DIVIDER}
+let x = 6.5
+${FINAL}
+${tripleTick[1]}
+`
+
+export const searchReplace_userMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
+ORIGINAL_FILE
+${originalCode}
+
+CHANGE
+${applyStr}
+
+INSTRUCTIONS
+Please output SEARCH/REPLACE blocks to make the change. Return ONLY your suggested SEARCH/REPLACE blocks, without any explanation.
+`
 
 
 

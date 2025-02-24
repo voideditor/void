@@ -3,50 +3,10 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { SendLLMMessageParams, OnText, OnFinalMessage, OnError, LLMChatMessage, _InternalLLMChatMessage } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
-
-import { sendAnthropicChat } from './anthropic.js';
-import { sendOllamaFIM, sendOllamaChat } from './ollama.js';
-import { sendOpenAIChat, sendOpenAIFIM } from './openai.js';
-import { sendGeminiChat } from './gemini.js';
-import { sendGroqChat } from './groq.js';
-import { sendMistralChat } from './mistral.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
-
-
-const cleanChatMessages = (messages: LLMChatMessage[]): _InternalLLMChatMessage[] => {
-	// trim message content (Anthropic and other providers give an error if there is trailing whitespace)
-	messages = messages.map(m => ({ ...m, content: m.content.trim() }))
-
-	// find system messages and concatenate them
-	const systemMessage = messages
-		.filter(msg => msg.role === 'system')
-		.map(msg => msg.content)
-		.join('\n') || undefined;
-
-	// remove all system messages
-	const noSystemMessages = messages
-		.filter(msg => msg.role !== 'system') as _InternalLLMChatMessage[]
-
-	// add system mesasges to first message (should be a user message)
-	if (systemMessage && (noSystemMessages.length !== 0)) {
-		const newFirstMessage = {
-			role: noSystemMessages[0].role,
-			content: (''
-				+ '<SYSTEM_MESSAGE>\n'
-				+ systemMessage
-				+ '\n'
-				+ '</SYSTEM_MESSAGE>\n'
-				+ noSystemMessages[0].content
-			)
-		}
-		noSystemMessages.splice(0, 1) // delete first message
-		noSystemMessages.unshift(newFirstMessage) // add new first message
-	}
-
-	return noSystemMessages
-}
+import { sendLLMMessageToProviderImplementation } from './MODELS.js';
 
 
 export const sendLLMMessage = ({
@@ -61,27 +21,23 @@ export const sendLLMMessage = ({
 	settingsOfProvider,
 	providerName,
 	modelName,
+	tools,
 }: SendLLMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
 
-	let messagesArr: _InternalLLMChatMessage[] = []
-	if (messagesType === 'chatMessages') {
-		messagesArr = cleanChatMessages([
-			{ role: 'system', content: aiInstructions },
-			...messages_
-		])
-	}
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
 		metricsService.capture(eventId, {
 			providerName,
 			modelName,
+			customEndpointURL: settingsOfProvider[providerName]?.endpoint,
+			numModelsAtEndpoint: settingsOfProvider[providerName]?.models?.length,
 			...messagesType === 'chatMessages' ? {
-				numMessages: messagesArr?.length,
-				messagesShape: messagesArr?.map(msg => ({ role: msg.role, length: msg.content.length })),
+				numMessages: messages_?.length,
+				messagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
 				origNumMessages: messages_?.length,
 				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
 
@@ -100,16 +56,17 @@ export const sendLLMMessage = ({
 	let _setAborter = (fn: () => void) => { _aborter = fn }
 	let _didAbort = false
 
-	const onText: OnText = ({ newText, fullText }) => {
+	const onText: OnText = (params) => {
+		const { fullText } = params
 		if (_didAbort) return
-		onText_({ newText, fullText })
+		onText_(params)
 		_fullTextSoFar = fullText
 	}
 
-	const onFinalMessage: OnFinalMessage = ({ fullText }) => {
+	const onFinalMessage: OnFinalMessage = ({ fullText, toolCalls }) => {
 		if (_didAbort) return
 		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
-		onFinalMessage_({ fullText })
+		onFinalMessage_({ fullText, toolCalls })
 	}
 
 	const onError: OnError = ({ message: error, fullError }) => {
@@ -118,7 +75,7 @@ export const sendLLMMessage = ({
 
 		// handle failed to fetch errors, which give 0 information by design
 		if (error === 'TypeError: fetch failed')
-			error = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void Settings, or your local model provider like Ollama is powered off.`
+			error = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void's Settings, or your local model provider like Ollama is powered off.`
 
 		captureLLMEvent(`${loggingName} - Error`, { error })
 		onError_({ message: error, fullError })
@@ -132,41 +89,32 @@ export const sendLLMMessage = ({
 	}
 	abortRef_.current = onAbort
 
-	captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messagesArr[messagesArr.length - 1]?.content.length })
+	if (messagesType === 'chatMessages')
+		captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messages_[messages_.length - 1]?.content.length })
+	else if (messagesType === 'FIMMessage')
+		captureLLMEvent(`${loggingName} - Sending FIM`, {}) // TODO!!! add more metrics
+
 
 	try {
-		switch (providerName) {
-			case 'openAI':
-			case 'openRouter':
-			case 'deepseek':
-			case 'openAICompatible':
-				if (messagesType === 'FIMMessage') sendOpenAIFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
-				else /*                         */ sendOpenAIChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
-				break;
-			case 'ollama':
-				if (messagesType === 'FIMMessage') sendOllamaFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
-				else /*                         */ sendOllamaChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName })
-				break;
-			case 'anthropic':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Anthropic FIM' })
-				else /*                         */ sendAnthropicChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
-				break;
-			case 'gemini':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Gemini FIM' })
-				else /*                         */ sendGeminiChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
-				break;
-			case 'groq':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Groq FIM' })
-				else /*                         */ sendGroqChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
-				break;
-			case 'mistral':
-				if (messagesType === 'FIMMessage') onFinalMessage({ fullText: 'TODO - Mistral FIM' })
-				else /*                         */ sendMistralChat({ messages: messagesArr, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName });
-				break;
-			default:
-				onError({ message: `Error: Void provider was "${providerName}", which is not recognized.`, fullError: null })
-				break;
+		const implementation = sendLLMMessageToProviderImplementation[providerName]
+		if (!implementation) {
+			onError({ message: `Error: Provider "${providerName}" not recognized.`, fullError: null })
+			return
 		}
+		const { sendFIM, sendChat } = implementation
+		if (messagesType === 'chatMessages') {
+			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools })
+			return
+		}
+		if (messagesType === 'FIMMessage') {
+			if (sendFIM) {
+				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions })
+				return
+			}
+			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })
+			return
+		}
+		onError({ message: `Error: Message type "${messagesType}" not recognized.`, fullError: null })
 	}
 
 	catch (error) {

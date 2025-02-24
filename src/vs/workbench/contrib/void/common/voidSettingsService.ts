@@ -11,7 +11,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, modelInfoOfDefaultModelNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, displayInfoOfProviderName, defaultProviderSettings } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings } from './voidSettingsTypes.js';
 
 
 const STORAGE_KEY = 'void.settingsServiceStorage'
@@ -31,8 +31,6 @@ type SetModelSelectionOfFeatureFn = <K extends FeatureName>(
 type SetGlobalSettingFn = <T extends GlobalSettingName, >(settingName: T, newVal: GlobalSettings[T]) => void;
 
 export type ModelOption = { name: string, selection: ModelSelection }
-
-
 
 export type VoidSettingsState = {
 	readonly settingsOfProvider: SettingsOfProvider; // optionsOfProvider
@@ -65,7 +63,30 @@ export interface IVoidSettingsService {
 
 
 
-const _updatedValidatedState = (state: Omit<VoidSettingsState, '_modelOptions'>) => {
+
+const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], options: { existingModels: VoidModelInfo[] }) => {
+	const { existingModels } = options
+
+	const existingModelsMap: Record<string, VoidModelInfo> = {}
+	for (const existingModel of existingModels) {
+		existingModelsMap[existingModel.modelName] = existingModel
+	}
+
+	const newDefaultModels = defaultModelNames.map((modelName, i) => ({
+		modelName,
+		isDefault: true,
+		isAutodetected: true,
+		isHidden: !!existingModelsMap[modelName]?.isHidden,
+	}))
+
+	return [
+		...newDefaultModels, // swap out all the default models for the new default models
+		...existingModels.filter(m => !m.isDefault), // keep any non-default (custom) models
+	]
+}
+
+
+const _validatedState = (state: Omit<VoidSettingsState, '_modelOptions'>) => {
 
 	let newSettingsOfProvider = state.settingsOfProvider
 
@@ -89,7 +110,7 @@ const _updatedValidatedState = (state: Omit<VoidSettingsState, '_modelOptions'>)
 	// update model options
 	let newModelOptions: ModelOption[] = []
 	for (const providerName of providerNames) {
-		const providerTitle = displayInfoOfProviderName(providerName).title.toLowerCase() // looks better lowercase, best practice to not use raw providerName
+		const providerTitle = providerName // displayInfoOfProviderName(providerName).title.toLowerCase() // looks better lowercase, best practice to not use raw providerName
 		if (!newSettingsOfProvider[providerName]._didFillInProviderSettings) continue // if disabled, don't display model options
 		for (const { modelName, isHidden } of newSettingsOfProvider[providerName].models) {
 			if (isHidden) continue
@@ -131,7 +152,7 @@ const _updatedValidatedState = (state: Omit<VoidSettingsState, '_modelOptions'>)
 const defaultState = () => {
 	const d: VoidSettingsState = {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
-		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null, 'FastApply': null },
+		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null, 'Apply': null },
 		globalSettings: deepClone(defaultGlobalSettings),
 		_modelOptions: [], // computed later
 	}
@@ -172,8 +193,12 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				// A HACK BECAUSE WE ADDED DEEPSEEK (did not exist before, comes before readS)
 				...{ deepseek: defaultSettingsOfProvider.deepseek },
 
-				// A HACK BECAUSE WE ADDED MISTRAL (did not exist before, comes before readS)
-				...{ mistral: defaultSettingsOfProvider.mistral },
+				// A HACK BECAUSE WE ADDED XAI (did not exist before, comes before readS)
+				...{ xAI: defaultSettingsOfProvider.xAI },
+
+				// A HACK BECAUSE WE ADDED VLLM (did not exist before, comes before readS)
+				...{ vLLM: defaultSettingsOfProvider.vLLM },
+
 
 				...readS.settingsOfProvider,
 
@@ -189,7 +214,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 			const newModelSelectionOfFeature = {
 				// A HACK BECAUSE WE ADDED FastApply
-				...{ 'FastApply': null },
+				...{ 'Apply': null },
 				...readS.modelSelectionOfFeature,
 			}
 
@@ -199,7 +224,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				modelSelectionOfFeature: newModelSelectionOfFeature,
 			}
 
-			this.state = _updatedValidatedState(readS)
+			this.state = _validatedState(readS)
 
 			resolver()
 			this._onDidChangeState.fire()
@@ -246,7 +271,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			globalSettings: newGlobalSettings,
 		}
 
-		this.state = _updatedValidatedState(newState)
+		this.state = _validatedState(newState)
 
 		await this._storeState()
 		this._onDidChangeState.fire()
@@ -289,27 +314,21 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 
 
-	setAutodetectedModels(providerName: ProviderName, newDefaultModelNames: string[], logging: object) {
+
+	setAutodetectedModels(providerName: ProviderName, autodetectedModelNames: string[], logging: object) {
 
 		const { models } = this.state.settingsOfProvider[providerName]
-
 		const oldModelNames = models.map(m => m.modelName)
 
-		const newDefaultModelInfo = modelInfoOfDefaultModelNames(newDefaultModelNames, { isAutodetected: true, existingModels: models })
-		const newModelInfo = [
-			...newDefaultModelInfo, // swap out all the default models for the new default models
-			...models.filter(m => !m.isDefault), // keep any non-defaul (custom) models
-		]
-
-
-		this.setSettingOfProvider(providerName, 'models', newModelInfo)
+		const newModels = _updatedModelsAfterDefaultModelsChange(autodetectedModelNames, { existingModels: models })
+		this.setSettingOfProvider(providerName, 'models', newModels)
 
 		// if the models changed, log it
-		const new_names = newModelInfo.map(m => m.modelName)
+		const new_names = newModels.map(m => m.modelName)
 		if (!(oldModelNames.length === new_names.length
 			&& oldModelNames.every((_, i) => oldModelNames[i] === new_names[i]))
 		) {
-			this._metricsService.capture('Autodetect Models', { providerName, newModels: newModelInfo, ...logging })
+			this._metricsService.capture('Autodetect Models', { providerName, newModels: newModels, ...logging })
 		}
 	}
 	toggleModelHidden(providerName: ProviderName, modelName: string) {

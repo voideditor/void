@@ -5,7 +5,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled } from '../../../../common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButton, VoidCheckBox, VoidCustomDropdownBox, VoidInputBox, VoidInputBox2, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -17,10 +17,11 @@ import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
+import { os } from '../../../helpers/systemInfo.js'
 
 const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
 
-	return <div className='flex items-center text-void-fg-3 mb-1 px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
+	return <div className='flex items-center text-void-fg-3 px-3 py-0.5 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
 		<button className='flex items-center' disabled={disabled} onClick={onClick}>
 			{icon}
 		</button>
@@ -81,9 +82,7 @@ const RefreshableModels = () => {
 
 	const buttons = refreshableProviderNames.map(providerName => {
 		if (!settingsState.settingsOfProvider[providerName]._didFillInProviderSettings) return null
-		return <div key={providerName} className='pb-4'>
-			<RefreshModelButton providerName={providerName} />
-		</div>
+		return <RefreshModelButton key={providerName} providerName={providerName} />
 	})
 
 	return <>
@@ -256,7 +255,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 
 	// const { title: providerTitle, } = displayInfoOfProviderName(providerName)
 
-	const { title: settingTitle, placeholder, subTextMd } = displayInfoOfSettingName(providerName, settingName)
+	const { title: settingTitle, placeholder, isPasswordField, subTextMd } = displayInfoOfSettingName(providerName, settingName)
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
@@ -268,6 +267,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 			<VoidInputBox
 				// placeholder={`${providerTitle} ${settingTitle} (${placeholder})`}
 				placeholder={`${settingTitle} (${placeholder})`}
+
 				onChangeText={useCallback((newVal) => {
 					if (weChangedTextRef) return
 					voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
@@ -290,6 +290,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 					return [disposable]
 				}, [voidSettingsService, providerName, settingName])}
 				multiline={false}
+				isPasswordField={isPasswordField}
 			/>
 			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-sm'>
 				<ChatMarkdownRender noSpace string={subTextMd} />
@@ -338,7 +339,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 			{needsModel ?
 				providerName === 'ollama' ?
 					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
-					: <WarningBox text={`Please add a model for ${providerTitle} below (Models).`} />
+					: <WarningBox text={`Please add a model for ${providerTitle} (Models section).`} />
 				: null}
 		</div>
 	</div >
@@ -376,6 +377,7 @@ export const AutoRefreshToggle = () => {
 		icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
 		disabled={false}
 	/>
+
 }
 
 export const AIInstructionsBox = () => {
@@ -385,7 +387,7 @@ export const AIInstructionsBox = () => {
 	return <VoidInputBox2
 		className='min-h-[81px] p-3 rounded-sm'
 		initValue={voidSettingsState.globalSettings.aiInstructions}
-		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Respond to all queries in French. `}
+		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Write new code using Rust if possible. `}
 		multiline
 		onChangeText={(newText) => {
 			voidSettingsService.setGlobalSetting('aiInstructions', newText)
@@ -395,7 +397,17 @@ export const AIInstructionsBox = () => {
 
 export const FeaturesTab = () => {
 	return <>
-		<h2 className={`text-3xl mb-2`}>Local Providers</h2>
+		<h2 className={`text-3xl mb-2`}>Models</h2>
+		<ErrorBoundary>
+			<AutoRefreshToggle />
+			<RefreshableModels />
+			<div className='py-2' />
+			<ModelDump />
+			<AddModelMenuFull />
+		</ErrorBoundary>
+
+
+		<h2 className={`text-3xl mb-2 mt-12`}>Local Providers</h2>
 		{/* <h3 className={`opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
 		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
 		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
@@ -403,7 +415,7 @@ export const FeaturesTab = () => {
 		<div className='pl-4 opacity-50'>
 			<span className={`text-sm mb-2`}><ChatMarkdownRender noSpace string={`1. Download [Ollama](https://ollama.com/download).`} /></span>
 			<span className={`text-sm mb-2`}><ChatMarkdownRender noSpace string={`2. Open your terminal.`} /></span>
-			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender noSpace string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></span>
+			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender noSpace string={`3. Run \`ollama run llama3.1:8b\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></span>
 			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender noSpace string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></span>
 			<span className={`text-sm mb-2`}><ChatMarkdownRender noSpace string={`Void automatically detects locally running models and enables them.`} /></span>
 			{/* TODO we should create UI for downloading models without user going into terminal */}
@@ -420,13 +432,21 @@ export const FeaturesTab = () => {
 			<VoidProviderSettings providerNames={nonlocalProviderNames} />
 		</ErrorBoundary>
 
-		<h2 className={`text-3xl mb-2 mt-12`}>Models</h2>
+
+
+		<h2 className={`text-3xl mb-2 mt-12`}>Feature Options</h2>
 		<ErrorBoundary>
-			<AutoRefreshToggle />
-			<RefreshableModels />
-			<ModelDump />
-			<AddModelMenuFull />
+			{featureNames.map(featureName =>
+				(['Ctrl+L', 'Ctrl+K'] as FeatureName[]).includes(featureName) ? null :
+					<div key={featureName}
+						className='mb-2'
+					>
+						<h4 className={`text-void-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
+						<ModelDropdown featureName={featureName} />
+					</div>
+			)}
 		</ErrorBoundary>
+
 	</>
 }
 
@@ -489,7 +509,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): Transfe
 	throw new Error(`os '${os}' not recognized`)
 }
 
-const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
+
 let transferTheseFiles: TransferFilesInfo = []
 let transferError: string | null = null
 
@@ -588,17 +608,6 @@ const GeneralTab = () => {
 			<AIInstructionsBox />
 		</div>
 
-		<div className='mt-12'>
-			<h2 className={`text-3xl mb-2`}>Model Selection</h2>
-			{featureNames.map(featureName =>
-				<div key={featureName}
-					className='mb-2'
-				>
-					<h4 className={`text-void-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
-					<ModelDropdown featureName={featureName} />
-				</div>
-			)}
-		</div>
 
 	</>
 }
@@ -618,7 +627,7 @@ export const Settings = () => {
 
 			<div className='max-w-5xl mx-auto'>
 
-				<h1 className='text-2xl w-full'>Void Settings</h1>
+				<h1 className='text-2xl w-full'>{`Void's Settings`}</h1>
 
 				{/* separator */}
 				<div className='w-full h-[1px] my-4' />

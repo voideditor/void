@@ -8,7 +8,7 @@ import { ILLMMessageService } from './llmMessageService.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { RefreshableProviderName, refreshableProviderNames, SettingsOfProvider } from './voidSettingsTypes.js';
-import { OllamaModelResponse, OpenaiCompatibleModelResponse } from './llmMessageTypes.js';
+import { OllamaModelResponse, VLLMModelResponse } from './llmMessageTypes.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 
@@ -45,6 +45,7 @@ export type RefreshModelStateOfProvider = Record<RefreshableProviderName, Refres
 
 const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvider[k])[] } = {
 	ollama: ['_didFillInProviderSettings', 'endpoint'],
+	vLLM: ['_didFillInProviderSettings', 'endpoint'],
 	// openAICompatible: ['_didFillInProviderSettings', 'endpoint', 'apiKey'],
 }
 const REFRESH_INTERVAL = 5_000
@@ -140,10 +141,11 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 
 	state: RefreshModelStateOfProvider = {
 		ollama: { state: 'init', timeoutId: null },
+		vLLM: { state: 'init', timeoutId: null },
 	}
 
 
-	// start listening for models (and don't stop until success)
+	// start listening for models (and don't stop)
 	startRefreshingModels: IRefreshModelService['startRefreshingModels'] = (providerName, options) => {
 
 		this._clearProviderTimeout(providerName)
@@ -158,7 +160,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			}
 		}
 		const listFn = providerName === 'ollama' ? this.llmMessageService.ollamaList
-			: providerName === 'openAICompatible' ? this.llmMessageService.openAICompatibleList
+			: providerName === 'vLLM' ? this.llmMessageService.vLLMList
 				: () => { }
 
 		listFn({
@@ -169,7 +171,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 					providerName,
 					models.map(model => {
 						if (providerName === 'ollama') return (model as OllamaModelResponse).name;
-						else if (providerName === 'openAICompatible') return (model as OpenaiCompatibleModelResponse).id;
+						else if (providerName === 'vLLM') return (model as VLLMModelResponse).id;
 						else throw new Error('refreshMode fn: unknown provider', providerName);
 					}),
 					{ enableProviderOnSuccess: options.enableProviderOnSuccess, hideRefresh: options.doNotFire }

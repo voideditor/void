@@ -3,6 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { ChatMessage } from '../browser/chatThreadService.js'
+import { InternalToolInfo, ToolName } from './toolsService.js'
 import { FeatureName, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
@@ -20,22 +22,50 @@ export const errorDetails = (fullError: Error | null): string | null => {
 	return null
 }
 
-export type OnText = (p: { newText: string, fullText: string }) => void
-export type OnFinalMessage = (p: { fullText: string }) => void
+
+export type LLMChatMessage = {
+	role: 'system' | 'user';
+	content: string;
+} | {
+	role: 'assistant',
+	content: string;
+} | {
+	role: 'tool';
+	content: string; // result
+	name: string;
+	params: string;
+	id: string;
+}
+
+
+export type ToolCallType = {
+	name: ToolName;
+	params: string;
+	id: string;
+}
+
+
+export type OnText = (p: { newText: string, fullText: string; newReasoning: string; fullReasoning: string }) => void
+export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[] }) => void // id is tool_use_id
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
-export type LLMChatMessage = {
-	role: 'system' | 'user' | 'assistant';
-	content: string;
+
+export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
+	if (c.role === 'system' || c.role === 'user') {
+		return { role: c.role, content: c.content || '(empty message)' }
+	}
+	else if (c.role === 'assistant')
+		return { role: c.role, content: c.content || '(empty message)' }
+	else if (c.role === 'tool')
+		return { role: c.role, id: c.id, name: c.name, params: c.params, content: c.content || '(empty output)' }
+	else {
+		throw 1
+	}
 }
 
-export type _InternalLLMChatMessage = {
-	role: 'user' | 'assistant';
-	content: string;
-}
 
-type _InternalSendFIMMessage = {
+export type LLMFIMMessage = {
 	prefix: string;
 	suffix: string;
 	stopTokens: string[];
@@ -44,9 +74,11 @@ type _InternalSendFIMMessage = {
 type SendLLMType = {
 	messagesType: 'chatMessages';
 	messages: LLMChatMessage[];
+	tools?: InternalToolInfo[];
 } | {
 	messagesType: 'FIMMessage';
-	messages: _InternalSendFIMMessage;
+	messages: LLMFIMMessage;
+	tools?: undefined;
 }
 
 // service types
@@ -86,34 +118,6 @@ export type EventLLMMessageOnFinalMessageParams = Parameters<OnFinalMessage>[0] 
 export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId: string }
 
 
-export type _InternalSendLLMChatMessageFnType = (
-	params: {
-		onText: OnText;
-		onFinalMessage: OnFinalMessage;
-		onError: OnError;
-		providerName: ProviderName;
-		settingsOfProvider: SettingsOfProvider;
-		modelName: string;
-		_setAborter: (aborter: () => void) => void;
-
-		messages: _InternalLLMChatMessage[];
-	}
-) => void
-
-export type _InternalSendLLMFIMMessageFnType = (
-	params: {
-		onText: OnText;
-		onFinalMessage: OnFinalMessage;
-		onError: OnError;
-		providerName: ProviderName;
-		settingsOfProvider: SettingsOfProvider;
-		modelName: string;
-		_setAborter: (aborter: () => void) => void;
-
-		messages: _InternalSendFIMMessage;
-	}
-) => void
-
 // service -> main -> internal -> event (back to main)
 // (browser)
 
@@ -145,18 +149,22 @@ export type OllamaModelResponse = {
 	size_vram: number;
 }
 
-export type OpenaiCompatibleModelResponse = {
+type OpenaiCompatibleModelResponse = {
 	id: string;
 	created: number;
 	object: 'model';
 	owned_by: string;
 }
 
+export type VLLMModelResponse = OpenaiCompatibleModelResponse
+
+
 
 // params to the true list fn
-export type ModelListParams<modelResponse> = {
+export type ModelListParams<ModelResponse> = {
+	providerName: ProviderName;
 	settingsOfProvider: SettingsOfProvider;
-	onSuccess: (param: { models: modelResponse[] }) => void;
+	onSuccess: (param: { models: ModelResponse[] }) => void;
 	onError: (param: { error: string }) => void;
 }
 
@@ -175,4 +183,3 @@ export type EventModelListOnErrorParams<modelResponse> = Parameters<ModelListPar
 
 
 
-export type _InternalModelListFnType<modelResponse> = (params: ModelListParams<modelResponse>) => void

@@ -47,6 +47,8 @@ import { IEnvironmentService } from '../../../../../../../platform/environment/c
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
 import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
+import { IRepoFilesService } from '../../../../common/fileSearchService.js'
+import { IQuickInputService } from '../../../../../../../platform/quickinput/common/quickInput.js'
 
 
 
@@ -213,6 +215,8 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IConfigurationService: accessor.get(IConfigurationService),
 		IPathService: accessor.get(IPathService),
 		IMetricsService: accessor.get(IMetricsService),
+		IRepoFilesService: accessor.get(IRepoFilesService),
+		IQuickInputService: accessor.get(IQuickInputService),
 
 	} as const
 	return reactAccessor

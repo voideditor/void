@@ -78,7 +78,7 @@
     "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^0.37.0",
     "@floating-ui/react": "^0.27.3",
     "@google/generative-ai": "^0.21.0",
     "@microsoft/1ds-core-js": "^3.2.13",

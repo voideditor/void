@@ -68,7 +68,9 @@ export const voidTools = {
 		required: ['query'],
 	},
 
-	// go_to_definition:
+	// go_to_definition: {
+
+	// },
 
 	// go_to_usages:
 

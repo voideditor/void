@@ -1,4 +1,4 @@
-# Contributing to Void.
+# Contributing to Void
 ### Welcome! 👋
 This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 

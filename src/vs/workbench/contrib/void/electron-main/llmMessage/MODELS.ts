@@ -146,10 +146,19 @@ const openAISettings: ProviderSettings = {
 
 // ---------------- ANTHROPIC ----------------
 const anthropicModelOptions = {
+	'claude-3-7-sonnet-20250219': { // https://docs.anthropic.com/en/docs/about-claude/models/all-models#model-comparison-table
+		contextWindow: 200_000,
+		maxOutputTokens: 8_192, // TODO!!! 64_000 for extended thinking, can bump it to 128_000 with output-128k-2025-02-19
+		cost: { input: 3.00, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: {}, // TODO!!!!
+	},
 	'claude-3-5-sonnet-20241022': {
 		contextWindow: 200_000,
 		maxOutputTokens: 8_192,
-		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		cost: { input: 3.00, output: 15.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
@@ -158,7 +167,7 @@ const anthropicModelOptions = {
 	'claude-3-5-haiku-20241022': {
 		contextWindow: 200_000,
 		maxOutputTokens: 8_192,
-		cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
+		cost: { input: 0.80, output: 4.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
@@ -167,15 +176,16 @@ const anthropicModelOptions = {
 	'claude-3-opus-20240229': {
 		contextWindow: 200_000,
 		maxOutputTokens: 4_096,
-		cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
+		cost: { input: 15.00, output: 75.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
 		supportsReasoningOutput: false,
 	},
 	'claude-3-sonnet-20240229': { // no point of using this, but including this for people who put it in
-		contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
+		contextWindow: 200_000,
 		maxOutputTokens: 4_096,
+		cost: { input: 3.00, output: 15.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
@@ -187,6 +197,7 @@ const anthropicSettings: ProviderSettings = {
 	modelOptions: anthropicModelOptions,
 	modelOptionsFallback: (modelName) => {
 		let fallbackName: keyof typeof anthropicModelOptions | null = null
+		if (modelName.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
 		if (modelName.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
 		if (modelName.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
 		if (modelName.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'

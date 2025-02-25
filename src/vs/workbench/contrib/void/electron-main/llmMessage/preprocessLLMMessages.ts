@@ -14,9 +14,22 @@ export const parseObject = (args: unknown) => {
 }
 
 
-const prepareMessages_cloneAndTrim = ({ messages: messages_ }: { messages: LLMChatMessage[] }) => {
-	const messages = deepClone(messages_).map(m => ({ ...m, content: m.content.trim(), }))
-	return { messages }
+const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatMessage[] }) => {
+	const messages = deepClone(messages_)
+	const newMessages: LLMChatMessage[] = []
+	for (let i = 1; i < messages.length; i += 1) {
+		const curr = messages[i]
+		const prev = messages[i - 1]
+		// if found a repeated role, put the current content in the prev
+		if ((curr.role === 'user' && prev.role === 'user') || (curr.role === 'assistant' && prev.role === 'assistant')) {
+			prev.content += '\n' + curr.content
+			continue
+		}
+		// add the message
+		newMessages.push(curr)
+	}
+	const finalMessages = newMessages.map(m => ({ ...m, content: m.content.trim() }))
+	return { messages: finalMessages }
 }
 
 // no matter whether the model supports a system message or not (or what format it supports), add it in some way
@@ -313,7 +326,7 @@ export const prepareMessages = ({
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 	supportsTools: false | 'anthropic-style' | 'openai-style',
 }) => {
-	const { messages: messages1 } = prepareMessages_cloneAndTrim({ messages })
+	const { messages: messages1 } = prepareMessages_normalize({ messages })
 	const { messages: messages2, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages1, aiInstructions, supportsSystemMessage })
 	const { messages: messages3 } = prepareMessages_tools({ messages: messages2, supportsTools })
 	return {

@@ -68,13 +68,14 @@ export const SidebarThreadSelector = () => {
 							let firstMsg = null;
 							// let secondMsg = null;
 
-							const firstMsgIdx = pastThread.messages.findIndex(
-								(msg) => msg.role !== 'system' && !!msg.displayContent
+							const firstUserMsgIdx = pastThread.messages.findIndex(
+								(msg) => msg.role !== 'system' && msg.role !== 'tool' && !!msg.displayContent
 							);
 
-							if (firstMsgIdx !== -1) {
+							if (firstUserMsgIdx !== -1) {
 								// firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');
-								firstMsg = pastThread.messages[firstMsgIdx].displayContent ?? '';
+								const firsUsertMsgObj = pastThread.messages[firstUserMsgIdx]
+								firstMsg = firsUsertMsgObj.role === 'user' && firsUsertMsgObj.displayContent || '';
 							} else {
 								firstMsg = '""';
 							}

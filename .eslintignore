@@ -11,6 +11,7 @@
 **/extensions/markdown-language-features/notebook-out/**
 **/extensions/markdown-math/notebook-out/**
 **/extensions/notebook-renderers/renderer-out/index.js
+**/extensions/open-remote-ssh/out/extension.js
 **/extensions/simple-browser/media/index.js
 **/extensions/typescript-language-features/test-workspace/**
 **/extensions/typescript-language-features/extension.webpack.config.js

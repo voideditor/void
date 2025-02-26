@@ -7,10 +7,9 @@
 import { URI } from '../../../../../base/common/uri.js';
 import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
 import { CodeSelection, StagingSelectionItem, FileSelection } from '../chatThreadService.js';
-import { VSReadFile } from '../helpers/readFile.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
 import { os } from '../helpers/systemInfo.js';
-import { IFileService } from '../../../../../platform/files/common/files.js';
+import { IVoidFileService } from '../../common/voidFileService.js';
 
 
 // this is just for ease of readability
@@ -169,10 +168,10 @@ ${tripleTick[1]}
 }
 
 const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
-const stringifyFileSelections = async (fileSelections: FileSelection[], modelService: IModelService, fileService: IFileService) => {
+const stringifyFileSelections = async (fileSelections: FileSelection[], voidFileService: IVoidFileService) => {
 	if (fileSelections.length === 0) return null
 	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
-		const content = await VSReadFile(sel.fileURI, modelService, fileService) ?? failToReadStr
+		const content = await voidFileService.readFile(sel.fileURI) ?? failToReadStr
 		return { ...sel, content }
 	}))
 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
@@ -195,7 +194,7 @@ export const chat_userMessageContent = async (instructions: string, currSelns: S
 	return str;
 };
 
-export const chat_selectionsString = async (prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null, modelService: IModelService, fileService: IFileService) => {
+export const chat_selectionsString = async (prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null, voidFileService: IVoidFileService) => {
 
 	// ADD IN FILES AT TOP
 	const allSelections = [...currSelns || [], ...prevSelns || []]
@@ -220,7 +219,7 @@ export const chat_selectionsString = async (prevSelns: StagingSelectionItem[] | 
 		}
 	}
 
-	const filesStr = await stringifyFileSelections(fileSelections, modelService, fileService)
+	const filesStr = await stringifyFileSelections(fileSelections, voidFileService)
 	const selnsStr = stringifyCodeSelections(codeSelections)
 
 
@@ -297,12 +296,12 @@ For example, if the user is asking you to "make this variable a better name", ma
 - Make sure you give enough context in the code block to apply the changes to the correct location in the code`
 
 
-export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, modelService, fileService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService, fileService: IFileService }) => {
+export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, voidFileService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService, voidFileService: IVoidFileService }) => {
 
 	// we may want to do this in batches
 	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null }
 
-	const file = await stringifyFileSelections([fileSelection], modelService, fileService)
+	const file = await stringifyFileSelections([fileSelection], voidFileService)
 
 	return `\
 ## FILE

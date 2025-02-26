@@ -3,22 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { JSX, useCallback, useEffect, useState } from 'react'
+import React, { JSX } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
-import { useAccessor, useChatThreadsState, useChatThreadsStreamState } from '../util/services.js'
 import { ChatMessageLocation, } from '../../../aiRegexService.js'
 import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
-
-
-enum CopyButtonState {
-	Copy = 'Copy',
-	Copied = 'Copied!',
-	Error = 'Could not copy',
-}
-
-const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
-
+import { ApplyBlockHoverButtons } from './ApplyBlockHoverButtons.js'
 
 
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }
@@ -28,60 +18,6 @@ const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => 
 }
 
 
-
-const ApplyButtonsOnHover = ({ applyStr }: { applyStr: string }) => {
-	const accessor = useAccessor()
-
-	const [copyButtonState, setCopyButtonState] = useState(CopyButtonState.Copy)
-	const editCodeService = accessor.get('IEditCodeService')
-	const clipboardService = accessor.get('IClipboardService')
-	const metricsService = accessor.get('IMetricsService')
-
-	useEffect(() => {
-
-		if (copyButtonState !== CopyButtonState.Copy) {
-			setTimeout(() => {
-				setCopyButtonState(CopyButtonState.Copy)
-			}, COPY_FEEDBACK_TIMEOUT)
-		}
-	}, [copyButtonState])
-
-	const onCopy = useCallback(() => {
-		clipboardService.writeText(applyStr)
-			.then(() => { setCopyButtonState(CopyButtonState.Copied) })
-			.catch(() => { setCopyButtonState(CopyButtonState.Error) })
-		metricsService.capture('Copy Code', { length: applyStr.length }) // capture the length only
-
-	}, [metricsService, clipboardService, applyStr])
-
-	const onApply = useCallback(() => {
-
-		editCodeService.startApplying({
-			from: 'ClickApply',
-			type: 'searchReplace',
-			applyStr,
-		})
-		metricsService.capture('Apply Code', { length: applyStr.length }) // capture the length only
-	}, [metricsService, editCodeService, applyStr])
-
-	const isSingleLine = !applyStr.includes('\n')
-
-	return <>
-		<button
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
-			onClick={onCopy}
-		>
-			{copyButtonState}
-		</button>
-		<button
-			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
-			onClick={onApply}
-		>
-			Apply
-		</button>
-	</>
-}
 
 export const CodeSpan = ({ children, className }: { children: React.ReactNode, className?: string }) => {
 	return <code className={`
@@ -97,7 +33,7 @@ export const CodeSpan = ({ children, className }: { children: React.ReactNode, c
 	</code>
 }
 
-const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
+const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
 
 
 	// deal with built-in tokens first (assume marked token)
@@ -108,9 +44,7 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocati
 	}
 
 	if (t.type === "code") {
-		const isCodeblockClosed = t.raw?.startsWith('```') && t.raw?.endsWith('```');
 
-		// this should never be
 		const applyBoxId = chatMessageLocation ? getApplyBoxId({
 			threadId: chatMessageLocation.threadId,
 			messageIdx: chatMessageLocation.messageIdx,
@@ -120,7 +54,7 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocati
 		return <BlockCode
 			initValue={t.text}
 			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
-			buttonsOnHover={applyBoxId && <ApplyButtonsOnHover applyStr={t.text} />}
+			buttonsOnHover={applyBoxId && <ApplyBlockHoverButtons applyBoxId={applyBoxId} codeStr={t.text} />}
 		/>
 	}
 
@@ -201,6 +135,24 @@ const RenderToken = ({ token, nested = false, noSpace = false, chatMessageLocati
 				))}
 			</ListTag>
 		)
+		// attempt at indentation
+		// return (
+		// 	<ListTag
+		// 		start={t.start ? t.start : undefined}
+		// 			className={`pl-2 ${noSpace ? '' : 'my-4'} ${t.ordered ? "list-decimal" : "list-disc"}`}
+		// 		>
+		// 		{t.items.map((item, index) => (
+		// 			<li key={index} className={`${noSpace ? '' : 'mb-2'} ml-4`}>
+		// 				{item.task && (
+		// 					<input type="checkbox" className='mr-2 form-checkbox' checked={item.checked} readOnly />
+		// 				)}
+		// 				<span className-='inline-block pr-2'>
+		// 					<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} nested={true} />
+		// 				</span>
+		// 			</li>
+		// 		))}
+		// 	</ListTag>
+		// )
 	}
 
 	if (t.type === "paragraph") {

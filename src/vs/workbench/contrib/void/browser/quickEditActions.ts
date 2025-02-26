@@ -17,7 +17,6 @@ import { IMetricsService } from '../common/metricsService.js';
 
 export type QuickEditPropsType = {
 	diffareaid: number,
-	initStreamingDiffZoneId: number | null,
 	textAreaRef: (ref: HTMLTextAreaElement | null) => void;
 	onChangeHeight: (height: number) => void;
 	onChangeText: (text: string) => void;

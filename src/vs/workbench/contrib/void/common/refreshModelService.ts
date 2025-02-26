@@ -8,7 +8,7 @@ import { ILLMMessageService } from './llmMessageService.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { RefreshableProviderName, refreshableProviderNames, SettingsOfProvider } from './voidSettingsTypes.js';
-import { OllamaModelResponse, OpenaiCompatibleModelResponse } from './llmMessageTypes.js';
+import { OllamaModelResponse, VLLMModelResponse } from './llmMessageTypes.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 
@@ -160,9 +160,8 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			}
 		}
 		const listFn = providerName === 'ollama' ? this.llmMessageService.ollamaList
-			: providerName === 'vLLM' ? this.llmMessageService.openAICompatibleList
-				: providerName === 'openAICompatible' ? this.llmMessageService.openAICompatibleList
-					: () => { }
+			: providerName === 'vLLM' ? this.llmMessageService.vLLMList
+				: () => { }
 
 		listFn({
 			onSuccess: ({ models }) => {
@@ -172,8 +171,7 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 					providerName,
 					models.map(model => {
 						if (providerName === 'ollama') return (model as OllamaModelResponse).name;
-						else if (providerName === 'vLLM') return (model as OpenaiCompatibleModelResponse).id;
-						else if (providerName === 'openAICompatible') return (model as OpenaiCompatibleModelResponse).id;
+						else if (providerName === 'vLLM') return (model as VLLMModelResponse).id;
 						else throw new Error('refreshMode fn: unknown provider', providerName);
 					}),
 					{ enableProviderOnSuccess: options.enableProviderOnSuccess, hideRefresh: options.doNotFire }

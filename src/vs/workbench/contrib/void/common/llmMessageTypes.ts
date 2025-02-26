@@ -46,7 +46,7 @@ export type ToolCallType = {
 
 
 export type OnText = (p: { newText: string, fullText: string; newReasoning: string; fullReasoning: string }) => void
-export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[] }) => void // id is tool_use_id
+export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[], fullReasoning?: string }) => void // id is tool_use_id
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 

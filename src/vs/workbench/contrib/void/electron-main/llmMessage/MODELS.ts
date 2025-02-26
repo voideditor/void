@@ -12,7 +12,7 @@ import { OllamaModelResponse, OnText, OnFinalMessage, OnError, LLMChatMessage, L
 import { InternalToolInfo, isAToolName } from '../../common/toolsService.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
-import { extractReasoningFromText } from '../../browser/helpers/extractCodeFromResult.js';
+import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../browser/helpers/extractCodeFromResult.js';
 
 
 
@@ -32,7 +32,7 @@ type ModelOptions = {
 	supportsReasoningOutput: false | {
 		// you are allowed to not include openSourceThinkTags if it's not open source (no such cases as of writing)
 		// if it's open source, put the think tags here so we parse them out in e.g. ollama
-		openSourceThinkTags?: [string, string]
+		readonly openSourceThinkTags?: [string, string]
 	};
 }
 
@@ -641,9 +641,9 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
-			onFinalMessage({ fullText: `Model ${modelName} does not support FIM.` })
+			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
 		else
-			onFinalMessage({ fullText: `Model ${modelName_} (${modelName}) does not support FIM.` })
+			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
 		return
 	}
 
@@ -691,11 +691,15 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = { model: modelName, messages: messages, stream: true, ...toolsObj, ...maxTokensObj }
 
 	const { nameOfFieldInDelta: nameOfReasoningFieldInDelta, needsManualParse: needsManualReasoningParse } = modelSettingsOfProvider[providerName].ifSupportsReasoningOutput?.output ?? {}
-	if (needsManualReasoningParse && supportsReasoningOutput && supportsReasoningOutput.openSourceThinkTags)
-		onText = extractReasoningFromText(onText, supportsReasoningOutput.openSourceThinkTags)
 
-	let fullReasoning = ''
-	let fullText = ''
+	const manuallyParseReasoning = needsManualReasoningParse && supportsReasoningOutput && supportsReasoningOutput.openSourceThinkTags
+	if (manuallyParseReasoning) {
+		onText = extractReasoningOnTextWrapper(onText, supportsReasoningOutput.openSourceThinkTags)
+	}
+
+
+	let fullReasoningSoFar = ''
+	let fullTextSoFar = ''
 	const toolCallOfIndex: ToolCallOfIndex = {}
 	openai.chat.completions
 		.create(options)
@@ -713,19 +717,26 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 				}
 				// message
 				const newText = chunk.choices[0]?.delta?.content ?? ''
-				fullText += newText
+				fullTextSoFar += newText
 
 				// reasoning
 				let newReasoning = ''
 				if (nameOfReasoningFieldInDelta) {
 					// @ts-ignore
 					newReasoning = (chunk.choices[0]?.delta?.[nameOfReasoningFieldInDelta] || '') + ''
-					fullReasoning += newReasoning
+					fullReasoningSoFar += newReasoning
 				}
 
-				onText({ newText, fullText, newReasoning, fullReasoning })
+				onText({ newText, fullText: fullTextSoFar, newReasoning, fullReasoning: fullReasoningSoFar })
 			}
-			onFinalMessage({ fullText, toolCalls: toolCallsFrom_OpenAICompat(toolCallOfIndex) });
+			// on final
+			const toolCalls = toolCallsFrom_OpenAICompat(toolCallOfIndex)
+			if (manuallyParseReasoning) {
+				const { fullText, fullReasoning } = extractReasoningOnFinalMessage(fullTextSoFar, supportsReasoningOutput.openSourceThinkTags)
+				onFinalMessage({ fullText, fullReasoning, toolCalls });
+			} else {
+				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, toolCalls });
+			}
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
@@ -787,7 +798,7 @@ const toolCallsFromAnthropicContent = (content: Anthropic.Messages.ContentBlock[
 	}).filter(t => !!t)
 }
 
-const sendAnthropicChat = ({ messages: messages_, onText, providerName, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
 	const {
 		// supportsReasoning: modelSupportsReasoning,
 		modelName,

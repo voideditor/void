@@ -699,6 +699,7 @@ type ChatBubbleMode = 'display' | 'edit'
 const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatMessage, messageIdx?: number, isLoading?: boolean, }) => {
 
 	const role = chatMessage.role
+	const [isReasoningOpen, setIsReasoningOpen] = useState(false)
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -733,7 +734,6 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		const shouldInitialize = _justEnabledEdit.current || _mustInitialize.current
 		if (canInitialize && shouldInitialize) {
 			setStagingSelections(chatMessage.selections || [])
-
 			if (textAreaFnsRef.current)
 				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
 
@@ -839,13 +839,46 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	}
 	else if (role === 'assistant') {
 		const thread = chatThreadsService.getCurrentThread()
+		const hasReasoning = !!chatMessage.reasoning
 
 		const chatMessageLocation: ChatMessageLocation = {
 			threadId: thread.id,
 			messageIdx: messageIdx!,
 		}
 
-		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatMessageLocation={chatMessageLocation} />
+		chatbubbleContents = (
+			<>
+				{/* Always show the content */}
+				<ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatMessageLocation={chatMessageLocation} />
+
+				{/* Show reasoning in a dropdown if it exists */}
+				{hasReasoning && (
+					<div className="mx-4 select-none mt-2">
+						<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
+							<div
+								className="flex items-center min-h-[24px] cursor-pointer hover:brightness-125 transition-all duration-150"
+								onClick={() => setIsReasoningOpen(!isReasoningOpen)}
+							>
+								<ChevronRight
+									className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isReasoningOpen ? 'rotate-90' : ''}`}
+								/>
+								<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+									<span className="text-void-fg-3">Reasoning</span>
+									<span className="text-void-fg-4 text-xs italic">Model's step-by-step thinking</span>
+								</div>
+							</div>
+							<div
+								className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isReasoningOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+							>
+								<div className="text-void-fg-2 p-2 bg-void-bg-1 rounded">
+									<ChatMarkdownRender string={chatMessage.reasoning ?? ''} chatMessageLocation={chatMessageLocation} />
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+			</>
+		)
 	}
 	else if (role === 'tool') {
 
@@ -939,7 +972,7 @@ export const SidebarChat = () => {
 	const currentThread = chatThreadsService.getCurrentThread()
 	const previousMessages = currentThread?.messages ?? []
 
-	const selections = chatThreadsService.getCurrentThread().state.stagingSelections
+	const selections = currentThread.state.stagingSelections
 	const setSelections = (s: StagingSelectionItem[]) => { chatThreadsService.setCurrentThreadStagingSelections(s) }
 
 	// stream state
@@ -947,6 +980,7 @@ export const SidebarChat = () => {
 	const isStreaming = !!currThreadStreamState?.streamingToken
 	const latestError = currThreadStreamState?.error
 	const messageSoFar = currThreadStreamState?.messageSoFar
+	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -1027,7 +1061,12 @@ export const SidebarChat = () => {
 		{prevMessagesHTML}
 
 		{/* message stream */}
-		<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isStreaming} />
+		{messageSoFar && <ChatBubble chatMessage={{
+			role: 'assistant',
+			content: messageSoFar,
+			displayContent: messageSoFar || null,
+			reasoning: reasoningSoFar || null,
+		}} isLoading={isStreaming} />}
 
 
 		{/* error message */}

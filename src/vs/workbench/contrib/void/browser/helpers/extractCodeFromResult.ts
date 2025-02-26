@@ -251,10 +251,8 @@ export const extractSearchReplaceBlocks = (str: string) => {
 
 
 // could simplify this - this assumes we can never add a tag without committing it to the user's screen, but that's not true
-export const extractReasoningFromText = (
-	onText_: OnText,
-	thinkTags: [string, string],
-): OnText => {
+export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string, string]): OnText => {
+
 
 	let latestAddIdx = 0 // exclusive
 	let foundTag1 = false
@@ -263,7 +261,8 @@ export const extractReasoningFromText = (
 	let fullText = ''
 	let fullReasoning = ''
 
-	const onText: OnText = ({ newText: newText_, fullText: fullText_ }) => {
+	const newOnText: OnText = ({ newText: newText_, fullText: fullText_ }) => {
+
 		//     abcdef<t|hin|k>ghi
 		//           |
 		// until found the first think tag, keep adding to fullText
@@ -283,7 +282,7 @@ export const extractReasoningFromText = (
 				fullText += newText
 				fullReasoning += newReasoning
 				latestAddIdx += newText.length + newReasoning.length
-				onText_({ newText, fullText, newReasoning: newReasoning, fullReasoning })
+				onText({ newText, fullText, newReasoning: newReasoning, fullReasoning })
 				return
 			}
 
@@ -291,7 +290,7 @@ export const extractReasoningFromText = (
 			const newText = fullText.substring(latestAddIdx, Infinity)
 			fullText += newText
 			latestAddIdx += newText.length
-			onText_({ newText, fullText, newReasoning: '', fullReasoning })
+			onText({ newText, fullText, newReasoning: '', fullReasoning })
 			return
 		}
 		// at this point, we found <tag1>
@@ -313,7 +312,7 @@ export const extractReasoningFromText = (
 				fullText += newText
 				fullReasoning += newReasoning
 				latestAddIdx += newText.length + newReasoning.length
-				onText_({ newText, fullText, newReasoning: newReasoning, fullReasoning })
+				onText({ newText, fullText, newReasoning: newReasoning, fullReasoning })
 				return
 			}
 
@@ -321,7 +320,7 @@ export const extractReasoningFromText = (
 			const newReasoning = fullText.substring(latestAddIdx, Infinity)
 			fullReasoning += newReasoning
 			latestAddIdx += newReasoning.length
-			onText_({ newText: '', fullText, newReasoning, fullReasoning })
+			onText({ newText: '', fullText, newReasoning, fullReasoning })
 			return
 		}
 		// at this point, we found <tag2>
@@ -329,8 +328,19 @@ export const extractReasoningFromText = (
 		fullText += newText_
 		const newText = fullText.substring(latestAddIdx, Infinity)
 		latestAddIdx += newText.length
-		onText_({ newText, fullText, newReasoning: '', fullReasoning })
+		onText({ newText, fullText, newReasoning: '', fullReasoning })
 	}
 
-	return onText
+
+	return newOnText
+}
+
+
+export const extractReasoningOnFinalMessage = (fullText_: string, thinkTags: [string, string]): { fullText: string, fullReasoning: string } => {
+	const tag1Idx = fullText_.lastIndexOf(thinkTags[0])
+	const tag2Idx = fullText_.lastIndexOf(thinkTags[1])
+	if (tag1Idx === -1 || tag2Idx === -1) return { fullText: fullText_, fullReasoning: '' }
+	const fullText = fullText_.substring(0, tag1Idx) + fullText_.substring(tag2Idx + thinkTags[1].length, Infinity)
+	const fullReasoning = fullText.substring(tag1Idx + thinkTags[0].length, tag2Idx)
+	return { fullText, fullReasoning }
 }

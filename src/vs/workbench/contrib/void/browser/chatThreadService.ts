@@ -77,6 +77,7 @@ export type ChatMessage =
 		role: 'assistant';
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
+		reasoning: string | null; // reasoning from the LLM, used for step-by-step thinking
 	}
 	| ToolMessage<ToolName>
 
@@ -116,6 +117,7 @@ export type ThreadStreamState = {
 	[threadId: string]: undefined | {
 		error?: { message: string, fullError: Error | null, };
 		messageSoFar?: string;
+		reasoningSoFar?: string;
 		streamingToken?: string;
 	}
 }
@@ -330,10 +332,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// ---------- streaming ----------
 
-	private _finishStreamingTextMessage = (threadId: string, content: string, error?: { message: string, fullError: Error | null }) => {
+	private _finishStreamingTextMessage = (threadId: string, content: string, error?: { message: string, fullError: Error | null }, reasoning?: string) => {
 		// add assistant's message to chat history, and clear selection
-		this._addMessageToThread(threadId, { role: 'assistant', content, displayContent: content || null })
-		this._setStreamState(threadId, { messageSoFar: undefined, streamingToken: undefined, error })
+		this._addMessageToThread(threadId, { role: 'assistant', content, displayContent: content || null, reasoning: reasoning || null })
+		this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, error })
 	}
 
 
@@ -431,17 +433,17 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 					tools: tools,
 
-					onText: ({ fullText }) => {
-						this._setStreamState(threadId, { messageSoFar: fullText })
+					onText: ({ fullText, fullReasoning }) => {
+						this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning })
 					},
-					onFinalMessage: async ({ fullText, toolCalls }) => {
+					onFinalMessage: async ({ fullText, toolCalls, fullReasoning }) => {
 
 						if ((toolCalls?.length ?? 0) === 0) {
-							this._finishStreamingTextMessage(threadId, fullText)
+							this._finishStreamingTextMessage(threadId, fullText, undefined, fullReasoning)
 						}
 						else {
-							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText })
-							this._setStreamState(threadId, { messageSoFar: undefined }) // clear streaming message
+							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText, reasoning: fullReasoning || null })
+							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined }) // clear streaming message
 							for (const tool of toolCalls ?? []) {
 								const toolName = tool.name as ToolName
 
@@ -475,7 +477,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						res_()
 					},
 					onError: (error) => {
-						this._finishStreamingTextMessage(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
+						const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
+						const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
+						this._finishStreamingTextMessage(threadId, messageSoFar, error, reasoningSoFar)
 						res_()
 					},
 				})
@@ -493,7 +497,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	cancelStreaming(threadId: string) {
 		const llmCancelToken = this.streamState[threadId]?.streamingToken
 		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
-		this._finishStreamingTextMessage(threadId, this.streamState[threadId]?.messageSoFar ?? '')
+		const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
+		const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
+		this._finishStreamingTextMessage(threadId, messageSoFar, undefined, reasoningSoFar)
 	}
 
 	dismissStreamError(threadId: string): void {
@@ -506,7 +512,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	getCurrentThread(): ChatThreads[string] {
 		const state = this.state
-		return state.allThreads[state.currentThreadId]
+		const thread = state.allThreads[state.currentThreadId]
+		return thread
 	}
 
 	getFocusedMessageIdx() {
@@ -644,7 +651,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	getCurrentThreadStagingSelections = () => {
-		return this.getCurrentThread().state.stagingSelections
+		const currentThread = this.getCurrentThread()
+		return currentThread.state.stagingSelections
 	}
 
 	setCurrentThreadStagingSelections = (stagingSelections: StagingSelectionItem[]) => {

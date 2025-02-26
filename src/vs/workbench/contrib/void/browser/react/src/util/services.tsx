@@ -15,6 +15,7 @@ import { VoidQuickEditState } from '../../../quickEditStateService.js'
 import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
 
 import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
+import { IExplorerService } from '../../../../../../../workbench/contrib/files/browser/files.js'
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { IClipboardService } from '../../../../../../../platform/clipboard/common/clipboardService.js';
 import { IContextViewService, IContextMenuService } from '../../../../../../../platform/contextview/browser/contextView.js';
@@ -226,6 +227,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
 		IKeybindingService: accessor.get(IKeybindingService),
 
+		IExplorerService: accessor.get(IExplorerService),
 		IEnvironmentService: accessor.get(IEnvironmentService),
 		IConfigurationService: accessor.get(IConfigurationService),
 		IPathService: accessor.get(IPathService),

@@ -187,12 +187,14 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	return (
 		<div
 			ref={divRef}
+			// border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 			className={`
-                flex flex-col gap-1 p-2 relative input text-left shrink-0
+				gap-1
+                flex flex-col p-2 relative input text-left shrink-0
                 transition-all duration-200
                 rounded-md
                 bg-vscode-input-bg
-                border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
+				outline-1 outline-void-border-3 focus-within:outline-void-border-1 hover:outline-void-border-1
                 ${className}
             `}
 			onClick={(e) => {
@@ -414,7 +416,7 @@ export const SelectedFiles = (
 	}
 
 	return (
-		<div className='flex items-center flex-wrap text-left relative'>
+		<div className='flex items-center flex-wrap text-left relative gap-1'>
 
 			{allSelections.map((selection, i) => {
 
@@ -424,94 +426,65 @@ export const SelectedFiles = (
 
 				const thisKey = `${isThisSelectionProspective}-${i}-${selections.length}`
 
-				const selectionHTML = (<div key={thisKey} // container for `selectionSummary` and `selectionText`
+				return <div // container for summarybox and code
+					key={thisKey}
 					className={`
+						flex flex-col space-y-[1px]
 						${isThisSelectionOpened ? 'w-full' : ''}
 					`}
 				>
-					{/* selection summary */}
-					<div // container for item and its delete button (if it's last)
-						className='flex items-center gap-1 mr-0.5 my-0.5'
+					{/* summarybox */}
+					<div
+						className={`
+							flex items-center gap-0.5 relative
+							px-1
+							w-fit h-fit
+							select-none
+							${isThisSelectionProspective ? 'bg-void-bg-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
+							text-xs text-nowrap
+							border rounded-sm ${isClearHovered && !isThisSelectionProspective ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
+							transition-all duration-150
+						`}
+						onClick={() => {
+							if (isThisSelectionProspective) { // add prospective selection to selections
+								if (type !== 'staging') return; // (never)
+								setSelections([...selections, selection])
+							} else if (isThisSelectionAFile) { // open files
+								commandService.executeCommand('vscode.open', selection.fileURI, {
+									preview: true,
+									// preserveFocus: false,
+								});
+							} else { // show text
+								setSelectionIsOpened(s => {
+									const newS = [...s]
+									newS[i] = !newS[i]
+									return newS
+								});
+							}
+						}}
 					>
-						<div // styled summary box
-							className={`flex items-center gap-0.5 relative
-									px-1
-									w-fit h-fit
-									select-none
-									${isThisSelectionProspective ? 'bg-void-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
-									text-xs text-nowrap
-									border rounded-sm ${isClearHovered && !isThisSelectionProspective ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
-									transition-all duration-150`}
-							onClick={() => {
-								if (isThisSelectionProspective) { // add prospective selection to selections
-									if (type !== 'staging') return; // (never)
-									setSelections([...selections, selection])
+						{ // file name and range
+							getBasename(selection.fileURI.fsPath)
+							+ (isThisSelectionAFile ? '' : ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})`)
+						}
 
-								} else if (isThisSelectionAFile) { // open files
-									commandService.executeCommand('vscode.open', selection.fileURI, {
-										preview: true,
-										// preserveFocus: false,
-									});
-								} else { // show text
-									setSelectionIsOpened(s => {
-										const newS = [...s]
-										newS[i] = !newS[i]
-										return newS
-									});
-								}
-							}}
-						>
-							<span>
-								{/* file name */}
-								{getBasename(selection.fileURI.fsPath)}
-								{/* selection range */}
-								{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
-							</span>
-
-							{/* X button */}
-							{type === 'staging' && !isThisSelectionProspective &&
-								<span
-									className='cursor-pointer z-1'
-									onClick={(e) => {
-										e.stopPropagation(); // don't open/close selection
-										if (type !== 'staging') return;
-										setSelections([...selections.slice(0, i), ...selections.slice(i + 1)])
-										setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
-									}}
-								>
-									<IconX size={10} className="stroke-[2]" />
-								</span>}
-
-
-						</div>
-
-						{/* clear all selections button */}
-						{/* {type !== 'staging' || selections.length === 0 || i !== selections.length - 1
-							? null
-							: <div className={`flex items-center ${isThisSelectionOpened ? 'w-full' : ''}`}>
-								<div
-									className='rounded-md'
-									onMouseEnter={() => setIsClearHovered(true)}
-									onMouseLeave={() => setIsClearHovered(false)}
-								>
-									<Delete
-										size={16}
-										className={`stroke-[1]
-												stroke-void-fg-1
-												fill-void-bg-3
-												opacity-40
-												hover:opacity-60
-												transition-all duration-150
-												cursor-pointer
-											`}
-										onClick={() => { setSelections([]) }}
-									/>
-								</div>
-							</div>
-						} */}
+						{type === 'staging' && !isThisSelectionProspective ? // X button
+							<IconX
+								className='cursor-pointer z-1 stroke-[2]'
+								onClick={(e) => {
+									e.stopPropagation(); // don't open/close selection
+									if (type !== 'staging') return;
+									setSelections([...selections.slice(0, i), ...selections.slice(i + 1)])
+									setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
+								}}
+								size={10}
+							/>
+							: <></>
+						}
 					</div>
-					{/* selection text */}
-					{isThisSelectionOpened &&
+
+					{/* code box */}
+					{isThisSelectionOpened ?
 						<div
 							className='w-full px-1 rounded-sm border-vscode-editor-border'
 							onClick={(e) => {
@@ -525,14 +498,9 @@ export const SelectedFiles = (
 								showScrollbars={true}
 							/>
 						</div>
+						: <></>
 					}
-				</div>)
-
-				return <Fragment key={thisKey}>
-					{/* divider between `selections` and `prospectiveSelections` */}
-					{/* {selections.length > 0 && i === selections.length && <div className='w-full'></div>} */}
-					{selectionHTML}
-				</Fragment>
+				</div>
 
 			})}
 
@@ -543,12 +511,13 @@ export const SelectedFiles = (
 }
 
 
-type ToolReusltToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
+type ToolResultToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
 interface ToolResultProps {
 	actionTitle: string;
 	actionParam: string;
 	actionNumResults?: number;
 	children?: React.ReactNode;
+	onClick?: () => void;
 }
 
 const ToolResult = ({
@@ -556,26 +525,31 @@ const ToolResult = ({
 	actionParam,
 	actionNumResults,
 	children,
+	onClick,
 }: ToolResultProps) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const isDropdown = !!children
+	const isClickable = !!isDropdown || !!onClick
 
 	return (
 		<div className="mx-4 select-none">
-			<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
+			<div className="border border-void-border-3 rounded px-2 py-1 bg-void-bg-2-alt overflow-hidden">
 				<div
-					className={`flex items-center min-h-[24px] ${isDropdown  ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : 'mx-1'}`}
-					onClick={() => children && setIsExpanded(!isExpanded)}
+					className={`flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
+					onClick={() => {
+						if (children) { setIsExpanded(v => !v); }
+						if (onClick) { onClick(); }
+					}}
 				>
-					{isDropdown  && (
+					{isDropdown && (
 						<ChevronRight
 							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
 						/>
 					)}
-					<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+					<div className="flex items-center flex-nowrap whitespace-nowrap gap-x-2">
 						<span className="text-void-fg-3">{actionTitle}</span>
-						<span className="text-void-fg-4 text-xs italic">{`"`}{actionParam}{`"`}</span>
+						<span className="text-void-fg-4 text-xs italic">{actionParam}</span>
 						{actionNumResults !== undefined && (
 							<span className="text-void-fg-4 text-xs">
 								{`(`}{actionNumResults}{` result`}{actionNumResults !== 1 ? 's' : ''}{`)`}
@@ -584,7 +558,8 @@ const ToolResult = ({
 					</div>
 				</div>
 				<div
-					className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+					// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
+					className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
 				>
 					{children}
 				</div>
@@ -595,90 +570,127 @@ const ToolResult = ({
 
 
 
-const toolResultToComponent: ToolReusltToComponent = {
-	'read_file': ({ message }) => (
-		<ToolResult
-			actionTitle="Read file"
-			actionParam={getBasename(message.result.uri.fsPath)}
-		/>
-	),
-	'list_dir': ({ message }) => (
-		<ToolResult
-			actionTitle="Inspected folder"
-			actionParam={`${getBasename(message.result.rootURI.fsPath)}/`}
-			actionNumResults={message.result.children?.length}
-		>
-			<div className="text-void-fg-2">
-				{message.result.children?.map((item, i) => (
-					<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
-						{item.name}
-						{item.isDirectory && '/'}
-					</div>
-				))}
-				{message.result.hasNextPage && (
-					<div className="pl-2 text-void-fg-3 italic">
-						{message.result.itemsRemaining} more items...
-					</div>
-				)}
-			</div>
-		</ToolResult>
-	),
-	'pathname_search': ({ message }) => (
-		<ToolResult
-			actionTitle="Searched filename"
-			actionParam={message.result.queryStr}
-			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
-		>
-			<div className="text-void-fg-2">
-				{Array.isArray(message.result.uris) ?
-					message.result.uris.map((uri, i) => (
-						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
-							<a
-								href={uri.toString()}
-								className="text-void-accent hover:underline"
+const toolResultToComponent: ToolResultToComponent = {
+	'read_file': ({ message }) => {
+
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+
+		return (
+			<ToolResult
+				actionTitle="Read file"
+				actionParam={getBasename(message.result.uri.fsPath)}
+				onClick={() => { commandService.executeCommand('vscode.open', message.result.uri, { preview: true }) }}
+			/>
+		)
+	},
+	'list_dir': ({ message }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const explorerService = accessor.get('IExplorerService')
+		// message.result.hasNextPage = true
+		// message.result.itemsRemaining = 400
+		return (
+			<ToolResult
+				actionTitle="Inspected folder"
+				actionParam={`${getBasename(message.result.rootURI.fsPath)}/`}
+				actionNumResults={message.result.children?.length}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					{message.result.children?.map((child, i) => (
+						<div
+							key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => {
+								commandService.executeCommand('workbench.view.explorer');
+								explorerService.select(child.uri, true);
+							}}
+						>
+							<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+							{`${child.name}${child.isDirectory ? '/' : ''}`}
+						</div>
+					))}
+					{message.result.hasNextPage && (
+						<div className="italic">
+							{message.result.itemsRemaining} more items...
+						</div>
+					)}
+				</div>
+			</ToolResult>
+		)
+	},
+	'pathname_search': ({ message }) => {
+
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+
+		return (
+			<ToolResult
+				actionTitle="Searched filename"
+				actionParam={`"${message.result.queryStr}"`}
+				actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					{Array.isArray(message.result.uris) ?
+						message.result.uris.map((uri, i) => (
+							<div
+								key={i}
+								className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+								onClick={() => {
+									commandService.executeCommand('vscode.open', uri, { preview: true })
+								}}
 							>
+								<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
 								{uri.fsPath.split('/').pop()}
-							</a>
+							</div>
+						)) :
+						<div className="">{message.result.uris}</div>
+					}
+					{message.result.hasNextPage && (
+						<div className="italic">
+							More results available...
 						</div>
-					)) :
-					<div className="pl-2">{message.result.uris}</div>
-				}
-				{message.result.hasNextPage && (
-					<div className="pl-2 text-void-fg-3 italic">
-						More results available...
-					</div>
-				)}
-			</div>
-		</ToolResult>
-	),
-	'search': ({ message }) => (
-		<ToolResult
-			actionTitle="Searched"
-			actionParam={message.result.queryStr}
-			actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
-		>
-			<div className="text-void-fg-2">
-				{typeof message.result.uris === 'string' ?
-					message.result.uris :
-					message.result.uris.map((uri, i) => (
-						<div key={i} className="pl-2 py-0.5 mb-1 bg-void-bg-1 rounded">
-							<a
-								href={uri.toString()}
-								className="text-void-accent hover:underline"
+					)}
+				</div>
+			</ToolResult>
+		)
+	},
+	'search': ({ message }) => {
+
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+
+		return (
+			<ToolResult
+				actionTitle="Searched"
+				actionParam={`"${message.result.queryStr}"`}
+				actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					{Array.isArray(message.result.uris) ?
+						message.result.uris.map((uri, i) => (
+							<div
+								key={i}
+								className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+								onClick={() => {
+									commandService.executeCommand('vscode.open', uri, { preview: true })
+								}}
 							>
-								{uri.fsPath}
-							</a>
+								<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+								{uri.fsPath.split('/').pop()}
+							</div>
+						)) :
+						<div className="">{message.result.uris}</div>
+					}
+					{message.result.hasNextPage && (
+						<div className="italic">
+							More results available...
 						</div>
-					))
-				}
-				{message.result.hasNextPage && (
-					<div className="pl-2 text-void-fg-3 italic">
-						More results available...
-					</div>
-				)}
-			</div>
-		</ToolResult>
-	)
+					)}
+				</div>
+			</ToolResult>
+		)
+	}
 };
 
 
@@ -751,7 +763,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		if (mode === 'display') {
 			chatbubbleContents = <>
 				<SelectedFiles type='past' selections={chatMessage.selections || []} />
-				{chatMessage.displayContent}
+				<span className='px-0.5'>{chatMessage.displayContent}</span>
 			</>
 		}
 		else if (mode === 'edit') {
@@ -807,7 +819,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				>
 					<VoidInputBox2
 						ref={setTextAreaRef}
-						className='min-h-[81px] max-h-[500px] p-1'
+						className='min-h-[81px] max-h-[500px] px-0.5'
 						placeholder="Edit your message..."
 						onChangeText={(text) => setIsDisabled(!text)}
 						onFocus={() => {
@@ -850,7 +862,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		className={`
 			relative
 			${mode === 'edit' ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `my-0.5 px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
+				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
 					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
 			}
 		`}
@@ -863,7 +875,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				text-left rounded-lg
 				max-w-full
 				${mode === 'edit' ? ''
-					: role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1 overflow-x-auto'
+					: role === 'user' ? 'p-2 flex flex-col gap-1 bg-void-bg-1 text-void-fg-1 overflow-x-auto'
 						: role === 'assistant' ? 'px-2 overflow-x-auto' : ''
 				}
 			`}
@@ -1057,7 +1069,7 @@ export const SidebarChat = () => {
 			featureName="Ctrl+L"
 		>
 			<VoidInputBox2
-				className='min-h-[81px] p-1'
+				className='min-h-[81px] px-0.5'
 				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
 				onChangeText={onChangeText}
 				onKeyDown={onKeyDown}

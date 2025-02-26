@@ -269,14 +269,14 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 		if (!foundTag1) {
 			const endsWithTag1 = endsWithAnyPrefixOf(fullText_, thinkTags[0])
 			if (endsWithTag1) {
-				console.log('endswith1', { fullTextSoFar, fullReasoningSoFar, fullText_ })
+				// console.log('endswith1', { fullTextSoFar, fullReasoningSoFar, fullText_ })
 				// wait until we get the full tag or know more
 				return
 			}
 			// if found the first tag
 			const tag1Index = fullText_.indexOf(thinkTags[0])
 			if (tag1Index !== -1) {
-				console.log('tag1Index !==1', { tag1Index, fullTextSoFar, fullReasoningSoFar, thinkTags, fullText_ })
+				// console.log('tag1Index !==1', { tag1Index, fullTextSoFar, fullReasoningSoFar, thinkTags, fullText_ })
 				foundTag1 = true
 				// Add text before the tag to fullTextSoFar
 				fullTextSoFar += fullText_.substring(0, tag1Index)
@@ -286,7 +286,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 				return
 			}
 
-			console.log('adding to text A', { fullTextSoFar, fullReasoningSoFar })
+			// console.log('adding to text A', { fullTextSoFar, fullReasoningSoFar })
 			// add the text to fullText
 			fullTextSoFar = fullText_
 			latestAddIdx = fullText_.length
@@ -300,7 +300,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 		if (!foundTag2) {
 			const endsWithTag2 = endsWithAnyPrefixOf(fullText_, thinkTags[1])
 			if (endsWithTag2) {
-				console.log('endsWith2', { fullTextSoFar, fullReasoningSoFar })
+				// console.log('endsWith2', { fullTextSoFar, fullReasoningSoFar })
 				// wait until we get the full tag or know more
 				return
 			}
@@ -308,7 +308,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 			// if found the second tag
 			const tag2Index = fullText_.indexOf(thinkTags[1], latestAddIdx)
 			if (tag2Index !== -1) {
-				console.log('tag2Index !== -1', { fullTextSoFar, fullReasoningSoFar })
+				// console.log('tag2Index !== -1', { fullTextSoFar, fullReasoningSoFar })
 				foundTag2 = true
 				// Add everything between first and second tag to reasoning
 				fullReasoningSoFar += fullText_.substring(latestAddIdx, tag2Index)
@@ -319,7 +319,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 			}
 
 			// add the text to fullReasoning (content after first tag but before second tag)
-			console.log('adding to text B', { fullTextSoFar, fullReasoningSoFar })
+			// console.log('adding to text B', { fullTextSoFar, fullReasoningSoFar })
 
 			// If we have more text than we've processed, add it to reasoning
 			if (fullText_.length > latestAddIdx) {
@@ -332,7 +332,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 		}
 
 		// at this point, we found <tag2> - content after the second tag is normal text
-		console.log('adding to text C', { fullTextSoFar, fullReasoningSoFar })
+		// console.log('adding to text C', { fullTextSoFar, fullReasoningSoFar })
 
 		// Add any new text after the closing tag to fullTextSoFar
 		if (fullText_.length > latestAddIdx) {
@@ -350,8 +350,10 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 export const extractReasoningOnFinalMessage = (fullText_: string, thinkTags: [string, string]): { fullText: string, fullReasoning: string } => {
 	const tag1Idx = fullText_.indexOf(thinkTags[0])
 	const tag2Idx = fullText_.indexOf(thinkTags[1])
-	if (tag1Idx === -1 || tag2Idx === -1) return { fullText: fullText_, fullReasoning: '' }
+	if (tag1Idx === -1) return { fullText: fullText_, fullReasoning: '' } // never started reasoning
+	if (tag2Idx === -1) return { fullText: '', fullReasoning: fullText_ } // never stopped reasoning
+
+	const fullReasoning = fullText_.substring(tag1Idx + thinkTags[0].length, tag2Idx)
 	const fullText = fullText_.substring(0, tag1Idx) + fullText_.substring(tag2Idx + thinkTags[1].length, Infinity)
-	const fullReasoning = fullText.substring(tag1Idx + thinkTags[0].length, tag2Idx)
 	return { fullText, fullReasoning }
 }

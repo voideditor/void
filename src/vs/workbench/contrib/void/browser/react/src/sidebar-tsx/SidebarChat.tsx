@@ -703,7 +703,8 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 	const role = chatMessage.role
 	// Only show reasoning dropdown when there's actual content
-	const hasReasoning = chatMessage.role === 'assistant' && chatMessage.reasoning
+	const reasoningStr = (chatMessage.role === 'assistant' && chatMessage.reasoning?.trim()) || null
+	const hasReasoning = !!reasoningStr
 
 	const [isReasoningOpen, setIsReasoningOpen] = useState(false)
 
@@ -871,7 +872,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 						className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isReasoningOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
 					>
 						<div className="text-void-fg-2 p-2 bg-void-bg-1 rounded">
-							<ChatMarkdownRender string={chatMessage.reasoning ?? ''} chatMessageLocationForApply={chatMessageLocation} />
+							<ChatMarkdownRender string={reasoningStr} chatMessageLocationForApply={chatMessageLocation} />
 						</div>
 					</div>
 				</div>
@@ -1042,7 +1043,7 @@ export const SidebarChat = () => {
 
 
 	const streamingChatIdx = pastMessagesHTML.length
-	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar) ?
+	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isStreaming) ?
 		<ChatBubble key={getChatBubbleId(currentThread.id, streamingChatIdx)}
 			messageIdx={streamingChatIdx} chatMessage={{
 				role: 'assistant',

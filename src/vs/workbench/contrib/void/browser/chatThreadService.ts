@@ -60,11 +60,7 @@ export type ToolMessage<T extends ToolName> = {
 
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
-	| {
-		role: 'system';
-		content: string;
-		displayContent?: undefined;
-	} | {
+	{
 		role: 'user';
 		content: string | null; // content displayed to the LLM on future calls - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
@@ -76,7 +72,6 @@ export type ChatMessage =
 	} | {
 		role: 'assistant';
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
-		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
 		reasoning: string | null; // reasoning from the LLM, used for step-by-step thinking
 	}
 	| ToolMessage<ToolName>
@@ -332,9 +327,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// ---------- streaming ----------
 
-	private _finishStreamingTextMessage = (threadId: string, content: string, error?: { message: string, fullError: Error | null }, reasoning?: string) => {
+	private _finishStreamingTextMessage = (threadId: string, options: { content: string, reasoning?: string }, error?: { message: string, fullError: Error | null }) => {
 		// add assistant's message to chat history, and clear selection
-		this._addMessageToThread(threadId, { role: 'assistant', content, displayContent: content || null, reasoning: reasoning || null })
+		this._addMessageToThread(threadId, { role: 'assistant', content: options.content, reasoning: options.reasoning || null })
 		this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, error })
 	}
 
@@ -439,10 +434,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					onFinalMessage: async ({ fullText, toolCalls, fullReasoning }) => {
 
 						if ((toolCalls?.length ?? 0) === 0) {
-							this._finishStreamingTextMessage(threadId, fullText, undefined, fullReasoning)
+							this._finishStreamingTextMessage(threadId, { content: fullText, reasoning: fullReasoning })
 						}
 						else {
-							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText, reasoning: fullReasoning || null })
+							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning || null })
 							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined }) // clear streaming message
 							for (const tool of toolCalls ?? []) {
 								const toolName = tool.name as ToolName
@@ -479,7 +474,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					onError: (error) => {
 						const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
 						const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
-						this._finishStreamingTextMessage(threadId, messageSoFar, error, reasoningSoFar)
+						this._finishStreamingTextMessage(threadId, { content: messageSoFar, reasoning: reasoningSoFar }, error)
 						res_()
 					},
 				})
@@ -499,7 +494,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
 		const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
 		const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
-		this._finishStreamingTextMessage(threadId, messageSoFar, undefined, reasoningSoFar)
+		this._finishStreamingTextMessage(threadId, { content: messageSoFar, reasoning: reasoningSoFar })
 	}
 
 	dismissStreamError(threadId: string): void {

@@ -173,7 +173,7 @@ export type ExtractedSearchReplaceBlock = {
 
 const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
 	// for each prefix
-	for (let i = anyPrefix.length; i >= 0; i--) {
+	for (let i = anyPrefix.length; i >= 1; i--) { // i >= 1 because must not be empty string
 		const prefix = anyPrefix.slice(0, i)
 		if (str.endsWith(prefix)) return prefix
 	}
@@ -252,93 +252,104 @@ export const extractSearchReplaceBlocks = (str: string) => {
 
 // could simplify this - this assumes we can never add a tag without committing it to the user's screen, but that's not true
 export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string, string]): OnText => {
-
-
-	let latestAddIdx = 0 // exclusive
+	let latestAddIdx = 0 // exclusive index in fullText_
 	let foundTag1 = false
 	let foundTag2 = false
 
-	let fullText = ''
-	let fullReasoning = ''
+	let fullTextSoFar = ''
+	let fullReasoningSoFar = ''
 
-	const newOnText: OnText = ({ newText: newText_, fullText: fullText_ }) => {
+	let onText_ = onText
+	onText = (params) => {
+		onText_(params)
+	}
 
-		//     abcdef<t|hin|k>ghi
-		//           |
+	const newOnText: OnText = ({ fullText: fullText_ }) => {
 		// until found the first think tag, keep adding to fullText
 		if (!foundTag1) {
 			const endsWithTag1 = endsWithAnyPrefixOf(fullText_, thinkTags[0])
 			if (endsWithTag1) {
+				console.log('endswith1', { fullTextSoFar, fullReasoningSoFar, fullText_ })
 				// wait until we get the full tag or know more
 				return
 			}
 			// if found the first tag
-			const tag1Index = fullText_.lastIndexOf(thinkTags[0])
+			const tag1Index = fullText_.indexOf(thinkTags[0])
 			if (tag1Index !== -1) {
+				console.log('tag1Index !==1', { tag1Index, fullTextSoFar, fullReasoningSoFar, thinkTags, fullText_ })
 				foundTag1 = true
-				const newText = fullText.substring(latestAddIdx, tag1Index)
-				const newReasoning = fullText.substring(tag1Index + thinkTags[0].length, Infinity)
-
-				fullText += newText
-				fullReasoning += newReasoning
-				latestAddIdx += newText.length + newReasoning.length
-				onText({ newText, fullText, newReasoning: newReasoning, fullReasoning })
+				// Add text before the tag to fullTextSoFar
+				fullTextSoFar += fullText_.substring(0, tag1Index)
+				// Update latestAddIdx to after the first tag
+				latestAddIdx = tag1Index + thinkTags[0].length
+				onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 				return
 			}
 
+			console.log('adding to text A', { fullTextSoFar, fullReasoningSoFar })
 			// add the text to fullText
-			const newText = fullText.substring(latestAddIdx, Infinity)
-			fullText += newText
-			latestAddIdx += newText.length
-			onText({ newText, fullText, newReasoning: '', fullReasoning })
+			fullTextSoFar = fullText_
+			latestAddIdx = fullText_.length
+			onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 			return
 		}
+
 		// at this point, we found <tag1>
 
 		// until found the second think tag, keep adding to fullReasoning
 		if (!foundTag2) {
 			const endsWithTag2 = endsWithAnyPrefixOf(fullText_, thinkTags[1])
 			if (endsWithTag2) {
+				console.log('endsWith2', { fullTextSoFar, fullReasoningSoFar })
 				// wait until we get the full tag or know more
 				return
 			}
-			// if found the second tag
-			const tag2Index = fullText_.lastIndexOf(thinkTags[1])
-			if (tag2Index !== -1) {
-				foundTag2 = true
-				const newReasoning = fullText.substring(latestAddIdx, tag2Index)
-				const newText = fullText.substring(tag2Index + thinkTags[1].length, Infinity)
 
-				fullText += newText
-				fullReasoning += newReasoning
-				latestAddIdx += newText.length + newReasoning.length
-				onText({ newText, fullText, newReasoning: newReasoning, fullReasoning })
+			// if found the second tag
+			const tag2Index = fullText_.indexOf(thinkTags[1], latestAddIdx)
+			if (tag2Index !== -1) {
+				console.log('tag2Index !== -1', { fullTextSoFar, fullReasoningSoFar })
+				foundTag2 = true
+				// Add everything between first and second tag to reasoning
+				fullReasoningSoFar += fullText_.substring(latestAddIdx, tag2Index)
+				// Update latestAddIdx to after the second tag
+				latestAddIdx = tag2Index + thinkTags[1].length
+				onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 				return
 			}
 
-			// add the text to fullReasoning
-			const newReasoning = fullText.substring(latestAddIdx, Infinity)
-			fullReasoning += newReasoning
-			latestAddIdx += newReasoning.length
-			onText({ newText: '', fullText, newReasoning, fullReasoning })
+			// add the text to fullReasoning (content after first tag but before second tag)
+			console.log('adding to text B', { fullTextSoFar, fullReasoningSoFar })
+
+			// If we have more text than we've processed, add it to reasoning
+			if (fullText_.length > latestAddIdx) {
+				fullReasoningSoFar += fullText_.substring(latestAddIdx)
+				latestAddIdx = fullText_.length
+			}
+
+			onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 			return
 		}
-		// at this point, we found <tag2>
 
-		fullText += newText_
-		const newText = fullText.substring(latestAddIdx, Infinity)
-		latestAddIdx += newText.length
-		onText({ newText, fullText, newReasoning: '', fullReasoning })
+		// at this point, we found <tag2> - content after the second tag is normal text
+		console.log('adding to text C', { fullTextSoFar, fullReasoningSoFar })
+
+		// Add any new text after the closing tag to fullTextSoFar
+		if (fullText_.length > latestAddIdx) {
+			fullTextSoFar += fullText_.substring(latestAddIdx)
+			latestAddIdx = fullText_.length
+		}
+
+		onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 	}
-
 
 	return newOnText
 }
 
 
 export const extractReasoningOnFinalMessage = (fullText_: string, thinkTags: [string, string]): { fullText: string, fullReasoning: string } => {
-	const tag1Idx = fullText_.lastIndexOf(thinkTags[0])
-	const tag2Idx = fullText_.lastIndexOf(thinkTags[1])
+	const tag1Idx = fullText_.indexOf(thinkTags[0])
+	const tag2Idx = fullText_.indexOf(thinkTags[1])
 	if (tag1Idx === -1 || tag2Idx === -1) return { fullText: fullText_, fullReasoning: '' }
 	const fullText = fullText_.substring(0, tag1Idx) + fullText_.substring(tag2Idx + thinkTags[1].length, Infinity)
 	const fullReasoning = fullText.substring(tag1Idx + thinkTags[0].length, tag2Idx)

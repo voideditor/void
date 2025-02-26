@@ -3,16 +3,16 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import OpenAI, { ClientOptions } from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
+import OpenAI, { ClientOptions } from 'openai';
 
 import { Model as OpenAIModel } from 'openai/resources/models.js';
-import { OllamaModelResponse, OnText, OnFinalMessage, OnError, LLMChatMessage, LLMFIMMessage, ModelListParams } from '../../common/llmMessageTypes.js';
+import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../browser/helpers/extractCodeFromResult.js';
+import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/llmMessageTypes.js';
 import { InternalToolInfo, isAToolName } from '../../common/toolsService.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
-import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../browser/helpers/extractCodeFromResult.js';
 
 
 
@@ -677,7 +677,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 		supportsReasoningOutput,
 		supportsSystemMessage,
 		supportsTools,
-		maxOutputTokens,
+		// maxOutputTokens, right now we are ignoring this
 	} = getModelCapabilities(providerName, modelName_)
 
 	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, })
@@ -686,9 +686,8 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 	const includeInPayload = supportsReasoningOutput ? modelSettingsOfProvider[providerName].ifSupportsReasoningOutput?.input?.includeInPayload || {} : {}
 
 	const toolsObj = tools ? { tools: tools, tool_choice: 'auto', parallel_tool_calls: false, } as const : {}
-	const maxTokensObj = maxOutputTokens ? { max_tokens: maxOutputTokens } : {}
 	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
-	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = { model: modelName, messages: messages, stream: true, ...toolsObj, ...maxTokensObj }
+	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = { model: modelName, messages: messages, stream: true, ...toolsObj, }
 
 	const { nameOfFieldInDelta: nameOfReasoningFieldInDelta, needsManualParse: needsManualReasoningParse } = modelSettingsOfProvider[providerName].ifSupportsReasoningOutput?.output ?? {}
 
@@ -727,15 +726,20 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 					fullReasoningSoFar += newReasoning
 				}
 
-				onText({ newText, fullText: fullTextSoFar, newReasoning, fullReasoning: fullReasoningSoFar })
+				onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 			}
 			// on final
 			const toolCalls = toolCallsFrom_OpenAICompat(toolCallOfIndex)
-			if (manuallyParseReasoning) {
-				const { fullText, fullReasoning } = extractReasoningOnFinalMessage(fullTextSoFar, supportsReasoningOutput.openSourceThinkTags)
-				onFinalMessage({ fullText, fullReasoning, toolCalls });
-			} else {
-				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, toolCalls });
+			if (!fullTextSoFar && !fullReasoningSoFar && toolCalls.length === 0) {
+				onError({ message: 'Void: Response from model was empty.', fullError: null })
+			}
+			else {
+				if (manuallyParseReasoning) {
+					const { fullText, fullReasoning } = extractReasoningOnFinalMessage(fullTextSoFar, supportsReasoningOutput.openSourceThinkTags)
+					onFinalMessage({ fullText, fullReasoning, toolCalls });
+				} else {
+					onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, toolCalls });
+				}
 			}
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
@@ -823,7 +827,7 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	})
 	// when receive text
 	stream.on('text', (newText, fullText) => {
-		onText({ newText, fullText, newReasoning: '', fullReasoning: '' })
+		onText({ fullText, fullReasoning: '' })
 	})
 	// when we get the final message on this stream (or when error/fail)
 	stream.on('finalMessage', (response) => {

@@ -139,6 +139,9 @@ export const IconLoading = ({ className = '' }: { className?: string }) => {
 }
 
 
+const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-${messageIdx}`;
+
+
 interface VoidChatAreaProps {
 	// Required
 	children: React.ReactNode; // This will be the input component
@@ -696,9 +699,12 @@ const toolResultToComponent: ToolResultToComponent = {
 
 
 type ChatBubbleMode = 'display' | 'edit'
-const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatMessage, messageIdx?: number, isLoading?: boolean, }) => {
+const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatMessage, messageIdx: number, isLoading?: boolean, }) => {
 
 	const role = chatMessage.role
+	// Only show reasoning dropdown when there's actual content
+	const hasReasoning = chatMessage.role === 'assistant' && chatMessage.reasoning
+
 	const [isReasoningOpen, setIsReasoningOpen] = useState(false)
 
 	const accessor = useAccessor()
@@ -839,46 +845,45 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 	}
 	else if (role === 'assistant') {
 		const thread = chatThreadsService.getCurrentThread()
-		const hasReasoning = !!chatMessage.reasoning
 
 		const chatMessageLocation: ChatMessageLocation = {
 			threadId: thread.id,
-			messageIdx: messageIdx!,
+			messageIdx: messageIdx,
 		}
 
-		chatbubbleContents = (
-			<>
-				{/* Always show the content */}
-				<ChatMarkdownRender string={chatMessage.displayContent ?? ''} chatMessageLocation={chatMessageLocation} />
 
-				{/* Show reasoning in a dropdown if it exists */}
-				{hasReasoning && (
-					<div className="mx-4 select-none mt-2">
-						<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
-							<div
-								className="flex items-center min-h-[24px] cursor-pointer hover:brightness-125 transition-all duration-150"
-								onClick={() => setIsReasoningOpen(!isReasoningOpen)}
-							>
-								<ChevronRight
-									className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isReasoningOpen ? 'rotate-90' : ''}`}
-								/>
-								<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
-									<span className="text-void-fg-3">Reasoning</span>
-									<span className="text-void-fg-4 text-xs italic">Model's step-by-step thinking</span>
-								</div>
-							</div>
-							<div
-								className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isReasoningOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
-							>
-								<div className="text-void-fg-2 p-2 bg-void-bg-1 rounded">
-									<ChatMarkdownRender string={chatMessage.reasoning ?? ''} chatMessageLocation={chatMessageLocation} />
-								</div>
-							</div>
+		const reasoningDropdown = hasReasoning ? (
+			<div className="mx-4 select-none mt-2">
+				<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
+					<div
+						className="flex items-center min-h-[24px] cursor-pointer hover:brightness-125 transition-all duration-150"
+						onClick={() => setIsReasoningOpen(!isReasoningOpen)}
+					>
+						<ChevronRight
+							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isReasoningOpen ? 'rotate-90' : ''}`}
+						/>
+						<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+							<span className="text-void-fg-3">Reasoning</span>
+							<span className="text-void-fg-4 text-xs italic">Model's step-by-step thinking</span>
 						</div>
 					</div>
-				)}
-			</>
-		)
+					<div
+						className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isReasoningOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+					>
+						<div className="text-void-fg-2 p-2 bg-void-bg-1 rounded">
+							<ChatMarkdownRender string={chatMessage.reasoning ?? ''} chatMessageLocationForApply={chatMessageLocation} />
+						</div>
+					</div>
+				</div>
+			</div>
+		) : null
+
+		chatbubbleContents = (<>
+			{/* Reasoning dropdown (conditional) */}
+			{reasoningDropdown}
+			{/* Main content */}
+			<ChatMarkdownRender string={chatMessage.content ?? ''} chatMessageLocationForApply={chatMessageLocation} />
+		</>)
 	}
 	else if (role === 'tool') {
 
@@ -1029,11 +1034,25 @@ export const SidebarChat = () => {
 	}, [isHistoryOpen, currentThread.id])
 
 
-	const prevMessagesHTML = useMemo(() => {
+	const pastMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) =>
-			<ChatBubble key={i} chatMessage={message} messageIdx={i} />
+			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} />
 		)
 	}, [previousMessages])
+
+
+	const streamingChatIdx = pastMessagesHTML.length
+	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar) ?
+		<ChatBubble key={getChatBubbleId(currentThread.id, streamingChatIdx)}
+			messageIdx={streamingChatIdx} chatMessage={{
+				role: 'assistant',
+				content: messageSoFar ?? null,
+				reasoning: reasoningSoFar ?? null,
+			}}
+			isLoading={isStreaming}
+		/> : null
+
+	const allMessagesHTML = [...pastMessagesHTML, currStreamingMessageHTML]
 
 
 	const threadSelector = <div ref={historyRef}
@@ -1053,20 +1072,12 @@ export const SidebarChat = () => {
 		overflow-x-hidden
 		overflow-y-auto
 		py-4
-		${prevMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
+		${pastMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
 	`}
 		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
 	>
 		{/* previous messages */}
-		{prevMessagesHTML}
-
-		{/* message stream */}
-		{messageSoFar && <ChatBubble chatMessage={{
-			role: 'assistant',
-			content: messageSoFar,
-			displayContent: messageSoFar || null,
-			reasoning: reasoningSoFar || null,
-		}} isLoading={isStreaming} />}
+		{allMessagesHTML}
 
 
 		{/* error message */}
@@ -1101,7 +1112,7 @@ export const SidebarChat = () => {
 			isStreaming={isStreaming}
 			isDisabled={isDisabled}
 			showSelections={true}
-			showProspectiveSelections={prevMessagesHTML.length === 0}
+			showProspectiveSelections={pastMessagesHTML.length === 0}
 			selections={selections}
 			setSelections={setSelections}
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}

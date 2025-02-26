@@ -45,14 +45,14 @@ export type ToolCallType = {
 }
 
 
-export type OnText = (p: { newText: string, fullText: string; newReasoning: string; fullReasoning: string }) => void
+export type OnText = (p: { fullText: string; fullReasoning: string }) => void
 export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[], fullReasoning?: string }) => void // id is tool_use_id
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
 
 export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
-	if (c.role === 'system' || c.role === 'user') {
+	if (c.role === 'user') {
 		return { role: c.role, content: c.content || '(empty message)' }
 	}
 	else if (c.role === 'assistant')

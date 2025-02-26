@@ -8,30 +8,42 @@
 
 import { IServerChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, MainSendLLMMessageParams, AbortRef, SendLLMMessageParams, MainLLMMessageAbortParams, MainModelListParams, ModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from '../common/llmMessageTypes.js';
+import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, MainSendLLMMessageParams, AbortRef, SendLLMMessageParams, MainLLMMessageAbortParams, ModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, OllamaModelResponse, VLLMModelResponse, MainModelListParams, } from '../common/llmMessageTypes.js';
 import { sendLLMMessage } from './llmMessage/sendLLMMessage.js'
 import { IMetricsService } from '../common/metricsService.js';
-import { ollamaList } from './llmMessage/ollama.js';
-import { openaiCompatibleList } from './llmMessage/openai.js';
+import { sendLLMMessageToProviderImplementation } from './llmMessage/MODELS.js';
 
 // NODE IMPLEMENTATION - calls actual sendLLMMessage() and returns listeners to it
 
 export class LLMMessageChannel implements IServerChannel {
+
 	// sendLLMMessage
-	private readonly _onText_llm = new Emitter<EventLLMMessageOnTextParams>();
-	private readonly _onFinalMessage_llm = new Emitter<EventLLMMessageOnFinalMessageParams>();
-	private readonly _onError_llm = new Emitter<EventLLMMessageOnErrorParams>();
+	private readonly llmMessageEmitters = {
+		onText: new Emitter<EventLLMMessageOnTextParams>(),
+		onFinalMessage: new Emitter<EventLLMMessageOnFinalMessageParams>(),
+		onError: new Emitter<EventLLMMessageOnErrorParams>(),
+	}
 
-	// abort
-	private readonly _abortRefOfRequestId_llm: Record<string, AbortRef> = {}
+	// aborters for above
+	private readonly abortRefOfRequestId: Record<string, AbortRef> = {}
 
-	// ollamaList
-	private readonly _onSuccess_ollama = new Emitter<EventModelListOnSuccessParams<OllamaModelResponse>>();
-	private readonly _onError_ollama = new Emitter<EventModelListOnErrorParams<OllamaModelResponse>>();
 
-	// openaiCompatibleList
-	private readonly _onSuccess_openAICompatible = new Emitter<EventModelListOnSuccessParams<OpenaiCompatibleModelResponse>>();
-	private readonly _onError_openAICompatible = new Emitter<EventModelListOnErrorParams<OpenaiCompatibleModelResponse>>();
+	// list
+	private readonly listEmitters = {
+		ollama: {
+			success: new Emitter<EventModelListOnSuccessParams<OllamaModelResponse>>(),
+			error: new Emitter<EventModelListOnErrorParams<OllamaModelResponse>>(),
+		},
+		vLLM: {
+			success: new Emitter<EventModelListOnSuccessParams<VLLMModelResponse>>(),
+			error: new Emitter<EventModelListOnErrorParams<VLLMModelResponse>>(),
+		}
+	} satisfies {
+		[providerName: string]: {
+			success: Emitter<EventModelListOnSuccessParams<any>>,
+			error: Emitter<EventModelListOnErrorParams<any>>,
+		}
+	}
 
 	// stupidly, channels can't take in @IService
 	constructor(
@@ -40,30 +52,17 @@ export class LLMMessageChannel implements IServerChannel {
 
 	// browser uses this to listen for changes
 	listen(_: unknown, event: string): Event<any> {
-		if (event === 'onText_llm') {
-			return this._onText_llm.event;
-		}
-		else if (event === 'onFinalMessage_llm') {
-			return this._onFinalMessage_llm.event;
-		}
-		else if (event === 'onError_llm') {
-			return this._onError_llm.event;
-		}
-		else if (event === 'onSuccess_ollama') {
-			return this._onSuccess_ollama.event;
-		}
-		else if (event === 'onError_ollama') {
-			return this._onError_ollama.event;
-		}
-		else if (event === 'onSuccess_openAICompatible') {
-			return this._onSuccess_openAICompatible.event;
-		}
-		else if (event === 'onError_openAICompatible') {
-			return this._onError_openAICompatible.event;
-		}
-		else {
-			throw new Error(`Event not found: ${event}`);
-		}
+		// text
+		if (event === 'onText_sendLLMMessage') return this.llmMessageEmitters.onText.event;
+		else if (event === 'onFinalMessage_sendLLMMessage') return this.llmMessageEmitters.onFinalMessage.event;
+		else if (event === 'onError_sendLLMMessage') return this.llmMessageEmitters.onError.event;
+		// list
+		else if (event === 'onSuccess_list_ollama') return this.listEmitters.ollama.success.event;
+		else if (event === 'onError_list_ollama') return this.listEmitters.ollama.error.event;
+		else if (event === 'onSuccess_list_vLLM') return this.listEmitters.vLLM.success.event;
+		else if (event === 'onError_list_vLLM') return this.listEmitters.vLLM.error.event;
+
+		else throw new Error(`Event not found: ${event}`);
 	}
 
 	// browser uses this to call (see this.channel.call() in llmMessageService.ts for all usages)
@@ -78,8 +77,8 @@ export class LLMMessageChannel implements IServerChannel {
 			else if (command === 'ollamaList') {
 				this._callOllamaList(params)
 			}
-			else if (command === 'openAICompatibleList') {
-				this._callOpenAICompatibleList(params)
+			else if (command === 'vLLMList') {
+				this._callVLLMList(params)
 			}
 			else {
 				throw new Error(`Void sendLLM: command "${command}" not recognized.`)
@@ -94,47 +93,50 @@ export class LLMMessageChannel implements IServerChannel {
 	private async _callSendLLMMessage(params: MainSendLLMMessageParams) {
 		const { requestId } = params;
 
-		if (!(requestId in this._abortRefOfRequestId_llm))
-			this._abortRefOfRequestId_llm[requestId] = { current: null }
+		if (!(requestId in this.abortRefOfRequestId))
+			this.abortRefOfRequestId[requestId] = { current: null }
 
 		const mainThreadParams: SendLLMMessageParams = {
 			...params,
-			onText: ({ newText, fullText }) => { this._onText_llm.fire({ requestId, newText, fullText }); },
-			onFinalMessage: ({ fullText, toolCalls }) => { this._onFinalMessage_llm.fire({ requestId, fullText, toolCalls }); },
-			onError: ({ message: error, fullError }) => { console.log('sendLLM: firing err'); this._onError_llm.fire({ requestId, message: error, fullError }); },
-			abortRef: this._abortRefOfRequestId_llm[requestId],
+			onText: (p) => { this.llmMessageEmitters.onText.fire({ requestId, ...p }); },
+			onFinalMessage: (p) => { this.llmMessageEmitters.onFinalMessage.fire({ requestId, ...p }); },
+			onError: (p) => { console.log('sendLLM: firing err'); this.llmMessageEmitters.onError.fire({ requestId, ...p }); },
+			abortRef: this.abortRefOfRequestId[requestId],
 		}
 		sendLLMMessage(mainThreadParams, this.metricsService);
 	}
 
-	private _callAbort(params: MainLLMMessageAbortParams) {
-		const { requestId } = params;
-		if (!(requestId in this._abortRefOfRequestId_llm)) return
-		this._abortRefOfRequestId_llm[requestId].current?.()
-		delete this._abortRefOfRequestId_llm[requestId]
-	}
-
-	private _callOllamaList(params: MainModelListParams<OllamaModelResponse>) {
-		const { requestId } = params;
-
+	_callOllamaList = (params: MainModelListParams<OllamaModelResponse>) => {
+		const { requestId } = params
+		const emitters = this.listEmitters.ollama
 		const mainThreadParams: ModelListParams<OllamaModelResponse> = {
 			...params,
-			onSuccess: ({ models }) => { this._onSuccess_ollama.fire({ requestId, models }); },
-			onError: ({ error }) => { this._onError_ollama.fire({ requestId, error }); },
+			onSuccess: (p) => { emitters.success.fire({ requestId, ...p }); },
+			onError: (p) => { emitters.error.fire({ requestId, ...p }); },
 		}
-		ollamaList(mainThreadParams)
+		sendLLMMessageToProviderImplementation.ollama.list(mainThreadParams)
 	}
 
-	private _callOpenAICompatibleList(params: MainModelListParams<OpenaiCompatibleModelResponse>) {
-		const { requestId } = params;
-
-		const mainThreadParams: ModelListParams<OpenaiCompatibleModelResponse> = {
+	_callVLLMList = (params: MainModelListParams<VLLMModelResponse>) => {
+		const { requestId } = params
+		const emitters = this.listEmitters.vLLM
+		const mainThreadParams: ModelListParams<VLLMModelResponse> = {
 			...params,
-			onSuccess: ({ models }) => { this._onSuccess_openAICompatible.fire({ requestId, models }); },
-			onError: ({ error }) => { this._onError_openAICompatible.fire({ requestId, error }); },
+			onSuccess: (p) => { emitters.success.fire({ requestId, ...p }); },
+			onError: (p) => { emitters.error.fire({ requestId, ...p }); },
 		}
-		openaiCompatibleList(mainThreadParams)
+		sendLLMMessageToProviderImplementation.vLLM.list(mainThreadParams)
 	}
 
+
+
+
+
+	private _callAbort(params: MainLLMMessageAbortParams) {
+		const { requestId } = params;
+		if (!(requestId in this.abortRefOfRequestId)) return
+		this.abortRefOfRequestId[requestId].current?.()
+		delete this.abortRefOfRequestId[requestId]
+	}
 
 }

@@ -59,7 +59,7 @@ class SurroundingsRemover {
 	// 	return offset === suffix.length
 	// }
 
-	removeFromStartUntil = (until: string, alsoRemoveUntilStr: boolean) => {
+	removeFromStartUntilFullMatch = (until: string, alsoRemoveUntilStr: boolean) => {
 		const index = this.originalS.indexOf(until, this.i)
 
 		if (index === -1) {
@@ -86,7 +86,7 @@ class SurroundingsRemover {
 		const foundCodeBlock = pm.removePrefix('```')
 		if (!foundCodeBlock) return false
 
-		pm.removeFromStartUntil('\n', true) // language
+		pm.removeFromStartUntilFullMatch('\n', true) // language
 
 		const j = pm.j
 		let foundCodeBlockEnd = pm.removeSuffix('```')
@@ -159,24 +159,7 @@ export const extractCodeFromFIM = ({ text, recentlyAddedTextLen, midTag, }: { te
 	const [delta, ignoredSuffix] = pm.deltaInfo(recentlyAddedTextLen)
 
 	return [s, delta, ignoredSuffix]
-
-
-	// // const regex = /[\s\S]*?(?:`{1,3}\s*([a-zA-Z_]+[\w]*)?[\s\S]*?)?<MID>([\s\S]*?)(?:<\/MID>|`{1,3}|$)/;
-	// const regex = new RegExp(
-	// 	`[\\s\\S]*?(?:\`{1,3}\\s*([a-zA-Z_]+[\\w]*)?[\\s\\S]*?)?<${midTag}>([\\s\\S]*?)(?:</${midTag}>|\`{1,3}|$)`,
-	// 	''
-	// );
-	// const match = text.match(regex);
-	// if (match) {
-	// 	const [_, languageName, codeBetweenMidTags] = match;
-	// 	return [languageName, codeBetweenMidTags] as const
-
-	// } else {
-	// 	return [undefined, extractCodeFromRegular(text)] as const
-	// }
-
 }
-
 
 
 

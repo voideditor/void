@@ -4,365 +4,11 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { defaultModelsOfProvider } from '../electron-main/llmMessage/MODELS.js';
 import { VoidSettingsState } from './voidSettingsService.js'
 
 
-
-// developer info used in sendLLMMessage
-export type DeveloperInfoAtModel = {
-	// USED:
-	supportsSystemMessage: 'developer' | boolean, // if null, we will just do a string of system message. this is independent from separateSystemMessage, which takes priority and is passed directly in each provider's implementation.
-	supportsTools: boolean, // we will just do a string of tool use if it doesn't support
-
-	// UNUSED (coming soon):
-	// TODO!!! think tokens - deepseek
-	_recognizedModelName: RecognizedModelName, // used to show user if model was auto-recognized
-	_supportsStreaming: boolean, // we will just dump the final result if doesn't support it
-	_supportsAutocompleteFIM: boolean, // we will just do a description of FIM if it doens't support <|fim_hole|>
-	_maxTokens: number, // required
-}
-
-export type DeveloperInfoAtProvider = {
-	overrideSettingsForAllModels?: Partial<DeveloperInfoAtModel>; // any overrides for models that a provider might have (e.g. if a provider always supports tool use, even if we don't recognize the model we can set tools to true)
-}
-
-
-
-
-
-export type VoidModelInfo = { // <-- STATEFUL
-	modelName: string,
-	isDefault: boolean, // whether or not it's a default for its provider
-	isHidden: boolean, // whether or not the user is hiding it (switched off)
-	isAutodetected?: boolean, // whether the model was autodetected by polling
-} & DeveloperInfoAtModel
-
-
-
-
-
-export const recognizedModels = [
-	// chat
-	'OpenAI 4o',
-	'Anthropic Claude',
-	'Llama 3.x',
-	'Deepseek Chat', // deepseek coder v2 is now merged into chat (V3) https://api-docs.deepseek.com/updates#deepseek-coder--deepseek-chat-upgraded-to-deepseek-v25-model
-	'xAI Grok',
-	// 'xAI Grok',
-	// 'Google Gemini, Gemma',
-	// 'Microsoft Phi4',
-
-
-	// coding (autocomplete)
-	'Alibaba Qwen2.5 Coder Instruct', // we recommend this over Qwen2.5
-	'Mistral Codestral',
-
-	// thinking
-	'OpenAI o1',
-	'Deepseek R1',
-
-	// general
-	// 'Mixtral 8x7b'
-	// 'Qwen2.5',
-
-] as const
-
-type RecognizedModelName = (typeof recognizedModels)[number] | '<GENERAL>'
-
-
-export function recognizedModelOfModelName(modelName: string): RecognizedModelName {
-	const lower = modelName.toLowerCase();
-
-	if (lower.includes('gpt-4o'))
-		return 'OpenAI 4o';
-	if (lower.includes('claude'))
-		return 'Anthropic Claude';
-	if (lower.includes('llama'))
-		return 'Llama 3.x';
-	if (lower.includes('qwen2.5-coder'))
-		return 'Alibaba Qwen2.5 Coder Instruct';
-	if (lower.includes('mistral'))
-		return 'Mistral Codestral';
-	if (/\bo1\b/.test(lower) || /\bo3\b/.test(lower)) // o1, o3
-		return 'OpenAI o1';
-	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner'))
-		return 'Deepseek R1';
-	if (lower.includes('deepseek'))
-		return 'Deepseek Chat'
-	if (lower.includes('grok'))
-		return 'xAI Grok'
-
-	return '<GENERAL>';
-}
-
-
-const developerInfoAtProvider: { [providerName in ProviderName]: DeveloperInfoAtProvider } = {
-	'anthropic': {
-		overrideSettingsForAllModels: {
-			supportsSystemMessage: true,
-			supportsTools: true,
-			_supportsAutocompleteFIM: false,
-			_supportsStreaming: true,
-		}
-	},
-	'deepseek': {
-		overrideSettingsForAllModels: {
-		}
-	},
-	'ollama': {
-	},
-	'openRouter': {
-	},
-	'openAICompatible': {
-	},
-	'openAI': {
-	},
-	'gemini': {
-	},
-	'mistral': {
-	},
-	'groq': {
-	},
-	'xAI': {
-	},
-	'vLLM': {
-	},
-}
-export const developerInfoOfProviderName = (providerName: ProviderName): Partial<DeveloperInfoAtProvider> => {
-	return developerInfoAtProvider[providerName] ?? {}
-}
-
-
-
-
-// providerName is optional, but gives some extra fallbacks if provided
-const developerInfoOfRecognizedModelName: { [recognizedModel in RecognizedModelName]: Omit<DeveloperInfoAtModel, '_recognizedModelName'> } = {
-	'OpenAI 4o': {
-		supportsSystemMessage: true,
-		supportsTools: true,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: true,
-		_maxTokens: 4096,
-	},
-
-	'Anthropic Claude': {
-		supportsSystemMessage: true,
-		supportsTools: false,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: false,
-		_maxTokens: 4096,
-	},
-
-	'Llama 3.x': {
-		supportsSystemMessage: true,
-		supportsTools: true,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: false,
-		_maxTokens: 4096,
-	},
-
-	'xAI Grok': {
-		supportsSystemMessage: true,
-		supportsTools: true,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: true,
-		_maxTokens: 4096,
-
-	},
-
-	'Deepseek Chat': {
-		supportsSystemMessage: true,
-		supportsTools: false,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: false,
-		_maxTokens: 4096,
-	},
-
-	'Alibaba Qwen2.5 Coder Instruct': {
-		supportsSystemMessage: true,
-		supportsTools: true,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: false,
-		_maxTokens: 4096,
-	},
-
-	'Mistral Codestral': {
-		supportsSystemMessage: true,
-		supportsTools: true,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: false,
-		_maxTokens: 4096,
-	},
-
-	'OpenAI o1': {
-		supportsSystemMessage: 'developer',
-		supportsTools: false,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: true,
-		_maxTokens: 4096,
-	},
-
-	'Deepseek R1': {
-		supportsSystemMessage: false,
-		supportsTools: false,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: false,
-		_maxTokens: 4096,
-	},
-
-
-	'<GENERAL>': {
-		supportsSystemMessage: false,
-		supportsTools: false,
-		_supportsAutocompleteFIM: false,
-		_supportsStreaming: false,
-		_maxTokens: 4096,
-	},
-}
-export const developerInfoOfModelName = (modelName: string, overrides?: Partial<DeveloperInfoAtModel>): DeveloperInfoAtModel => {
-	const recognizedModelName = recognizedModelOfModelName(modelName)
-	return {
-		_recognizedModelName: recognizedModelName,
-		...developerInfoOfRecognizedModelName[recognizedModelName],
-		...overrides
-	}
-}
-
-
-
-
-
-
-// creates `modelInfo` from `modelNames`
-export const modelInfoOfDefaultModelNames = (defaultModelNames: string[]): VoidModelInfo[] => {
-	return defaultModelNames.map((modelName, i) => ({
-		modelName,
-		isDefault: true,
-		isAutodetected: false,
-		isHidden: defaultModelNames.length >= 10, // hide all models if there are a ton of them, and make user enable them individually
-		...developerInfoOfModelName(modelName),
-	}))
-}
-
-export const modelInfoOfAutodetectedModelNames = (defaultModelNames: string[], options: { existingModels: VoidModelInfo[] }) => {
-	const { existingModels } = options
-
-	const existingModelsMap: Record<string, VoidModelInfo> = {}
-	for (const existingModel of existingModels) {
-		existingModelsMap[existingModel.modelName] = existingModel
-	}
-
-	return defaultModelNames.map((modelName, i) => ({
-		modelName,
-		isDefault: true,
-		isAutodetected: true,
-		isHidden: !!existingModelsMap[modelName]?.isHidden,
-		...developerInfoOfModelName(modelName)
-	}))
-}
-
-
-
-
-
-// https://docs.anthropic.com/en/docs/about-claude/models
-export const defaultAnthropicModels = modelInfoOfDefaultModelNames([
-	'claude-3-5-sonnet-20241022',
-	'claude-3-5-haiku-20241022',
-	'claude-3-opus-20240229',
-	'claude-3-sonnet-20240229',
-	// 'claude-3-haiku-20240307',
-])
-
-
-// https://platform.openai.com/docs/models/gp
-export const defaultOpenAIModels = modelInfoOfDefaultModelNames([
-	'o1',
-	'o1-mini',
-	'o3-mini',
-	'gpt-4o',
-	'gpt-4o-mini',
-	// 'gpt-4o-2024-05-13',
-	// 'gpt-4o-2024-08-06',
-	// 'gpt-4o-mini-2024-07-18',
-	// 'gpt-4-turbo',
-	// 'gpt-4-turbo-2024-04-09',
-	// 'gpt-4-turbo-preview',
-	// 'gpt-4-0125-preview',
-	// 'gpt-4-1106-preview',
-	// 'gpt-4',
-	// 'gpt-4-0613',
-	// 'gpt-3.5-turbo-0125',
-	// 'gpt-3.5-turbo',
-	// 'gpt-3.5-turbo-1106',
-])
-
-// https://platform.openai.com/docs/models/gp
-export const defaultDeepseekModels = modelInfoOfDefaultModelNames([
-	'deepseek-chat',
-	'deepseek-reasoner',
-])
-
-
-// https://console.groq.com/docs/models
-export const defaultGroqModels = modelInfoOfDefaultModelNames([
-	"llama3-70b-8192",
-	"llama-3.3-70b-versatile",
-	"llama-3.1-8b-instant",
-	"gemma2-9b-it",
-	"mixtral-8x7b-32768"
-])
-
-
-export const defaultGeminiModels = modelInfoOfDefaultModelNames([
-	'gemini-1.5-flash',
-	'gemini-1.5-pro',
-	'gemini-1.5-flash-8b',
-	'gemini-2.0-flash-exp',
-	'gemini-2.0-flash-thinking-exp-1219',
-	'learnlm-1.5-pro-experimental'
-])
-
-export const defaultMistralModels = modelInfoOfDefaultModelNames([
-	"codestral-latest",
-	"open-codestral-mamba",
-	"open-mistral-nemo",
-	"mistral-large-latest",
-	"pixtral-large-latest",
-	"ministral-3b-latest",
-	"ministral-8b-latest",
-	"mistral-small-latest",
-])
-
-export const defaultXAIModels = modelInfoOfDefaultModelNames([
-	'grok-2-latest',
-	'grok-3-latest',
-])
-// export const parseMaxTokensStr = (maxTokensStr: string) => {
-// 	// parse the string but only if the full string is a valid number, eg parseInt('100abc') should return NaN
-// 	const int = isNaN(Number(maxTokensStr)) ? undefined : parseInt(maxTokensStr)
-// 	if (Number.isNaN(int))
-// 		return undefined
-// 	return int
-// }
-
-
-
-
-export const anthropicMaxPossibleTokens = (modelName: string) => {
-	if (modelName === 'claude-3-5-sonnet-20241022'
-		|| modelName === 'claude-3-5-haiku-20241022')
-		return 8192
-	if (modelName === 'claude-3-opus-20240229'
-		|| modelName === 'claude-3-sonnet-20240229'
-		|| modelName === 'claude-3-haiku-20240307')
-		return 4096
-	return 1024 // return a reasonably small number if they're using a different model
-}
-
-
 type UnionOfKeys<T> = T extends T ? keyof T : never;
-
 
 
 export const defaultProviderSettings = {
@@ -418,6 +64,14 @@ export const customSettingNamesOfProvider = (providerName: ProviderName) => {
 
 
 
+export type VoidModelInfo = { // <-- STATEFUL
+	modelName: string,
+	isDefault: boolean, // whether or not it's a default for its provider
+	isHidden: boolean, // whether or not the user is hiding it (switched off)
+	isAutodetected?: boolean, // whether the model was autodetected by polling
+}  // TODO!!! eventually we'd want to let the user change supportsFIM, etc on the model themselves
+
+
 
 type CommonProviderSettings = {
 	_didFillInProviderSettings: boolean | undefined, // undefined initially, computed when user types in all fields
@@ -433,10 +87,6 @@ export type SettingsOfProvider = {
 
 
 export type SettingName = keyof SettingsAtProvider<ProviderName>
-
-
-
-
 
 type DisplayInfoForProviderName = {
 	title: string,
@@ -584,110 +234,83 @@ const defaultCustomSettings: Record<CustomSettingName, undefined> = {
 }
 
 
-
-export const voidInitModelOptions = {
-	anthropic: {
-		models: defaultAnthropicModels,
-	},
-	openAI: {
-		models: defaultOpenAIModels,
-	},
-	deepseek: {
-		models: defaultDeepseekModels,
-	},
-	ollama: {
-		models: [],
-	},
-	vLLM: {
-		models: [],
-	},
-	openRouter: {
-		models: [], // any string
-	},
-	openAICompatible: {
-		models: [],
-	},
-	gemini: {
-		models: defaultGeminiModels,
-	},
-	groq: {
-		models: defaultGroqModels,
-	},
-	mistral: {
-		models: defaultMistralModels,
-	},
-	xAI: {
-		models: defaultXAIModels,
+const modelInfoOfDefaultModelNames = (defaultModelNames: string[]): { models: VoidModelInfo[] } => {
+	return {
+		models: defaultModelNames.map((modelName, i) => ({
+			modelName,
+			isDefault: true,
+			isAutodetected: false,
+			isHidden: defaultModelNames.length >= 10, // hide all models if there are a ton of them, and make user enable them individually
+		}))
 	}
-} satisfies Record<ProviderName, any>
-
+}
 
 // used when waiting and for a type reference
 export const defaultSettingsOfProvider: SettingsOfProvider = {
 	anthropic: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.anthropic,
-		...voidInitModelOptions.anthropic,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.anthropic),
 		_didFillInProviderSettings: undefined,
 	},
 	openAI: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAI,
-		...voidInitModelOptions.openAI,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAI),
 		_didFillInProviderSettings: undefined,
 	},
 	deepseek: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.deepseek,
-		...voidInitModelOptions.deepseek,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.deepseek),
 		_didFillInProviderSettings: undefined,
 	},
 	gemini: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.gemini,
-		...voidInitModelOptions.gemini,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.gemini),
 		_didFillInProviderSettings: undefined,
 	},
 	mistral: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.mistral,
-		...voidInitModelOptions.mistral,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
 		_didFillInProviderSettings: undefined,
 	},
 	xAI: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.xAI,
-		...voidInitModelOptions.xAI,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.xAI),
 		_didFillInProviderSettings: undefined,
 	},
 	groq: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.groq,
-		...voidInitModelOptions.groq,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.groq),
 		_didFillInProviderSettings: undefined,
 	},
 	openRouter: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.openRouter,
-		...voidInitModelOptions.openRouter,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openRouter),
 		_didFillInProviderSettings: undefined,
 	},
 	openAICompatible: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAICompatible,
-		...voidInitModelOptions.openAICompatible,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible),
 		_didFillInProviderSettings: undefined,
 	},
 	ollama: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.ollama,
-		...voidInitModelOptions.ollama,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.ollama),
 		_didFillInProviderSettings: undefined,
 	},
 	vLLM: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.vLLM,
-		...voidInitModelOptions.vLLM,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.vLLM),
 		_didFillInProviderSettings: undefined,
 	},
 }

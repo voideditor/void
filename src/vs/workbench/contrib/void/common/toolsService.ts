@@ -89,6 +89,13 @@ export const voidTools = {
 export type ToolName = keyof typeof voidTools
 export const toolNames = Object.keys(voidTools) as ToolName[]
 
+const toolNamesSet = new Set<string>(toolNames)
+export const isAToolName = (toolName: string): toolName is ToolName => {
+	const isAToolName = toolNamesSet.has(toolName)
+	return isAToolName
+}
+
+
 export type ToolParamNames<T extends ToolName> = keyof typeof voidTools[T]['params']
 export type ToolParamsObj<T extends ToolName> = { [paramName in ToolParamNames<T>]: unknown }
 

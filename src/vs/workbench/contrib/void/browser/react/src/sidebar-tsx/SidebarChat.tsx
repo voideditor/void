@@ -26,10 +26,6 @@ import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workben
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { ChatMessageLocation } from '../../../aiRegexService.js';
 import { IFileDisplayInfo } from '../../../../common/fileSearchService.js';
-
-
-
-
 import { ToolCallReturnType, ToolName } from '../../../../common/toolsService.js';
 
 
@@ -910,42 +906,20 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onClose, searchText
 	// Mention dropdown state
 	const accessor = useAccessor();
 	const repoFilesService = accessor.get('IRepoFilesService');
+	const chatThreadsService = accessor.get('IChatThreadService');
 	const [workspaceFiles, setWorkspaceFiles] = useState<IFileDisplayInfo[]>([]);
 	const [loading, setLoading] = useState(false);
-	const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
 
-	const debounce = <T extends (...args: any[]) => Promise<any>>(func: T, delay: number) => {
-		console.log("Setting up debounce for function:", func.name);
-		// let timeoutId: NodeJS.Timeout;
-		const debouncedFunction = async (...args: Parameters<T>): Promise<ReturnType<T>> => {
-			return await new Promise((resolve, reject) => {
-				if (timeoutId) clearTimeout(timeoutId);
-				setTimeoutId(setTimeout(async () => {
-					try {
-						console.log("Debounced function called with args:", args);
-						const result = await func(...args);
-						// Remove previous timeout
-						setTimeoutId(null)
-						resolve(result);
-					} catch (error) {
-						reject(error);
-					}
-				}, delay))
-			});
-		};
-		debouncedFunction.cancel = () => {
-			if (timeoutId) {
-				// Remove previous timeout and function
-				clearTimeout(timeoutId)
-				setTimeoutId(null)
-			};
-		};
-		return debouncedFunction as T & { cancel: () => void };
-	};
-
-	// TODO: Handle OnSelect to actually add a file to state using the methodology of Matthew
 	const onSelectFile = (file: IFileDisplayInfo) => {
-		console.log(file)
+		console.log("Adding file to staging: ", file.fileName)
+		// Add file to staging
+		const currentThread = chatThreadsService.getCurrentThreadStagingSelections()
+		chatThreadsService.setCurrentThreadStagingSelections([{
+			type: 'File',
+			fileURI: file.uri,
+			selectionStr: null,
+			range: null,
+		}, ...currentThread])
 	}
 
 	// Add this effect to load and log files when component mounts
@@ -956,10 +930,7 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onClose, searchText
 				// Clean up state
 				setWorkspaceFiles([]);
 
-				// Create debounced wrapper of getFilesByName
-				const debouncedGetFilesByName = debounce(repoFilesService.getFilesByName, 300)
-
-				const files = await debouncedGetFilesByName(searchText);
+				const files = await repoFilesService.getFilesByName(searchText);
 
 				setWorkspaceFiles(files)
 			} catch (error) {

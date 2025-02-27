@@ -28,6 +28,7 @@ export interface IFileDisplayInfo {
 
 export const IRepoFilesService = createDecorator<IRepoFilesService>('repoFilesService');
 
+
 class RepoFilesService extends Disposable implements IRepoFilesService {
 	_serviceBrand: undefined;
 
@@ -49,6 +50,7 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		'**/.venv/**',
 		'**/.env/**'
 	];
+	private _timeoutId: NodeJS.Timeout | null = null
 
 	constructor(
 		// @IFileService private readonly fileService: IFileService,
@@ -110,9 +112,41 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		this._fileCache = result.results.map(match => match.resource);
 	};
 
+	private debounceify<T extends (...args: any[]) => Promise<any>>(func: T, delay: number) {
+		console.log("Setting up debounce for function:", func.name);
+		const debouncedFunction = (...args: Parameters<T>): Promise<ReturnType<T>> => {
+			return new Promise((resolve, reject) => {
+				if (this._timeoutId) clearTimeout(this._timeoutId);
+				this._timeoutId = setTimeout(async () => {
+					try {
+						console.log("Debounced function called with args:", args);
+						const result = await func(...args);
+						this._timeoutId = null;
+						resolve(result);
+					} catch (error) {
+						reject(error);
+					}
+				}, delay);
+			});
+		};
+
+		debouncedFunction.cancel = () => {
+			if (this._timeoutId) {
+				clearTimeout(this._timeoutId);
+				this._timeoutId = null;
+			}
+		};
+
+		return debouncedFunction as T & { cancel: () => void };
+	}
+
 	public async getFilesByName(searchText?: string): Promise<IFileDisplayInfo[]> {
+
+		// Create debounced version of refreshFileList
+		const debouncedRefreshFileList = this.debounceify(this._refreshFileList.bind(this), 300);
+
 		// Update the file cache with the latest files
-		await this._refreshFileList(searchText);
+		await debouncedRefreshFileList(searchText);
 
 		// Create fileInfo objects in the original order.
 		const fileInfos: IFileDisplayInfo[] = this._fileCache.map(uri => ({

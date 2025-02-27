@@ -917,14 +917,16 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onClose, onFileAdde
 		console.log("Adding file to staging: ", file.fileName)
 		// Add file to staging
 		try {
-			onFileAdded(file);
 			const currentThread = chatThreadsService.getCurrentThreadStagingSelections()
-			chatThreadsService.setCurrentThreadStagingSelections([{
-				type: 'File',
-				fileURI: file.uri,
-				selectionStr: null,
-				range: null,
-			}, ...currentThread])
+			if (currentThread && !currentThread.some((s) => s.fileURI.fsPath === file.uri.fsPath)) {
+				chatThreadsService.setCurrentThreadStagingSelections([{
+					type: 'File',
+					fileURI: file.uri,
+					selectionStr: null,
+					range: null,
+				}, ...currentThread])
+			}
+			onFileAdded(file);
 		} catch (error) {
 			console.error('Error adding file to staging:', error);
 		}

@@ -27,6 +27,8 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { ChatMessageLocation } from '../../../aiRegexService.js';
 import { IFileDisplayInfo } from '../../../../common/fileSearchService.js';
 import { ToolCallReturnType, ToolName } from '../../../../common/toolsService.js';
+import { text } from 'stream/consumers';
+import { clear } from 'console';
 
 
 
@@ -897,11 +899,12 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 }
 
 interface MentionsDropdownProps {
+	onFileAdded: (file: IFileDisplayInfo) => void;
 	onClose: () => void;
 	searchText?: string;
 }
 
-const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onClose, searchText }) => {
+const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onClose, onFileAdded, searchText }) => {
 
 	// Mention dropdown state
 	const accessor = useAccessor();
@@ -913,13 +916,18 @@ const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onClose, searchText
 	const onSelectFile = (file: IFileDisplayInfo) => {
 		console.log("Adding file to staging: ", file.fileName)
 		// Add file to staging
-		const currentThread = chatThreadsService.getCurrentThreadStagingSelections()
-		chatThreadsService.setCurrentThreadStagingSelections([{
-			type: 'File',
-			fileURI: file.uri,
-			selectionStr: null,
-			range: null,
-		}, ...currentThread])
+		try {
+			onFileAdded(file);
+			const currentThread = chatThreadsService.getCurrentThreadStagingSelections()
+			chatThreadsService.setCurrentThreadStagingSelections([{
+				type: 'File',
+				fileURI: file.uri,
+				selectionStr: null,
+				range: null,
+			}, ...currentThread])
+		} catch (error) {
+			console.error('Error adding file to staging:', error);
+		}
 	}
 
 	// Add this effect to load and log files when component mounts
@@ -1187,11 +1195,28 @@ export const SidebarChat = () => {
 		}
 	}, [setShowDropdown, textAreaRef])
 
-	// const handleMentionSelect = (file: IFileDisplayInfo) => {
-    //     console.log(file)
-    // };
+	const handleOnFileAdded = (file: IFileDisplayInfo) => {
+		const updatedText = `@${file.fileName} `
+		const currentText = `@${searchText}`;
+		if (!textAreaRef.current) return;
+		// Replace the current text with the updated text based on cursor position and text length but maintain the cursor position
+		const cursorPosition = textAreaRef.current.selectionStart;
+		const textBeforeCursor = textAreaRef.current.value.substring(0, cursorPosition - currentText.length);
+		const textAfterCursor = textAreaRef.current.value.substring(cursorPosition);
+		const newText = `${textBeforeCursor}${updatedText}${textAfterCursor}`;
+		textAreaRef.current.value = newText;
+		textAreaRef.current.focus();
+		textAreaRef.current.setSelectionRange(cursorPosition, cursorPosition + updatedText.length);
+		// Clear mentions state
+		clearMentions();
+    };
 
 	const handleMentionClose = () => {
+		clearMentions();
+	}
+
+	const clearMentions = () => {
+		setSearchText('');
 		setShowDropdown(false);
 	}
 
@@ -1232,7 +1257,7 @@ export const SidebarChat = () => {
                     multiline={true}
                 />
 
-                {showDropdown && <MentionsDropdown onClose={handleMentionClose} searchText={searchText} />}
+                {showDropdown && <MentionsDropdown onClose={handleMentionClose} onFileAdded={handleOnFileAdded} searchText={searchText} />}
             </div>
 
 

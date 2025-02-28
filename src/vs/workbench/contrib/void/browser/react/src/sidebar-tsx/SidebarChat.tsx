@@ -198,6 +198,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
                 rounded-md
                 bg-vscode-input-bg
 				outline-1 outline-void-border-3 focus-within:outline-void-border-1 hover:outline-void-border-1
+				max-h-[80vh] overflow-y-auto
                 ${className}
             `}
 			onClick={(e) => {

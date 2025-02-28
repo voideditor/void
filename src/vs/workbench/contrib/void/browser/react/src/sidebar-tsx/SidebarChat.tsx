@@ -432,7 +432,7 @@ export const SelectedFiles = (
 				return <div // container for summarybox and code
 					key={thisKey}
 					className={`
-						flex flex-col
+						flex flex-col space-y-0.5
 						${isThisSelectionOpened ? 'w-full' : ''}
 					`}
 				>

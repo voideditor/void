@@ -36,6 +36,9 @@ export type CodeSelection = {
 	fileURI: URI;
 	selectionStr: string;
 	range: IRange;
+	state: {
+		isOpened: boolean;
+	};
 }
 
 export type FileSelection = {
@@ -43,6 +46,9 @@ export type FileSelection = {
 	fileURI: URI;
 	selectionStr: null;
 	range: null;
+	state: {
+		isOpened: boolean;
+	};
 }
 
 export type StagingSelectionItem = CodeSelection | FileSelection

@@ -376,9 +376,6 @@ export const SelectedFiles = (
 		| { type: 'staging', selections: StagingSelectionItem[]; setSelections: ((newSelections: StagingSelectionItem[]) => void), showProspectiveSelections?: boolean }
 ) => {
 
-	// index -> isOpened
-	const [selectionIsOpened, setSelectionIsOpened] = useState<(boolean)[]>(selections?.map(() => false) ?? [])
-
 	// state for tracking hover on clear all button
 	const [isClearHovered, setIsClearHovered] = useState(false)
 
@@ -409,6 +406,7 @@ export const SelectedFiles = (
 				fileURI: uri,
 				selectionStr: null,
 				range: null,
+				state: { isOpened: false },
 			}))
 	}
 
@@ -423,7 +421,7 @@ export const SelectedFiles = (
 
 			{allSelections.map((selection, i) => {
 
-				const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
+				const isThisSelectionOpened = (!!selection.selectionStr && selection.state.isOpened) //!!(selection.selectionStr && selectionIsOpened[i])
 				const isThisSelectionAFile = selection.selectionStr === null
 				const isThisSelectionProspective = i > selections.length - 1
 
@@ -449,8 +447,8 @@ export const SelectedFiles = (
 							transition-all duration-150
 						`}
 						onClick={() => {
+							if (type !== 'staging') return; // (never)
 							if (isThisSelectionProspective) { // add prospective selection to selections
-								if (type !== 'staging') return; // (never)
 								setSelections([...selections, selection])
 							} else if (isThisSelectionAFile) { // open files
 								commandService.executeCommand('vscode.open', selection.fileURI, {
@@ -458,11 +456,22 @@ export const SelectedFiles = (
 									// preserveFocus: false,
 								});
 							} else { // show text
-								setSelectionIsOpened(s => {
-									const newS = [...s]
-									newS[i] = !newS[i]
-									return newS
-								});
+
+								const selection = selections[i]
+								const newSelection = { ...selection, state: { isOpened: !selection.state.isOpened } }
+								const newSelections = [
+									...selections.slice(0, i),
+									newSelection,
+									...selections.slice(i + 1)
+								]
+								setSelections(newSelections)
+
+								// setSelectionIsOpened(s => {
+								// 	const newS = [...s]
+								// 	newS[i] = !newS[i]
+								// 	return newS
+								// });
+
 							}
 						}}
 					>
@@ -478,7 +487,6 @@ export const SelectedFiles = (
 									e.stopPropagation(); // don't open/close selection
 									if (type !== 'staging') return;
 									setSelections([...selections.slice(0, i), ...selections.slice(i + 1)])
-									setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
 								}}
 								size={10}
 							/>

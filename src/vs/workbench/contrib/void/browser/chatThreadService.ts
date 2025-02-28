@@ -201,6 +201,23 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	) {
 		super()
 
+
+		setInterval(() => {
+			const thread = this.getCurrentThread()
+			if (!thread) return
+
+			// print out all staging selections for all messages
+			for (const message of thread.messages) {
+				if (message.role === 'user' && message.state.stagingSelections.length > 0) {
+					console.log('Message staging selections:', message.state.stagingSelections)
+				}
+			}
+			// also print thread-level staging selections
+			if (thread.state.stagingSelections.length > 0) {
+				console.log('Thread staging selections:', thread.state.stagingSelections)
+			}
+		}, 1000)
+
 		const oldVersionNum = this._storageService.get(THREAD_VERSION_KEY, StorageScope.APPLICATION)
 
 
@@ -345,8 +362,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 
 		// get prev and curr selections before clearing the message
-		const prevSelns = this._getSelectionsUpToMessageIdx(messageIdx)
-		const currSelns = thread.messages[messageIdx].selections || []
+		const prevSelns = this._getSelectionsUpToMessageIdx(messageIdx) // selections for previous messages
+		const currSelns = thread.messages[messageIdx].state.stagingSelections || [] // staging selections for the edited message
 
 		// clear messages up to the index
 		const slicedMessages = thread.messages.slice(0, messageIdx)

@@ -419,7 +419,7 @@ export const SelectedFiles = (
 	}
 
 	return (
-		<div className='flex items-center flex-wrap text-left relative gap-1'>
+		<div className='flex items-center flex-wrap text-left relative gap-0.5'>
 
 			{allSelections.map((selection, i) => {
 
@@ -432,7 +432,7 @@ export const SelectedFiles = (
 				return <div // container for summarybox and code
 					key={thisKey}
 					className={`
-						flex flex-col space-y-[1px]
+						flex flex-col
 						${isThisSelectionOpened ? 'w-full' : ''}
 					`}
 				>

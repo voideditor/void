@@ -688,7 +688,7 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 								verticalScrollbarSize: 0,
 								horizontal: 'auto',
 								horizontalScrollbarSize: 8,
-								// ignoreHorizontalScrollbarInContentHeight: true,
+								ignoreHorizontalScrollbarInContentHeight: true,
 
 							},
 						},

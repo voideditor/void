@@ -6,9 +6,13 @@
 import React, { JSX } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
-import { ChatMessageLocation, } from '../../../aiRegexService.js'
 import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
 import { ApplyBlockHoverButtons } from './ApplyBlockHoverButtons.js'
+
+export type ChatMessageLocation = {
+	threadId: string;
+	messageIdx: number;
+}
 
 
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }

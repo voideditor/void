@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { ThreadStreamState, ThreadsState } from '../../../chatThreadService.js'
+import { ThreadStreamState,IChatThreadService, ThreadsState } from '../../../../common/chatThreadService.js'
 import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
@@ -29,7 +29,6 @@ import { IEditCodeService, URIStreamState } from '../../../editCodeService.js';
 import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
-import { IChatThreadService } from '../../../chatThreadService.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
 import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
 import { ICommandService } from '../../../../../../../platform/commands/common/commands.js'

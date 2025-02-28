@@ -11,12 +11,12 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
-import { ILLMMessageService } from '../common/llmMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo as chat_userMessageContentWithAllFiles, chat_selectionsString } from './prompt/prompts.js';
-import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from '../common/toolsService.js';
-import { toLLMChatMessage } from '../common/llmMessageTypes.js';
+import { ILLMMessageService } from './llmMessageService.js';
+import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo as chat_userMessageContentWithAllFiles, chat_selectionsString } from '../browser/prompt/prompts.js';
+import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from './toolsService.js';
+import { toLLMChatMessage } from './llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { IVoidFileService } from '../common/voidFileService.js';
+import { IVoidFileService } from './voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 
 
@@ -101,7 +101,6 @@ export type ChatThreads = {
 
 type ThreadType = ChatThreads[string]
 
-const defaultThreadState: ThreadType['state'] = { stagingSelections: [], focusedMessageIdx: undefined, isCheckedOfSelectionId: {} }
 
 export type ThreadsState = {
 	allThreads: ChatThreads;
@@ -134,10 +133,7 @@ const newThreadObject = () => {
 	} satisfies ChatThreads[string]
 }
 
-const THREAD_VERSION_KEY = 'void.chatThreadVersion'
-const LATEST_THREAD_VERSION = 'v2'
-
-const THREAD_STORAGE_KEY = 'void.chatThreadStorage'
+export const THREAD_STORAGE_KEY = 'void.chatThreadStorage'
 
 
 type ChatMode = 'agent' | 'chat'
@@ -200,35 +196,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 	) {
 		super()
+		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
 
+		const readThreads = this._readAllThreads() || {}
 
-		setInterval(() => {
-			const thread = this.getCurrentThread()
-			if (!thread) return
-
-			// print out all staging selections for all messages
-			for (const message of thread.messages) {
-				if (message.role === 'user' && message.state.stagingSelections.length > 0) {
-					console.log('Message staging selections:', message.state.stagingSelections)
-				}
-			}
-			// also print thread-level staging selections
-			if (thread.state.stagingSelections.length > 0) {
-				console.log('Thread staging selections:', thread.state.stagingSelections)
-			}
-		}, 1000)
-
-		const oldVersionNum = this._storageService.get(THREAD_VERSION_KEY, StorageScope.APPLICATION)
-
-
-		const readThreads = this._readAllThreads()
-		const updatedThreads = this._updatedThreadsToVersion(readThreads, oldVersionNum)
-
-		if (updatedThreads !== null) {
-			this._storeAllThreads(updatedThreads)
-		}
-
-		const allThreads = updatedThreads ?? readThreads
+		const allThreads = readThreads
 		this.state = {
 			allThreads: allThreads,
 			currentThreadId: null as unknown as string, // gets set in startNewThread()
@@ -236,9 +208,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// always be in a thread
 		this.openNewThread()
-
-		this._storageService.store(THREAD_VERSION_KEY, LATEST_THREAD_VERSION, StorageScope.APPLICATION, StorageTarget.USER)
-
 	}
 
 	// !!! this is important for properly restoring URIs from storage
@@ -251,10 +220,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		});
 	}
 
-	private _readAllThreads(): ChatThreads {
+	private _readAllThreads(): ChatThreads | null {
 		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION);
 		if (!threadsStr) {
-			return {};
+			return null
 		}
 		return this._convertThreadDataFromStorage(threadsStr);
 	}
@@ -267,48 +236,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			StorageScope.APPLICATION,
 			StorageTarget.USER
 		);
-	}
-
-
-	// returns if should update
-	private _updatedThreadsToVersion(oldThreadsObject: any, oldVersion: string | undefined): ChatThreads | null {
-
-		if (!oldVersion) {
-
-			// unknown, just reset chat?
-			return null
-		}
-
-		/** v1 -> v2
-				- threads.state.currentStagingSelections: CodeStagingSelection[] | null;
-				+ thread[threadIdx].state
-				+ message.state
-				+ chatMessage.staging: StagingInfo | null
-				*/
-		else if (oldVersion === 'v1') {
-			const threads = oldThreadsObject as Omit<ChatThreads, 'staging' | 'focusedMessageIdx'>
-			// update the threads
-			for (const thread of Object.values(threads)) {
-				if (!thread.state) {
-					thread.state = defaultThreadState
-				}
-				for (const chatMessage of Object.values(thread.messages)) {
-					if (chatMessage.role === 'user' && !chatMessage.state) {
-						chatMessage.state = defaultMessageState
-					}
-				}
-			}
-
-			// push the update
-			return threads
-		}
-		else if (oldVersion === 'v2') {
-			return null
-		}
-
-		// up to date
-		return null
-
 	}
 
 

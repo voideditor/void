@@ -6,7 +6,7 @@
 
 import { URI } from '../../../../../base/common/uri.js';
 import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
-import { CodeSelection, StagingSelectionItem, FileSelection } from '../chatThreadService.js';
+import { CodeSelection, StagingSelectionItem, FileSelection } from '../../common/chatThreadService.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
 import { os } from '../helpers/systemInfo.js';
 import { IVoidFileService } from '../../common/voidFileService.js';

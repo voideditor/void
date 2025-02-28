@@ -7,10 +7,10 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
-import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../chatThreadService.js';
+import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
-import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
+import { ChatMarkdownRender, ChatMessageLocation } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
@@ -24,7 +24,7 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChevronRight, Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { ChatMessageLocation } from '../../../aiRegexService.js';
+
 import { ToolCallReturnType, ToolName } from '../../../../common/toolsService.js';
 
 

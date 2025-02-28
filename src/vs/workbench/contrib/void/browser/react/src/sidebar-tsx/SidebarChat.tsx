@@ -376,9 +376,6 @@ export const SelectedFiles = (
 		| { type: 'staging', selections: StagingSelectionItem[]; setSelections: ((newSelections: StagingSelectionItem[]) => void), showProspectiveSelections?: boolean }
 ) => {
 
-	// state for tracking hover on clear all button
-	const [isClearHovered, setIsClearHovered] = useState(false)
-
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 
@@ -417,7 +414,7 @@ export const SelectedFiles = (
 	}
 
 	return (
-		<div className='flex items-center flex-wrap text-left relative gap-0.5'>
+		<div className='flex items-center flex-wrap text-left relative gap-x-0.5 gap-y-1'>
 
 			{allSelections.map((selection, i) => {
 
@@ -430,7 +427,7 @@ export const SelectedFiles = (
 				return <div // container for summarybox and code
 					key={thisKey}
 					className={`
-						flex flex-col space-y-0.5
+						flex flex-col space-y-[1px]
 						${isThisSelectionOpened ? 'w-full' : ''}
 					`}
 				>
@@ -443,7 +440,13 @@ export const SelectedFiles = (
 							select-none
 							${isThisSelectionProspective ? 'bg-void-bg-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
 							text-xs text-nowrap
-							border rounded-sm ${isClearHovered && !isThisSelectionProspective ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
+							border rounded-sm ${isThisSelectionProspective
+								? 'border-void-border-2'
+								: isThisSelectionOpened
+									? 'border-void-border-1 ring-1 ring-[#007FD4]'
+									: 'border-void-border-1'
+							}
+							hover:border-void-border-1
 							transition-all duration-150
 						`}
 						onClick={() => {
@@ -497,7 +500,10 @@ export const SelectedFiles = (
 					{/* code box */}
 					{isThisSelectionOpened ?
 						<div
-							className='w-full px-1 rounded-sm border-vscode-editor-border'
+							className={`
+								w-full px-1 rounded-sm border-vscode-editor-border
+								${isThisSelectionOpened ? 'ring-1 ring-[#007FD4]' : ''}
+							`}
 							onClick={(e) => {
 								e.stopPropagation(); // don't focus input box
 							}}

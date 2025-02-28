@@ -299,7 +299,7 @@ For example, if the user is asking you to "make this variable a better name", ma
 export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, voidFileService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService, voidFileService: IVoidFileService }) => {
 
 	// we may want to do this in batches
-	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null }
+	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null, state: { isOpened: false } }
 
 	const file = await stringifyFileSelections([fileSelection], voidFileService)
 

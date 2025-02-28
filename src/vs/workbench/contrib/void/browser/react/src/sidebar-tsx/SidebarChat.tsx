@@ -979,7 +979,7 @@ export const SidebarChat = () => {
 	const previousMessages = currentThread?.messages ?? []
 
 	const selections = currentThread.state.stagingSelections
-	const setSelections = (s: StagingSelectionItem[]) => { chatThreadsService.setCurrentThreadStagingSelections(s) }
+	const setSelections = (s: StagingSelectionItem[]) => { chatThreadsService.setCurrentThreadState({ stagingSelections: s }) }
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)

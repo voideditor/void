@@ -141,8 +141,8 @@ registerAction2(class extends Action2 {
 		let setSelections = (s: StagingSelectionItem[]) => { }
 
 		if (focusedMessageIdx === undefined) {
-			selections = chatThreadService.getCurrentThreadStagingSelections()
-			setSelections = (s: StagingSelectionItem[]) => chatThreadService.setCurrentThreadStagingSelections(s)
+			selections = chatThreadService.getCurrentThreadState().stagingSelections
+			setSelections = (s: StagingSelectionItem[]) => chatThreadService.setCurrentThreadState({ stagingSelections: s })
 		} else {
 			selections = chatThreadService.getCurrentMessageState(focusedMessageIdx).stagingSelections
 			setSelections = (s) => chatThreadService.setCurrentMessageState(focusedMessageIdx, { stagingSelections: s })

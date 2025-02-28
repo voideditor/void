@@ -94,13 +94,18 @@ export type ChatThreads = {
 		state: {
 			stagingSelections: StagingSelectionItem[];
 			focusedMessageIdx: number | undefined; // index of the message that is being edited (undefined if none)
-			isCheckedOfSelectionId: { [selectionId: string]: boolean };
+			isCheckedOfSelectionId: { [selectionId: string]: boolean }; // TODO
 		}
 	};
 }
 
 type ThreadType = ChatThreads[string]
 
+const defaultThreadState: ThreadType['state'] = {
+	stagingSelections: [],
+	focusedMessageIdx: undefined,
+	isCheckedOfSelectionId: {}
+}
 
 export type ThreadsState = {
 	allThreads: ChatThreads;
@@ -124,11 +129,7 @@ const newThreadObject = () => {
 		createdAt: now,
 		lastModified: now,
 		messages: [],
-		state: {
-			stagingSelections: [],
-			focusedMessageIdx: undefined,
-			isCheckedOfSelectionId: {}
-		},
+		state: defaultThreadState,
 
 	} satisfies ChatThreads[string]
 }
@@ -159,8 +160,8 @@ export interface IChatThreadService {
 	// exposed getters/setters
 	getCurrentMessageState: (messageIdx: number) => UserMessageState
 	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
-	getCurrentThreadStagingSelections: () => StagingSelectionItem[]
-	setCurrentThreadStagingSelections: (stagingSelections: StagingSelectionItem[]) => void
+	getCurrentThreadState: () => ThreadType['state']
+	setCurrentThreadState: (newState: Partial<ThreadType['state']>) => void
 
 
 	// call to edit a message
@@ -589,13 +590,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	}
 
-	getCurrentThreadStagingSelections = () => {
+	getCurrentThreadState = () => {
 		const currentThread = this.getCurrentThread()
-		return currentThread.state.stagingSelections
+		return currentThread.state
 	}
 
-	setCurrentThreadStagingSelections = (stagingSelections: StagingSelectionItem[]) => {
-		this._setCurrentThreadState({ stagingSelections })
+	setCurrentThreadState = (newState: Partial<ThreadType['state']>) => {
+		this._setCurrentThreadState(newState)
 	}
 
 	// gets `staging` and `setStaging` of the currently focused element, given the index of the currently selected message (or undefined if no message is selected)

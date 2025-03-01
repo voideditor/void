@@ -21,6 +21,3 @@ vscode.db
 product.overrides.json
 *.snap.actual
 .vscode-test
-.tmp/
-.tmp2/
-.tool-versions

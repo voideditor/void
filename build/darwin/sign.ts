@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as codesign from 'electron-osx-sign';
+import fs from 'fs';
+import path from 'path';
+import codesign from 'electron-osx-sign';
 import { spawn } from '@malept/cross-spawn-promise';
 
 const root = path.dirname(path.dirname(__dirname));
@@ -89,24 +89,24 @@ async function main(buildDir?: string): Promise<void> {
 	// universal will get its copy from the x64 build.
 	if (arch !== 'universal') {
 		await spawn('plutil', [
-			'-replace', // Void changed this to replace
+			'-insert',
 			'NSAppleEventsUsageDescription',
 			'-string',
-			'An application in Void wants to use AppleScript.',
+			'An application in Visual Studio Code wants to use AppleScript.',
 			`${infoPlistPath}`
 		]);
 		await spawn('plutil', [
 			'-replace',
 			'NSMicrophoneUsageDescription',
 			'-string',
-			'An application in Void wants to use the Microphone.',
+			'An application in Visual Studio Code wants to use the Microphone.',
 			`${infoPlistPath}`
 		]);
 		await spawn('plutil', [
 			'-replace',
 			'NSCameraUsageDescription',
 			'-string',
-			'An application in Void wants to use the Camera.',
+			'An application in Visual Studio Code wants to use the Camera.',
 			`${infoPlistPath}`
 		]);
 	}

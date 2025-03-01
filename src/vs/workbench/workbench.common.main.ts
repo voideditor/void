@@ -13,13 +13,6 @@ import './browser/workbench.contribution.js';
 //#endregion
 
 
-
-//#region --- Void
-// Void added this:
-import './contrib/void/browser/void.contribution.js';
-//#endregion
-
-
 //#region --- workbench actions
 
 import './browser/actions/textInputActions.js';
@@ -131,7 +124,7 @@ import './services/editor/common/customEditorLabelService.js';
 import { InstantiationType, registerSingleton } from '../platform/instantiation/common/extensions.js';
 import { ExtensionGalleryService } from '../platform/extensionManagement/common/extensionGalleryService.js';
 import { GlobalExtensionEnablementService } from '../platform/extensionManagement/common/extensionEnablementService.js';
-import { IExtensionGalleryService, IGlobalExtensionEnablementService } from '../platform/extensionManagement/common/extensionManagement.js';
+import { IAllowedExtensionsService, IExtensionGalleryService, IGlobalExtensionEnablementService } from '../platform/extensionManagement/common/extensionManagement.js';
 import { ContextViewService } from '../platform/contextview/browser/contextViewService.js';
 import { IContextViewService } from '../platform/contextview/browser/contextView.js';
 import { IListService, ListService } from '../platform/list/browser/listService.js';
@@ -155,6 +148,7 @@ import { IUserDataSyncLogService } from '../platform/userDataSync/common/userDat
 import { UserDataSyncLogService } from '../platform/userDataSync/common/userDataSyncLog.js';
 
 registerSingleton(IUserDataSyncLogService, UserDataSyncLogService, InstantiationType.Delayed);
+registerSingleton(IAllowedExtensionsService, AllowedExtensionsService, InstantiationType.Delayed);
 registerSingleton(IIgnoredExtensionsManagementService, IgnoredExtensionsManagementService, InstantiationType.Delayed);
 registerSingleton(IGlobalExtensionEnablementService, GlobalExtensionEnablementService, InstantiationType.Delayed);
 registerSingleton(IExtensionStorageService, ExtensionStorageService, InstantiationType.Delayed);
@@ -252,9 +246,6 @@ import './contrib/mergeEditor/browser/mergeEditor.contribution.js';
 // Multi Diff Editor
 import './contrib/multiDiffEditor/browser/multiDiffEditor.contribution.js';
 
-// Mapped Edits
-import './contrib/mappedEdits/common/mappedEdits.contribution.js';
-
 // Commands
 import './contrib/commands/common/commands.contribution.js';
 
@@ -278,7 +269,6 @@ import './contrib/extensions/browser/extensions.contribution.js';
 import './contrib/extensions/browser/extensionsViewlet.js';
 
 // Output View
-import './contrib/output/common/outputChannelModelService.js';
 import './contrib/output/browser/output.contribution.js';
 import './contrib/output/browser/outputView.js';
 
@@ -333,7 +323,7 @@ import './contrib/surveys/browser/nps.contribution.js';
 import './contrib/surveys/browser/languageSurveys.contribution.js';
 
 // Welcome
-// import './contrib/welcomeGettingStarted/browser/gettingStarted.contribution.js'; // Void commented this out (removes Welcome page on start)
+import './contrib/welcomeGettingStarted/browser/gettingStarted.contribution.js';
 import './contrib/welcomeWalkthrough/browser/walkThrough.contribution.js';
 import './contrib/welcomeViews/common/viewsWelcome.contribution.js';
 import './contrib/welcomeViews/common/newFile.contribution.js';
@@ -399,10 +389,15 @@ import './contrib/accessibility/browser/accessibility.contribution.js';
 // Share
 import './contrib/share/browser/share.contribution.js';
 
-// Account Entitlements
-import './contrib/accountEntitlements/browser/accountsEntitlements.contribution.js';
-
 // Synchronized Scrolling
 import './contrib/scrollLocking/browser/scrollLocking.contribution.js';
+
+// Inline Completions
+import './contrib/inlineCompletions/browser/inlineCompletions.contribution.js';
+
+// Drop or paste into
+import './contrib/dropOrPasteInto/browser/dropOrPasteInto.contribution.js';
+import { AllowedExtensionsService } from '../platform/extensionManagement/common/allowedExtensionsService.js';
+
 
 //#endregion

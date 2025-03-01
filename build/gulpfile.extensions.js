@@ -71,6 +71,9 @@ const compilations = [
 
 	'.vscode/extensions/vscode-selfhost-test-provider/tsconfig.json',
 	'.vscode/extensions/vscode-selfhost-import-aid/tsconfig.json',
+
+	'extensions/open-remote-ssh/tsconfig.json', // Void added this
+
 ];
 
 const getBaseUrl = out => `https://main.vscode-cdn.net/sourcemaps/${commit}/${out}`;

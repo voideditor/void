@@ -137,6 +137,8 @@ module.exports.indentationFilter = [
 	'!extensions/ipynb/notebook-out/**',
 	'!extensions/notebook-renderers/renderer-out/*.js',
 	'!extensions/simple-browser/media/*.js',
+
+	'!extensions/open-remote-ssh/out/*.js', // Void added this
 ];
 
 module.exports.copyrightFilter = [

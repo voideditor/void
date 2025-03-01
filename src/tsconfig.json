@@ -1,5 +1,6 @@
 {
 	"extends": "./tsconfig.base.json",
+	// "jsx": "react", // <-- Void added this
 	"compilerOptions": {
 		"esModuleInterop": true,
 		"removeComments": false,

@@ -54,6 +54,8 @@ const dirs = [
 	'test/smoke',
 	'.vscode/extensions/vscode-selfhost-import-aid',
 	'.vscode/extensions/vscode-selfhost-test-provider',
+	'extensions/open-remote-ssh', // Void added this
+
 ];
 
 if (fs.existsSync(`${__dirname}/../../.build/distro/npm`)) {

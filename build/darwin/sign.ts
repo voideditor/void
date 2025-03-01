@@ -89,7 +89,7 @@ async function main(buildDir?: string): Promise<void> {
 	// universal will get its copy from the x64 build.
 	if (arch !== 'universal') {
 		await spawn('plutil', [
-			'-insert',
+			'-replace', // Void changed this to replace
 			'NSAppleEventsUsageDescription',
 			'-string',
 			'An application in Visual Studio Code wants to use AppleScript.',

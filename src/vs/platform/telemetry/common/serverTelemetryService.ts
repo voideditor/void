@@ -31,25 +31,29 @@ export class ServerTelemetryService extends TelemetryService implements IServerT
 	}
 
 	override publicLog(eventName: string, data?: ITelemetryData) {
-		if (this._injectedTelemetryLevel < TelemetryLevel.USAGE) {
-			return;
-		}
-		return super.publicLog(eventName, data);
+		// Void commented this out
+		// if (this._injectedTelemetryLevel < TelemetryLevel.USAGE) {
+		// 	return;
+		// }
+		// return super.publicLog(eventName, data);
 	}
 
 	override publicLog2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>) {
-		return this.publicLog(eventName, data as ITelemetryData | undefined);
+		// Void commented this out
+		// return this.publicLog(eventName, data as ITelemetryData | undefined);
 	}
 
 	override publicLogError(errorEventName: string, data?: ITelemetryData) {
-		if (this._injectedTelemetryLevel < TelemetryLevel.ERROR) {
-			return Promise.resolve(undefined);
-		}
-		return super.publicLogError(errorEventName, data);
+		// Void commented this out
+		// if (this._injectedTelemetryLevel < TelemetryLevel.ERROR) {
+		// 	return Promise.resolve(undefined);
+		// }
+		// return super.publicLogError(errorEventName, data);
 	}
 
 	override publicLogError2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>) {
-		return this.publicLogError(eventName, data as ITelemetryData | undefined);
+		// Void commented this out
+		// return this.publicLogError(eventName, data as ITelemetryData | undefined);
 	}
 
 	async updateInjectedTelemetryLevel(telemetryLevel: TelemetryLevel): Promise<void> {

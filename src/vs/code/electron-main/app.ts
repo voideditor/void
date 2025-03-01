@@ -119,6 +119,14 @@ import { AuxiliaryWindowsMainService } from '../../platform/auxiliaryWindow/elec
 import { normalizeNFC } from '../../base/common/normalization.js';
 import { ICSSDevelopmentService, CSSDevelopmentService } from '../../platform/cssDev/node/cssDevService.js';
 
+// in theory this is not allowed
+// ignore the eslint errors below
+import { IMetricsService } from '../../workbench/contrib/void/common/metricsService.js';
+import { IVoidUpdateService } from '../../workbench/contrib/void/common/voidUpdateService.js';
+import { MetricsMainService } from '../../workbench/contrib/void/electron-main/metricsMainService.js';
+import { VoidMainUpdateService } from '../../workbench/contrib/void/electron-main/voidUpdateMainService.js';
+import { LLMMessageChannel } from '../../workbench/contrib/void/electron-main/llmMessageChannel.js';
+
 /**
  * The main VS Code application. There will only ever be one instance,
  * even if the user starts many instances (e.g. from the command line).
@@ -146,7 +154,7 @@ export class CodeApplication extends Disposable {
 		@IStateService private readonly stateService: IStateService,
 		@IFileService private readonly fileService: IFileService,
 		@IProductService private readonly productService: IProductService,
-		@IUserDataProfilesMainService private readonly userDataProfilesMainService: IUserDataProfilesMainService
+		@IUserDataProfilesMainService private readonly userDataProfilesMainService: IUserDataProfilesMainService,
 	) {
 		super();
 
@@ -522,6 +530,16 @@ export class CodeApplication extends Disposable {
 		});
 
 		//#endregion
+
+		// //#region Void IPC
+		// validatedIpcMain.handle('vscode:sendLLMMessage', async (event, data) => {
+		// 	try {
+		// 		await this.sendLLMMessage(data);
+		// 	} catch (error) {
+		// 		console.error('Error sending LLM message:', error);
+		// 	}
+		// });
+		// //#endregion
 	}
 
 	private onUnexpectedError(error: Error): void {
@@ -1109,6 +1127,10 @@ export class CodeApplication extends Disposable {
 			services.set(ITelemetryService, NullTelemetryService);
 		}
 
+		// Void main process services (required for services with a channel for comm between browser and electron-main (node))
+		services.set(IMetricsService, new SyncDescriptor(MetricsMainService, undefined, false));
+		services.set(IVoidUpdateService, new SyncDescriptor(VoidMainUpdateService, undefined, false));
+
 		// Default Extensions Profile Init
 		services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService, undefined, true));
 		services.set(IExtensionsScannerService, new SyncDescriptor(ExtensionsScannerService, undefined, true));
@@ -1226,6 +1248,16 @@ export class CodeApplication extends Disposable {
 		const loggerChannel = new LoggerChannel(accessor.get(ILoggerMainService),);
 		mainProcessElectronServer.registerChannel('logger', loggerChannel);
 		sharedProcessClient.then(client => client.registerChannel('logger', loggerChannel));
+
+		// Void - use loggerChannel as reference
+		const metricsChannel = ProxyChannel.fromService(accessor.get(IMetricsService), disposables);
+		mainProcessElectronServer.registerChannel('void-channel-metrics', metricsChannel);
+
+		const voidUpdatesChannel = ProxyChannel.fromService(accessor.get(IVoidUpdateService), disposables);
+		mainProcessElectronServer.registerChannel('void-channel-update', voidUpdatesChannel);
+
+		const llmMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
+		mainProcessElectronServer.registerChannel('void-channel-llmMessageService', llmMessageChannel);
 
 		// Extension Host Debug Broadcasting
 		const electronExtensionHostDebugBroadcastChannel = new ElectronExtensionHostDebugBroadcastChannel(accessor.get(IWindowsMainService));

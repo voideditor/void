@@ -355,14 +355,14 @@ class MoveViewsBetweenPanelsAction extends Action2 {
 	}
 }
 
-// --- Move Panel Views To Secondary Side Bar
+// --- Move Panel Views To Void Side Bar // Void Side Bar (for command pallette)
 
 class MovePanelToSidePanelAction extends MoveViewsBetweenPanelsAction {
 	static readonly ID = 'workbench.action.movePanelToSidePanel';
 	constructor() {
 		super(ViewContainerLocation.Panel, ViewContainerLocation.AuxiliaryBar, {
 			id: MovePanelToSidePanelAction.ID,
-			title: localize2('movePanelToSecondarySideBar', "Move Panel Views To Secondary Side Bar"),
+			title: localize2('movePanelToSecondarySideBar', "Move Panel Views To Void Side Bar"), // Void Side Bar (for command pallette)
 			category: Categories.View,
 			f1: false
 		});
@@ -374,7 +374,7 @@ export class MovePanelToSecondarySideBarAction extends MoveViewsBetweenPanelsAct
 	constructor() {
 		super(ViewContainerLocation.Panel, ViewContainerLocation.AuxiliaryBar, {
 			id: MovePanelToSecondarySideBarAction.ID,
-			title: localize2('movePanelToSecondarySideBar', "Move Panel Views To Secondary Side Bar"),
+			title: localize2('movePanelToSecondarySideBar', "Move Panel Views To Void Side Bar"), // Void Side Bar (for command pallette)
 			category: Categories.View,
 			f1: true
 		});
@@ -384,7 +384,7 @@ export class MovePanelToSecondarySideBarAction extends MoveViewsBetweenPanelsAct
 registerAction2(MovePanelToSidePanelAction);
 registerAction2(MovePanelToSecondarySideBarAction);
 
-// --- Move Secondary Side Bar Views To Panel
+// --- Move Void Side Bar Views To Panel // Void Side Bar (for command pallette)
 
 class MoveSidePanelToPanelAction extends MoveViewsBetweenPanelsAction {
 	static readonly ID = 'workbench.action.moveSidePanelToPanel';
@@ -392,7 +392,7 @@ class MoveSidePanelToPanelAction extends MoveViewsBetweenPanelsAction {
 	constructor() {
 		super(ViewContainerLocation.AuxiliaryBar, ViewContainerLocation.Panel, {
 			id: MoveSidePanelToPanelAction.ID,
-			title: localize2('moveSidePanelToPanel', "Move Secondary Side Bar Views To Panel"),
+			title: localize2('moveSidePanelToPanel', "Move Void Side Bar Views To Panel"), // Void Side Bar (for command pallette)
 			category: Categories.View,
 			f1: false
 		});
@@ -405,7 +405,7 @@ export class MoveSecondarySideBarToPanelAction extends MoveViewsBetweenPanelsAct
 	constructor() {
 		super(ViewContainerLocation.AuxiliaryBar, ViewContainerLocation.Panel, {
 			id: MoveSecondarySideBarToPanelAction.ID,
-			title: localize2('moveSidePanelToPanel', "Move Secondary Side Bar Views To Panel"),
+			title: localize2('moveSidePanelToPanel', "Move Void Side Bar Views To Panel"), // Void Side Bar (for command pallette)
 			category: Categories.View,
 			f1: true
 		});

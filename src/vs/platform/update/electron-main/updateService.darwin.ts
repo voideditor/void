@@ -73,7 +73,8 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		this.setState(State.Idle(UpdateType.Archive, message));
 	}
 
-	protected buildUpdateFeedUrl(quality: string): string | undefined {
+	// Void: buildUpdateFeedUrl -> doBuildUpdateFeedUrl
+	protected doBuildUpdateFeedUrl(quality: string): string | undefined {
 		let assetID: string;
 		if (!this.productService.darwinUniversalAssetId) {
 			assetID = process.arch === 'x64' ? 'darwin' : 'darwin-arm64';

@@ -1,99 +1,164 @@
-# Contributing to VS Code
+# Contributing to Void
+### Welcome! 👋
+This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
-Welcome, and thank you for your interest in contributing to VS Code!
+There are a few ways to contribute:
 
-There are several ways in which you can contribute, beyond writing code. The goal of this document is to provide a high-level overview of how you can get involved.
+- 💫 Complete items on the [Roadmap](https://github.com/orgs/voideditor/projects/2).
+- 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
+- 🪴 Start new Issues - see [Issues](https://github.com/voideditor/void/issues).
 
-## Asking Questions
 
 
-Have a question? Instead of opening an issue, please ask on [Stack Overflow](https://stackoverflow.com/questions/tagged/visual-studio-code) using the tag `visual-studio-code`.
+### Codebase Guide
 
-The active community will be eager to assist you. Your well-worded question will serve as a resource to others searching for help.
+We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization.
 
-## Providing Feedback
+<!-- ADD BLOG HERE
+We wrote a [guide to working in VSCode].
+-->
 
-Your comments and feedback are welcome, and the development team is available via a handful of different channels.
+Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
 
-See the [Feedback Channels](https://github.com/microsoft/vscode/wiki/Feedback-Channels) wiki page for details on how to share your thoughts.
 
-## Reporting Issues
 
-Have you identified a reproducible problem in VS Code? Do you have a feature request? We want to hear about it! Here's how you can report your issue as effectively as possible.
 
-### Identify Where to Report
+## Building Void
 
-The VS Code project is distributed across multiple repositories. Try to file the issue against the correct repository. Check the list of [Related Projects](https://github.com/microsoft/vscode/wiki/Related-Projects) if you aren't sure which repo is correct.
+### a. Build Prerequisites - Mac
 
-Can you recreate the issue even after [disabling all extensions](https://code.visualstudio.com/docs/editor/extension-gallery#_disable-an-extension)? If you find the issue is caused by an extension you have installed, please file an issue on the extension's repo directly.
+If you're using a Mac, you need Python and XCode. You probably have these by default.
 
-### Look For an Existing Issue
+### b. Build Prerequisites - Windows
 
-Before you create a new issue, please do a search in [open issues](https://github.com/microsoft/vscode/issues) to see if the issue or feature request has already been filed.
+If you're using a Windows computer, first get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community) (recommended) or [VS Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools) (not recommended). If you already have both, you might need to run the next few steps on both of them.
 
-Be sure to scan through the [most popular](https://github.com/microsoft/vscode/issues?q=is%3Aopen+is%3Aissue+label%3Afeature-request+sort%3Areactions-%2B1-desc) feature requests.
+Go to the "Workloads" tab and select:
+- `Desktop development with C++`
+- `Node.js build tools`
 
-If you find your issue already exists, make relevant comments and add your [reaction](https://github.com/blog/2119-add-reactions-to-pull-requests-issues-and-comments). Use a reaction in place of a "+1" comment:
+Go to the "Individual Components" tab and select:
+- `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)`
+- `C++ ATL for latest build tools with Spectre Mitigations`
+- `C++ MFC for latest build tools with Spectre Mitigations`
 
-* 👍 - upvote
-* 👎 - downvote
+Finally, click Install.
 
-If you cannot find an existing issue that describes your bug or feature, create a new issue using the guidelines below.
+### c. Build Prerequisites - Linux
 
-### Writing Good Bug Reports and Feature Requests
+First, run `npm install -g node-gyp`. Then:
 
-File a single issue per problem and feature request. Do not enumerate multiple bugs or feature requests in the same issue.
+- Debian (Ubuntu, etc): `sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev python-is-python3`.
+- Red Hat (Fedora, etc): `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
+- Others: see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
-Do not add your issue as a comment to an existing issue unless it's for the identical input. Many issues look similar but have different causes.
+### d. Building Void
 
-The more information you can provide, the more likely someone will be successful at reproducing the issue and finding a fix.
+To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
-The built-in tool for reporting an issue, which you can access by using `Report Issue` in VS Code's Help menu, can help streamline this process by automatically providing the version of VS Code, all your installed extensions, and your system info. Additionally, the tool will search among existing issues to see if a similar issue already exists.
+1. `npm install` to install all dependencies.
+2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`).
+3. Build Void.
+	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
+   - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
+   - This step can take ~5 min. The build is done when you see two check marks.
+4. Run Void.
+   - Run `./scripts/code.sh` (Mac/Linux).
+   - Run `./scripts/code.bat` (Windows).
+6. Nice-to-knows.
+   - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
+   - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
 
-Please include the following with each issue:
+#### Building Void from Terminal
 
-* Version of VS Code
-* Your operating system
-* List of extensions that you have installed
-* Reproducible steps (1... 2... 3...) that cause the issue
-* What you expected to see, versus what you actually saw
-* Images, animations, or a link to a video showing the issue occurring
-* A code snippet that demonstrates the issue or a link to a code repository the developers can easily pull down to recreate the issue locally
-  * **Note:** Because the developers need to copy and paste the code snippet, including a code snippet as a media file (i.e. .gif) is not sufficient.
-* Errors from the Dev Tools Console (open from the menu: Help > Toggle Developer Tools)
+Alternatively, if you want to build Void from the terminal, instead of pressing <kbd>Cmd+Shift+B</kbd> you can run `npm run watch`. The build is done when you see something like this:
 
-### Creating Pull Requests
+```
+[watch-extensions] [00:37:39] Finished compilation extensions with 0 errors after 19303 ms
+[watch-client    ] [00:38:06] Finished compilation with 0 errors after 46248 ms
+[watch-client    ] [00:38:07] Starting compilation...
+[watch-client    ] [00:38:07] Finished compilation with 0 errors after 5 ms
+```
 
-* Please refer to the article on [creating pull requests](https://github.com/microsoft/vscode/wiki/How-to-Contribute#pull-requests) and contributing to this project.
 
-### Final Checklist
 
-Please remember to do the following:
+#### Common Fixes
 
-* [ ] Search the issue repository to ensure your report is a new issue
-* [ ] Recreate the issue after disabling all extensions
-* [ ] Simplify your code around the issue to better isolate the problem
+- Make sure you followed the prerequisite steps.
+- Make sure you have Node version `20.16.0` (the version in `.nvmrc`)!
+- If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
+- If you see missing styles, wait a few seconds and then reload.
+- If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
-Don't feel bad if the developers can't reproduce the issue right away. They will simply ask for more information!
 
-### Follow Your Issue
 
-Once submitted, your report will go into the [issue tracking](https://github.com/microsoft/vscode/wiki/Issue-Tracking) workflow. Be sure to understand what will happen next, so you know what to expect and how to continue to assist throughout the process.
+## Packaging
 
-## Automated Issue Management
+We don't usually recommend packaging. Instead, you should probably just build. If you're sure you want to package Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). Be patient - packaging can take ~25 minutes.
 
-We use GitHub Actions to help us manage issues. These Actions and their descriptions can be [viewed here](https://github.com/microsoft/vscode-github-triage-actions). Some examples of what these Actions do are:
 
-* Automatically close any issue marked `info-needed` if there has been no response in the past 7 days.
-* Automatically lock issues 45 days after they are closed.
-* Automatically implement the VS Code [feature request pipeline](https://github.com/microsoft/vscode/wiki/Issues-Triaging#managing-feature-requests).
+### Mac
+- `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)
+- `npm run gulp vscode-darwin-x64` (Intel)
 
-If you believe the bot got something wrong, please open a new issue and let us know.
+### Windows
+- `npm run gulp vscode-win32-x64` - most common
+- `npm run gulp vscode-win32-ia32`
 
-## Contributing Fixes
+### Linux
+- `npm run gulp vscode-linux-x64` - most common
+- `npm run gulp vscode-linux-arm`
+- `npm run gulp vscode-linux-ia32`
 
-If you are interested in writing code to fix issues, please see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) in the wiki.
 
-## Thank You
+### Output
 
-Your contributions to open source, large or small, make great projects like this possible. Thank you for taking the time to contribute.
+This will generate a folder outside of `void/`:
+```bash
+workspace/
+├── void/   # Your Void fork
+└── VSCode-darwin-arm64/ # Generated output
+```
+
+### Distributing
+Void's maintainers distribute Void on our website and in releases. If you'd like to see the scripts to convert `Mac .app -> .dmg`, `Windows folder -> .exe`, and `Linux folder -> appimage` for distribution, feel free to reach out.
+
+## Pull Request Guidelines
+
+
+- Please submit a pull request once you've made a change.
+- No need to submit an Issue unless you're creating a new feature that might involve multiple PRs.
+- Please don't use AI to write your PR 🙂
+
+
+
+
+
+<!--
+# Relevant files
+
+We keep track of all the files we've changed with Void so it's easy to rebase:
+
+Edit: far too many changes to track... this is old
+
+- README.md
+- CONTRIBUTING.md
+- VOID_USEFUL_LINKS.md
+- product.json
+- package.json
+
+- src/vs/workbench/api/common/{extHost.api.impl.ts | extHostApiCommands.ts}
+- src/vs/workbench/workbench.common.main.ts
+- src/vs/workbench/contrib/void/\*
+- extensions/void/\*
+
+- .github/\*
+- .vscode/settings/\*
+- .eslintrc.json
+- build/hygiene.js
+- build/lib/i18n.resources.json
+- build/npm/dirs.js
+
+- vscode.proposed.editorInsets.d.ts - not modified, but code copied
+
+-->

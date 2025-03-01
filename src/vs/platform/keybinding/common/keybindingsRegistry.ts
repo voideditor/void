@@ -64,7 +64,8 @@ export const enum KeybindingWeight {
 	EditorContrib = 100,
 	WorkbenchContrib = 200,
 	BuiltinExtension = 300,
-	ExternalExtension = 400
+	ExternalExtension = 400,
+	VoidExtension = 605, // Void -  must trump any external extension
 }
 
 export interface ICommandAndKeybindingRule extends IKeybindingRule {

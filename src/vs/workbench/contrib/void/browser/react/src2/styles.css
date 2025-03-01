@@ -1,0 +1,1743 @@
+.void-scope {
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
+/*! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com*/
+
+/*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+/*
+Add the correct font size in all browsers.
+*/
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+/*
+Reset default styling for dialogs.
+*/
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+/*
+Set the default cursor for buttons.
+*/
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+
+/* html {
+	font-size: var(--vscode-font-size);
+}
+
+.btn {
+	@apply cursor-pointer transition-colors;
+
+	&.btn-primary {
+		@apply bg-vscode-button-bg text-vscode-button-fg;
+
+		&:not(:disabled) {
+			@apply hover:bg-vscode-button-hoverBg;
+		}
+	}
+
+	&.btn-sm {
+		@apply px-3 py-1 text-sm;
+	}
+
+	&.btn-secondary {
+		@apply bg-vscode-button-secondary-bg text-vscode-button-secondary-fg;
+
+		&:not(:disabled) {
+			@apply hover:bg-vscode-button-secondary-hoverBg;
+		}
+	}
+
+	&:disabled {
+		@apply opacity-75 cursor-not-allowed;
+	}
+}
+
+.input {
+	@apply bg-vscode-input-bg text-vscode-input-fg border-vscode-input-border focus:outline-vscode-focus-border;
+}
+
+.dropdown {
+	@apply bg-vscode-dropdown-bg text-vscode-dropdown-foreground border-vscode-dropdown-border focus:outline-vscode-focus-border;
+} */
+
+}
+
+.void-scope *, .void-scope ::before, .void-scope ::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+.void-scope ::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+.void-scope *,
+.void-scope ::before,
+.void-scope ::after {
+  box-sizing: border-box;
+  /* 1 */
+  border-width: 0;
+  /* 2 */
+  border-style: solid;
+  /* 2 */
+  border-color: #e5e7eb;
+  /* 2 */
+}
+
+.void-scope ::before,
+.void-scope ::after {
+  --tw-content: '';
+}
+
+.void-scope html,
+.void-scope :host {
+  line-height: 1.5;
+  /* 1 */
+  -webkit-text-size-adjust: 100%;
+  /* 2 */
+  -moz-tab-size: 4;
+  /* 3 */
+  -o-tab-size: 4;
+     tab-size: 4;
+  /* 3 */
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  /* 4 */
+  font-feature-settings: normal;
+  /* 5 */
+  font-variation-settings: normal;
+  /* 6 */
+  -webkit-tap-highlight-color: transparent;
+  /* 7 */
+}
+
+.void-scope body {
+  margin: 0;
+  /* 1 */
+  line-height: inherit;
+  /* 2 */
+}
+
+.void-scope hr {
+  height: 0;
+  /* 1 */
+  color: inherit;
+  /* 2 */
+  border-top-width: 1px;
+  /* 3 */
+}
+
+.void-scope abbr:where([title]) {
+  -webkit-text-decoration: underline dotted;
+          text-decoration: underline dotted;
+}
+
+.void-scope h1,
+.void-scope h2,
+.void-scope h3,
+.void-scope h4,
+.void-scope h5,
+.void-scope h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.void-scope a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+.void-scope b,
+.void-scope strong {
+  font-weight: bolder;
+}
+
+.void-scope code,
+.void-scope kbd,
+.void-scope samp,
+.void-scope pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* 1 */
+  font-feature-settings: normal;
+  /* 2 */
+  font-variation-settings: normal;
+  /* 3 */
+  font-size: 1em;
+  /* 4 */
+}
+
+.void-scope small {
+  font-size: 80%;
+}
+
+.void-scope sub,
+.void-scope sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.void-scope sub {
+  bottom: -0.25em;
+}
+
+.void-scope sup {
+  top: -0.5em;
+}
+
+.void-scope table {
+  text-indent: 0;
+  /* 1 */
+  border-color: inherit;
+  /* 2 */
+  border-collapse: collapse;
+  /* 3 */
+}
+
+.void-scope button,
+.void-scope input,
+.void-scope optgroup,
+.void-scope select,
+.void-scope textarea {
+  font-family: inherit;
+  /* 1 */
+  font-feature-settings: inherit;
+  /* 1 */
+  font-variation-settings: inherit;
+  /* 1 */
+  font-size: 100%;
+  /* 1 */
+  font-weight: inherit;
+  /* 1 */
+  line-height: inherit;
+  /* 1 */
+  letter-spacing: inherit;
+  /* 1 */
+  color: inherit;
+  /* 1 */
+  margin: 0;
+  /* 2 */
+  padding: 0;
+  /* 3 */
+}
+
+.void-scope button,
+.void-scope select {
+  text-transform: none;
+}
+
+.void-scope button,
+.void-scope input:where([type='button']),
+.void-scope input:where([type='reset']),
+.void-scope input:where([type='submit']) {
+  -webkit-appearance: button;
+  /* 1 */
+  background-color: transparent;
+  /* 2 */
+  background-image: none;
+  /* 2 */
+}
+
+.void-scope :-moz-focusring {
+  outline: auto;
+}
+
+.void-scope :-moz-ui-invalid {
+  box-shadow: none;
+}
+
+.void-scope progress {
+  vertical-align: baseline;
+}
+
+.void-scope ::-webkit-inner-spin-button,
+.void-scope ::-webkit-outer-spin-button {
+  height: auto;
+}
+
+.void-scope [type='search'] {
+  -webkit-appearance: textfield;
+  /* 1 */
+  outline-offset: -2px;
+  /* 2 */
+}
+
+.void-scope ::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+.void-scope ::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  /* 1 */
+  font: inherit;
+  /* 2 */
+}
+
+.void-scope summary {
+  display: list-item;
+}
+
+.void-scope blockquote,
+.void-scope dl,
+.void-scope dd,
+.void-scope h1,
+.void-scope h2,
+.void-scope h3,
+.void-scope h4,
+.void-scope h5,
+.void-scope h6,
+.void-scope hr,
+.void-scope figure,
+.void-scope p,
+.void-scope pre {
+  margin: 0;
+}
+
+.void-scope fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+.void-scope legend {
+  padding: 0;
+}
+
+.void-scope ol,
+.void-scope ul,
+.void-scope menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.void-scope dialog {
+  padding: 0;
+}
+
+.void-scope textarea {
+  resize: vertical;
+}
+
+.void-scope input::-moz-placeholder, .void-scope textarea::-moz-placeholder {
+  opacity: 1;
+  /* 1 */
+  color: #9ca3af;
+  /* 2 */
+}
+
+.void-scope input::placeholder,
+.void-scope textarea::placeholder {
+  opacity: 1;
+  /* 1 */
+  color: #9ca3af;
+  /* 2 */
+}
+
+.void-scope button,
+.void-scope [role="button"] {
+  cursor: pointer;
+}
+
+.void-scope :disabled {
+  cursor: default;
+}
+
+.void-scope img,
+.void-scope svg,
+.void-scope video,
+.void-scope canvas,
+.void-scope audio,
+.void-scope iframe,
+.void-scope embed,
+.void-scope object {
+  display: block;
+  /* 1 */
+  vertical-align: middle;
+  /* 2 */
+}
+
+.void-scope img,
+.void-scope video {
+  max-width: 100%;
+  height: auto;
+}
+
+.void-scope [hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+
+.void-scope .void-pointer-events-none {
+  pointer-events: none;
+}
+
+.void-scope .void-absolute {
+  position: absolute;
+}
+
+.void-scope .void-relative {
+  position: relative;
+}
+
+.void-scope .-void-left-\[999999px\] {
+  left: -999999px;
+}
+
+.void-scope .-void-right-1 {
+  right: -0.25rem;
+}
+
+.void-scope .-void-top-1 {
+  top: -0.25rem;
+}
+
+.void-scope .-void-top-\[999999px\] {
+  top: -999999px;
+}
+
+.void-scope .void-bottom-0 {
+  bottom: 0px;
+}
+
+.void-scope .void-left-0 {
+  left: 0px;
+}
+
+.void-scope .void-right-0 {
+  right: 0px;
+}
+
+.void-scope .void-right-1 {
+  right: 0.25rem;
+}
+
+.void-scope .void-top-0 {
+  top: 0px;
+}
+
+.void-scope .void-z-0 {
+  z-index: 0;
+}
+
+.void-scope .void-z-10 {
+  z-index: 10;
+}
+
+.void-scope .void-z-\[1\] {
+  z-index: 1;
+}
+
+.void-scope .void-z-\[999\] {
+  z-index: 999;
+}
+
+.void-scope .void-m-2 {
+  margin: 0.5rem;
+}
+
+.void-scope .void-mx-4 {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
+.void-scope .void-mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.void-scope .void-my-0\.5 {
+  margin-top: 0.125rem;
+  margin-bottom: 0.125rem;
+}
+
+.void-scope .void-my-1 {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.void-scope .void-my-2 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.void-scope .void-my-4 {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.void-scope .void-my-6 {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.void-scope .void-mb-1 {
+  margin-bottom: 0.25rem;
+}
+
+.void-scope .void-mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.void-scope .void-mb-4 {
+  margin-bottom: 1rem;
+}
+
+.void-scope .void-ml-1 {
+  margin-left: 0.25rem;
+}
+
+.void-scope .void-ml-3 {
+  margin-left: 0.75rem;
+}
+
+.void-scope .void-ml-auto {
+  margin-left: auto;
+}
+
+.void-scope .void-mr-0\.5 {
+  margin-right: 0.125rem;
+}
+
+.void-scope .void-mr-1 {
+  margin-right: 0.25rem;
+}
+
+.void-scope .void-mr-2 {
+  margin-right: 0.5rem;
+}
+
+.void-scope .void-mt-0\.5 {
+  margin-top: 0.125rem;
+}
+
+.void-scope .void-mt-1 {
+  margin-top: 0.25rem;
+}
+
+.void-scope .void-mt-12 {
+  margin-top: 3rem;
+}
+
+.void-scope .void-mt-4 {
+  margin-top: 1rem;
+}
+
+.void-scope .void-mt-\[2px\] {
+  margin-top: 2px;
+}
+
+.void-scope .void-inline-block {
+  display: inline-block;
+}
+
+.void-scope .void-flex {
+  display: flex;
+}
+
+.void-scope .void-inline-flex {
+  display: inline-flex;
+}
+
+.void-scope .void-hidden {
+  display: none;
+}
+
+.void-scope .void-size-3 {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.void-scope .void-size-4 {
+  width: 1rem;
+  height: 1rem;
+}
+
+.void-scope .void-h-2\.5 {
+  height: 0.625rem;
+}
+
+.void-scope .void-h-3 {
+  height: 0.75rem;
+}
+
+.void-scope .void-h-3\.5 {
+  height: 0.875rem;
+}
+
+.void-scope .void-h-4 {
+  height: 1rem;
+}
+
+.void-scope .void-h-5 {
+  height: 1.25rem;
+}
+
+.void-scope .void-h-6 {
+  height: 1.5rem;
+}
+
+.void-scope .void-h-\[1px\] {
+  height: 1px;
+}
+
+.void-scope .void-h-auto {
+  height: auto;
+}
+
+.void-scope .void-h-fit {
+  height: -moz-fit-content;
+  height: fit-content;
+}
+
+.void-scope .void-h-full {
+  height: 100%;
+}
+
+.void-scope .void-max-h-\[400px\] {
+  max-height: 400px;
+}
+
+.void-scope .void-max-h-\[500px\] {
+  max-height: 500px;
+}
+
+.void-scope .void-min-h-\[81px\] {
+  min-height: 81px;
+}
+
+.void-scope .void-w-10 {
+  width: 2.5rem;
+}
+
+.void-scope .void-w-11 {
+  width: 2.75rem;
+}
+
+.void-scope .void-w-2\.5 {
+  width: 0.625rem;
+}
+
+.void-scope .void-w-3 {
+  width: 0.75rem;
+}
+
+.void-scope .void-w-3\.5 {
+  width: 0.875rem;
+}
+
+.void-scope .void-w-4 {
+  width: 1rem;
+}
+
+.void-scope .void-w-5 {
+  width: 1.25rem;
+}
+
+.void-scope .void-w-7 {
+  width: 1.75rem;
+}
+
+.void-scope .void-w-9 {
+  width: 2.25rem;
+}
+
+.void-scope .void-w-\[1px\] {
+  width: 1px;
+}
+
+.void-scope .void-w-fit {
+  width: -moz-fit-content;
+  width: fit-content;
+}
+
+.void-scope .void-w-full {
+  width: 100%;
+}
+
+.void-scope .void-min-w-\[600px\] {
+  min-width: 600px;
+}
+
+.void-scope .void-min-w-full {
+  min-width: 100%;
+}
+
+.void-scope .void-max-w-32 {
+  max-width: 8rem;
+}
+
+.void-scope .void-max-w-40 {
+  max-width: 10rem;
+}
+
+.void-scope .void-max-w-44 {
+  max-width: 11rem;
+}
+
+.void-scope .void-max-w-5xl {
+  max-width: 64rem;
+}
+
+.void-scope .void-max-w-\[120px\] {
+  max-width: 120px;
+}
+
+.void-scope .void-max-w-\[150px\] {
+  max-width: 150px;
+}
+
+.void-scope .void-max-w-full {
+  max-width: 100%;
+}
+
+.void-scope .void-flex-1 {
+  flex: 1 1 0%;
+}
+
+.void-scope .void-flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+.void-scope .void-shrink-0 {
+  flex-shrink: 0;
+}
+
+.void-scope .void-flex-grow {
+  flex-grow: 1;
+}
+
+.void-scope .void-flex-grow-0 {
+  flex-grow: 0;
+}
+
+.void-scope .-void-translate-y-0 {
+  --tw-translate-y: -0px;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.void-scope .void-translate-x-0 {
+  --tw-translate-x: 0px;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.void-scope .void-translate-x-0\.5 {
+  --tw-translate-x: 0.125rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.void-scope .void-translate-x-1 {
+  --tw-translate-x: 0.25rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.void-scope .void-translate-x-3\.5 {
+  --tw-translate-x: 0.875rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.void-scope .void-translate-x-5 {
+  --tw-translate-x: 1.25rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.void-scope .void-translate-x-6 {
+  --tw-translate-x: 1.5rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.void-scope .void-transform {
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+@keyframes void-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.void-scope .void-animate-spin {
+  animation: void-spin 1s linear infinite;
+}
+
+.void-scope .void-cursor-default {
+  cursor: default;
+}
+
+.void-scope .void-cursor-pointer {
+  cursor: pointer;
+}
+
+.void-scope .void-select-none {
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
+
+.void-scope .void-select-text {
+  -webkit-user-select: text;
+     -moz-user-select: text;
+          user-select: text;
+}
+
+.void-scope .void-resize-none {
+  resize: none;
+}
+
+.void-scope .void-list-inside {
+  list-style-position: inside;
+}
+
+.void-scope .void-list-decimal {
+  list-style-type: decimal;
+}
+
+.void-scope .void-list-disc {
+  list-style-type: disc;
+}
+
+.void-scope .void-flex-row {
+  flex-direction: row;
+}
+
+.void-scope .void-flex-col {
+  flex-direction: column;
+}
+
+.void-scope .void-flex-wrap {
+  flex-wrap: wrap;
+}
+
+.void-scope .void-flex-nowrap {
+  flex-wrap: nowrap;
+}
+
+.void-scope .void-items-start {
+  align-items: flex-start;
+}
+
+.void-scope .void-items-end {
+  align-items: flex-end;
+}
+
+.void-scope .void-items-center {
+  align-items: center;
+}
+
+.void-scope .void-items-stretch {
+  align-items: stretch;
+}
+
+.void-scope .void-justify-center {
+  justify-content: center;
+}
+
+.void-scope .void-justify-between {
+  justify-content: space-between;
+}
+
+.void-scope .void-gap-0\.5 {
+  gap: 0.125rem;
+}
+
+.void-scope .void-gap-1 {
+  gap: 0.25rem;
+}
+
+.void-scope .void-gap-2 {
+  gap: 0.5rem;
+}
+
+.void-scope .void-gap-3 {
+  gap: 0.75rem;
+}
+
+.void-scope .void-gap-4 {
+  gap: 1rem;
+}
+
+.void-scope .void-gap-y-0\.5 {
+  row-gap: 0.125rem;
+}
+
+.void-scope .void-gap-y-1 {
+  row-gap: 0.25rem;
+}
+
+.void-scope .void-space-x-1 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 0;
+  margin-right: calc(0.25rem * var(--tw-space-x-reverse));
+  margin-left: calc(0.25rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+.void-scope .void-space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.75rem * var(--tw-space-y-reverse));
+}
+
+.void-scope .void-self-start {
+  align-self: flex-start;
+}
+
+.void-scope .void-self-end {
+  align-self: flex-end;
+}
+
+.void-scope .void-overflow-auto {
+  overflow: auto;
+}
+
+.void-scope .void-overflow-hidden {
+  overflow: hidden;
+}
+
+.void-scope .void-overflow-x-auto {
+  overflow-x: auto;
+}
+
+.void-scope .void-overflow-y-auto {
+  overflow-y: auto;
+}
+
+.void-scope .void-overflow-x-hidden {
+  overflow-x: hidden;
+}
+
+.void-scope .void-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.void-scope .void-text-ellipsis {
+  text-overflow: ellipsis;
+}
+
+.void-scope .void-whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.void-scope .void-whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+
+.void-scope .void-text-nowrap {
+  text-wrap: nowrap;
+}
+
+.void-scope .void-break-all {
+  word-break: break-all;
+}
+
+.void-scope .void-rounded {
+  border-radius: 0.25rem;
+}
+
+.void-scope .void-rounded-full {
+  border-radius: 9999px;
+}
+
+.void-scope .void-rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.void-scope .void-rounded-md {
+  border-radius: 0.375rem;
+}
+
+.void-scope .void-rounded-sm {
+  border-radius: 0.125rem;
+}
+
+.void-scope .void-border {
+  border-width: 1px;
+}
+
+.void-scope .void-border-l-4 {
+  border-left-width: 4px;
+}
+
+.void-scope .void-border-t {
+  border-top-width: 1px;
+}
+
+.void-scope .void-border-red-200 {
+  --tw-border-opacity: 1;
+  border-color: rgb(254 202 202 / var(--tw-border-opacity, 1));
+}
+
+.void-scope .void-border-void-bg-2 {
+  border-color: var(--vscode-sideBar-background);
+}
+
+.void-scope .void-border-void-border-1 {
+  border-color: var(--vscode-commandCenter-activeBorder);
+}
+
+.void-scope .void-border-void-border-2 {
+  border-color: var(--vscode-commandCenter-border);
+}
+
+.void-scope .void-border-void-border-3 {
+  border-color: var(--vscode-commandCenter-inactiveBorder);
+}
+
+.void-scope .void-border-vscode-input-border {
+  border-color: var(--vscode-input-border);
+}
+
+.void-scope .void-bg-black\/10 {
+  background-color: rgb(0 0 0 / 0.1);
+}
+
+.void-scope .void-bg-gray-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
+}
+
+.void-scope .void-bg-gray-900 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
+}
+
+.void-scope .void-bg-orange-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 247 237 / var(--tw-bg-opacity, 1));
+}
+
+.void-scope .void-bg-red-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1));
+}
+
+.void-scope .void-bg-transparent {
+  background-color: transparent;
+}
+
+.void-scope .void-bg-void-bg-1 {
+  background-color: var(--vscode-input-background);
+}
+
+.void-scope .void-bg-void-bg-2 {
+  background-color: var(--vscode-sideBar-background);
+}
+
+.void-scope .void-bg-void-bg-3 {
+  background-color: var(--vscode-editor-background);
+}
+
+.void-scope .void-bg-vscode-disabled-fg {
+  background-color: var(--vscode-disabledForeground);
+}
+
+.void-scope .void-bg-vscode-input-bg {
+  background-color: var(--vscode-input-background);
+}
+
+.void-scope .void-bg-white {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+
+.void-scope .void-stroke-green-500 {
+  stroke: #22c55e;
+}
+
+.void-scope .void-stroke-red-500 {
+  stroke: #ef4444;
+}
+
+.void-scope .void-stroke-\[2\] {
+  stroke-width: 2;
+}
+
+.void-scope .void-stroke-\[3\] {
+  stroke-width: 3;
+}
+
+.void-scope .void-p-1 {
+  padding: 0.25rem;
+}
+
+.void-scope .void-p-2 {
+  padding: 0.5rem;
+}
+
+.void-scope .void-p-3 {
+  padding: 0.75rem;
+}
+
+.void-scope .void-p-4 {
+  padding: 1rem;
+}
+
+.void-scope .void-p-\[1px\] {
+  padding: 1px;
+}
+
+.void-scope .void-p-\[2px\] {
+  padding: 2px;
+}
+
+.void-scope .void-p-\[7px\] {
+  padding: 7px;
+}
+
+.void-scope .void-px-0 {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+.void-scope .void-px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.void-scope .void-px-10 {
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+}
+
+.void-scope .void-px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.void-scope .void-px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.void-scope .void-px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.void-scope .void-px-\[6px\] {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.void-scope .void-py-0\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+
+.void-scope .void-py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.void-scope .void-py-10 {
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
+.void-scope .void-py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.void-scope .void-py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.void-scope .void-py-\[4px\] {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.void-scope .void-pb-1 {
+  padding-bottom: 0.25rem;
+}
+
+.void-scope .void-pb-4 {
+  padding-bottom: 1rem;
+}
+
+.void-scope .void-pl-2 {
+  padding-left: 0.5rem;
+}
+
+.void-scope .void-pl-4 {
+  padding-left: 1rem;
+}
+
+.void-scope .void-pr-2 {
+  padding-right: 0.5rem;
+}
+
+.void-scope .void-pt-3 {
+  padding-top: 0.75rem;
+}
+
+.void-scope .void-text-left {
+  text-align: left;
+}
+
+.void-scope .void-text-center {
+  text-align: center;
+}
+
+.void-scope .void-font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.void-scope .void-text-2xl {
+  font-size: 18px;
+}
+
+.void-scope .void-text-3xl {
+  font-size: 20px;
+}
+
+.void-scope .void-text-lg {
+  font-size: 14px;
+}
+
+.void-scope .void-text-root {
+  font-size: 13px;
+}
+
+.void-scope .void-text-sm {
+  font-size: 11px;
+}
+
+.void-scope .void-text-xl {
+  font-size: 16px;
+}
+
+.void-scope .void-text-xs {
+  font-size: 10px;
+}
+
+.void-scope .void-font-bold {
+  font-weight: 700;
+}
+
+.void-scope .void-font-medium {
+  font-weight: 500;
+}
+
+.void-scope .void-font-semibold {
+  font-weight: 600;
+}
+
+.void-scope .void-italic {
+  font-style: italic;
+}
+
+.void-scope .void-text-gray-900 {
+  --tw-text-opacity: 1;
+  color: rgb(17 24 39 / var(--tw-text-opacity, 1));
+}
+
+.void-scope .void-text-orange-500 {
+  --tw-text-opacity: 1;
+  color: rgb(249 115 22 / var(--tw-text-opacity, 1));
+}
+
+.void-scope .void-text-red-500 {
+  --tw-text-opacity: 1;
+  color: rgb(239 68 68 / var(--tw-text-opacity, 1));
+}
+
+.void-scope .void-text-red-600 {
+  --tw-text-opacity: 1;
+  color: rgb(220 38 38 / var(--tw-text-opacity, 1));
+}
+
+.void-scope .void-text-red-700 {
+  --tw-text-opacity: 1;
+  color: rgb(185 28 28 / var(--tw-text-opacity, 1));
+}
+
+.void-scope .void-text-red-800 {
+  --tw-text-opacity: 1;
+  color: rgb(153 27 27 / var(--tw-text-opacity, 1));
+}
+
+.void-scope .void-text-void-fg-1 {
+  color: var(--vscode-editor-foreground);
+}
+
+.void-scope .void-text-void-fg-3 {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.void-scope .void-text-void-warning {
+  color: var(--vscode-charts-yellow);
+}
+
+.void-scope .void-underline {
+  text-decoration-line: underline;
+}
+
+.void-scope .void-line-through {
+  text-decoration-line: line-through;
+}
+
+.void-scope .void-opacity-0 {
+  opacity: 0;
+}
+
+.void-scope .void-opacity-100 {
+  opacity: 1;
+}
+
+.void-scope .void-opacity-25 {
+  opacity: 0.25;
+}
+
+.void-scope .void-opacity-50 {
+  opacity: 0.5;
+}
+
+.void-scope .void-opacity-80 {
+  opacity: 0.8;
+}
+
+.void-scope .void-opacity-90 {
+  opacity: 0.9;
+}
+
+.void-scope .void-shadow {
+  --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.void-scope .void-shadow-lg {
+  --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.void-scope .void-ring-2 {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.void-scope .void-ring-inset {
+  --tw-ring-inset: inset;
+}
+
+.void-scope .void-brightness-90 {
+  --tw-brightness: brightness(.9);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+.void-scope .void-transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.void-scope .void-transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.void-scope .void-transition-opacity {
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.void-scope .void-transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.void-scope .void-duration-100 {
+  transition-duration: 100ms;
+}
+
+.void-scope .void-duration-150 {
+  transition-duration: 150ms;
+}
+
+.void-scope .void-duration-200 {
+  transition-duration: 200ms;
+}
+
+.void-scope .void-ease-in-out {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.void-scope .select-child-restyle select {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 24px;
+}
+
+.void-scope * {
+  outline: none !important;
+}
+
+.void-scope .inherit-bg-all-restyle > * {
+  background-color: inherit !important;
+}
+
+.void-scope .bg-editor-style-override {
+  --vscode-sideBar-background: var(--vscode-editor-background);
+}
+
+.void-scope .placeholder\:void-text-void-fg-3::-moz-placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.void-scope .placeholder\:void-text-void-fg-3::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.void-scope .focus-within\:void-border-void-border-1:focus-within {
+  border-color: var(--vscode-commandCenter-activeBorder);
+}
+
+.void-scope .hover\:void-border-void-border-1:hover {
+  border-color: var(--vscode-commandCenter-activeBorder);
+}
+
+.void-scope .hover\:void-bg-black\/10:hover {
+  background-color: rgb(0 0 0 / 0.1);
+}
+
+.void-scope .hover\:void-bg-void-bg-1:hover {
+  background-color: var(--vscode-input-background);
+}
+
+.void-scope .hover\:void-bg-void-bg-2:hover {
+  background-color: var(--vscode-sideBar-background);
+}
+
+.void-scope .hover\:void-text-red-800:hover {
+  --tw-text-opacity: 1;
+  color: rgb(153 27 27 / var(--tw-text-opacity, 1));
+}
+
+.void-scope .hover\:void-brightness-110:hover {
+  --tw-brightness: brightness(1.1);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+.void-scope .hover\:void-brightness-75:hover {
+  --tw-brightness: brightness(.75);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+.void-scope .hover\:void-brightness-90:hover {
+  --tw-brightness: brightness(.9);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+.void-scope .hover\:void-brightness-95:hover {
+  --tw-brightness: brightness(.95);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+.void-scope .active\:void-bg-black\/10:active {
+  background-color: rgb(0 0 0 / 0.1);
+}
+
+.void-scope .void-group:hover .group-hover\:void-opacity-100 {
+  opacity: 1;
+}
+
+.void-scope .dark\:void-bg-gray-200\/10:where(.void-dark, .void-dark *) {
+  background-color: rgb(229 231 235 / 0.1);
+}
+
+.void-scope .dark\:void-bg-gray-700:where(.void-dark, .void-dark *) {
+  --tw-bg-opacity: 1;
+  background-color: rgb(55 65 81 / var(--tw-bg-opacity, 1));
+}
+
+.void-scope .dark\:void-bg-gray-900:where(.void-dark, .void-dark *) {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
+}
+
+.void-scope .dark\:void-bg-white:where(.void-dark, .void-dark *) {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+
+.void-scope .dark\:void-text-gray-100:where(.void-dark, .void-dark *) {
+  --tw-text-opacity: 1;
+  color: rgb(243 244 246 / var(--tw-text-opacity, 1));
+}
+
+.void-scope .dark\:hover\:void-bg-gray-300\/10:hover:where(.void-dark, .void-dark *) {
+  background-color: rgb(209 213 219 / 0.1);
+}
+
+.void-scope .hover\:dark\:void-bg-gray-200\/10:where(.void-dark, .void-dark *):hover {
+  background-color: rgb(229 231 235 / 0.1);
+}
+
+.void-scope .active\:dark\:void-bg-gray-200\/10:where(.void-dark, .void-dark *):active {
+  background-color: rgb(229 231 235 / 0.1);
+}
+
+.void-scope .\[\&_\:\:placeholder\]\:\!void-text-void-fg-3 ::-moz-placeholder {
+  color: var(--vscode-input-placeholderForeground) !important;
+}
+
+.void-scope .\[\&_\:\:placeholder\]\:\!void-text-void-fg-3 ::placeholder {
+  color: var(--vscode-input-placeholderForeground) !important;
+}
+
+.void-scope .\[\&_select\]\:\!void-border-none select {
+  border-style: none !important;
+}
+
+.void-scope .\[\&_select\]\:\!void-text-xs select {
+  font-size: 10px !important;
+}
+
+.void-scope .\[\&_select\]\:\!void-text-void-fg-3 select {
+  color: var(--vscode-input-placeholderForeground) !important;
+}
+
+.void-scope .\[\&_select\]\:\!void-outline-none select {
+  outline: 2px solid transparent !important;
+  outline-offset: 2px !important;
+}

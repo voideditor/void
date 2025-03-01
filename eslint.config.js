@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import stylisticTs from '@stylistic/eslint-plugin-ts';
 import pluginLocal from 'eslint-plugin-local';
 import pluginJsdoc from 'eslint-plugin-jsdoc';
+// import pluginReact from 'eslint-plugin-react'; // Void
 
 import pluginHeader from 'eslint-plugin-header';
 pluginHeader.rules.header.meta.schema = false;
@@ -37,7 +38,7 @@ export default tseslint.config(
 		},
 		rules: {
 			'constructor-super': 'warn',
-			'curly': 'warn',
+			'curly': 'off', // <-- Void
 			'eqeqeq': 'warn',
 			'prefer-const': [
 				'warn',
@@ -80,7 +81,7 @@ export default tseslint.config(
 			'local/code-parameter-properties-must-have-explicit-accessibility': 'warn',
 			'local/code-no-nls-in-standalone-editor': 'warn',
 			'local/code-no-potentially-unsafe-disposables': 'warn',
-			'local/code-no-dangerous-type-assertions': 'warn',
+			'local/code-no-dangerous-type-assertions': 'off',
 			'local/code-no-standalone-editor': 'warn',
 			'local/code-no-unexternalized-strings': 'warn',
 			'local/code-must-use-super-dispose': 'warn',
@@ -110,16 +111,17 @@ export default tseslint.config(
 					]
 				}
 			],
-			'header/header': [
-				2,
-				'block',
-				[
-					'---------------------------------------------------------------------------------------------',
-					' *  Copyright (c) Microsoft Corporation. All rights reserved.',
-					' *  Licensed under the MIT License. See License.txt in the project root for license information.',
-					' *--------------------------------------------------------------------------------------------'
-				]
-			]
+			// Void - this should only apply to workbench/void/
+			// 'header/header': [
+			// 	2,
+			// 	'block',
+			// 	[
+			// 		'/*--------------------------------------------------------------------------------------',
+			// 		'*  Copyright 2025 Glass Devtools, Inc. All rights reserved.',
+			// 		'*  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.',
+			// 		'*--------------------------------------------------------------------------------------*/',
+			// 	]
+			// ]
 		},
 	},
 	// TS
@@ -137,7 +139,7 @@ export default tseslint.config(
 			'jsdoc': pluginJsdoc,
 		},
 		rules: {
-			'@stylistic/ts/semi': 'warn',
+			'@stylistic/ts/semi': 'off', // <-- Void
 			'@stylistic/ts/member-delimiter-style': 'warn',
 			'local/code-no-unused-expressions': [
 				'warn',

@@ -281,6 +281,7 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 				this.emit('data', file);
 			}));
 
+		// Void - this is important, creates the product.json in .app
 		let productJsonContents;
 		const productJsonStream = gulp.src(['product.json'], { base: '.' })
 			.pipe(json({ commit, date: readISODate('out-build'), checksums, version }))

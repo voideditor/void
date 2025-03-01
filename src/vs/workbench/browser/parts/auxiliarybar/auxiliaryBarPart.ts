@@ -52,7 +52,7 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 	static readonly viewContainersWorkspaceStateKey = 'workbench.auxiliarybar.viewContainersWorkspaceState';
 
 	// Use the side bar dimensions
-	override readonly minimumWidth: number = 170;
+	override readonly minimumWidth: number = 230; // Void changed this (was 170)
 	override readonly maximumWidth: number = Number.POSITIVE_INFINITY;
 	override readonly minimumHeight: number = 0;
 	override readonly maximumHeight: number = Number.POSITIVE_INFINITY;
@@ -230,9 +230,9 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 		actions.push(...[
 			new Separator(),
 			new SubmenuAction('workbench.action.panel.position', localize('activity bar position', "Activity Bar Position"), positionActions),
-			toAction({ id: ToggleSidebarPositionAction.ID, label: currentPositionRight ? localize('move second side bar left', "Move Secondary Side Bar Left") : localize('move second side bar right', "Move Secondary Side Bar Right"), run: () => this.commandService.executeCommand(ToggleSidebarPositionAction.ID) }),
+			toAction({ id: ToggleSidebarPositionAction.ID, label: currentPositionRight ? localize('move second side bar left', "Move Void Side Bar Left") : localize('move second side bar right', "Move Void Side Bar Right"), run: () => this.commandService.executeCommand(ToggleSidebarPositionAction.ID) }), // Void Side bar
 			toggleShowLabelsAction,
-			toAction({ id: ToggleAuxiliaryBarAction.ID, label: localize('hide second side bar', "Hide Secondary Side Bar"), run: () => this.commandService.executeCommand(ToggleAuxiliaryBarAction.ID) })
+			toAction({ id: ToggleAuxiliaryBarAction.ID, label: localize('hide second side bar', "Hide Void Side Bar"), run: () => this.commandService.executeCommand(ToggleAuxiliaryBarAction.ID) }) // Void Side bar
 		]);
 	}
 

@@ -509,7 +509,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 				'type': 'string',
 				'enum': ['left', 'right'],
 				'default': 'left',
-				'description': localize('sideBarLocation', "Controls the location of the primary side bar and activity bar. They can either show on the left or right of the workbench. The secondary side bar will show on the opposite side of the workbench.")
+				'description': localize('sideBarLocation', "Controls the location of the primary side bar and activity bar. They can either show on the left or right of the workbench. The Void side bar will show on the opposite side of the workbench.") // Void side bar
 			},
 			'workbench.panel.showLabels': {
 				'type': 'boolean',
@@ -547,12 +547,12 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 				'type': 'string',
 				'enum': ['default', 'top', 'bottom', 'hidden'],
 				'default': 'default',
-				'markdownDescription': localize({ comment: ['This is the description for a setting'], key: 'activityBarLocation' }, "Controls the location of the Activity Bar relative to the Primary and Secondary Side Bars."),
+				'markdownDescription': localize({ comment: ['This is the description for a setting'], key: 'activityBarLocation' }, "Controls the location of the Activity Bar relative to the Primary and Void Side Bars."), // Void side bar
 				'enumDescriptions': [
-					localize('workbench.activityBar.location.default', "Show the Activity Bar on the side of the Primary Side Bar and on top of the Secondary Side Bar."),
-					localize('workbench.activityBar.location.top', "Show the Activity Bar on top of the Primary and Secondary Side Bars."),
-					localize('workbench.activityBar.location.bottom', "Show the Activity Bar at the bottom of the Primary and Secondary Side Bars."),
-					localize('workbench.activityBar.location.hide', "Hide the Activity Bar in the Primary and Secondary Side Bars.")
+					localize('workbench.activityBar.location.default', "Show the Activity Bar on the side of the Primary Side Bar and on top of the Void Side Bar."), // Void side bar
+					localize('workbench.activityBar.location.top', "Show the Activity Bar on top of the Primary and Void Side Bars."), // Void side bar
+					localize('workbench.activityBar.location.bottom', "Show the Activity Bar at the bottom of the Primary and Void Side Bars."), // Void side bar
+					localize('workbench.activityBar.location.hide', "Hide the Activity Bar in the Primary and Void Side Bars.") // Void side bar
 				],
 			},
 			'workbench.activityBar.iconClickBehavior': {

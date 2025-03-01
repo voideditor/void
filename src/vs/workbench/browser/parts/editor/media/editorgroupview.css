@@ -49,26 +49,27 @@
 	height: calc(100% - 70px);
 }
 
+/* light */
 .monaco-workbench .part.editor > .content .editor-group-container > .editor-group-watermark > .letterpress {
 	width: 100%;
 	max-height: 100%;
 	aspect-ratio: 1/1;
-	background-image: url('./letterpress-light.svg');
+	background-image: url('./void_cube_noshadow.png'); /* // Void */
 	background-size: contain;
 	background-position-x: center;
 	background-repeat: no-repeat;
 }
 
 .monaco-workbench.vs-dark .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress {
-	background-image: url('./letterpress-dark.svg');
+	background-image: url('./void_cube_noshadow.png'); /* // Void */
 }
 
 .monaco-workbench.hc-light .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress {
-	background-image: url('./letterpress-hcLight.svg');
+	background-image: url('./void_cube_noshadow.png'); /* // Void */
 }
 
 .monaco-workbench.hc-black .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress {
-	background-image: url('./letterpress-hcDark.svg');
+	background-image: url('./void_cube_noshadow.png'); /* // Void */
 }
 
 .monaco-workbench .part.editor > .content:not(.empty) .editor-group-container > .editor-group-watermark > .shortcuts,

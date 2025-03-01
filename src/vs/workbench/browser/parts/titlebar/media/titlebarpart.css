@@ -242,7 +242,7 @@
 }
 
 .monaco-workbench .part.titlebar > .titlebar-container > .titlebar-left > .window-appicon:not(.codicon) {
-	background-image: url('../../../media/code-icon.svg');
+	background-image: url('../../../media/void-icon-sm.png');
 	background-repeat: no-repeat;
 	background-position: center center;
 	background-size: 16px;

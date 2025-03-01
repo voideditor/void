@@ -160,7 +160,7 @@ export class InputBox extends Widget {
 			this.scrollableElement = new ScrollableElement(this.element, { vertical: ScrollbarVisibility.Auto });
 
 			if (this.options.flexibleWidth) {
-				this.input.setAttribute('wrap', 'off');
+				this.input.setAttribute('wrap', 'off'); // Void changed this to 'on' at one point, but we're no longer using InputBox
 				this.mirror.style.whiteSpace = 'pre';
 				this.mirror.style.wordWrap = 'initial';
 			}

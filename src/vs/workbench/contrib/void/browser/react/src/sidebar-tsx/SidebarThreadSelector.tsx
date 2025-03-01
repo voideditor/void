@@ -6,8 +6,10 @@
 import React from "react";
 import { useAccessor, useChatThreadsState } from '../util/services.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
-import { IconX } from './SidebarChat.js';
+import { IconX, IconTrash } from './SidebarChat.js';
 
+const X_ICON_SIZE = 16
+const TRASH_ICON_SIZE = 14
 
 const truncate = (s: string) => {
 	let len = s.length
@@ -45,7 +47,7 @@ export const SidebarThreadSelector = () => {
 					onClick={() => sidebarStateService.setState({ isHistoryOpen: false })}
 				>
 					<IconX
-						size={16}
+						size={X_ICON_SIZE}
 						className="p-[1px] stroke-[2] opacity-80 text-void-fg-3 hover:brightness-95"
 					/>
 				</button>
@@ -110,6 +112,16 @@ export const SidebarThreadSelector = () => {
 									>
 										<div className='truncate'>{`${firstMsg}`}</div>
 										<div>{`\u00A0(${numMessages})`}</div>
+										<IconTrash
+												size={TRASH_ICON_SIZE}
+												className='ml-auto'
+												onClick={(e) => {
+													// Prevent the click event from bubbling up to the parent button
+													// to prevent the deleted thread from being switched to.
+													e.stopPropagation();
+													chatThreadsService.deleteThreadById(pastThread.id);
+												}}
+											/>
 									</button>
 								</li>
 							);

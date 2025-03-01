@@ -156,6 +156,7 @@ export interface IChatThreadService {
 	getCurrentThread(): ChatThreads[string];
 	openNewThread(): void;
 	switchToThread(threadId: string): void;
+	deleteThreadById(threadId: string): void;
 
 	// you can edit multiple messages
 	// the one you're currently editing is "focused", and we add items to that one when you press cmd+L.
@@ -279,6 +280,40 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	private _storeAllThreads(threads: ChatThreads) {
 		this._storageService.store(THREAD_STORAGE_KEY, JSON.stringify(threads), StorageScope.APPLICATION, StorageTarget.USER)
+	}
+
+	public deleteThreadById(threadId: string): void {
+		const { allThreads, currentThreadId } = this.state
+		const newThreads = { ...allThreads }
+		if (threadId in newThreads) {
+			delete newThreads[threadId]
+		}
+
+		// If we're deleting the current thread, switch to another thread first
+		const needsThreadSwitch = threadId === currentThreadId
+		let newCurrentThreadId = currentThreadId
+
+		if (needsThreadSwitch) {
+			// Find another thread to switch to
+			const remainingThreadIds = Object.keys(newThreads)
+			if (remainingThreadIds.length > 0) {
+				// Switch to the most recently modified thread
+				newCurrentThreadId = remainingThreadIds.sort((threadId1, threadId2) =>
+					newThreads[threadId2].lastModified > newThreads[threadId1].lastModified ? 1 : -1
+				)[0]
+			} else {
+				// If no threads left, create a new one
+				const newThread = newThreadObject()
+				newThreads[newThread.id] = newThread
+				newCurrentThreadId = newThread.id
+			}
+		}
+
+		this._storeAllThreads(newThreads)
+		this._setState({
+			allThreads: newThreads,
+			currentThreadId: newCurrentThreadId
+		}, true)
 	}
 
 	// this should be the only place this.state = ... appears besides constructor

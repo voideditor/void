@@ -169,6 +169,7 @@ export interface IChatThreadService {
 	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
 	getCurrentThreadStagingSelections: () => StagingSelectionItem[]
 	setCurrentThreadStagingSelections: (stagingSelections: StagingSelectionItem[]) => void
+	getSortedThreadIdsByTime: () => string[]
 
 
 	// call to edit a message
@@ -284,36 +285,30 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	public deleteThreadById(threadId: string): void {
 		const { allThreads, currentThreadId } = this.state
-		const newThreads = { ...allThreads }
-		if (threadId in newThreads) {
-			delete newThreads[threadId]
+
+		if (!(threadId in allThreads)) {
+			console.error('Void: Tried deleting thread with id that does not exist.')
+			return
 		}
 
-		// If we're deleting the current thread, switch to another thread first
-		const needsThreadSwitch = threadId === currentThreadId
-		let newCurrentThreadId = currentThreadId
-
-		if (needsThreadSwitch) {
-			// Find another thread to switch to
-			const remainingThreadIds = Object.keys(newThreads)
-			if (remainingThreadIds.length > 0) {
-				// Switch to the most recently modified thread
-				newCurrentThreadId = remainingThreadIds.sort((threadId1, threadId2) =>
-					newThreads[threadId2].lastModified > newThreads[threadId1].lastModified ? 1 : -1
-				)[0]
-			} else {
-				// If no threads left, create a new one
-				const newThread = newThreadObject()
-				newThreads[newThread.id] = newThread
-				newCurrentThreadId = newThread.id
+		// If we're on the thread we're about to delete, switch away from it
+		if (threadId === currentThreadId) {
+			const switchToThreadId = this.getSortedThreadIdsByTime().find(id => id !== threadId)
+			if (switchToThreadId !== undefined) {
+				this.switchToThread(switchToThreadId)
+			}
+			else {
+				this.openNewThread()
 			}
 		}
 
-		this._storeAllThreads(newThreads)
-		this._setState({
-			allThreads: newThreads,
-			currentThreadId: newCurrentThreadId
-		}, true)
+		// Delete the thread ID
+		const newAllThreads = { ...allThreads }
+		delete newAllThreads[threadId]
+
+		this._storeAllThreads(newAllThreads)
+		this._setState({ allThreads: newAllThreads, }, false)
+
 	}
 
 	// this should be the only place this.state = ... appears besides constructor
@@ -570,6 +565,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 		this._storeAllThreads(newThreads)
 		this._setState({ allThreads: newThreads, currentThreadId: newThread.id }, true)
+	}
+
+	getSortedThreadIdsByTime() {
+		const allThreads = this.state.allThreads
+		return Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads[threadId1].lastModified > allThreads[threadId2].lastModified ? -1 : 1)
 	}
 
 

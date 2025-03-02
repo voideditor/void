@@ -30,9 +30,7 @@ export const SidebarThreadSelector = () => {
 	const { allThreads } = threadsState
 
 	// sorted by most recent to least recent
-	const sortedThreadIds = Object.keys(allThreads ?? {})
-		.sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
-		.filter(threadId => allThreads![threadId].messages.length !== 0)
+	const sortedThreadIds = chatThreadsService.getSortedThreadIdsByTime().filter(threadId => allThreads![threadId].messages.length !== 0)
 
 	return (
 		<div className="flex p-2 flex-col gap-y-1 max-h-[400px] overflow-y-auto">
@@ -113,15 +111,15 @@ export const SidebarThreadSelector = () => {
 										<div className='truncate'>{`${firstMsg}`}</div>
 										<div>{`\u00A0(${numMessages})`}</div>
 										<IconTrash
-												size={TRASH_ICON_SIZE}
-												className='ml-auto'
-												onClick={(e) => {
-													// Prevent the click event from bubbling up to the parent button
-													// to prevent the deleted thread from being switched to.
-													e.stopPropagation();
-													chatThreadsService.deleteThreadById(pastThread.id);
-												}}
-											/>
+											size={TRASH_ICON_SIZE}
+											className='ml-auto'
+											onClick={(e) => {
+												// Prevent the click event from bubbling up to the parent button
+												// to prevent the deleted thread from being switched to.
+												e.stopPropagation();
+												chatThreadsService.deleteThreadById(pastThread.id);
+											}}
+										/>
 									</button>
 								</li>
 							);

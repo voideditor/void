@@ -278,7 +278,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 };
 
 const useResizeObserver = () => {
-	const ref = useRef(null);
+	const ref = useRef<any>(null);
 	const [dimensions, setDimensions] = useState({ height: 0, width: 0 });
 
 	useEffect(() => {

@@ -12,7 +12,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from './llmMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo as chat_userMessageContentWithAllFiles, chat_selectionsString } from '../browser/prompt/prompts.js';
+import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo, chat_selectionsString } from '../browser/prompt/prompts.js';
 import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from './toolsService.js';
 import { toLLMChatMessage } from './llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
@@ -360,7 +360,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const instructions = userMessage
 		const userMessageContent = await chat_userMessageContent(instructions, currSelns)
 		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidFileService)
-		const userMessageFullContent = chat_userMessageContentWithAllFiles(userMessageContent, selectionsStr)
+		const userMessageFullContent = chat_userMessageContentWithAllFilesToo(userMessageContent, selectionsStr)
 
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)

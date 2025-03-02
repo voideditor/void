@@ -248,7 +248,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 };
 
 const useResizeObserver = () => {
-	const ref = useRef(null);
+	const ref = useRef<any>(null);
 	const [dimensions, setDimensions] = useState({ height: 0, width: 0 });
 
 	useEffect(() => {
@@ -295,7 +295,6 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 }
 
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
-
 	return <button
 		className={`rounded-full flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
 			bg-white
@@ -565,10 +564,10 @@ const ToolResult = ({
 		<div className="mx-4 select-none">
 			<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
 				<div
-					className={`flex items-center min-h-[24px] ${isDropdown  ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : 'mx-1'}`}
+					className={`flex items-center min-h-[24px] ${isDropdown ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : 'mx-1'}`}
 					onClick={() => children && setIsExpanded(!isExpanded)}
 				>
-					{isDropdown  && (
+					{isDropdown && (
 						<ChevronRight
 							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
 						/>

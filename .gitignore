@@ -24,3 +24,5 @@ product.overrides.json
 .tmp/
 .tmp2/
 .tool-versions
+src/vs/workbench/contrib/void/browser/react/out/**
+src/vs/workbench/contrib/void/browser/react/src2/**

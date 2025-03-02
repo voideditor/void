@@ -3,10 +3,10 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { URI } from '../../../../../base/common/uri'
-import { EndOfLinePreference } from '../../../../../editor/common/model'
+import { URI } from '../../../../../base/common/uri.js'
+import { EndOfLinePreference } from '../../../../../editor/common/model.js'
 import { IModelService } from '../../../../../editor/common/services/model.js'
-import { IFileService } from '../../../../../platform/files/common/files'
+import { IFileService } from '../../../../../platform/files/common/files.js'
 
 
 // attempts to read URI of currently opened model, then of raw file

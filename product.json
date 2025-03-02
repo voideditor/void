@@ -29,7 +29,7 @@
 	"licenseFileName": "LICENSE.txt",
 	"reportIssueUrl": "https://github.com/voideditor/void/issues/new",
 	"nodejsRepository": "https://nodejs.org",
-	"urlProtocol": "void-editor",
+	"urlProtocol": "void",
 	"extensionsGallery": {
 		"serviceUrl": "https://open-vsx.org/vscode/gallery",
 		"itemUrl": "https://open-vsx.org/vscode/item"

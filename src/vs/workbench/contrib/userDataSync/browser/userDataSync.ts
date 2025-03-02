@@ -47,13 +47,14 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
 import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';
 import { IHostService } from '../../../services/host/browser/host.js';
-import { IUserDataProfilesService } from '../../../../platform/userDataProfile/common/userDataProfile.js';
 import { ITextFileService } from '../../../services/textfile/common/textfiles.js';
 import { ctxIsMergeResultEditor, ctxMergeBaseUri } from '../../mergeEditor/common/mergeEditor.js';
 import { IWorkbenchIssueService } from '../../issue/common/issue.js';
 import { IUserDataProfileService } from '../../../services/userDataProfile/common/userDataProfile.js';
 import { ILocalizedString } from '../../../../platform/action/common/action.js';
 import { isWeb } from '../../../../base/common/platform.js';
+import { PromptsConfig } from '../../../../platform/prompts/common/config.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 
 type ConfigureSyncQuickPickItem = { id: SyncResource; label: string; description?: string };
 
@@ -100,7 +101,6 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		@IActivityService private readonly activityService: IActivityService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IEditorService private readonly editorService: IEditorService,
-		@IUserDataProfilesService private readonly userDataProfilesService: IUserDataProfilesService,
 		@IUserDataProfileService private readonly userDataProfileService: IUserDataProfileService,
 		@IDialogService private readonly dialogService: IDialogService,
 		@IQuickInputService private readonly quickInputService: IQuickInputService,
@@ -116,7 +116,8 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		@IUserDataSyncStoreManagementService private readonly userDataSyncStoreManagementService: IUserDataSyncStoreManagementService,
 		@IHostService private readonly hostService: IHostService,
 		@ICommandService private readonly commandService: ICommandService,
-		@IWorkbenchIssueService private readonly workbenchIssueService: IWorkbenchIssueService
+		@IWorkbenchIssueService private readonly workbenchIssueService: IWorkbenchIssueService,
+		@IConfigurationService private readonly configService: IConfigurationService,
 	) {
 		super();
 
@@ -191,14 +192,12 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 							{
 								label: localize('replace remote', "Replace Remote"),
 								run: () => {
-									this.telemetryService.publicLog2<{ source: string; action: string }, SyncConflictsClassification>('sync/handleConflicts', { source: conflict.syncResource, action: 'acceptLocal' });
 									this.acceptLocal(conflict, conflict.conflicts[0]);
 								}
 							},
 							{
 								label: localize('replace local', "Replace Local"),
 								run: () => {
-									this.telemetryService.publicLog2<{ source: string; action: string }, SyncConflictsClassification>('sync/handleConflicts', { source: conflict.syncResource, action: 'acceptRemote' });
 									this.acceptRemote(conflict, conflict.conflicts[0]);
 								}
 							},
@@ -428,17 +427,14 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		this.globalActivityBadgeDisposable.clear();
 
 		let badge: IBadge | undefined = undefined;
-		let priority: number | undefined = undefined;
-
 		if (this.userDataSyncService.conflicts.length && this.userDataSyncEnablementService.isEnabled()) {
 			badge = new NumberBadge(this.getConflictsCount(), () => localize('has conflicts', "{0}: Conflicts Detected", SYNC_TITLE.value));
 		} else if (this.turningOnSync) {
 			badge = new ProgressBadge(() => localize('turning on syncing', "Turning on Settings Sync..."));
-			priority = 1;
 		}
 
 		if (badge) {
-			this.globalActivityBadgeDisposable.value = this.activityService.showGlobalActivity({ badge, priority });
+			this.globalActivityBadgeDisposable.value = this.activityService.showGlobalActivity({ badge });
 		}
 	}
 
@@ -452,7 +448,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		}
 
 		if (badge) {
-			this.accountBadgeDisposable.value = this.activityService.showAccountsActivity({ badge, priority: undefined });
+			this.accountBadgeDisposable.value = this.activityService.showAccountsActivity({ badge });
 		}
 	}
 
@@ -574,13 +570,19 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		}, {
 			id: SyncResource.Extensions,
 			label: getSyncAreaLabel(SyncResource.Extensions)
+		}, {
+			id: SyncResource.Profiles,
+			label: getSyncAreaLabel(SyncResource.Profiles),
 		}];
-		if (this.userDataProfilesService.isEnabled()) {
+
+		// if the `reusable prompt` feature is enabled, add appropriate item to the list
+		if (PromptsConfig.enabled(this.configService)) {
 			result.push({
-				id: SyncResource.Profiles,
-				label: getSyncAreaLabel(SyncResource.Profiles),
+				id: SyncResource.Prompts,
+				label: getSyncAreaLabel(SyncResource.Prompts)
 			});
 		}
+
 		return result;
 	}
 
@@ -871,7 +873,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 
 	private registerManageSyncAction(): void {
 		const that = this;
-		const when = ContextKeyExpr.and(CONTEXT_SYNC_ENABLEMENT, CONTEXT_ACCOUNT_STATE.isEqualTo(AccountStatus.Available), CONTEXT_SYNC_STATE.notEqualsTo(SyncStatus.Uninitialized));
+		const when = ContextKeyExpr.and(CONTEXT_SYNC_ENABLEMENT, CONTEXT_ACCOUNT_STATE.notEqualsTo(AccountStatus.Unavailable), CONTEXT_SYNC_STATE.notEqualsTo(SyncStatus.Uninitialized));
 		this._register(registerAction2(class SyncStatusAction extends Action2 {
 			constructor() {
 				super({

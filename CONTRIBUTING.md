@@ -18,7 +18,7 @@ We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Sour
 We wrote a [guide to working in VSCode].
 -->
 
-Most of Void's code lives in the two folders called `void/`.
+Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
 
 
 

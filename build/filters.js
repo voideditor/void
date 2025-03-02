@@ -134,6 +134,7 @@ module.exports.indentationFilter = [
 	'!extensions/markdown-math/notebook-out/*.js',
 	'!extensions/ipynb/notebook-out/**',
 	'!extensions/notebook-renderers/renderer-out/*.js',
+	'!extensions/open-remote-ssh/out/*.js',
 	'!extensions/simple-browser/media/*.js',
 ];
 

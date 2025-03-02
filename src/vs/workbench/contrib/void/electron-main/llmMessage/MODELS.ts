@@ -146,6 +146,15 @@ const openAISettings: ProviderSettings = {
 
 // ---------------- ANTHROPIC ----------------
 const anthropicModelOptions = {
+	'claude-3-7-sonnet-20250219': { // https://docs.anthropic.com/en/docs/about-claude/models/all-models#model-comparison-table
+		contextWindow: 200_000,
+		maxOutputTokens: 8_192, // TODO!!! 64_000 for extended thinking, can bump it to 128_000 with output-128k-2025-02-19
+		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: {}, // TODO!!!!
+	},
 	'claude-3-5-sonnet-20241022': {
 		contextWindow: 200_000,
 		maxOutputTokens: 8_192,
@@ -187,6 +196,7 @@ const anthropicSettings: ProviderSettings = {
 	modelOptions: anthropicModelOptions,
 	modelOptionsFallback: (modelName) => {
 		let fallbackName: keyof typeof anthropicModelOptions | null = null
+		if (modelName.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
 		if (modelName.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
 		if (modelName.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
 		if (modelName.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'

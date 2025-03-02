@@ -41,7 +41,7 @@ export default tseslint.config(
 			'curly': 'off', // <-- Void
 			'eqeqeq': 'warn',
 			'prefer-const': [
-				'warn',
+				'off', // <-- Void
 				{
 					'destructuring': 'all'
 				}
@@ -140,7 +140,7 @@ export default tseslint.config(
 		},
 		rules: {
 			'@stylistic/ts/semi': 'off', // <-- Void
-			'@stylistic/ts/member-delimiter-style': 'warn',
+			'@stylistic/ts/member-delimiter-style': 'off', // <-- Void
 			'local/code-no-unused-expressions': [
 				'warn',
 				{
@@ -148,7 +148,7 @@ export default tseslint.config(
 				}
 			],
 			'jsdoc/no-types': 'warn',
-			'local/code-no-static-self-ref': 'warn'
+			'local/code-no-static-self-ref': 'off' // <-- Void
 		}
 	},
 	// vscode TS

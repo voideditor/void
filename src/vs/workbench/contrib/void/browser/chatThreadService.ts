@@ -327,7 +327,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const thread = this.getCurrentThread()
 
 		if (thread.messages?.[messageIdx]?.role !== 'user') {
-			throw new Error("Error: editing a message with role !=='user'")
+			throw new Error(`Error: editing a message with role !=='user'`)
 		}
 
 		// get prev and curr selections before clearing the message

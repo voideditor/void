@@ -172,7 +172,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: VOID_OPEN_SETTINGS_ACTION_ID,
-			title: nls.localize2('voidSettings', "Void: Open Settings"),
+			title: nls.localize2('voidSettingsAction2', "Void: Open Settings"),
 			f1: true,
 			icon: Codicon.settingsGear,
 		});
@@ -202,7 +202,7 @@ MenuRegistry.appendMenuItem(MenuId.GlobalActivity, {
 	group: '0_command',
 	command: {
 		id: VOID_TOGGLE_SETTINGS_ACTION_ID,
-		title: nls.localize('voidSettings', "Void\'s Settings")
+		title: nls.localize('voidSettingsActionGear', "Void\'s Settings")
 	},
 	order: 1
 });

@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IContextMenuProvider } from '../../contextmenu.js';
-import { addDisposableListener, EventHelper, EventType, IFocusTracker, isActiveElement, reset, trackFocus } from '../../dom.js';
-import { sanitize } from '../../dompurify/dompurify.js';
+import { addDisposableListener, EventHelper, EventType, IFocusTracker, isActiveElement, reset, trackFocus, $ } from '../../dom.js';
+import dompurify from '../../dompurify/dompurify.js';
 import { StandardKeyboardEvent } from '../../keyboardEvent.js';
 import { renderMarkdown, renderStringAsPlaintext } from '../../markdownRenderer.js';
 import { Gesture, EventType as TouchEventType } from '../../touch.js';
-import { getDefaultHoverDelegate } from '../hover/hoverDelegateFactory.js';
+import { createInstantHoverDelegate, getDefaultHoverDelegate } from '../hover/hoverDelegateFactory.js';
 import { IHoverDelegate } from '../hover/hoverDelegate.js';
 import { renderLabelWithIcons } from '../iconLabel/iconLabels.js';
 import { Action, IAction, IActionRunner } from '../../../common/actions.js';
@@ -28,7 +28,10 @@ import { IActionProvider } from '../dropdown/dropdown.js';
 
 export interface IButtonOptions extends Partial<IButtonStyles> {
 	readonly title?: boolean | string;
-	readonly ariaLabel?: boolean | string;
+	/**
+	 * Will fallback to `title` if not set.
+	 */
+	readonly ariaLabel?: string;
 	readonly supportIcons?: boolean;
 	readonly supportShortLabel?: boolean;
 	readonly secondary?: boolean;
@@ -180,7 +183,7 @@ export class Button extends Disposable implements IButton {
 		this._element.remove();
 	}
 
-	private getContentElements(content: string): HTMLElement[] {
+	protected getContentElements(content: string): HTMLElement[] {
 		const elements: HTMLSpanElement[] = [];
 		for (let segment of renderLabelWithIcons(content)) {
 			if (typeof (segment) === 'string') {
@@ -239,7 +242,7 @@ export class Button extends Disposable implements IButton {
 			const root = rendered.element.querySelector('p')?.innerHTML;
 			if (root) {
 				// Only allow a very limited set of inline html tags
-				const sanitized = sanitize(root, { ADD_TAGS: ['b', 'i', 'u', 'code', 'span'], ALLOWED_ATTR: ['class'], RETURN_TRUSTED_TYPE: true });
+				const sanitized = dompurify.sanitize(root, { ADD_TAGS: ['b', 'i', 'u', 'code', 'span'], ALLOWED_ATTR: ['class'], RETURN_TRUSTED_TYPE: true });
 				labelElement.innerHTML = sanitized as unknown as string;
 			} else {
 				reset(labelElement);
@@ -261,11 +264,7 @@ export class Button extends Disposable implements IButton {
 
 		this.setTitle(title);
 
-		if (typeof this.options.ariaLabel === 'string') {
-			this._element.setAttribute('aria-label', this.options.ariaLabel);
-		} else if (this.options.ariaLabel) {
-			this._element.setAttribute('aria-label', title);
-		}
+		this._setAriaLabel();
 
 		this._label = value;
 	}
@@ -286,7 +285,16 @@ export class Button extends Disposable implements IButton {
 		}
 	}
 
+	protected _setAriaLabel(): void {
+		if (typeof this.options.ariaLabel === 'string') {
+			this._element.setAttribute('aria-label', this.options.ariaLabel);
+		} else if (typeof this.options.title === 'string') {
+			this._element.setAttribute('aria-label', this.options.title);
+		}
+	}
+
 	set icon(icon: ThemeIcon) {
+		this._setAriaLabel();
 		this._element.classList.add(...ThemeIcon.asClassNameArray(icon));
 	}
 
@@ -321,7 +329,7 @@ export class Button extends Disposable implements IButton {
 
 	setTitle(title: string) {
 		if (!this._hover && title !== '') {
-			this._hover = this._register(getBaseLayerHoverDelegate().setupManagedHover(this.options.hoverDelegate ?? getDefaultHoverDelegate('mouse'), this._element, title));
+			this._hover = this._register(getBaseLayerHoverDelegate().setupManagedHover(this.options.hoverDelegate ?? getDefaultHoverDelegate('element'), this._element, title));
 		} else if (this._hover) {
 			this._hover.update(title);
 		}
@@ -362,6 +370,10 @@ export class ButtonWithDropdown extends Disposable implements IButton {
 		this.element.classList.add('monaco-button-dropdown');
 		container.appendChild(this.element);
 
+		if (!options.hoverDelegate) {
+			options = { ...options, hoverDelegate: this._register(createInstantHoverDelegate()) };
+		}
+
 		this.button = this._register(new Button(this.element, options));
 		this._register(this.button.onDidClick(e => this._onDidClick.fire(e)));
 		this.action = this._register(new Action('primaryAction', renderStringAsPlaintext(this.button.label), undefined, true, async () => this._onDidClick.fire(undefined)));
@@ -384,8 +396,7 @@ export class ButtonWithDropdown extends Disposable implements IButton {
 		this.separatorContainer.style.backgroundColor = buttonBackground ?? '';
 		this.separator.style.backgroundColor = options.buttonSeparator ?? '';
 
-		this.dropdownButton = this._register(new Button(this.element, { ...options, title: false, supportIcons: true }));
-		this._register(getBaseLayerHoverDelegate().setupManagedHover(getDefaultHoverDelegate('mouse'), this.dropdownButton.element, localize("button dropdown more actions", 'More Actions...')));
+		this.dropdownButton = this._register(new Button(this.element, { ...options, title: localize("button dropdown more actions", 'More Actions...'), supportIcons: true }));
 		this.dropdownButton.element.setAttribute('aria-haspopup', 'true');
 		this.dropdownButton.element.setAttribute('aria-expanded', 'false');
 		this.dropdownButton.element.classList.add('monaco-dropdown-button');
@@ -576,5 +587,74 @@ export class ButtonBar {
 			}
 
 		}));
+	}
+}
+
+/**
+ * This is a Button that supports an icon to the left, and markdown to the right, with proper separation and wrapping the markdown label, which Button doesn't do.
+ */
+export class ButtonWithIcon extends Button {
+	private _iconElement: HTMLElement;
+	private _mdlabelElement: HTMLElement;
+
+	constructor(container: HTMLElement, options: IButtonOptions) {
+		super(container, options);
+
+		if (options.supportShortLabel) {
+			throw new Error('ButtonWithIcon does not support short labels');
+		}
+
+		this._element.classList.add('monaco-icon-button');
+		this._iconElement = $('');
+		this._mdlabelElement = $('.monaco-button-mdlabel');
+		this._element.append(this._iconElement, this._mdlabelElement);
+	}
+
+	override set label(value: IMarkdownString | string) {
+		if (this._label === value) {
+			return;
+		}
+
+		if (isMarkdownString(this._label) && isMarkdownString(value) && markdownStringEqual(this._label, value)) {
+			return;
+		}
+
+		this._element.classList.add('monaco-text-button');
+		if (isMarkdownString(value)) {
+			const rendered = renderMarkdown(value, { inline: true });
+			rendered.dispose();
+
+			const root = rendered.element.querySelector('p')?.innerHTML;
+			if (root) {
+				// Only allow a very limited set of inline html tags
+				const sanitized = dompurify.sanitize(root, { ADD_TAGS: ['b', 'i', 'u', 'code', 'span'], ALLOWED_ATTR: ['class'], RETURN_TRUSTED_TYPE: true });
+				this._mdlabelElement.innerHTML = sanitized as unknown as string;
+			} else {
+				reset(this._mdlabelElement);
+			}
+		} else {
+			if (this.options.supportIcons) {
+				reset(this._mdlabelElement, ...this.getContentElements(value));
+			} else {
+				this._mdlabelElement.textContent = value;
+			}
+		}
+
+		let title: string = '';
+		if (typeof this.options.title === 'string') {
+			title = this.options.title;
+		} else if (this.options.title) {
+			title = renderStringAsPlaintext(value);
+		}
+
+		this.setTitle(title);
+		this._setAriaLabel();
+		this._label = value;
+	}
+
+	override set icon(icon: ThemeIcon) {
+		this._iconElement.classList.value = '';
+		this._iconElement.classList.add(...ThemeIcon.asClassNameArray(icon));
+		this._setAriaLabel();
 	}
 }

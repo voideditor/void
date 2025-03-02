@@ -113,7 +113,7 @@
 
 .file-icons-enabled .show-file-icons .vs_code_editor_walkthrough\.md-name-file-icon.md-ext-file-icon.ext-file-icon.markdown-lang-file-icon.file-icon::before {
 	content: ' ';
-	background-image: url('../../../../browser/media/void-icon-sm.png');
+	background-image: url('../../../../browser/media/void-icon-sm.png'); /* // Void */
 }
 
 .monaco-workbench .part.editor > .content .walkThroughContent .mac-only,

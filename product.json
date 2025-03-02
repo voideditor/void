@@ -31,8 +31,8 @@
 	"nodejsRepository": "https://nodejs.org",
 	"urlProtocol": "void",
 	"extensionsGallery": {
-		"serviceUrl": "https://open-vsx.org/vscode/gallery",
-		"itemUrl": "https://open-vsx.org/vscode/item"
+		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
+		"itemUrl": "https://marketplace.visualstudio.com/items"
 	},
 	"builtInExtensions": []
 }

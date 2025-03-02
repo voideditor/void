@@ -15,8 +15,6 @@ import './sidebarStateService.js'
 // register quick edit (Ctrl+K)
 import './quickEditActions.js'
 
-// register Thread History
-import './chatThreadService.js'
 
 // register Autocomplete
 import './autocompleteService.js'
@@ -56,3 +54,7 @@ import '../common/voidUpdateService.js'
 
 // tools
 import '../common/toolsService.js'
+
+// register Thread History
+import '../common/chatThreadService.js'
+

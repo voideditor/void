@@ -11,12 +11,12 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
-import { ILLMMessageService } from '../common/llmMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo as chat_userMessageContentWithAllFiles, chat_selectionsString } from './prompt/prompts.js';
-import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from '../common/toolsService.js';
-import { toLLMChatMessage } from '../common/llmMessageTypes.js';
+import { ILLMMessageService } from './llmMessageService.js';
+import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo as chat_userMessageContentWithAllFiles, chat_selectionsString } from '../browser/prompt/prompts.js';
+import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from './toolsService.js';
+import { toLLMChatMessage } from './llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { IVoidFileService } from '../common/voidFileService.js';
+import { IVoidFileService } from './voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 
 
@@ -36,6 +36,9 @@ export type CodeSelection = {
 	fileURI: URI;
 	selectionStr: string;
 	range: IRange;
+	state: {
+		isOpened: boolean;
+	};
 }
 
 export type FileSelection = {
@@ -43,6 +46,9 @@ export type FileSelection = {
 	fileURI: URI;
 	selectionStr: null;
 	range: null;
+	state: {
+		isOpened: boolean;
+	};
 }
 
 export type StagingSelectionItem = CodeSelection | FileSelection
@@ -60,11 +66,7 @@ export type ToolMessage<T extends ToolName> = {
 
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
-	| {
-		role: 'system';
-		content: string;
-		displayContent?: undefined;
-	} | {
+	{
 		role: 'user';
 		content: string | null; // content displayed to the LLM on future calls - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
@@ -76,7 +78,7 @@ export type ChatMessage =
 	} | {
 		role: 'assistant';
 		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
-		displayContent: string | null; // content displayed to user (this is the same as content for now) - allowed to be '', will be ignored
+		reasoning: string | null; // reasoning from the LLM, used for step-by-step thinking
 	}
 	| ToolMessage<ToolName>
 
@@ -98,14 +100,18 @@ export type ChatThreads = {
 		state: {
 			stagingSelections: StagingSelectionItem[];
 			focusedMessageIdx: number | undefined; // index of the message that is being edited (undefined if none)
-			isCheckedOfSelectionId: { [selectionId: string]: boolean };
+			isCheckedOfSelectionId: { [selectionId: string]: boolean }; // TODO
 		}
 	};
 }
 
 type ThreadType = ChatThreads[string]
 
-const defaultThreadState: ThreadType['state'] = { stagingSelections: [], focusedMessageIdx: undefined, isCheckedOfSelectionId: {} }
+const defaultThreadState: ThreadType['state'] = {
+	stagingSelections: [],
+	focusedMessageIdx: undefined,
+	isCheckedOfSelectionId: {}
+}
 
 export type ThreadsState = {
 	allThreads: ChatThreads;
@@ -116,6 +122,7 @@ export type ThreadStreamState = {
 	[threadId: string]: undefined | {
 		error?: { message: string, fullError: Error | null, };
 		messageSoFar?: string;
+		reasoningSoFar?: string;
 		streamingToken?: string;
 	}
 }
@@ -128,19 +135,12 @@ const newThreadObject = () => {
 		createdAt: now,
 		lastModified: now,
 		messages: [],
-		state: {
-			stagingSelections: [],
-			focusedMessageIdx: undefined,
-			isCheckedOfSelectionId: {}
-		},
+		state: defaultThreadState,
 
 	} satisfies ChatThreads[string]
 }
 
-const THREAD_VERSION_KEY = 'void.chatThreadVersion'
-const LATEST_THREAD_VERSION = 'v2'
-
-const THREAD_STORAGE_KEY = 'void.chatThreadStorage'
+export const THREAD_STORAGE_KEY = 'void.chatThreadStorage'
 
 
 type ChatMode = 'agent' | 'chat'
@@ -166,8 +166,8 @@ export interface IChatThreadService {
 	// exposed getters/setters
 	getCurrentMessageState: (messageIdx: number) => UserMessageState
 	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
-	getCurrentThreadStagingSelections: () => StagingSelectionItem[]
-	setCurrentThreadStagingSelections: (stagingSelections: StagingSelectionItem[]) => void
+	getCurrentThreadState: () => ThreadType['state']
+	setCurrentThreadState: (newState: Partial<ThreadType['state']>) => void
 
 
 	// call to edit a message
@@ -203,18 +203,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 	) {
 		super()
+		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
 
-		const oldVersionNum = this._storageService.get(THREAD_VERSION_KEY, StorageScope.APPLICATION)
+		const readThreads = this._readAllThreads() || {}
 
-
-		const readThreads = this._readAllThreads()
-		const updatedThreads = this._updatedThreadsToVersion(readThreads, oldVersionNum)
-
-		if (updatedThreads !== null) {
-			this._storeAllThreads(updatedThreads)
-		}
-
-		const allThreads = updatedThreads ?? readThreads
+		const allThreads = readThreads
 		this.state = {
 			allThreads: allThreads,
 			currentThreadId: null as unknown as string, // gets set in startNewThread()
@@ -222,64 +215,36 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// always be in a thread
 		this.openNewThread()
-
-		this._storageService.store(THREAD_VERSION_KEY, LATEST_THREAD_VERSION, StorageScope.APPLICATION, StorageTarget.USER)
-
 	}
 
-
-	private _readAllThreads(): ChatThreads {
-		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION)
-		const threads: ChatThreads = threadsStr ? JSON.parse(threadsStr) : {}
-
-		return threads
-	}
-
-
-	// returns if should update
-	private _updatedThreadsToVersion(oldThreadsObject: any, oldVersion: string | undefined): ChatThreads | null {
-
-		if (!oldVersion) {
-
-			// unknown, just reset chat?
-			return null
-		}
-
-		/** v1 -> v2
-				- threads.state.currentStagingSelections: CodeStagingSelection[] | null;
-				+ thread[threadIdx].state
-				+ message.state
-				+ chatMessage.staging: StagingInfo | null
-				*/
-		else if (oldVersion === 'v1') {
-			const threads = oldThreadsObject as Omit<ChatThreads, 'staging' | 'focusedMessageIdx'>
-			// update the threads
-			for (const thread of Object.values(threads)) {
-				if (!thread.state) {
-					thread.state = defaultThreadState
-				}
-				for (const chatMessage of Object.values(thread.messages)) {
-					if (chatMessage.role === 'user' && !chatMessage.state) {
-						chatMessage.state = defaultMessageState
-					}
-				}
+	// !!! this is important for properly restoring URIs from storage
+	private _convertThreadDataFromStorage(threadsStr: string): ChatThreads {
+		return JSON.parse(threadsStr, (key, value) => {
+			if (value && typeof value === 'object' && value.$mid === 1) { //$mid is the MarshalledId. $mid === 1 means it is a URI
+				return URI.from(value);
 			}
+			return value;
+		});
+	}
 
-			// push the update
-			return threads
-		}
-		else if (oldVersion === 'v2') {
+	private _readAllThreads(): ChatThreads | null {
+		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION);
+		if (!threadsStr) {
 			return null
 		}
-
-		// up to date
-		return null
-
+		return this._convertThreadDataFromStorage(threadsStr);
 	}
 
 	private _storeAllThreads(threads: ChatThreads) {
-		this._storageService.store(THREAD_STORAGE_KEY, JSON.stringify(threads), StorageScope.APPLICATION, StorageTarget.USER)
+		const serializedThreads = JSON.stringify(threads);
+		this._storageService.store(
+			THREAD_STORAGE_KEY,
+			serializedThreads,
+			StorageScope.APPLICATION,
+			StorageTarget.USER
+		);
 	}
+
 
 	// this should be the only place this.state = ... appears besides constructor
 	private _setState(state: Partial<ThreadsState>, affectsCurrent: boolean) {
@@ -313,10 +278,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// ---------- streaming ----------
 
-	private _finishStreamingTextMessage = (threadId: string, content: string, error?: { message: string, fullError: Error | null }) => {
+	private _finishStreamingTextMessage = (threadId: string, options: { content: string, reasoning?: string }, error?: { message: string, fullError: Error | null }) => {
 		// add assistant's message to chat history, and clear selection
-		this._addMessageToThread(threadId, { role: 'assistant', content, displayContent: content || null })
-		this._setStreamState(threadId, { messageSoFar: undefined, streamingToken: undefined, error })
+		this._addMessageToThread(threadId, { role: 'assistant', content: options.content, reasoning: options.reasoning || null })
+		this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, error })
 	}
 
 
@@ -331,8 +296,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 
 		// get prev and curr selections before clearing the message
-		const prevSelns = this._getSelectionsUpToMessageIdx(messageIdx)
-		const currSelns = thread.messages[messageIdx].selections || []
+		const prevSelns = this._getSelectionsUpToMessageIdx(messageIdx) // selections for previous messages
+		const currSelns = thread.messages[messageIdx].state.stagingSelections || [] // staging selections for the edited message
 
 		// clear messages up to the index
 		const slicedMessages = thread.messages.slice(0, messageIdx)
@@ -414,17 +379,17 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 					tools: tools,
 
-					onText: ({ fullText }) => {
-						this._setStreamState(threadId, { messageSoFar: fullText })
+					onText: ({ fullText, fullReasoning }) => {
+						this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning })
 					},
-					onFinalMessage: async ({ fullText, toolCalls }) => {
+					onFinalMessage: async ({ fullText, toolCalls, fullReasoning }) => {
 
 						if ((toolCalls?.length ?? 0) === 0) {
-							this._finishStreamingTextMessage(threadId, fullText)
+							this._finishStreamingTextMessage(threadId, { content: fullText, reasoning: fullReasoning })
 						}
 						else {
-							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, displayContent: fullText })
-							this._setStreamState(threadId, { messageSoFar: undefined }) // clear streaming message
+							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning || null })
+							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined }) // clear streaming message
 							for (const tool of toolCalls ?? []) {
 								const toolName = tool.name as ToolName
 
@@ -458,7 +423,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						res_()
 					},
 					onError: (error) => {
-						this._finishStreamingTextMessage(threadId, this.streamState[threadId]?.messageSoFar ?? '', error)
+						const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
+						const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
+						this._finishStreamingTextMessage(threadId, { content: messageSoFar, reasoning: reasoningSoFar }, error)
 						res_()
 					},
 				})
@@ -476,7 +443,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	cancelStreaming(threadId: string) {
 		const llmCancelToken = this.streamState[threadId]?.streamingToken
 		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
-		this._finishStreamingTextMessage(threadId, this.streamState[threadId]?.messageSoFar ?? '')
+		const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
+		const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
+		this._finishStreamingTextMessage(threadId, { content: messageSoFar, reasoning: reasoningSoFar })
 	}
 
 	dismissStreamError(threadId: string): void {
@@ -489,7 +458,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	getCurrentThread(): ChatThreads[string] {
 		const state = this.state
-		return state.allThreads[state.currentThreadId]
+		const thread = state.allThreads[state.currentThreadId]
+		return thread
 	}
 
 	getFocusedMessageIdx() {
@@ -626,12 +596,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	}
 
-	getCurrentThreadStagingSelections = () => {
-		return this.getCurrentThread().state.stagingSelections
+	getCurrentThreadState = () => {
+		const currentThread = this.getCurrentThread()
+		return currentThread.state
 	}
 
-	setCurrentThreadStagingSelections = (stagingSelections: StagingSelectionItem[]) => {
-		this._setCurrentThreadState({ stagingSelections })
+	setCurrentThreadState = (newState: Partial<ThreadType['state']>) => {
+		this._setCurrentThreadState(newState)
 	}
 
 	// gets `staging` and `setStaging` of the currently focused element, given the index of the currently selected message (or undefined if no message is selected)
@@ -652,4 +623,3 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 }
 
 registerSingleton(IChatThreadService, ChatThreadService, InstantiationType.Eager);
-

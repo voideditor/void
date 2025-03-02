@@ -46,7 +46,7 @@ module.exports = {
 				"void-border-1": "var(--vscode-commandCenter-activeBorder)",
 				"void-border-2": "var(--vscode-commandCenter-border)",
 				"void-border-3": "var(--vscode-commandCenter-inactiveBorder)",
-				"void-border-3": "var(--vscode-settings-sashBorder)",
+				"void-border-4": "var(--vscode-editorGroup-border)",
 
 
 				vscode: {

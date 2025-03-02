@@ -28,7 +28,7 @@ type SetModelSelectionOfFeatureFn = <K extends FeatureName>(
 	options?: { doNotApplyEffects?: true }
 ) => Promise<void>;
 
-type SetGlobalSettingFn = <T extends GlobalSettingName, >(settingName: T, newVal: GlobalSettings[T]) => void;
+type SetGlobalSettingFn = <T extends GlobalSettingName>(settingName: T, newVal: GlobalSettings[T]) => void;
 
 export type ModelOption = { name: string, selection: ModelSelection }
 
@@ -48,6 +48,8 @@ export interface IVoidSettingsService {
 	readonly _serviceBrand: undefined;
 	readonly state: VoidSettingsState; // in order to play nicely with react, you should immutably change state
 	readonly waitForInitState: Promise<void>;
+
+	readAndInitializeState: (providedState?: VoidSettingsState) => Promise<void>;
 
 	onDidChangeState: Event<void>;
 
@@ -168,6 +170,8 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	readonly onDidChangeState: Event<void> = this._onDidChangeState.event; // this is primarily for use in react, so react can listen + update on state changes
 
 	state: VoidSettingsState;
+
+	private readonly _resolver: () => void
 	waitForInitState: Promise<void> // await this if you need a valid state initially
 
 	constructor(
@@ -181,56 +185,57 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		// at the start, we haven't read the partial config yet, but we need to set state to something
 		this.state = defaultState()
-
 		let resolver: () => void = () => { }
 		this.waitForInitState = new Promise((res, rej) => resolver = res)
+		this._resolver = resolver
 
-		// read and update the actual state immediately
-		this._readState().then(readS => {
+		this.readAndInitializeState()
+	}
 
-			// the stored data structure might be outdated, so we need to update it here (can do a more general solution later when we need to)
-			const newSettingsOfProvider = {
-				// A HACK BECAUSE WE ADDED DEEPSEEK (did not exist before, comes before readS)
-				...{ deepseek: defaultSettingsOfProvider.deepseek },
+	async readAndInitializeState(providedState?: VoidSettingsState) {
+		// If providedState is given, use it instead of reading from storage
+		const readS = providedState || await this._readState();
 
-				// A HACK BECAUSE WE ADDED XAI (did not exist before, comes before readS)
-				...{ xAI: defaultSettingsOfProvider.xAI },
+		// the stored data structure might be outdated, so we need to update it here
+		const newSettingsOfProvider = {
+			// A HACK BECAUSE WE ADDED DEEPSEEK (did not exist before, comes before readS)
+			...{ deepseek: defaultSettingsOfProvider.deepseek },
 
-				// A HACK BECAUSE WE ADDED VLLM (did not exist before, comes before readS)
-				...{ vLLM: defaultSettingsOfProvider.vLLM },
+			// A HACK BECAUSE WE ADDED XAI (did not exist before, comes before readS)
+			...{ xAI: defaultSettingsOfProvider.xAI },
 
+			// A HACK BECAUSE WE ADDED VLLM (did not exist before, comes before readS)
+			...{ vLLM: defaultSettingsOfProvider.vLLM },
 
-				...readS.settingsOfProvider,
+			...readS.settingsOfProvider,
 
-				// A HACK BECAUSE WE ADDED NEW GEMINI MODELS (existed before, comes after readS)
-				gemini: {
-					...readS.settingsOfProvider.gemini,
-					models: [
-						...readS.settingsOfProvider.gemini.models,
-						...defaultSettingsOfProvider.gemini.models.filter(m => /* if cant find the model in readS (yes this is O(n^2), very small) */ !readS.settingsOfProvider.gemini.models.find(m2 => m2.modelName === m.modelName))
-					]
-				}
+			// A HACK BECAUSE WE ADDED NEW GEMINI MODELS (existed before, comes after readS)
+			gemini: {
+				...readS.settingsOfProvider.gemini,
+				models: [
+					...readS.settingsOfProvider.gemini.models,
+					...defaultSettingsOfProvider.gemini.models.filter(m => /* if cant find the model in readS (yes this is O(n^2), very small) */ !readS.settingsOfProvider.gemini.models.find(m2 => m2.modelName === m.modelName))
+				]
 			}
+		};
 
-			const newModelSelectionOfFeature = {
-				// A HACK BECAUSE WE ADDED FastApply
-				...{ 'Apply': null },
-				...readS.modelSelectionOfFeature,
-			}
+		const newModelSelectionOfFeature = {
+			// A HACK BECAUSE WE ADDED FastApply
+			...{ 'Apply': null },
+			...readS.modelSelectionOfFeature,
+		};
 
-			readS = {
-				...readS,
-				settingsOfProvider: newSettingsOfProvider,
-				modelSelectionOfFeature: newModelSelectionOfFeature,
-			}
+		const finalState = {
+			...readS,
+			settingsOfProvider: newSettingsOfProvider,
+			modelSelectionOfFeature: newModelSelectionOfFeature,
+		};
 
-			this.state = _validatedState(readS)
-
-			resolver()
-			this._onDidChangeState.fire()
-		})
+		this.state = _validatedState(finalState);
 
 
+		this._resolver();
+		this._onDidChangeState.fire();
 	}
 
 

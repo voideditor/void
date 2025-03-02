@@ -6,9 +6,13 @@
 import React, { JSX } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
-import { ChatMessageLocation, } from '../../../aiRegexService.js'
 import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
 import { ApplyBlockHoverButtons } from './ApplyBlockHoverButtons.js'
+
+export type ChatMessageLocation = {
+	threadId: string;
+	messageIdx: number;
+}
 
 
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }
@@ -33,7 +37,7 @@ export const CodeSpan = ({ children, className }: { children: React.ReactNode, c
 	</code>
 }
 
-const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
+const RenderToken = ({ token, nested, noSpace, chatMessageLocationForApply, tokenIdx }: { token: Token | string, nested?: boolean, noSpace?: boolean, chatMessageLocationForApply?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
 
 
 	// deal with built-in tokens first (assume marked token)
@@ -45,17 +49,19 @@ const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: 
 
 	if (t.type === "code") {
 
-		const applyBoxId = chatMessageLocation ? getApplyBoxId({
-			threadId: chatMessageLocation.threadId,
-			messageIdx: chatMessageLocation.messageIdx,
+		const applyBoxId = chatMessageLocationForApply ? getApplyBoxId({
+			threadId: chatMessageLocationForApply.threadId,
+			messageIdx: chatMessageLocationForApply.messageIdx,
 			tokenIdx: tokenIdx,
 		}) : null
 
-		return <BlockCode
+		return <div className='my-4'>
+			<BlockCode
 			initValue={t.text}
 			language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
 			buttonsOnHover={applyBoxId && <ApplyBlockHoverButtons applyBoxId={applyBoxId} codeStr={t.text} />}
 		/>
+		</div>
 	}
 
 	if (t.type === "heading") {
@@ -129,7 +135,7 @@ const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: 
 							<input type="checkbox" checked={item.checked} readOnly className="mr-2 form-checkbox" />
 						)}
 						<span className="ml-1">
-							<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} nested={true} />
+							<ChatMarkdownRender chatMessageLocationForApply={chatMessageLocationForApply} string={item.text} nested={true} />
 						</span>
 					</li>
 				))}
@@ -241,12 +247,12 @@ const RenderToken = ({ token, nested, noSpace, chatMessageLocation, tokenIdx }: 
 	)
 }
 
-export const ChatMarkdownRender = ({ string, nested = false, noSpace, chatMessageLocation }: { string: string, nested?: boolean, noSpace?: boolean, chatMessageLocation?: ChatMessageLocation }) => {
+export const ChatMarkdownRender = ({ string, nested = false, noSpace, chatMessageLocationForApply }: { string: string, nested?: boolean, noSpace?: boolean, chatMessageLocationForApply?: ChatMessageLocation }) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
-				<RenderToken key={index} token={token} nested={nested} noSpace={noSpace} chatMessageLocation={chatMessageLocation} tokenIdx={index + ''} />
+				<RenderToken key={index} token={token} nested={nested} noSpace={noSpace} chatMessageLocationForApply={chatMessageLocationForApply} tokenIdx={index + ''} />
 			))}
 		</>
 	)

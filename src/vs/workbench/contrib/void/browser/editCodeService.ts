@@ -1400,7 +1400,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const latestStreamInfoMutable: StreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 
 		// state used in onText:
-		let fullText = ''
+		let fullTextSoFar = '' // so far (INCLUDING ignored suffix)
 		let prevIgnoredSuffix = ''
 
 		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
@@ -1408,12 +1408,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
 			logging: { loggingName: `startApplying - ${from}` },
 			messages,
-			onText: ({ newText: newText_ }) => {
+			onText: ({ fullText: fullText_ }) => {
+				const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
 
 				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
-				fullText += prevIgnoredSuffix + newText // full text, including ```, etc
+				fullTextSoFar += newText // full text, including ```, etc
 
-				const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullText, newText.length)
+				const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullTextSoFar, newText.length)
 				const { endLineInLlmTextSoFar } = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamInfoMutable)
 				diffZone._streamState.line = (diffZone.startLine - 1) + endLineInLlmTextSoFar // change coordinate systems from originalCode to full file
 

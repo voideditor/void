@@ -254,7 +254,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 };
 
 const useResizeObserver = () => {
-	const ref = useRef(null);
+	const ref = useRef<any>(null);
 	const [dimensions, setDimensions] = useState({ height: 0, width: 0 });
 
 	useEffect(() => {
@@ -301,7 +301,6 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 }
 
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
-
 	return <button
 		className={`rounded-full flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
 			bg-white

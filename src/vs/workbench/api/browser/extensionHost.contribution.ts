@@ -19,7 +19,6 @@ import './mainThreadLocalization.js';
 import './mainThreadBulkEdits.js';
 import './mainThreadLanguageModels.js';
 import './mainThreadChatAgents2.js';
-import './mainThreadChatVariables.js';
 import './mainThreadChatCodeMapper.js';
 import './mainThreadLanguageModelTools.js';
 import './mainThreadEmbeddings.js';
@@ -89,9 +88,6 @@ import './mainThreadShare.js';
 import './mainThreadProfileContentHandlers.js';
 import './mainThreadAiRelatedInformation.js';
 import './mainThreadAiEmbeddingVector.js';
-
-// Void added this:
-import './mainThreadInlineDiff.js';
 
 export class ExtensionPoints implements IWorkbenchContribution {
 

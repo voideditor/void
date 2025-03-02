@@ -732,7 +732,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							offsetLines = 1
 						}
 					}
-					else { throw 1 }
+					else { throw new Error('Void 1') }
 
 					const buttonsWidget = new AcceptRejectWidget({
 						editor,
@@ -1394,7 +1394,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			else if (from === 'ClickApply') {
 				return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
 			}
-			throw 1
+			throw new Error('Void 1')
 		}
 
 		const latestStreamInfoMutable: StreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
@@ -1834,7 +1834,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const diffArea = this.diffAreaOfId[diffareaid]
 			if (!diffArea) continue
 
-			if (diffArea.type == 'DiffZone') {
+			if (diffArea.type === 'DiffZone') {
 				if (behavior === 'reject') this._revertAndDeleteDiffZone(diffArea)
 				else if (behavior === 'accept') this._deleteDiffZone(diffArea)
 			}

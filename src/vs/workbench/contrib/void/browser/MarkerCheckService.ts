@@ -13,6 +13,7 @@ import { Range } from '../../../../editor/common/core/range.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { CodeActionContext, CodeActionTriggerType } from '../../../../editor/common/languages.js';
 import { URI } from '../../../../base/common/uri.js';
+import * as dom from '../../../../base/browser/dom.js';
 
 export interface IMarkerCheckService {
 	readonly _serviceBrand: undefined;
@@ -29,8 +30,7 @@ class MarkerCheckService extends Disposable implements IMarkerCheckService {
 		@ITextModelService private readonly _textModelService: ITextModelService,
 	) {
 		super();
-
-		setInterval(async () => {
+		const check = async () => {
 			const allMarkers = this._markerService.read();
 			const errors = allMarkers.filter(marker => marker.severity === MarkerSeverity.Error);
 
@@ -76,8 +76,8 @@ class MarkerCheckService extends Disposable implements IMarkerCheckService {
 								if (actions?.actions?.length) {
 
 									const quickFixes = actions.actions.filter(action => action.isPreferred);  // ! all quickFixes for the error
-									const quickFixesForImports = actions.actions.filter(action => action.isPreferred && action.title.includes('import'));  // ! all possible imports
-									quickFixesForImports
+									// const quickFixesForImports = actions.actions.filter(action => action.isPreferred && action.title.includes('import'));  // ! all possible imports
+									// quickFixesForImports
 
 									if (quickFixes.length > 0) {
 										console.log('Available Quick Fixes:');
@@ -96,7 +96,9 @@ class MarkerCheckService extends Disposable implements IMarkerCheckService {
 					}
 				}
 			}
-		}, 5000);
+		}
+		const { window } = dom.getActiveWindow()
+		window.setInterval(check, 5000);
 	}
 
 

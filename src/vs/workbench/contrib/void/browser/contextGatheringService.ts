@@ -50,12 +50,12 @@ class ContextGatheringService extends Disposable implements IContextGatheringSer
 	}
 
 	private _subscribeToModel(model: ITextModel): void {
-		console.log("Subscribing to model:", model.uri.toString());
+		console.log('Subscribing to model:', model.uri.toString());
 		this._register(model.onDidChangeContent(() => {
 			const editor = this._codeEditorService.getFocusedCodeEditor();
 			if (editor && editor.getModel() === model) {
 				const pos = editor.getPosition();
-				console.log("updateCache called at position:", pos);
+				console.log('updateCache called at position:', pos);
 				if (pos) {
 					this.updateCache(model, pos);
 				}
@@ -72,7 +72,7 @@ class ContextGatheringService extends Disposable implements IContextGatheringSer
 
 		// Convert to array and filter overlapping snippets
 		this._cache = Array.from(snippets);
-		console.log("Cache updated:", this._cache);
+		console.log('Cache updated:', this._cache);
 	}
 
 	public getCachedSnippets(): string[] {
@@ -232,7 +232,7 @@ class ContextGatheringService extends Disposable implements IContextGatheringSer
 					symbols.push(...intersecting);
 				}
 			} catch (e) {
-				console.warn("Symbol provider error:", e);
+				console.warn('Symbol provider error:', e);
 			}
 		}
 		// Also check reference providers.
@@ -262,7 +262,7 @@ class ContextGatheringService extends Disposable implements IContextGatheringSer
 							}
 						}
 					} catch (e) {
-						console.warn("Reference provider error:", e);
+						console.warn('Reference provider error:', e);
 					}
 				}
 			}
@@ -319,7 +319,7 @@ class ContextGatheringService extends Disposable implements IContextGatheringSer
 					})));
 				}
 			} catch (e) {
-				console.warn("Definition provider error:", e);
+				console.warn('Definition provider error:', e);
 			}
 		}
 		return defs;

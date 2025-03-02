@@ -63,22 +63,23 @@ export const sendLLMMessage = ({
 		_fullTextSoFar = fullText
 	}
 
-	const onFinalMessage: OnFinalMessage = ({ fullText, toolCalls }) => {
+	const onFinalMessage: OnFinalMessage = (params) => {
+		const { fullText, fullReasoning } = params
 		if (_didAbort) return
-		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
-		onFinalMessage_({ fullText, toolCalls })
+		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, reasoningLength: fullReasoning?.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+		onFinalMessage_(params)
 	}
 
-	const onError: OnError = ({ message: error, fullError }) => {
+	const onError: OnError = ({ message: errorMessage, fullError }) => {
 		if (_didAbort) return
-		console.error('sendLLMMessage onError:', error)
+		console.error('sendLLMMessage onError:', errorMessage)
 
 		// handle failed to fetch errors, which give 0 information by design
-		if (error === 'TypeError: fetch failed')
-			error = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void's Settings, or your local model provider like Ollama is powered off.`
+		if (errorMessage === 'TypeError: fetch failed')
+			errorMessage = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void's Settings, or your local model provider like Ollama is powered off.`
 
-		captureLLMEvent(`${loggingName} - Error`, { error })
-		onError_({ message: error, fullError })
+		captureLLMEvent(`${loggingName} - Error`, { error: errorMessage })
+		onError_({ message: errorMessage, fullError })
 	}
 
 	const onAbort = () => {

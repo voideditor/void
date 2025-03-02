@@ -23,6 +23,8 @@ export class EncryptionMainService implements IEncryptionMainService {
 	constructor(
 		@ILogService private readonly logService: ILogService
 	) {
+
+		// Void added this as a nice default for linux so you don't need to specify encryption provider
 		if (isLinux && !app.commandLine.getSwitchValue('password-store')) {
 			this.logService.trace('[EncryptionMainService] No password-store switch, defaulting to basic...');
 			app.commandLine.appendSwitch('password-store', PasswordStoreCLIOption.basic);

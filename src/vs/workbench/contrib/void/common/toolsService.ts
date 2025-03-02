@@ -68,6 +68,26 @@ export const voidTools = {
 		required: ['query'],
 	},
 
+
+	// create_file: {
+	// 	name: 'create_file',
+	// 	description: `Creates a file at the given path. Fails gracefully if the file already exists by doing nothing.`,
+	// 	params: {
+	// 		uri: { type: 'string', description: undefined },
+	// 	},
+	// 	required: ['uri'],
+	// },
+
+	// create_folder: {
+	// 	name: 'create_folder',
+	// 	description: `Creates a folder at the given path. Fails gracefully if the folder already exists by doing nothing.`,
+	// 	params: {
+	// 		uri: { type: 'string', description: undefined },
+	// 	},
+	// 	required: ['uri'],
+	// },
+
+
 	// go_to_definition: {
 
 	// },

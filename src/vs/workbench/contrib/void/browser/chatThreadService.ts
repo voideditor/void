@@ -176,6 +176,9 @@ export interface IChatThreadService {
 	getCurrentThreadState: () => ThreadType['state']
 	setCurrentThreadState: (newState: Partial<ThreadType['state']>) => void
 
+	closeStagingSelectionsInCurrentThread(): void;
+	closeStagingSelectionsInMessage(messageIdx: number): void;
+
 
 	// call to edit a message
 	editUserMessageAndStreamResponse({ userMessage, chatMode, messageIdx }: { userMessage: string, chatMode: ChatMode, messageIdx: number }): Promise<void>;
@@ -656,6 +659,35 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}, true)
 
 	}
+
+
+	closeStagingSelectionsInCurrentThread = () => {
+		const currThread = this.getCurrentThreadState()
+
+		// close all stagingSelections
+		const closedStagingSelections = currThread.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
+
+		const newThread = currThread
+		newThread.stagingSelections = closedStagingSelections
+
+		this.setCurrentThreadState(newThread)
+
+	}
+
+	closeStagingSelectionsInMessage = (messageIdx: number) => {
+		const currMessage = this.getCurrentMessageState(messageIdx)
+
+		// close all stagingSelections
+		const closedStagingSelections = currMessage.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
+
+		const newMessage = currMessage
+		newMessage.stagingSelections = closedStagingSelections
+
+		this.setCurrentMessageState(messageIdx, newMessage)
+
+	}
+
+
 
 	getCurrentThreadState = () => {
 		const currentThread = this.getCurrentThread()

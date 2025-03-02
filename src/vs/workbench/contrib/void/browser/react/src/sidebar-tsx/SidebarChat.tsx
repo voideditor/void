@@ -418,7 +418,7 @@ export const SelectedFiles = (
 
 			{allSelections.map((selection, i) => {
 
-				const isThisSelectionOpened = (!!selection.selectionStr && selection.state.isOpened) //!!(selection.selectionStr && selectionIsOpened[i])
+				const isThisSelectionOpened = (!!selection.selectionStr && selection.state.isOpened && type === 'staging')
 				const isThisSelectionAFile = selection.selectionStr === null
 				const isThisSelectionProspective = i > selections.length - 1
 
@@ -501,7 +501,7 @@ export const SelectedFiles = (
 					{isThisSelectionOpened ?
 						<div
 							className={`
-								w-full px-1 rounded-sm border-vscode-editor-border
+								w-full rounded-sm border-vscode-editor-border
 								${isThisSelectionOpened ? 'ring-1 ring-[#007FD4]' : ''}
 							`}
 							onClick={(e) => {
@@ -923,9 +923,10 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				const thread = chatThreadsService.getCurrentThread()
 				chatThreadsService.cancelStreaming(thread.id)
 
-				// reset state
+				// update state
 				setIsBeingEdited(false)
 				chatThreadsService.setFocusedMessageIdx(undefined)
+				chatThreadsService.closeStagingSelectionsInMessage(messageIdx)
 
 				// stream the edit
 				const userMessage = textAreaRefState.value;
@@ -1064,7 +1065,13 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 					: role === 'user' ? 'p-2 flex flex-col gap-1 bg-void-bg-1 text-void-fg-1 overflow-x-auto'
 						: role === 'assistant' ? 'px-2 overflow-x-auto' : ''
 				}
+				${role === 'user' && mode === 'display' ? 'cursor-pointer' : ''}
 			`}
+			onClick={() => {
+				if (role === 'user' && mode === 'display') {
+					onOpenEdit()
+				}
+			}}
 		>
 			{chatbubbleContents}
 			{isLoading && <IconLoading className='opacity-50 text-sm px-2' />}
@@ -1154,6 +1161,9 @@ export const SidebarChat = () => {
 
 		if (isDisabled) return
 		if (isStreaming) return
+
+		// update state
+		chatThreadsService.closeStagingSelectionsInCurrentThread() // close all selections
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''

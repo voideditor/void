@@ -6,7 +6,10 @@ import { createDecorator, IInstantiationService } from '../../../../platform/ins
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js'
 import { QueryBuilder } from '../../../../workbench/services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../../workbench/services/search/common/search.js'
+import { IEditCodeService } from '../browser/editCodeService.js'
+import { editToolDesc_toolDescription } from '../browser/prompt/prompts.js'
 import { IVoidFileService } from './voidFileService.js'
+import { ITerminalToolService } from '../browser/terminalToolService.js'
 
 
 // tool use for AI
@@ -29,6 +32,8 @@ const paginationHelper = {
 } as const
 
 export const voidTools = {
+	// --- context-gathering (read/search/list) ---
+
 	read_file: {
 		name: 'read_file',
 		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
@@ -68,44 +73,50 @@ export const voidTools = {
 		required: ['query'],
 	},
 
+	// --- editing (create/delete) ---
 
-	// create_file: {
-	// 	name: 'create_file',
-	// 	description: `Creates a file at the given path. Fails gracefully if the file already exists by doing nothing.`,
-	// 	params: {
-	// 		uri: { type: 'string', description: undefined },
-	// 	},
-	// 	required: ['uri'],
-	// },
+	create_uri: {
+		name: 'create_uri',
+		description: `Creates a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash. Fails gracefully if the file already exists. Missing ancestors in the path will be recursively created automatically.`,
+		params: {
+			uri: { type: 'string', description: undefined },
+		},
+		required: ['uri'],
+	},
 
-	// create_folder: {
-	// 	name: 'create_folder',
-	// 	description: `Creates a folder at the given path. Fails gracefully if the folder already exists by doing nothing.`,
-	// 	params: {
-	// 		uri: { type: 'string', description: undefined },
-	// 	},
-	// 	required: ['uri'],
-	// },
+	delete_uri: {
+		name: 'delete_uri',
+		description: `Deletes the file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
+		params: {
+			uri: { type: 'string', description: undefined },
+			params: { type: 'string', description: 'Return -r here to delete this URI and all descendants (if applicable). Default is the empty string.' }
+		},
+		required: ['uri', 'params'],
+	},
+
+	edit: { // APPLY TOOL
+		name: 'edit',
+		description: `Edits the contents of a file at the given URI. Fails gracefully if the file does not exist.`,
+		params: {
+			uri: { type: 'string', description: undefined },
+			changeDescription: { type: 'string', description: editToolDesc_toolDescription }
+		},
+		required: ['uri', 'changeDescription'],
+	},
+
+	terminal_command: {
+		name: 'terminal_command',
+		description: `Executes a terminal command.`,
+		params: {
+			command: { type: 'string', description: 'The terminal command to execute.' }
+		},
+		required: ['command'],
+	},
 
 
-	// go_to_definition: {
+	// go_to_definition
+	// go_to_usages
 
-	// },
-
-	// go_to_usages:
-
-	// create_file: {
-	// 	name: 'create_file',
-	// 	description: `Creates a file at the given path. Fails gracefully if the file already exists by doing nothing.`
-	// 	params: {
-	// 		uri: { type: 'string', description: undefined },
-	// 	}
-	// }
-
-	// semantic_search: {
-	// 	description: 'Searches files semantically for the given string query.',
-	// 	// RAG
-	// },
 } satisfies { [name: string]: InternalToolInfo }
 
 export type ToolName = keyof typeof voidTools
@@ -124,9 +135,13 @@ export type ToolParamsObj<T extends ToolName> = { [paramName in ToolParamNames<T
 export type ToolCallReturnType = {
 	'read_file': { uri: URI, fileContents: string, hasNextPage: boolean },
 	'list_dir': { rootURI: URI, children: DirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
-	'pathname_search': { queryStr: string, uris: URI[] | string, hasNextPage: boolean },
-	'search': { queryStr: string, uris: URI[] | string, hasNextPage: boolean }
-	'create_file': {}
+	'pathname_search': { queryStr: string, uris: URI[], hasNextPage: boolean },
+	'search': { queryStr: string, uris: URI[], hasNextPage: boolean },
+	// ---
+	'edit': { uri: URI, changeDescription: string },
+	'create_uri': { uri: URI },
+	'delete_uri': { uri: URI },
+	'terminal_command': { command: string },
 }
 
 type DirectoryItem = {
@@ -218,32 +233,41 @@ const validateJSON = (s: string): { [s: string]: unknown } => {
 		return o
 	}
 	catch (e) {
-		throw new Error(`Tool parameter was not a valid JSON: "${s}".`)
+		throw new Error(`Tool parameter was not a string of a valid JSON: "${s}".`)
 	}
 }
 
 
 
-const validateQueryStr = (queryStr: unknown) => {
-	if (typeof queryStr !== 'string') throw new Error('Error calling tool: provided query must be a string.')
-	return queryStr
+const validateStr = (argName: string, value: unknown) => {
+	if (typeof value !== 'string') throw new Error(`Error: ${argName} must be a string.`)
+	return value
 }
 
 
 // TODO!!!! check to make sure in workspace
 const validateURI = (uriStr: unknown) => {
-	if (typeof uriStr !== 'string') throw new Error('Error calling tool: provided uri must be a string.')
+	if (typeof uriStr !== 'string') throw new Error('Error: provided uri must be a string.')
 
 	const uri = URI.file(uriStr)
 	return uri
 }
 
 const validatePageNum = (pageNumberUnknown: unknown) => {
-	const proposedPageNum = Number.parseInt(pageNumberUnknown + '')
-	const num = Number.isInteger(proposedPageNum) ? proposedPageNum : 1
-	const pageNumber = num < 1 ? 1 : num
-	return pageNumber
+	if (!pageNumberUnknown) return 1
+	const parsedInt = Number.parseInt(pageNumberUnknown + '')
+	if (!Number.isInteger(parsedInt)) throw new Error(`Page number was not an integer: "${pageNumberUnknown}".`)
+	if (parsedInt < 1) throw new Error(`Specified page number must be 1 or greater: "${pageNumberUnknown}".`)
+	return parsedInt
 }
+
+const validateRecursiveParamStr = (paramsUnknown: unknown) => {
+	if (typeof paramsUnknown !== 'string') throw new Error('Error calling tool: provided params must be a string.')
+	const params = paramsUnknown
+	const isRecursive = params.includes('r')
+	return isRecursive
+}
+
 export interface IToolsService {
 	readonly _serviceBrand: undefined;
 	toolFns: ToolFns;
@@ -256,8 +280,8 @@ export class ToolsService implements IToolsService {
 
 	readonly _serviceBrand: undefined;
 
-	public toolFns: ToolFns
-	public toolResultToString: ToolResultToString
+	public toolFns: ToolFns;
+	public toolResultToString: ToolResultToString;
 
 
 	constructor(
@@ -266,15 +290,17 @@ export class ToolsService implements IToolsService {
 		@ISearchService searchService: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IVoidFileService voidFileService: IVoidFileService,
+		@IEditCodeService editCodeService: IEditCodeService,
+		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.toolFns = {
-			read_file: async (s: string) => {
+			read_file: async (params: string) => {
 				console.log('read_file')
 
-				const o = validateJSON(s)
+				const o = validateJSON(params)
 				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
 
 				const uri = validateURI(uriStr)
@@ -293,25 +319,21 @@ export class ToolsService implements IToolsService {
 
 				return { uri, fileContents, hasNextPage }
 			},
-			list_dir: async (s: string) => {
-				console.log('list_dir')
-				const o = validateJSON(s)
+			list_dir: async (params: string) => {
+				const o = validateJSON(params)
 				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
 
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
 				const dirResult = await computeDirectoryResult(fileService, uri, pageNumber)
-				console.log('list_dir result:', dirResult)
-
 				return dirResult
 			},
-			pathname_search: async (s: string) => {
-				console.log('pathname_search')
-				const o = validateJSON(s)
+			pathname_search: async (params: string) => {
+				const o = validateJSON(params)
 				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
 
-				const queryStr = validateQueryStr(queryUnknown)
+				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
 				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), { filePattern: queryStr, })
@@ -324,19 +346,13 @@ export class ToolsService implements IToolsService {
 					.map(({ resource, results }) => resource)
 
 				const hasNextPage = (data.results.length - 1) - toIdx >= 1
-				console.log('pathname_search result:', uris)
-
 				return { queryStr, uris, hasNextPage }
 			},
-			search: async (s: string) => {
-
-
-				console.log('search')
-
-				const o = validateJSON(s)
+			search: async (params: string) => {
+				const o = validateJSON(params)
 				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
 
-				const queryStr = validateQueryStr(queryUnknown)
+				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
 				const query = queryBuilder.text({ pattern: queryStr, }, workspaceContextService.getWorkspace().folders.map(f => f.uri))
@@ -349,17 +365,62 @@ export class ToolsService implements IToolsService {
 					.map(({ resource, results }) => resource)
 
 				const hasNextPage = (data.results.length - 1) - toIdx >= 1
-
-				console.log('search result:', uris)
-
 				return { queryStr, uris, hasNextPage }
 			},
+
+			// ---
+
+			create_uri: async (params: string) => {
+				const o = validateJSON(params)
+				const { uri: uriStr } = o
+				const uri = validateURI(uriStr)
+				await fileService.createFile(uri)
+				return { uri }
+			},
+
+			delete_uri: async (params: string) => {
+				const o = validateJSON(params)
+				const { uri: uriStr, params: paramsStr } = o
+				const uri = validateURI(uriStr)
+				const isRecursive = validateRecursiveParamStr(paramsStr)
+				await fileService.del(uri, { recursive: isRecursive })
+				return { uri }
+			},
+
+			edit: async (params: string) => {
+				const o = validateJSON(params)
+				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = o
+				const uri = validateURI(uriStr)
+				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
+
+				const applyId = editCodeService.startApplying({ uri, applyStr: changeDescription, from: 'ClickApply', type: 'rewrite' })
+
+				// // TODO!!!
+
+				// await // await apply done before moving on
+
+				return { uri, changeDescription }
+			},
+
+			terminal_command: async (s: string) => {
+				const o = validateJSON(s)
+				const { command: commandUnknown } = o
+				const command = validateStr('command', commandUnknown)
+
+				// TODO!!!!
+				// await // Await user confirmation and then command execution before resolving
+
+
+				return { command }
+			},
+
 
 
 		}
 
 		const nextPageStr = (hasNextPage: boolean) => hasNextPage ? '\n\n(more on next page...)' : ''
 
+		// given to the LLM after the call
 		this.toolResultToString = {
 			read_file: (result) => {
 				return nextPageStr(result.hasNextPage)
@@ -369,13 +430,25 @@ export class ToolsService implements IToolsService {
 				return dirTreeStr + nextPageStr(result.hasNextPage)
 			},
 			pathname_search: (result) => {
-				if (typeof result.uris === 'string') return result.uris
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
 			search: (result) => {
-				if (typeof result.uris === 'string') return result.uris
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
+			// ---
+			create_uri: (result) => {
+				return `URI ${result.uri.fsPath} successfully created.`
+			},
+			delete_uri: (result) => {
+				return `URI ${result.uri.fsPath} successfully deleted.`
+			},
+			edit: (result) => {
+				return `Change successfully made ${result.uri.fsPath} successfully deleted.`
+			},
+			terminal_command: (result) => {
+				return `Terminal command "${result.command}" successfully executed.`
+			},
+
 		}
 
 

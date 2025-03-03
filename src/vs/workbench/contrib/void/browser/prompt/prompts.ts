@@ -15,6 +15,14 @@ import { IVoidFileService } from '../../common/voidFileService.js';
 // this is just for ease of readability
 export const tripleTick = ['```', '```']
 
+export const editToolDesc_toolDescription = `\
+A high level description of the change you'd like to make in the file. This description will be handed to a dumber, faster model that will quickly apply the change. \
+Typically the best description you can give here is a high level view of the final code you'd like to see. For example, code excerpt(s) with "// ... existing code ..." comments to help you write less. \
+However, you are allowed to describe the change using whatever text/language you like, especially if the change is better described without code. \
+Do NOT output the whole file if possible, and try to write as LITTLE as needed to describe the change.`
+
+
+
 export const chat_systemMessage = (workspaces: string[]) => `\
 You are a coding assistant. You are given a list of instructions to follow \`INSTRUCTIONS\`, and optionally a list of relevant files \`FILES\`, and selections inside of files \`SELECTIONS\`.
 

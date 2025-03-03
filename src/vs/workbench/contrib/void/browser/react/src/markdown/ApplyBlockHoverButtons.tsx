@@ -86,6 +86,7 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			from: 'ClickApply',
 			type: 'searchReplace',
 			applyStr: codeStr,
+			uri: 'current',
 		})
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
 		rerender(c => c + 1)

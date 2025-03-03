@@ -22,6 +22,11 @@ export const errorDetails = (fullError: Error | null): string | null => {
 	return null
 }
 
+export const getErrorMessage: (error: unknown) => string = (error) => {
+	if (error instanceof Error) return `${error.name}: ${error.message}`
+	return error + ''
+}
+
 
 export type LLMChatMessage = {
 	role: 'system' | 'user';
@@ -60,7 +65,7 @@ export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
 	else if (c.role === 'tool')
 		return { role: c.role, id: c.id, name: c.name, params: c.params, content: c.content || '(empty output)' }
 	else {
-		throw 1
+		throw new Error(`Role ${(c as any).role} not recognized.`)
 	}
 }
 

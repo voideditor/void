@@ -132,6 +132,7 @@ export type StartApplyingOpts = {
 	from: 'ClickApply';
 	type: 'searchReplace' | 'rewrite';
 	applyStr: string;
+	uri: 'current' | URI;
 }
 
 
@@ -1226,6 +1227,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
+	// throws if there's an error
 	public startApplying(opts: StartApplyingOpts) {
 		if (opts.type === 'rewrite') {
 			const addedDiffArea = this._initializeWriteoverStream(opts)
@@ -1448,11 +1450,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }) {
-		const { applyStr } = opts
+		const { applyStr, uri: givenURI } = opts
+		let uri: URI
 
-		const uri_ = this._getActiveEditorURI()
-		if (!uri_) return
-		const uri = uri_
+		if (givenURI === 'current') {
+			const uri_ = this._getActiveEditorURI()
+			if (!uri_) return
+			uri = uri_
+		}
+		else {
+			uri = givenURI
+		}
+
 
 		// generate search/replace block text
 		const originalFileCode = this._voidFileService.readModel(uri)

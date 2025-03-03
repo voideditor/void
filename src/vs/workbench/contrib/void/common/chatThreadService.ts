@@ -13,11 +13,12 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from './llmMessageService.js';
 import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo, chat_selectionsString } from '../browser/prompt/prompts.js';
-import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from './toolsService.js';
-import { toLLMChatMessage } from './llmMessageTypes.js';
+import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolName, voidTools } from './toolsService.js';
+import { toLLMChatMessage, ToolCallType } from './llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IVoidFileService } from './voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
+import { getErrorMessage } from '../../../../base/common/errors.js';
 
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
@@ -59,11 +60,9 @@ export type ToolMessage<T extends ToolName> = {
 	name: T; // internal use
 	params: string; // internal use
 	id: string; // apis require this tool use id
-	content: string; // result
-	result: ToolCallReturnType[T]; // text message of result
+	content: string; // give this result to LLM
+	result: { type: 'success'; value: ToolCallReturnType[T], } | { type: 'error'; value: string }; // give this result to user
 }
-
-
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
 	{
@@ -390,37 +389,44 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						else {
 							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning || null })
 							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined }) // clear streaming message
-							for (const tool of toolCalls ?? []) {
-								const toolName = tool.name as ToolName
 
-								// 1.
-								let toolResult: Awaited<ReturnType<ToolFns[ToolName]>>
-								let toolResultVal: ToolCallReturnType[ToolName]
-								try {
-									toolResult = await this._toolsService.toolFns[toolName](tool.params)
-									toolResultVal = toolResult
-								} catch (error) {
-									this._setStreamState(threadId, { error })
-									shouldSendAnotherMessage = false
-									break
-								}
+							// deal with the tool
+							const tool: ToolCallType | undefined = toolCalls?.[0]
+							if (!tool) {
+								res_()
+								return
+							}
+							const toolName = tool.name
 
-								// 2.
-								let toolResultStr: string
-								try {
-									toolResultStr = this._toolsService.toolResultToString[toolName](toolResult as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
-								} catch (error) {
-									this._setStreamState(threadId, { error })
-									shouldSendAnotherMessage = false
-									break
-								}
-
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, params: tool.params, id: tool.id, content: toolResultStr, result: toolResultVal, })
+							// 1.
+							let toolResultVal: ToolCallReturnType[typeof toolName]
+							try {
+								const val = await this._toolsService.toolFns[toolName](tool.params)
+								toolResultVal = val
+							} catch (error) {
+								const errorMessage = getErrorMessage(error)
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, params: tool.params, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
 								shouldSendAnotherMessage = true
+								res_()
+								return
 							}
 
+							// 2.
+							let toolResultStr: string
+							try {
+								toolResultStr = this._toolsService.toolResultToString[toolName](toolResultVal as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
+							} catch (error) {
+								// treat as irrecoverable error
+								this._setStreamState(threadId, { error })
+								res_()
+								return
+							}
+
+							this._addMessageToThread(threadId, { role: 'tool', name: toolName, params: tool.params, id: tool.id, content: toolResultStr, result: { type: 'success', value: toolResultVal }, })
+							shouldSendAnotherMessage = true
+							res_()
 						}
-						res_()
+
 					},
 					onError: (error) => {
 						const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
@@ -436,7 +442,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 		}
 
-		agentLoop() // DO NOT AWAIT THIS, this fn should resolve when ready to clear inputs
+		agentLoop() // DO NOT AWAIT THIS, add fn should resolve when we've added message (this lets us interrupt the agent loop correctly instead of waiting for it to resolve)
 
 	}
 

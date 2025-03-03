@@ -151,7 +151,7 @@ interface VoidChatAreaProps {
 	onAbort: () => void;
 	isStreaming: boolean;
 	isDisabled?: boolean;
-	divRef?: React.RefObject<HTMLDivElement>;
+	divRef?: React.RefObject<HTMLDivElement | null>;
 
 	// UI customization
 	featureName: FeatureName;
@@ -528,22 +528,36 @@ export const SelectedFiles = (
 }
 
 
-type ToolResultToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
-interface ToolResultProps {
-	actionTitle: string;
-	actionParam: string;
-	actionNumResults?: number;
-	children?: React.ReactNode;
-	onClick?: () => void;
+const actionTitleOfToolName: { [T in ToolName]: string } = {
+	'read_file': 'Read file',
+	'list_dir': 'Inspected folder',
+	'pathname_search': 'Searched filename',
+	'search': 'Searched',
+
+	'create_uri': 'Created URI',
+	'delete_uri': 'Deleted URI',
+	'edit': 'Edited file',
+	'terminal_command': 'Ran terminal command',
 }
 
+
+
+
+type ToolResultToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
+
 const ToolResult = ({
-	actionTitle,
+	toolName,
 	actionParam,
 	actionNumResults,
 	children,
 	onClick,
-}: ToolResultProps) => {
+}: {
+	toolName: ToolName;
+	actionParam: string;
+	actionNumResults?: number;
+	children?: React.ReactNode;
+	onClick?: () => void;
+}) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const isDropdown = !!children
@@ -565,7 +579,7 @@ const ToolResult = ({
 						/>
 					)}
 					<div className="flex items-center flex-nowrap whitespace-nowrap gap-x-2">
-						<span className="text-void-fg-3">{actionTitle}</span>
+						<span className="text-void-fg-3">{actionTitleOfToolName[toolName]}</span>
 						<span className="text-void-fg-4 text-xs italic">{actionParam}</span>
 						{actionNumResults !== undefined && (
 							<span className="text-void-fg-4 text-xs">
@@ -587,18 +601,38 @@ const ToolResult = ({
 
 
 
+const ToolError = <T extends ToolName,>({ toolName, errorMessage }: { toolName: T, errorMessage: string }) => {
+	return <ToolResult
+		toolName={toolName}
+		actionParam={errorMessage}
+	/>
+}
+
+
 const toolResultToComponent: ToolResultToComponent = {
 	'read_file': ({ message }) => {
 
 		const accessor = useAccessor()
 		const commandService = accessor.get('ICommandService')
+		if (message.result.type === 'error') return <ToolError toolName='read_file' errorMessage={message.result.value} />
 
+		const { value } = message.result
 		return (
 			<ToolResult
-				actionTitle="Read file"
-				actionParam={getBasename(message.result.uri.fsPath)}
-				onClick={() => { commandService.executeCommand('vscode.open', message.result.uri, { preview: true }) }}
-			/>
+				toolName='read_file'
+				actionParam={'View file'}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					<div
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+						onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+					>
+						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+						{getBasename(value.uri.fsPath)}
+					</div>
+					{value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
+				</div>
+			</ToolResult>
 		)
 	},
 	'list_dir': ({ message }) => {
@@ -607,16 +641,18 @@ const toolResultToComponent: ToolResultToComponent = {
 		const explorerService = accessor.get('IExplorerService')
 		// message.result.hasNextPage = true
 		// message.result.itemsRemaining = 400
+		if (message.result.type === 'error') return <ToolError toolName='list_dir' errorMessage={message.result.value} />
+
+		const { value } = message.result
 		return (
 			<ToolResult
-				actionTitle="Inspected folder"
-				actionParam={`${getBasename(message.result.rootURI.fsPath)}/`}
-				actionNumResults={message.result.children?.length}
+				toolName='list_dir'
+				actionParam={`${getBasename(value.rootURI.fsPath)}/`}
+				actionNumResults={value.children?.length}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					{message.result.children?.map((child, i) => (
-						<div
-							key={i}
+					{value.children?.map((child, i) => (
+						<div key={i}
 							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
 							onClick={() => {
 								commandService.executeCommand('workbench.view.explorer');
@@ -627,11 +663,7 @@ const toolResultToComponent: ToolResultToComponent = {
 							{`${child.name}${child.isDirectory ? '/' : ''}`}
 						</div>
 					))}
-					{message.result.hasNextPage && (
-						<div className="italic">
-							{message.result.itemsRemaining} more items...
-						</div>
-					)}
+					{value.hasNextPage && (<div className="italic">{value.itemsRemaining} more items...</div>)}
 				</div>
 			</ToolResult>
 		)
@@ -640,74 +672,162 @@ const toolResultToComponent: ToolResultToComponent = {
 
 		const accessor = useAccessor()
 		const commandService = accessor.get('ICommandService')
+		if (message.result.type === 'error') return <ToolError toolName='pathname_search' errorMessage={message.result.value} />
 
+		const { value } = message.result
 		return (
 			<ToolResult
-				actionTitle="Searched filename"
-				actionParam={`"${message.result.queryStr}"`}
-				actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+				toolName='pathname_search'
+				actionParam={`"${value.queryStr}"`}
+				actionNumResults={value.uris.length}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					{Array.isArray(message.result.uris) ?
-						message.result.uris.map((uri, i) => (
-							<div
-								key={i}
-								className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-								onClick={() => {
-									commandService.executeCommand('vscode.open', uri, { preview: true })
-								}}
-							>
-								<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-								{uri.fsPath.split('/').pop()}
-							</div>
-						)) :
-						<div className="">{message.result.uris}</div>
-					}
-					{message.result.hasNextPage && (
-						<div className="italic">
-							More results available...
+					{value.uris.map((uri, i) => (
+						<div key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+						>
+							<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+							{uri.fsPath.split('/').pop()}
 						</div>
-					)}
+					))}
+					{value.hasNextPage && (<div className="italic">More results available...</div>)}
 				</div>
 			</ToolResult>
 		)
 	},
 	'search': ({ message }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		if (message.result.type === 'error') return <ToolError toolName='search' errorMessage={message.result.value} />
 
+		const { value } = message.result
+		return (
+			<ToolResult
+				toolName='search'
+				actionParam={`"${value.queryStr}"`}
+				actionNumResults={value.uris.length}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					{value.uris.map((uri, i) => (
+						<div key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+						>
+							<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+							{uri.fsPath.split('/').pop()}
+						</div>
+					))}
+					{value.hasNextPage && (<div className="italic">More results available...</div>)}
+				</div>
+			</ToolResult>
+		)
+	},
+
+	// ---
+
+	'create_uri': ({ message }) => {
 		const accessor = useAccessor()
 		const commandService = accessor.get('ICommandService')
 
+		if (message.result.type === 'error') return <ToolError toolName='create_uri' errorMessage={message.result.value} />
+
+		const { value } = message.result
 		return (
 			<ToolResult
-				actionTitle="Searched"
-				actionParam={`"${message.result.queryStr}"`}
-				actionNumResults={Array.isArray(message.result.uris) ? message.result.uris.length : 0}
+				toolName='create_uri'
+				actionParam={getBasename(value.uri.fsPath)}
+				onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					{Array.isArray(message.result.uris) ?
-						message.result.uris.map((uri, i) => (
-							<div
-								key={i}
-								className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-								onClick={() => {
-									commandService.executeCommand('vscode.open', uri, { preview: true })
-								}}
-							>
-								<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-								{uri.fsPath.split('/').pop()}
-							</div>
-						)) :
-						<div className="">{message.result.uris}</div>
-					}
-					{message.result.hasNextPage && (
-						<div className="italic">
-							More results available...
-						</div>
-					)}
+					<div
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+						onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+					>
+						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+						{value.uri.fsPath.split('/').pop()}
+					</div>
+				</div>
+			</ToolResult>
+		)
+	},
+	'delete_uri': ({ message }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+
+		if (message.result.type === 'error') return <ToolError toolName='delete_uri' errorMessage={message.result.value} />
+
+		const { value } = message.result
+		return (
+			<ToolResult
+				toolName='delete_uri'
+				actionParam={getBasename(value.uri.fsPath) + ' (deleted)'}
+				onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					<div
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+						onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+					>
+						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+						{value.uri.fsPath.split('/').pop()}
+					</div>
+				</div>
+			</ToolResult>
+		)
+	},
+	'edit': ({ message }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+
+		if (message.result.type === 'error') return <ToolError toolName='edit' errorMessage={message.result.value} />
+
+		const { value } = message.result
+		return (
+			<ToolResult
+				toolName='edit'
+				actionParam={getBasename(value.uri.fsPath)}
+				onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					<div
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+						onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+					>
+						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+						{value.uri.fsPath.split('/').pop()}
+					</div>
+				</div>
+			</ToolResult>
+		)
+	},
+	'terminal_command': ({ message }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+
+		if (message.result.type === 'error') return <ToolError toolName='terminal_command' errorMessage={message.result.value} />
+
+		const { value } = message.result
+		return (
+			<ToolResult
+				toolName='terminal_command'
+				actionParam={value.command}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					<div
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+						// TODO!!! open terminal
+
+					>
+						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
+
+						<ChatMarkdownRender string={''} />
+					</div>
 				</div>
 			</ToolResult>
 		)
 	}
+
 };
 
 

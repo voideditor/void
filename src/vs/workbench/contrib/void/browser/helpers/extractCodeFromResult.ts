@@ -182,10 +182,10 @@ const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
 
 // guarantees if you keep adding text, array length will strictly grow and state will progress without going back
 export const extractSearchReplaceBlocks = (str: string) => {
-	const ORIGINAL_ = ORIGINAL + `\n`
-	const DIVIDER_ = DIVIDER + `\n`
-	// we only check FINAL, we don't care about FINAL + '\n' because the string is over
 
+	const ORIGINAL_ = ORIGINAL + `\n`
+	const DIVIDER_ = '\n' + DIVIDER + `\n`
+	// logic for FINAL_ is slightly more complicated - should be '\n' + FINAL, but that ignores if the final output is empty
 
 	const blocks: ExtractedSearchReplaceBlock[] = []
 
@@ -212,11 +212,15 @@ export const extractSearchReplaceBlocks = (str: string) => {
 		i = dividerStart
 		// wrote \n=====\n
 
+		const finalStartA = str.indexOf(FINAL, i)
+		const finalStartB = str.indexOf('\n' + FINAL, i) // go with B if possible, else fallback to A, it's more permissive
+		const isFINAL_ = finalStartB !== -1 && finalStartA === finalStartB  // this logic is really important, otherwise we might look for FINAL_ at a much later part of the string
+		const usingFINAL = isFINAL_ ? '\n' + FINAL : FINAL
 
+		let finalStart = isFINAL_ ? finalStartB : finalStartA
 
-		const finalStart = str.indexOf(FINAL, i)
-		if (finalStart === -1) {  // if didnt find FINAL, either writing finalStr or FINAL right now
-			const isWritingFINAL = endsWithAnyPrefixOf(str, FINAL)
+		if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL_ right now
+			const isWritingFINAL = endsWithAnyPrefixOf(str, usingFINAL)
 			blocks.push({
 				orig: origStrDone,
 				final: str.substring(dividerStart, str.length - (isWritingFINAL?.length ?? 0)),
@@ -225,7 +229,8 @@ export const extractSearchReplaceBlocks = (str: string) => {
 			return blocks
 		}
 		const finalStrDone = str.substring(dividerStart, finalStart)
-		i = finalStart + FINAL.length
+		finalStart += usingFINAL.length
+		i = finalStart
 		// wrote >>>>> FINAL
 
 		blocks.push({
@@ -235,9 +240,6 @@ export const extractSearchReplaceBlocks = (str: string) => {
 		})
 	}
 }
-
-
-
 
 
 
@@ -351,3 +353,220 @@ export const extractReasoningOnFinalMessage = (fullText_: string, thinkTags: [st
 	const fullText = fullText_.substring(0, tag1Idx) + fullText_.substring(tag2Idx + thinkTags[1].length, Infinity)
 	return { fullText, fullReasoning }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const tests: [string, { shape: Partial<ExtractedSearchReplaceBlock>[] }][] = [[
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINA`, { shape: [] }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL`, { shape: [], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A`, { shape: [{ state: 'writingOriginal', orig: 'A' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B`, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// `, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// ===`, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// ======`, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======`, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// `, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: '' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// >>>>>>> UPDAT`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: '' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// >>>>>>> UPDATED`, { shape: [{ state: 'done', orig: 'A\nB', final: '' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// >>>>>>> UPDATED
+// \`\`\``, { shape: [{ state: 'done', orig: 'A\nB', final: '' }], }
+// ],
+
+
+// // alternatively
+// [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X' }], }
+// ],
+// [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X\nY' }], }
+// ],
+// [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y
+// `, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X\nY' }], }
+// ],
+// [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y
+// >>>>>>> FINA`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X\nY' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y
+// >>>>>>> UPDATED`, { shape: [{ state: 'done', orig: 'A\nB', final: 'X\nY' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y
+// >>>>>>> UPDATED
+// \`\`\``, { shape: [{ state: 'done', orig: 'A\nB', final: 'X\nY' }], }
+// ]]
+
+
+
+
+// function runTests() {
+
+
+// 	let passedTests = 0;
+// 	let failedTests = 0;
+
+// 	for (let i = 0; i < tests.length; i++) {
+// 		const [input, expected] = tests[i];
+// 		const result = extractSearchReplaceBlocks(input);
+
+// 		// Compare result with expected shape
+// 		let passed = true;
+// 		if (result.length !== expected.shape.length) {
+// 			passed = false;
+// 		} else {
+// 			for (let j = 0; j < result.length; j++) { // block
+// 				const expectedItem = expected.shape[j];
+// 				const resultItem = result[j];
+
+// 				if ((expectedItem.state !== undefined) && (expectedItem.state !== resultItem.state) ||
+// 					(expectedItem.orig !== undefined) && (expectedItem.orig !== resultItem.orig) ||
+// 					(expectedItem.final !== undefined) && (expectedItem.final !== resultItem.final)) {
+// 					passed = false;
+// 					break;
+// 				}
+// 			}
+// 		}
+
+// 		if (passed) {
+// 			passedTests++;
+// 			console.log(`Test ${i + 1} passed`);
+// 		} else {
+// 			failedTests++;
+// 			console.log(`Test ${i + 1} failed`);
+// 			console.log('Input:', input)
+// 			console.log(`Expected:`, expected.shape);
+// 			console.log(`Got:`, result);
+// 		}
+// 	}
+
+// 	console.log(`Total: ${tests.length}, Passed: ${passedTests}, Failed: ${failedTests}`);
+// 	return failedTests === 0;
+// }
+
+
+
+// runTests()
+
+

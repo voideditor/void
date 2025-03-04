@@ -13,7 +13,7 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from './llmMessageService.js';
 import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo, chat_selectionsString } from '../browser/prompt/prompts.js';
-import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolName, voidTools } from './toolsService.js';
+import { InternalToolInfo, IToolsService, ToolCallParams, ToolResultType, ToolName, toolNamesThatRequireApproval, voidTools } from './toolsService.js';
 import { toLLMChatMessage, ToolCallType } from './llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IVoidFileService } from './voidFileService.js';
@@ -58,11 +58,18 @@ export type StagingSelectionItem = CodeSelection | FileSelection
 export type ToolMessage<T extends ToolName> = {
 	role: 'tool';
 	name: T; // internal use
-	params: string; // internal use
+	paramsStr: string; // internal use
 	id: string; // apis require this tool use id
 	content: string; // give this result to LLM
-	result: { type: 'success'; value: ToolCallReturnType[T], } | { type: 'error'; value: string }; // give this result to user
+	result: { type: 'success'; params: ToolCallParams[T]; value: ToolResultType[T], } | { type: 'error'; value: string }; // give this result to user
 }
+export type ToolRequestApproval<T extends ToolName> = {
+	role: 'tool_request';
+	name: T; // internal use
+	params: ToolCallParams[T]; // internal use
+	voidToolId: string; // internal id Void uses
+}
+
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
 	{
@@ -80,6 +87,7 @@ export type ChatMessage =
 		reasoning: string | null; // reasoning from the LLM, used for step-by-step thinking
 	}
 	| ToolMessage<ToolName>
+	| ToolRequestApproval<ToolName>
 
 type UserMessageType = ChatMessage & { role: 'user' }
 type UserMessageState = UserMessageType['state']
@@ -316,6 +324,18 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
+	private resRejOfToolAwaitingApproval: { [toolId: string]: { res: () => void, rej: () => void } } = {}
+	approveTool(toolId: string) {
+		const resRej = this.resRejOfToolAwaitingApproval[toolId]
+		resRej?.res()
+		delete this.resRejOfToolAwaitingApproval[toolId]
+	}
+	rejectTool(toolId: string) {
+		const resRej = this.resRejOfToolAwaitingApproval[toolId]
+		resRej?.rej()
+		delete this.resRejOfToolAwaitingApproval[toolId]
+	}
+
 
 	async addUserMessageAndStreamResponse({ userMessage, chatMode, chatSelections }: { userMessage: string, chatMode: ChatMode, chatSelections?: { prevSelns?: StagingSelectionItem[], currSelns?: StagingSelectionItem[] } }) {
 
@@ -357,7 +377,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				const awaitable = new Promise<void>((res, rej) => { res_ = res })
 
 				// replace last userMessage with userMessageFullContent (which contains all the files too)
-				const messages_ = this.getCurrentThread().messages.map(m => (toLLMChatMessage(m)))
+				const messages_ = this.getCurrentThread().messages.map(m => (toLLMChatMessage(m))).filter(m => !!m)
 				const lastUserMsgIdx = findLastIndex(messages_, m => m.role === 'user')
 				let messages = messages_
 				if (lastUserMsgIdx !== -1) { // should never be -1
@@ -398,31 +418,63 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							}
 							const toolName = tool.name
 
-							// 1.
-							let toolResultVal: ToolCallReturnType[typeof toolName]
+							// 1. validate tool params
+							let toolParams: ToolCallParams[typeof toolName]
 							try {
-								const val = await this._toolsService.toolFns[toolName](tool.params)
-								toolResultVal = val
+								const params = await this._toolsService.validateParams[toolName](tool.paramsStr)
+								toolParams = params
 							} catch (error) {
 								const errorMessage = getErrorMessage(error)
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, params: tool.params, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
 								shouldSendAnotherMessage = true
 								res_()
 								return
 							}
 
-							// 2.
-							let toolResultStr: string
+							// 2. if tool requires approval, await the approval
+							if (toolNamesThatRequireApproval.has(toolName)) {
+								const voidToolId = generateUuid()
+								const toolApprovalPromise = new Promise<void>((res, rej) => { this.resRejOfToolAwaitingApproval[voidToolId] = { res, rej } })
+								this._addMessageToThread(threadId, { role: 'tool_request', name: toolName, params: toolParams, voidToolId: voidToolId })
+								try {
+									await toolApprovalPromise
+									// accepted tool
+								}
+								catch (e) {
+									const errorMessage = 'Tool call was rejected by the user.'
+									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+									shouldSendAnotherMessage = false
+									res_()
+									return
+								}
+							}
+
+							// 3. call the tool
+							let toolResult: ToolResultType[typeof toolName]
 							try {
-								toolResultStr = this._toolsService.toolResultToString[toolName](toolResultVal as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
+								toolResult = this._toolsService.callTool[toolName](toolParams as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
 							} catch (error) {
-								// treat as irrecoverable error
-								this._setStreamState(threadId, { error })
+								const errorMessage = getErrorMessage(error)
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+								shouldSendAnotherMessage = true
 								res_()
 								return
 							}
 
-							this._addMessageToThread(threadId, { role: 'tool', name: toolName, params: tool.params, id: tool.id, content: toolResultStr, result: { type: 'success', value: toolResultVal }, })
+							// 4. stringify the result to give the LLM
+							let toolResultStr: string
+							try {
+								toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
+							} catch (error) {
+								const errorMessage = `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+								shouldSendAnotherMessage = true
+								res_()
+								return
+							}
+
+							// 5. add to history
+							this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
 							shouldSendAnotherMessage = true
 							res_()
 						}

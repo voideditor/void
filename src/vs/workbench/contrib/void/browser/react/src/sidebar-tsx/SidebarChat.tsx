@@ -25,7 +25,7 @@ import { ChevronRight, Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 
-import { ToolCallReturnType, ToolName } from '../../../../common/toolsService.js';
+import { ToolResultType, ToolName } from '../../../../common/toolsService.js';
 
 
 
@@ -604,8 +604,14 @@ const ToolResult = ({
 const ToolError = <T extends ToolName,>({ toolName, errorMessage }: { toolName: T, errorMessage: string }) => {
 	return <ToolResult
 		toolName={toolName}
-		actionParam={errorMessage}
-	/>
+		actionParam={'Error'}
+	>
+		<ErrorDisplay
+			message={errorMessage}
+			fullError={null}
+			onDismiss={null}
+		/>
+	</ToolResult>
 }
 
 
@@ -616,7 +622,7 @@ const toolResultToComponent: ToolResultToComponent = {
 		const commandService = accessor.get('ICommandService')
 		if (message.result.type === 'error') return <ToolError toolName='read_file' errorMessage={message.result.value} />
 
-		const { value } = message.result
+		const { value, params } = message.result
 		return (
 			<ToolResult
 				toolName='read_file'
@@ -625,10 +631,10 @@ const toolResultToComponent: ToolResultToComponent = {
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
 					<div
 						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+						onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 					>
 						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-						{getBasename(value.uri.fsPath)}
+						{getBasename(params.uri.fsPath)}
 					</div>
 					{value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
 				</div>
@@ -643,11 +649,11 @@ const toolResultToComponent: ToolResultToComponent = {
 		// message.result.itemsRemaining = 400
 		if (message.result.type === 'error') return <ToolError toolName='list_dir' errorMessage={message.result.value} />
 
-		const { value } = message.result
+		const { value, params } = message.result
 		return (
 			<ToolResult
 				toolName='list_dir'
-				actionParam={`${getBasename(value.rootURI.fsPath)}/`}
+				actionParam={`${getBasename(params.rootURI.fsPath)}/`}
 				actionNumResults={value.children?.length}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
@@ -674,11 +680,11 @@ const toolResultToComponent: ToolResultToComponent = {
 		const commandService = accessor.get('ICommandService')
 		if (message.result.type === 'error') return <ToolError toolName='pathname_search' errorMessage={message.result.value} />
 
-		const { value } = message.result
+		const { value, params } = message.result
 		return (
 			<ToolResult
 				toolName='pathname_search'
-				actionParam={`"${value.queryStr}"`}
+				actionParam={`"${params.queryStr}"`}
 				actionNumResults={value.uris.length}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
@@ -701,11 +707,11 @@ const toolResultToComponent: ToolResultToComponent = {
 		const commandService = accessor.get('ICommandService')
 		if (message.result.type === 'error') return <ToolError toolName='search' errorMessage={message.result.value} />
 
-		const { value } = message.result
+		const { value, params } = message.result
 		return (
 			<ToolResult
 				toolName='search'
-				actionParam={`"${value.queryStr}"`}
+				actionParam={`"${params.queryStr}"`}
 				actionNumResults={value.uris.length}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
@@ -732,20 +738,20 @@ const toolResultToComponent: ToolResultToComponent = {
 
 		if (message.result.type === 'error') return <ToolError toolName='create_uri' errorMessage={message.result.value} />
 
-		const { value } = message.result
+		const { params } = message.result
 		return (
 			<ToolResult
 				toolName='create_uri'
-				actionParam={getBasename(value.uri.fsPath)}
-				onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+				actionParam={getBasename(params.uri.fsPath)}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
 					<div
 						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+						onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 					>
 						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-						{value.uri.fsPath.split('/').pop()}
+						{params.uri.fsPath.split('/').pop()}
 					</div>
 				</div>
 			</ToolResult>
@@ -757,20 +763,20 @@ const toolResultToComponent: ToolResultToComponent = {
 
 		if (message.result.type === 'error') return <ToolError toolName='delete_uri' errorMessage={message.result.value} />
 
-		const { value } = message.result
+		const { params } = message.result
 		return (
 			<ToolResult
 				toolName='delete_uri'
-				actionParam={getBasename(value.uri.fsPath) + ' (deleted)'}
-				onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+				actionParam={getBasename(params.uri.fsPath) + ' (deleted)'}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
 					<div
 						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+						onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 					>
 						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-						{value.uri.fsPath.split('/').pop()}
+						{params.uri.fsPath.split('/').pop()}
 					</div>
 				</div>
 			</ToolResult>
@@ -782,20 +788,20 @@ const toolResultToComponent: ToolResultToComponent = {
 
 		if (message.result.type === 'error') return <ToolError toolName='edit' errorMessage={message.result.value} />
 
-		const { value } = message.result
+		const { params } = message.result
 		return (
 			<ToolResult
 				toolName='edit'
-				actionParam={getBasename(value.uri.fsPath)}
-				onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+				actionParam={getBasename(params.uri.fsPath)}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
 					<div
 						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => { commandService.executeCommand('vscode.open', value.uri, { preview: true }) }}
+						onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 					>
 						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-						{value.uri.fsPath.split('/').pop()}
+						{params.uri.fsPath.split('/').pop()}
 					</div>
 				</div>
 			</ToolResult>
@@ -807,16 +813,16 @@ const toolResultToComponent: ToolResultToComponent = {
 
 		if (message.result.type === 'error') return <ToolError toolName='terminal_command' errorMessage={message.result.value} />
 
-		const { value } = message.result
+		const { params } = message.result
 		return (
 			<ToolResult
 				toolName='terminal_command'
-				actionParam={value.command}
+				actionParam={params.command}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
 					<div
 						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						// TODO!!! open terminal
+					// TODO!!! open terminal
 
 					>
 						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
@@ -1026,7 +1032,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 
 		chatbubbleContents = <ToolComponent message={chatMessage} />
 
-		console.log('tool result:', chatMessage.name, chatMessage.params, chatMessage.result)
+		console.log('tool result:', chatMessage.name, chatMessage.paramsStr, chatMessage.result)
 
 	}
 

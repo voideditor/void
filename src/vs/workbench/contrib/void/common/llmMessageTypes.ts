@@ -45,7 +45,7 @@ export type LLMChatMessage = {
 
 export type ToolCallType = {
 	name: ToolName;
-	params: string;
+	paramsStr: string;
 	id: string;
 }
 
@@ -56,14 +56,16 @@ export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
 
-export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage => {
+export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage | null => {
 	if (c.role === 'user') {
 		return { role: c.role, content: c.content || '(empty message)' }
 	}
 	else if (c.role === 'assistant')
 		return { role: c.role, content: c.content || '(empty message)' }
 	else if (c.role === 'tool')
-		return { role: c.role, id: c.id, name: c.name, params: c.params, content: c.content || '(empty output)' }
+		return { role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content || '(empty output)' }
+	else if (c.role === 'tool_request')
+		return null
 	else {
 		throw new Error(`Role ${(c as any).role} not recognized.`)
 	}

@@ -10,7 +10,7 @@ import OpenAI, { ClientOptions } from 'openai';
 import { Model as OpenAIModel } from 'openai/resources/models.js';
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../browser/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/llmMessageTypes.js';
-import { InternalToolInfo, isAToolName } from '../../common/toolsService.js';
+import { InternalToolInfo, isAToolName, ToolName } from '../../common/toolsService.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 
@@ -582,12 +582,13 @@ const toOpenAICompatibleTool = (toolInfo: InternalToolInfo) => {
 	} satisfies OpenAI.Chat.Completions.ChatCompletionTool
 }
 
-type ToolCallOfIndex = { [index: string]: { name: string, params: string, id: string } }
+type ToolCallOfIndex = { [index: string]: { name: string, paramsStr: string, id: string } } // type used to stream tool calls as they come in
+type ToolCallsFrom_ReturnType = { name: ToolName, id: string, paramsStr: string }[] // return type of toolCallsFrom_<PROVIDER>
 
-const toolCallsFrom_OpenAICompat = (toolCallOfIndex: ToolCallOfIndex) => {
+const toolCallsFrom_OpenAICompat = (toolCallOfIndex: ToolCallOfIndex): ToolCallsFrom_ReturnType => {
 	return Object.keys(toolCallOfIndex).map(index => {
 		const tool = toolCallOfIndex[index]
-		return isAToolName(tool.name) ? { name: tool.name, id: tool.id, params: tool.params } : null
+		return isAToolName(tool.name) ? { name: tool.name, id: tool.id, paramsStr: tool.paramsStr } : null
 	}).filter(t => !!t)
 }
 
@@ -719,9 +720,9 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 				// tool call
 				for (const tool of chunk.choices[0]?.delta?.tool_calls ?? []) {
 					const index = tool.index
-					if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', params: '', id: '' }
+					if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', paramsStr: '', id: '' }
 					toolCallOfIndex[index].name += tool.function?.name ?? ''
-					toolCallOfIndex[index].params += tool.function?.arguments ?? '';
+					toolCallOfIndex[index].paramsStr += tool.function?.arguments ?? '';
 					toolCallOfIndex[index].id = tool.id ?? ''
 				}
 				// message
@@ -804,11 +805,11 @@ const toAnthropicTool = (toolInfo: InternalToolInfo) => {
 	} satisfies Anthropic.Messages.Tool
 }
 
-const toolCallsFromAnthropicContent = (content: Anthropic.Messages.ContentBlock[]) => {
+const toolCallsFrom_AnthropicContent = (content: Anthropic.Messages.ContentBlock[]): ToolCallsFrom_ReturnType => {
 	return content.map(c => {
 		if (c.type !== 'tool_use') return null
 		if (!isAToolName(c.name)) return null
-		return c.type === 'tool_use' ? { name: c.name, params: JSON.stringify(c.input), id: c.id } : null
+		return c.type === 'tool_use' ? { name: c.name, paramsStr: JSON.stringify(c.input), id: c.id } : null
 	}).filter(t => !!t)
 }
 
@@ -842,7 +843,7 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	// when we get the final message on this stream (or when error/fail)
 	stream.on('finalMessage', (response) => {
 		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n\n')
-		const toolCalls = toolCallsFromAnthropicContent(response.content)
+		const toolCalls = toolCallsFrom_AnthropicContent(response.content)
 		onFinalMessage({ fullText: content, toolCalls })
 	})
 	// on error

@@ -39,7 +39,7 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
-import { LLMChatMessage, OnError, errorDetails } from '../common/llmMessageTypes.js';
+import { LLMChatMessage, OnError, OnFinalMessage, OnText, errorDetails } from '../common/llmMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { IVoidFileService } from '../common/voidFileService.js';
 
@@ -133,6 +133,10 @@ export type StartApplyingOpts = {
 	type: 'searchReplace' | 'rewrite';
 	applyStr: string;
 	uri: 'current' | URI;
+
+	onText?: OnText;
+	onFinalMessage?: OnFinalMessage;
+	onError?: OnError;
 }
 
 
@@ -1450,7 +1454,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }) {
-		const { applyStr, uri: givenURI } = opts
+		const { applyStr, uri: givenURI, onText: onText_, onFinalMessage: onFinalMessage_, onError: onError_, } = opts
 		let uri: URI
 
 		if (givenURI === 'current') {
@@ -1583,7 +1587,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				useProviderFor: 'Apply',
 				logging: { loggingName: `generateSearchAndReplace` },
 				messages,
-				onText: ({ fullText }) => {
+				onText: (params) => {
+					const { fullText } = params
 					// blocks are [done done done ... {writingFinal|writingOriginal}]
 					//               ^
 					//              currStreamingBlockNum
@@ -1678,8 +1683,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					} // end for
 
 					this._refreshStylesAndDiffsInURI(uri)
+
+					onText_?.(params)
 				},
-				onFinalMessage: async ({ fullText }) => {
+				onFinalMessage: async (params) => {
+					const { fullText } = params
 					console.log('final message!!', fullText)
 
 					// 1. wait 500ms and fix lint errors - call lint error workflow
@@ -1715,11 +1723,15 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					}
 
 					onDone()
+
+					onFinalMessage_?.(params)
 				},
 				onError: (e) => {
 					this._notifyError(e)
 					onDone()
 					this._undoHistory(uri)
+
+					onError_?.(e)
 				},
 
 			})

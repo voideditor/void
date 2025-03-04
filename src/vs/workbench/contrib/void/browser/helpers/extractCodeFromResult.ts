@@ -171,6 +171,9 @@ export type ExtractedSearchReplaceBlock = {
 }
 
 
+// JS substring swaps indices, so "ab".substr(1,0) will NOT be '', it will be 'a'!
+const voidSubstr = (str: string, start: number, end: number) => end < start ? '' : str.substring(start, end)
+
 const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
 	// for each prefix
 	for (let i = anyPrefix.length; i >= 1; i--) { // i >= 1 because must not be empty string
@@ -199,36 +202,37 @@ export const extractSearchReplaceBlocks = (str: string) => {
 
 		let dividerStart = str.indexOf(DIVIDER_, i)
 		if (dividerStart === -1) { // if didnt find DIVIDER_, either writing originalStr or DIVIDER_ right now
-			const isWritingDIVIDER = endsWithAnyPrefixOf(str, DIVIDER_)
+			const writingDIVIDERlen = endsWithAnyPrefixOf(str, DIVIDER_)?.length ?? 0
 			blocks.push({
-				orig: str.substring(origStart, str.length - (isWritingDIVIDER?.length ?? 0)),
+				orig: voidSubstr(str, origStart, str.length - writingDIVIDERlen),
 				final: '',
 				state: 'writingOriginal'
 			})
 			return blocks
 		}
-		const origStrDone = str.substring(origStart, dividerStart)
+		const origStrDone = voidSubstr(str, origStart, dividerStart)
 		dividerStart += DIVIDER_.length
 		i = dividerStart
 		// wrote \n=====\n
 
-		const finalStartA = str.indexOf(FINAL, i)
-		const finalStartB = str.indexOf('\n' + FINAL, i) // go with B if possible, else fallback to A, it's more permissive
-		const isFINAL_ = finalStartB !== -1 && finalStartA === finalStartB  // this logic is really important, otherwise we might look for FINAL_ at a much later part of the string
-		const usingFINAL = isFINAL_ ? '\n' + FINAL : FINAL
+		const fullFINALStart = str.indexOf(FINAL, i)
+		const fullFINALStart_ = str.indexOf('\n' + FINAL, i) // go with B if possible, else fallback to A, it's more permissive
+		const matchedFullFINAL_ = fullFINALStart_ !== -1 && fullFINALStart === fullFINALStart_ + 1  // this logic is really important, otherwise we might look for FINAL_ at a much later part of the string
 
-		let finalStart = isFINAL_ ? finalStartB : finalStartA
-
-		if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL_ right now
-			const isWritingFINAL = endsWithAnyPrefixOf(str, usingFINAL)
+		let finalStart = matchedFullFINAL_ ? fullFINALStart_ : fullFINALStart
+		if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL or FINAL_ right now
+			const writingFINALlen = endsWithAnyPrefixOf(str, FINAL)?.length ?? 0
+			const writingFINALlen_ = endsWithAnyPrefixOf(str, '\n' + FINAL)?.length ?? 0 // this gets priority
+			const usingWritingFINALlen = Math.max(writingFINALlen, writingFINALlen_)
 			blocks.push({
 				orig: origStrDone,
-				final: str.substring(dividerStart, str.length - (isWritingFINAL?.length ?? 0)),
+				final: voidSubstr(str, dividerStart, str.length - usingWritingFINALlen),
 				state: 'writingFinal'
 			})
 			return blocks
 		}
-		const finalStrDone = str.substring(dividerStart, finalStart)
+		const usingFINAL = matchedFullFINAL_ ? '\n' + FINAL : FINAL
+		const finalStrDone = voidSubstr(str, dividerStart, finalStart)
 		finalStart += usingFINAL.length
 		i = finalStart
 		// wrote >>>>> FINAL
@@ -494,7 +498,7 @@ export const extractReasoningOnFinalMessage = (fullText_: string, thinkTags: [st
 // =======
 // X
 // Y
-// >>>>>>> FINA`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X\nY' }], }
+// >>>>>>> UPDAT`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X\nY' }], }
 // ], [
 // 	`\
 // \`\`\`

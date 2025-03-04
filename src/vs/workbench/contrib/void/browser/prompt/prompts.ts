@@ -5,11 +5,11 @@
 
 
 import { URI } from '../../../../../base/common/uri.js';
-import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
-import { CodeSelection, StagingSelectionItem, FileSelection } from '../../browser/chatThreadService.js';
+import { filenameToVscodeLanguage } from '../../common/helpers/detectLanguage.js';
+import { CodeSelection, StagingSelectionItem, FileSelection } from '../chatThreadService.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
-import { os } from '../helpers/systemInfo.js';
-import { IVoidFileService } from '../voidFileService.js';
+import { os } from '../../common/helpers/systemInfo.js';
+import { IVoidFileService } from '../../common/voidFileService.js';
 
 
 // this is just for ease of readability

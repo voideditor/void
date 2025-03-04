@@ -7,7 +7,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
-import { editToolDesc_toolDescription } from '../common/prompt/prompts.js'
+import { editToolDesc_toolDescription } from './prompt/prompts.js'
 import { IVoidFileService } from '../common/voidFileService.js'
 
 

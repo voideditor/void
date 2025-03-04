@@ -649,7 +649,7 @@ export const Settings = () => {
 
 
 					{/* content */}
-					<div className='w-full min-w-[600px] overflow-auto'>
+					<div className='w-full min-w-[550px] overflow-auto'>
 
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
 							<FeaturesTab />

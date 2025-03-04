@@ -9,7 +9,7 @@ import { ISearchService } from '../../../../workbench/services/search/common/sea
 import { IEditCodeService } from '../browser/editCodeService.js'
 import { editToolDesc_toolDescription } from '../browser/prompt/prompts.js'
 import { IVoidFileService } from './voidFileService.js'
-import { ITerminalToolService } from '../browser/terminalToolService.js'
+// import { ITerminalToolService } from '../browser/terminalToolService.js'
 
 
 // tool use for AI
@@ -291,7 +291,7 @@ export class ToolsService implements IToolsService {
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IVoidFileService voidFileService: IVoidFileService,
 		@IEditCodeService editCodeService: IEditCodeService,
-		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
+		// @ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -393,7 +393,7 @@ export class ToolsService implements IToolsService {
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
 
-				const applyId = editCodeService.startApplying({ uri, applyStr: changeDescription, from: 'ClickApply', type: 'rewrite' })
+				// const applyId = editCodeService.startApplying({ uri, applyStr: changeDescription, from: 'ClickApply', type: 'rewrite' })
 
 				// // TODO!!!
 

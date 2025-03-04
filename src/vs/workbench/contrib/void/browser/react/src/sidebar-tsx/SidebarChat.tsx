@@ -543,7 +543,6 @@ const actionTitleOfToolName: { [T in ToolName]: string } = {
 
 
 
-type ToolResultToComponent = { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode }
 
 const ToolResult = ({
 	toolName,
@@ -615,7 +614,7 @@ const ToolError = <T extends ToolName,>({ toolName, errorMessage }: { toolName: 
 }
 
 
-const toolResultToComponent: ToolResultToComponent = {
+const toolResultToComponent: { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode } = {
 	'read_file': ({ message }) => {
 
 		const accessor = useAccessor()
@@ -626,7 +625,7 @@ const toolResultToComponent: ToolResultToComponent = {
 		return (
 			<ToolResult
 				toolName='read_file'
-				actionParam={'View file'}
+				actionParam={getBasename(params.uri.fsPath)}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
 					<div
@@ -634,7 +633,7 @@ const toolResultToComponent: ToolResultToComponent = {
 						onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 					>
 						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-						{getBasename(params.uri.fsPath)}
+						{params.uri.fsPath}
 					</div>
 					{value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
 				</div>
@@ -1033,6 +1032,13 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		chatbubbleContents = <ToolComponent message={chatMessage} />
 
 		console.log('tool result:', chatMessage.name, chatMessage.paramsStr, chatMessage.result)
+
+	}
+	else if (role === 'tool_request'){
+		chatbubbleContents = <>
+		<div className='text-void-fg-4 italic' onClick={() => {chatThreadsService.approveTool(chatMessage.voidToolId)}}>Accept</div>
+		<div className='text-void-fg-4 italic' onClick={() => {chatThreadsService.rejectTool(chatMessage.voidToolId)}}>Reject</div>
+		</>
 
 	}
 

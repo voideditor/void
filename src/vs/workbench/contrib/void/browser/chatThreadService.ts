@@ -186,6 +186,9 @@ export interface IChatThreadService {
 	cancelStreaming(threadId: string): void;
 	dismissStreamError(threadId: string): void;
 
+	approveTool(toolId: string): void;
+	rejectTool(toolId: string): void;
+
 }
 
 export const IChatThreadService = createDecorator<IChatThreadService>('voidChatThreadService');
@@ -452,7 +455,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							// 3. call the tool
 							let toolResult: ToolResultType[typeof toolName]
 							try {
-								toolResult = this._toolsService.callTool[toolName](toolParams as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
+								toolResult = await this._toolsService.callTool[toolName](toolParams as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
 							} catch (error) {
 								const errorMessage = getErrorMessage(error)
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
@@ -464,7 +467,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							// 4. stringify the result to give the LLM
 							let toolResultStr: string
 							try {
-								toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
+								toolResultStr = await this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
 							} catch (error) {
 								const errorMessage = `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })

@@ -11,12 +11,12 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
-import { ILLMMessageService } from './llmMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo, chat_selectionsString } from '../browser/prompt/prompts.js';
+import { ILLMMessageService } from '../common/llmMessageService.js';
+import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo, chat_selectionsString } from '../common/prompt/prompts.js';
 import { InternalToolInfo, IToolsService, ToolCallParams, ToolResultType, ToolName, toolNamesThatRequireApproval, voidTools } from './toolsService.js';
-import { toLLMChatMessage, ToolCallType } from './llmMessageTypes.js';
+import { toLLMChatMessage, ToolCallType } from '../common/llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { IVoidFileService } from './voidFileService.js';
+import { IVoidFileService } from '../common/voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { getErrorMessage } from '../../../../base/common/errors.js';
 

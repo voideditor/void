@@ -6,7 +6,7 @@
 import React, { JSX } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
-import { nameToVscodeLanguage } from '../../../helpers/detectLanguage.js'
+import { nameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js'
 import { ApplyBlockHoverButtons } from './ApplyBlockHoverButtons.js'
 
 export type ChatMessageLocation = {

@@ -53,8 +53,8 @@ import '../common/metricsService.js'
 import '../common/voidUpdateService.js'
 
 // tools
-import '../common/toolsService.js'
+import './toolsService.js'
 
 // register Thread History
-import '../common/chatThreadService.js'
+import './chatThreadService.js'
 

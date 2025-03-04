@@ -4,11 +4,11 @@ import { IFileService } from '../../../../platform/files/common/files.js'
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js'
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js'
-import { QueryBuilder } from '../../../../workbench/services/search/common/queryBuilder.js'
-import { ISearchService } from '../../../../workbench/services/search/common/search.js'
-import { IEditCodeService } from '../browser/editCodeService.js'
-import { editToolDesc_toolDescription } from '../browser/prompt/prompts.js'
-import { IVoidFileService } from './voidFileService.js'
+import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
+import { ISearchService } from '../../../services/search/common/search.js'
+import { IEditCodeService } from './editCodeServiceInterface.js'
+import { editToolDesc_toolDescription } from '../common/prompt/prompts.js'
+import { IVoidFileService } from '../common/voidFileService.js'
 
 
 // tool use for AI

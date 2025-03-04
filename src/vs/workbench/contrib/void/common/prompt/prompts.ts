@@ -6,10 +6,10 @@
 
 import { URI } from '../../../../../base/common/uri.js';
 import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
-import { CodeSelection, StagingSelectionItem, FileSelection } from '../../common/chatThreadService.js';
+import { CodeSelection, StagingSelectionItem, FileSelection } from '../../browser/chatThreadService.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
 import { os } from '../helpers/systemInfo.js';
-import { IVoidFileService } from '../../common/voidFileService.js';
+import { IVoidFileService } from '../voidFileService.js';
 
 
 // this is just for ease of readability

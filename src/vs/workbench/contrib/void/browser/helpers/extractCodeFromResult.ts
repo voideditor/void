@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { OnText } from '../../common/llmMessageTypes.js'
-import { DIVIDER, FINAL, ORIGINAL } from '../prompt/prompts.js'
+import { DIVIDER, FINAL, ORIGINAL } from '../../common/prompt/prompts.js'
 
 class SurroundingsRemover {
 	readonly originalS: string

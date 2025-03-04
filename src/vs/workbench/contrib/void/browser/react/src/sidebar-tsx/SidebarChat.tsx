@@ -7,7 +7,7 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
-import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadService.js';
+import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender, ChatMessageLocation } from '../markdown/ChatMarkdownRender.js';
@@ -19,13 +19,13 @@ import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
-import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
+import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChevronRight, Pencil, X } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 
-import { ToolResultType, ToolName } from '../../../../common/toolsService.js';
+import { ToolResultType, ToolName } from '../../../toolsService.js';
 
 
 

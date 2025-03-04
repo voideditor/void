@@ -3,7 +3,6 @@ import { useAccessor, useURIStreamState, useSettingsState } from '../util/servic
 import { useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
-import { IEditCodeService, URIStreamState } from '../../../editCodeService.js'
 
 enum CopyButtonText {
 	Idle = 'Copy',

@@ -5,7 +5,7 @@
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
-import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ICodeEditor, IOverlayWidget, IViewZone, OverlayWidgetPositionPreference } from '../../../../editor/browser/editorBrowser.js';
 
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
@@ -25,23 +25,24 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, } from './prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, } from '../common/prompt/prompts.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from './helpers/extractCodeFromResult.js';
-import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
+import { filenameToVscodeLanguage } from '../common/helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-import { Emitter, Event } from '../../../../base/common/event.js';
+import { Emitter } from '../../../../base/common/event.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
-import { LLMChatMessage, OnError, OnFinalMessage, OnText, errorDetails } from '../common/llmMessageTypes.js';
+import { LLMChatMessage, OnError, errorDetails } from '../common/llmMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { IVoidFileService } from '../common/voidFileService.js';
+import { IEditCodeService, URIStreamState, AddCtrlKOpts, StartApplyingOpts } from './editCodeServiceInterface.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -121,31 +122,7 @@ const findTextInCode = (text: string, fileContents: string, startingAtLine?: num
 }
 
 
-export type URIStreamState = 'idle' | 'acceptRejectAll' | 'streaming'
 
-
-export type StartApplyingOpts = {
-	from: 'QuickEdit';
-	type: 'rewrite';
-	diffareaid: number; // id of the CtrlK area (contains text selection)
-} | {
-	from: 'ClickApply';
-	type: 'searchReplace' | 'rewrite';
-	applyStr: string;
-	uri: 'current' | URI;
-
-	onText?: OnText;
-	onFinalMessage?: OnFinalMessage;
-	onError?: OnError;
-}
-
-
-
-export type AddCtrlKOpts = {
-	startLine: number,
-	endLine: number,
-	editor: ICodeEditor,
-}
 
 // // TODO diffArea should be removed if we just discovered it has no more diffs in it
 // for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
@@ -252,28 +229,6 @@ type HistorySnapshot = {
 type StreamLocationMutable = { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number }
 
 
-export interface IEditCodeService {
-	readonly _serviceBrand: undefined;
-	startApplying(opts: StartApplyingOpts): URI | null;
-
-	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
-	removeCtrlKZone(opts: { diffareaid: number }): void;
-	removeDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept' }): void;
-
-	// CtrlKZone streaming state
-	isCtrlKZoneStreaming(opts: { diffareaid: number }): boolean;
-	interruptCtrlKStreaming(opts: { diffareaid: number }): void;
-	onDidChangeCtrlKZoneStreaming: Event<{ uri: URI; diffareaid: number }>;
-
-	// // DiffZone codeBoxId streaming state
-	getURIStreamState(opts: { uri: URI | null }): URIStreamState;
-	interruptURIStreaming(opts: { uri: URI }): void;
-	onDidChangeURIStreamState: Event<{ uri: URI; state: URIStreamState }>;
-
-	// testDiffs(): void;
-}
-
-export const IEditCodeService = createDecorator<IEditCodeService>('editCodeService');
 
 class EditCodeService extends Disposable implements IEditCodeService {
 	_serviceBrand: undefined;

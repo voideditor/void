@@ -10,7 +10,7 @@ import OpenAI, { ClientOptions } from 'openai';
 import { Model as OpenAIModel } from 'openai/resources/models.js';
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../browser/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/llmMessageTypes.js';
-import { InternalToolInfo, isAToolName, ToolName } from '../../common/toolsService.js';
+import { InternalToolInfo, isAToolName, ToolName } from '../../browser/toolsService.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 

@@ -167,6 +167,82 @@ module.exports = {
 		},
 	},
 	plugins: [],
-	prefix: 'void-'
+	prefix: 'void-',
+	safelist: [
+		// Background colors
+		'void-bg-void-bg-1',
+
+		// Borders
+		'void-border-b',
+		'void-border-l-4',
+		'void-border-t',
+		'void-border-void-bg-2',
+
+		// Typography
+		'void-text-2xl',
+		'void-text-3xl',
+		'void-text-4xl',
+		'void-text-base',
+		'void-text-lg',
+		'void-text-xl',
+		'void-text-gray-600',
+		'void-font-medium',
+		'void-font-mono',
+		'void-font-semibold',
+		'void-italic',
+		'void-line-through',
+		'void-underline',
+
+		// Spacing
+		'void-mt-1',
+		'void-mt-2',
+		'void-mt-4',
+		'void-mt-6',
+		'void-mb-1',
+		'void-mb-2',
+		'void-mb-4',
+		'void-mx-1',
+		'void-mx-2',
+		'void-mx-4',
+		'void-my-1',
+		'void-my-2',
+		'void-my-4',
+		'void-my-6',
+		'void-pb-1',
+		'void-pb-2',
+		'void-pb-4',
+		'void-pl-1',
+		'void-pl-2',
+		'void-pl-4',
+		'void-px-1',
+		'void-px-2',
+		'void-px-4',
+
+		// Sizing and layout
+		'void-h-auto',
+		'void-max-w-full',
+		'void-overflow-x-auto',
+
+		// Lists
+		'void-list-inside',
+		'void-list-decimal',
+		'void-list-disc',
+
+		// Effects and decoration
+		'void-cursor-pointer',
+		'void-ring-8',
+		'void-ring-[#123456]',
+		'void-rounded',
+		'void-rounded-sm',
+
+		// misc
+		'void-break-all',
+		'void-bg-void-bg-1',
+		'void-px-1',
+		'void-rounded-sm',
+		'void-font-mono',
+		'void-font-medium',
+		'void-break-all'
+	]
 }
 

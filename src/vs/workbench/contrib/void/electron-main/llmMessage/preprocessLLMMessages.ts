@@ -17,6 +17,9 @@ export const parseObject = (args: unknown) => {
 const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatMessage[] }) => {
 	const messages = deepClone(messages_)
 	const newMessages: LLMChatMessage[] = []
+	if (messages.length >= 0) newMessages.push(messages[0])
+
+	// remove duplicate roles
 	for (let i = 1; i < messages.length; i += 1) {
 		const curr = messages[i]
 		const prev = messages[i - 1]
@@ -65,6 +68,7 @@ const prepareMessages_systemMessage = ({
 	// }
 
 
+	// if it has a system message (if doesn't, we obviously don't care about whether it supports system message or not...)
 	if (systemMessageStr) {
 		// if supports system message
 		if (supportsSystemMessage) {
@@ -77,25 +81,18 @@ const prepareMessages_systemMessage = ({
 		}
 		// if does not support system message
 		else {
-			if (supportsSystemMessage) {
-				if (newMessages.length === 0)
-					newMessages.push({ role: 'user', content: systemMessageStr })
-				// add system mesasges to first message (should be a user message)
-				else {
-					const newFirstMessage = {
-						role: 'user',
-						content: (''
-							+ '<SYSTEM_MESSAGE>\n'
-							+ systemMessageStr
-							+ '\n'
-							+ '</SYSTEM_MESSAGE>\n'
-							+ newMessages[0].content
-						)
-					} as const
-					newMessages.splice(0, 1) // delete first message
-					newMessages.unshift(newFirstMessage) // add new first message
-				}
-			}
+			const newFirstMessage = {
+				role: 'user',
+				content: (''
+					+ '<SYSTEM_MESSAGE>\n'
+					+ systemMessageStr
+					+ '\n'
+					+ '</SYSTEM_MESSAGE>\n'
+					+ newMessages[0].content
+				)
+			} as const
+			newMessages.splice(0, 1) // delete first message
+			newMessages.unshift(newFirstMessage) // add new first message
 		}
 	}
 

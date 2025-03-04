@@ -1,3 +1,4 @@
+
 /*--------------------------------------------------------------------------------------
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
@@ -7,7 +8,6 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
-import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender, ChatMessageLocation } from '../markdown/ChatMarkdownRender.js';
@@ -19,13 +19,14 @@ import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
-import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { ChevronRight, Pencil, X } from 'lucide-react';
+import { ChevronRight, Pencil, X, AlertTriangle } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
+import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../chatThreadService.js';
+import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js';
+import { ToolName } from '../../../toolsService.js';
 
-import { ToolResultType, ToolName } from '../../../toolsService.js';
 
 
 
@@ -151,7 +152,7 @@ interface VoidChatAreaProps {
 	onAbort: () => void;
 	isStreaming: boolean;
 	isDisabled?: boolean;
-	divRef?: React.RefObject<HTMLDivElement | null>;
+	divRef?: React.RefObject<HTMLDivElement>;
 
 	// UI customization
 	featureName: FeatureName;
@@ -190,19 +191,23 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	return (
 		<div
 			ref={divRef}
-			// border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 			className={`
 				gap-1
                 flex flex-col p-2 relative input text-left shrink-0
                 transition-all duration-200
                 rounded-md
                 bg-vscode-input-bg
-				outline-1 outline-void-border-3 focus-within:outline-void-border-1 hover:outline-void-border-1
+				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 				max-h-[80vh] overflow-y-auto
                 ${className}
             `}
 			onClick={(e) => {
 				onClickAnywhere?.()
+			}}
+			onKeyDown={(e: React.KeyboardEvent) => {
+				if (e.key === 'Escape' && isStreaming && onAbort) {
+					onAbort();
+				}
 			}}
 		>
 			{/* Selections section */}
@@ -443,7 +448,7 @@ export const SelectedFiles = (
 							border rounded-sm ${isThisSelectionProspective
 								? 'border-void-border-2'
 								: isThisSelectionOpened
-									? 'border-void-border-1 ring-1 ring-[#007FD4]'
+									? 'border-void-border-1 ring-1 ring-void-blue'
 									: 'border-void-border-1'
 							}
 							hover:border-void-border-1
@@ -502,7 +507,7 @@ export const SelectedFiles = (
 						<div
 							className={`
 								w-full rounded-sm border-vscode-editor-border
-								${isThisSelectionOpened ? 'ring-1 ring-[#007FD4]' : ''}
+								${isThisSelectionOpened ? 'ring-1 ring-void-blue' : ''}
 							`}
 							onClick={(e) => {
 								e.stopPropagation(); // don't focus input box
@@ -528,42 +533,33 @@ export const SelectedFiles = (
 }
 
 
-const actionTitleOfToolName: { [T in ToolName]: string } = {
-	'read_file': 'Read file',
-	'list_dir': 'Inspected folder',
-	'pathname_search': 'Searched filename',
-	'search': 'Searched',
-
-	'create_uri': 'Created URI',
-	'delete_uri': 'Deleted URI',
-	'edit': 'Edited file',
-	'terminal_command': 'Ran terminal command',
-}
 
 
 
-
-
-const ToolResult = ({
-	toolName,
-	actionParam,
-	actionNumResults,
-	children,
-	onClick,
-}: {
-	toolName: ToolName;
-	actionParam: string;
-	actionNumResults?: number;
+interface DropdownComponentProps {
+	title: string;
+	desc1: string;
+	desc2?: string;
+	numResults?: number;
 	children?: React.ReactNode;
 	onClick?: () => void;
-}) => {
+}
+
+const DropdownComponent = ({
+	title,
+	desc1,
+	desc2,
+	numResults,
+	children,
+	onClick,
+}: DropdownComponentProps) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const isDropdown = !!children
 	const isClickable = !!isDropdown || !!onClick
 
 	return (
-		<div className="mx-4 select-none">
+		<div className="select-none">
 			<div className="border border-void-border-3 rounded px-2 py-1 bg-void-bg-2-alt overflow-hidden">
 				<div
 					className={`flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
@@ -578,11 +574,14 @@ const ToolResult = ({
 						/>
 					)}
 					<div className="flex items-center flex-nowrap whitespace-nowrap gap-x-2">
-						<span className="text-void-fg-3">{actionTitleOfToolName[toolName]}</span>
-						<span className="text-void-fg-4 text-xs italic">{actionParam}</span>
-						{actionNumResults !== undefined && (
+						<span className="text-void-fg-3">{title}</span>
+						<span className="text-void-fg-4 text-xs italic">{desc1}</span>
+						{desc2 && <span className="text-void-fg-4 text-xs">
+							{desc2}
+						</span>}
+						{numResults !== undefined && (
 							<span className="text-void-fg-4 text-xs">
-								{`(`}{actionNumResults}{` result`}{actionNumResults !== 1 ? 's' : ''}{`)`}
+								{`(`}{numResults}{` result`}{numResults !== 1 ? 's' : ''}{`)`}
 							</span>
 						)}
 					</div>
@@ -591,7 +590,9 @@ const ToolResult = ({
 					// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
 					className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
 				>
-					{children}
+					<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+						{children}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -599,252 +600,9 @@ const ToolResult = ({
 };
 
 
-
-const ToolError = <T extends ToolName,>({ toolName, errorMessage }: { toolName: T, errorMessage: string }) => {
-	return <ToolResult
-		toolName={toolName}
-		actionParam={'Error'}
-	>
-		<ErrorDisplay
-			message={errorMessage}
-			fullError={null}
-			onDismiss={null}
-		/>
-	</ToolResult>
-}
-
-
-const toolResultToComponent: { [T in ToolName]: (props: { message: ToolMessage<T> }) => React.ReactNode } = {
-	'read_file': ({ message }) => {
-
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		if (message.result.type === 'error') return <ToolError toolName='read_file' errorMessage={message.result.value} />
-
-		const { value, params } = message.result
-		return (
-			<ToolResult
-				toolName='read_file'
-				actionParam={getBasename(params.uri.fsPath)}
-			>
-				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					<div
-						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-					>
-						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-						{params.uri.fsPath}
-					</div>
-					{value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
-				</div>
-			</ToolResult>
-		)
-	},
-	'list_dir': ({ message }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		const explorerService = accessor.get('IExplorerService')
-		// message.result.hasNextPage = true
-		// message.result.itemsRemaining = 400
-		if (message.result.type === 'error') return <ToolError toolName='list_dir' errorMessage={message.result.value} />
-
-		const { value, params } = message.result
-		return (
-			<ToolResult
-				toolName='list_dir'
-				actionParam={`${getBasename(params.rootURI.fsPath)}/`}
-				actionNumResults={value.children?.length}
-			>
-				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					{value.children?.map((child, i) => (
-						<div key={i}
-							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-							onClick={() => {
-								commandService.executeCommand('workbench.view.explorer');
-								explorerService.select(child.uri, true);
-							}}
-						>
-							<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-							{`${child.name}${child.isDirectory ? '/' : ''}`}
-						</div>
-					))}
-					{value.hasNextPage && (<div className="italic">{value.itemsRemaining} more items...</div>)}
-				</div>
-			</ToolResult>
-		)
-	},
-	'pathname_search': ({ message }) => {
-
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		if (message.result.type === 'error') return <ToolError toolName='pathname_search' errorMessage={message.result.value} />
-
-		const { value, params } = message.result
-		return (
-			<ToolResult
-				toolName='pathname_search'
-				actionParam={`"${params.queryStr}"`}
-				actionNumResults={value.uris.length}
-			>
-				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					{value.uris.map((uri, i) => (
-						<div key={i}
-							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
-						>
-							<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-							{uri.fsPath.split('/').pop()}
-						</div>
-					))}
-					{value.hasNextPage && (<div className="italic">More results available...</div>)}
-				</div>
-			</ToolResult>
-		)
-	},
-	'search': ({ message }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		if (message.result.type === 'error') return <ToolError toolName='search' errorMessage={message.result.value} />
-
-		const { value, params } = message.result
-		return (
-			<ToolResult
-				toolName='search'
-				actionParam={`"${params.queryStr}"`}
-				actionNumResults={value.uris.length}
-			>
-				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					{value.uris.map((uri, i) => (
-						<div key={i}
-							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
-						>
-							<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-							{uri.fsPath.split('/').pop()}
-						</div>
-					))}
-					{value.hasNextPage && (<div className="italic">More results available...</div>)}
-				</div>
-			</ToolResult>
-		)
-	},
-
-	// ---
-
-	'create_uri': ({ message }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-
-		if (message.result.type === 'error') return <ToolError toolName='create_uri' errorMessage={message.result.value} />
-
-		const { params } = message.result
-		return (
-			<ToolResult
-				toolName='create_uri'
-				actionParam={getBasename(params.uri.fsPath)}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-			>
-				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					<div
-						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-					>
-						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-						{params.uri.fsPath.split('/').pop()}
-					</div>
-				</div>
-			</ToolResult>
-		)
-	},
-	'delete_uri': ({ message }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-
-		if (message.result.type === 'error') return <ToolError toolName='delete_uri' errorMessage={message.result.value} />
-
-		const { params } = message.result
-		return (
-			<ToolResult
-				toolName='delete_uri'
-				actionParam={getBasename(params.uri.fsPath) + ' (deleted)'}
-			>
-				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					<div
-						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-					>
-						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-						{params.uri.fsPath.split('/').pop()}
-					</div>
-				</div>
-			</ToolResult>
-		)
-	},
-	'edit': ({ message }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-
-		if (message.result.type === 'error') return <ToolError toolName='edit' errorMessage={message.result.value} />
-
-		const { params } = message.result
-		return (
-			<ToolResult
-				toolName='edit'
-				actionParam={getBasename(params.uri.fsPath)}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-			>
-				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					<div
-						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-					>
-						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-						{params.uri.fsPath.split('/').pop()}
-					</div>
-				</div>
-			</ToolResult>
-		)
-	},
-	'terminal_command': ({ message }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-
-		if (message.result.type === 'error') return <ToolError toolName='terminal_command' errorMessage={message.result.value} />
-
-		const { params } = message.result
-		return (
-			<ToolResult
-				toolName='terminal_command'
-				actionParam={params.command}
-			>
-				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					<div
-						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-					// TODO!!! open terminal
-
-					>
-						<svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg>
-
-						<ChatMarkdownRender string={''} />
-					</div>
-				</div>
-			</ToolResult>
-		)
-	}
-
-};
-
-
-
-type ChatBubbleMode = 'display' | 'edit'
-const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatMessage, messageIdx: number, isLoading?: boolean, }) => {
+const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'user' } }) => {
 
 	const role = chatMessage.role
-	// Only show reasoning dropdown when there's actual content
-	const reasoningStr = (chatMessage.role === 'assistant' && chatMessage.reasoning?.trim()) || null
-	const hasReasoning = !!reasoningStr
-
-	const [isReasoningOpen, setIsReasoningOpen] = useState(false)
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -889,7 +647,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		}
 
 	}, [chatMessage, role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
-	const EditSymbol = mode === 'display' ? Pencil : X
+
 	const onOpenEdit = () => {
 		setIsBeingEdited(true)
 		chatThreadsService.setFocusedMessageIdx(messageIdx)
@@ -902,155 +660,95 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		chatThreadsService.setFocusedMessageIdx(undefined)
 
 	}
-	// set chat bubble contents
+
+	const EditSymbol = mode === 'display' ? Pencil : X
+
+
 	let chatbubbleContents: React.ReactNode
-	if (role === 'user') {
-		if (mode === 'display') {
-			chatbubbleContents = <>
-				<SelectedFiles type='past' selections={chatMessage.selections || []} />
-				<span className='px-0.5'>{chatMessage.displayContent}</span>
-			</>
-		}
-		else if (mode === 'edit') {
-
-			const onSubmit = async () => {
-
-				if (isDisabled) return;
-				if (!textAreaRefState) return;
-				if (messageIdx === undefined) return;
-
-				// cancel any streams on this thread
-				const thread = chatThreadsService.getCurrentThread()
-				chatThreadsService.cancelStreaming(thread.id)
-
-				// update state
-				setIsBeingEdited(false)
-				chatThreadsService.setFocusedMessageIdx(undefined)
-				chatThreadsService.closeStagingSelectionsInMessage(messageIdx)
-
-				// stream the edit
-				const userMessage = textAreaRefState.value;
-				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx, })
-			}
-
-			const onAbort = () => {
-				const threadId = chatThreadsService.state.currentThreadId
-				chatThreadsService.cancelStreaming(threadId)
-			}
-
-			const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-				if (e.key === 'Escape') {
-					onCloseEdit()
-				}
-				if (e.key === 'Enter' && !e.shiftKey) {
-					onSubmit()
-				}
-			}
-
-			if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show)
-				return null
-			}
-
-			chatbubbleContents = <>
-				<VoidChatArea
-					onSubmit={onSubmit}
-					onAbort={onAbort}
-					isStreaming={false}
-					isDisabled={isDisabled}
-					showSelections={true}
-					showProspectiveSelections={false}
-					featureName="Ctrl+L"
-					selections={stagingSelections}
-					setSelections={setStagingSelections}
-				>
-					<VoidInputBox2
-						ref={setTextAreaRef}
-						className='min-h-[81px] max-h-[500px] px-0.5'
-						placeholder="Edit your message..."
-						onChangeText={(text) => setIsDisabled(!text)}
-						onFocus={() => {
-							setIsFocused(true)
-							chatThreadsService.setFocusedMessageIdx(messageIdx);
-						}}
-						onBlur={() => {
-							setIsFocused(false)
-						}}
-						onKeyDown={onKeyDown}
-						fnsRef={textAreaFnsRef}
-						multiline={true}
-					/>
-				</VoidChatArea>
-			</>
-		}
-	}
-	else if (role === 'assistant') {
-		const thread = chatThreadsService.getCurrentThread()
-
-		const chatMessageLocation: ChatMessageLocation = {
-			threadId: thread.id,
-			messageIdx: messageIdx,
-		}
-
-
-		const reasoningDropdown = hasReasoning ? (
-			<div className="mx-4 select-none mt-2">
-				<div className="border border-void-border-3 rounded px-1 py-0.5 bg-void-bg-tool">
-					<div
-						className="flex items-center min-h-[24px] cursor-pointer hover:brightness-125 transition-all duration-150"
-						onClick={() => setIsReasoningOpen(!isReasoningOpen)}
-					>
-						<ChevronRight
-							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isReasoningOpen ? 'rotate-90' : ''}`}
-						/>
-						<div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
-							<span className="text-void-fg-3">Reasoning</span>
-							<span className="text-void-fg-4 text-xs italic">Model's step-by-step thinking</span>
-						</div>
-					</div>
-					<div
-						className={`mt-1 overflow-hidden transition-all duration-200 ease-in-out ${isReasoningOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
-					>
-						<div className="text-void-fg-2 p-2 bg-void-bg-1 rounded">
-							<ChatMarkdownRender string={reasoningStr} chatMessageLocationForApply={chatMessageLocation} />
-						</div>
-					</div>
-				</div>
-			</div>
-		) : null
-
-		chatbubbleContents = (<>
-			{/* Reasoning dropdown (conditional) */}
-			{reasoningDropdown}
-			{/* Main content */}
-			<ChatMarkdownRender string={chatMessage.content ?? ''} chatMessageLocationForApply={chatMessageLocation} />
-		</>)
-	}
-	else if (role === 'tool') {
-
-		const ToolComponent = toolResultToComponent[chatMessage.name] as ({ message }: { message: any }) => React.ReactNode // ts isnt smart enough to deal with the types here...
-
-		chatbubbleContents = <ToolComponent message={chatMessage} />
-
-		console.log('tool result:', chatMessage.name, chatMessage.paramsStr, chatMessage.result)
-
-	}
-	else if (role === 'tool_request') {
+	if (mode === 'display') {
 		chatbubbleContents = <>
-			{JSON.stringify(chatMessage.name, null, 2)} <br />
-			{JSON.stringify(chatMessage.params, null, 2)}
-			<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.approveTool(chatMessage.voidToolId) }}>Accept</div>
-			<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.rejectTool(chatMessage.voidToolId) }}>Reject</div>
+			<SelectedFiles type='past' selections={chatMessage.selections || []} />
+			<span className='px-0.5'>{chatMessage.displayContent}</span>
 		</>
-
 	}
+	else if (mode === 'edit') {
+
+		const onSubmit = async () => {
+
+			if (isDisabled) return;
+			if (!textAreaRefState) return;
+			if (messageIdx === undefined) return;
+
+			// cancel any streams on this thread
+			const thread = chatThreadsService.getCurrentThread()
+			chatThreadsService.cancelStreaming(thread.id)
+
+			// update state
+			setIsBeingEdited(false)
+			chatThreadsService.setFocusedMessageIdx(undefined)
+			chatThreadsService.closeStagingSelectionsInMessage(messageIdx)
+
+			// stream the edit
+			const userMessage = textAreaRefState.value;
+			await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx, })
+		}
+
+		const onAbort = () => {
+			const threadId = chatThreadsService.state.currentThreadId
+			chatThreadsService.cancelStreaming(threadId)
+		}
+
+		const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+			if (e.key === 'Escape') {
+				onCloseEdit()
+			}
+			if (e.key === 'Enter' && !e.shiftKey) {
+				onSubmit()
+			}
+		}
+
+		if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show).
+			return null
+		}
+
+		chatbubbleContents = <VoidChatArea
+			onSubmit={onSubmit}
+			onAbort={onAbort}
+			isStreaming={false}
+			isDisabled={isDisabled}
+			showSelections={true}
+			showProspectiveSelections={false}
+			featureName="Ctrl+L"
+			selections={stagingSelections}
+			setSelections={setStagingSelections}
+		>
+			<VoidInputBox2
+				ref={setTextAreaRef}
+				className='min-h-[81px] max-h-[500px] px-0.5'
+				placeholder="Edit your message..."
+				onChangeText={(text) => setIsDisabled(!text)}
+				onFocus={() => {
+					setIsFocused(true)
+					chatThreadsService.setFocusedMessageIdx(messageIdx);
+				}}
+				onBlur={() => {
+					setIsFocused(false)
+				}}
+				onKeyDown={onKeyDown}
+				fnsRef={textAreaFnsRef}
+				multiline={true}
+			/>
+		</VoidChatArea>
+	}
+
+
 
 	return <div
 		// align chatbubble accoridng to role
 		className={`
-			relative
-			${mode === 'edit' ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
-					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
+			relative ml-auto
+			${mode === 'edit' ? 'w-full max-w-full'
+				: mode === 'display' ? `self-end w-fit max-w-full whitespace-pre-wrap` : '' // user words should be pre
 			}
 		`}
 		onMouseEnter={() => setIsHovered(true)}
@@ -1059,29 +757,21 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		<div
 			// style chatbubble according to role
 			className={`
-				text-left rounded-lg
-				max-w-full
+				text-left rounded-lg max-w-full
 				${mode === 'edit' ? ''
-					: role === 'user' ? 'p-2 flex flex-col gap-1 bg-void-bg-1 text-void-fg-1 overflow-x-auto'
-						: role === 'assistant' ? 'px-2 overflow-x-auto' : ''
+					: mode === 'display' ? 'p-2 flex flex-col gap-1 bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
 				}
-				${role === 'user' && mode === 'display' ? 'cursor-pointer' : ''}
 			`}
-			onClick={() => {
-				if (role === 'user' && mode === 'display') {
-					onOpenEdit()
-				}
-			}}
+			onClick={() => { if (mode === 'display') { onOpenEdit() } }}
 		>
 			{chatbubbleContents}
-			{isLoading && <IconLoading className='opacity-50 text-sm px-2' />}
 		</div>
 
-		{/* edit button */}
+
 		{role === 'user' && <EditSymbol
 			size={18}
 			className={`
-				absolute -top-1 right-1
+				absolute -top-1 right-3
 				translate-x-0 -translate-y-0
 				cursor-pointer z-1
 				p-[2px]
@@ -1097,7 +787,349 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 				}
 			}}
 		/>}
+
+
 	</div>
+
+
+
+}
+
+
+const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'assistant' } }) => {
+
+	const accessor = useAccessor()
+	const chatThreadsService = accessor.get('IChatThreadService')
+
+
+	const reasoningStr = chatMessage.reasoning?.trim() || null
+	const hasReasoning = !!reasoningStr
+	const thread = chatThreadsService.getCurrentThread()
+
+	const chatMessageLocation: ChatMessageLocation = {
+		threadId: thread.id,
+		messageIdx: messageIdx,
+	}
+
+	return <div
+		className='
+			text-void-fg-2
+
+			prose
+			prose-sm
+			break-words
+			prose-p:block
+			prose-pre:my-2
+			marker:text-inherit
+			prose-ol:list-outside
+			prose-ol:list-decimal
+			prose-ul:list-outside
+			prose-ul:list-disc
+			prose-li:my-0
+			prose-code:before:content-none
+			prose-code:after:content-none
+
+			prose-p:leading-normal
+			prose-ol:leading-normal
+			prose-ul:leading-normal
+			max-w-none
+		'
+	>
+
+		{/* reasoning token (anthropic) */}
+		{hasReasoning && <DropdownComponent
+			title="Reasoning"
+			desc1=""
+		>
+			<ChatMarkdownRender
+				string={reasoningStr}
+				chatMessageLocationForApply={chatMessageLocation}
+			/>
+		</DropdownComponent>}
+
+		{/* assistant message */}
+		<ChatMarkdownRender
+			string={chatMessage.content || ''}
+			chatMessageLocationForApply={chatMessageLocation}
+		/>
+
+		{isLoading && <IconLoading className='opacity-50 text-sm mx-4' />}
+
+	</div>
+
+}
+
+
+
+const ToolError = ({ title, errorMessage }: { title: string, errorMessage: string }) => {
+	return (
+		<div className='flex gap-2 p-3 bg-void-bg-2-alt bg-opacity-10 border border-void-warning border-opacity-20 rounded-md'>
+			<AlertTriangle className='text-void-warning flex-shrink-0' size={20} />
+			<div className='flex flex-col'>
+				<span className='text-void-fg-1 font-medium mb-1'>{title}</span>
+				<div className='text-void-fg-3 text-sm opacity-90'>{'Error: ' + errorMessage}</div>
+			</div>
+		</div>
+	)
+}
+
+
+const toolNameToTitle: Record<ToolName, string> = {
+	'read_file': 'Read file',
+	'list_dir': 'Inspected folder',
+	'pathname_search': 'Searched filename',
+	'search': 'Searched',
+	'create_uri': 'Created file',
+	'delete_uri': 'Deleted file',
+	'edit': 'Edited file',
+	'terminal_command': 'Ran terminal command'
+}
+
+
+
+
+const toolNameToComponent: { [T in ToolName]: (props: { chatMessage: ToolMessage<T> }) => React.ReactNode } = {
+	'read_file': ({ chatMessage }) => {
+
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const title = toolNameToTitle[chatMessage.name]
+
+		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+
+		const { value, params } = chatMessage.result
+		return (
+			<DropdownComponent
+				title={title}
+				desc1={getBasename(params.uri.toString())}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			>
+				<div
+					className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+				>
+					<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+					{params.uri.fsPath}
+				</div>
+				{value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
+			</DropdownComponent >
+		)
+	},
+	'list_dir': ({ chatMessage }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const explorerService = accessor.get('IExplorerService')
+		const title = toolNameToTitle[chatMessage.name]
+		// message.result.hasNextPage = true
+		// message.result.itemsRemaining = 400
+		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+
+		const { value, params } = chatMessage.result
+		return (
+
+			<DropdownComponent
+				title={title}
+				desc1={`${getBasename(params.rootURI.fsPath)}/`}
+				numResults={value.children?.length}
+			>
+				{value.children?.map((child, i) => (
+					<div
+						key={i}
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+						onClick={() => {
+							commandService.executeCommand('workbench.view.explorer');
+							explorerService.select(child.uri, true);
+						}}
+					>
+						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+						{`${child.name}${child.isDirectory ? '/' : ''}`}
+					</div>
+				))}
+				{value.hasNextPage && (
+					<div className="italic">
+						{value.itemsRemaining} more items...
+					</div>
+				)}
+			</DropdownComponent>
+
+		)
+	},
+	'pathname_search': ({ chatMessage }) => {
+
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const title = toolNameToTitle[chatMessage.name]
+		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+
+		const { value, params } = chatMessage.result
+		return (
+			<DropdownComponent
+				title={title}
+				desc1={`"${params.queryStr}"`}
+				numResults={value.uris.length}
+			>
+				{value.uris.map((uri, i) => (
+					<div
+						key={i}
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+						onClick={() => {
+							commandService.executeCommand('vscode.open', uri, { preview: true })
+						}}
+					>
+						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+						{uri.fsPath.split('/').pop()}
+					</div>
+				))
+				}
+				{value.hasNextPage && (
+					<div className="italic">
+						More results available...
+					</div>
+				)}
+			</DropdownComponent>
+		)
+	},
+	'search': ({ chatMessage }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const title = toolNameToTitle[chatMessage.name]
+		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+
+		const { value, params } = chatMessage.result
+		return (
+			<DropdownComponent
+				title={title}
+				desc1={`"${params.queryStr}"`}
+				numResults={value.uris.length}
+			>
+				{value.uris.map((uri, i) => (
+					<div key={i}
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+						onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+					>
+						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+						{uri.fsPath.split('/').pop()}
+					</div>
+				))}
+				{value.hasNextPage && (<div className="italic">More results available...</div>)}
+			</DropdownComponent>
+		)
+	},
+
+	'create_uri': ({ chatMessage }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const title = toolNameToTitle[chatMessage.name]
+
+		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+
+		const { params } = chatMessage.result
+		return (
+			<DropdownComponent
+				title={title}
+				desc1={getBasename(params.uri.fsPath)}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			/>
+		)
+	},
+	'delete_uri': ({ chatMessage }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const title = toolNameToTitle[chatMessage.name]
+
+		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+
+		const { params } = chatMessage.result
+		return (
+			<DropdownComponent
+				title={title}
+				desc1={getBasename(params.uri.fsPath) + ' (deleted)'}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			/>
+		)
+	},
+	'edit': ({ chatMessage }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const title = toolNameToTitle[chatMessage.name]
+
+		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+
+		const { params } = chatMessage.result
+		return (
+			<DropdownComponent
+				title={title}
+				desc1={getBasename(params.uri.fsPath)}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			/>
+		)
+	},
+	'terminal_command': ({ chatMessage }) => {
+		const accessor = useAccessor()
+		const commandService = accessor.get('ICommandService')
+		const title = toolNameToTitle[chatMessage.name]
+
+		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+
+		const { params } = chatMessage.result
+		return (
+			<DropdownComponent
+				title={title}
+				desc1={`"${params.command}"`}
+			>
+				<div
+					className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+				// TODO!!! open terminal
+				>
+					<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+					<ChatMarkdownRender string={''} />
+				</div>
+			</DropdownComponent>
+		)
+	}
+
+};
+
+
+type ChatBubbleMode = 'display' | 'edit'
+type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isLoading?: boolean, }
+const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => {
+
+	const role = chatMessage.role
+
+	if (role === 'user') {
+
+		return <UserMessageComponent
+			chatMessage={chatMessage}
+			messageIdx={messageIdx}
+			isLoading={isLoading}
+		/>
+
+	}
+
+	else if (role === 'assistant') {
+
+		return <AssistantMessageComponent
+			chatMessage={chatMessage}
+			messageIdx={messageIdx}
+			isLoading={isLoading}
+		/>
+
+	}
+	else if (role === 'tool') {
+
+
+		const ToolMessageComponent = toolNameToComponent[chatMessage.name] as React.FC<{ chatMessage: any, messageIdx: any, isLoading: any }> // ts isnt smart enough...
+
+		return <ToolMessageComponent
+			chatMessage={chatMessage}
+			messageIdx={messageIdx}
+			isLoading={isLoading}
+		/>
+
+	}
+
+
 }
 
 
@@ -1225,14 +1257,14 @@ export const SidebarChat = () => {
 		key={currentThread.id} // force rerender on all children if id changes
 		scrollContainerRef={scrollContainerRef}
 		className={`
-		w-full h-auto
-		flex flex-col
-		overflow-x-hidden
-		overflow-y-auto
-		py-4
-		${pastMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
-	`}
-		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
+			flex flex-col
+			px-4 py-4 space-y-4
+			w-full h-auto
+			overflow-x-hidden
+			overflow-y-auto
+			${pastMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
+		`}
+		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - (25) }} // the height of the previousMessages is determined by all other heights
 	>
 		{/* previous messages */}
 		{allMessagesHTML}
@@ -1260,8 +1292,10 @@ export const SidebarChat = () => {
 	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			onSubmit()
+		} else if (e.key === 'Escape' && isStreaming) {
+			onAbort()
 		}
-	}, [onSubmit])
+	}, [onSubmit, onAbort, isStreaming])
 	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
 		<VoidChatArea
 			divRef={chatAreaRef}
@@ -1278,7 +1312,7 @@ export const SidebarChat = () => {
 		>
 			<VoidInputBox2
 				className='min-h-[81px] px-0.5'
-				placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
+				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
 				onChangeText={onChangeText}
 				onKeyDown={onKeyDown}
 				onFocus={() => { chatThreadsService.setFocusedMessageIdx(undefined) }}
@@ -1298,5 +1332,3 @@ export const SidebarChat = () => {
 
 	</div>
 }
-
-

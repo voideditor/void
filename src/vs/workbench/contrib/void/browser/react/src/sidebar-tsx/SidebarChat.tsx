@@ -767,7 +767,6 @@ const toolResultToComponent: { [T in ToolName]: (props: { message: ToolMessage<T
 			<ToolResult
 				toolName='delete_uri'
 				actionParam={getBasename(params.uri.fsPath) + ' (deleted)'}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
 					<div
@@ -1034,10 +1033,12 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: { chatMessage: ChatM
 		console.log('tool result:', chatMessage.name, chatMessage.paramsStr, chatMessage.result)
 
 	}
-	else if (role === 'tool_request'){
+	else if (role === 'tool_request') {
 		chatbubbleContents = <>
-		<div className='text-void-fg-4 italic' onClick={() => {chatThreadsService.approveTool(chatMessage.voidToolId)}}>Accept</div>
-		<div className='text-void-fg-4 italic' onClick={() => {chatThreadsService.rejectTool(chatMessage.voidToolId)}}>Reject</div>
+			{JSON.stringify(chatMessage.name, null, 2)} <br />
+			{JSON.stringify(chatMessage.params, null, 2)}
+			<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.approveTool(chatMessage.voidToolId) }}>Accept</div>
+			<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.rejectTool(chatMessage.voidToolId) }}>Reject</div>
 		</>
 
 	}

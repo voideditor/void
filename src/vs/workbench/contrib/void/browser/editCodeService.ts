@@ -773,7 +773,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	private _addToHistory(uri: URI) {
+	private _addToHistory(uri: URI, opts?: { onUndo?: () => void }) {
 
 		const getCurrentSnapshot = (): HistorySnapshot => {
 			const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
@@ -855,7 +855,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			resource: uri,
 			label: 'Void Changes',
 			code: 'undoredo.editCode',
-			undo: () => { restoreDiffAreas(beforeSnapshot) },
+			undo: () => { restoreDiffAreas(beforeSnapshot); opts?.onUndo?.() },
 			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }
 		}
 		this._undoRedoService.pushElement(elt)
@@ -1223,7 +1223,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	private _initializeWriteoverStream(opts: StartApplyingOpts): DiffZone | undefined {
 
-		const { from } = opts
+		const { from, onFinalMessage: onFinalMessage_, onError: onError_, } = opts
 
 		let startLine: number
 		let endLine: number
@@ -1268,7 +1268,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 		// add to history
-		const { onFinishEdit } = this._addToHistory(uri)
+		const { onFinishEdit } = this._addToHistory(uri, {
+			onUndo: () => { onError_?.({ message: 'Edit was interrupted by pressing undo.', fullError: null }) }
+		})
 
 		// __TODO__ let users customize modelFimTags
 		const quickEditFIMTags = defaultQuickEditFimTags
@@ -1369,7 +1371,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
 			logging: { loggingName: `startApplying - ${from}` },
 			messages,
-			onText: ({ fullText: fullText_ }) => {
+			onText: (params) => {
+				const { fullText: fullText_ } = params
 				const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
 
 				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
@@ -1383,7 +1386,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 				prevIgnoredSuffix = croppedSuffix
 			},
-			onFinalMessage: ({ fullText }) => {
+			onFinalMessage: (params) => {
+				const { fullText } = params
 				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
 				// at the end, re-write whole thing to make sure no sync errors
 				const [croppedText, _1, _2] = extractText(fullText, 0)
@@ -1392,11 +1396,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					{ shouldRealignDiffAreas: true }
 				)
 				onDone()
+				onFinalMessage_?.()
 			},
 			onError: (e) => {
 				this._notifyError(e)
 				onDone()
 				this._undoHistory(uri)
+				onError_?.(e)
 			},
 
 		})
@@ -1409,7 +1415,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }) {
-		const { applyStr, uri: givenURI, onText: onText_, onFinalMessage: onFinalMessage_, onError: onError_, } = opts
+		const { applyStr, uri: givenURI, onFinalMessage: onFinalMessage_, onError: onError_, } = opts
 		let uri: URI
 
 		if (givenURI === 'current') {
@@ -1444,7 +1450,19 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		// can use this as a proxy to set the diffArea's stream state requestId
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
-		let { onFinishEdit } = this._addToHistory(uri)
+		const getOnFinishEdit = () => {
+			const { onFinishEdit } = this._addToHistory(uri, {
+				onUndo: () => { onError_?.({ message: 'Edit was interrupted by pressing undo.', fullError: null }) }
+			})
+			return onFinishEdit
+		}
+		const revertAndContinueHistory = () => {
+			this._undoHistory(uri)
+			onFinishEdit = getOnFinishEdit()
+		}
+
+
+		let onFinishEdit = getOnFinishEdit()
 
 		// TODO replace these with whatever block we're on initially if already started
 
@@ -1473,12 +1491,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._onDidChangeDiffZoneStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
-
-		const revertAndContinueHistory = () => {
-			this._undoHistory(uri)
-			const { onFinishEdit: onFinishEdit_ } = this._addToHistory(uri)
-			onFinishEdit = onFinishEdit_
-		}
 
 
 		const convertOriginalRangeToFinalRange = (originalRange: readonly [number, number]): [number, number] => {
@@ -1638,8 +1650,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					} // end for
 
 					this._refreshStylesAndDiffsInURI(uri)
-
-					onText_?.(params)
 				},
 				onFinalMessage: async (params) => {
 					const { fullText } = params
@@ -1679,7 +1689,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 					onDone()
 
-					onFinalMessage_?.(params)
+					onFinalMessage_?.()
 				},
 				onError: (e) => {
 					this._notifyError(e)

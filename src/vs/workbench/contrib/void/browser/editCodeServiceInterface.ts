@@ -7,12 +7,12 @@ import { Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { OnError, OnFinalMessage, OnText } from '../common/llmMessageTypes.js';
+import { OnError } from '../common/llmMessageTypes.js';
 
 
 
 
-export type StartApplyingOpts = {
+export type StartApplyingOpts = ({
 	from: 'QuickEdit';
 	type: 'rewrite';
 	diffareaid: number; // id of the CtrlK area (contains text selection)
@@ -21,11 +21,10 @@ export type StartApplyingOpts = {
 	type: 'searchReplace' | 'rewrite';
 	applyStr: string;
 	uri: 'current' | URI;
-
-	onText?: OnText;
-	onFinalMessage?: OnFinalMessage;
+}) & ({
+	onFinalMessage?: () => void;
 	onError?: OnError;
-}
+})
 
 
 

@@ -55,8 +55,6 @@ const applyingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undef
 
 export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: string, applyBoxId: string }) => {
 
-	console.log('applyboxid', applyBoxId, applyingURIOfApplyBoxIdRef)
-
 	const settingsState = useSettingsState()
 	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
 
@@ -143,8 +141,6 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			Reject
 		</button>
 	</>
-
-	console.log('streamStateRef.current', streamState())
 
 	const currStreamState = streamState()
 	return <>

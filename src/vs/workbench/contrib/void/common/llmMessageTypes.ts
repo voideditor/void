@@ -3,8 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { ChatMessage } from '../browser/chatThreadService.js'
-import { InternalToolInfo, ToolName } from '../browser/toolsService.js'
+import type { ChatMessage } from '../browser/chatThreadService.js'
+import type { InternalToolInfo, ToolName } from '../browser/toolsService.js'
 import { FeatureName, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 

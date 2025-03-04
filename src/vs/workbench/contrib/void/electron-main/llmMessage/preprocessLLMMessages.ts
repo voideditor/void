@@ -271,7 +271,7 @@ const prepareMessages_tools = ({ messages, supportsTools }: { messages: LLMChatM
 		return prepareMessages_tools_openai({ messages })
 	}
 	else {
-		throw 1
+		throw new Error(`supportsTools type not recognized`)
 	}
 }
 

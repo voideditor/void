@@ -68,9 +68,7 @@ export const SidebarThreadSelector = () => {
 							let firstMsg = null;
 							// let secondMsg = null;
 
-							const firstUserMsgIdx = pastThread.messages.findIndex(
-								(msg) => msg.role !== 'system' && msg.role !== 'tool' && !!msg.displayContent
-							);
+							const firstUserMsgIdx = pastThread.messages.findIndex((msg) =>  msg.role !== 'tool' && msg.role !== 'tool_request');
 
 							if (firstUserMsgIdx !== -1) {
 								// firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');
@@ -88,9 +86,7 @@ export const SidebarThreadSelector = () => {
 							// 	secondMsg = truncate(pastThread.messages[secondMsgIdx].displayContent ?? '');
 							// }
 
-							const numMessages = pastThread.messages.filter(
-								(msg) => msg.role !== 'system'
-							).length;
+							const numMessages = pastThread.messages.filter((msg) => msg.role !== 'tool_request').length;
 
 							return (
 								<li key={pastThread.id}>

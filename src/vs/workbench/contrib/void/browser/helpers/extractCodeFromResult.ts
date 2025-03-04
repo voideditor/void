@@ -182,10 +182,9 @@ const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
 
 // guarantees if you keep adding text, array length will strictly grow and state will progress without going back
 export const extractSearchReplaceBlocks = (str: string) => {
-
 	const ORIGINAL_ = ORIGINAL + `\n`
-	const DIVIDER_ = '\n' + DIVIDER + `\n`
-	// logic for FINAL_ is slightly more complicated - should be '\n' + FINAL, but that ignores if the final output is empty
+	const DIVIDER_ = DIVIDER + `\n`
+	// we only check FINAL, we don't care about FINAL + '\n' because the string is over
 
 
 	const blocks: ExtractedSearchReplaceBlock[] = []
@@ -196,7 +195,7 @@ export const extractSearchReplaceBlocks = (str: string) => {
 		if (origStart === -1) { return blocks }
 		origStart += ORIGINAL_.length
 		i = origStart
-		// wrote <<<< ORIGINAL
+		// wrote <<<< ORIGINAL\n
 
 		let dividerStart = str.indexOf(DIVIDER_, i)
 		if (dividerStart === -1) { // if didnt find DIVIDER_, either writing originalStr or DIVIDER_ right now
@@ -211,17 +210,13 @@ export const extractSearchReplaceBlocks = (str: string) => {
 		const origStrDone = str.substring(origStart, dividerStart)
 		dividerStart += DIVIDER_.length
 		i = dividerStart
-		// wrote =====
+		// wrote \n=====\n
 
 
 
-		const finalStartA = str.indexOf(FINAL, i)
-		const finalStartB = str.indexOf('\n' + FINAL, i) // go with B if possible, else fallback to A, it's more permissive
-		const FINAL_ = finalStartB !== -1 ? '\n' + FINAL : FINAL
-		let finalStart = finalStartB !== -1 ? finalStartB : finalStartA
-
-		if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL_ right now
-			const isWritingFINAL = endsWithAnyPrefixOf(str, FINAL_)
+		const finalStart = str.indexOf(FINAL, i)
+		if (finalStart === -1) {  // if didnt find FINAL, either writing finalStr or FINAL right now
+			const isWritingFINAL = endsWithAnyPrefixOf(str, FINAL)
 			blocks.push({
 				orig: origStrDone,
 				final: str.substring(dividerStart, str.length - (isWritingFINAL?.length ?? 0)),
@@ -230,8 +225,7 @@ export const extractSearchReplaceBlocks = (str: string) => {
 			return blocks
 		}
 		const finalStrDone = str.substring(dividerStart, finalStart)
-		finalStart += FINAL_.length
-		i = finalStart
+		i = finalStart + FINAL.length
 		// wrote >>>>> FINAL
 
 		blocks.push({

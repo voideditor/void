@@ -1588,6 +1588,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 							// if error
 							if (typeof originalBounds === 'string') {
+								console.error('Error in originalBounds, retrying.', originalBounds)
 								messages.push(
 									{ role: 'assistant', content: fullText }, // latest output
 									{ role: 'user', content: errMsgOfInvalidStr(originalBounds) } // user explanation of what's wrong
@@ -1662,6 +1663,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					if (blocks.length === 0) {
 						this._notificationService.info(`Void: We ran Apply, but the LLM didn't output any changes.`)
 					}
+
+					await new Promise(resolve => setTimeout(resolve, 500))
 
 					// writeover the whole file
 					let newCode = originalFileCode

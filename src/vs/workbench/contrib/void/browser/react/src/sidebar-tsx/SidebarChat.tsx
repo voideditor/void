@@ -1261,7 +1261,7 @@ export const SidebarChat = () => {
 		>
 			<VoidInputBox2
 				className='min-h-[81px] px-0.5'
-				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
+				placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
 				onChangeText={onChangeText}
 				onKeyDown={onKeyDown}
 				onFocus={() => { chatThreadsService.setFocusedMessageIdx(undefined) }}

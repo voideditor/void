@@ -541,7 +541,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		return Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads[threadId1].lastModified > allThreads[threadId2].lastModified ? -1 : 1)
 	}
 
-
 	_addMessageToThread(threadId: string, message: ChatMessage) {
 		const { allThreads } = this.state
 

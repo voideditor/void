@@ -240,7 +240,7 @@ ${selnsStr}`
 	return null
 }
 
-export const chat_userMessageContentWithAllFilesToo = (userMessage: string, selectionsString: string | null) => {
+export const chat_lastUserMessageWithFilesAdded = (userMessage: string, selectionsString: string | null) => {
 	if (userMessage) return `${userMessage}${selectionsString ? `\n${selectionsString}` : ''}`
 	else return userMessage
 }

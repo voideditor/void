@@ -12,9 +12,9 @@ import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo, chat_selectionsString } from './prompt/prompts.js';
+import { chat_userMessageContent, chat_systemMessage, chat_lastUserMessageWithFilesAdded, chat_selectionsString } from './prompt/prompts.js';
 import { InternalToolInfo, IToolsService, ToolCallParams, ToolResultType, ToolName, toolNamesThatRequireApproval, voidTools } from './toolsService.js';
-import { toLLMChatMessage, ToolCallType } from '../common/llmMessageTypes.js';
+import { LLMChatMessage, toLLMChatMessage, ToolCallType } from '../common/llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IVoidFileService } from '../common/voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
@@ -354,10 +354,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// add user's message to chat history
 		const instructions = userMessage
-		const userMessageContent = await chat_userMessageContent(instructions, currSelns)
-		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidFileService)
-		const userMessageFullContent = chat_userMessageContentWithAllFilesToo(userMessageContent, selectionsStr)
 
+		const userMessageContent = await chat_userMessageContent(instructions, currSelns) // user message + names of files (NOT content)
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)
 
@@ -376,31 +374,34 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			let nMessagesSent = 0
 
 			while (shouldSendAnotherMessage) {
-				shouldSendAnotherMessage = false
+				// recompute files at last message
+				const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidFileService) // all the file CONTENTS or "selections" de-duped
+				const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
+
+				shouldSendAnotherMessage = false // false by default
 				nMessagesSent += 1
 
-				let res_: () => void
+				let res_: () => void // resolves when user approves this tool use (or if tool doesn't require approval)
 				const awaitable = new Promise<void>((res, rej) => { res_ = res })
 
 				// replace last userMessage with userMessageFullContent (which contains all the files too)
 				const messages_ = this.getCurrentThread().messages.map(m => (toLLMChatMessage(m))).filter(m => !!m)
 				const lastUserMsgIdx = findLastIndex(messages_, m => m.role === 'user')
-				let messages = messages_
-				if (lastUserMsgIdx !== -1) { // should never be -1
-					messages = [
-						...messages.slice(0, lastUserMsgIdx),
-						{ role: 'user', content: userMessageFullContent },
-						...messages.slice(lastUserMsgIdx + 1, Infinity)]
-				}
+
+				if (lastUserMsgIdx !== -1) throw new Error(`Void: No user message found.`) // should never be -1
+
+				const messages: LLMChatMessage[] = [
+					{ role: 'system', content: chat_systemMessage(this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)) },
+					...messages_.slice(0, lastUserMsgIdx),
+					{ role: 'user', content: userMessageFullContent },
+					...messages_.slice(lastUserMsgIdx + 1, Infinity),
+				]
 
 				const llmCancelToken = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
 					useProviderFor: 'Ctrl+L',
 					logging: { loggingName: `Agent` },
-					messages: [
-						{ role: 'system', content: chat_systemMessage(this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)) },
-						...messages,
-					],
+					messages: messages,
 
 					tools: tools,
 
@@ -423,6 +424,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								return
 							}
 							const toolName = tool.name
+							shouldSendAnotherMessage = true
 
 							// 1. validate tool params
 							let toolParams: ToolCallParams[typeof toolName]
@@ -432,7 +434,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							} catch (error) {
 								const errorMessage = getErrorMessage(error)
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
-								shouldSendAnotherMessage = true
 								res_()
 								return
 							}
@@ -449,7 +450,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								catch (e) {
 									const errorMessage = 'Tool call was rejected by the user.'
 									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
-									shouldSendAnotherMessage = false
 									res_()
 									return
 								}
@@ -462,7 +462,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							} catch (error) {
 								const errorMessage = getErrorMessage(error)
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
-								shouldSendAnotherMessage = true
 								res_()
 								return
 							}
@@ -474,14 +473,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							} catch (error) {
 								const errorMessage = `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
-								shouldSendAnotherMessage = true
 								res_()
 								return
 							}
 
 							// 5. add to history
 							this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
-							shouldSendAnotherMessage = true
 							res_()
 						}
 

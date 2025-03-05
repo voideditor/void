@@ -355,6 +355,5 @@ ${messages.prefix}`
 	const suffix = messages.suffix
 	const stopTokens = messages.stopTokens
 	const ret = { prefix, suffix, stopTokens, maxTokens: 300 } as const
-	console.log('ret', ret)
 	return ret
 }

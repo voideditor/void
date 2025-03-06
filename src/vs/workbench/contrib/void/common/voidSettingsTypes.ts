@@ -197,7 +197,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'xAI') {
 		return {
-			title: 'xAI API',
+			title: 'Grok API',
 		}
 	}
 

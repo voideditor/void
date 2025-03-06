@@ -444,7 +444,7 @@ export const FeaturesTab = () => {
 			<div className='flex gap-x-4 items-start justify-around mt-4 mb-16'>
 				<div>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
-					<div className='text-sm italic text-void-fg-3 my-1'>Experimental. Only works with FIM models.</div>
+					<div className='text-sm italic text-void-fg-3 my-1'>Experimental. Only works with models that support FIM.</div>
 					<div className='flex items-center gap-x-2'>
 						<VoidSwitch size='xs' value={voidSettingsState.globalSettings.enableAutocomplete} onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)} label={voidSettingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'} />
 					</div>

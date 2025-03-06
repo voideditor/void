@@ -442,7 +442,7 @@ export const FeaturesTab = () => {
 		<h2 className={`text-3xl mt-12`}>Feature Options</h2>
 		<ErrorBoundary>
 			<div className='flex gap-x-4 items-start justify-around mt-4 mb-16'>
-				<div>
+				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
 					<div className='text-sm italic text-void-fg-3 my-1'>Experimental. Only works with models that support FIM.</div>
 					<div className='flex items-center gap-x-2'>
@@ -454,7 +454,7 @@ export const FeaturesTab = () => {
 					</div>
 				</div>
 
-				<div>
+				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
 					<ModelDropdown featureName={'Apply'} />
 				</div>

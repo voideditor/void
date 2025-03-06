@@ -159,18 +159,18 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 		// maxOutputTokens, right now we are ignoring this
 	} = getModelCapabilities(providerName, modelName_)
 
-	const { providerReasoningIOSettingsIfSupportsReasoningOutput } = getProviderCapabilities(providerName)
+	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicContent: false }) // can change supportsAnthropicContent if e.g. OpenRouter starts supporting anthropic extended thinking
 	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAICompatibleTool(tool)) : undefined
 
-	const includeInPayload = supportsReasoningOutput ? providerReasoningIOSettingsIfSupportsReasoningOutput?.input?.includeInPayload || {} : {}
+	const includeInPayload = supportsReasoningOutput ? providerReasoningIOSettings?.input?.includeInPayload || {} : {}
 
 	const toolsObj = tools ? { tools: tools, tool_choice: 'auto', parallel_tool_calls: false, } as const : {}
 	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = { model: modelName, messages: messages, stream: true, ...toolsObj, }
 
-	const { nameOfFieldInDelta: nameOfReasoningFieldInDelta, needsManualParse: needsManualReasoningParse } = providerReasoningIOSettingsIfSupportsReasoningOutput?.output ?? {}
+	const { nameOfFieldInDelta: nameOfReasoningFieldInDelta, needsManualParse: needsManualReasoningParse } = providerReasoningIOSettings?.output ?? {}
 
 	const manuallyParseReasoning = needsManualReasoningParse && supportsReasoningOutput && supportsReasoningOutput.openSourceThinkTags
 	if (manuallyParseReasoning) {
@@ -304,20 +304,52 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 		max_tokens: maxOutputTokens ?? 4_096, // anthropic requires this
 		tools: tools,
 		tool_choice: tools ? { type: 'auto', disable_parallel_tool_use: true } : undefined, // one tool use at a time
-		// thinking: { budget_tokens, type: 'enabled' }, // TODO!!!!
+		thinking: { budget_tokens: 2000, type: 'enabled' }, // TODO!!!!
 	})
 
 	// when receive text
 	let fullText = ''
 	let fullReasoning = ''
-	stream.on('text', (newText_, fullText_) => { fullText = fullText_; onText({ fullText, fullReasoning }) })
-	stream.on('thinking', (newThinking_, fullThinking_) => { fullReasoning = fullThinking_; onText({ fullText, fullReasoning }) })
 
-	// when we get the final message on this stream (or when error/fail)
+	// there are no events for tool_use, it comes in at the end
+	stream.on('streamEvent', e => {
+		// start block
+		if (e.type === 'content_block_start') {
+			if (e.content_block.type === 'text') {
+				if (fullText) fullText += '\n\n' // starting a 2nd text block
+				fullText += e.content_block.text
+				onText({ fullText, fullReasoning })
+			}
+			else if (e.content_block.type === 'thinking') {
+				if (fullReasoning) fullReasoning += '\n\n' // starting a 2nd reasoning block
+				fullReasoning += e.content_block.thinking
+				onText({ fullText, fullReasoning })
+			}
+			else if (e.content_block.type === 'redacted_thinking') {
+				console.log('delta', e.content_block.type)
+				if (fullReasoning) fullReasoning += '\n\n' // starting a 2nd reasoning block
+				fullReasoning += '[redacted_thinking]'
+				onText({ fullText, fullReasoning })
+			}
+		}
+
+		// delta
+		else if (e.type === 'content_block_delta') {
+			if (e.delta.type === 'text_delta') {
+				fullText += e.delta.text
+				onText({ fullText, fullReasoning })
+			}
+			else if (e.delta.type === 'thinking_delta') {
+				fullReasoning += e.delta.thinking
+				onText({ fullText, fullReasoning })
+			}
+		}
+	})
+
+	// on done - (or when error/fail) - this is called AFTER last streamEvent
 	stream.on('finalMessage', (response) => {
-		const content = response.content.map(c => c.type === 'text' ? c.text : '').join('\n\n')
 		const toolCalls = toolCallsFrom_AnthropicContent(response.content)
-		onFinalMessage({ fullText: content, toolCalls, rawAnthropicAssistantContent: response.content as any })
+		onFinalMessage({ fullText, fullReasoning, toolCalls, rawAnthropicAssistantContent: response.content as any })
 	})
 	// on error
 	stream.on('error', (error) => {

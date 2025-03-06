@@ -25,7 +25,7 @@ type ModelOptions = {
 	};
 }
 
-type ProviderReasoningOptions = {
+type ProviderReasoningIOSettings = {
 	// include this in payload to get reasoning
 	input?: { includeInPayload?: { [key: string]: any }, };
 	// nameOfFieldInDelta: reasoning output is in response.choices[0].delta[deltaReasoningField]
@@ -36,7 +36,7 @@ type ProviderReasoningOptions = {
 }
 
 type ProviderSettings = {
-	providerReasoningIOSettingsIfSupportsReasoningOutput?: ProviderReasoningOptions; // input/output settings around thinking (allowed to be empty)
+	providerReasoningIOSettings?: ProviderReasoningIOSettings; // input/output settings around thinking (allowed to be empty) - only applied if the model supports reasoning output
 	modelOptions: { [key: string]: ModelOptions };
 	modelOptionsFallback: (modelName: string) => (ModelOptions & { modelName: string }) | null;
 }
@@ -373,7 +373,7 @@ const deepseekModelOptions = {
 
 const deepseekSettings: ProviderSettings = {
 	modelOptions: deepseekModelOptions,
-	providerReasoningIOSettingsIfSupportsReasoningOutput: {
+	providerReasoningIOSettings: {
 		// reasoning: OAICompat +  response.choices[0].delta.reasoning_content // https://api-docs.deepseek.com/guides/reasoning_model
 		output: { nameOfFieldInDelta: 'reasoning_content' },
 	},
@@ -419,14 +419,14 @@ const groqSettings: ProviderSettings = {
 // ---------------- VLLM, OLLAMA, OPENAICOMPAT (self-hosted / local) ----------------
 const vLLMSettings: ProviderSettings = {
 	// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
-	providerReasoningIOSettingsIfSupportsReasoningOutput: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
+	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
 	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
 	modelOptions: {},
 }
 
 const ollamaSettings: ProviderSettings = {
 	// reasoning: we need to filter out reasoning <think> tags manually
-	providerReasoningIOSettingsIfSupportsReasoningOutput: { output: { needsManualParse: true }, },
+	providerReasoningIOSettings: { output: { needsManualParse: true }, },
 	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
 	modelOptions: {},
 }
@@ -439,12 +439,21 @@ const openaiCompatible: ProviderSettings = {
 
 
 // ---------------- OPENROUTER ----------------
-const openRouterModelOptions = {
+const openRouterModelOptions_assumingOpenAICompat = {
 	'deepseek/deepseek-r1': {
 		...openSourceModelOptions_assumingOAICompat.deepseekR1,
 		contextWindow: 128_000,
 		maxOutputTokens: null,
 		cost: { input: 0.8, output: 2.4 },
+	},
+	'anthropic/claude-3.7-sonnet': {
+		contextWindow: 200_000,
+		maxOutputTokens: null,
+		cost: { input: 3.00, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: {},
 	},
 	'anthropic/claude-3.5-sonnet': {
 		contextWindow: 200_000,
@@ -474,11 +483,11 @@ const openRouterModelOptions = {
 
 const openRouterSettings: ProviderSettings = {
 	// reasoning: OAICompat + response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
-	providerReasoningIOSettingsIfSupportsReasoningOutput: {
+	providerReasoningIOSettings: {
 		input: { includeInPayload: { include_reasoning: true } },
 		output: { nameOfFieldInDelta: 'reasoning' },
 	},
-	modelOptions: openRouterModelOptions,
+	modelOptions: openRouterModelOptions_assumingOpenAICompat,
 	// TODO!!! send a query to openrouter to get the price, etc.
 	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
 }
@@ -521,6 +530,6 @@ export const getModelCapabilities = (providerName: ProviderName, modelName: stri
 
 // non-model settings
 export const getProviderCapabilities = (providerName: ProviderName) => {
-	const { providerReasoningIOSettingsIfSupportsReasoningOutput } = modelSettingsOfProvider[providerName]
-	return { providerReasoningIOSettingsIfSupportsReasoningOutput }
+	const { providerReasoningIOSettings } = modelSettingsOfProvider[providerName]
+	return { providerReasoningIOSettings }
 }

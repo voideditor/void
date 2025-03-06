@@ -388,7 +388,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				const messages_ = this.getCurrentThread().messages.map(m => (toLLMChatMessage(m))).filter(m => !!m)
 				const lastUserMsgIdx = findLastIndex(messages_, m => m.role === 'user')
 
-				if (lastUserMsgIdx !== -1) throw new Error(`Void: No user message found.`) // should never be -1
+				if (lastUserMsgIdx === -1) throw new Error(`Void: No user message found.`) // should never be -1
 
 				const messages: LLMChatMessage[] = [
 					{ role: 'system', content: chat_systemMessage(this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)) },

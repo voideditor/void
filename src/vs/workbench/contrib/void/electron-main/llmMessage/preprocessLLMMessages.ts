@@ -58,7 +58,7 @@ const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatM
 
 
 
-// remove rawAnthropicAssistantContent, and make content equal to it if sending to anthropic
+// remove rawAnthropicAssistantContent, and make content equal to it if supportsAnthropicContent
 const prepareMessages_anthropicContent = ({ messages, supportsAnthropicContent }: { messages: LLMChatMessage[], supportsAnthropicContent: boolean }) => {
 	const newMessages: InternalLLMChatMessage[] = []
 	for (const m of messages) {

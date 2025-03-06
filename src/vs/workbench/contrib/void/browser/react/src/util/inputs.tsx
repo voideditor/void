@@ -257,7 +257,7 @@ export const VoidSwitch = ({
 			</div>
 			{label && (
 				<span className={`
-			ml-3 font-medium text-gray-900 dark:text-gray-100
+			ml-3 text-gray-900 dark:text-gray-100
 			${size === 'xs' ? 'text-xs' : 'text-sm'}
 		  `}>
 					{label}

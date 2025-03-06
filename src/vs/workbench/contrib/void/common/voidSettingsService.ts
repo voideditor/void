@@ -11,10 +11,17 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings } from './voidSettingsTypes.js';
+import { getModelCapabilities } from './modelCapabilities.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings, ModelSelectionOptions, OptionsOfModelSelection } from './voidSettingsTypes.js';
 
 
 const STORAGE_KEY = 'void.settingsServiceStorage'
+
+
+// name is the name in the dropdown
+export type ModelOption = { name: string, selection: ModelSelection }
+
+
 
 type SetSettingOfProviderFn = <S extends SettingName>(
 	providerName: ProviderName,
@@ -25,16 +32,17 @@ type SetSettingOfProviderFn = <S extends SettingName>(
 type SetModelSelectionOfFeatureFn = <K extends FeatureName>(
 	featureName: K,
 	newVal: ModelSelectionOfFeature[K],
-	options?: { doNotApplyEffects?: true }
 ) => Promise<void>;
 
 type SetGlobalSettingFn = <T extends GlobalSettingName>(settingName: T, newVal: GlobalSettings[T]) => void;
 
-export type ModelOption = { name: string, selection: ModelSelection }
+type SetOptionsOfModelSelection = (providerName: ProviderName, modelName: string, newVal: Partial<ModelSelectionOptions>) => void
+
 
 export type VoidSettingsState = {
 	readonly settingsOfProvider: SettingsOfProvider; // optionsOfProvider
 	readonly modelSelectionOfFeature: ModelSelectionOfFeature; // stateOfFeature
+	readonly optionsOfModelSelection: OptionsOfModelSelection;
 	readonly globalSettings: GlobalSettings;
 
 	readonly _modelOptions: ModelOption[] // computed based on the two above items
@@ -55,6 +63,7 @@ export interface IVoidSettingsService {
 
 	setSettingOfProvider: SetSettingOfProviderFn;
 	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn;
+	setOptionsOfModelSelection: SetOptionsOfModelSelection;
 	setGlobalSetting: SetGlobalSettingFn;
 
 	setAutodetectedModels(providerName: ProviderName, modelNames: string[], logging: object): void;
@@ -85,6 +94,14 @@ const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], opt
 		...newDefaultModels, // swap out all the default models for the new default models
 		...existingModels.filter(m => !m.isDefault), // keep any non-default (custom) models
 	]
+}
+
+
+export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter: (o: ModelSelection) => boolean; emptyMessage: string | null } } = {
+	'Autocomplete': { filter: o => getModelCapabilities(o.providerName, o.modelName).supportsFIM, emptyMessage: 'No models support FIM' },
+	'Ctrl+L': { filter: o => true, emptyMessage: null },
+	'Ctrl+K': { filter: o => true, emptyMessage: null },
+	'Apply': { filter: o => true, emptyMessage: null },
 }
 
 
@@ -125,14 +142,17 @@ const _validatedState = (state: Omit<VoidSettingsState, '_modelOptions'>) => {
 	let newModelSelectionOfFeature = state.modelSelectionOfFeature
 	for (const featureName of featureNames) {
 
-		const modelSelectionAtFeature = newModelSelectionOfFeature[featureName]
-		const selnIdx = modelSelectionAtFeature === null ? -1 : newModelOptions.findIndex(m => modelSelectionsEqual(m.selection, modelSelectionAtFeature))
+		const { filter } = modelFilterOfFeatureName[featureName]
+		const modelOptionsForThisFeature = newModelOptions.filter((o) => filter(o.selection))
 
-		if (selnIdx !== -1) continue
+		const modelSelectionAtFeature = newModelSelectionOfFeature[featureName]
+		const selnIdx = modelSelectionAtFeature === null ? -1 : modelOptionsForThisFeature.findIndex(m => modelSelectionsEqual(m.selection, modelSelectionAtFeature))
+
+		if (selnIdx !== -1) continue // no longer in list, so update to 1st in list or null
 
 		newModelSelectionOfFeature = {
 			...newModelSelectionOfFeature,
-			[featureName]: newModelOptions.length === 0 ? null : newModelOptions[0].selection
+			[featureName]: modelOptionsForThisFeature.length === 0 ? null : modelOptionsForThisFeature[0].selection
 		}
 	}
 
@@ -156,6 +176,7 @@ const defaultState = () => {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
 		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null, 'Apply': null },
 		globalSettings: deepClone(defaultGlobalSettings),
+		optionsOfModelSelection: {},
 		_modelOptions: [], // computed later
 	}
 	return d
@@ -260,6 +281,8 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		const newModelSelectionOfFeature = this.state.modelSelectionOfFeature
 
+		const newOptionsOfModelSelection = this.state.optionsOfModelSelection
+
 		const newSettingsOfProvider: SettingsOfProvider = {
 			...this.state.settingsOfProvider,
 			[providerName]: {
@@ -272,6 +295,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		const newState = {
 			modelSelectionOfFeature: newModelSelectionOfFeature,
+			optionsOfModelSelection: newOptionsOfModelSelection,
 			settingsOfProvider: newSettingsOfProvider,
 			globalSettings: newGlobalSettings,
 		}
@@ -299,7 +323,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 
-	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn = async (featureName, newVal, options) => {
+	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn = async (featureName, newVal) => {
 		const newState: VoidSettingsState = {
 			...this.state,
 			modelSelectionOfFeature: {
@@ -310,8 +334,26 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		this.state = newState
 
-		if (options?.doNotApplyEffects)
-			return
+		await this._storeState()
+		this._onDidChangeState.fire()
+	}
+
+
+	setOptionsOfModelSelection = async (providerName: ProviderName, modelName: string, newVal: Partial<ModelSelectionOptions>) => {
+		const newState: VoidSettingsState = {
+			...this.state,
+			optionsOfModelSelection: {
+				...this.state.optionsOfModelSelection,
+				[providerName]: {
+					...this.state.optionsOfModelSelection[providerName],
+					[modelName]: {
+						...this.state.optionsOfModelSelection[providerName]?.[modelName],
+						...newVal
+					}
+				}
+			}
+		}
+		this.state = newState
 
 		await this._storeState()
 		this._onDidChangeState.fire()

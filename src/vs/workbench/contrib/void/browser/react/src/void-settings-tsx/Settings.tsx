@@ -396,6 +396,11 @@ export const AIInstructionsBox = () => {
 }
 
 export const FeaturesTab = () => {
+	const voidSettingsState = useSettingsState()
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+
+
 	return <>
 		<h2 className={`text-3xl mb-2`}>Models</h2>
 		<ErrorBoundary>
@@ -434,17 +439,27 @@ export const FeaturesTab = () => {
 
 
 
-		<h2 className={`text-3xl mb-2 mt-12`}>Feature Options</h2>
+		<h2 className={`text-3xl mt-12`}>Feature Options</h2>
 		<ErrorBoundary>
-			{featureNames.map(featureName =>
-				(['Ctrl+L', 'Ctrl+K'] as FeatureName[]).includes(featureName) ? null :
-					<div key={featureName}
-						className='mb-2'
-					>
-						<h4 className={`text-void-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
-						<ModelDropdown featureName={featureName} />
+			<div className='flex gap-x-4 items-start justify-around mt-4 mb-16'>
+				<div>
+					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
+					<div className='text-sm italic text-void-fg-3 my-1'>Experimental. Only works with FIM models.</div>
+					<div className='flex items-center gap-x-2'>
+						<VoidSwitch size='xs' value={voidSettingsState.globalSettings.enableAutocomplete} onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)} label={voidSettingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'} />
 					</div>
-			)}
+
+					<div className={!voidSettingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}>
+						<ModelDropdown featureName={'Autocomplete'} />
+					</div>
+				</div>
+
+				<div>
+					<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
+					<ModelDropdown featureName={'Apply'} />
+				</div>
+			</div>
+
 		</ErrorBoundary>
 
 	</>
@@ -649,7 +664,7 @@ export const Settings = () => {
 
 
 					{/* content */}
-					<div className='w-full min-w-[550px] overflow-auto'>
+					<div className='w-full min-w-[550px]'>
 
 						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
 							<FeaturesTab />

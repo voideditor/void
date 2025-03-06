@@ -380,7 +380,7 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 	else if (featureName === 'Ctrl+L')
 		return 'Chat'
 	else if (featureName === 'Apply')
-		return 'Apply'
+		return 'Fast Apply'
 	else
 		throw new Error(`Feature Name ${featureName} not allowed`)
 }
@@ -439,10 +439,12 @@ export const isFeatureNameDisabled = (featureName: FeatureName, settingsState: V
 export type GlobalSettings = {
 	autoRefreshModels: boolean;
 	aiInstructions: string;
+	enableAutocomplete: boolean;
 }
 export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
 	aiInstructions: '',
+	enableAutocomplete: false,
 }
 
 export type GlobalSettingName = keyof GlobalSettings
@@ -459,4 +461,8 @@ export const globalSettingNames = Object.keys(defaultGlobalSettings) as GlobalSe
 
 
 
+export type ModelSelectionOptions = {
+	reasoningSelection?: { budget: number }
+}
 
+export type OptionsOfModelSelection = Partial<{ [providerName in ProviderName]: { [modelName: string]: ModelSelectionOptions } }>

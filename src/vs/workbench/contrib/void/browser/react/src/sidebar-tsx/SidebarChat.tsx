@@ -17,7 +17,7 @@ import { ChatMarkdownRender, ChatMessageLocation } from '../markdown/ChatMarkdow
 import { URI } from '../../../../../../../base/common/uri.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
+import { TextAreaFns, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
@@ -29,7 +29,7 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../chatThreadService.js';
 import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js';
 import { ToolName } from '../../../toolsService.js';
-
+import { getModelCapabilities } from '../../../../common/modelCapabilities.js';
 
 
 
@@ -146,6 +146,58 @@ export const IconLoading = ({ className = '' }: { className?: string }) => {
 const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-${messageIdx}`;
 
 
+
+
+const ReasoningOptionDropdown = () => {
+	const accessor = useAccessor()
+
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
+
+	const modelSelection = voidSettingsState.modelSelectionOfFeature['Ctrl+L']
+	if (!modelSelection) return null
+
+	const { modelName, providerName } = modelSelection
+	const { canToggleReasoning, reasoningBudgetOptions } = getModelCapabilities(providerName, modelName).supportsReasoningOutput || {}
+
+	const defaultEnabledVal = canToggleReasoning ? true : false
+	const isEnabled = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEnabled ?? defaultEnabledVal
+
+	let toggleButton: React.ReactNode = null
+	if (canToggleReasoning) {
+		toggleButton = <VoidSwitch
+			size='xs'
+			value={isEnabled}
+			onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: newVal }) }}
+		/>
+	}
+
+	let slider: React.ReactNode = null
+	if (isEnabled && reasoningBudgetOptions?.type === 'slider') {
+		const { min, max, default: defaultVal } = reasoningBudgetOptions
+		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
+		slider = <VoidSlider
+			width={50}
+			size='xs'
+			min={min}
+			max={max}
+			step={(max - min) / 8}
+			value={value}
+			onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningBudget: newVal }) }}
+			label={value + ''}
+		/>
+	}
+
+	return <>
+		{toggleButton}
+		{slider}
+	</>
+
+}
+
+
+
+
 interface VoidChatAreaProps {
 	// Required
 	children: React.ReactNode; // This will be the input component
@@ -247,6 +299,8 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 						<ModelDropdown featureName={featureName} />
 					</div>
 				)}
+
+				<ReasoningOptionDropdown />
 
 				{isStreaming ? (
 					<ButtonStop onClick={onAbort} />

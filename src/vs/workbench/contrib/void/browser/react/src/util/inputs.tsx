@@ -214,6 +214,151 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 
 
 
+
+export const VoidSlider = ({
+	value,
+	onChange,
+	size = 'md',
+	label,
+	disabled = false,
+	min = 0,
+	max = 7,
+	step = 1,
+	className = '',
+	width = 200,
+}: {
+	value: number;
+	onChange: (value: number) => void;
+	label?: string;
+	disabled?: boolean;
+	size?: 'xs' | 'sm' | 'sm+' | 'md';
+	min?: number;
+	max?: number;
+	step?: number;
+	className?: string;
+	width?: number;
+}) => {
+	// Calculate percentage for position
+	const percentage = ((value - min) / (max - min)) * 100;
+
+	// Handle track click
+	const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+		if (disabled) return;
+
+		const rect = e.currentTarget.getBoundingClientRect();
+		const clickPosition = e.clientX - rect.left;
+		const trackWidth = rect.width;
+
+		// Calculate new value
+		const newPercentage = Math.max(0, Math.min(1, clickPosition / trackWidth));
+		const rawValue = min + newPercentage * (max - min);
+
+		// Special handling to ensure max value is always reachable
+		if (rawValue >= max - step / 2) {
+			onChange(max);
+			return;
+		}
+
+		// Normal step calculation
+		const steppedValue = Math.round((rawValue - min) / step) * step + min;
+		const clampedValue = Math.max(min, Math.min(max, steppedValue));
+
+		onChange(clampedValue);
+	};
+
+	// Helper function to handle thumb dragging that respects steps and max
+	const handleThumbDrag = (moveEvent: MouseEvent, track: Element) => {
+		if (!track) return;
+
+		const rect = (track as HTMLElement).getBoundingClientRect();
+		const movePosition = moveEvent.clientX - rect.left;
+		const trackWidth = rect.width;
+
+		// Calculate new value
+		const newPercentage = Math.max(0, Math.min(1, movePosition / trackWidth));
+		const rawValue = min + newPercentage * (max - min);
+
+		// Special handling to ensure max value is always reachable
+		if (rawValue >= max - step / 2) {
+			onChange(max);
+			return;
+		}
+
+		// Normal step calculation
+		const steppedValue = Math.round((rawValue - min) / step) * step + min;
+		const clampedValue = Math.max(min, Math.min(max, steppedValue));
+
+		onChange(clampedValue);
+	};
+
+	return (
+		<div className={`inline-flex items-center flex-shrink-0 ${className}`}>
+			<div className={`relative flex-shrink-0 ${disabled ? 'opacity-25' : ''}`} style={{ width }}>
+				{/* Track */}
+				<div
+					className={`relative ${size === 'xs' ? 'h-1' :
+							size === 'sm' ? 'h-1.5' :
+								size === 'sm+' ? 'h-2' : 'h-2.5'
+						} bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer`}
+					onClick={handleTrackClick}
+				>
+					{/* Filled part of track */}
+					<div
+						className={`absolute left-0 ${size === 'xs' ? 'h-1' :
+								size === 'sm' ? 'h-1.5' :
+									size === 'sm+' ? 'h-2' : 'h-2.5'
+							} bg-gray-900 dark:bg-white rounded-full`}
+						style={{ width: `${percentage}%` }}
+					/>
+				</div>
+
+				{/* Thumb */}
+				<div
+					className={`absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 ${size === 'xs' ? 'h-3 w-3' :
+							size === 'sm' ? 'h-4 w-4' :
+								size === 'sm+' ? 'h-5 w-5' : 'h-6 w-6'
+						} bg-white dark:bg-gray-900 rounded-full shadow-md ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
+					style={{ left: `${percentage}%` }}
+					onMouseDown={(e) => {
+						if (disabled) return;
+
+						const track = e.currentTarget.previousElementSibling;
+
+						const handleMouseMove = (moveEvent: MouseEvent) => {
+							handleThumbDrag(moveEvent, track as Element);
+						};
+
+						const handleMouseUp = () => {
+							document.removeEventListener('mousemove', handleMouseMove);
+							document.removeEventListener('mouseup', handleMouseUp);
+							document.body.style.cursor = '';
+							document.body.style.userSelect = '';
+						};
+
+						document.body.style.userSelect = 'none';
+						document.body.style.cursor = 'grabbing';
+						document.addEventListener('mousemove', handleMouseMove);
+						document.addEventListener('mouseup', handleMouseUp);
+
+						e.preventDefault();
+					}}
+				/>
+			</div>
+
+			{label && (
+				<span className={`ml-3 text-gray-900 dark:text-gray-100 ${size === 'xs' ? 'text-xs' : 'text-sm'
+					}`}>
+					{label}
+				</span>
+			)}
+		</div>
+	);
+};
+
+
+
+
+
 export const VoidSwitch = ({
 	value,
 	onChange,

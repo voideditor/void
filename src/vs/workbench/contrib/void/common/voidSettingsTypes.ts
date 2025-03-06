@@ -462,7 +462,8 @@ export const globalSettingNames = Object.keys(defaultGlobalSettings) as GlobalSe
 
 
 export type ModelSelectionOptions = {
-	reasoningSelection?: { budget: number }
+	reasoningEnabled?: boolean;
+	reasoningBudget?: number;
 }
 
-export type OptionsOfModelSelection = Partial<{ [providerName in ProviderName]: { [modelName: string]: ModelSelectionOptions } }>
+export type OptionsOfModelSelection = Partial<{ [providerName in ProviderName]: { [modelName: string]: ModelSelectionOptions | undefined } }>

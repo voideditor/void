@@ -21,7 +21,12 @@ type ModelOptions = {
 	supportsReasoningOutput: false | {
 		// you are allowed to not include openSourceThinkTags if it's not open source (no such cases as of writing)
 		// if it's open source, put the think tags here so we parse them out in e.g. ollama
-		readonly openSourceThinkTags?: [string, string]
+		readonly openSourceThinkTags?: [string, string];
+
+		// reasoning options
+		readonly canToggleReasoning?: boolean; // whether or not the user can enable reasoning mode (or if the model only supports reasoning)
+		readonly maxOutputTokens?: number;
+		readonly reasoningBudgetOptions?: { type: 'slider'; min: number; max: number; default: number };
 	};
 }
 
@@ -153,12 +158,16 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 const anthropicModelOptions = {
 	'claude-3-7-sonnet-20250219': { // https://docs.anthropic.com/en/docs/about-claude/models/all-models#model-comparison-table
 		contextWindow: 200_000,
-		maxOutputTokens: 8_192, // TODO!!! 64_000 for extended thinking, can bump it to 128_000 with output-128k-2025-02-19
+		maxOutputTokens: 8_192,
 		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: {},
+		supportsReasoningOutput: {
+			canToggleReasoning: true,
+			maxOutputTokens: 64_000, // can bump it to 128_000 with beta mode output-128k-2025-02-19
+			reasoningBudgetOptions: { type: 'slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
+		},
 	},
 	'claude-3-5-sonnet-20241022': {
 		contextWindow: 200_000,
@@ -520,12 +529,12 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 
 // ---------------- exports ----------------
 
-export const getModelCapabilities = (providerName: ProviderName, modelName: string): ModelOptions & { modelName: string; didNotFindModel?: boolean } => {
+export const getModelCapabilities = (providerName: ProviderName, modelName: string): ModelOptions & { modelName: string; isUnrecognizedModel: boolean } => {
 	const { modelOptions, modelOptionsFallback } = modelSettingsOfProvider[providerName]
-	if (modelName in modelOptions) return { modelName, ...modelOptions[modelName] }
+	if (modelName in modelOptions) return { modelName, ...modelOptions[modelName], isUnrecognizedModel: false }
 	const result = modelOptionsFallback(modelName)
-	if (result) return result
-	return { modelName, ...modelOptionsDefaults, didNotFindModel: true }
+	if (result) return { ...result, isUnrecognizedModel: false }
+	return { modelName, ...modelOptionsDefaults, isUnrecognizedModel: true }
 }
 
 // non-model settings

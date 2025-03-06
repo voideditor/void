@@ -9,6 +9,29 @@ module.exports = {
 	content: ['./src2/**/*.{jsx,tsx}'], // uses these files to decide how to transform the css file
 	theme: {
 		extend: {
+			typography: {
+				DEFAULT: {
+					css: {
+						'--tw-prose-body': 'var(--void-fg-1)',
+						'--tw-prose-headings': 'var(--void-fg-1)',
+						'--tw-prose-lead': 'var(--void-fg-2)',
+						'--tw-prose-links': 'var(--void-link-color)',
+						'--tw-prose-bold': 'var(--void-fg-1)',
+						'--tw-prose-counters': 'var(--void-fg-3)',
+						'--tw-prose-bullets': 'var(--void-fg-3)',
+						'--tw-prose-hr': 'var(--void-border-4)',
+						'--tw-prose-quotes': 'var(--void-fg-1)',
+						'--tw-prose-quote-borders': 'var(--void-border-2)',
+						'--tw-prose-captions': 'var(--void-fg-3)',
+						'--tw-prose-code': 'var(--void-fg-0)',
+						'--tw-prose-pre-code': 'var(--void-fg-0)',
+						'--tw-prose-pre-bg': 'var(--void-bg-1)',
+						'--tw-prose-th-borders': 'var(--void-border-4)',
+						'--tw-prose-td-borders': 'var(--void-border-4)',
+					},
+				},
+
+			},
 			fontSize: {
 				xs: '10px',
 				sm: '11px',
@@ -27,27 +50,29 @@ module.exports = {
 			// common colors to use, ordered light to dark
 
 			colors: {
-				'void-bg-1': 'var(--vscode-input-background)',
-				'void-bg-1-alt': 'var(--vscode-badge-background)',
-				'void-bg-2': 'var(--vscode-sideBar-background)',
-				'void-bg-2-alt': 'color-mix(in srgb, var(--vscode-sideBar-background) 30%, var(--vscode-editor-background) 70%)',
-				'void-bg-3': 'var(--vscode-editor-background)',
+				'void-bg-1': 'var(--void-bg-1)',
+				'void-bg-1-alt': 'var(--void-bg-1-alt)',
+				'void-bg-2': 'var(--void-bg-2)',
+				'void-bg-2-alt': 'var(--void-bg-2-alt)',
+				'void-bg-3': 'var(--void-bg-3)',
 
 
-				'void-fg-1': 'var(--vscode-editor-foreground)',
-				'void-fg-2': 'var(--vscode-input-foreground)',
-				'void-fg-3': 'var(--vscode-input-placeholderForeground)',
+				'void-fg-0': 'var(--void-fg-0)',
+				'void-fg-1': 'var(--void-fg-1)',
+				'void-fg-2': 'var(--void-fg-2)',
+				'void-fg-3': 'var(--void-fg-3)',
 				// 'void-fg-4': 'var(--vscode-tab-inactiveForeground)',
-				'void-fg-4': 'var(--vscode-list-deemphasizedForeground)',
+				'void-fg-4': 'var(--void-fg-4)',
 
+				'void-warning': 'var(--void-warning)',
 
-				'void-warning': 'var(--vscode-charts-yellow)',
+				'void-border-1': 'var(--void-border-1)',
+				'void-border-2': 'var(--void-border-2)',
+				'void-border-3': 'var(--void-border-3)',
+				'void-border-4': 'var(--void-border-4)',
 
-				'void-border-1': 'var(--vscode-commandCenter-activeBorder)',
-				'void-border-2': 'var(--vscode-commandCenter-border)',
-				'void-border-3': 'var(--vscode-commandCenter-inactiveBorder)',
-				'void-border-4': 'var(--vscode-editorGroup-border)',
-
+				'void-ring-color': 'var(--void-ring-color)',
+				'void-link-color': 'var(--void-link-color)',
 
 				vscode: {
 					// see: https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content
@@ -166,83 +191,9 @@ module.exports = {
 			},
 		},
 	},
-	plugins: [],
-	prefix: 'void-',
-	safelist: [
-		// Background colors
-		'void-bg-void-bg-1',
-
-		// Borders
-		'void-border-b',
-		'void-border-l-4',
-		'void-border-t',
-		'void-border-void-bg-2',
-
-		// Typography
-		'void-text-2xl',
-		'void-text-3xl',
-		'void-text-4xl',
-		'void-text-base',
-		'void-text-lg',
-		'void-text-xl',
-		'void-text-gray-600',
-		'void-font-medium',
-		'void-font-mono',
-		'void-font-semibold',
-		'void-italic',
-		'void-line-through',
-		'void-underline',
-
-		// Spacing
-		'void-mt-1',
-		'void-mt-2',
-		'void-mt-4',
-		'void-mt-6',
-		'void-mb-1',
-		'void-mb-2',
-		'void-mb-4',
-		'void-mx-1',
-		'void-mx-2',
-		'void-mx-4',
-		'void-my-1',
-		'void-my-2',
-		'void-my-4',
-		'void-my-6',
-		'void-pb-1',
-		'void-pb-2',
-		'void-pb-4',
-		'void-pl-1',
-		'void-pl-2',
-		'void-pl-4',
-		'void-px-1',
-		'void-px-2',
-		'void-px-4',
-
-		// Sizing and layout
-		'void-h-auto',
-		'void-max-w-full',
-		'void-overflow-x-auto',
-
-		// Lists
-		'void-list-inside',
-		'void-list-decimal',
-		'void-list-disc',
-
-		// Effects and decoration
-		'void-cursor-pointer',
-		'void-ring-8',
-		'void-ring-[#123456]',
-		'void-rounded',
-		'void-rounded-sm',
-
-		// misc
-		'void-break-all',
-		'void-bg-void-bg-1',
-		'void-px-1',
-		'void-rounded-sm',
-		'void-font-mono',
-		'void-font-medium',
-		'void-break-all'
-	]
+	plugins: [
+		require('@tailwindcss/typography')
+	],
+	prefix: 'void-'
 }
 

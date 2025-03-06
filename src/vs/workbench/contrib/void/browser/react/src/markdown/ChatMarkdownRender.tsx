@@ -14,15 +14,12 @@ export type ChatMessageLocation = {
 	messageIdx: number;
 }
 
-
-const cn = (className: string) => className?.split(' ').map(c => c ? `void-${c}` : '').join(' ')
-
-
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }
 
 const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
 	return `${threadId}-${messageIdx}-${tokenIdx}`
 }
+
 
 
 
@@ -88,31 +85,17 @@ const defaultStyles = {
 	text: '',
 }
 
-
-
-type TokenClasses = typeof defaultStyles
-
-const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx, classes }: { token: Token | string, nested?: boolean, chatMessageLocationForApply?: ChatMessageLocation, tokenIdx: string, classes?: TokenClasses }): JSX.Element => {
-
+const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx }: { token: Token | string, nested?: boolean, chatMessageLocationForApply?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
 
 	// deal with built-in tokens first (assume marked token)
 	const t = token as MarkedToken
 
-	if(t.raw.trim() ===''){
+	if (t.raw.trim() === '') {
 		return <></>;
 	}
 
-	// compute the className
-	const defaultClassName = defaultStyles[t.type]
-	const classNameOverride = classes?.[t.type]
-	const _className = classNameOverride ?? defaultClassName
-	let className: string = ''
-	if (typeof defaultClassName === 'string') {
-		className = _className as string
-	}
-
 	if (t.type === "space") {
-		return <span className={cn(className)}>{t.raw}</span>
+		return <span>{t.raw}</span>
 	}
 
 	if (t.type === "code") {
@@ -123,7 +106,7 @@ const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx, cla
 			tokenIdx: tokenIdx,
 		}) : null
 
-		return <div className={cn(className)}>
+		return <div>
 			<BlockCode
 				initValue={t.text}
 				language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
@@ -134,25 +117,19 @@ const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx, cla
 
 	if (t.type === "heading") {
 
-		const HeadingTag = `h${t.depth}` as keyof typeof defaultStyles.heading
+		const HeadingTag = `h${t.depth}` as keyof JSX.IntrinsicElements
 
-		const className = classes?.heading[HeadingTag] ?? defaultStyles.heading[HeadingTag]
-
-		return <HeadingTag className={cn(className)}>{t.text}</HeadingTag>
+		return <HeadingTag>{t.text}</HeadingTag>
 	}
 
 	if (t.type === "table") {
 		return (
-			<div className={cn(className)}>
-				<table className={"min-w-full border border-void-bg-2"}>
+			<div>
+				<table>
 					<thead>
-						<tr className="bg-void-bg-1">
+						<tr>
 							{t.header.map((cell: any, index: number) => (
-								<th
-									key={index}
-									className="px-4 py-2 border border-void-bg-2 font-semibold"
-									style={{ textAlign: t.align[index] || "left" }}
-								>
+								<th key={index}>
 									{cell.raw}
 								</th>
 							))}
@@ -160,13 +137,9 @@ const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx, cla
 					</thead>
 					<tbody>
 						{t.rows.map((row: any[], rowIndex: number) => (
-							<tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-void-bg-1'}>
+							<tr key={rowIndex}>
 								{row.map((cell: any, cellIndex: number) => (
-									<td
-										key={cellIndex}
-										className={"px-4 py-2 border border-void-bg-2"}
-										style={{ textAlign: t.align[cellIndex] || "left" }}
-									>
+									<td key={cellIndex} >
 										{cell.raw}
 									</td>
 								))}
@@ -176,20 +149,54 @@ const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx, cla
 				</table>
 			</div>
 		)
+		// return (
+		// 	<div>
+		// 		<table className={"min-w-full border border-void-bg-2"}>
+		// 			<thead>
+		// 				<tr className="bg-void-bg-1">
+		// 					{t.header.map((cell: any, index: number) => (
+		// 						<th
+		// 							key={index}
+		// 							className="px-4 py-2 border border-void-bg-2 font-semibold"
+		// 							style={{ textAlign: t.align[index] || "left" }}
+		// 						>
+		// 							{cell.raw}
+		// 						</th>
+		// 					))}
+		// 				</tr>
+		// 			</thead>
+		// 			<tbody>
+		// 				{t.rows.map((row: any[], rowIndex: number) => (
+		// 					<tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-void-bg-1'}>
+		// 						{row.map((cell: any, cellIndex: number) => (
+		// 							<td
+		// 								key={cellIndex}
+		// 								className={"px-4 py-2 border border-void-bg-2"}
+		// 								style={{ textAlign: t.align[cellIndex] || "left" }}
+		// 							>
+		// 								{cell.raw}
+		// 							</td>
+		// 						))}
+		// 					</tr>
+		// 				))}
+		// 			</tbody>
+		// 		</table>
+		// 	</div>
+		// )
 	}
 
 	if (t.type === "hr") {
-		return <hr className={cn(className)} />
+		return <hr />
 	}
 
 	if (t.type === "blockquote") {
-		return <blockquote className={cn(className)}>{t.text}</blockquote>
+		return <blockquote>{t.text}</blockquote>
 	}
 
 	if (t.type === 'list_item') {
-		<li className={cn(className)}>
-			<span className="ml-1">
-				!!!!!!!!!!!!!
+		return <li>
+			<input type="checkbox" checked={t.checked} readOnly />
+			<span>
 				<ChatMarkdownRender chatMessageLocationForApply={chatMessageLocationForApply} string={t.text} nested={true} />
 			</span>
 		</li>
@@ -198,68 +205,49 @@ const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx, cla
 	if (t.type === "list") {
 		const ListTag = t.ordered ? "ol" : "ul"
 
-		const itemClassName = classes?.['list_item'] ?? defaultStyles['list_item']
-
 		return (
-			<ListTag
-				start={t.start ? t.start : undefined}
-				className={`${cn(className)} ${t.ordered ? "list-decimal" : "list-disc"}`}
-			>
+			<ListTag start={t.start ? t.start : undefined}>
 				{t.items.map((item, index) => (
-					<li key={index} className={cn(itemClassName)}>
+					<li key={index}>
 						{item.task && (
-							<input type="checkbox" checked={item.checked} readOnly className="mr-2 form-checkbox" />
+							<input type="checkbox" checked={item.checked} readOnly />
 						)}
-						<span className="ml-1">
+						<span>
 							<ChatMarkdownRender chatMessageLocationForApply={chatMessageLocationForApply} string={item.text} nested={true} />
 						</span>
 					</li>
 				))}
 			</ListTag>
 		)
-		// attempt at indentation
-		// return (
-		// 	<ListTag
-		// 		start={t.start ? t.start : undefined}
-		// 			className={`${className} ${t.ordered ? "list-decimal" : "list-disc"}`}
-		// 		>
-		// 		{t.items.map((item, index) => (
-		// 			<li key={index} className={`itemClassName`}>
-		// 				{item.task && (
-		// 					<input type="checkbox" className='mr-2 form-checkbox' checked={item.checked} readOnly />
-		// 				)}
-		// 				<span className-='inline-block pr-2'>
-		// 					<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} nested={true} />
-		// 				</span>
-		// 			</li>
-		// 		))}
-		// 	</ListTag>
-		// )
 	}
 
 	if (t.type === "paragraph") {
 		const contents = <>
 			{t.tokens.map((token, index) => (
-				<RenderToken key={index} token={token} tokenIdx={`${tokenIdx ? `${tokenIdx}-` : ''}${index}`} classes={classes} /> // assign a unique tokenId to nested components
+				<RenderToken key={index}
+					token={token}
+					tokenIdx={`${tokenIdx ? `${tokenIdx}-` : ''}${index}`} // assign a unique tokenId to nested components
+				/>
 			))}
 		</>
+
 		if (nested) return contents
 
-		return <p className={cn(className)}>
+		return <p>
 			{contents}
 		</p>
 	}
 
 	if (t.type === "html") {
 		return (
-			<p className={cn(className)}>
+			<p>
 				{t.raw}
 			</p>
 		)
 	}
 
 	if (t.type === "text" || t.type === "escape") {
-		return <span className={cn(className)}>{t.raw}</span>
+		return <span>{t.raw}</span>
 	}
 
 	if (t.type === "def") {
@@ -269,10 +257,10 @@ const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx, cla
 	if (t.type === "link") {
 		return (
 			<a
-				className={cn(className)}
 				onClick={() => { window.open(t.href) }}
 				href={t.href}
 				title={t.title ?? undefined}
+				className='underline cursor-pointer hover:brightness-90 transition-all duration-200'
 			>
 				{t.text}
 			</a>
@@ -284,52 +272,50 @@ const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx, cla
 			src={t.href}
 			alt={t.text}
 			title={t.title ?? undefined}
-			className={cn(className)}
+
 		/>
 	}
 
 	if (t.type === "strong") {
-		return <strong className={cn(className)}>{t.text}</strong>
+		return <strong>{t.text}</strong>
 	}
 
 	if (t.type === "em") {
-		return <em className={cn(className)}>{t.text}</em>
+		return <em>{t.text}</em>
 	}
 
 	// inline code
 	if (t.type === "codespan") {
 		return (
-			<code className={cn(className)}>
+			<code className="font-mono font-semibold rounded-sm bg-void-bg-1 px-1">
 				{t.text}
 			</code>
 		)
 	}
 
 	if (t.type === "br") {
-		return <br className={cn(className)} />
+		return <br />
 	}
 
 	// strikethrough
 	if (t.type === "del") {
-		return <del className={cn(className)}>{t.text}</del>
+		return <del>{t.text}</del>
 	}
 
 	// default
 	return (
 		<div className="bg-orange-50 rounded-sm overflow-hidden p-2">
-			<span className="text-sm text-orange-500">Unknown type:</span>
-			{t.type}
-			{t.raw}
+			<span className="text-sm text-orange-500">Unknown token rendered...</span>
 		</div>
 	)
 }
 
-export const ChatMarkdownRender = ({ string, nested = false, classes, chatMessageLocationForApply }: { string: string, nested?: boolean, classes?: TokenClasses, chatMessageLocationForApply?: ChatMessageLocation }) => {
+export const ChatMarkdownRender = ({ string, nested = false, chatMessageLocationForApply }: { string: string, nested?: boolean, chatMessageLocationForApply?: ChatMessageLocation }) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
-				<RenderToken key={index} token={token} nested={nested} classes={classes} chatMessageLocationForApply={chatMessageLocationForApply} tokenIdx={index + ''} />
+				<RenderToken key={index} token={token} nested={nested} chatMessageLocationForApply={chatMessageLocationForApply} tokenIdx={index + ''} />
 			))}
 		</>
 	)

@@ -15,7 +15,7 @@ import { isWindows, isLinux, isMacintosh } from '../../../../../../../base/commo
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
-import { ChatMarkdownRender, noSpaceStyles } from '../markdown/ChatMarkdownRender.js'
+import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
 
@@ -293,7 +293,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 				isPasswordField={isPasswordField}
 			/>
 			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-sm'>
-				<ChatMarkdownRender classes={noSpaceStyles} string={subTextMd} />
+				<ChatMarkdownRender string={subTextMd} />
 			</div>}
 
 		</div>
@@ -412,12 +412,12 @@ export const FeaturesTab = () => {
 		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
 		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
 		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
-		<div className='pl-4 opacity-50'>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender classes={noSpaceStyles} string={`1. Download [Ollama](https://ollama.com/download).`} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender classes={noSpaceStyles} string={`2. Open your terminal.`} /></span>
-			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender classes={noSpaceStyles} string={`3. Run \`ollama run llama3.1:8b\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></span>
-			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender classes={noSpaceStyles} string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender classes={noSpaceStyles} string={`Void automatically detects locally running models and enables them.`} /></span>
+		<div className='pl-4 prose-ol:list-decimal opacity-80'>
+			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} /></span>
+			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} /></span>
+			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1:8b\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></span>
+			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></span>
+			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} /></span>
 			{/* TODO we should create UI for downloading models without user going into terminal */}
 		</div>
 

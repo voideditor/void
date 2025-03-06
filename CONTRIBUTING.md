@@ -85,7 +85,7 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 #### Common Fixes
 
 - Make sure you followed the prerequisite steps.
-- Make sure you have Node version `20.16.0` (the version in `.nvmrc`)!
+- Make sure you have Node version `20.18.2` (the version in `.nvmrc`)!
 - If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
 - If you see missing styles, wait a few seconds and then reload.
 - If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.

@@ -774,7 +774,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 		{role === 'user' && <EditSymbol
 			size={18}
 			className={`
-				absolute -top-1 right-3
+				absolute -top-1 -right-1
 				translate-x-0 -translate-y-0
 				cursor-pointer z-1
 				p-[2px]

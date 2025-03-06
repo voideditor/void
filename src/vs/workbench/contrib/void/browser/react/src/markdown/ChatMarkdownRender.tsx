@@ -20,71 +20,6 @@ const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => 
 	return `${threadId}-${messageIdx}-${tokenIdx}`
 }
 
-
-
-
-// all classnames must go in tailwind.config.js/safelist
-export const noSpaceStyles = {
-	blockquote: 'pl-4 border-l-4 border-void-bg-2 italic',
-	br: '',
-	code: '',
-	codespan: 'bg-void-bg-1 px-1 rounded-sm font-mono font-medium break-all',
-	def: '',
-	del: 'line-through',
-	em: 'italic',
-	escape: '',
-	heading: {
-		h1: "text-4xl font-semibold pb-2 border-b border-void-bg-2",
-		h2: "text-3xl font-semibold pb-2 border-b border-void-bg-2",
-		h3: "text-2xl font-semibold",
-		h4: "text-xl font-semibold",
-		h5: "text-lg font-semibold",
-		h6: "text-base font-semibold text-gray-600"
-	},
-	hr: 'border-t border-void-bg-2',
-	html: '',
-	image: 'max-w-full h-auto rounded',
-	link: 'underline cursor-pointer',
-	list: 'list-inside pl-2',
-	list_item: '',
-	paragraph: '',
-	space: '',
-	strong: 'font-semibold',
-	table: 'overflow-x-auto',
-	text: '',
-}
-
-
-const defaultStyles = {
-	blockquote: 'mx-2 pl-4 border-l-4 border-void-bg-2 italic my-4',
-	br: '',
-	code: 'mx-2 my-4',
-	codespan: 'bg-void-bg-1 px-1 rounded-sm font-mono font-medium break-all',
-	def: '',
-	del: 'line-through',
-	em: 'italic',
-	escape: '',
-	heading: {
-		h1: 'mx-2 text-4xl font-semibold mt-6 mb-4 pb-2 border-b border-void-bg-2',
-		h2: 'mx-2 text-3xl font-semibold mt-6 mb-4 pb-2 border-b border-void-bg-2',
-		h3: 'mx-2 text-2xl font-semibold mt-6 mb-4',
-		h4: 'mx-2 text-xl font-semibold mt-6 mb-4',
-		h5: 'mx-2 text-lg font-semibold mt-6 mb-4',
-		h6: 'mx-2 text-base font-semibold mt-6 mb-4 text-gray-600'
-	},
-	hr: 'mx-2 my-6 border-t border-void-bg-2',
-	html: 'mx-2 my-4',
-	image: 'mx-2 my-4 max-w-full h-auto rounded',
-	link: 'mx-2 underline',
-	list: 'mx-2 my-2 list-inside pl-2',
-	list_item: 'mx-2 mb-2',
-	paragraph: 'mx-2 my-4',
-	space: '',
-	strong: 'mx-2 font-semibold',
-	table: 'mx-2 my-4 overflow-x-auto',
-	text: '',
-}
-
 const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx }: { token: Token | string, nested?: boolean, chatMessageLocationForApply?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
 
 	// deal with built-in tokens first (assume marked token)
@@ -287,7 +222,7 @@ const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx }: {
 	// inline code
 	if (t.type === "codespan") {
 		return (
-			<code className="font-mono font-semibold rounded-sm bg-void-bg-1 px-1">
+			<code className="font-mono font-medium rounded-sm bg-void-bg-1 px-1">
 				{t.text}
 			</code>
 		)
@@ -301,7 +236,6 @@ const RenderToken = ({ token, nested, chatMessageLocationForApply, tokenIdx }: {
 	if (t.type === "del") {
 		return <del>{t.text}</del>
 	}
-
 	// default
 	return (
 		<div className="bg-orange-50 rounded-sm overflow-hidden p-2">

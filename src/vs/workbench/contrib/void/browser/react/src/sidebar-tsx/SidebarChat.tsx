@@ -148,62 +148,6 @@ const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-$
 
 
 
-const ReasoningOptionDropdown = () => {
-	const accessor = useAccessor()
-
-	const voidSettingsService = accessor.get('IVoidSettingsService')
-	const voidSettingsState = useSettingsState()
-
-	const modelSelection = voidSettingsState.modelSelectionOfFeature['Ctrl+L']
-	if (!modelSelection) return null
-
-	const { modelName, providerName } = modelSelection
-	const { canToggleReasoning, reasoningBudgetOptions } = getModelCapabilities(providerName, modelName).supportsReasoningOutput || {}
-
-	const defaultEnabledVal = canToggleReasoning ? true : false
-	const isEnabled = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEnabled ?? defaultEnabledVal
-
-	let toggleButton: React.ReactNode = null
-	if (canToggleReasoning) {
-		toggleButton = <div className='flex items-center gap-x-3'>
-			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isEnabled ? 'Thinking' : 'Thinking'}</span>
-			<VoidSwitch
-				size='xxs'
-				value={isEnabled}
-				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: newVal }) }}
-			/>
-		</div>
-	}
-
-	let slider: React.ReactNode = null
-	if (isEnabled && reasoningBudgetOptions?.type === 'slider') {
-		const { min, max, default: defaultVal } = reasoningBudgetOptions
-		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
-		slider = <div className='flex items-center gap-x-3'>
-			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>Budget</span>
-			<VoidSlider
-				width={50}
-				size='xxs'
-				min={min}
-				max={max}
-				step={(max - min) / 8}
-				value={value}
-				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningBudget: newVal }) }}
-			/>
-			<span className='text-void-fg-3 text-xs pointer-events-none'>{`${value} tokens`}</span>
-		</div>
-
-	}
-
-	return <>
-		{toggleButton}
-		{slider}
-	</>
-}
-
-
-
-// SLIDER ONLY:
 // const ReasoningOptionDropdown = () => {
 // 	const accessor = useAccessor()
 
@@ -219,46 +163,102 @@ const ReasoningOptionDropdown = () => {
 // 	const defaultEnabledVal = canToggleReasoning ? true : false
 // 	const isEnabled = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEnabled ?? defaultEnabledVal
 
-// 	if (canToggleReasoning && !reasoningBudgetOptions) { // if it's just a on/off toggle without a power slider (no models right now)
-// 		return <div className='flex items-center gap-x-2'>
+// 	let toggleButton: React.ReactNode = null
+// 	if (canToggleReasoning) {
+// 		toggleButton = <div className='flex items-center gap-x-3'>
 // 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isEnabled ? 'Thinking' : 'Thinking'}</span>
 // 			<VoidSwitch
-// 				size='xs'
+// 				size='xxs'
 // 				value={isEnabled}
-// 				onChange={(newVal) => { }}
+// 				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: newVal }) }}
 // 			/>
 // 		</div>
 // 	}
 
-// 	if (reasoningBudgetOptions?.type === 'slider') { // if it's a slider
-// 		const { min: min_, max, default: defaultVal } = reasoningBudgetOptions
-
+// 	let slider: React.ReactNode = null
+// 	if (isEnabled && reasoningBudgetOptions?.type === 'slider') {
+// 		const { min, max, default: defaultVal } = reasoningBudgetOptions
 // 		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
-
-// 		const nSteps = 8 // only used in calculating stepSize, stepSize is what actually matters
-// 		const stepSize = Math.round((max - min_) / 8)
-// 		const min = canToggleReasoning ? min_ - stepSize : min_
-
-// 		return <div className='flex items-center gap-x-2'>
-// 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>Thinking</span>
+// 		slider = <div className='flex items-center gap-x-3'>
+// 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>Budget</span>
 // 			<VoidSlider
 // 				width={50}
-// 				size='xs'
+// 				size='xxs'
 // 				min={min}
 // 				max={max}
-// 				step={stepSize}
+// 				step={(max - min) / 8}
 // 				value={value}
-// 				onChange={(newVal) => {
-// 					const disabled = newVal === min && canToggleReasoning
-// 					voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
-// 				}}
+// 				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningBudget: newVal }) }}
 // 			/>
-// 			<span className='text-void-fg-3 text-xs pointer-events-none'>{isEnabled ? `${value} tokens` : 'Thinking disabled'}</span>
+// 			<span className='text-void-fg-3 text-xs pointer-events-none'>{`${value} tokens`}</span>
 // 		</div>
+
 // 	}
 
-// 	return null
+// 	return <>
+// 		{toggleButton}
+// 		{slider}
+// 	</>
 // }
+
+
+
+// SLIDER ONLY:
+const ReasoningOptionDropdown = () => {
+	const accessor = useAccessor()
+
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
+
+	const modelSelection = voidSettingsState.modelSelectionOfFeature['Ctrl+L']
+	if (!modelSelection) return null
+
+	const { modelName, providerName } = modelSelection
+	const { canToggleReasoning, reasoningBudgetOptions } = getModelCapabilities(providerName, modelName).supportsReasoningOutput || {}
+
+	const defaultEnabledVal = canToggleReasoning ? true : false
+	const isEnabled = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEnabled ?? defaultEnabledVal
+
+	if (canToggleReasoning && !reasoningBudgetOptions) { // if it's just a on/off toggle without a power slider (no models right now)
+		return <div className='flex items-center gap-x-2'>
+			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isEnabled ? 'Thinking' : 'Thinking'}</span>
+			<VoidSwitch
+				size='xs'
+				value={isEnabled}
+				onChange={(newVal) => { }}
+			/>
+		</div>
+	}
+
+	if (reasoningBudgetOptions?.type === 'slider') { // if it's a slider
+		const { min: min_, max, default: defaultVal } = reasoningBudgetOptions
+
+		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
+
+		const nSteps = 8 // only used in calculating stepSize, stepSize is what actually matters
+		const stepSize = Math.round((max - min_) / 8)
+		const min = canToggleReasoning ? min_ - stepSize : min_
+
+		return <div className='flex items-center gap-x-2'>
+			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>Thinking</span>
+			<VoidSlider
+				width={50}
+				size='xs'
+				min={min}
+				max={max}
+				step={stepSize}
+				value={value}
+				onChange={(newVal) => {
+					const disabled = newVal === min && canToggleReasoning
+					voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
+				}}
+			/>
+			<span className='text-void-fg-3 text-xs pointer-events-none'>{isEnabled ? `${value} tokens` : 'Thinking disabled'}</span>
+		</div>
+	}
+
+	return null
+}
 
 
 
@@ -932,9 +932,23 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 		messageIdx: messageIdx,
 	}
 
-	return <div
-		className='
+	return <>
+
+		{/* reasoning token (anthropic) */}
+		{hasReasoning && <DropdownComponent
+			title="Reasoning"
+			desc1=""
+		>
+			<ChatMarkdownRender
+				string={reasoningStr}
+				chatMessageLocationForApply={chatMessageLocation}
+			/>
+		</DropdownComponent>}
+
+		<div
+			className='
 			text-void-fg-2
+
 
 			prose
 			prose-sm
@@ -949,34 +963,26 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 			prose-li:my-0
 			prose-code:before:content-none
 			prose-code:after:content-none
+			prose-headings:prose-sm
+			prose-headings:font-bold
 
 			prose-p:leading-normal
 			prose-ol:leading-normal
 			prose-ul:leading-normal
 			max-w-none
 		'
-	>
-
-		{/* reasoning token (anthropic) */}
-		{hasReasoning && <DropdownComponent
-			title="Reasoning"
-			desc1=""
 		>
+
+			{/* assistant message */}
 			<ChatMarkdownRender
-				string={reasoningStr}
+				string={chatMessage.content || ''}
 				chatMessageLocationForApply={chatMessageLocation}
 			/>
-		</DropdownComponent>}
 
-		{/* assistant message */}
-		<ChatMarkdownRender
-			string={chatMessage.content || ''}
-			chatMessageLocationForApply={chatMessageLocation}
-		/>
+			{isLoading && <IconLoading className='opacity-50 text-sm mx-4' />}
 
-		{isLoading && <IconLoading className='opacity-50 text-sm mx-4' />}
-
-	</div>
+		</div>
+	</>
 
 }
 

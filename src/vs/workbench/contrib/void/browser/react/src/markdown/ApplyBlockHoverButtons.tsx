@@ -37,7 +37,7 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 	const isSingleLine = !codeStr.includes('\n')
 
 	return <button
-		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 		onClick={onCopy}
 	>
 		{copyButtonText}
@@ -104,16 +104,14 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 	const isSingleLine = !codeStr.includes('\n')
 
 	const applyButton = <button
-		// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 		onClick={onSubmit}
 	>
 		Apply
 	</button>
 
 	const stopButton = <button
-		// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 		onClick={onInterrupt}
 	>
 		Stop
@@ -121,8 +119,7 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 
 	const acceptRejectButtons = <>
 		<button
-			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 			onClick={() => {
 				const uri = applyingUri()
 				if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
@@ -131,8 +128,7 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			Accept
 		</button>
 		<button
-			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 			onClick={() => {
 				const uri = applyingUri()
 				if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })

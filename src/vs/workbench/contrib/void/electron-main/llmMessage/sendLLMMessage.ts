@@ -6,7 +6,7 @@
 import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
-import { sendLLMMessageToProviderImplementation } from './MODELS.js';
+import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';
 
 
 export const sendLLMMessage = ({

@@ -33,7 +33,8 @@ export type LLMChatMessage = {
 	content: string;
 } | {
 	role: 'assistant',
-	content: string;
+	content: string; // text content
+	rawAnthropicAssistantContent?: RawAnthropicAssistantContent[]; // used for anthropic signing
 } | {
 	role: 'tool';
 	content: string; // result
@@ -49,9 +50,11 @@ export type ToolCallType = {
 	id: string;
 }
 
+export type RawAnthropicAssistantContent = { type: 'thinking'; thinking: string; signature: string; } | { type: 'redacted_thinking'; data: string } | { type: 'text', text: string }
+
 
 export type OnText = (p: { fullText: string; fullReasoning: string }) => void
-export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[], fullReasoning?: string }) => void // id is tool_use_id
+export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[], fullReasoning?: string, rawAnthropicAssistantContent?: RawAnthropicAssistantContent[] }) => void // id is tool_use_id
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 

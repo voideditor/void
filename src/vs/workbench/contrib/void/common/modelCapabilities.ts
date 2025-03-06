@@ -1,0 +1,541 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
+import { ProviderName } from './voidSettingsTypes.js';
+
+type ModelOptions = {
+	contextWindow: number; // input tokens
+	maxOutputTokens: number | null; // output tokens
+	cost: {
+		input: number;
+		output: number;
+		cache_read?: number;
+		cache_write?: number;
+	}
+	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated';
+	supportsTools: false | 'anthropic-style' | 'openai-style';
+	supportsFIM: boolean;
+
+	supportsReasoningOutput: false | {
+		// you are allowed to not include openSourceThinkTags if it's not open source (no such cases as of writing)
+		// if it's open source, put the think tags here so we parse them out in e.g. ollama
+		readonly openSourceThinkTags?: [string, string]
+	};
+}
+
+type ProviderReasoningOptions = {
+	// include this in payload to get reasoning
+	input?: { includeInPayload?: { [key: string]: any }, };
+	// nameOfFieldInDelta: reasoning output is in response.choices[0].delta[deltaReasoningField]
+	// needsManualParse: whether we must manually parse out the <think> tags
+	output?:
+	| { nameOfFieldInDelta?: string, needsManualParse?: undefined, }
+	| { nameOfFieldInDelta?: undefined, needsManualParse?: true, };
+}
+
+type ProviderSettings = {
+	providerReasoningIOSettingsIfSupportsReasoningOutput?: ProviderReasoningOptions; // input/output settings around thinking (allowed to be empty)
+	modelOptions: { [key: string]: ModelOptions };
+	modelOptionsFallback: (modelName: string) => (ModelOptions & { modelName: string }) | null;
+}
+
+
+type ModelSettingsOfProvider = {
+	[providerName in ProviderName]: ProviderSettings
+}
+
+
+
+// type DefaultModels<T extends ProviderName> = typeof defaultModelsOfProvider[T][number]
+// type AssertModelsIncluded<
+// 	T extends ProviderName,
+// 	Options extends Record<string, unknown>
+// > = Exclude<DefaultModels<T>, keyof Options> extends never
+// 	? true
+// 	: ["Missing models for", T, Exclude<DefaultModels<T>, keyof Options>];
+// const assertOpenAI: AssertModelsIncluded<'openAI', typeof openAIModelOptions> = true;
+
+
+const modelOptionDefaults: ModelOptions = {
+	contextWindow: 32_000,
+	maxOutputTokens: null,
+	cost: { input: 0, output: 0 },
+	supportsSystemMessage: false,
+	supportsTools: false,
+	supportsFIM: false,
+	supportsReasoningOutput: false,
+}
+
+
+// ---------------- OPENAI ----------------
+const openAIModelOptions = { // https://platform.openai.com/docs/pricing
+	'o1': {
+		contextWindow: 128_000,
+		maxOutputTokens: 100_000,
+		cost: { input: 15.00, cache_read: 7.50, output: 60.00, },
+		supportsFIM: false,
+		supportsTools: false,
+		supportsSystemMessage: 'developer-role',
+		supportsReasoningOutput: false,
+	},
+	'o3-mini': {
+		contextWindow: 200_000,
+		maxOutputTokens: 100_000,
+		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
+		supportsFIM: false,
+		supportsTools: false,
+		supportsSystemMessage: 'developer-role',
+		supportsReasoningOutput: false,
+	},
+	'gpt-4o': {
+		contextWindow: 128_000,
+		maxOutputTokens: 16_384,
+		cost: { input: 2.50, cache_read: 1.25, output: 10.00, },
+		supportsFIM: false,
+		supportsTools: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		supportsReasoningOutput: false,
+	},
+	'o1-mini': {
+		contextWindow: 128_000,
+		maxOutputTokens: 65_536,
+		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
+		supportsFIM: false,
+		supportsTools: false,
+		supportsSystemMessage: false, // does not support any system
+		supportsReasoningOutput: false,
+	},
+	'gpt-4o-mini': {
+		contextWindow: 128_000,
+		maxOutputTokens: 16_384,
+		cost: { input: 0.15, cache_read: 0.075, output: 0.60, },
+		supportsFIM: false,
+		supportsTools: 'openai-style',
+		supportsSystemMessage: 'system-role', // ??
+		supportsReasoningOutput: false,
+	},
+} as const satisfies { [s: string]: ModelOptions }
+
+
+const openAISettings: ProviderSettings = {
+	modelOptions: openAIModelOptions,
+	modelOptionsFallback: (modelName) => {
+		let fallbackName: keyof typeof openAIModelOptions | null = null
+		if (modelName.includes('o1')) { fallbackName = 'o1' }
+		if (modelName.includes('o3-mini')) { fallbackName = 'o3-mini' }
+		if (modelName.includes('gpt-4o')) { fallbackName = 'gpt-4o' }
+		if (fallbackName) return { modelName: fallbackName, ...openAIModelOptions[fallbackName] }
+		return null
+	}
+}
+
+// ---------------- ANTHROPIC ----------------
+const anthropicModelOptions = {
+	'claude-3-7-sonnet-20250219': { // https://docs.anthropic.com/en/docs/about-claude/models/all-models#model-comparison-table
+		contextWindow: 200_000,
+		maxOutputTokens: 8_192, // TODO!!! 64_000 for extended thinking, can bump it to 128_000 with output-128k-2025-02-19
+		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: {},
+	},
+	'claude-3-5-sonnet-20241022': {
+		contextWindow: 200_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: false,
+	},
+	'claude-3-5-haiku-20241022': {
+		contextWindow: 200_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: false,
+	},
+	'claude-3-opus-20240229': {
+		contextWindow: 200_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: false,
+	},
+	'claude-3-sonnet-20240229': { // no point of using this, but including this for people who put it in
+		contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
+		maxOutputTokens: 4_096,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: false,
+	}
+} as const satisfies { [s: string]: ModelOptions }
+
+const anthropicSettings: ProviderSettings = {
+	modelOptions: anthropicModelOptions,
+	modelOptionsFallback: (modelName) => {
+		let fallbackName: keyof typeof anthropicModelOptions | null = null
+		if (modelName.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
+		if (modelName.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
+		if (modelName.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
+		if (modelName.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
+		if (modelName.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
+		if (fallbackName) return { modelName: fallbackName, ...anthropicModelOptions[fallbackName] }
+		return { modelName, ...modelOptionDefaults, maxOutputTokens: 4_096 }
+	}
+}
+
+
+// ---------------- XAI ----------------
+const xAIModelOptions = {
+	'grok-2-latest': {
+		contextWindow: 131_072,
+		maxOutputTokens: null, // 131_072,
+		cost: { input: 2.00, output: 10.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+} as const satisfies { [s: string]: ModelOptions }
+
+const xAISettings: ProviderSettings = {
+	modelOptions: xAIModelOptions,
+	modelOptionsFallback: (modelName) => {
+		let fallbackName: keyof typeof xAIModelOptions | null = null
+		if (modelName.includes('grok-2')) fallbackName = 'grok-2-latest'
+		if (fallbackName) return { modelName: fallbackName, ...xAIModelOptions[fallbackName] }
+		return null
+	}
+}
+
+
+// ---------------- GEMINI ----------------
+const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
+	'gemini-2.0-flash': {
+		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
+		cost: { input: 0.10, output: 0.40 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style', // we are assuming OpenAI SDK when calling gemini
+		supportsReasoningOutput: false,
+	},
+	'gemini-2.0-flash-lite-preview-02-05': {
+		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
+		cost: { input: 0.075, output: 0.30 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'gemini-1.5-flash': {
+		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
+		cost: { input: 0.075, output: 0.30 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'gemini-1.5-pro': {
+		contextWindow: 2_097_152,
+		maxOutputTokens: null, // 8_192,
+		cost: { input: 1.25, output: 5.00 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'gemini-1.5-flash-8b': {
+		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
+		cost: { input: 0.0375, output: 0.15 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+} as const satisfies { [s: string]: ModelOptions }
+
+const geminiSettings: ProviderSettings = {
+	modelOptions: geminiModelOptions,
+	modelOptionsFallback: (modelName) => {
+		return null
+	}
+}
+
+
+// ---------------- OPEN SOURCE MODELS ----------------
+
+const openSourceModelDefaultOptionsAssumingOAICompat = {
+	'deepseekR1': {
+		supportsFIM: false,
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsReasoningOutput: { openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'deepseekCoderV2': {
+		supportsFIM: false,
+		supportsSystemMessage: false, // unstable
+		supportsTools: false,
+		supportsReasoningOutput: false,
+	},
+	'codestral': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	// llama
+	'llama3': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'llama3.1': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'llama3.2': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'llama3.3': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'qwen2.5coder': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	// FIM only
+	'starcoder2': {
+		supportsFIM: true,
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsReasoningOutput: false,
+	},
+	'codegemma:2b': {
+		supportsFIM: true,
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsReasoningOutput: false,
+	},
+} as const satisfies { [s: string]: Partial<ModelOptions> }
+
+
+
+// ---------------- DEEPSEEK API ----------------
+const deepseekModelOptions = {
+	'deepseek-chat': {
+		...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1,
+		contextWindow: 64_000, // https://api-docs.deepseek.com/quick_start/pricing
+		maxOutputTokens: null, // 8_000,
+		cost: { cache_read: .07, input: .27, output: 1.10, },
+	},
+	'deepseek-reasoner': {
+		...openSourceModelDefaultOptionsAssumingOAICompat.deepseekCoderV2,
+		contextWindow: 64_000,
+		maxOutputTokens: null, // 8_000,
+		cost: { cache_read: .14, input: .55, output: 2.19, },
+	},
+} as const satisfies { [s: string]: ModelOptions }
+
+
+const deepseekSettings: ProviderSettings = {
+	modelOptions: deepseekModelOptions,
+	providerReasoningIOSettingsIfSupportsReasoningOutput: {
+		// reasoning: OAICompat +  response.choices[0].delta.reasoning_content // https://api-docs.deepseek.com/guides/reasoning_model
+		output: { nameOfFieldInDelta: 'reasoning_content' },
+	},
+	modelOptionsFallback: (modelName) => {
+		return null
+	}
+}
+
+// ---------------- GROQ ----------------
+const groqModelOptions = {
+	'llama-3.3-70b-versatile': {
+		contextWindow: 128_000,
+		maxOutputTokens: null, // 32_768,
+		cost: { input: 0.59, output: 0.79 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'llama-3.1-8b-instant': {
+		contextWindow: 128_000,
+		maxOutputTokens: null, // 8_192,
+		cost: { input: 0.05, output: 0.08 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'qwen-2.5-coder-32b': {
+		contextWindow: 128_000,
+		maxOutputTokens: null, // not specified?
+		cost: { input: 0.79, output: 0.79 },
+		supportsFIM: false, // unfortunately looks like no FIM support on groq
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+} as const satisfies { [s: string]: ModelOptions }
+const groqSettings: ProviderSettings = {
+	modelOptions: groqModelOptions,
+	modelOptionsFallback: (modelName) => { return null }
+}
+
+
+// ---------------- anything self-hosted/local: VLLM, OLLAMA, OPENAICOMPAT ----------------
+
+// fallback to any model (anything openai-compatible)
+const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelName) => {
+	const toFallback = (opts: Omit<ModelOptions, 'cost'>): ModelOptions & { modelName: string } => {
+		return {
+			modelName,
+			...opts,
+			supportsSystemMessage: opts.supportsSystemMessage ? 'system-role' : false,
+			cost: { input: 0, output: 0 },
+		}
+	}
+	if (modelName.includes('gpt-4o')) return toFallback(openAIModelOptions['gpt-4o'])
+	if (modelName.includes('claude')) return toFallback(anthropicModelOptions['claude-3-5-sonnet-20241022'])
+	if (modelName.includes('grok')) return toFallback(xAIModelOptions['grok-2-latest'])
+	if (modelName.includes('deepseek-r1') || modelName.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
+	return toFallback(modelOptionDefaults)
+}
+
+
+const vLLMSettings: ProviderSettings = {
+	// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
+	providerReasoningIOSettingsIfSupportsReasoningOutput: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
+	modelOptions: {},
+}
+
+const ollamaSettings: ProviderSettings = {
+	// reasoning: we need to filter out reasoning <think> tags manually
+	providerReasoningIOSettingsIfSupportsReasoningOutput: { output: { needsManualParse: true }, },
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
+	modelOptions: {},
+}
+
+const openaiCompatible: ProviderSettings = {
+	// reasoning: we have no idea what endpoint they used, so we can't consistently parse out reasoning
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
+	modelOptions: {},
+}
+
+
+// ---------------- OPENROUTER ----------------
+const openRouterModelOptions = {
+	'deepseek/deepseek-r1': {
+		...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1,
+		contextWindow: 128_000,
+		maxOutputTokens: null,
+		cost: { input: 0.8, output: 2.4 },
+	},
+	'anthropic/claude-3.5-sonnet': {
+		contextWindow: 200_000,
+		maxOutputTokens: null,
+		cost: { input: 3.00, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'mistralai/codestral-2501': {
+		...openSourceModelDefaultOptionsAssumingOAICompat.codestral,
+		contextWindow: 256_000,
+		maxOutputTokens: null,
+		cost: { input: 0.3, output: 0.9 },
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'qwen/qwen-2.5-coder-32b-instruct': {
+		...openSourceModelDefaultOptionsAssumingOAICompat['qwen2.5coder'],
+		contextWindow: 33_000,
+		maxOutputTokens: null,
+		supportsTools: false, // openrouter qwen doesn't seem to support tools...?
+		cost: { input: 0.07, output: 0.16 },
+	}
+
+
+} as const satisfies { [s: string]: ModelOptions }
+
+const openRouterSettings: ProviderSettings = {
+	// reasoning: OAICompat + response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
+	providerReasoningIOSettingsIfSupportsReasoningOutput: {
+		input: { includeInPayload: { include_reasoning: true } },
+		output: { nameOfFieldInDelta: 'reasoning' },
+	},
+	modelOptions: openRouterModelOptions,
+	// TODO!!! send a query to openrouter to get the price, isFIM, etc.
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
+}
+
+// ---------------- model settings of everything above ----------------
+
+const modelSettingsOfProvider: ModelSettingsOfProvider = {
+	openAI: openAISettings,
+	anthropic: anthropicSettings,
+	xAI: xAISettings,
+	gemini: geminiSettings,
+
+	// open source models
+	deepseek: deepseekSettings,
+	groq: groqSettings,
+
+	// open source models + providers (mixture of everything)
+	openRouter: openRouterSettings,
+	vLLM: vLLMSettings,
+	ollama: ollamaSettings,
+	openAICompatible: openaiCompatible,
+
+	// googleVertex: {},
+	// microsoftAzure: {},
+} as const satisfies ModelSettingsOfProvider
+
+
+// ---------------- exports ----------------
+
+export const getModelCapabilities = (providerName: ProviderName, modelName: string): ModelOptions & { modelName: string } => {
+	const { modelOptions, modelOptionsFallback } = modelSettingsOfProvider[providerName]
+	if (modelName in modelOptions) return { modelName, ...modelOptions[modelName] }
+	const result = modelOptionsFallback(modelName)
+	if (!result) return { modelName, ...modelOptionDefaults }
+	return result
+}
+
+// non-model settings
+export const getProviderCapabilities = (providerName: ProviderName) => {
+	const { providerReasoningIOSettingsIfSupportsReasoningOutput } = modelSettingsOfProvider[providerName]
+	return { providerReasoningIOSettingsIfSupportsReasoningOutput }
+}

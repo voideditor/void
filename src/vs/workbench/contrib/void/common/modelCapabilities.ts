@@ -42,30 +42,173 @@ type ProviderSettings = {
 }
 
 
-type ModelSettingsOfProvider = {
-	[providerName in ProviderName]: ProviderSettings
-}
 
-
-
-// type DefaultModels<T extends ProviderName> = typeof defaultModelsOfProvider[T][number]
-// type AssertModelsIncluded<
-// 	T extends ProviderName,
-// 	Options extends Record<string, unknown>
-// > = Exclude<DefaultModels<T>, keyof Options> extends never
-// 	? true
-// 	: ["Missing models for", T, Exclude<DefaultModels<T>, keyof Options>];
-// const assertOpenAI: AssertModelsIncluded<'openAI', typeof openAIModelOptions> = true;
-
-
-const modelOptionDefaults: ModelOptions = {
-	contextWindow: 32_000,
-	maxOutputTokens: null,
-	cost: { input: 0, output: 0 },
+const modelOptionsDefaults: ModelOptions = {
+	contextWindow: 32_000, // unused
+	maxOutputTokens: null, // unused
+	cost: { input: 0, output: 0 }, // unused
 	supportsSystemMessage: false,
 	supportsTools: false,
 	supportsFIM: false,
 	supportsReasoningOutput: false,
+}
+
+
+const openSourceModelOptions_assumingOAICompat = {
+	'deepseekR1': {
+		supportsFIM: false,
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsReasoningOutput: { openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'deepseekCoderV2': {
+		supportsFIM: false,
+		supportsSystemMessage: false, // unstable
+		supportsTools: false,
+		supportsReasoningOutput: false,
+	},
+	'codestral': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	// llama
+	'llama3': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'llama3.1': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'llama3.2': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'llama3.3': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	'qwen2.5coder': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: false,
+	},
+	// FIM only
+	'starcoder2': {
+		supportsFIM: true,
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsReasoningOutput: false,
+	},
+	'codegemma:2b': {
+		supportsFIM: true,
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsReasoningOutput: false,
+	},
+} as const satisfies { [s: string]: Partial<ModelOptions> }
+
+
+
+
+const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelName) => {
+	const toFallback = (opts: Omit<ModelOptions, 'cost'>): ModelOptions & { modelName: string } => {
+		return {
+			modelName,
+			...opts,
+			supportsSystemMessage: opts.supportsSystemMessage ? 'system-role' : false,
+			cost: { input: 0, output: 0 },
+		}
+	}
+	if (modelName.includes('gpt-4o')) return toFallback(openAIModelOptions['gpt-4o'])
+	if (modelName.includes('claude-3-5') || modelName.includes('claude-3.5')) return toFallback(anthropicModelOptions['claude-3-5-sonnet-20241022'])
+	if (modelName.includes('claude')) return toFallback(anthropicModelOptions['claude-3-7-sonnet-20250219'])
+	if (modelName.includes('grok')) return toFallback(xAIModelOptions['grok-2-latest'])
+	if (modelName.includes('deepseek-r1') || modelName.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekR1, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
+	return toFallback(modelOptionsDefaults)
+}
+
+
+
+
+
+
+// ---------------- ANTHROPIC ----------------
+const anthropicModelOptions = {
+	'claude-3-7-sonnet-20250219': { // https://docs.anthropic.com/en/docs/about-claude/models/all-models#model-comparison-table
+		contextWindow: 200_000,
+		maxOutputTokens: 8_192, // TODO!!! 64_000 for extended thinking, can bump it to 128_000 with output-128k-2025-02-19
+		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: {},
+	},
+	'claude-3-5-sonnet-20241022': {
+		contextWindow: 200_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: false,
+	},
+	'claude-3-5-haiku-20241022': {
+		contextWindow: 200_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: false,
+	},
+	'claude-3-opus-20240229': {
+		contextWindow: 200_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: false,
+	},
+	'claude-3-sonnet-20240229': { // no point of using this, but including this for people who put it in
+		contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
+		maxOutputTokens: 4_096,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		supportsTools: 'anthropic-style',
+		supportsReasoningOutput: false,
+	}
+} as const satisfies { [s: string]: ModelOptions }
+
+const anthropicSettings: ProviderSettings = {
+	modelOptions: anthropicModelOptions,
+	modelOptionsFallback: (modelName) => {
+		let fallbackName: keyof typeof anthropicModelOptions | null = null
+		if (modelName.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
+		if (modelName.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
+		if (modelName.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
+		if (modelName.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
+		if (modelName.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
+		if (fallbackName) return { modelName: fallbackName, ...anthropicModelOptions[fallbackName] }
+		return { modelName, ...modelOptionsDefaults, maxOutputTokens: 4_096 }
+	}
 }
 
 
@@ -130,69 +273,6 @@ const openAISettings: ProviderSettings = {
 		return null
 	}
 }
-
-// ---------------- ANTHROPIC ----------------
-const anthropicModelOptions = {
-	'claude-3-7-sonnet-20250219': { // https://docs.anthropic.com/en/docs/about-claude/models/all-models#model-comparison-table
-		contextWindow: 200_000,
-		maxOutputTokens: 8_192, // TODO!!! 64_000 for extended thinking, can bump it to 128_000 with output-128k-2025-02-19
-		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
-		supportsFIM: false,
-		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: {},
-	},
-	'claude-3-5-sonnet-20241022': {
-		contextWindow: 200_000,
-		maxOutputTokens: 8_192,
-		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
-		supportsFIM: false,
-		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: false,
-	},
-	'claude-3-5-haiku-20241022': {
-		contextWindow: 200_000,
-		maxOutputTokens: 8_192,
-		cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
-		supportsFIM: false,
-		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: false,
-	},
-	'claude-3-opus-20240229': {
-		contextWindow: 200_000,
-		maxOutputTokens: 4_096,
-		cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
-		supportsFIM: false,
-		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: false,
-	},
-	'claude-3-sonnet-20240229': { // no point of using this, but including this for people who put it in
-		contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
-		maxOutputTokens: 4_096,
-		supportsFIM: false,
-		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: false,
-	}
-} as const satisfies { [s: string]: ModelOptions }
-
-const anthropicSettings: ProviderSettings = {
-	modelOptions: anthropicModelOptions,
-	modelOptionsFallback: (modelName) => {
-		let fallbackName: keyof typeof anthropicModelOptions | null = null
-		if (modelName.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
-		if (modelName.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
-		if (modelName.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
-		if (modelName.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
-		if (modelName.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
-		if (fallbackName) return { modelName: fallbackName, ...anthropicModelOptions[fallbackName] }
-		return { modelName, ...modelOptionDefaults, maxOutputTokens: 4_096 }
-	}
-}
-
 
 // ---------------- XAI ----------------
 const xAIModelOptions = {
@@ -269,91 +349,21 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 
 const geminiSettings: ProviderSettings = {
 	modelOptions: geminiModelOptions,
-	modelOptionsFallback: (modelName) => {
-		return null
-	}
+	modelOptionsFallback: (modelName) => { return null }
 }
-
-
-// ---------------- OPEN SOURCE MODELS ----------------
-
-const openSourceModelDefaultOptionsAssumingOAICompat = {
-	'deepseekR1': {
-		supportsFIM: false,
-		supportsSystemMessage: false,
-		supportsTools: false,
-		supportsReasoningOutput: { openSourceThinkTags: ['<think>', '</think>'] },
-	},
-	'deepseekCoderV2': {
-		supportsFIM: false,
-		supportsSystemMessage: false, // unstable
-		supportsTools: false,
-		supportsReasoningOutput: false,
-	},
-	'codestral': {
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
-	},
-	// llama
-	'llama3': {
-		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
-	},
-	'llama3.1': {
-		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
-	},
-	'llama3.2': {
-		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
-	},
-	'llama3.3': {
-		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
-	},
-	'qwen2.5coder': {
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
-	},
-	// FIM only
-	'starcoder2': {
-		supportsFIM: true,
-		supportsSystemMessage: false,
-		supportsTools: false,
-		supportsReasoningOutput: false,
-	},
-	'codegemma:2b': {
-		supportsFIM: true,
-		supportsSystemMessage: false,
-		supportsTools: false,
-		supportsReasoningOutput: false,
-	},
-} as const satisfies { [s: string]: Partial<ModelOptions> }
 
 
 
 // ---------------- DEEPSEEK API ----------------
 const deepseekModelOptions = {
 	'deepseek-chat': {
-		...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1,
+		...openSourceModelOptions_assumingOAICompat.deepseekR1,
 		contextWindow: 64_000, // https://api-docs.deepseek.com/quick_start/pricing
 		maxOutputTokens: null, // 8_000,
 		cost: { cache_read: .07, input: .27, output: 1.10, },
 	},
 	'deepseek-reasoner': {
-		...openSourceModelDefaultOptionsAssumingOAICompat.deepseekCoderV2,
+		...openSourceModelOptions_assumingOAICompat.deepseekCoderV2,
 		contextWindow: 64_000,
 		maxOutputTokens: null, // 8_000,
 		cost: { cache_read: .14, input: .55, output: 2.19, },
@@ -367,9 +377,7 @@ const deepseekSettings: ProviderSettings = {
 		// reasoning: OAICompat +  response.choices[0].delta.reasoning_content // https://api-docs.deepseek.com/guides/reasoning_model
 		output: { nameOfFieldInDelta: 'reasoning_content' },
 	},
-	modelOptionsFallback: (modelName) => {
-		return null
-	}
+	modelOptionsFallback: (modelName) => { return null }
 }
 
 // ---------------- GROQ ----------------
@@ -408,31 +416,7 @@ const groqSettings: ProviderSettings = {
 }
 
 
-// ---------------- anything self-hosted/local: VLLM, OLLAMA, OPENAICOMPAT ----------------
-
-// fallback to any model (anything openai-compatible)
-const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelName) => {
-	const toFallback = (opts: Omit<ModelOptions, 'cost'>): ModelOptions & { modelName: string } => {
-		return {
-			modelName,
-			...opts,
-			supportsSystemMessage: opts.supportsSystemMessage ? 'system-role' : false,
-			cost: { input: 0, output: 0 },
-		}
-	}
-	if (modelName.includes('gpt-4o')) return toFallback(openAIModelOptions['gpt-4o'])
-	if (modelName.includes('claude')) return toFallback(anthropicModelOptions['claude-3-5-sonnet-20241022'])
-	if (modelName.includes('grok')) return toFallback(xAIModelOptions['grok-2-latest'])
-	if (modelName.includes('deepseek-r1') || modelName.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1, contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelDefaultOptionsAssumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
-	return toFallback(modelOptionDefaults)
-}
-
-
+// ---------------- VLLM, OLLAMA, OPENAICOMPAT (self-hosted / local) ----------------
 const vLLMSettings: ProviderSettings = {
 	// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
 	providerReasoningIOSettingsIfSupportsReasoningOutput: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
@@ -457,7 +441,7 @@ const openaiCompatible: ProviderSettings = {
 // ---------------- OPENROUTER ----------------
 const openRouterModelOptions = {
 	'deepseek/deepseek-r1': {
-		...openSourceModelDefaultOptionsAssumingOAICompat.deepseekR1,
+		...openSourceModelOptions_assumingOAICompat.deepseekR1,
 		contextWindow: 128_000,
 		maxOutputTokens: null,
 		cost: { input: 0.8, output: 2.4 },
@@ -472,7 +456,7 @@ const openRouterModelOptions = {
 		supportsReasoningOutput: false,
 	},
 	'mistralai/codestral-2501': {
-		...openSourceModelDefaultOptionsAssumingOAICompat.codestral,
+		...openSourceModelOptions_assumingOAICompat.codestral,
 		contextWindow: 256_000,
 		maxOutputTokens: null,
 		cost: { input: 0.3, output: 0.9 },
@@ -480,14 +464,12 @@ const openRouterModelOptions = {
 		supportsReasoningOutput: false,
 	},
 	'qwen/qwen-2.5-coder-32b-instruct': {
-		...openSourceModelDefaultOptionsAssumingOAICompat['qwen2.5coder'],
+		...openSourceModelOptions_assumingOAICompat['qwen2.5coder'],
 		contextWindow: 33_000,
 		maxOutputTokens: null,
 		supportsTools: false, // openrouter qwen doesn't seem to support tools...?
 		cost: { input: 0.07, output: 0.16 },
 	}
-
-
 } as const satisfies { [s: string]: ModelOptions }
 
 const openRouterSettings: ProviderSettings = {
@@ -497,13 +479,16 @@ const openRouterSettings: ProviderSettings = {
 		output: { nameOfFieldInDelta: 'reasoning' },
 	},
 	modelOptions: openRouterModelOptions,
-	// TODO!!! send a query to openrouter to get the price, isFIM, etc.
+	// TODO!!! send a query to openrouter to get the price, etc.
 	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
 }
 
+
+
+
 // ---------------- model settings of everything above ----------------
 
-const modelSettingsOfProvider: ModelSettingsOfProvider = {
+const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSettings } = {
 	openAI: openAISettings,
 	anthropic: anthropicSettings,
 	xAI: xAISettings,
@@ -521,17 +506,17 @@ const modelSettingsOfProvider: ModelSettingsOfProvider = {
 
 	// googleVertex: {},
 	// microsoftAzure: {},
-} as const satisfies ModelSettingsOfProvider
+} as const
 
 
 // ---------------- exports ----------------
 
-export const getModelCapabilities = (providerName: ProviderName, modelName: string): ModelOptions & { modelName: string } => {
+export const getModelCapabilities = (providerName: ProviderName, modelName: string): ModelOptions & { modelName: string; didNotFindModel?: boolean } => {
 	const { modelOptions, modelOptionsFallback } = modelSettingsOfProvider[providerName]
 	if (modelName in modelOptions) return { modelName, ...modelOptions[modelName] }
 	const result = modelOptionsFallback(modelName)
-	if (!result) return { modelName, ...modelOptionDefaults }
-	return result
+	if (result) return result
+	return { modelName, ...modelOptionsDefaults, didNotFindModel: true }
 }
 
 // non-model settings

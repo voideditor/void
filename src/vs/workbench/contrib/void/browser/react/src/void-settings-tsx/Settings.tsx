@@ -230,9 +230,7 @@ export const ModelDump = () => {
 
 					<VoidSwitch
 						value={disabled ? false : !isHidden}
-						onChange={() => {
-							settingsStateService.toggleModelHidden(providerName, modelName)
-						}}
+						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}
 						disabled={disabled}
 						size='sm'
 					/>
@@ -445,8 +443,13 @@ export const FeaturesTab = () => {
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
 					<div className='text-sm italic text-void-fg-3 my-1'>Experimental. Only works with models that support FIM.</div>
-					<div className='flex items-center gap-x-2'>
-						<VoidSwitch size='xs' value={voidSettingsState.globalSettings.enableAutocomplete} onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)} label={voidSettingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'} />
+					<div className='flex items-center gap-x-3'>
+						<VoidSwitch
+							size='xs'
+							value={voidSettingsState.globalSettings.enableAutocomplete}
+							onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
+						/>
+						<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
 					</div>
 
 					<div className={!voidSettingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}>

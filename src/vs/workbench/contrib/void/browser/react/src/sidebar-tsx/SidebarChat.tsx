@@ -165,34 +165,42 @@ const ReasoningOptionDropdown = () => {
 
 	let toggleButton: React.ReactNode = null
 	if (canToggleReasoning) {
-		toggleButton = <VoidSwitch
-			size='xs'
-			value={isEnabled}
-			onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: newVal }) }}
-		/>
+		toggleButton =
+			<div className='flex items-center gap-x-3'>
+				<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isEnabled ? 'Thinking' : 'Thinking'}</span>
+				<VoidSwitch
+					size='xs'
+					value={isEnabled}
+					onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: newVal }) }}
+				/>
+			</div>
+
 	}
 
 	let slider: React.ReactNode = null
 	if (isEnabled && reasoningBudgetOptions?.type === 'slider') {
 		const { min, max, default: defaultVal } = reasoningBudgetOptions
 		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
-		slider = <VoidSlider
-			width={50}
-			size='xs'
-			min={min}
-			max={max}
-			step={(max - min) / 8}
-			value={value}
-			onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningBudget: newVal }) }}
-			label={value + ''}
-		/>
+		slider = <div className='flex items-center gap-x-3'>
+			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>Budget</span>
+			<VoidSlider
+				width={50}
+				size='xs'
+				min={min}
+				max={max}
+				step={(max - min) / 8}
+				value={value}
+				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningBudget: newVal }) }}
+			/>
+			<span className='text-void-fg-3 text-xs pointer-events-none'>{`${value} tokens`}</span>
+		</div>
+
 	}
 
 	return <>
 		{toggleButton}
 		{slider}
 	</>
-
 }
 
 
@@ -294,13 +302,11 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			{/* Bottom row */}
 			<div className='flex flex-row justify-between items-end gap-1'>
 				{showModelDropdown && (
-					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none flex-grow'
-						onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
+					<div className='max-w-[200px] flex-grow'>
+						<ReasoningOptionDropdown />
 						<ModelDropdown featureName={featureName} />
 					</div>
 				)}
-
-				<ReasoningOptionDropdown />
 
 				{isStreaming ? (
 					<ButtonStop onClick={onAbort} />

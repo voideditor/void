@@ -183,7 +183,7 @@ const ReasoningOptionDropdown = () => {
 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>Budget</span>
 			<VoidSlider
 				width={50}
-				size='xs'
+				size='xxs'
 				min={min}
 				max={max}
 				step={(max - min) / 8}

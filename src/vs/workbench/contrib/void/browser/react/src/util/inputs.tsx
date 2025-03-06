@@ -211,6 +211,10 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 	/>
 };
 
+
+
+
+
 export const VoidSlider = ({
 	value,
 	onChange,
@@ -225,7 +229,7 @@ export const VoidSlider = ({
 	value: number;
 	onChange: (value: number) => void;
 	disabled?: boolean;
-	size?: 'xs' | 'sm' | 'sm+' | 'md';
+	size?: 'xxs' | 'xs' | 'sm' | 'sm+' | 'md';
 	min?: number;
 	max?: number;
 	step?: number;
@@ -234,12 +238,6 @@ export const VoidSlider = ({
 }) => {
 	// Calculate percentage for position
 	const percentage = ((value - min) / (max - min)) * 100;
-
-	// Get numeric thumb size for padding calculation
-	const thumbSizePx =
-		size === 'xs' ? 2.5 * 4 : // Convert rem to px (approx)
-			size === 'sm' ? 3 * 4 :
-				size === 'sm+' ? 3.5 * 4 : 4 * 4; // md size
 
 	// Handle track click
 	const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -317,17 +315,19 @@ export const VoidSlider = ({
 
 					{/* Track */}
 					<div
-						className={`relative ${size === 'xs' ? 'h-1' :
-							size === 'sm' ? 'h-1.5' :
-								size === 'sm+' ? 'h-2' : 'h-2.5'
+						className={`relative ${size === 'xxs' ? 'h-0.5' :
+								size === 'xs' ? 'h-1' :
+									size === 'sm' ? 'h-1.5' :
+										size === 'sm+' ? 'h-2' : 'h-2.5'
 							} bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer`}
 						onClick={handleTrackClick}
 					>
 						{/* Filled part of track */}
 						<div
-							className={`absolute left-0 ${size === 'xs' ? 'h-1' :
-								size === 'sm' ? 'h-1.5' :
-									size === 'sm+' ? 'h-2' : 'h-2.5'
+							className={`absolute left-0 ${size === 'xxs' ? 'h-0.5' :
+									size === 'xs' ? 'h-1' :
+										size === 'sm' ? 'h-1.5' :
+											size === 'sm+' ? 'h-2' : 'h-2.5'
 								} bg-gray-900 dark:bg-white rounded-full`}
 							style={{ width: `${percentage}%` }}
 						/>
@@ -336,7 +336,11 @@ export const VoidSlider = ({
 					{/* Thumb with sizes matching VoidSwitch */}
 					<div
 						className={`absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2
-							${size === 'xs' ? 'h-2.5 w-2.5' : size === 'sm' ? 'h-3 w-3' : size === 'sm+' ? 'h-3.5 w-3.5' : 'h-4 w-4'}
+							${size === 'xxs' ? 'h-2 w-2' :
+								size === 'xs' ? 'h-2.5 w-2.5' :
+									size === 'sm' ? 'h-3 w-3' :
+										size === 'sm+' ? 'h-3.5 w-3.5' : 'h-4 w-4'
+							}
 							bg-white dark:bg-gray-900 rounded-full shadow-md ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
 						style={{ left: `${percentage}%`, zIndex: 2 }}  // Ensure thumb is above the invisible clickable area
 						onMouseDown={(e) => {
@@ -368,7 +372,6 @@ export const VoidSlider = ({
 		</div>
 	);
 };
-
 
 
 

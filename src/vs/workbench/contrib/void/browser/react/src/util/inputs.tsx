@@ -211,8 +211,6 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 	/>
 };
 
-
-
 export const VoidSlider = ({
 	value,
 	onChange,
@@ -300,11 +298,23 @@ export const VoidSlider = ({
 				style={{
 					width,
 					// Add horizontal padding equal to half the thumb width
-					paddingLeft: thumbSizePx / 2,
-					paddingRight: thumbSizePx / 2
+					// paddingLeft: thumbSizePx / 2,
+					// paddingRight: thumbSizePx / 2
 				}}>
 				{/* Track container with adjusted width */}
 				<div className="relative w-full">
+					{/* Invisible wider clickable area that sits above the track */}
+					<div
+						className="absolute w-full cursor-pointer"
+						style={{
+							height: '16px',
+							top: '50%',
+							transform: 'translateY(-50%)',
+							zIndex: 1
+						}}
+						onClick={handleTrackClick}
+					/>
+
 					{/* Track */}
 					<div
 						className={`relative ${size === 'xs' ? 'h-1' :
@@ -328,7 +338,7 @@ export const VoidSlider = ({
 						className={`absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2
 							${size === 'xs' ? 'h-2.5 w-2.5' : size === 'sm' ? 'h-3 w-3' : size === 'sm+' ? 'h-3.5 w-3.5' : 'h-4 w-4'}
 							bg-white dark:bg-gray-900 rounded-full shadow-md ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
-						style={{ left: `${percentage}%` }}
+						style={{ left: `${percentage}%`, zIndex: 2 }}  // Ensure thumb is above the invisible clickable area
 						onMouseDown={(e) => {
 							if (disabled) return;
 
@@ -361,6 +371,7 @@ export const VoidSlider = ({
 
 
 
+
 export const VoidSwitch = ({
 	value,
 	onChange,
@@ -370,7 +381,7 @@ export const VoidSwitch = ({
 	value: boolean;
 	onChange: (value: boolean) => void;
 	disabled?: boolean;
-	size?: 'xs' | 'sm' | 'sm+' | 'md';
+	size?: 'xxs' | 'xs' | 'sm' | 'sm+' | 'md';
 }) => {
 	return (
 		<label className="inline-flex items-center">
@@ -381,6 +392,7 @@ export const VoidSwitch = ({
 			relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out
 			${value ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'}
 			${disabled ? 'opacity-25' : ''}
+			${size === 'xxs' ? 'h-3 w-5' : ''}
 			${size === 'xs' ? 'h-4 w-7' : ''}
 			${size === 'sm' ? 'h-5 w-9' : ''}
 			${size === 'sm+' ? 'h-5 w-10' : ''}
@@ -390,10 +402,12 @@ export const VoidSwitch = ({
 				<span
 					className={`
 			  inline-block transform rounded-full bg-white dark:bg-gray-900 shadow transition-transform duration-200 ease-in-out
+			  ${size === 'xxs' ? 'h-2 w-2' : ''}
 			  ${size === 'xs' ? 'h-2.5 w-2.5' : ''}
 			  ${size === 'sm' ? 'h-3 w-3' : ''}
 			  ${size === 'sm+' ? 'h-3.5 w-3.5' : ''}
 			  ${size === 'md' ? 'h-4 w-4' : ''}
+			  ${size === 'xxs' ? (value ? 'translate-x-2.5' : 'translate-x-0.5') : ''}
 			  ${size === 'xs' ? (value ? 'translate-x-3.5' : 'translate-x-0.5') : ''}
 			  ${size === 'sm' ? (value ? 'translate-x-5' : 'translate-x-1') : ''}
 			  ${size === 'sm+' ? (value ? 'translate-x-6' : 'translate-x-1') : ''}

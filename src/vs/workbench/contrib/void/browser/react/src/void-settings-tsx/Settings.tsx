@@ -443,7 +443,7 @@ export const FeaturesTab = () => {
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
 					<div className='text-sm italic text-void-fg-3 my-1'>Experimental. Only works with models that support FIM.</div>
-					<div className='flex items-center gap-x-3'>
+					<div className='flex items-center gap-x-2'>
 						<VoidSwitch
 							size='xs'
 							value={voidSettingsState.globalSettings.enableAutocomplete}

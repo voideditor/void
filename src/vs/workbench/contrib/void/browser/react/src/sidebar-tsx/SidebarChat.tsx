@@ -165,16 +165,14 @@ const ReasoningOptionDropdown = () => {
 
 	let toggleButton: React.ReactNode = null
 	if (canToggleReasoning) {
-		toggleButton =
-			<div className='flex items-center gap-x-3'>
-				<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isEnabled ? 'Thinking' : 'Thinking'}</span>
-				<VoidSwitch
-					size='xs'
-					value={isEnabled}
-					onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: newVal }) }}
-				/>
-			</div>
-
+		toggleButton = <div className='flex items-center gap-x-3'>
+			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isEnabled ? 'Thinking' : 'Thinking'}</span>
+			<VoidSwitch
+				size='xxs'
+				value={isEnabled}
+				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: newVal }) }}
+			/>
+		</div>
 	}
 
 	let slider: React.ReactNode = null
@@ -202,6 +200,66 @@ const ReasoningOptionDropdown = () => {
 		{slider}
 	</>
 }
+
+
+
+// SLIDER ONLY:
+// const ReasoningOptionDropdown = () => {
+// 	const accessor = useAccessor()
+
+// 	const voidSettingsService = accessor.get('IVoidSettingsService')
+// 	const voidSettingsState = useSettingsState()
+
+// 	const modelSelection = voidSettingsState.modelSelectionOfFeature['Ctrl+L']
+// 	if (!modelSelection) return null
+
+// 	const { modelName, providerName } = modelSelection
+// 	const { canToggleReasoning, reasoningBudgetOptions } = getModelCapabilities(providerName, modelName).supportsReasoningOutput || {}
+
+// 	const defaultEnabledVal = canToggleReasoning ? true : false
+// 	const isEnabled = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEnabled ?? defaultEnabledVal
+
+// 	if (canToggleReasoning && !reasoningBudgetOptions) { // if it's just a on/off toggle without a power slider (no models right now)
+// 		return <div className='flex items-center gap-x-2'>
+// 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isEnabled ? 'Thinking' : 'Thinking'}</span>
+// 			<VoidSwitch
+// 				size='xs'
+// 				value={isEnabled}
+// 				onChange={(newVal) => { }}
+// 			/>
+// 		</div>
+// 	}
+
+// 	if (reasoningBudgetOptions?.type === 'slider') { // if it's a slider
+// 		const { min: min_, max, default: defaultVal } = reasoningBudgetOptions
+
+// 		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
+
+// 		const nSteps = 8 // only used in calculating stepSize, stepSize is what actually matters
+// 		const stepSize = Math.round((max - min_) / 8)
+// 		const min = canToggleReasoning ? min_ - stepSize : min_
+
+// 		return <div className='flex items-center gap-x-2'>
+// 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>Thinking</span>
+// 			<VoidSlider
+// 				width={50}
+// 				size='xs'
+// 				min={min}
+// 				max={max}
+// 				step={stepSize}
+// 				value={value}
+// 				onChange={(newVal) => {
+// 					const disabled = newVal === min && canToggleReasoning
+// 					voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
+// 				}}
+// 			/>
+// 			<span className='text-void-fg-3 text-xs pointer-events-none'>{isEnabled ? `${value} tokens` : 'Thinking disabled'}</span>
+// 		</div>
+// 	}
+
+// 	return null
+// }
+
 
 
 

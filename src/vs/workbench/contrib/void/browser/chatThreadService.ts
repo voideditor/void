@@ -19,6 +19,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { IVoidFileService } from '../common/voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { getErrorMessage } from '../../../../base/common/errors.js';
+import { ChatMode } from '../common/voidSettingsTypes.js';
 
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
@@ -150,7 +151,6 @@ const newThreadObject = () => {
 export const THREAD_STORAGE_KEY = 'void.chatThreadStorage'
 
 
-type ChatMode = 'agent' | 'chat'
 export interface IChatThreadService {
 	readonly _serviceBrand: undefined;
 
@@ -191,7 +191,6 @@ export interface IChatThreadService {
 
 	approveTool(toolId: string): void;
 	rejectTool(toolId: string): void;
-
 }
 
 export const IChatThreadService = createDecorator<IChatThreadService>('voidChatThreadService');
@@ -391,7 +390,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				if (lastUserMsgIdx === -1) throw new Error(`Void: No user message found.`) // should never be -1
 
 				const messages: LLMChatMessage[] = [
-					{ role: 'system', content: chat_systemMessage(this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)) },
+					{ role: 'system', content: chat_systemMessage(this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath), chatMode), },
 					...messages_.slice(0, lastUserMsgIdx),
 					{ role: 'user', content: userMessageFullContent },
 					...messages_.slice(lastUserMsgIdx + 1, Infinity),

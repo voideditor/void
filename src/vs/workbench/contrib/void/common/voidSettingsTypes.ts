@@ -378,17 +378,21 @@ export const isFeatureNameDisabled = (featureName: FeatureName, settingsState: V
 
 
 
+export type ChatMode = 'agent' | 'gather' | 'chat'
 
 
 export type GlobalSettings = {
 	autoRefreshModels: boolean;
 	aiInstructions: string;
 	enableAutocomplete: boolean;
+	chatMode: ChatMode;
 }
+
 export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
 	aiInstructions: '',
 	enableAutocomplete: false,
+	chatMode: 'agent',
 }
 
 export type GlobalSettingName = keyof GlobalSettings

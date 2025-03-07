@@ -316,8 +316,6 @@ export class ToolsService implements IToolsService {
 
 		this.validateParams = {
 			read_file: async (params: string) => {
-				console.log('read_file')
-
 				const o = validateJSON(params)
 				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
 
@@ -372,11 +370,11 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async (params: string) => {
+				console.log('validating edit!!!')
 				const o = validateJSON(params)
 				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = o
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
-
 
 				return { uri, changeDescription }
 			},

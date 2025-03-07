@@ -1636,8 +1636,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									latestStreamLocationMutable = null
 									shouldUpdateOrigStreamStyle = true
 									oldBlocks = []
-									addedTrackingZoneOfBlockNum.slice(0, Infinity) // clear the array
-									console.log('SHOULD BE EMPTY', addedTrackingZoneOfBlockNum)
+									addedTrackingZoneOfBlockNum.splice(0, Infinity) // clear the array
 
 									shouldSendAnotherMessage = true
 									this._refreshStylesAndDiffsInURI(uri)

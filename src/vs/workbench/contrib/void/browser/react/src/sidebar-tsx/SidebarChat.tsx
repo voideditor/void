@@ -1008,12 +1008,12 @@ const ToolError = ({ title, errorMessage }: { title: string, errorMessage: strin
 
 const toolNameToTitle: Record<ToolName, string> = {
 	'read_file': 'Read file',
-	'list_dir': 'Inspected folder',
-	'pathname_search': 'Searched filename',
-	'search': 'Searched',
-	'create_uri': 'Created file',
-	'delete_uri': 'Deleted file',
-	'edit': 'Edited file',
+	'list_dir': 'Inspect folder',
+	'pathname_search': 'Search (path only)',
+	'search': 'Search (file contents)',
+	'create_uri': 'Create file',
+	'delete_uri': 'Delete file',
+	'edit': 'Edit file',
 	'terminal_command': 'Ran terminal command'
 }
 
@@ -1292,7 +1292,8 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => 
 		/>
 	}
 	else if (role === 'tool_request') {
-		if (!isLoading) return null
+		const isLastMessage = true // TODO!!! fix this
+		if (!isLastMessage) return null
 		const ToolMessageComponent = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
 		return <>
 			<ToolMessageComponent
@@ -1410,7 +1411,8 @@ export const SidebarChat = () => {
 		return previousMessages.map((message, i) =>
 			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} />
 		)
-	}, [previousMessages])
+	}, [previousMessages, currentThread])
+
 
 
 	const streamingChatIdx = pastMessagesHTML.length

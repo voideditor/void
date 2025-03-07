@@ -38,6 +38,10 @@
 	padding-right: 24px;
 }
 
+.void-force-child-placeholder-void-fg-1 ::placeholder {
+	color: var(--void-fg-3);
+}
+
 * {
 	outline: none !important;
 }

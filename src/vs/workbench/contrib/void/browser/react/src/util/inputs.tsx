@@ -169,7 +169,7 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 		ctor={InputBox}
 		className='
 			bg-void-bg-1
-			placeholder:!void-text-void-fg-3
+			@@void-force-child-placeholder-void-fg-1
 		'
 		propsFn={useCallback((container) => [
 			container,

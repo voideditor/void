@@ -5,6 +5,67 @@
 
 import { ProviderName } from './voidSettingsTypes.js';
 
+
+export const defaultModelsOfProvider = {
+	openAI: [ // https://platform.openai.com/docs/models/gp
+		'o1',
+		'o3-mini',
+		'o1-mini',
+		'gpt-4o',
+		'gpt-4o-mini',
+	],
+	anthropic: [ // https://docs.anthropic.com/en/docs/about-claude/models
+		'claude-3-7-sonnet-latest',
+		'claude-3-5-sonnet-latest',
+		'claude-3-5-haiku-latest',
+		'claude-3-opus-latest',
+	],
+	xAI: [ // https://docs.x.ai/docs/models?cluster=us-east-1
+		'grok-2-latest',
+		'grok-3-latest',
+	],
+	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
+		'gemini-2.0-flash',
+		'gemini-1.5-flash',
+		'gemini-1.5-pro',
+		'gemini-1.5-flash-8b',
+		'gemini-2.0-flash-thinking-exp',
+	],
+	deepseek: [ // https://api-docs.deepseek.com/quick_start/pricing
+		'deepseek-chat',
+		'deepseek-reasoner',
+	],
+	ollama: [ // autodetected
+	],
+	vLLM: [ // autodetected
+	],
+	openRouter: [ // https://openrouter.ai/models
+		'anthropic/claude-3.5-sonnet',
+		'deepseek/deepseek-r1',
+		'mistralai/codestral-2501',
+		'qwen/qwen-2.5-coder-32b-instruct',
+	],
+	groq: [ // https://console.groq.com/docs/models
+		'qwen-qwq-32b',
+		'llama-3.3-70b-versatile',
+		'llama-3.1-8b-instant',
+		// 'qwen-2.5-coder-32b', // preview mode (experimental)
+	],
+	// not supporting mistral right now- it's last on Void usage, and a huge pain to set up since it's nonstandard (it supports codestral FIM but it's on v1/fim/completions, etc)
+	// mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
+	// 	'codestral-latest',
+	// 	'mistral-large-latest',
+	// 	'ministral-3b-latest',
+	// 	'ministral-8b-latest',
+	// ],
+	openAICompatible: [], // fallback
+} as const satisfies Record<ProviderName, string[]>
+
+
+
+
+
+
 type ModelOptions = {
 	contextWindow: number; // input tokens
 	maxOutputTokens: number | null; // output tokens
@@ -103,11 +164,18 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsTools: 'openai-style',
 		supportsReasoningOutput: false,
 	},
+	// qwen
 	'qwen2.5coder': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
 		supportsReasoningOutput: false,
+	},
+	'qwq': {
+		supportsFIM: false, // no FIM, yes reasoning
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: { openSourceThinkTags: ['<think>', '</think'] },
 	},
 	// FIM only
 	'starcoder2': {
@@ -390,7 +458,7 @@ const deepseekSettings: ProviderSettings = {
 }
 
 // ---------------- GROQ ----------------
-const groqModelOptions = {
+const groqModelOptions = { // https://console.groq.com/docs/models, https://groq.com/pricing/
 	'llama-3.3-70b-versatile': {
 		contextWindow: 128_000,
 		maxOutputTokens: null, // 32_768,
@@ -418,8 +486,18 @@ const groqModelOptions = {
 		supportsTools: 'openai-style',
 		supportsReasoningOutput: false,
 	},
+	'qwen-qwq-32b': { // https://huggingface.co/Qwen/QwQ-32B
+		contextWindow: 128_000,
+		maxOutputTokens: null, // not specified?
+		cost: { input: 0.29, output: 0.39 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoningOutput: { openSourceThinkTags: ['<think>', '</think>'] }, // we're using reasoning_format:parsed so really don't need to know openSourceThinkTags
+	},
 } as const satisfies { [s: string]: ModelOptions }
 const groqSettings: ProviderSettings = {
+	providerReasoningIOSettings: { input: { includeInPayload: { reasoning_format: 'parsed' } }, output: { nameOfFieldInDelta: 'reasoning' }, }, // Must be set to either parsed or hidden when using tool calling https://console.groq.com/docs/reasoning
 	modelOptions: groqModelOptions,
 	modelOptionsFallback: (modelName) => { return null }
 }
@@ -483,6 +561,13 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	},
 	'qwen/qwen-2.5-coder-32b-instruct': {
 		...openSourceModelOptions_assumingOAICompat['qwen2.5coder'],
+		contextWindow: 33_000,
+		maxOutputTokens: null,
+		supportsTools: false, // openrouter qwen doesn't seem to support tools...?
+		cost: { input: 0.07, output: 0.16 },
+	},
+	'qwen/qwq-32b': {
+		...openSourceModelOptions_assumingOAICompat['qwq'],
 		contextWindow: 33_000,
 		maxOutputTokens: null,
 		supportsTools: false, // openrouter qwen doesn't seem to support tools...?

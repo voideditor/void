@@ -399,7 +399,6 @@ export class ToolsService implements IToolsService {
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
 				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) || '(empty)' // paginate
 				const hasNextPage = (readFileContents.length - 1) - toIdx >= 1
-				console.log('read_file result:', fileContents)
 				return { fileContents, hasNextPage }
 			},
 
@@ -449,12 +448,14 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async ({ uri, changeDescription }) => {
+				console.log('editing!!!!')
 				const [_, p] = editCodeService.startApplying({
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',
 					type: 'searchReplace',
 				}) ?? []
+				console.log('B')
 
 				await p
 				return {}

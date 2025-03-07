@@ -1606,6 +1606,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 							// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming
 							if (!(blockNum in addedTrackingZoneOfBlockNum)) {
+								console.log('finding text in code...', { orig: block.orig })
 								const originalBounds = findTextInCode(block.orig, originalFileCode)
 
 								// if error
@@ -1616,7 +1617,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 										{ role: 'user', content: content } // user explanation of what's wrong
 									)
 
-									console.log('RETRYING!!!!!!!!!!', content, JSON.stringify(messages, null, 2))
 									if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
 
 									// REVERT

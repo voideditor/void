@@ -23,13 +23,13 @@ import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { ChevronRight, Pencil, X, AlertTriangle } from 'lucide-react';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { ChatMessage, StagingSelectionItem, ToolMessage } from '../../../chatThreadService.js';
+import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../chatThreadService.js';
 import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js';
 import { ToolName } from '../../../toolsService.js';
 import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
+import { AlertTriangle, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 
 
 
@@ -249,7 +249,7 @@ const ReasoningOptionDropdown = () => {
 				step={stepSize}
 				value={value}
 				onChange={(newVal) => {
-					console.log('NEWVAL',newVal)
+					console.log('NEWVAL', newVal)
 					const disabled = newVal === min && canToggleReasoning
 					voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
 				}}
@@ -665,6 +665,7 @@ interface DropdownComponentProps {
 	numResults?: number;
 	children?: React.ReactNode;
 	onClick?: () => void;
+	icon?: React.ReactNode;
 }
 
 const DropdownComponent = ({
@@ -674,6 +675,7 @@ const DropdownComponent = ({
 	numResults,
 	children,
 	onClick,
+	icon,
 }: DropdownComponentProps) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
@@ -696,6 +698,7 @@ const DropdownComponent = ({
 						/>
 					)}
 					<div className="flex items-center flex-nowrap whitespace-nowrap gap-x-2">
+						{icon}
 						<span className="text-void-fg-3">{title}</span>
 						<span className="text-void-fg-4 text-xs italic">{desc1}</span>
 						{desc2 && <span className="text-void-fg-4 text-xs">
@@ -935,10 +938,11 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 
 	return <>
 
-		{/* reasoning token (anthropic) */}
+		{/* reasoning token */}
 		{hasReasoning && <DropdownComponent
 			title="Reasoning"
 			desc1=""
+			icon={<Dot className='stroke-blue-500' />}
 		>
 			<ChatMarkdownRender
 				string={reasoningStr}
@@ -1015,23 +1019,31 @@ const toolNameToTitle: Record<ToolName, string> = {
 
 
 
+const ToolRequestAcceptRejectButtons = ({ toolRequest }: { toolRequest: ToolRequestApproval<ToolName> }) => {
+	const accessor = useAccessor()
+	const chatThreadsService = accessor.get('IChatThreadService')
+	return <>
+		<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.approveTool(toolRequest.voidToolId) }}>Accept</div>
+		<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.rejectTool(toolRequest.voidToolId) }}>Reject</div>
+	</>
+}
 
-const toolNameToComponent: { [T in ToolName]: (props: { chatMessage: ToolMessage<T> }) => React.ReactNode } = {
-	'read_file': ({ chatMessage }) => {
-
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		const title = toolNameToTitle[chatMessage.name]
-
-		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
-
-		const { value, params } = chatMessage.result
-		return (
-			<DropdownComponent
-				title={title}
-				desc1={getBasename(params.uri.toString())}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-			>
+const toolNameToComponent: { [T in ToolName]: {
+	requestWrapper: (props: { toolRequest: ToolRequestApproval<T> }) => React.ReactNode,
+	resultWrapper: (props: { toolMessage: ToolMessage<T> & { result: { type: 'success' } } }) => React.ReactNode,
+} } = {
+	'read_file': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const { params } = toolRequest
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.toString())} icon={<Dot className={`stroke-orange-500`} />} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const { value, params } = toolMessage.result
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.toString())} icon={<Dot className={`stroke-orange-500`} />}>
 				<div
 					className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
 					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
@@ -1040,25 +1052,30 @@ const toolNameToComponent: { [T in ToolName]: (props: { chatMessage: ToolMessage
 					{params.uri.fsPath}
 				</div>
 				{value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
-			</DropdownComponent >
-		)
+
+			</DropdownComponent>
+		},
 	},
-	'list_dir': ({ chatMessage }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		const explorerService = accessor.get('IExplorerService')
-		const title = toolNameToTitle[chatMessage.name]
-		// message.result.hasNextPage = true
-		// message.result.itemsRemaining = 400
-		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+	'list_dir': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const { params } = toolRequest
+			return <DropdownComponent title={title} desc1={`${getBasename(params.rootURI.fsPath)}/`} icon={<Dot className={`stroke-orange-500`} />} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const explorerService = accessor.get('IExplorerService')
+			const title = toolNameToTitle[toolMessage.name]
+			// message.result.hasNextPage = true
+			// message.result.itemsRemaining = 400
 
-		const { value, params } = chatMessage.result
-		return (
-
-			<DropdownComponent
+			const { value, params } = toolMessage.result
+			return <DropdownComponent
 				title={title}
 				desc1={`${getBasename(params.rootURI.fsPath)}/`}
 				numResults={value.children?.length}
+				icon={<Dot className={`stroke-orange-500`} />}
 			>
 				{value.children?.map((child, i) => (
 					<div
@@ -1080,140 +1097,175 @@ const toolNameToComponent: { [T in ToolName]: (props: { chatMessage: ToolMessage
 				)}
 			</DropdownComponent>
 
-		)
+		}
 	},
-	'pathname_search': ({ chatMessage }) => {
+	'pathname_search': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const { params } = toolRequest
+			return <DropdownComponent title={title} desc1={`"${params.queryStr}"`} icon={<Dot className={`stroke-orange-500`} />} />
+		},
+		resultWrapper: ({ toolMessage }) => {
 
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		const title = toolNameToTitle[chatMessage.name]
-		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
 
-		const { value, params } = chatMessage.result
-		return (
-			<DropdownComponent
-				title={title}
-				desc1={`"${params.queryStr}"`}
-				numResults={value.uris.length}
-			>
-				{value.uris.map((uri, i) => (
-					<div
-						key={i}
-						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => {
-							commandService.executeCommand('vscode.open', uri, { preview: true })
-						}}
-					>
-						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-						{uri.fsPath.split('/').pop()}
-					</div>
-				))
-				}
-				{value.hasNextPage && (
-					<div className="italic">
-						More results available...
-					</div>
-				)}
-			</DropdownComponent>
-		)
-	},
-	'search': ({ chatMessage }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		const title = toolNameToTitle[chatMessage.name]
-		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
-
-		const { value, params } = chatMessage.result
-		return (
-			<DropdownComponent
-				title={title}
-				desc1={`"${params.queryStr}"`}
-				numResults={value.uris.length}
-			>
-				{value.uris.map((uri, i) => (
-					<div key={i}
-						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
-					>
-						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-						{uri.fsPath.split('/').pop()}
-					</div>
-				))}
-				{value.hasNextPage && (<div className="italic">More results available...</div>)}
-			</DropdownComponent>
-		)
-	},
-
-	'create_uri': ({ chatMessage }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		const title = toolNameToTitle[chatMessage.name]
-
-		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
-
-		const { params } = chatMessage.result
-		return (
-			<DropdownComponent
-				title={title}
-				desc1={getBasename(params.uri.fsPath)}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-			/>
-		)
-	},
-	'delete_uri': ({ chatMessage }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		const title = toolNameToTitle[chatMessage.name]
-
-		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
-
-		const { params } = chatMessage.result
-		return (
-			<DropdownComponent
-				title={title}
-				desc1={getBasename(params.uri.fsPath) + ' (deleted)'}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-			/>
-		)
-	},
-	'edit': ({ chatMessage }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		const title = toolNameToTitle[chatMessage.name]
-
-		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
-
-		const { params } = chatMessage.result
-		return (
-			<DropdownComponent
-				title={title}
-				desc1={getBasename(params.uri.fsPath)}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-			/>
-		)
-	},
-	'terminal_command': ({ chatMessage }) => {
-		const accessor = useAccessor()
-		const commandService = accessor.get('ICommandService')
-		const title = toolNameToTitle[chatMessage.name]
-
-		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
-
-		const { params } = chatMessage.result
-		return (
-			<DropdownComponent
-				title={title}
-				desc1={`"${params.command}"`}
-			>
-				<div
-					className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-				// TODO!!! open terminal
+			const { value, params } = toolMessage.result
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={`"${params.queryStr}"`}
+					numResults={value.uris.length}
+					icon={<Dot className={`stroke-orange-500`} />}
 				>
-					<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-					<ChatMarkdownRender string={''} />
-				</div>
-			</DropdownComponent>
-		)
+					{value.uris.map((uri, i) => (
+						<div
+							key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => {
+								commandService.executeCommand('vscode.open', uri, { preview: true })
+							}}
+						>
+							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+							{uri.fsPath.split('/').pop()}
+						</div>
+					))
+					}
+					{value.hasNextPage && (
+						<div className="italic">
+							More results available...
+						</div>
+					)}
+				</DropdownComponent>
+			)
+		}
+	},
+	'search': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const { params } = toolRequest
+			return <DropdownComponent title={title} desc1={`"${params.queryStr}"`} icon={<Dot className={`stroke-orange-500`} />} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+
+			const { value, params } = toolMessage.result
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={`"${params.queryStr}"`}
+					numResults={value.uris.length}
+					icon={<Dot className={`stroke-orange-500`} />}
+				>
+					{value.uris.map((uri, i) => (
+						<div key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+						>
+							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+							{uri.fsPath.split('/').pop()}
+						</div>
+					))}
+					{value.hasNextPage && (<div className="italic">More results available...</div>)}
+				</DropdownComponent>
+			)
+		}
+	},
+
+	'create_uri': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const { params } = toolRequest
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const { params } = toolMessage.result
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={getBasename(params.uri.fsPath)}
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+					icon={<Dot className={`stroke-orange-500`} />}
+				/>
+			)
+		}
+	},
+	'delete_uri': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const { params } = toolRequest
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath) + ' (deleted)'} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const { params } = toolMessage.result
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={getBasename(params.uri.fsPath) + ' (deleted)'}
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+				/>
+			)
+		}
+	},
+	'edit': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const { params } = toolRequest
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+
+			const { params } = toolMessage.result
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={getBasename(params.uri.fsPath)}
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+					icon={<Dot className={`stroke-orange-500`} />}
+				/>
+			)
+		}
+	},
+	'terminal_command': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const { params } = toolRequest
+			return <DropdownComponent title={title} desc1={`"${params.command}"`} icon={<Dot className={`stroke-orange-500`} />} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+
+			const { params } = toolMessage.result
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={`"${params.command}"`}
+					icon={<Dot className={`stroke-orange-500`} />}
+				>
+					<div
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+					// TODO!!! open terminal
+					>
+						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+						<ChatMarkdownRender string={''} />
+					</div>
+				</DropdownComponent>
+			)
+		}
 	}
 
 };
@@ -1226,35 +1278,37 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => 
 	const role = chatMessage.role
 
 	if (role === 'user') {
-
 		return <UserMessageComponent
 			chatMessage={chatMessage}
 			messageIdx={messageIdx}
 			isLoading={isLoading}
 		/>
-
 	}
-
 	else if (role === 'assistant') {
-
 		return <AssistantMessageComponent
 			chatMessage={chatMessage}
 			messageIdx={messageIdx}
 			isLoading={isLoading}
 		/>
-
+	}
+	else if (role === 'tool_request') {
+		if (!isLoading) return null
+		const ToolMessageComponent = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
+		return <>
+			<ToolMessageComponent
+				toolRequest={chatMessage}
+			/>
+			<ToolRequestAcceptRejectButtons toolRequest={chatMessage} />
+		</>
 	}
 	else if (role === 'tool') {
+		const title = toolNameToTitle[chatMessage.name]
+		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
 
-
-		const ToolMessageComponent = toolNameToComponent[chatMessage.name] as React.FC<{ chatMessage: any, messageIdx: any, isLoading: any }> // ts isnt smart enough...
-
+		const ToolMessageComponent = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
 		return <ToolMessageComponent
-			chatMessage={chatMessage}
-			messageIdx={messageIdx}
-			isLoading={isLoading}
+			toolMessage={chatMessage}
 		/>
-
 	}
 
 

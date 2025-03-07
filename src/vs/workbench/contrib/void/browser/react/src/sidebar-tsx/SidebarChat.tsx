@@ -1034,9 +1034,13 @@ const toolNameToComponent: { [T in ToolName]: {
 } } = {
 	'read_file': {
 		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.toString())} icon={<Dot className={`stroke-orange-500`} />} />
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.toString())} icon={<Dot className={`stroke-orange-500`} />}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1198,9 +1202,13 @@ const toolNameToComponent: { [T in ToolName]: {
 	},
 	'delete_uri': {
 		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath) + ' (deleted)'} />
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath) + ' (deleted)'}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1218,9 +1226,13 @@ const toolNameToComponent: { [T in ToolName]: {
 	},
 	'edit': {
 		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />} />
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1240,9 +1252,13 @@ const toolNameToComponent: { [T in ToolName]: {
 	},
 	'terminal_command': {
 		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={`"${params.command}"`} icon={<Dot className={`stroke-orange-500`} />} />
+			return <DropdownComponent title={title} desc1={`"${params.command}"`} icon={<Dot className={`stroke-orange-500`} />}
+				// TODO!!! open the terminal with that ID
+			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()

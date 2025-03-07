@@ -51,13 +51,12 @@ export const defaultModelsOfProvider = {
 		'llama-3.1-8b-instant',
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)
 	],
-	// not supporting mistral right now- it's last on Void usage, and a huge pain to set up since it's nonstandard (it supports codestral FIM but it's on v1/fim/completions, etc)
-	// mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
-	// 	'codestral-latest',
-	// 	'mistral-large-latest',
-	// 	'ministral-3b-latest',
-	// 	'ministral-8b-latest',
-	// ],
+	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
+		'codestral-latest',
+		'mistral-large-latest',
+		'ministral-3b-latest',
+		'ministral-8b-latest',
+	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>
 
@@ -135,7 +134,7 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsTools: false,
 		supportsReasoning: false,
 	},
-	'codestral': {
+	'mistral': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
@@ -214,7 +213,7 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('mistral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.mistral, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
 	return toFallback(modelOptionsDefaults)
 }
@@ -555,7 +554,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		supportsReasoning: false,
 	},
 	'mistralai/codestral-2501': {
-		...openSourceModelOptions_assumingOAICompat.codestral,
+		...openSourceModelOptions_assumingOAICompat.mistral,
 		contextWindow: 256_000,
 		maxOutputTokens: null,
 		cost: { input: 0.3, output: 0.9 },
@@ -590,6 +589,12 @@ const openRouterSettings: ProviderSettings = {
 }
 
 
+const mistralSettings: ProviderSettings = {
+	...openSourceModelOptions_assumingOAICompat.mistral,
+	modelOptions: {},
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
+}
+
 
 
 // ---------------- model settings of everything above ----------------
@@ -599,7 +604,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	anthropic: anthropicSettings,
 	xAI: xAISettings,
 	gemini: geminiSettings,
-
+	mistral: mistralSettings,
 	// open source models
 	deepseek: deepseekSettings,
 	groq: groqSettings,

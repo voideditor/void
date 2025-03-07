@@ -116,7 +116,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this.llmMessageHooks.onError[requestId] = onError
 
 		const { aiInstructions } = this.voidSettingsService.state.globalSettings
-		const { settingsOfProvider } = this.voidSettingsService.state
+		const { settingsOfProvider, optionsOfModelSelection, } = this.voidSettingsService.state
 
 		// params will be stripped of all its functions over the IPC channel
 		this.channel.call('sendLLMMessage', {
@@ -126,6 +126,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			providerName,
 			modelName,
 			settingsOfProvider,
+			optionsOfModelSelection,
 		} satisfies MainSendLLMMessageParams);
 
 		return requestId

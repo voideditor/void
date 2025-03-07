@@ -1187,14 +1187,19 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	// throws if there's an error
-	public startApplying(opts: StartApplyingOpts) {
+	public startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null {
 		if (opts.type === 'rewrite') {
-			const addedDiffArea = this._initializeWriteoverStream(opts)
-			return addedDiffArea?._URI ?? null
+			const added = this._initializeWriteoverStream(opts)
+			if (!added) return null
+			const [diffZone, promise] = added
+			return [diffZone._URI, promise]
 		}
 		else if (opts.type === 'searchReplace') {
-			const addedDiffArea = this._initializeSearchAndReplaceStream(opts)
-			return addedDiffArea?._URI ?? null
+			const added = this._initializeSearchAndReplaceStream(opts)
+			if (!added) return null
+			if (!added) return null
+			const [diffZone, promise] = added
+			return [diffZone._URI, promise]
 		}
 		return null
 	}
@@ -1221,9 +1226,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	private _initializeWriteoverStream(opts: StartApplyingOpts): DiffZone | undefined {
+	private _initializeWriteoverStream(opts: StartApplyingOpts): [DiffZone, Promise<void>] | undefined {
 
-		const { from, onFinalMessage: onFinalMessage_, onError: onError_, } = opts
+		const { from, } = opts
 
 		let startLine: number
 		let endLine: number
@@ -1267,9 +1272,15 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
 
+		// promise that resolves when the apply is done
+		let resApplyPromise: () => void
+		let rejApplyPromise: (e: any) => void
+		const applyPromise = new Promise<void>((res_, rej_) => { resApplyPromise = res_; rejApplyPromise = rej_ })
+
+
 		// add to history
 		const { onFinishEdit } = this._addToHistory(uri, {
-			onUndo: () => { onError_?.({ message: 'Edit was interrupted by pressing undo.', fullError: null }) }
+			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) }
 		})
 
 		// __TODO__ let users customize modelFimTags
@@ -1366,56 +1377,64 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let fullTextSoFar = '' // so far (INCLUDING ignored suffix)
 		let prevIgnoredSuffix = ''
 
-		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-			messagesType: 'chatMessages',
-			useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
-			logging: { loggingName: `startApplying - ${from}` },
-			messages,
-			onText: (params) => {
-				const { fullText: fullText_ } = params
-				const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
+		const writeover = async () => {
 
-				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
-				fullTextSoFar += newText // full text, including ```, etc
+			let resMessageDonePromise: () => void = () => { }
+			const messageDonePromise = new Promise<void>((res_) => { resMessageDonePromise = res_ })
 
-				const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullTextSoFar, newText.length)
-				const { endLineInLlmTextSoFar } = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamInfoMutable)
-				diffZone._streamState.line = (diffZone.startLine - 1) + endLineInLlmTextSoFar // change coordinate systems from originalCode to full file
+			streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+				messagesType: 'chatMessages',
+				useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
+				logging: { loggingName: `Edit (Writeover) - ${from}` },
+				messages,
+				onText: (params) => {
+					const { fullText: fullText_ } = params
+					const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
 
-				this._refreshStylesAndDiffsInURI(uri)
+					const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
+					fullTextSoFar += newText // full text, including ```, etc
 
-				prevIgnoredSuffix = croppedSuffix
-			},
-			onFinalMessage: (params) => {
-				const { fullText } = params
-				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
-				// at the end, re-write whole thing to make sure no sync errors
-				const [croppedText, _1, _2] = extractText(fullText, 0)
-				this._writeText(uri, croppedText,
-					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-					{ shouldRealignDiffAreas: true }
-				)
-				onDone()
-				onFinalMessage_?.()
-			},
-			onError: (e) => {
-				this._notifyError(e)
-				onDone()
-				this._undoHistory(uri)
-				onError_?.(e)
-			},
+					const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullTextSoFar, newText.length)
+					const { endLineInLlmTextSoFar } = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamInfoMutable)
+					diffZone._streamState.line = (diffZone.startLine - 1) + endLineInLlmTextSoFar // change coordinate systems from originalCode to full file
 
-		})
+					this._refreshStylesAndDiffsInURI(uri)
 
-		return diffZone
+					prevIgnoredSuffix = croppedSuffix
+				},
+				onFinalMessage: (params) => {
+					const { fullText } = params
+					// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
+					// at the end, re-write whole thing to make sure no sync errors
+					const [croppedText, _1, _2] = extractText(fullText, 0)
+					this._writeText(uri, croppedText,
+						{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+						{ shouldRealignDiffAreas: true }
+					)
+					onDone()
+					resMessageDonePromise()
+				},
+				onError: (e) => {
+					this._notifyError(e)
+					onDone()
+					this._undoHistory(uri)
+					resMessageDonePromise()
+				},
+			})
 
+			await messageDonePromise
+		}
+
+		writeover().then(() => resApplyPromise()).catch((e) => rejApplyPromise(e))
+
+		return [diffZone, applyPromise]
 	}
 
 
 
 
-	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }) {
-		const { applyStr, uri: givenURI, onFinalMessage: onFinalMessage_, onError: onError_, } = opts
+	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): [DiffZone, Promise<void>] | undefined {
+		const { from, applyStr, uri: givenURI, } = opts
 		let uri: URI
 
 		if (givenURI === 'current') {
@@ -1450,11 +1469,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		// can use this as a proxy to set the diffArea's stream state requestId
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
+
+		// promise that resolves when the apply is done
+		let resApplyPromise: () => void
+		let rejApplyPromise: (e: any) => void
+		const applyPromise = new Promise<void>((res_, rej_) => { resApplyPromise = res_; rejApplyPromise = rej_ })
+
+		// add to history
 		const { onFinishEdit } = this._addToHistory(uri, {
-			onUndo: () => { onError_?.({ message: 'Edit was interrupted by pressing undo.', fullError: null }) }
+			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) }
 		})
 
-		// TODO replace these with whatever block we're on initially if already started
+		// TODO replace these with whatever block we're on initially if already started (caching apply)
 
 		type SearchReplaceDiffAreaMetadata = {
 			originalBounds: [number, number], // 1-indexed
@@ -1542,13 +1568,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				shouldSendAnotherMessage = false
 				nMessagesSent += 1
 
-				let res: () => void = () => { }
-				const awaitable = new Promise<void>((res_) => { res = res_ })
+				let resMessageDonePromise: () => void = () => { }
+				const messageDonePromise = new Promise<void>((res_) => { resMessageDonePromise = res_ })
 
 				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
 					useProviderFor: 'Apply',
-					logging: { loggingName: `generateSearchAndReplace` },
+					logging: { loggingName: `Edit (Search/Replace) - ${from}` },
 					messages,
 					onText: (params) => {
 						const { fullText } = params
@@ -1585,11 +1611,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								// if error
 								if (typeof originalBounds === 'string') {
 									const content = errMsgOfInvalidStr(originalBounds, block.orig)
-									console.log('Content', content)
 									messages.push(
 										{ role: 'assistant', content: fullText }, // latest output
 										{ role: 'user', content: content } // user explanation of what's wrong
 									)
+
+									console.log('RETRYING!!!!!!!!!!', content, JSON.stringify(messages, null, 2))
 									if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
 
 									// REVERT
@@ -1610,10 +1637,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									shouldUpdateOrigStreamStyle = true
 									oldBlocks = []
 									addedTrackingZoneOfBlockNum.slice(0, Infinity) // clear the array
+									console.log('SHOULD BE EMPTY', addedTrackingZoneOfBlockNum)
 
 									shouldSendAnotherMessage = true
 									this._refreshStylesAndDiffsInURI(uri)
-									res()
+									resMessageDonePromise()
 									return
 								}
 
@@ -1706,30 +1734,26 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						}
 
 						onDone()
-
-						onFinalMessage_?.()
-						res()
+						resMessageDonePromise()
 					},
 					onError: (e) => {
 						this._notifyError(e)
 						onDone()
 						this._undoHistory(uri)
-
-						onError_?.(e)
-						res()
+						resMessageDonePromise()
 					},
 
 				})
 
-				await awaitable
+				await messageDonePromise
 
 			} // end while
 
 		} // end retryLoop
 
-		retryLoop()
+		retryLoop().then(() => resApplyPromise()).catch((e) => rejApplyPromise(e))
 
-		return diffZone
+		return [diffZone, applyPromise]
 	}
 
 

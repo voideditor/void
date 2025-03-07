@@ -5,7 +5,7 @@
 
 import type { ChatMessage } from '../browser/chatThreadService.js'
 import type { InternalToolInfo, ToolName } from '../browser/toolsService.js'
-import { FeatureName, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
+import { FeatureName, OptionsOfModelSelection, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
 export const errorDetails = (fullError: Error | null): string | null => {
@@ -113,6 +113,7 @@ export type SendLLMMessageParams = {
 	providerName: ProviderName;
 	modelName: string;
 	settingsOfProvider: SettingsOfProvider;
+	optionsOfModelSelection: OptionsOfModelSelection;
 } & SendLLMType
 
 

@@ -459,6 +459,7 @@ export const FeaturesTab = () => {
 
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
+					<div className='text-sm italic text-void-fg-3 my-1'>We recommend the smartest model you{`'`}ve got, like Claude 3.7 or Grok 3.</div>
 					<ModelDropdown featureName={'Apply'} />
 				</div>
 			</div>

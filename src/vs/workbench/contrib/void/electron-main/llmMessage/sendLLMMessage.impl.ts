@@ -11,9 +11,9 @@ import { Model as OpenAIModel } from 'openai/resources/models.js';
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../browser/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/llmMessageTypes.js';
 import { InternalToolInfo, isAToolName, ToolName } from '../../browser/toolsService.js';
-import { defaultProviderSettings, displayInfoOfProviderName, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { defaultProviderSettings, displayInfoOfProviderName, OptionsOfModelSelection, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
-import { getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
+import { getModelSelectionState, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
 
 
 type InternalCommonMessageParams = {
@@ -23,6 +23,7 @@ type InternalCommonMessageParams = {
 	onError: OnError;
 	providerName: ProviderName;
 	settingsOfProvider: SettingsOfProvider;
+	optionsOfModelSelection: OptionsOfModelSelection;
 	modelName: string;
 	_setAborter: (aborter: () => void) => void;
 }
@@ -153,30 +154,34 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
 	const {
 		modelName,
-		supportsReasoningOutput,
+		supportsReasoning,
 		supportsSystemMessage,
 		supportsTools,
 		// maxOutputTokens, right now we are ignoring this
 	} = getModelCapabilities(providerName, modelName_)
+
+	const {
+		canIOReasoning,
+		openSourceThinkTags,
+	} = supportsReasoning || {}
+
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicContent: false }) // can change supportsAnthropicContent if e.g. OpenRouter starts supporting anthropic extended thinking
 	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAICompatibleTool(tool)) : undefined
 
-	const includeInPayload = supportsReasoningOutput ? providerReasoningIOSettings?.input?.includeInPayload || {} : {}
+	const includeInPayload = canIOReasoning ? providerReasoningIOSettings?.input?.includeInPayload || {} : {}
 
 	const toolsObj = tools ? { tools: tools, tool_choice: 'auto', parallel_tool_calls: false, } as const : {}
 	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = { model: modelName, messages: messages, stream: true, ...toolsObj, }
 
-	const { nameOfFieldInDelta: nameOfReasoningFieldInDelta, needsManualParse: needsManualReasoningParse } = providerReasoningIOSettings?.output ?? {}
-
-	const manuallyParseReasoning = needsManualReasoningParse && supportsReasoningOutput && supportsReasoningOutput.openSourceThinkTags
+	const { needsManualParse: needsManualReasoningParse, nameOfFieldInDelta: nameOfReasoningFieldInDelta } = providerReasoningIOSettings?.output ?? {}
+	const manuallyParseReasoning = needsManualReasoningParse && canIOReasoning && openSourceThinkTags
 	if (manuallyParseReasoning) {
-		onText = extractReasoningOnTextWrapper(onText, supportsReasoningOutput.openSourceThinkTags)
+		onText = extractReasoningOnTextWrapper(onText, openSourceThinkTags)
 	}
-
 
 	let fullReasoningSoFar = ''
 	let fullTextSoFar = ''
@@ -216,7 +221,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 			}
 			else {
 				if (manuallyParseReasoning) {
-					const { fullText, fullReasoning } = extractReasoningOnFinalMessage(fullTextSoFar, supportsReasoningOutput.openSourceThinkTags)
+					const { fullText, fullReasoning } = extractReasoningOnFinalMessage(fullTextSoFar, openSourceThinkTags)
 					onFinalMessage({ fullText, fullReasoning, toolCalls });
 				} else {
 					onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, toolCalls });
@@ -283,13 +288,18 @@ const toolCallsFrom_AnthropicContent = (content: Anthropic.Messages.ContentBlock
 	}).filter(t => !!t)
 }
 
-const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, optionsOfModelSelection, modelName: modelName_, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		supportsSystemMessage,
 		supportsTools,
 		maxOutputTokens,
+		supportsReasoning,
 	} = getModelCapabilities(providerName, modelName_)
+	const {
+		isReasoningEnabled,
+		reasoningBudget,
+	} = getModelSelectionState(providerName, modelName_, optionsOfModelSelection) // user's modelName_ here
 
 	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicContent: true })
 
@@ -297,14 +307,26 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 	const tools = ((tools_?.length ?? 0) !== 0) ? tools_?.map(tool => toAnthropicTool(tool)) : undefined
 
+
+	const toolsObj: Partial<Anthropic.Messages.MessageStreamParams> = tools ? {
+		tools: tools,
+		tool_choice: { type: 'auto', disable_parallel_tool_use: true } // one tool at a time
+	} : {}
+
+
+	const enableThinking = supportsReasoning && isReasoningEnabled && reasoningBudget
+	const maxTokens = enableThinking ? supportsReasoning.reasoningMaxOutputTokens : maxOutputTokens
+	const thinkingObj: Partial<Anthropic.Messages.MessageStreamParams> = enableThinking ? {
+		thinking: { type: 'enabled', budget_tokens: reasoningBudget } // thinking enabled
+	} : {}
+
 	const stream = anthropic.messages.stream({
 		system: separateSystemMessageStr,
 		messages: messages,
 		model: modelName,
-		max_tokens: maxOutputTokens ?? 4_096, // anthropic requires this
-		tools: tools,
-		tool_choice: tools ? { type: 'auto', disable_parallel_tool_use: true } : undefined, // one tool use at a time
-		thinking: { budget_tokens: 2000, type: 'enabled' }, // TODO!!!!
+		max_tokens: maxTokens ?? 4_096, // anthropic requires this
+		...toolsObj,
+		...thinkingObj,
 	})
 
 	// when receive text

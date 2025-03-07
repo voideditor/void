@@ -3,13 +3,13 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { ProviderName } from './voidSettingsTypes.js';
+import { OptionsOfModelSelection, ProviderName } from './voidSettingsTypes.js';
 
 
 export const defaultModelsOfProvider = {
 	openAI: [ // https://platform.openai.com/docs/models/gp
-		'o1',
 		'o3-mini',
+		'o1',
 		'o1-mini',
 		'gpt-4o',
 		'gpt-4o-mini',
@@ -67,9 +67,9 @@ export const defaultModelsOfProvider = {
 
 
 type ModelOptions = {
-	contextWindow: number; // input tokens
-	maxOutputTokens: number | null; // output tokens
-	cost: {
+	contextWindow: number; // input tokens              // <-- UNUSED
+	maxOutputTokens: number | null; // output tokens    // <-- UNUSED
+	cost: {                                             // <-- UNUSED
 		input: number;
 		output: number;
 		cache_read?: number;
@@ -79,15 +79,17 @@ type ModelOptions = {
 	supportsTools: false | 'anthropic-style' | 'openai-style';
 	supportsFIM: boolean;
 
-	supportsReasoningOutput: false | {
+	supportsReasoning: false | {
+		// reasoning options if supports reasoning
+		readonly canToggleReasoning: boolean; // whether or not the user can disable reasoning mode (false if the model only supports reasoning)
+		readonly canIOReasoning: boolean; // whether or not the model actually outputs reasoning
+		readonly reasoningMaxOutputTokens?: number; // overrides normal maxOutputTokens 																			// <-- UNUSED (except anthropic)
+		readonly reasoningBudgetSlider?: { type: 'slider'; min: number; max: number; default: number };
+
+		// options related specifically to model output
 		// you are allowed to not include openSourceThinkTags if it's not open source (no such cases as of writing)
 		// if it's open source, put the think tags here so we parse them out in e.g. ollama
 		readonly openSourceThinkTags?: [string, string];
-
-		// reasoning options
-		readonly canToggleReasoning?: boolean; // whether or not the user can enable reasoning mode (or if the model only supports reasoning)
-		readonly maxOutputTokens?: number;
-		readonly reasoningBudgetOptions?: { type: 'slider'; min: number; max: number; default: number };
 	};
 }
 
@@ -116,7 +118,7 @@ const modelOptionsDefaults: ModelOptions = {
 	supportsSystemMessage: false,
 	supportsTools: false,
 	supportsFIM: false,
-	supportsReasoningOutput: false,
+	supportsReasoning: false,
 }
 
 
@@ -125,70 +127,70 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsFIM: false,
 		supportsSystemMessage: false,
 		supportsTools: false,
-		supportsReasoningOutput: { openSourceThinkTags: ['<think>', '</think>'] },
+		supportsReasoning: { canToggleReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'deepseekCoderV2': {
 		supportsFIM: false,
 		supportsSystemMessage: false, // unstable
 		supportsTools: false,
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'codestral': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	// llama
 	'llama3': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'llama3.1': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'llama3.2': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'llama3.3': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	// qwen
 	'qwen2.5coder': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'qwq': {
 		supportsFIM: false, // no FIM, yes reasoning
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: { openSourceThinkTags: ['<think>', '</think'] },
+		supportsReasoning: { canToggleReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	// FIM only
 	'starcoder2': {
 		supportsFIM: true,
 		supportsSystemMessage: false,
 		supportsTools: false,
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'codegemma:2b': {
 		supportsFIM: true,
 		supportsSystemMessage: false,
 		supportsTools: false,
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 } as const satisfies { [s: string]: Partial<ModelOptions> }
 
@@ -207,7 +209,7 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 	if (modelName.includes('gpt-4o')) return toFallback(openAIModelOptions['gpt-4o'])
 	if (modelName.includes('claude-3-5') || modelName.includes('claude-3.5')) return toFallback(anthropicModelOptions['claude-3-5-sonnet-20241022'])
 	if (modelName.includes('claude')) return toFallback(anthropicModelOptions['claude-3-7-sonnet-20250219'])
-	if (modelName.includes('grok')) return toFallback(xAIModelOptions['grok-2-latest'])
+	if (modelName.includes('grok')) return toFallback(xAIModelOptions['grok-2'])
 	if (modelName.includes('deepseek-r1') || modelName.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekR1, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
@@ -231,10 +233,11 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: {
+		supportsReasoning: {
 			canToggleReasoning: true,
-			maxOutputTokens: 64_000, // can bump it to 128_000 with beta mode output-128k-2025-02-19
-			reasoningBudgetOptions: { type: 'slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
+			canIOReasoning: true,
+			reasoningMaxOutputTokens: 64_000, // can bump it to 128_000 with beta mode output-128k-2025-02-19
+			reasoningBudgetSlider: { type: 'slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
 		},
 	},
 	'claude-3-5-sonnet-20241022': {
@@ -244,7 +247,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'claude-3-5-haiku-20241022': {
 		contextWindow: 200_000,
@@ -253,7 +256,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'claude-3-opus-20240229': {
 		contextWindow: 200_000,
@@ -262,7 +265,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'claude-3-sonnet-20240229': { // no point of using this, but including this for people who put it in
 		contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
@@ -270,7 +273,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		supportsTools: 'anthropic-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	}
 } as const satisfies { [s: string]: ModelOptions }
 
@@ -298,7 +301,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		supportsTools: false,
 		supportsSystemMessage: 'developer-role',
-		supportsReasoningOutput: false,
+		supportsReasoning: { canIOReasoning: false, canToggleReasoning: false }, // it doesn't actually output reasoning, but our logic is fine with it
 	},
 	'o3-mini': {
 		contextWindow: 200_000,
@@ -307,7 +310,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		supportsTools: false,
 		supportsSystemMessage: 'developer-role',
-		supportsReasoningOutput: false,
+		supportsReasoning: { canIOReasoning: false, canToggleReasoning: false },
 	},
 	'gpt-4o': {
 		contextWindow: 128_000,
@@ -316,7 +319,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		supportsTools: 'openai-style',
 		supportsSystemMessage: 'system-role',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'o1-mini': {
 		contextWindow: 128_000,
@@ -325,7 +328,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		supportsTools: false,
 		supportsSystemMessage: false, // does not support any system
-		supportsReasoningOutput: false,
+		supportsReasoning: { canIOReasoning: false, canToggleReasoning: false },
 	},
 	'gpt-4o-mini': {
 		contextWindow: 128_000,
@@ -334,7 +337,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		supportsTools: 'openai-style',
 		supportsSystemMessage: 'system-role', // ??
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 } as const satisfies { [s: string]: ModelOptions }
 
@@ -353,14 +356,14 @@ const openAISettings: ProviderSettings = {
 
 // ---------------- XAI ----------------
 const xAIModelOptions = {
-	'grok-2-latest': {
+	'grok-2': {
 		contextWindow: 131_072,
 		maxOutputTokens: null, // 131_072,
 		cost: { input: 2.00, output: 10.00 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 } as const satisfies { [s: string]: ModelOptions }
 
@@ -368,7 +371,7 @@ const xAISettings: ProviderSettings = {
 	modelOptions: xAIModelOptions,
 	modelOptionsFallback: (modelName) => {
 		let fallbackName: keyof typeof xAIModelOptions | null = null
-		if (modelName.includes('grok-2')) fallbackName = 'grok-2-latest'
+		if (modelName.includes('grok-2')) fallbackName = 'grok-2'
 		if (fallbackName) return { modelName: fallbackName, ...xAIModelOptions[fallbackName] }
 		return null
 	}
@@ -384,7 +387,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style', // we are assuming OpenAI SDK when calling gemini
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
 		contextWindow: 1_048_576,
@@ -393,7 +396,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'gemini-1.5-flash': {
 		contextWindow: 1_048_576,
@@ -402,7 +405,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'gemini-1.5-pro': {
 		contextWindow: 2_097_152,
@@ -411,7 +414,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'gemini-1.5-flash-8b': {
 		contextWindow: 1_048_576,
@@ -420,7 +423,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 } as const satisfies { [s: string]: ModelOptions }
 
@@ -466,7 +469,7 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'llama-3.1-8b-instant': {
 		contextWindow: 128_000,
@@ -475,7 +478,7 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'qwen-2.5-coder-32b': {
 		contextWindow: 128_000,
@@ -484,7 +487,7 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		supportsFIM: false, // unfortunately looks like no FIM support on groq
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'qwen-qwq-32b': { // https://huggingface.co/Qwen/QwQ-32B
 		contextWindow: 128_000,
@@ -493,7 +496,7 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: { openSourceThinkTags: ['<think>', '</think>'] }, // we're using reasoning_format:parsed so really don't need to know openSourceThinkTags
+		supportsReasoning: { canIOReasoning: true, canToggleReasoning: false, openSourceThinkTags: ['<think>', '</think>'] }, // we're using reasoning_format:parsed so really don't need to know openSourceThinkTags
 	},
 } as const satisfies { [s: string]: ModelOptions }
 const groqSettings: ProviderSettings = {
@@ -540,7 +543,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: {},
+		supportsReasoning: { canIOReasoning: true, canToggleReasoning: false }, // TODO!!! false for now
 	},
 	'anthropic/claude-3.5-sonnet': {
 		contextWindow: 200_000,
@@ -549,7 +552,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'mistralai/codestral-2501': {
 		...openSourceModelOptions_assumingOAICompat.codestral,
@@ -557,7 +560,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		maxOutputTokens: null,
 		cost: { input: 0.3, output: 0.9 },
 		supportsTools: 'openai-style',
-		supportsReasoningOutput: false,
+		supportsReasoning: false,
 	},
 	'qwen/qwen-2.5-coder-32b-instruct': {
 		...openSourceModelOptions_assumingOAICompat['qwen2.5coder'],
@@ -614,6 +617,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 
 // ---------------- exports ----------------
 
+// returns the capabilities and the adjusted modelName if it was a fallback
 export const getModelCapabilities = (providerName: ProviderName, modelName: string): ModelOptions & { modelName: string; isUnrecognizedModel: boolean } => {
 	const { modelOptions, modelOptionsFallback } = modelSettingsOfProvider[providerName]
 	if (modelName in modelOptions) return { modelName, ...modelOptions[modelName], isUnrecognizedModel: false }
@@ -626,4 +630,14 @@ export const getModelCapabilities = (providerName: ProviderName, modelName: stri
 export const getProviderCapabilities = (providerName: ProviderName) => {
 	const { providerReasoningIOSettings } = modelSettingsOfProvider[providerName]
 	return { providerReasoningIOSettings }
+}
+
+// state from optionsOfModelSelection
+export const getModelSelectionState = (providerName: ProviderName, modelName: string, optionsOfModelSelection: OptionsOfModelSelection): { isReasoningEnabled: boolean, reasoningBudget: number | undefined } => {
+	const { canToggleReasoning } = getModelCapabilities(providerName, modelName).supportsReasoning || {}
+
+	const defaultEnabledVal = canToggleReasoning ? true : false
+	const isReasoningEnabled = optionsOfModelSelection[providerName]?.[modelName]?.reasoningEnabled ?? defaultEnabledVal
+	const reasoningBudget = optionsOfModelSelection[providerName]?.[modelName]?.reasoningBudget
+	return { isReasoningEnabled, reasoningBudget }
 }

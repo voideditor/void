@@ -7,7 +7,6 @@ import { Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { OnError } from '../common/llmMessageTypes.js';
 
 
 
@@ -21,9 +20,6 @@ export type StartApplyingOpts = ({
 	type: 'searchReplace' | 'rewrite';
 	applyStr: string;
 	uri: 'current' | URI;
-}) & ({
-	onFinalMessage?: () => void;
-	onError?: OnError;
 })
 
 
@@ -41,7 +37,7 @@ export const IEditCodeService = createDecorator<IEditCodeService>('editCodeServi
 
 export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
-	startApplying(opts: StartApplyingOpts): URI | null;
+	startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null;
 
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 	removeCtrlKZone(opts: { diffareaid: number }): void;

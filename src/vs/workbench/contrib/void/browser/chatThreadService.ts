@@ -401,7 +401,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					messagesType: 'chatMessages',
 					useProviderFor: 'Ctrl+L',
 					logging: { loggingName: `Agent` },
-					messages: messages,
+					messages,
 
 					tools: tools,
 

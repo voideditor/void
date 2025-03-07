@@ -449,16 +449,13 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async ({ uri, changeDescription }) => {
-				const p = new Promise<void>((res, rej) => {
-					editCodeService.startApplying({
-						uri,
-						applyStr: changeDescription,
-						from: 'ClickApply',
-						type: 'searchReplace',
-						onFinalMessage: () => { res() },
-						onError: (e) => { throw new Error(e.message) },
-					})
-				})
+				const [_, p] = editCodeService.startApplying({
+					uri,
+					applyStr: changeDescription,
+					from: 'ClickApply',
+					type: 'searchReplace',
+				}) ?? []
+
 				await p
 				return {}
 			},

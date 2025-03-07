@@ -79,12 +79,12 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 	const onSubmit = useCallback(() => {
 		if (isDisabled) return
 		if (streamState() === 'streaming') return
-		const newApplyingUri = editCodeService.startApplying({
+		const [newApplyingUri, _] = editCodeService.startApplying({
 			from: 'ClickApply',
 			type: 'searchReplace',
 			applyStr: codeStr,
 			uri: 'current',
-		})
+		}) ?? []
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
 		rerender(c => c + 1)
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only

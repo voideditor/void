@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { ThreadStreamState,IChatThreadService, ThreadsState } from '../../../../common/chatThreadService.js'
 import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
@@ -25,7 +24,8 @@ import { IThemeService } from '../../../../../../../platform/theme/common/themeS
 import { ILLMMessageService } from '../../../../../../../workbench/contrib/void/common/llmMessageService.js';
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
-import { IEditCodeService, URIStreamState } from '../../../editCodeService.js';
+import { IEditCodeService, URIStreamState } from '../../../editCodeServiceInterface.js'
+
 import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
@@ -44,6 +44,7 @@ import { IConfigurationService } from '../../../../../../../platform/configurati
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
 import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
 import { URI } from '../../../../../../../base/common/uri.js'
+import { IChatThreadService, ThreadsState, ThreadStreamState } from '../../../chatThreadService.js'
 
 
 
@@ -170,7 +171,7 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 
 	colorThemeState = themeService.getColorTheme().type
 	disposables.push(
-		themeService.onDidColorThemeChange(theme => {
+		themeService.onDidColorThemeChange(({ theme }) => {
 			colorThemeState = theme.type
 			colorThemeStateListeners.forEach(l => l(colorThemeState))
 		})

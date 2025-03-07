@@ -6,7 +6,7 @@
 import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
-import { sendLLMMessageToProviderImplementation } from './MODELS.js';
+import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';
 
 
 export const sendLLMMessage = ({
@@ -19,6 +19,7 @@ export const sendLLMMessage = ({
 	abortRef: abortRef_,
 	logging: { loggingName },
 	settingsOfProvider,
+	optionsOfModelSelection,
 	providerName,
 	modelName,
 	tools,
@@ -104,12 +105,12 @@ export const sendLLMMessage = ({
 		}
 		const { sendFIM, sendChat } = implementation
 		if (messagesType === 'chatMessages') {
-			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools })
+			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, optionsOfModelSelection, modelName, _setAborter, providerName, aiInstructions, tools })
 			return
 		}
 		if (messagesType === 'FIMMessage') {
 			if (sendFIM) {
-				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions })
+				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, optionsOfModelSelection, modelName, _setAborter, providerName, aiInstructions })
 				return
 			}
 			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })

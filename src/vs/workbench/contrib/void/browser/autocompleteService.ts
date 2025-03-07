@@ -18,8 +18,13 @@ import { IModelService } from '../../../../editor/common/services/model.js';
 import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
-import { _ln, allLinebreakSymbols } from '../common/voidFileService.js';
+import { isWindows } from '../../../../base/common/platform.js';
 // import { IContextGatheringService } from './contextGatheringService.js';
+
+
+
+const allLinebreakSymbols = ['\r\n', '\n']
+const _ln = isWindows ? allLinebreakSymbols[0] : allLinebreakSymbols[1]
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
 

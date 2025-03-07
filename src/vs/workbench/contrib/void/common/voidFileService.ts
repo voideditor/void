@@ -3,18 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { isWindows } from '../../../../base/common/platform.js';
 import { URI } from '../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../editor/common/model.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-
-
-// linebreak symbols
-export const allLinebreakSymbols = ['\r\n', '\n']
-export const _ln = isWindows ? allLinebreakSymbols[0] : allLinebreakSymbols[1]
 
 export interface IVoidFileService {
 	readonly _serviceBrand: undefined;
@@ -52,19 +46,10 @@ export class VoidFileService implements IVoidFileService {
 	_readFileRaw = async (uri: URI, range?: { startLineNumber: number, endLineNumber: number }): Promise<string | null> => {
 
 		try { // this throws an error if no file exists (eg it was deleted)
-
 			const res = await this.fileService.readFile(uri);
-
-			if (range) {
-				return res.value.toString()
-					.split(_ln)
-					.slice(range.startLineNumber - 1, range.endLineNumber)
-					.join(_ln)
-			}
-
-			return res.value.toString();
-
-
+			const str = res.value.toString().replace(/\r\n/g, '\n'); // even if not on Windows, might read a file with \r\n
+			if (range) return str.split('\n').slice(range.startLineNumber - 1, range.endLineNumber).join('\n')
+			return str;
 		} catch (e) {
 			return null;
 		}

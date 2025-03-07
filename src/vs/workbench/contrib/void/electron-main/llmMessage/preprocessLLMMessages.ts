@@ -1,6 +1,9 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
 
-
-import { LLMChatMessage, LLMFIMMessage } from '../../common/llmMessageTypes.js';
+import { RawAnthropicAssistantContent, LLMChatMessage, LLMFIMMessage } from '../../common/llmMessageTypes.js';
 import { deepClone } from '../../../../../base/common/objects.js';
 
 
@@ -14,9 +17,28 @@ export const parseObject = (args: unknown) => {
 }
 
 
+type InternalLLMChatMessage = {
+	role: 'system' | 'user';
+	content: string;
+} | {
+	role: 'assistant',
+	content: string | (RawAnthropicAssistantContent | { type: 'text'; text: string })[];
+	rawAnthropicAssistantContent?: RawAnthropicAssistantContent[] | undefined;
+} | {
+	role: 'tool';
+	content: string; // result
+	name: string;
+	params: string;
+	id: string;
+}
+
+
 const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatMessage[] }) => {
 	const messages = deepClone(messages_)
 	const newMessages: LLMChatMessage[] = []
+	if (messages.length >= 0) newMessages.push(messages[0])
+
+	// remove duplicate roles
 	for (let i = 1; i < messages.length; i += 1) {
 		const curr = messages[i]
 		const prev = messages[i - 1]
@@ -32,13 +54,42 @@ const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatM
 	return { messages: finalMessages }
 }
 
+
+
+
+
+// remove rawAnthropicAssistantContent, and make content equal to it if supportsAnthropicContent
+const prepareMessages_anthropicContent = ({ messages, supportsAnthropicContent }: { messages: LLMChatMessage[], supportsAnthropicContent: boolean }) => {
+	const newMessages: InternalLLMChatMessage[] = []
+	for (const m of messages) {
+		if (m.role !== 'assistant') {
+			newMessages.push(m)
+			continue
+		}
+		let newMessage: InternalLLMChatMessage
+		if (supportsAnthropicContent) {
+			const newContent = m.rawAnthropicAssistantContent
+			newMessage = { role: 'assistant', content: newContent ?? m.content }
+		}
+		else {
+			newMessage = m
+		}
+		delete newMessage.rawAnthropicAssistantContent // important to delete this field
+		newMessages.push(m)
+	}
+	return { messages: newMessages }
+}
+
+
+
+
 // no matter whether the model supports a system message or not (or what format it supports), add it in some way
 const prepareMessages_systemMessage = ({
 	messages,
 	aiInstructions,
 	supportsSystemMessage,
 }: {
-	messages: LLMChatMessage[],
+	messages: InternalLLMChatMessage[],
 	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 })
@@ -56,7 +107,7 @@ const prepareMessages_systemMessage = ({
 	let separateSystemMessageStr: string | undefined = undefined
 
 	// remove all system messages
-	const newMessages: (LLMChatMessage | { role: 'developer', content: string })[] = messages.filter(msg => msg.role !== 'system')
+	const newMessages: (InternalLLMChatMessage | { role: 'developer', content: string })[] = messages.filter(msg => msg.role !== 'system')
 
 
 	// if (!supportsTools) {
@@ -65,6 +116,7 @@ const prepareMessages_systemMessage = ({
 	// }
 
 
+	// if it has a system message (if doesn't, we obviously don't care about whether it supports system message or not...)
 	if (systemMessageStr) {
 		// if supports system message
 		if (supportsSystemMessage) {
@@ -77,25 +129,18 @@ const prepareMessages_systemMessage = ({
 		}
 		// if does not support system message
 		else {
-			if (supportsSystemMessage) {
-				if (newMessages.length === 0)
-					newMessages.push({ role: 'user', content: systemMessageStr })
-				// add system mesasges to first message (should be a user message)
-				else {
-					const newFirstMessage = {
-						role: 'user',
-						content: (''
-							+ '<SYSTEM_MESSAGE>\n'
-							+ systemMessageStr
-							+ '\n'
-							+ '</SYSTEM_MESSAGE>\n'
-							+ newMessages[0].content
-						)
-					} as const
-					newMessages.splice(0, 1) // delete first message
-					newMessages.unshift(newFirstMessage) // add new first message
-				}
-			}
+			const newFirstMessage = {
+				role: 'user',
+				content: (''
+					+ '<SYSTEM_MESSAGE>\n'
+					+ systemMessageStr
+					+ '\n'
+					+ '</SYSTEM_MESSAGE>\n'
+					+ newMessages[0].content
+				)
+			} as const
+			newMessages.splice(0, 1) // delete first message
+			newMessages.unshift(newFirstMessage) // add new first message
 		}
 	}
 
@@ -128,12 +173,12 @@ openai on prompting - https://platform.openai.com/docs/guides/reasoning#advice-o
 openai on developer system message - https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
 */
 
-const prepareMessages_tools_openai = ({ messages }: { messages: LLMChatMessage[], }) => {
+const prepareMessages_tools_openai = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
 
 	const newMessages: (
-		Exclude<LLMChatMessage, { role: 'assistant' | 'tool' }> | {
+		Exclude<InternalLLMChatMessage, { role: 'assistant' | 'tool' }> | {
 			role: 'assistant',
-			content: string;
+			content: string | object[];
 			tool_calls?: {
 				type: 'function';
 				id: string;
@@ -205,19 +250,22 @@ anthropic RESPONSE (role=user):
 }]
 */
 
-const prepareMessages_tools_anthropic = ({ messages }: { messages: LLMChatMessage[], }) => {
+const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
 	const newMessages: (
-		Exclude<LLMChatMessage, { role: 'assistant' | 'user' }> | {
+		Exclude<InternalLLMChatMessage, { role: 'assistant' | 'user' }> | {
 			role: 'assistant',
-			content: string | ({
-				type: 'text';
-				text: string;
-			} | {
-				type: 'tool_use';
-				name: string;
-				input: Record<string, any>;
-				id: string;
-			})[]
+			content: string | (
+				| RawAnthropicAssistantContent
+				| {
+					type: 'text';
+					text: string;
+				}
+				| {
+					type: 'tool_use';
+					name: string;
+					input: Record<string, any>;
+					id: string;
+				})[]
 		} | {
 			role: 'user',
 			content: string | ({
@@ -260,7 +308,7 @@ const prepareMessages_tools_anthropic = ({ messages }: { messages: LLMChatMessag
 
 
 
-const prepareMessages_tools = ({ messages, supportsTools }: { messages: LLMChatMessage[], supportsTools: false | 'anthropic-style' | 'openai-style' }) => {
+const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'anthropic-style' | 'openai-style' }) => {
 	if (!supportsTools) {
 		return { messages: messages }
 	}
@@ -271,7 +319,7 @@ const prepareMessages_tools = ({ messages, supportsTools }: { messages: LLMChatM
 		return prepareMessages_tools_openai({ messages })
 	}
 	else {
-		throw 1
+		throw new Error(`supportsTools type not recognized`)
 	}
 }
 
@@ -311,26 +359,28 @@ gemini response:
 
 
 
-
-
-
+// --- CHAT ---
 
 export const prepareMessages = ({
 	messages,
 	aiInstructions,
 	supportsSystemMessage,
 	supportsTools,
+	supportsAnthropicContent,
 }: {
 	messages: LLMChatMessage[],
 	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 	supportsTools: false | 'anthropic-style' | 'openai-style',
+	supportsAnthropicContent: boolean,
 }) => {
 	const { messages: messages1 } = prepareMessages_normalize({ messages })
-	const { messages: messages2, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages1, aiInstructions, supportsSystemMessage })
-	const { messages: messages3 } = prepareMessages_tools({ messages: messages2, supportsTools })
+	const { messages: messages2 } = prepareMessages_anthropicContent({ messages: messages1, supportsAnthropicContent })
+	const { messages: messages3, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages2, aiInstructions, supportsSystemMessage })
+	const { messages: messages4 } = prepareMessages_tools({ messages: messages3, supportsTools })
+
 	return {
-		messages: messages3 as any,
+		messages: messages4 as any,
 		separateSystemMessageStr
 	} as const
 }
@@ -338,6 +388,10 @@ export const prepareMessages = ({
 
 
 
+
+
+
+// --- FIM ---
 
 export const prepareFIMMessage = ({
 	messages,
@@ -358,6 +412,5 @@ ${messages.prefix}`
 	const suffix = messages.suffix
 	const stopTokens = messages.stopTokens
 	const ret = { prefix, suffix, stopTokens, maxTokens: 300 } as const
-	console.log('ret', ret)
 	return ret
 }

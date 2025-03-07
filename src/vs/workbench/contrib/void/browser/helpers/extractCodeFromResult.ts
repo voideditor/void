@@ -171,6 +171,9 @@ export type ExtractedSearchReplaceBlock = {
 }
 
 
+// JS substring swaps indices, so "ab".substr(1,0) will NOT be '', it will be 'a'!
+const voidSubstr = (str: string, start: number, end: number) => end < start ? '' : str.substring(start, end)
+
 const endsWithAnyPrefixOf = (str: string, anyPrefix: string) => {
 	// for each prefix
 	for (let i = anyPrefix.length; i >= 1; i--) { // i >= 1 because must not be empty string
@@ -187,7 +190,6 @@ export const extractSearchReplaceBlocks = (str: string) => {
 	const DIVIDER_ = '\n' + DIVIDER + `\n`
 	// logic for FINAL_ is slightly more complicated - should be '\n' + FINAL, but that ignores if the final output is empty
 
-
 	const blocks: ExtractedSearchReplaceBlock[] = []
 
 	let i = 0 // search i and beyond (this is done by plain index, not by line number. much simpler this way)
@@ -196,41 +198,42 @@ export const extractSearchReplaceBlocks = (str: string) => {
 		if (origStart === -1) { return blocks }
 		origStart += ORIGINAL_.length
 		i = origStart
-		// wrote <<<< ORIGINAL
+		// wrote <<<< ORIGINAL\n
 
 		let dividerStart = str.indexOf(DIVIDER_, i)
 		if (dividerStart === -1) { // if didnt find DIVIDER_, either writing originalStr or DIVIDER_ right now
-			const isWritingDIVIDER = endsWithAnyPrefixOf(str, DIVIDER_)
+			const writingDIVIDERlen = endsWithAnyPrefixOf(str, DIVIDER_)?.length ?? 0
 			blocks.push({
-				orig: str.substring(origStart, str.length - (isWritingDIVIDER?.length ?? 0)),
+				orig: voidSubstr(str, origStart, str.length - writingDIVIDERlen),
 				final: '',
 				state: 'writingOriginal'
 			})
 			return blocks
 		}
-		const origStrDone = str.substring(origStart, dividerStart)
+		const origStrDone = voidSubstr(str, origStart, dividerStart)
 		dividerStart += DIVIDER_.length
 		i = dividerStart
-		// wrote =====
+		// wrote \n=====\n
 
+		const fullFINALStart = str.indexOf(FINAL, i)
+		const fullFINALStart_ = str.indexOf('\n' + FINAL, i) // go with B if possible, else fallback to A, it's more permissive
+		const matchedFullFINAL_ = fullFINALStart_ !== -1 && fullFINALStart === fullFINALStart_ + 1  // this logic is really important, otherwise we might look for FINAL_ at a much later part of the string
 
-
-		const finalStartA = str.indexOf(FINAL, i)
-		const finalStartB = str.indexOf('\n' + FINAL, i) // go with B if possible, else fallback to A, it's more permissive
-		const FINAL_ = finalStartB !== -1 ? '\n' + FINAL : FINAL
-		let finalStart = finalStartB !== -1 ? finalStartB : finalStartA
-
-		if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL_ right now
-			const isWritingFINAL = endsWithAnyPrefixOf(str, FINAL_)
+		let finalStart = matchedFullFINAL_ ? fullFINALStart_ : fullFINALStart
+		if (finalStart === -1) { // if didnt find FINAL_, either writing finalStr or FINAL or FINAL_ right now
+			const writingFINALlen = endsWithAnyPrefixOf(str, FINAL)?.length ?? 0
+			const writingFINALlen_ = endsWithAnyPrefixOf(str, '\n' + FINAL)?.length ?? 0 // this gets priority
+			const usingWritingFINALlen = Math.max(writingFINALlen, writingFINALlen_)
 			blocks.push({
 				orig: origStrDone,
-				final: str.substring(dividerStart, str.length - (isWritingFINAL?.length ?? 0)),
+				final: voidSubstr(str, dividerStart, str.length - usingWritingFINALlen),
 				state: 'writingFinal'
 			})
 			return blocks
 		}
-		const finalStrDone = str.substring(dividerStart, finalStart)
-		finalStart += FINAL_.length
+		const usingFINAL = matchedFullFINAL_ ? '\n' + FINAL : FINAL
+		const finalStrDone = voidSubstr(str, dividerStart, finalStart)
+		finalStart += usingFINAL.length
 		i = finalStart
 		// wrote >>>>> FINAL
 
@@ -241,9 +244,6 @@ export const extractSearchReplaceBlocks = (str: string) => {
 		})
 	}
 }
-
-
-
 
 
 
@@ -357,3 +357,220 @@ export const extractReasoningOnFinalMessage = (fullText_: string, thinkTags: [st
 	const fullText = fullText_.substring(0, tag1Idx) + fullText_.substring(tag2Idx + thinkTags[1].length, Infinity)
 	return { fullText, fullReasoning }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const tests: [string, { shape: Partial<ExtractedSearchReplaceBlock>[] }][] = [[
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINA`, { shape: [] }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL`, { shape: [], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A`, { shape: [{ state: 'writingOriginal', orig: 'A' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B`, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// `, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// ===`, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// ======`, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======`, { shape: [{ state: 'writingOriginal', orig: 'A\nB' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// `, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: '' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// >>>>>>> UPDAT`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: '' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// >>>>>>> UPDATED`, { shape: [{ state: 'done', orig: 'A\nB', final: '' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// >>>>>>> UPDATED
+// \`\`\``, { shape: [{ state: 'done', orig: 'A\nB', final: '' }], }
+// ],
+
+
+// // alternatively
+// [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X' }], }
+// ],
+// [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X\nY' }], }
+// ],
+// [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y
+// `, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X\nY' }], }
+// ],
+// [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y
+// >>>>>>> UPDAT`, { shape: [{ state: 'writingFinal', orig: 'A\nB', final: 'X\nY' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y
+// >>>>>>> UPDATED`, { shape: [{ state: 'done', orig: 'A\nB', final: 'X\nY' }], }
+// ], [
+// 	`\
+// \`\`\`
+// <<<<<<< ORIGINAL
+// A
+// B
+// =======
+// X
+// Y
+// >>>>>>> UPDATED
+// \`\`\``, { shape: [{ state: 'done', orig: 'A\nB', final: 'X\nY' }], }
+// ]]
+
+
+
+
+// function runTests() {
+
+
+// 	let passedTests = 0;
+// 	let failedTests = 0;
+
+// 	for (let i = 0; i < tests.length; i++) {
+// 		const [input, expected] = tests[i];
+// 		const result = extractSearchReplaceBlocks(input);
+
+// 		// Compare result with expected shape
+// 		let passed = true;
+// 		if (result.length !== expected.shape.length) {
+// 			passed = false;
+// 		} else {
+// 			for (let j = 0; j < result.length; j++) { // block
+// 				const expectedItem = expected.shape[j];
+// 				const resultItem = result[j];
+
+// 				if ((expectedItem.state !== undefined) && (expectedItem.state !== resultItem.state) ||
+// 					(expectedItem.orig !== undefined) && (expectedItem.orig !== resultItem.orig) ||
+// 					(expectedItem.final !== undefined) && (expectedItem.final !== resultItem.final)) {
+// 					passed = false;
+// 					break;
+// 				}
+// 			}
+// 		}
+
+// 		if (passed) {
+// 			passedTests++;
+// 			console.log(`Test ${i + 1} passed`);
+// 		} else {
+// 			failedTests++;
+// 			console.log(`Test ${i + 1} failed`);
+// 			console.log('Input:', input)
+// 			console.log(`Expected:`, expected.shape);
+// 			console.log(`Got:`, result);
+// 		}
+// 	}
+
+// 	console.log(`Total: ${tests.length}, Passed: ${passedTests}, Failed: ${failedTests}`);
+// 	return failedTests === 0;
+// }
+
+
+
+// runTests()
+
+

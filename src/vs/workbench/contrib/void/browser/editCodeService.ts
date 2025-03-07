@@ -5,7 +5,7 @@
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
-import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ICodeEditor, IOverlayWidget, IViewZone, OverlayWidgetPositionPreference } from '../../../../editor/browser/editorBrowser.js';
 
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
@@ -31,17 +31,18 @@ import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from './helpers/extractCodeFromResult.js';
-import { filenameToVscodeLanguage } from './helpers/detectLanguage.js';
+import { filenameToVscodeLanguage } from '../common/helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-import { Emitter, Event } from '../../../../base/common/event.js';
+import { Emitter } from '../../../../base/common/event.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
 import { LLMChatMessage, OnError, errorDetails } from '../common/llmMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { IVoidFileService } from '../common/voidFileService.js';
+import { IEditCodeService, URIStreamState, AddCtrlKOpts, StartApplyingOpts } from './editCodeServiceInterface.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -121,26 +122,7 @@ const findTextInCode = (text: string, fileContents: string, startingAtLine?: num
 }
 
 
-export type URIStreamState = 'idle' | 'acceptRejectAll' | 'streaming'
 
-
-export type StartApplyingOpts = {
-	from: 'QuickEdit';
-	type: 'rewrite';
-	diffareaid: number; // id of the CtrlK area (contains text selection)
-} | {
-	from: 'ClickApply';
-	type: 'searchReplace' | 'rewrite';
-	applyStr: string;
-}
-
-
-
-export type AddCtrlKOpts = {
-	startLine: number,
-	endLine: number,
-	editor: ICodeEditor,
-}
 
 // // TODO diffArea should be removed if we just discovered it has no more diffs in it
 // for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
@@ -247,28 +229,6 @@ type HistorySnapshot = {
 type StreamLocationMutable = { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number }
 
 
-export interface IEditCodeService {
-	readonly _serviceBrand: undefined;
-	startApplying(opts: StartApplyingOpts): URI | null;
-
-	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
-	removeCtrlKZone(opts: { diffareaid: number }): void;
-	removeDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept' }): void;
-
-	// CtrlKZone streaming state
-	isCtrlKZoneStreaming(opts: { diffareaid: number }): boolean;
-	interruptCtrlKStreaming(opts: { diffareaid: number }): void;
-	onDidChangeCtrlKZoneStreaming: Event<{ uri: URI; diffareaid: number }>;
-
-	// // DiffZone codeBoxId streaming state
-	getURIStreamState(opts: { uri: URI | null }): URIStreamState;
-	interruptURIStreaming(opts: { uri: URI }): void;
-	onDidChangeURIStreamState: Event<{ uri: URI; state: URIStreamState }>;
-
-	// testDiffs(): void;
-}
-
-export const IEditCodeService = createDecorator<IEditCodeService>('editCodeService');
 
 class EditCodeService extends Disposable implements IEditCodeService {
 	_serviceBrand: undefined;
@@ -813,7 +773,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	private _addToHistory(uri: URI) {
+	private _addToHistory(uri: URI, opts?: { onUndo?: () => void }) {
 
 		const getCurrentSnapshot = (): HistorySnapshot => {
 			const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
@@ -895,7 +855,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			resource: uri,
 			label: 'Void Changes',
 			code: 'undoredo.editCode',
-			undo: () => { restoreDiffAreas(beforeSnapshot) },
+			undo: () => { restoreDiffAreas(beforeSnapshot); opts?.onUndo?.() },
 			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }
 		}
 		this._undoRedoService.pushElement(elt)
@@ -1226,14 +1186,20 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	public startApplying(opts: StartApplyingOpts) {
+	// throws if there's an error
+	public startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null {
 		if (opts.type === 'rewrite') {
-			const addedDiffArea = this._initializeWriteoverStream(opts)
-			return addedDiffArea?._URI ?? null
+			const added = this._initializeWriteoverStream(opts)
+			if (!added) return null
+			const [diffZone, promise] = added
+			return [diffZone._URI, promise]
 		}
 		else if (opts.type === 'searchReplace') {
-			const addedDiffArea = this._initializeSearchAndReplaceStream(opts)
-			return addedDiffArea?._URI ?? null
+			const added = this._initializeSearchAndReplaceStream(opts)
+			if (!added) return null
+			if (!added) return null
+			const [diffZone, promise] = added
+			return [diffZone._URI, promise]
 		}
 		return null
 	}
@@ -1260,9 +1226,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	private _initializeWriteoverStream(opts: StartApplyingOpts): DiffZone | undefined {
+	private _initializeWriteoverStream(opts: StartApplyingOpts): [DiffZone, Promise<void>] | undefined {
 
-		const { from } = opts
+		const { from, } = opts
 
 		let startLine: number
 		let endLine: number
@@ -1306,8 +1272,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
 
+		// promise that resolves when the apply is done
+		let resApplyPromise: () => void
+		let rejApplyPromise: (e: any) => void
+		const applyPromise = new Promise<void>((res_, rej_) => { resApplyPromise = res_; rejApplyPromise = rej_ })
+
+
 		// add to history
-		const { onFinishEdit } = this._addToHistory(uri)
+		const { onFinishEdit } = this._addToHistory(uri, {
+			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) }
+		})
 
 		// __TODO__ let users customize modelFimTags
 		const quickEditFIMTags = defaultQuickEditFimTags
@@ -1403,56 +1377,75 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let fullTextSoFar = '' // so far (INCLUDING ignored suffix)
 		let prevIgnoredSuffix = ''
 
-		streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-			messagesType: 'chatMessages',
-			useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
-			logging: { loggingName: `startApplying - ${from}` },
-			messages,
-			onText: ({ fullText: fullText_ }) => {
-				const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
+		const writeover = async () => {
 
-				const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
-				fullTextSoFar += newText // full text, including ```, etc
+			let resMessageDonePromise: () => void = () => { }
+			const messageDonePromise = new Promise<void>((res_) => { resMessageDonePromise = res_ })
 
-				const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullTextSoFar, newText.length)
-				const { endLineInLlmTextSoFar } = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamInfoMutable)
-				diffZone._streamState.line = (diffZone.startLine - 1) + endLineInLlmTextSoFar // change coordinate systems from originalCode to full file
+			streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+				messagesType: 'chatMessages',
+				useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
+				logging: { loggingName: `Edit (Writeover) - ${from}` },
+				messages,
+				onText: (params) => {
+					const { fullText: fullText_ } = params
+					const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
 
-				this._refreshStylesAndDiffsInURI(uri)
+					const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
+					fullTextSoFar += newText // full text, including ```, etc
 
-				prevIgnoredSuffix = croppedSuffix
-			},
-			onFinalMessage: ({ fullText }) => {
-				// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
-				// at the end, re-write whole thing to make sure no sync errors
-				const [croppedText, _1, _2] = extractText(fullText, 0)
-				this._writeText(uri, croppedText,
-					{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-					{ shouldRealignDiffAreas: true }
-				)
-				onDone()
-			},
-			onError: (e) => {
-				this._notifyError(e)
-				onDone()
-				this._undoHistory(uri)
-			},
+					const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullTextSoFar, newText.length)
+					const { endLineInLlmTextSoFar } = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamInfoMutable)
+					diffZone._streamState.line = (diffZone.startLine - 1) + endLineInLlmTextSoFar // change coordinate systems from originalCode to full file
 
-		})
+					this._refreshStylesAndDiffsInURI(uri)
 
-		return diffZone
+					prevIgnoredSuffix = croppedSuffix
+				},
+				onFinalMessage: (params) => {
+					const { fullText } = params
+					// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
+					// at the end, re-write whole thing to make sure no sync errors
+					const [croppedText, _1, _2] = extractText(fullText, 0)
+					this._writeText(uri, croppedText,
+						{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+						{ shouldRealignDiffAreas: true }
+					)
+					onDone()
+					resMessageDonePromise()
+				},
+				onError: (e) => {
+					this._notifyError(e)
+					onDone()
+					this._undoHistory(uri)
+					resMessageDonePromise()
+				},
+			})
 
+			await messageDonePromise
+		}
+
+		writeover().then(() => resApplyPromise()).catch((e) => rejApplyPromise(e))
+
+		return [diffZone, applyPromise]
 	}
 
 
 
 
-	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }) {
-		const { applyStr } = opts
+	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): [DiffZone, Promise<void>] | undefined {
+		const { from, applyStr, uri: givenURI, } = opts
+		let uri: URI
 
-		const uri_ = this._getActiveEditorURI()
-		if (!uri_) return
-		const uri = uri_
+		if (givenURI === 'current') {
+			const uri_ = this._getActiveEditorURI()
+			if (!uri_) return
+			uri = uri_
+		}
+		else {
+			uri = givenURI
+		}
+
 
 		// generate search/replace block text
 		const originalFileCode = this._voidFileService.readModel(uri)
@@ -1476,16 +1469,24 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		// can use this as a proxy to set the diffArea's stream state requestId
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
-		let { onFinishEdit } = this._addToHistory(uri)
 
-		// TODO replace these with whatever block we're on initially if already started
+		// promise that resolves when the apply is done
+		let resApplyPromise: () => void
+		let rejApplyPromise: (e: any) => void
+		const applyPromise = new Promise<void>((res_, rej_) => { resApplyPromise = res_; rejApplyPromise = rej_ })
+
+		// add to history
+		const { onFinishEdit } = this._addToHistory(uri, {
+			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) }
+		})
+
+		// TODO replace these with whatever block we're on initially if already started (caching apply)
 
 		type SearchReplaceDiffAreaMetadata = {
 			originalBounds: [number, number], // 1-indexed
 			originalCode: string,
 		}
 
-		const addedTrackingZoneOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
 			type: 'DiffZone',
@@ -1506,12 +1507,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
 
-		const revertAndContinueHistory = () => {
-			this._undoHistory(uri)
-			const { onFinishEdit: onFinishEdit_ } = this._addToHistory(uri)
-			onFinishEdit = onFinishEdit_
-		}
-
 
 		const convertOriginalRangeToFinalRange = (originalRange: readonly [number, number]): [number, number] => {
 			// adjust based on the changes by computing line offset
@@ -1531,12 +1526,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
-		const errMsgOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>) => {
-			return str === 'Not found' ?
-				'I interrupted you because the latest ORIGINAL code could not be found in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in ORIGINAL is identical to a code snippet in the file.'
-				: str === 'Not unique' ?
-					'I interrupted you because the latest ORIGINAL code shows up multiple times in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in each ORIGINAL section is unique in the file.'
-					: ''
+		const errMsgOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>, blockOrig: string) => {
+			return str === `Not found` ?
+				`The ORIGINAL code provided could not be found in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in ORIGINAL is identical to a code snippet in the file. The ORIGINAL code provided: ${JSON.stringify(blockOrig)}`
+				: str === `Not unique` ?
+					`The ORIGINAL code provided shows up multiple times in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in each ORIGINAL section is unique in the file. The ORIGINAL code provided: ${JSON.stringify(blockOrig)}`
+					: ``
 		}
 
 
@@ -1555,169 +1550,209 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		// refresh now in case onText takes a while to get 1st message
 		this._refreshStylesAndDiffsInURI(uri)
 
+		// stateful
+		const addedTrackingZoneOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
+
 		// stream style related
 		let latestStreamLocationMutable: StreamLocationMutable | null = null
 		let shouldUpdateOrigStreamStyle = true
 
 		let oldBlocks: ExtractedSearchReplaceBlock[] = []
 
-		// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
-		let shouldSendAnotherMessage = true
-		let nMessagesSent = 0
-		let currStreamingBlockNum = 0
-		while (shouldSendAnotherMessage) {
-			shouldSendAnotherMessage = false
-			nMessagesSent += 1
+		const retryLoop = async () => {
+			// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
+			let shouldSendAnotherMessage = true
+			let nMessagesSent = 0
+			let currStreamingBlockNum = 0
+			while (shouldSendAnotherMessage) {
+				shouldSendAnotherMessage = false
+				nMessagesSent += 1
 
-			streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-				messagesType: 'chatMessages',
-				useProviderFor: 'Apply',
-				logging: { loggingName: `generateSearchAndReplace` },
-				messages,
-				onText: ({ fullText }) => {
-					// blocks are [done done done ... {writingFinal|writingOriginal}]
-					//               ^
-					//              currStreamingBlockNum
+				let resMessageDonePromise: () => void = () => { }
+				const messageDonePromise = new Promise<void>((res_) => { resMessageDonePromise = res_ })
 
-					const blocks = extractSearchReplaceBlocks(fullText)
+				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+					messagesType: 'chatMessages',
+					useProviderFor: 'Apply',
+					logging: { loggingName: `Edit (Search/Replace) - ${from}` },
+					messages,
+					onText: (params) => {
+						const { fullText } = params
+						// blocks are [done done done ... {writingFinal|writingOriginal}]
+						//               ^
+						//              currStreamingBlockNum
 
-					for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
-						const block = blocks[blockNum]
+						const blocks = extractSearchReplaceBlocks(fullText)
 
-						if (block.state === 'writingOriginal') {
-							// update stream state to the first line of original if some portion of original has been written
-							if (shouldUpdateOrigStreamStyle && block.orig.trim().length >= 20) {
-								const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
-								const originalRange = findTextInCode(block.orig, originalFileCode, startingAtLine)
-								if (typeof originalRange !== 'string') {
-									const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
-									diffZone._streamState.line = startLine
-									shouldUpdateOrigStreamStyle = false
+						for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
+							const block = blocks[blockNum]
+
+							if (block.state === 'writingOriginal') {
+								// update stream state to the first line of original if some portion of original has been written
+								if (shouldUpdateOrigStreamStyle && block.orig.trim().length >= 20) {
+									const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
+									const originalRange = findTextInCode(block.orig, originalFileCode, startingAtLine)
+									if (typeof originalRange !== 'string') {
+										const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
+										diffZone._streamState.line = startLine
+										shouldUpdateOrigStreamStyle = false
+									}
 								}
+								// must be done writing original to move on to writing streamed content
+								continue
 							}
-							// must be done writing original to move on to writing streamed content
-							continue
-						}
-						shouldUpdateOrigStreamStyle = true
+							shouldUpdateOrigStreamStyle = true
 
 
-						// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming
-						if (!(blockNum in addedTrackingZoneOfBlockNum)) {
-							const originalBounds = findTextInCode(block.orig, originalFileCode)
+							// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming
+							if (!(blockNum in addedTrackingZoneOfBlockNum)) {
+								console.log('finding text in code...', { orig: block.orig })
+								const originalBounds = findTextInCode(block.orig, originalFileCode)
 
-							// if error
-							if (typeof originalBounds === 'string') {
-								messages.push(
-									{ role: 'assistant', content: fullText }, // latest output
-									{ role: 'user', content: errMsgOfInvalidStr(originalBounds) } // user explanation of what's wrong
+								// if error
+								if (typeof originalBounds === 'string') {
+									const content = errMsgOfInvalidStr(originalBounds, block.orig)
+									messages.push(
+										{ role: 'assistant', content: fullText }, // latest output
+										{ role: 'user', content: content } // user explanation of what's wrong
+									)
+
+									if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
+
+									// REVERT
+									const numLines = this._getNumLines(uri)
+									if (numLines !== null) this._writeText(uri, originalFileCode,
+										{ startLineNumber: 1, startColumn: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
+										{ shouldRealignDiffAreas: false }
+									)
+									// reset state
+									diffZone.startLine = 1
+									diffZone.endLine = numLines ?? 1
+									if (diffZone._streamState.isStreaming) {
+										diffZone._streamState.line = 1
+									}
+
+									currStreamingBlockNum = 0
+									latestStreamLocationMutable = null
+									shouldUpdateOrigStreamStyle = true
+									oldBlocks = []
+									addedTrackingZoneOfBlockNum.splice(0, Infinity) // clear the array
+
+									shouldSendAnotherMessage = true
+									this._refreshStylesAndDiffsInURI(uri)
+									resMessageDonePromise()
+									return
+								}
+
+								const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
+
+								// otherwise if no error, add the position as a diffarea
+								const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
+									type: 'TrackingZone',
+									startLine: startLine,
+									endLine: endLine,
+									_URI: uri,
+									metadata: {
+										originalBounds: [...originalBounds],
+										originalCode: block.orig,
+									},
+								}
+								const trackingZone = this._addDiffArea(adding)
+								addedTrackingZoneOfBlockNum.push(trackingZone)
+								latestStreamLocationMutable = { line: startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+							} // <-- done adding diffarea
+
+
+							// should always be in streaming state here
+							if (!diffZone._streamState.isStreaming) {
+								console.error('DiffZone was not in streaming state in _initializeSearchAndReplaceStream')
+								continue
+							}
+							if (!latestStreamLocationMutable) continue
+
+							// if a block is done, finish it by writing all
+							if (block.state === 'done') {
+								const { startLine: finalStartLine, endLine: finalEndLine } = addedTrackingZoneOfBlockNum[blockNum]
+								this._writeText(uri, block.final,
+									{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalEndLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+									{ shouldRealignDiffAreas: true }
 								)
-								if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
-								shouldSendAnotherMessage = true
-								revertAndContinueHistory()
+								diffZone._streamState.line = finalEndLine + 1
+								currStreamingBlockNum = blockNum + 1
 								continue
 							}
 
-							const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
+							// write the added text to the file
+							const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
+							this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
+							oldBlocks = blocks // oldblocks is only used if writingFinal
 
-							// otherwise if no error, add the position as a diffarea
-							const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
-								type: 'TrackingZone',
-								startLine: startLine,
-								endLine: endLine,
-								_URI: uri,
-								metadata: {
-									originalBounds: [...originalBounds],
-									originalCode: block.orig,
-								},
-							}
-							const trackingZone = this._addDiffArea(adding)
-							addedTrackingZoneOfBlockNum.push(trackingZone)
-							latestStreamLocationMutable = { line: startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-						} // <-- done adding diffarea
+							// const { endLine: currentEndLine } = addedTrackingZoneOfBlockNum[blockNum] // would be bad to do this because a lot of the bottom lines might be the same. more accurate to go with latestStreamLocationMutable
+							// diffZone._streamState.line = currentEndLine
+							diffZone._streamState.line = latestStreamLocationMutable.line
 
 
-						// should always be in streaming state here
-						if (!diffZone._streamState.isStreaming) {
-							console.error('DiffZone was not in streaming state in _initializeSearchAndReplaceStream')
-							continue
+
+						} // end for
+
+						this._refreshStylesAndDiffsInURI(uri)
+					},
+					onFinalMessage: async (params) => {
+						const { fullText } = params
+						console.log('final message!!', fullText)
+
+						// 1. wait 500ms and fix lint errors - call lint error workflow
+						// (update react state to say "Fixing errors")
+						const blocks = extractSearchReplaceBlocks(fullText)
+
+						if (blocks.length === 0) {
+							this._notificationService.info(`Void: We ran Apply, but the LLM didn't output any changes.`)
 						}
-						if (!latestStreamLocationMutable) continue
+						// writeover the whole file
+						let newCode = originalFileCode
+						for (let blockNum = addedTrackingZoneOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
+							const { originalBounds } = addedTrackingZoneOfBlockNum[blockNum].metadata
+							const finalCode = blocks[blockNum].final
 
-						// if a block is done, finish it by writing all
-						if (block.state === 'done') {
-							const { startLine: finalStartLine, endLine: finalEndLine } = addedTrackingZoneOfBlockNum[blockNum]
-							this._writeText(uri, block.final,
-								{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalEndLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+							if (finalCode === null) continue
+
+							const [originalStart, originalEnd] = originalBounds
+							const lines = newCode.split('\n')
+							newCode = [
+								...lines.slice(0, (originalStart - 1)),
+								...finalCode.split('\n'),
+								...lines.slice((originalEnd - 1) + 1, Infinity)
+							].join('\n')
+						}
+						const numLines = this._getNumLines(uri)
+						if (numLines !== null) {
+							this._writeText(uri, newCode,
+								{ startLineNumber: 1, startColumn: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
 								{ shouldRealignDiffAreas: true }
 							)
-							diffZone._streamState.line = finalEndLine + 1
-							currStreamingBlockNum = blockNum + 1
-							continue
 						}
 
-						// write the added text to the file
-						const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
-						this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
-						oldBlocks = blocks // oldblocks is only used if writingFinal
+						onDone()
+						resMessageDonePromise()
+					},
+					onError: (e) => {
+						this._notifyError(e)
+						onDone()
+						this._undoHistory(uri)
+						resMessageDonePromise()
+					},
 
-						// const { endLine: currentEndLine } = addedTrackingZoneOfBlockNum[blockNum] // would be bad to do this because a lot of the bottom lines might be the same. more accurate to go with latestStreamLocationMutable
-						// diffZone._streamState.line = currentEndLine
-						diffZone._streamState.line = latestStreamLocationMutable.line
+				})
 
+				await messageDonePromise
 
+			} // end while
 
-					} // end for
+		} // end retryLoop
 
-					this._refreshStylesAndDiffsInURI(uri)
-				},
-				onFinalMessage: async ({ fullText }) => {
-					console.log('final message!!', fullText)
+		retryLoop().then(() => resApplyPromise()).catch((e) => rejApplyPromise(e))
 
-					// 1. wait 500ms and fix lint errors - call lint error workflow
-					// (update react state to say "Fixing errors")
-					const blocks = extractSearchReplaceBlocks(fullText)
-
-					if (blocks.length === 0) {
-						this._notificationService.info(`Void: We ran Apply, but the LLM didn't output any changes.`)
-					}
-
-					// writeover the whole file
-					let newCode = originalFileCode
-					for (let blockNum = addedTrackingZoneOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
-						const { originalBounds } = addedTrackingZoneOfBlockNum[blockNum].metadata
-						const finalCode = blocks[blockNum].final
-
-						if (finalCode === null) continue
-
-						const [originalStart, originalEnd] = originalBounds
-						const lines = newCode.split('\n')
-						newCode = [
-							...lines.slice(0, (originalStart - 1)),
-							...finalCode.split('\n'),
-							...lines.slice((originalEnd - 1) + 1, Infinity)
-						].join('\n')
-					}
-					const numLines = this._getNumLines(uri)
-					if (numLines !== null) {
-						this._writeText(uri, newCode,
-							{ startLineNumber: 1, startColumn: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
-							{ shouldRealignDiffAreas: true }
-						)
-					}
-
-					onDone()
-				},
-				onError: (e) => {
-					this._notifyError(e)
-					onDone()
-					this._undoHistory(uri)
-				},
-
-			})
-		}
-
-
-		return diffZone
+		return [diffZone, applyPromise]
 	}
 
 

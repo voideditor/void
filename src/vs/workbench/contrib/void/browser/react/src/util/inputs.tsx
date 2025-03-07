@@ -169,7 +169,7 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 		ctor={InputBox}
 		className='
 			bg-void-bg-1
-			@@[&_::placeholder]:!void-text-void-fg-3
+			@@void-force-child-placeholder-void-fg-1
 		'
 		propsFn={useCallback((container) => [
 			container,
@@ -214,27 +214,188 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 
 
 
+
+export const VoidSlider = ({
+	value,
+	onChange,
+	size = 'md',
+	disabled = false,
+	min = 0,
+	max = 7,
+	step = 1,
+	className = '',
+	width = 200,
+}: {
+	value: number;
+	onChange: (value: number) => void;
+	disabled?: boolean;
+	size?: 'xxs' | 'xs' | 'sm' | 'sm+' | 'md';
+	min?: number;
+	max?: number;
+	step?: number;
+	className?: string;
+	width?: number;
+}) => {
+	// Calculate percentage for position
+	const percentage = ((value - min) / (max - min)) * 100;
+
+	// Handle track click
+	const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+		if (disabled) return;
+
+		const rect = e.currentTarget.getBoundingClientRect();
+		const clickPosition = e.clientX - rect.left;
+		const trackWidth = rect.width;
+
+		// Calculate new value
+		const newPercentage = Math.max(0, Math.min(1, clickPosition / trackWidth));
+		const rawValue = min + newPercentage * (max - min);
+
+		// Special handling to ensure max value is always reachable
+		if (rawValue >= max - step / 2) {
+			onChange(max);
+			return;
+		}
+
+		// Normal step calculation
+		const steppedValue = Math.round((rawValue - min) / step) * step + min;
+		const clampedValue = Math.max(min, Math.min(max, steppedValue));
+
+		onChange(clampedValue);
+	};
+
+	// Helper function to handle thumb dragging that respects steps and max
+	const handleThumbDrag = (moveEvent: MouseEvent, track: Element) => {
+		if (!track) return;
+
+		const rect = (track as HTMLElement).getBoundingClientRect();
+		const movePosition = moveEvent.clientX - rect.left;
+		const trackWidth = rect.width;
+
+		// Calculate new value
+		const newPercentage = Math.max(0, Math.min(1, movePosition / trackWidth));
+		const rawValue = min + newPercentage * (max - min);
+
+		// Special handling to ensure max value is always reachable
+		if (rawValue >= max - step / 2) {
+			onChange(max);
+			return;
+		}
+
+		// Normal step calculation
+		const steppedValue = Math.round((rawValue - min) / step) * step + min;
+		const clampedValue = Math.max(min, Math.min(max, steppedValue));
+
+		onChange(clampedValue);
+	};
+
+	return (
+		<div className={`inline-flex items-center flex-shrink-0 ${className}`}>
+			{/* Outer container with padding to account for thumb overhang */}
+			<div className={`relative flex-shrink-0 ${disabled ? 'opacity-25' : ''}`}
+				style={{
+					width,
+					// Add horizontal padding equal to half the thumb width
+					// paddingLeft: thumbSizePx / 2,
+					// paddingRight: thumbSizePx / 2
+				}}>
+				{/* Track container with adjusted width */}
+				<div className="relative w-full">
+					{/* Invisible wider clickable area that sits above the track */}
+					<div
+						className="absolute w-full cursor-pointer"
+						style={{
+							height: '16px',
+							top: '50%',
+							transform: 'translateY(-50%)',
+							zIndex: 1
+						}}
+						onClick={handleTrackClick}
+					/>
+
+					{/* Track */}
+					<div
+						className={`relative ${size === 'xxs' ? 'h-0.5' :
+								size === 'xs' ? 'h-1' :
+									size === 'sm' ? 'h-1.5' :
+										size === 'sm+' ? 'h-2' : 'h-2.5'
+							} bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer`}
+						onClick={handleTrackClick}
+					>
+						{/* Filled part of track */}
+						<div
+							className={`absolute left-0 ${size === 'xxs' ? 'h-0.5' :
+									size === 'xs' ? 'h-1' :
+										size === 'sm' ? 'h-1.5' :
+											size === 'sm+' ? 'h-2' : 'h-2.5'
+								} bg-gray-900 dark:bg-white rounded-full`}
+							style={{ width: `${percentage}%` }}
+						/>
+					</div>
+
+					{/* Thumb with sizes matching VoidSwitch */}
+					<div
+						className={`absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2
+							${size === 'xxs' ? 'h-2 w-2' :
+								size === 'xs' ? 'h-2.5 w-2.5' :
+									size === 'sm' ? 'h-3 w-3' :
+										size === 'sm+' ? 'h-3.5 w-3.5' : 'h-4 w-4'
+							}
+							bg-white dark:bg-gray-900 rounded-full shadow-md ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
+						style={{ left: `${percentage}%`, zIndex: 2 }}  // Ensure thumb is above the invisible clickable area
+						onMouseDown={(e) => {
+							if (disabled) return;
+
+							const track = e.currentTarget.previousElementSibling;
+
+							const handleMouseMove = (moveEvent: MouseEvent) => {
+								handleThumbDrag(moveEvent, track as Element);
+							};
+
+							const handleMouseUp = () => {
+								document.removeEventListener('mousemove', handleMouseMove);
+								document.removeEventListener('mouseup', handleMouseUp);
+								document.body.style.cursor = '';
+								document.body.style.userSelect = '';
+							};
+
+							document.body.style.userSelect = 'none';
+							document.body.style.cursor = 'grabbing';
+							document.addEventListener('mousemove', handleMouseMove);
+							document.addEventListener('mouseup', handleMouseUp);
+
+							e.preventDefault();
+						}}
+					/>
+				</div>
+			</div>
+		</div>
+	);
+};
+
+
+
 export const VoidSwitch = ({
 	value,
 	onChange,
 	size = 'md',
-	label,
 	disabled = false,
 }: {
 	value: boolean;
 	onChange: (value: boolean) => void;
-	label?: string;
 	disabled?: boolean;
-	size?: 'xs' | 'sm' | 'sm+' | 'md';
+	size?: 'xxs' | 'xs' | 'sm' | 'sm+' | 'md';
 }) => {
 	return (
-		<label className="inline-flex items-center cursor-pointer">
+		<label className="inline-flex items-center">
 			<div
 				onClick={() => !disabled && onChange(!value)}
 				className={`
+			cursor-pointer
 			relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out
 			${value ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'}
 			${disabled ? 'opacity-25' : ''}
+			${size === 'xxs' ? 'h-3 w-5' : ''}
 			${size === 'xs' ? 'h-4 w-7' : ''}
 			${size === 'sm' ? 'h-5 w-9' : ''}
 			${size === 'sm+' ? 'h-5 w-10' : ''}
@@ -244,10 +405,12 @@ export const VoidSwitch = ({
 				<span
 					className={`
 			  inline-block transform rounded-full bg-white dark:bg-gray-900 shadow transition-transform duration-200 ease-in-out
+			  ${size === 'xxs' ? 'h-2 w-2' : ''}
 			  ${size === 'xs' ? 'h-2.5 w-2.5' : ''}
 			  ${size === 'sm' ? 'h-3 w-3' : ''}
 			  ${size === 'sm+' ? 'h-3.5 w-3.5' : ''}
 			  ${size === 'md' ? 'h-4 w-4' : ''}
+			  ${size === 'xxs' ? (value ? 'translate-x-2.5' : 'translate-x-0.5') : ''}
 			  ${size === 'xs' ? (value ? 'translate-x-3.5' : 'translate-x-0.5') : ''}
 			  ${size === 'sm' ? (value ? 'translate-x-5' : 'translate-x-1') : ''}
 			  ${size === 'sm+' ? (value ? 'translate-x-6' : 'translate-x-1') : ''}
@@ -255,14 +418,6 @@ export const VoidSwitch = ({
 			`}
 				/>
 			</div>
-			{label && (
-				<span className={`
-			ml-3 font-medium text-gray-900 dark:text-gray-100
-			${size === 'xs' ? 'text-xs' : 'text-sm'}
-		  `}>
-					{label}
-				</span>
-			)}
 		</label>
 	);
 };

@@ -3,7 +3,6 @@ import { useAccessor, useURIStreamState, useSettingsState } from '../util/servic
 import { useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
-import { IEditCodeService, URIStreamState } from '../../../editCodeService.js'
 
 enum CopyButtonText {
 	Idle = 'Copy',
@@ -38,7 +37,7 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 	const isSingleLine = !codeStr.includes('\n')
 
 	return <button
-		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 		onClick={onCopy}
 	>
 		{copyButtonText}
@@ -55,8 +54,6 @@ const applyingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undef
 
 
 export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: string, applyBoxId: string }) => {
-
-	console.log('applyboxid', applyBoxId, applyingURIOfApplyBoxIdRef)
 
 	const settingsState = useSettingsState()
 	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
@@ -82,11 +79,12 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 	const onSubmit = useCallback(() => {
 		if (isDisabled) return
 		if (streamState() === 'streaming') return
-		const newApplyingUri = editCodeService.startApplying({
+		const [newApplyingUri, _] = editCodeService.startApplying({
 			from: 'ClickApply',
 			type: 'searchReplace',
 			applyStr: codeStr,
-		})
+			uri: 'current',
+		}) ?? []
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
 		rerender(c => c + 1)
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
@@ -106,16 +104,14 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 	const isSingleLine = !codeStr.includes('\n')
 
 	const applyButton = <button
-		// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 		onClick={onSubmit}
 	>
 		Apply
 	</button>
 
 	const stopButton = <button
-		// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 		onClick={onInterrupt}
 	>
 		Stop
@@ -123,8 +119,7 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 
 	const acceptRejectButtons = <>
 		<button
-			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 			onClick={() => {
 				const uri = applyingUri()
 				if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
@@ -133,8 +128,7 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			Accept
 		</button>
 		<button
-			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-1 text-void-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
+			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-1 rounded`}
 			onClick={() => {
 				const uri = applyingUri()
 				if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
@@ -143,8 +137,6 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 			Reject
 		</button>
 	</>
-
-	console.log('streamStateRef.current', streamState())
 
 	const currStreamState = streamState()
 	return <>

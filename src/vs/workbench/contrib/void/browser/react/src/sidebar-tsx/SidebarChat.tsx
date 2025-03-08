@@ -1292,8 +1292,6 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => 
 
 	const role = chatMessage.role
 
-	console.log('ROLE', role)
-
 	if (role === 'user') {
 		return <UserMessageComponent
 			chatMessage={chatMessage}

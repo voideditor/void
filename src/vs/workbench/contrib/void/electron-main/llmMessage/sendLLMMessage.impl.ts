@@ -303,9 +303,6 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 
 	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: true })
 
-
-	console.log('MESSAGES!!!!', JSON.stringify(messages, null, 5))
-
 	const thisConfig = settingsOfProvider.anthropic
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
 	const tools = ((tools_?.length ?? 0) !== 0) ? tools_?.map(tool => toAnthropicTool(tool)) : undefined

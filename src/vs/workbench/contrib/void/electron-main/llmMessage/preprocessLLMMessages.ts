@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { LLMChatMessage, LLMFIMMessage } from '../../common/llmMessageTypes.js';
+import { AnthropicReasoning, LLMChatMessage, LLMFIMMessage } from '../../common/llmMessageTypes.js';
 import { deepClone } from '../../../../../base/common/objects.js';
 
 
@@ -22,7 +22,7 @@ type InternalLLMChatMessage = {
 	content: string;
 } | {
 	role: 'assistant',
-	content: string | ({ type: 'text'; text: string })[];
+	content: string | (AnthropicReasoning | { type: 'text'; text: string })[];
 } | {
 	role: 'tool';
 	content: string; // result
@@ -35,7 +35,7 @@ type InternalLLMChatMessage = {
 const EMPTY_MESSAGE = '(empty message)'
 const EMPTY_TOOL_CONTENT = '(empty content)'
 
-const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatMessage[] }) => {
+const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatMessage[] }): { messages: LLMChatMessage[] } => {
 	const messages = deepClone(messages_)
 	const newMessages: LLMChatMessage[] = []
 	if (messages.length >= 0) newMessages.push(messages[0])
@@ -155,7 +155,7 @@ openai on developer system message - https://cdn.openai.com/spec/model-spec-2024
 type PrepareMessagesToolsOpenAI = (
 	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'tool' }> | {
 		role: 'assistant',
-		content: string | { type: 'text'; text: string }[];
+		content: string | (AnthropicReasoning | { type: 'text'; text: string })[];
 		tool_calls?: {
 			type: 'function';
 			id: string;
@@ -234,6 +234,7 @@ type PrepareMessagesToolsAnthropic = (
 	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'user' }> | {
 		role: 'assistant',
 		content: string | (
+			| AnthropicReasoning
 			| {
 				type: 'text';
 				text: string;
@@ -285,7 +286,7 @@ const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMCh
 		newMessages[i] = {
 			role: 'user',
 			content: [
-				...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content }] as const,
+				...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content || EMPTY_TOOL_CONTENT }] as const,
 				...currMsg.content ? [{ type: 'text', text: currMsg.content }] as const : [],
 			]
 		}
@@ -311,6 +312,28 @@ const prepareMessages_tools = ({ messages, supportsTools }: { messages: Internal
 	else {
 		throw new Error(`supportsTools type not recognized`)
 	}
+}
+
+
+// remove rawAnthropicAssistantContent, and make content equal to it if supportsAnthropicContent
+const prepareMessages_anthropicContent = ({ messages, supportsAnthropicReasoningSignature }: { messages: LLMChatMessage[], supportsAnthropicReasoningSignature: boolean }) => {
+	const newMessages: InternalLLMChatMessage[] = []
+	for (const m of messages) {
+		if (m.role !== 'assistant') {
+			newMessages.push(m)
+			continue
+		}
+		let newMessage: InternalLLMChatMessage
+		if (supportsAnthropicReasoningSignature && m.anthropicReasoning) {
+			const content = m.content ? [...m.anthropicReasoning, { type: 'text' as const, text: m.content }] : m.anthropicReasoning
+			newMessage = { role: 'assistant', content: content }
+		}
+		else {
+			newMessage = { role: 'assistant', content: m.content }
+		}
+		newMessages.push(newMessage)
+	}
+	return { messages: newMessages }
 }
 
 
@@ -347,18 +370,21 @@ export const prepareMessages = ({
 	aiInstructions,
 	supportsSystemMessage,
 	supportsTools,
+	supportsAnthropicReasoningSignature,
 }: {
 	messages: LLMChatMessage[],
 	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 	supportsTools: false | 'anthropic-style' | 'openai-style',
+	supportsAnthropicReasoningSignature: boolean,
 }) => {
 	const { messages: messages1 } = prepareMessages_normalize({ messages })
-	const { messages: messages2, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages1, aiInstructions, supportsSystemMessage })
-	const { messages: messages3 } = prepareMessages_tools({ messages: messages2, supportsTools })
-	const { messages: messages4 } = prepareMessages_noEmptyMessage({ messages: messages3 })
+	const { messages: messages2 } = prepareMessages_anthropicContent({ messages: messages1, supportsAnthropicReasoningSignature })
+	const { messages: messages3, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages2, aiInstructions, supportsSystemMessage })
+	const { messages: messages4 } = prepareMessages_tools({ messages: messages3, supportsTools })
+	const { messages: messages5 } = prepareMessages_noEmptyMessage({ messages: messages4 })
 	return {
-		messages: messages4 as any,
+		messages: messages5 as any,
 		separateSystemMessageStr
 	} as const
 }

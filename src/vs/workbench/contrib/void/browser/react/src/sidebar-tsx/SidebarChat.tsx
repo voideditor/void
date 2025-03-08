@@ -1438,6 +1438,7 @@ export const SidebarChat = () => {
 				role: 'assistant',
 				content: messageSoFar ?? '',
 				reasoning: reasoningSoFar ?? '',
+				anthropicReasoning: null,
 			}}
 			isLoading={isStreaming}
 		/> : null

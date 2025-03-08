@@ -395,7 +395,7 @@ export class ToolsService implements IToolsService {
 
 				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
-				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) || '(empty)' // paginate
+				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) // paginate
 				const hasNextPage = (readFileContents.length - 1) - toIdx >= 1
 				return { fileContents, hasNextPage }
 			},

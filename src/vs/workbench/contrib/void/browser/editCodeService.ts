@@ -1613,7 +1613,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								if (typeof originalBounds === 'string') {
 									const content = errMsgOfInvalidStr(originalBounds, block.orig)
 									messages.push(
-										{ role: 'assistant', content: fullText }, // latest output
+										{ role: 'assistant', content: fullText, anthropicReasoning: null }, // latest output
 										{ role: 'user', content: content } // user explanation of what's wrong
 									)
 

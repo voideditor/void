@@ -140,7 +140,7 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 		})
 		.then(async response => {
 			const fullText = response.choices[0]?.text
-			onFinalMessage({ fullText, fullReasoning: '' });
+			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
 		})
 		.catch(error => {
 			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }); }
@@ -168,7 +168,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
-	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools })
+	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: false })
 	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAICompatibleTool(tool)) : undefined
 
 	const includeInPayload = canIOReasoning ? providerReasoningIOSettings?.input?.includeInPayload || {} : {}
@@ -222,9 +222,9 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 			else {
 				if (manuallyParseReasoning) {
 					const { fullText, fullReasoning } = extractReasoningOnFinalMessage(fullTextSoFar, openSourceThinkTags)
-					onFinalMessage({ fullText, fullReasoning, toolCalls });
+					onFinalMessage({ fullText, fullReasoning, toolCalls, anthropicReasoning: null });
 				} else {
-					onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, toolCalls });
+					onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, toolCalls, anthropicReasoning: null });
 				}
 			}
 		})
@@ -301,7 +301,7 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 		reasoningBudget,
 	} = getModelSelectionState(providerName, modelName_, optionsOfModelSelection) // user's modelName_ here
 
-	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools })
+	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: true })
 
 
 	console.log('MESSAGES!!!!', JSON.stringify(messages, null, 5))
@@ -374,7 +374,8 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	// on done - (or when error/fail) - this is called AFTER last streamEvent
 	stream.on('finalMessage', (response) => {
 		const toolCalls = toolCallsFrom_Anthropic(response.content)
-		onFinalMessage({ fullText, fullReasoning, toolCalls })
+		const anthropicReasoning = response.content.filter(c => c.type === 'thinking' || c.type === 'redacted_thinking')
+		onFinalMessage({ fullText, fullReasoning, toolCalls, anthropicReasoning })
 	})
 	// on error
 	stream.on('error', (error) => {
@@ -458,7 +459,7 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 				const newText = chunk.response
 				fullText += newText
 			}
-			onFinalMessage({ fullText, fullReasoning: '' })
+			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null })
 		})
 		// when error/fail
 		.catch((error) => {

@@ -36,6 +36,7 @@ export type LLMChatMessage = {
 } | {
 	role: 'assistant',
 	content: string; // text content
+	anthropicReasoning: AnthropicReasoning[] | null;
 } | {
 	role: 'tool';
 	content: string; // result
@@ -51,12 +52,12 @@ export type ToolCallType = {
 	id: string;
 }
 
+export type AnthropicReasoning = ({ type: 'thinking'; thinking: any; signature: string; } | { type: 'redacted_thinking', data: any })
 
 export type OnText = (p: { fullText: string; fullReasoning: string }) => void
-export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCalls?: ToolCallType[]; }) => void // id is tool_use_id
+export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCalls?: ToolCallType[]; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
 export type OnError = (p: { message: string; fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
-
 
 
 export type LLMFIMMessage = {

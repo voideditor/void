@@ -17,7 +17,7 @@ import { EditorResourceAccessor } from '../../../common/editor.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
-import { ILLMMessageService } from '../common/llmMessageService.js';
+import { ILLMMessageService } from '../common/sendLLMMessageService.js';
 import { isWindows } from '../../../../base/common/platform.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';

@@ -38,8 +38,8 @@ import { EditorOption } from '../../../../editor/common/config/editorOptions.js'
 import { Emitter } from '../../../../base/common/event.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { ILLMMessageService } from '../common/llmMessageService.js';
-import { LLMChatMessage, OnError, errorDetails } from '../common/llmMessageTypes.js';
+import { ILLMMessageService } from '../common/sendLLMMessageService.js';
+import { LLMChatMessage, OnError, errorDetails } from '../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { IVoidFileService } from '../common/voidFileService.js';
 import { IEditCodeService, URIStreamState, AddCtrlKOpts, StartApplyingOpts } from './editCodeServiceInterface.js';

@@ -21,7 +21,7 @@ import { IContextViewService, IContextMenuService } from '../../../../../../../p
 import { IFileService } from '../../../../../../../platform/files/common/files.js';
 import { IHoverService } from '../../../../../../../platform/hover/browser/hover.js';
 import { IThemeService } from '../../../../../../../platform/theme/common/themeService.js';
-import { ILLMMessageService } from '../../../../../../../workbench/contrib/void/common/llmMessageService.js';
+import { ILLMMessageService } from '../../../../common/sendLLMMessageService.js';
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
 import { IEditCodeService, URIStreamState } from '../../../editCodeServiceInterface.js'

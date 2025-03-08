@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { AnthropicReasoning, LLMChatMessage, LLMFIMMessage } from '../../common/llmMessageTypes.js';
+import { AnthropicReasoning, LLMChatMessage, LLMFIMMessage } from '../../common/sendLLMMessageTypes.js';
 import { deepClone } from '../../../../../base/common/objects.js';
 
 

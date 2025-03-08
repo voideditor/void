@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';

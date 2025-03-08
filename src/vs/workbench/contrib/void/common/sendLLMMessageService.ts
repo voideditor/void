@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainSendLLMMessageParams, MainLLMMessageAbortParams, ServiceModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, MainModelListParams, OllamaModelResponse, VLLMModelResponse, } from './llmMessageTypes.js';
+import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainSendLLMMessageParams, MainLLMMessageAbortParams, ServiceModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, MainModelListParams, OllamaModelResponse, VLLMModelResponse, } from './sendLLMMessageTypes.js';
 
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
@@ -66,7 +66,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 		// const service = ProxyChannel.toService<LLMMessageChannel>(mainProcessService.getChannel('void-channel-sendLLMMessage')); // lets you call it like a service
 		// see llmMessageChannel.ts
-		this.channel = this.mainProcessService.getChannel('void-channel-llmMessageService')
+		this.channel = this.mainProcessService.getChannel('void-channel-llmMessage')
 
 		// .listen sets up an IPC channel and takes a few ms, so we set up listeners immediately and add hooks to them instead
 		// llm

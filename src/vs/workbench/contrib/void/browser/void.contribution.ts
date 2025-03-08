@@ -38,7 +38,7 @@ import './voidUpdateActions.js'
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
 
 // llmMessage
-import '../common/llmMessageService.js'
+import '../common/sendLLMMessageService.js'
 
 // voidSettings
 import '../common/voidSettingsService.js'

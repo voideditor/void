@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------*/
 
 import { IVoidSettingsService } from './voidSettingsService.js';
-import { ILLMMessageService } from './llmMessageService.js';
+import { ILLMMessageService } from './sendLLMMessageService.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { RefreshableProviderName, refreshableProviderNames, SettingsOfProvider } from './voidSettingsTypes.js';
-import { OllamaModelResponse, VLLMModelResponse } from './llmMessageTypes.js';
+import { OllamaModelResponse, VLLMModelResponse } from './sendLLMMessageTypes.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 

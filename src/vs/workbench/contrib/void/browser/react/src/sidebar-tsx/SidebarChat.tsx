@@ -936,19 +936,6 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 	if (isEmpty) return null
 
 	return <>
-
-		{/* reasoning token */}
-		{hasReasoning && <DropdownComponent
-			title="Reasoning"
-			desc1=""
-			icon={<Dot className='stroke-blue-500' />}
-		>
-			<ChatMarkdownRender
-				string={reasoningStr}
-				chatMessageLocationForApply={chatMessageLocation}
-			/>
-		</DropdownComponent>}
-
 		<div
 			className='
 			text-void-fg-2
@@ -977,14 +964,26 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 		'
 		>
 
+			{/* reasoning token */}
+			{hasReasoning && <DropdownComponent
+				title="Reasoning"
+				desc1=""
+				icon={<Dot className='stroke-blue-500' />}
+			>
+				<ChatMarkdownRender
+					string={reasoningStr}
+					chatMessageLocation={chatMessageLocation}
+				/>
+			</DropdownComponent>}
+
 			{/* assistant message */}
 			<ChatMarkdownRender
 				string={chatMessage.content || ''}
-				chatMessageLocationForApply={chatMessageLocation}
+				chatMessageLocation={chatMessageLocation}
 			/>
 
-			{isLoading && <IconLoading className='opacity-50 text-sm mx-4' />}
-
+			{/* loading indicator */}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
 		</div>
 	</>
 
@@ -1122,25 +1121,28 @@ const toolNameToComponent: { [T in ToolName]: {
 					numResults={value.uris.length}
 					icon={<Dot className={`stroke-orange-500`} />}
 				>
-					{value.uris.map((uri, i) => (
-						<div
-							key={i}
-							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-							onClick={() => {
-								commandService.executeCommand('vscode.open', uri, { preview: true })
-							}}
-						>
-							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-							{uri.fsPath.split('/').pop()}
-						</div>
-					))
+					{
+						value.uris.map((uri, i) => (
+							<div
+								key={i}
+								className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+								onClick={() => {
+									commandService.executeCommand('vscode.open', uri, { preview: true })
+								}}
+							>
+								<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+								{uri.fsPath.split('/').pop()}
+							</div>
+						))
 					}
-					{value.hasNextPage && (
-						<div className="italic">
-							More results available...
-						</div>
-					)}
-				</DropdownComponent>
+					{
+						value.hasNextPage && (
+							<div className="italic">
+								More results available...
+							</div>
+						)
+					}
+				</DropdownComponent >
 			)
 		}
 	},
@@ -1232,8 +1234,8 @@ const toolNameToComponent: { [T in ToolName]: {
 			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />}
 				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 			>
-				<ChatMarkdownRender string={params.changeDescription} />
-			</DropdownComponent>
+				<ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
+			</DropdownComponent >
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1278,7 +1280,7 @@ const toolNameToComponent: { [T in ToolName]: {
 					// TODO!!! open terminal
 					>
 						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-						<ChatMarkdownRender string={''} />
+						<ChatMarkdownRender string={''} chatMessageLocation={undefined} />
 					</div>
 				</DropdownComponent>
 			)

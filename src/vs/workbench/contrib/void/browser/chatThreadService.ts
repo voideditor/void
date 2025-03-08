@@ -21,7 +21,11 @@ import { generateUuid } from '../../../../base/common/uuid.js';
 import { getErrorMessage } from '../../../../base/common/errors.js';
 import { ChatMode, FeatureName } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-
+import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { LocationLink, SymbolKind } from '../../../../editor/common/languages.js';
+import { CancellationToken } from '../../../../base/common/cancellation.js';
+import { Position } from '../../../../editor/common/core/position.js';
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
 	for (let i = arr.length - 1; i >= 0; i--) {
@@ -78,6 +82,15 @@ export type FileSelection = {
 
 export type StagingSelectionItem = CodeSelection | FileSelection
 
+export type CodespanLocationLink = {
+	uri: URI, // we handle serialization for this
+	selection?: { // store as JSON so dont have to worry about serialization
+		startLineNumber: number
+		startColumn: number,
+		endLineNumber: number
+		endColumn: number,
+	} | undefined
+} | null
 
 export type ToolMessage<T extends ToolName> = {
 	role: 'tool';
@@ -133,6 +146,13 @@ export type ChatThreads = {
 		state: {
 			stagingSelections: StagingSelectionItem[];
 			focusedMessageIdx: number | undefined; // index of the message that is being edited (undefined if none)
+
+			linksOfMessageIdx: { // eg. link = linksOfMessageIdx[4]['RangeFunction']
+				[messageIdx: number]: {
+					[codespanName: string]: CodespanLocationLink
+				}
+			}
+
 			isCheckedOfSelectionId: { [selectionId: string]: boolean }; // TODO
 		}
 	};
@@ -143,7 +163,8 @@ type ThreadType = ChatThreads[string]
 const defaultThreadState: ThreadType['state'] = {
 	stagingSelections: [],
 	focusedMessageIdx: undefined,
-	isCheckedOfSelectionId: {}
+	isCheckedOfSelectionId: {},
+	linksOfMessageIdx: {},
 }
 
 export type ThreadsState = {
@@ -199,11 +220,18 @@ export interface IChatThreadService {
 	isFocusingMessage(): boolean;
 	setFocusedMessageIdx(messageIdx: number | undefined): void;
 
+
+
+	getCodespanLink({ codespanStr, messageIdx, threadId }: { codespanStr: string, messageIdx: number, threadId: string }): CodespanLocationLink | undefined;
+	addCodespanLink({ newLinkText, newLinkLocation, messageIdx, threadId }: { newLinkText: string, newLinkLocation: CodespanLocationLink, messageIdx: number, threadId: string }): void;
+	generateCodespanLink(codespanStr: string): Promise<CodespanLocationLink>
+
 	// exposed getters/setters
 	getCurrentMessageState: (messageIdx: number) => UserMessageState
 	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
 	getCurrentThreadState: () => ThreadType['state']
 	setCurrentThreadState: (newState: Partial<ThreadType['state']>) => void
+
 
 	closeStagingSelectionsInCurrentThread(): void;
 	closeStagingSelectionsInMessage(messageIdx: number): void;
@@ -243,6 +271,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IToolsService private readonly _toolsService: IToolsService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
+		@ILanguageFeaturesService private readonly _languageFeaturesService: ILanguageFeaturesService,
+		@ITextModelService private readonly _textModelService: ITextModelService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -260,6 +290,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	// !!! this is important for properly restoring URIs from storage
+	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough
 	private _convertThreadDataFromStorage(threadsStr: string): ChatThreads {
 		return JSON.parse(threadsStr, (key, value) => {
 			if (value && typeof value === 'object' && value.$mid === 1) { //$mid is the MarshalledId. $mid === 1 means it is a URI
@@ -551,6 +582,220 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// ---------- the rest ----------
 
+	// gets the location of codespan link so the user can click on it
+	async generateCodespanLink(_codespanStr: string): Promise<CodespanLocationLink> {
+
+		// process codespan to understand what we are searching for
+		// TODO account for more complicated patterns eg `ITextEditorService.openEditor()`
+		const filePattern = /^[^\s.]+\.[^\s.]+$/;
+		const functionPattern = /^[^\s(]+\([^)]*\)$/;
+
+		let target = _codespanStr // the string to search for
+		let codespanType: 'file' | 'function-or-class' | 'unsearchable' = 'unsearchable';
+		if (filePattern.test(target)) {
+
+			codespanType = 'file'
+			target = _codespanStr
+
+		} else if (functionPattern.test(target)) {
+			const match = target.match(functionPattern)
+			if (match && match[0]) {
+
+				codespanType = 'function-or-class'
+				target = match[0]
+
+			}
+		}
+
+		if (codespanType === 'unsearchable') {
+			return null
+		}
+
+		// get history of all AI and user added files in conversation + store in reverse order (MRU)
+		const prevUris = this._getAllSelections()
+			.map(s => s.fileURI)
+			.filter((uri, index, array) => array.findIndex(u => u.toString() === uri.toString()) === index) // O(n^2) but this is small
+			.reverse()
+
+
+
+		if (codespanType === 'file') {
+
+
+			const doesUriMatchTarget = (uri: URI) => uri.path.includes(target)
+
+			// check if any prevFiles are the `codespanSearch`
+			for (const uri of prevUris) {
+				if (doesUriMatchTarget(uri)) return { uri }
+			}
+
+			// else search codebase for file
+			const { uris } = await this._toolsService.callTool['pathname_search']({ queryStr: target, pageNumber: 0 })
+
+			for (const uri of uris) {
+				if (doesUriMatchTarget(uri)) return { uri }
+			}
+
+		}
+
+
+		if (codespanType === 'function-or-class') {
+
+
+			// check all prevUris for the target
+			for (const uri of prevUris) {
+
+				const modelRef = await this._textModelService.createModelReference(uri);
+				const model = modelRef.object.textEditorModel;
+
+				try {
+					const matches = model.findMatches(
+						target.split('(')[0].trim(), // remove parameters
+						false, // searchOnlyEditableRange
+						false, // isRegex
+						true,  // matchCase
+						null,  // wordSeparators
+						true   // captureMatches
+					);
+
+					const firstThree = matches.slice(0, 3);
+
+					// take first 3 occurences, attempt to goto definition on them
+
+					for (const match of firstThree) {
+						const position = new Position(match.range.startLineNumber, match.range.startColumn);
+						const definitionProviders = this._languageFeaturesService.definitionProvider.ordered(model);
+
+						for (const provider of definitionProviders) {
+							const definitions = await provider.provideDefinition(model, position, CancellationToken.None);
+							if (!definitions) continue;
+
+							const locationLinks: LocationLink[] = [];
+
+							if (Array.isArray(definitions)) {
+								// Handle Location[] or LocationLink[]
+								for (const def of definitions) {
+									if ('uri' in def) {
+										locationLinks.push({
+											uri: def.uri,
+											range: def.range,
+											targetSelectionRange: def.range,
+											originSelectionRange: undefined
+										});
+									} else {
+										locationLinks.push(def);
+									}
+								}
+							} else {
+								// Handle single Location
+								locationLinks.push({
+									uri: definitions.uri,
+									range: definitions.range,
+									targetSelectionRange: definitions.range,
+									originSelectionRange: undefined
+								});
+							}
+
+							const definition = locationLinks[0];
+							if (!definition) continue;
+
+							// Load definition file model
+							const defModelRef = await this._textModelService.createModelReference(definition.uri);
+							const defModel = defModelRef.object.textEditorModel;
+
+							try {
+								const symbolProviders = this._languageFeaturesService.documentSymbolProvider.ordered(defModel);
+
+								for (const symbolProvider of symbolProviders) {
+									const symbols = await symbolProvider.provideDocumentSymbols(
+										defModel,
+										CancellationToken.None
+									);
+
+									if (symbols) {
+										const symbol = symbols.find(s => {
+											const symbolRange = s.range;
+											return symbolRange.startLineNumber <= definition.range.startLineNumber &&
+												symbolRange.endLineNumber >= definition.range.endLineNumber &&
+												(symbolRange.startLineNumber !== definition.range.startLineNumber || symbolRange.startColumn <= definition.range.startColumn) &&
+												(symbolRange.endLineNumber !== definition.range.endLineNumber || symbolRange.endColumn >= definition.range.endColumn);
+										});
+
+
+										console.log('@@@ symbol', symbol?.name, symbol?.kind)
+
+										// if we got to a class/function get the full range and return
+										if (symbol?.kind === SymbolKind.Function || symbol?.kind === SymbolKind.Class) {
+											return {
+												uri: definition.uri,
+												selection: {
+													startLineNumber: definition.range.startLineNumber,
+													startColumn: definition.range.startColumn,
+													endLineNumber: definition.range.endLineNumber,
+													endColumn: definition.range.endColumn,
+												}
+											};
+										}
+									}
+								}
+							} finally {
+								defModelRef.dispose();
+							}
+						}
+					}
+				} finally {
+					modelRef.dispose();
+				}
+			}
+
+			// unlike above do not search codebase (doesnt make sense)
+
+		}
+
+		return null
+
+	}
+
+	getCodespanLink({ codespanStr, messageIdx, threadId }: { codespanStr: string, messageIdx: number, threadId: string }): CodespanLocationLink | undefined {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return undefined;
+
+		const links = thread.state.linksOfMessageIdx?.[messageIdx]
+		if (!links) return undefined;
+
+		const location = links[codespanStr]
+		if (!location) return undefined;
+
+		return location
+	}
+
+	async addCodespanLink({ newLinkText, newLinkLocation, messageIdx, threadId }: { newLinkText: string, newLinkLocation: CodespanLocationLink, messageIdx: number, threadId: string }) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+
+		this._setState({
+
+			allThreads: {
+				...this.state.allThreads,
+				[threadId]: {
+					...thread,
+					state: {
+						...thread.state,
+						linksOfMessageIdx: {
+							...thread.state.linksOfMessageIdx,
+							[messageIdx]: {
+								...thread.state.linksOfMessageIdx?.[messageIdx],
+								[newLinkText]: newLinkLocation
+							}
+						}
+					}
+
+				}
+			}
+		}, true)
+	}
+
+
 	getCurrentThread(): ChatThreads[string] {
 		const state = this.state
 		const thread = state.allThreads[state.currentThreadId]
@@ -721,7 +966,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 	getCurrentThreadState = () => {
+
 		const currentThread = this.getCurrentThread()
+
 		return currentThread.state
 	}
 

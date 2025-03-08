@@ -38,11 +38,13 @@ import { EditorOption } from '../../../../editor/common/config/editorOptions.js'
 import { Emitter } from '../../../../base/common/event.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { ILLMMessageService } from '../common/llmMessageService.js';
-import { LLMChatMessage, OnError, errorDetails } from '../common/llmMessageTypes.js';
+import { ILLMMessageService } from '../common/sendLLMMessageService.js';
+import { LLMChatMessage, OnError, errorDetails } from '../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { IVoidFileService } from '../common/voidFileService.js';
 import { IEditCodeService, URIStreamState, AddCtrlKOpts, StartApplyingOpts } from './editCodeServiceInterface.js';
+import { IVoidSettingsService } from '../common/voidSettingsService.js';
+import { FeatureName } from '../common/voidSettingsTypes.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -268,6 +270,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		@INotificationService private readonly _notificationService: INotificationService,
 		@ICommandService private readonly _commandService: ICommandService,
 		@IVoidFileService private readonly _voidFileService: IVoidFileService,
+		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 	) {
 		super();
 
@@ -1188,20 +1191,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	// throws if there's an error
 	public startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null {
-		if (opts.type === 'rewrite') {
-			const added = this._initializeWriteoverStream(opts)
-			if (!added) return null
-			const [diffZone, promise] = added
-			return [diffZone._URI, promise]
-		}
-		else if (opts.type === 'searchReplace') {
-			const added = this._initializeSearchAndReplaceStream(opts)
-			if (!added) return null
-			if (!added) return null
-			const [diffZone, promise] = added
-			return [diffZone._URI, promise]
-		}
-		return null
+		let res: [DiffZone, Promise<void>] | undefined = undefined
+		if (opts.type === 'rewrite') res = this._initializeWriteoverStream(opts)
+		else if (opts.type === 'searchReplace') res = this._initializeSearchAndReplaceStream(opts)
+
+		if (!res) return null
+		const [diffZone, applyDonePromise] = res
+		return [diffZone._URI, applyDonePromise]
 	}
 
 
@@ -1377,6 +1373,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let fullTextSoFar = '' // so far (INCLUDING ignored suffix)
 		let prevIgnoredSuffix = ''
 
+		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+
 		const writeover = async () => {
 
 			let resMessageDonePromise: () => void = () => { }
@@ -1384,9 +1384,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 			streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 				messagesType: 'chatMessages',
-				useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
 				logging: { loggingName: `Edit (Writeover) - ${from}` },
 				messages,
+				modelSelection,
+				modelSelectionOptions,
 				onText: (params) => {
 					const { fullText: fullText_ } = params
 					const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
@@ -1471,13 +1472,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 		// promise that resolves when the apply is done
-		let resApplyPromise: () => void
-		let rejApplyPromise: (e: any) => void
-		const applyPromise = new Promise<void>((res_, rej_) => { resApplyPromise = res_; rejApplyPromise = rej_ })
+		let resApplyDonePromise: () => void
+		let rejApplyDonePromise: (e: any) => void
+		const applyDonePromise = new Promise<void>((res_, rej_) => { resApplyDonePromise = res_; rejApplyDonePromise = rej_ })
 
 		// add to history
 		const { onFinishEdit } = this._addToHistory(uri, {
-			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) }
+			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyDonePromise(new Error('Edit was interrupted by pressing undo.')) }
 		})
 
 		// TODO replace these with whatever block we're on initially if already started (caching apply)
@@ -1559,6 +1560,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		let oldBlocks: ExtractedSearchReplaceBlock[] = []
 
+
+		const featureName: FeatureName = 'Apply'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+
+
 		const retryLoop = async () => {
 			// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
 			let shouldSendAnotherMessage = true
@@ -1569,13 +1576,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				nMessagesSent += 1
 
 				let resMessageDonePromise: () => void = () => { }
-				const messageDonePromise = new Promise<void>((res_) => { resMessageDonePromise = res_ })
+				const messageDonePromise = new Promise<void>((res, rej) => { resMessageDonePromise = res })
 
 				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
-					useProviderFor: 'Apply',
 					logging: { loggingName: `Edit (Search/Replace) - ${from}` },
 					messages,
+					modelSelection,
+					modelSelectionOptions,
 					onText: (params) => {
 						const { fullText } = params
 						// blocks are [done done done ... {writingFinal|writingOriginal}]
@@ -1613,11 +1621,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								if (typeof originalBounds === 'string') {
 									const content = errMsgOfInvalidStr(originalBounds, block.orig)
 									messages.push(
-										{ role: 'assistant', content: fullText }, // latest output
+										{ role: 'assistant', content: fullText, anthropicReasoning: null }, // latest output
 										{ role: 'user', content: content } // user explanation of what's wrong
 									)
 
-									if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
 
 									// REVERT
 									const numLines = this._getNumLines(uri)
@@ -1638,7 +1645,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									oldBlocks = []
 									addedTrackingZoneOfBlockNum.splice(0, Infinity) // clear the array
 
+									// abort and resolve
 									shouldSendAnotherMessage = true
+									if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
 									this._refreshStylesAndDiffsInURI(uri)
 									resMessageDonePromise()
 									return
@@ -1750,9 +1759,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		} // end retryLoop
 
-		retryLoop().then(() => resApplyPromise()).catch((e) => rejApplyPromise(e))
+		retryLoop().then(() => resApplyDonePromise()).catch((e) => rejApplyDonePromise(e))
 
-		return [diffZone, applyPromise]
+		return [diffZone, applyDonePromise]
 	}
 
 

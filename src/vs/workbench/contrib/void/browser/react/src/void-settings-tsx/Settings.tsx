@@ -366,15 +366,20 @@ export const AutoRefreshToggle = () => {
 	// right now this is just `enabled_autoRefreshModels`
 	const enabled = voidSettingsState.globalSettings[settingName]
 
-	return <SubtleButton
-		onClick={() => {
-			voidSettingsService.setGlobalSetting(settingName, !enabled)
-			metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: !enabled })
-		}}
-		text={`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
-		icon={enabled ? <Check className='stroke-green-500 size-3' /> : <X className='stroke-red-500 size-3' />}
-		disabled={false}
-	/>
+	return <div className='flex items-center px-3 gap-x-1.5'>
+		<VoidSwitch
+			size='xxs'
+			value={enabled}
+			onChange={(newVal) => {
+				voidSettingsService.setGlobalSetting(settingName, newVal)
+				metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: newVal })
+			}} />
+
+		<span className='text-void-fg-3'>
+			{`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
+		</span>
+	</div>
+
 
 }
 
@@ -459,7 +464,7 @@ export const FeaturesTab = () => {
 
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-					<div className='text-sm italic text-void-fg-3 my-1'>We recommend the smartest model you{`'`}ve got, like Claude 3.7 or GPT 4o.</div>
+					<div className='text-sm italic text-void-fg-3 my-1'>We recommend using Claude 3.7 or GPT 4o.</div>
 					<ModelDropdown featureName={'Apply'} />
 				</div>
 			</div>

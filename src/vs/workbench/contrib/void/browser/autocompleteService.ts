@@ -19,6 +19,8 @@ import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
 import { isWindows } from '../../../../base/common/platform.js';
+import { IVoidSettingsService } from '../common/voidSettingsService.js';
+import { FeatureName } from '../common/voidSettingsTypes.js';
 // import { IContextGatheringService } from './contextGatheringService.js';
 
 
@@ -788,8 +790,14 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		console.log('starting autocomplete...', predictionType)
 
+		const featureName: FeatureName = 'Autocomplete'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+
+		const isEnabled = this._settingsService.state.globalSettings.enableAutocomplete
+
 		// set parameters of `newAutocompletion` appropriately
-		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
+		newAutocompletion.llmPromise = isEnabled ? new Promise((resolve, reject) => reject('Autocomplete is disabled')) : new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
 				messagesType: 'FIMMessage',
@@ -798,7 +806,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					suffix: llmSuffix,
 					stopTokens: stopTokens,
 				},
-				useProviderFor: 'Autocomplete',
+				modelSelection,
+				modelSelectionOptions,
 				logging: { loggingName: 'Autocomplete' },
 				onText: () => { }, // unused in FIMMessage
 				// onText: async ({ fullText, newText }) => {
@@ -882,6 +891,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IModelService private readonly _modelService: IModelService,
+		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		// @IContextGatheringService private readonly _contextGatheringService: IContextGatheringService,
 	) {
 		super()

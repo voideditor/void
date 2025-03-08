@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { OptionsOfModelSelection, ProviderName } from './voidSettingsTypes.js';
+import { ModelSelectionOptions, ProviderName } from './voidSettingsTypes.js';
 
 
 export const defaultModelsOfProvider = {
@@ -633,11 +633,11 @@ export const getProviderCapabilities = (providerName: ProviderName) => {
 }
 
 // state from optionsOfModelSelection
-export const getModelSelectionState = (providerName: ProviderName, modelName: string, optionsOfModelSelection: OptionsOfModelSelection): { isReasoningEnabled: boolean, reasoningBudget: number | undefined } => {
-	const { canToggleReasoning } = getModelCapabilities(providerName, modelName).supportsReasoning || {}
+export const getModelSelectionState = (providerName: ProviderName, modelName: string, modelSelectionOptions: ModelSelectionOptions | undefined): { isReasoningEnabled: boolean, reasoningBudget: number | undefined } => {
+	const { canToggleReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName).supportsReasoning || {}
 
 	const defaultEnabledVal = canToggleReasoning ? true : false
-	const isReasoningEnabled = optionsOfModelSelection[providerName]?.[modelName]?.reasoningEnabled ?? defaultEnabledVal
-	const reasoningBudget = optionsOfModelSelection[providerName]?.[modelName]?.reasoningBudget
+	const isReasoningEnabled = modelSelectionOptions?.reasoningEnabled ?? defaultEnabledVal
+	const reasoningBudget = reasoningBudgetSlider?.type === 'slider' ? modelSelectionOptions?.reasoningBudget ?? reasoningBudgetSlider?.default : undefined
 	return { isReasoningEnabled, reasoningBudget }
 }

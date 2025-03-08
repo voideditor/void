@@ -310,7 +310,7 @@ export const modelSelectionsEqual = (m1: ModelSelection, m2: ModelSelection) => 
 }
 
 // this is a state
-export const featureNames = ['Ctrl+L', 'Ctrl+K', 'Autocomplete', 'Apply'] as const
+export const featureNames = ['Chat', 'Ctrl+K', 'Autocomplete', 'Apply'] as const
 export type ModelSelectionOfFeature = Record<(typeof featureNames)[number], ModelSelection | null>
 export type FeatureName = keyof ModelSelectionOfFeature
 
@@ -321,7 +321,7 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 	else if (featureName === 'Ctrl+K')
 		return 'Quick Edit'
 	// sidebar:
-	else if (featureName === 'Ctrl+L')
+	else if (featureName === 'Chat')
 		return 'Chat'
 	else if (featureName === 'Apply')
 		return 'Fast Apply'

@@ -11,7 +11,7 @@ import { Model as OpenAIModel } from 'openai/resources/models.js';
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../browser/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/llmMessageTypes.js';
 import { InternalToolInfo, isAToolName, ToolName } from '../../browser/toolsService.js';
-import { defaultProviderSettings, displayInfoOfProviderName, OptionsOfModelSelection, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getModelSelectionState, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
 
@@ -23,7 +23,7 @@ type InternalCommonMessageParams = {
 	onError: OnError;
 	providerName: ProviderName;
 	settingsOfProvider: SettingsOfProvider;
-	optionsOfModelSelection: OptionsOfModelSelection;
+	modelSelectionOptions: ModelSelectionOptions | undefined;
 	modelName: string;
 	_setAborter: (aborter: () => void) => void;
 }
@@ -288,7 +288,7 @@ const toolCallsFrom_Anthropic = (content: Anthropic.Messages.ContentBlock[]): To
 	}).filter(t => !!t)
 }
 
-const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, optionsOfModelSelection, modelName: modelName_, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		supportsSystemMessage,
@@ -299,7 +299,7 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	const {
 		isReasoningEnabled,
 		reasoningBudget,
-	} = getModelSelectionState(providerName, modelName_, optionsOfModelSelection) // user's modelName_ here
+	} = getModelSelectionState(providerName, modelName_, modelSelectionOptions) // user's modelName_ here
 
 	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: true })
 

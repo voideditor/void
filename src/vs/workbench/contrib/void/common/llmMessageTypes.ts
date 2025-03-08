@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import type { InternalToolInfo, ToolName } from '../browser/toolsService.js'
-import { FeatureName, OptionsOfModelSelection, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
+import { ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
 export const errorDetails = (fullError: Error | null): string | null => {
@@ -82,7 +82,8 @@ export type ServiceSendLLMMessageParams = {
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
 	logging: { loggingName: string, };
-	useProviderFor: FeatureName;
+	modelSelection: ModelSelection | null;
+	modelSelectionOptions: ModelSelectionOptions | undefined;
 } & SendLLMType;
 
 // params to the true sendLLMMessage function
@@ -95,10 +96,10 @@ export type SendLLMMessageParams = {
 
 	aiInstructions: string;
 
-	providerName: ProviderName;
-	modelName: string;
+	modelSelection: ModelSelection;
+	modelSelectionOptions: ModelSelectionOptions | undefined;
+
 	settingsOfProvider: SettingsOfProvider;
-	optionsOfModelSelection: OptionsOfModelSelection;
 } & SendLLMType
 
 

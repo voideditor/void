@@ -14,8 +14,10 @@ import { IMetricsService } from './metricsService.js';
 import { getModelCapabilities } from './modelCapabilities.js';
 import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings, ModelSelectionOptions, OptionsOfModelSelection } from './voidSettingsTypes.js';
 
+// past values:
+// 'void.settingsServiceStorage'
 
-const STORAGE_KEY = 'void.settingsServiceStorage'
+const STORAGE_KEY = 'void.settingsServiceStorageI'
 
 
 // name is the name in the dropdown
@@ -97,7 +99,7 @@ const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], opt
 
 export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter: (o: ModelSelection) => boolean; emptyMessage: string | null } } = {
 	'Autocomplete': { filter: o => getModelCapabilities(o.providerName, o.modelName).supportsFIM, emptyMessage: 'No models support FIM' },
-	'Ctrl+L': { filter: o => true, emptyMessage: null },
+	'Chat': { filter: o => true, emptyMessage: null },
 	'Ctrl+K': { filter: o => true, emptyMessage: null },
 	'Apply': { filter: o => true, emptyMessage: null },
 }
@@ -172,7 +174,7 @@ const _validatedState = (state: Omit<VoidSettingsState, '_modelOptions'>) => {
 const defaultState = () => {
 	const d: VoidSettingsState = {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
-		modelSelectionOfFeature: { 'Ctrl+L': null, 'Ctrl+K': null, 'Autocomplete': null, 'Apply': null },
+		modelSelectionOfFeature: { 'Chat': null, 'Ctrl+K': null, 'Autocomplete': null, 'Apply': null },
 		globalSettings: deepClone(defaultGlobalSettings),
 		optionsOfModelSelection: {},
 		_modelOptions: [], // computed later

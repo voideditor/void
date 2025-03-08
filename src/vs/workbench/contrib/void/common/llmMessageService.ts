@@ -13,7 +13,6 @@ import { generateUuid } from '../../../../base/common/uuid.js';
 import { Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
-import { displayInfoOfProviderName, isFeatureNameDisabled } from './voidSettingsTypes.js';
 // import { INotificationService } from '../../notification/common/notification.js';
 
 // calls channel to implement features
@@ -83,31 +82,14 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 	}
 
 	sendLLMMessage(params: ServiceSendLLMMessageParams) {
-		const { onText, onFinalMessage, onError, ...proxyParams } = params;
-		const { useProviderFor: featureName } = proxyParams
+		const { onText, onFinalMessage, onError, modelSelection, ...proxyParams } = params;
 
 		// throw an error if no model/provider selected (this should usually never be reached, the UI should check this first, but might happen in cases like Apply where we haven't built much UI/checks yet, good practice to have check logic on backend)
-		const isDisabled = isFeatureNameDisabled(featureName, this.voidSettingsService.state)
-		const modelSelection = this.voidSettingsService.state.modelSelectionOfFeature[featureName]
-		if (isDisabled || modelSelection === null) {
-			let message: string
-
-			if (isDisabled === 'addProvider' || isDisabled === 'providerNotAutoDetected')
-				message = `Please add a provider in Void's Settings.`
-			else if (isDisabled === 'addModel')
-				message = `Please add a model.`
-			else if (isDisabled === 'needToEnableModel')
-				message = `Please enable a model.`
-			else if (isDisabled === 'notFilledIn')
-				message = `Please fill in Void's Settings${modelSelection !== null ? ` for ${displayInfoOfProviderName(modelSelection.providerName).title}` : ''}.`
-			else
-				message = `Please add a provider in Void's Settings.`
-
+		if (modelSelection === null) {
+			const message = `Please add a provider in Void's Settings.`
 			onError({ message, fullError: null })
 			return null
 		}
-
-		const { providerName, modelName } = modelSelection
 
 		// add state for request id
 		const requestId = generateUuid();
@@ -116,17 +98,15 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this.llmMessageHooks.onError[requestId] = onError
 
 		const { aiInstructions } = this.voidSettingsService.state.globalSettings
-		const { settingsOfProvider, optionsOfModelSelection, } = this.voidSettingsService.state
+		const { settingsOfProvider, } = this.voidSettingsService.state
 
 		// params will be stripped of all its functions over the IPC channel
 		this.channel.call('sendLLMMessage', {
 			...proxyParams,
 			aiInstructions,
 			requestId,
-			providerName,
-			modelName,
 			settingsOfProvider,
-			optionsOfModelSelection,
+			modelSelection,
 		} satisfies MainSendLLMMessageParams);
 
 		return requestId

@@ -19,7 +19,8 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { IVoidFileService } from '../common/voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { getErrorMessage } from '../../../../base/common/errors.js';
-import { ChatMode } from '../common/voidSettingsTypes.js';
+import { ChatMode, FeatureName } from '../common/voidSettingsTypes.js';
+import { IVoidSettingsService } from '../common/voidSettingsService.js';
 
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
@@ -172,7 +173,11 @@ const newThreadObject = () => {
 	} satisfies ChatThreads[string]
 }
 
-export const THREAD_STORAGE_KEY = 'void.chatThreadStorage'
+
+// past values:
+// 'void.chatThreadStorage'
+
+export const THREAD_STORAGE_KEY = 'void.chatThreadStorageI'
 
 
 export interface IChatThreadService {
@@ -237,6 +242,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IToolsService private readonly _toolsService: IToolsService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
+		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -383,6 +389,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				: chatMode === 'agent' ? Object.keys(voidTools).map(toolName => voidTools[toolName as ToolName])
 					: undefined)
 
+		// these settings should not change throughout the loop (eg anthropic breaks if you change its thinking mode and it's using tools)
+		const featureName: FeatureName = 'Chat'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+
+
 		// agent loop
 		const agentLoop = async () => {
 
@@ -413,14 +425,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					...messages_.slice(lastUserMsgIdx + 1, Infinity),
 				]
 
+
 				const llmCancelToken = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
-					useProviderFor: 'Ctrl+L',
-					logging: { loggingName: `Agent` },
 					messages,
-
 					tools: tools,
-
+					modelSelection,
+					modelSelectionOptions,
+					logging: { loggingName: `Agent` },
 					onText: ({ fullText, fullReasoning }) => {
 						this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning })
 					},

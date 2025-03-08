@@ -43,6 +43,8 @@ import { LLMChatMessage, OnError, errorDetails } from '../common/llmMessageTypes
 import { IMetricsService } from '../common/metricsService.js';
 import { IVoidFileService } from '../common/voidFileService.js';
 import { IEditCodeService, URIStreamState, AddCtrlKOpts, StartApplyingOpts } from './editCodeServiceInterface.js';
+import { IVoidSettingsService } from '../common/voidSettingsService.js';
+import { FeatureName } from '../common/voidSettingsTypes.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -268,6 +270,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		@INotificationService private readonly _notificationService: INotificationService,
 		@ICommandService private readonly _commandService: ICommandService,
 		@IVoidFileService private readonly _voidFileService: IVoidFileService,
+		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 	) {
 		super();
 
@@ -1377,6 +1380,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let fullTextSoFar = '' // so far (INCLUDING ignored suffix)
 		let prevIgnoredSuffix = ''
 
+		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+
 		const writeover = async () => {
 
 			let resMessageDonePromise: () => void = () => { }
@@ -1384,9 +1391,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 			streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 				messagesType: 'chatMessages',
-				useProviderFor: opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K',
 				logging: { loggingName: `Edit (Writeover) - ${from}` },
 				messages,
+				modelSelection,
+				modelSelectionOptions,
 				onText: (params) => {
 					const { fullText: fullText_ } = params
 					const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
@@ -1559,6 +1567,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		let oldBlocks: ExtractedSearchReplaceBlock[] = []
 
+
+		const featureName: FeatureName = 'Apply'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+
+
 		const retryLoop = async () => {
 			// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
 			let shouldSendAnotherMessage = true
@@ -1573,9 +1587,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
-					useProviderFor: 'Apply',
 					logging: { loggingName: `Edit (Search/Replace) - ${from}` },
 					messages,
+					modelSelection,
+					modelSelectionOptions,
 					onText: (params) => {
 						const { fullText } = params
 						// blocks are [done done done ... {writingFinal|writingOriginal}]

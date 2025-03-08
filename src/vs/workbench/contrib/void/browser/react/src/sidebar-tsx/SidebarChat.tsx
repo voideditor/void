@@ -154,7 +154,7 @@ const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-$
 // 	const voidSettingsService = accessor.get('IVoidSettingsService')
 // 	const voidSettingsState = useSettingsState()
 
-// 	const modelSelection = voidSettingsState.modelSelectionOfFeature['Ctrl+L']
+// 	const modelSelection = voidSettingsState.modelSelectionOfFeature['Chat']
 // 	if (!modelSelection) return null
 
 // 	const { modelName, providerName } = modelSelection
@@ -210,13 +210,13 @@ const ReasoningOptionDropdown = () => {
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 	const voidSettingsState = useSettingsState()
 
-	const modelSelection = voidSettingsState.modelSelectionOfFeature['Ctrl+L']
+	const modelSelection = voidSettingsState.modelSelectionOfFeature['Chat']
 	if (!modelSelection) return null
 
 	const { modelName, providerName } = modelSelection
 	const { canToggleReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName).supportsReasoning || {}
 
-	const { isReasoningEnabled } = getModelSelectionState(providerName, modelName, voidSettingsState.optionsOfModelSelection)
+	const { isReasoningEnabled } = getModelSelectionState(providerName, modelName, voidSettingsState.optionsOfModelSelection[providerName]?.[modelName])
 
 	if (canToggleReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider (no models right now)
 		return null // unused right now
@@ -277,7 +277,6 @@ interface VoidChatAreaProps {
 	divRef?: React.RefObject<HTMLDivElement>;
 
 	// UI customization
-	featureName: FeatureName;
 	className?: string;
 	showModelDropdown?: boolean;
 	showSelections?: boolean;
@@ -304,7 +303,6 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	isDisabled = false,
 	className = '',
 	showModelDropdown = true,
-	featureName,
 	showSelections = false,
 	showProspectiveSelections = true,
 	selections,
@@ -363,7 +361,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 				{showModelDropdown && (
 					<div className='max-w-[200px] flex-grow'>
 						<ReasoningOptionDropdown />
-						<ModelDropdown featureName={featureName} />
+						<ModelDropdown featureName={'Chat'} />
 					</div>
 				)}
 
@@ -841,7 +839,6 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 			isDisabled={isDisabled}
 			showSelections={true}
 			showProspectiveSelections={false}
-			featureName="Ctrl+L"
 			selections={stagingSelections}
 			setSelections={setStagingSelections}
 		>
@@ -1314,22 +1311,17 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => 
 	else if (role === 'tool_request') {
 		const isLastMessage = true // TODO!!! fix this
 		if (!isLastMessage) return null
-		const ToolMessageComponent = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
+		const ToolRequestComponent = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
 		return <>
-			<ToolMessageComponent
-				toolRequest={chatMessage}
-			/>
+			<ToolRequestComponent toolRequest={chatMessage} />
 			<ToolRequestAcceptRejectButtons toolRequest={chatMessage} />
 		</>
 	}
 	else if (role === 'tool') {
 		const title = toolNameToTitle[chatMessage.name]
 		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
-
-		const ToolMessageComponent = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
-		return <ToolMessageComponent
-			toolMessage={chatMessage}
-		/>
+		const ToolResultComponent = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
+		return <ToolResultComponent toolMessage={chatMessage} />
 	}
 
 
@@ -1383,7 +1375,7 @@ export const SidebarChat = () => {
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
 
-	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+L', settingsState)
+	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Chat', settingsState)
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
 	const [chatAreaRef, chatAreaDimensions] = useResizeObserver()
@@ -1513,7 +1505,6 @@ export const SidebarChat = () => {
 			selections={selections}
 			setSelections={setSelections}
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
-			featureName="Ctrl+L"
 		>
 			<VoidInputBox2
 				className='min-h-[81px] px-0.5'

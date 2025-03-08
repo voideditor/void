@@ -33,19 +33,24 @@ const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
 
 
 
-const toLLMChatMessage = (c: ChatMessage): LLMChatMessage | null => {
-	if (c.role === 'user') {
-		return { role: c.role, content: c.content || '(empty message)' }
+const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
+	const llmChatMessages: LLMChatMessage[] = []
+	for (const c of chatMessages) {
+		if (c.role === 'user') {
+			llmChatMessages.push({ role: c.role, content: c.content })
+		}
+		else if (c.role === 'assistant')
+			llmChatMessages.push({ role: c.role, content: c.content })
+		else if (c.role === 'tool')
+			llmChatMessages.push({ role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content })
+		else if (c.role === 'tool_request') {
+			// pass
+		}
+		else {
+			throw new Error(`Role ${(c as any).role} not recognized.`)
+		}
 	}
-	else if (c.role === 'assistant')
-		return { role: c.role, content: c.content || '(empty message)' }
-	else if (c.role === 'tool')
-		return { role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content || '(empty output)' }
-	else if (c.role === 'tool_request')
-		return null
-	else {
-		throw new Error(`Role ${(c as any).role} not recognized.`)
-	}
+	return llmChatMessages
 }
 
 
@@ -92,7 +97,7 @@ export type ToolRequestApproval<T extends ToolName> = {
 export type ChatMessage =
 	| {
 		role: 'user';
-		content: string | null; // content displayed to the LLM on future calls - allowed to be '', will be replaced with (empty)
+		content: string; // content displayed to the LLM on future calls - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
 		selections: StagingSelectionItem[] | null; // the user's selection
 		state: {
@@ -101,8 +106,8 @@ export type ChatMessage =
 		}
 	} | {
 		role: 'assistant';
-		content: string | null; // content received from LLM  - allowed to be '', will be replaced with (empty)
-		reasoning: string | null; // reasoning from the LLM, used for step-by-step thinking
+		content: string; // content received from LLM  - allowed to be '', will be replaced with (empty)
+		reasoning: string; // reasoning from the LLM, used for step-by-step thinking
 	}
 	| ToolMessage<ToolName>
 	| ToolRequestApproval<ToolName>
@@ -307,9 +312,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// ---------- streaming ----------
 
-	private _finishStreamingTextMessage = (threadId: string, options: { content: string, reasoning?: string }, error?: { message: string, fullError: Error | null }) => {
+	private _finishStreamingTextMessage = (threadId: string, options: { content: string, reasoning: string }, error?: { message: string, fullError: Error | null }) => {
 		// add assistant's message to chat history, and clear selection
-		this._addMessageToThread(threadId, { role: 'assistant', content: options.content, reasoning: options.reasoning || null })
+		this._addMessageToThread(threadId, { role: 'assistant', content: options.content, reasoning: options.reasoning })
 		this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, error })
 	}
 
@@ -401,7 +406,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				const awaitable = new Promise<void>((res, rej) => { res_ = res })
 
 				// replace last userMessage with userMessageFullContent (which contains all the files too)
-				const messages_ = this.getCurrentThread().messages.map(m => (toLLMChatMessage(m))).filter(m => !!m)
+				const messages_ = toLLMChatMessages(this.getCurrentThread().messages)
 				const lastUserMsgIdx = findLastIndex(messages_, m => m.role === 'user')
 
 				if (lastUserMsgIdx === -1) throw new Error(`Void: No user message found.`) // should never be -1
@@ -430,7 +435,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							this._finishStreamingTextMessage(threadId, { content: fullText, reasoning: fullReasoning })
 						}
 						else {
-							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning || null })
+							this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning })
 							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined }) // clear streaming message
 
 							// deal with the tool

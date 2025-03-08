@@ -3,7 +3,6 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import type { ChatMessage } from '../browser/chatThreadService.js'
 import type { InternalToolInfo, ToolName } from '../browser/toolsService.js'
 import { FeatureName, OptionsOfModelSelection, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
@@ -29,7 +28,10 @@ export const getErrorMessage: (error: unknown) => string = (error) => {
 
 
 export type LLMChatMessage = {
-	role: 'system' | 'user';
+	role: 'system';
+	content: string;
+} | {
+	role: 'user';
 	content: string;
 } | {
 	role: 'assistant',
@@ -51,8 +53,8 @@ export type ToolCallType = {
 
 
 export type OnText = (p: { fullText: string; fullReasoning: string }) => void
-export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[], fullReasoning?: string }) => void // id is tool_use_id
-export type OnError = (p: { message: string, fullError: Error | null }) => void
+export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCalls?: ToolCallType[]; }) => void // id is tool_use_id
+export type OnError = (p: { message: string; fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
 

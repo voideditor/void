@@ -1436,8 +1436,8 @@ export const SidebarChat = () => {
 		<ChatBubble key={getChatBubbleId(currentThread.id, streamingChatIdx)}
 			messageIdx={streamingChatIdx} chatMessage={{
 				role: 'assistant',
-				content: messageSoFar ?? null,
-				reasoning: reasoningSoFar ?? null,
+				content: messageSoFar ?? '',
+				reasoning: reasoningSoFar ?? '',
 			}}
 			isLoading={isStreaming}
 		/> : null

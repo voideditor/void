@@ -140,7 +140,7 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 		})
 		.then(async response => {
 			const fullText = response.choices[0]?.text
-			onFinalMessage({ fullText, });
+			onFinalMessage({ fullText, fullReasoning: '' });
 		})
 		.catch(error => {
 			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }); }
@@ -458,7 +458,7 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 				const newText = chunk.response
 				fullText += newText
 			}
-			onFinalMessage({ fullText })
+			onFinalMessage({ fullText, fullReasoning: '' })
 		})
 		// when error/fail
 		.catch((error) => {

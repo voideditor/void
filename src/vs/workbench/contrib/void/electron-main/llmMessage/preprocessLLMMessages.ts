@@ -32,6 +32,9 @@ type InternalLLMChatMessage = {
 }
 
 
+const EMPTY_MESSAGE = '(empty message)'
+const EMPTY_TOOL_CONTENT = '(empty content)'
+
 const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatMessage[] }) => {
 	const messages = deepClone(messages_)
 	const newMessages: LLMChatMessage[] = []
@@ -149,27 +152,28 @@ openai on prompting - https://platform.openai.com/docs/guides/reasoning#advice-o
 openai on developer system message - https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
 */
 
+type PrepareMessagesToolsOpenAI = (
+	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'tool' }> | {
+		role: 'assistant',
+		content: string | { type: 'text'; text: string }[];
+		tool_calls?: {
+			type: 'function';
+			id: string;
+			function: {
+				name: string;
+				arguments: string;
+			}
+		}[]
+	} | {
+		role: 'tool',
+		id: string; // old val
+		tool_call_id: string; // new val
+		content: string;
+	}
+)[]
 const prepareMessages_tools_openai = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
 
-	const newMessages: (
-		Exclude<InternalLLMChatMessage, { role: 'assistant' | 'tool' }> | {
-			role: 'assistant',
-			content: string | object[];
-			tool_calls?: {
-				type: 'function';
-				id: string;
-				function: {
-					name: string;
-					arguments: string;
-				}
-			}[]
-		} | {
-			role: 'tool',
-			id: string; // old val
-			tool_call_id: string; // new val
-			content: string;
-		}
-	)[] = [];
+	const newMessages: PrepareMessagesToolsOpenAI = [];
 
 	for (let i = 0; i < messages.length; i += 1) {
 		const currMsg = messages[i]
@@ -196,7 +200,7 @@ const prepareMessages_tools_openai = ({ messages }: { messages: InternalLLMChatM
 		newMessages.push({
 			role: 'tool',
 			id: currMsg.id,
-			content: currMsg.content,
+			content: currMsg.content || EMPTY_TOOL_CONTENT,
 			tool_call_id: currMsg.id,
 		})
 	}
@@ -226,33 +230,43 @@ anthropic RESPONSE (role=user):
 }]
 */
 
-const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
-	const newMessages: (
-		Exclude<InternalLLMChatMessage, { role: 'assistant' | 'user' }> | {
-			role: 'assistant',
-			content: string | (
-				| {
-					type: 'text';
-					text: string;
-				}
-				| {
-					type: 'tool_use';
-					name: string;
-					input: Record<string, any>;
-					id: string;
-				})[]
-		} | {
-			role: 'user',
-			content: string | ({
+type PrepareMessagesToolsAnthropic = (
+	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'user' }> | {
+		role: 'assistant',
+		content: string | (
+			| {
 				type: 'text';
 				text: string;
-			} | {
-				type: 'tool_result';
-				tool_use_id: string;
-				content: string;
+			}
+			| {
+				type: 'tool_use';
+				name: string;
+				input: Record<string, any>;
+				id: string;
 			})[]
-		}
-	)[] = messages;
+	} | {
+		role: 'user',
+		content: string | ({
+			type: 'text';
+			text: string;
+		} | {
+			type: 'tool_result';
+			tool_use_id: string;
+			content: string;
+		})[]
+	}
+)[]
+/*
+Converts:
+
+assistant: ...content
+tool: (id, name, params)
+->
+assistant: ...content, call(name, id, params)
+user: ...content, result(id, content)
+*/
+const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
+	const newMessages: PrepareMessagesToolsAnthropic = messages;
 
 
 	for (let i = 0; i < newMessages.length; i += 1) {
@@ -282,8 +296,9 @@ const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMCh
 
 
 
+type PrepareMessagesTools = PrepareMessagesToolsAnthropic | PrepareMessagesToolsOpenAI
 
-const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'anthropic-style' | 'openai-style' }) => {
+const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'anthropic-style' | 'openai-style' }): { messages: PrepareMessagesTools } => {
 	if (!supportsTools) {
 		return { messages: messages }
 	}
@@ -302,35 +317,26 @@ const prepareMessages_tools = ({ messages, supportsTools }: { messages: Internal
 
 
 
-/*
-Gemini has this, but they're openai-compat so we don't need to implement this
-gemini request:
-{   "role": "assistant",
-	"content": null,
-	"function_call": {
-		"name": "get_weather",
-		"arguments": {
-			"latitude": 48.8566,
-			"longitude": 2.3522
+// do this at end
+const prepareMessages_noEmptyMessage = ({ messages }: { messages: PrepareMessagesTools }): { messages: PrepareMessagesTools } => {
+	for (const currMsg of messages) {
+
+		if (currMsg.role === 'assistant' || currMsg.role === 'user') {
+			if (typeof currMsg.content === 'string') {
+				currMsg.content = currMsg.content || EMPTY_MESSAGE
+			}
+			else {
+				for (const c of currMsg.content) {
+					if (c.type === 'text') c.text = c.text || EMPTY_MESSAGE
+					else if (c.type === 'tool_use') { }
+					else if (c.type === 'tool_result') { }
+				}
+			}
 		}
+
 	}
+	return { messages }
 }
-
-gemini response:
-{   "role": "assistant",
-	"function_response": {
-		"name": "get_weather",
-			"response": {
-			"temperature": "15°C",
-				"condition": "Cloudy"
-		}
-	}
-}
-*/
-
-
-
-
 
 
 
@@ -349,8 +355,8 @@ export const prepareMessages = ({
 }) => {
 	const { messages: messages1 } = prepareMessages_normalize({ messages })
 	const { messages: messages2, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages1, aiInstructions, supportsSystemMessage })
-	const { messages: messages4 } = prepareMessages_tools({ messages: messages2, supportsTools })
-
+	const { messages: messages3 } = prepareMessages_tools({ messages: messages2, supportsTools })
+	const { messages: messages4 } = prepareMessages_noEmptyMessage({ messages: messages3 })
 	return {
 		messages: messages4 as any,
 		separateSystemMessageStr
@@ -386,3 +392,40 @@ ${messages.prefix}`
 	const ret = { prefix, suffix, stopTokens, maxTokens: 300 } as const
 	return ret
 }
+
+
+
+
+
+
+
+/*
+Gemini has this, but they're openai-compat so we don't need to implement this
+gemini request:
+{   "role": "assistant",
+	"content": null,
+	"function_call": {
+		"name": "get_weather",
+		"arguments": {
+			"latitude": 48.8566,
+			"longitude": 2.3522
+		}
+	}
+}
+
+gemini response:
+{   "role": "assistant",
+	"function_response": {
+		"name": "get_weather",
+			"response": {
+			"temperature": "15°C",
+				"condition": "Cloudy"
+		}
+	}
+}
+*/
+
+
+
+
+

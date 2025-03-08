@@ -366,12 +366,12 @@ export const AutoRefreshToggle = () => {
 	// right now this is just `enabled_autoRefreshModels`
 	const enabled = voidSettingsState.globalSettings[settingName]
 
-	return <div className='flex items-center px-3 gap-x-1'>
+	return <div className='flex items-center px-3 void-gap-x-1.5'>
 		<VoidSwitch
 			size='xxs'
 			value={enabled}
 			onChange={(newVal) => {
-				voidSettingsService.setGlobalSetting(settingName, !enabled)
+				voidSettingsService.setGlobalSetting(settingName, newVal)
 				metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: newVal })
 			}} />
 

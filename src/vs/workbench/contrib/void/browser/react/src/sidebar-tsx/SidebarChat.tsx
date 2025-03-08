@@ -727,8 +727,6 @@ const DropdownComponent = ({
 
 const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'user' } }) => {
 
-	const role = chatMessage.role
-
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 
@@ -758,7 +756,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 	const _mustInitialize = useRef(true)
 	const _justEnabledEdit = useRef(false)
 	useEffect(() => {
-		const canInitialize = role === 'user' && mode === 'edit' && textAreaRefState
+		const canInitialize = mode === 'edit' && textAreaRefState
 		const shouldInitialize = _justEnabledEdit.current || _mustInitialize.current
 		if (canInitialize && shouldInitialize) {
 			setStagingSelections(chatMessage.selections || [])
@@ -771,7 +769,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 			_mustInitialize.current = false
 		}
 
-	}, [chatMessage, role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
+	}, [chatMessage, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
 
 	const onOpenEdit = () => {
 		setIsBeingEdited(true)
@@ -893,7 +891,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 		</div>
 
 
-		{role === 'user' && <EditSymbol
+		{<EditSymbol
 			size={18}
 			className={`
 				absolute -top-1 -right-1
@@ -931,10 +929,14 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 	const hasReasoning = !!reasoningStr
 	const thread = chatThreadsService.getCurrentThread()
 
+
 	const chatMessageLocation: ChatMessageLocation = {
 		threadId: thread.id,
 		messageIdx: messageIdx,
 	}
+
+	const isEmpty = !chatMessage.content && !chatMessage.reasoning
+	if (isEmpty) return null
 
 	return <>
 
@@ -1292,6 +1294,8 @@ type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isLoading
 const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => {
 
 	const role = chatMessage.role
+
+	console.log('ROLE', role)
 
 	if (role === 'user') {
 		return <UserMessageComponent

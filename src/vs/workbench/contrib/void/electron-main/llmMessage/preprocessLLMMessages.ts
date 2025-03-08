@@ -166,8 +166,7 @@ type PrepareMessagesToolsOpenAI = (
 		}[]
 	} | {
 		role: 'tool',
-		id: string; // old val
-		tool_call_id: string; // new val
+		tool_call_id: string;
 		content: string;
 	}
 )[]
@@ -199,9 +198,8 @@ const prepareMessages_tools_openai = ({ messages }: { messages: InternalLLMChatM
 		// add the tool
 		newMessages.push({
 			role: 'tool',
-			id: currMsg.id,
-			content: currMsg.content || EMPTY_TOOL_CONTENT,
 			tool_call_id: currMsg.id,
+			content: currMsg.content || EMPTY_TOOL_CONTENT,
 		})
 	}
 	return { messages: newMessages }
@@ -344,16 +342,31 @@ const prepareMessages_anthropicContent = ({ messages, supportsAnthropicReasoning
 const prepareMessages_noEmptyMessage = ({ messages }: { messages: PrepareMessagesTools }): { messages: PrepareMessagesTools } => {
 	for (const currMsg of messages) {
 
-		if (currMsg.role === 'assistant' || currMsg.role === 'user') {
-			if (typeof currMsg.content === 'string') {
-				currMsg.content = currMsg.content || EMPTY_MESSAGE
+		// don't do this for tools
+		if (currMsg.role === 'tool') continue
+
+		// don't do this for assistant or user messages that have tool_calls or tool_results
+		const oai = currMsg as PrepareMessagesToolsOpenAI[0]
+		if (oai.role === 'assistant') {
+			if (oai.tool_calls) continue
+		}
+		const anth = currMsg as PrepareMessagesToolsAnthropic[0]
+		if (anth.role === 'assistant' || anth.role === 'user') {
+			if (typeof anth.content !== 'string') {
+				const hasContent = anth.content.find(c => c.type === 'tool_use' || c.type === 'tool_result')
+				if (hasContent) continue
 			}
-			else {
-				for (const c of currMsg.content) {
-					if (c.type === 'text') c.text = c.text || EMPTY_MESSAGE
-					else if (c.type === 'tool_use') { }
-					else if (c.type === 'tool_result') { }
-				}
+		}
+
+
+		if (typeof currMsg.content === 'string') {
+			currMsg.content = currMsg.content || EMPTY_MESSAGE
+		}
+		else {
+			for (const c of currMsg.content) {
+				if (c.type === 'text') c.text = c.text || EMPTY_MESSAGE
+				else if (c.type === 'tool_use') { }
+				else if (c.type === 'tool_result') { }
 			}
 		}
 

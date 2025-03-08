@@ -547,9 +547,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				if (llmCancelToken === null) break
 				this._setStreamState(threadId, { streamingToken: llmCancelToken })
 
-				console.log('awaiting agentloop')
+				console.log('awaiting agentloop...')
 				await awaitable
-				console.log('done')
+				console.log('done with agentloop!')
 			}
 		}
 

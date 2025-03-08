@@ -1231,7 +1231,9 @@ const toolNameToComponent: { [T in ToolName]: {
 			const { params } = toolRequest
 			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />}
 				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-			/>
+			>
+				<ChatMarkdownRender string={params.changeDescription} />
+			</DropdownComponent>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1392,6 +1394,9 @@ export const SidebarChat = () => {
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
+
+		// getModelCapabilities() // TODO!!! check if can go into agent mode
+
 		await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode: 'agent' })
 
 		setSelections([]) // clear staging

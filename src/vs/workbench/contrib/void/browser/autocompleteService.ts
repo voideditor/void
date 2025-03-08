@@ -769,8 +769,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 
 
-		// console.log('B')
-
 		// create a new autocompletion and add it to cache
 		const newAutocompletion: Autocompletion = {
 			id: this._autocompletionId++,

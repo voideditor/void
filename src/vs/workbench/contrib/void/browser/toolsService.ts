@@ -376,6 +376,7 @@ export class ToolsService implements IToolsService {
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
 
+				console.log('done validating!!!')
 				return { uri, changeDescription }
 			},
 
@@ -453,8 +454,6 @@ export class ToolsService implements IToolsService {
 					from: 'ClickApply',
 					type: 'searchReplace',
 				}) ?? []
-				console.log('B')
-
 				await p
 				return {}
 			},

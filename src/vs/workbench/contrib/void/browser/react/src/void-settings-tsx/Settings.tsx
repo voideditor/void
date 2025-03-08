@@ -366,7 +366,7 @@ export const AutoRefreshToggle = () => {
 	// right now this is just `enabled_autoRefreshModels`
 	const enabled = voidSettingsState.globalSettings[settingName]
 
-	return <div className='flex items-center px-3 void-gap-x-1.5'>
+	return <div className='flex items-center px-3 gap-x-1.5'>
 		<VoidSwitch
 			size='xxs'
 			value={enabled}

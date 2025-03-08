@@ -370,13 +370,11 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async (params: string) => {
-				console.log('validating edit!!!')
 				const o = validateJSON(params)
 				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = o
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
 
-				console.log('done validating!!!')
 				return { uri, changeDescription }
 			},
 
@@ -447,14 +445,13 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async ({ uri, changeDescription }) => {
-				console.log('editing!!!!')
-				const [_, p] = editCodeService.startApplying({
+				const [_, applyDonePromise] = editCodeService.startApplying({
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',
 					type: 'searchReplace',
 				}) ?? []
-				await p
+				await applyDonePromise
 				return {}
 			},
 			terminal_command: async ({ command }) => {

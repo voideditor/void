@@ -118,6 +118,7 @@ export const sendLLMMessage = ({
 			return
 		}
 		onError({ message: `Error: Message type "${messagesType}" not recognized.`, fullError: null })
+		return
 	}
 
 	catch (error) {

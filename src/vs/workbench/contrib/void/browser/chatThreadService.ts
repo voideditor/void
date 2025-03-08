@@ -458,14 +458,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							// 1. validate tool params
 							let toolParams: ToolCallParams[typeof toolName]
 							try {
-								console.log('A')
-
 								const params = await this._toolsService.validateParams[toolName](tool.paramsStr)
-								console.log('B')
-
 								toolParams = params
 							} catch (error) {
-								console.log('ERR1')
 								const errorMessage = getErrorMessage(error)
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
 								res_()
@@ -474,25 +469,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 							// 2. if tool requires approval, await the approval
 							if (toolNamesThatRequireApproval.has(toolName)) {
-								console.log('C')
-
 								const voidToolId = generateUuid()
-								console.log('D')
 								const toolApprovalPromise = new Promise<void>((res, rej) => { this.resRejOfToolAwaitingApproval[voidToolId] = { res, rej } })
-								console.log('E')
 								this._addMessageToThread(threadId, { role: 'tool_request', name: toolName, params: toolParams, voidToolId: voidToolId })
 								try {
-									console.log('F')
-
 									await toolApprovalPromise
 									// accepted tool
 								}
 								catch (e) {
-									console.log('ERR2')
-
 									// TODO!!! test rejection
 									// if (Math.random() > 0) throw new Error('TESTING')
-
 									const errorMessage = 'Tool call was rejected by the user.'
 									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
 									res_()
@@ -503,10 +489,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							// 3. call the tool
 							let toolResult: ToolResultType[typeof toolName]
 							try {
-								console.log('G')
 								toolResult = await this._toolsService.callTool[toolName](toolParams as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
 							} catch (error) {
-								console.log('ERR3')
 								const errorMessage = getErrorMessage(error)
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
 								res_()
@@ -516,18 +500,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							// 4. stringify the result to give the LLM
 							let toolResultStr: string
 							try {
-
-								console.log('H')
 								toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
-
 							} catch (error) {
 								const errorMessage = `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
 								res_()
 								return
 							}
-
-							console.log('I')
 
 							// 5. add to history
 							this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
@@ -547,13 +526,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				if (llmCancelToken === null) break
 				this._setStreamState(threadId, { streamingToken: llmCancelToken })
 
-				console.log('awaiting agentloop...')
 				await awaitable
-				console.log('done with agentloop!')
 			}
 		}
 
-		agentLoop() // DO NOT AWAIT THIS, add fn should resolve when we've added message (this lets us interrupt the agent loop correctly instead of waiting for it to resolve)
+		agentLoop()
 
 	}
 

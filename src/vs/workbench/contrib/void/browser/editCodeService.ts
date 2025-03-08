@@ -1191,20 +1191,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	// throws if there's an error
 	public startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null {
-		if (opts.type === 'rewrite') {
-			const added = this._initializeWriteoverStream(opts)
-			if (!added) return null
-			const [diffZone, promise] = added
-			return [diffZone._URI, promise]
-		}
-		else if (opts.type === 'searchReplace') {
-			const added = this._initializeSearchAndReplaceStream(opts)
-			if (!added) return null
-			if (!added) return null
-			const [diffZone, promise] = added
-			return [diffZone._URI, promise]
-		}
-		return null
+		let res: [DiffZone, Promise<void>] | undefined = undefined
+		if (opts.type === 'rewrite') res = this._initializeWriteoverStream(opts)
+		else if (opts.type === 'searchReplace') res = this._initializeSearchAndReplaceStream(opts)
+
+		if (!res) return null
+		const [diffZone, applyDonePromise] = res
+		return [diffZone._URI, applyDonePromise]
 	}
 
 
@@ -1479,13 +1472,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 		// promise that resolves when the apply is done
-		let resApplyPromise: () => void
-		let rejApplyPromise: (e: any) => void
-		const applyPromise = new Promise<void>((res_, rej_) => { resApplyPromise = res_; rejApplyPromise = rej_ })
+		let resApplyDonePromise: () => void
+		let rejApplyDonePromise: (e: any) => void
+		const applyDonePromise = new Promise<void>((res_, rej_) => { resApplyDonePromise = res_; rejApplyDonePromise = rej_ })
 
 		// add to history
 		const { onFinishEdit } = this._addToHistory(uri, {
-			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) }
+			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyDonePromise(new Error('Edit was interrupted by pressing undo.')) }
 		})
 
 		// TODO replace these with whatever block we're on initially if already started (caching apply)
@@ -1583,7 +1576,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				nMessagesSent += 1
 
 				let resMessageDonePromise: () => void = () => { }
-				const messageDonePromise = new Promise<void>((res_) => { resMessageDonePromise = res_ })
+				const messageDonePromise = new Promise<void>((res, rej) => { resMessageDonePromise = res })
 
 				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
@@ -1632,7 +1625,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 										{ role: 'user', content: content } // user explanation of what's wrong
 									)
 
-									if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
 
 									// REVERT
 									const numLines = this._getNumLines(uri)
@@ -1653,7 +1645,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									oldBlocks = []
 									addedTrackingZoneOfBlockNum.splice(0, Infinity) // clear the array
 
+									// abort and resolve
 									shouldSendAnotherMessage = true
+									if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
 									this._refreshStylesAndDiffsInURI(uri)
 									resMessageDonePromise()
 									return
@@ -1765,9 +1759,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		} // end retryLoop
 
-		retryLoop().then(() => resApplyPromise()).catch((e) => rejApplyPromise(e))
+		retryLoop().then(() => resApplyDonePromise()).catch((e) => rejApplyDonePromise(e))
 
-		return [diffZone, applyPromise]
+		return [diffZone, applyDonePromise]
 	}
 
 

@@ -56,6 +56,7 @@ export const defaultModelsOfProvider = {
 		'mistral-large-latest',
 		'ministral-3b-latest',
 		'ministral-8b-latest',
+		''
 	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>

@@ -530,8 +530,8 @@ export const sendLLMMessageToProviderImplementation = {
 	},
 	mistral: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
-		sendFIM: null,
-		list: null,
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
+		list: (params) => _openaiCompatibleList(params),
 	},
 } satisfies CallFnOfProvider
 

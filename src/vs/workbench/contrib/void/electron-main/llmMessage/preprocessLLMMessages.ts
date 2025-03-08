@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { RawAnthropicAssistantContent, LLMChatMessage, LLMFIMMessage } from '../../common/llmMessageTypes.js';
+import { LLMChatMessage, LLMFIMMessage } from '../../common/llmMessageTypes.js';
 import { deepClone } from '../../../../../base/common/objects.js';
 
 
@@ -22,8 +22,7 @@ type InternalLLMChatMessage = {
 	content: string;
 } | {
 	role: 'assistant',
-	content: string | (RawAnthropicAssistantContent | { type: 'text'; text: string })[];
-	rawAnthropicAssistantContent?: RawAnthropicAssistantContent[] | undefined;
+	content: string | ({ type: 'text'; text: string })[];
 } | {
 	role: 'tool';
 	content: string; // result
@@ -41,12 +40,12 @@ const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatM
 	// remove duplicate roles
 	for (let i = 1; i < messages.length; i += 1) {
 		const curr = messages[i]
-		const prev = messages[i - 1]
-		// if found a repeated role, put the current content in the prev
-		if ((curr.role === 'user' && prev.role === 'user') || (curr.role === 'assistant' && prev.role === 'assistant')) {
-			prev.content += '\n' + curr.content
-			continue
-		}
+		// const prev = messages[i - 1]
+		// // if found a repeated role, put the current content in the prev
+		// if ((curr.role === 'assistant' && prev.role === 'assistant')) {
+		// 	prev.content += '\n' + curr.content
+		// 	continue
+		// }
 		// add the message
 		newMessages.push(curr)
 	}
@@ -56,29 +55,6 @@ const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatM
 
 
 
-
-
-// remove rawAnthropicAssistantContent, and make content equal to it if supportsAnthropicContent
-const prepareMessages_anthropicContent = ({ messages, supportsAnthropicContent }: { messages: LLMChatMessage[], supportsAnthropicContent: boolean }) => {
-	const newMessages: InternalLLMChatMessage[] = []
-	for (const m of messages) {
-		if (m.role !== 'assistant') {
-			newMessages.push(m)
-			continue
-		}
-		let newMessage: InternalLLMChatMessage
-		if (supportsAnthropicContent) {
-			const newContent = m.rawAnthropicAssistantContent
-			newMessage = { role: 'assistant', content: newContent ?? m.content }
-		}
-		else {
-			newMessage = m
-		}
-		delete newMessage.rawAnthropicAssistantContent // important to delete this field
-		newMessages.push(m)
-	}
-	return { messages: newMessages }
-}
 
 
 
@@ -255,7 +231,6 @@ const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMCh
 		Exclude<InternalLLMChatMessage, { role: 'assistant' | 'user' }> | {
 			role: 'assistant',
 			content: string | (
-				| RawAnthropicAssistantContent
 				| {
 					type: 'text';
 					text: string;
@@ -366,18 +341,15 @@ export const prepareMessages = ({
 	aiInstructions,
 	supportsSystemMessage,
 	supportsTools,
-	supportsAnthropicContent,
 }: {
 	messages: LLMChatMessage[],
 	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 	supportsTools: false | 'anthropic-style' | 'openai-style',
-	supportsAnthropicContent: boolean,
 }) => {
 	const { messages: messages1 } = prepareMessages_normalize({ messages })
-	const { messages: messages2 } = prepareMessages_anthropicContent({ messages: messages1, supportsAnthropicContent })
-	const { messages: messages3, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages2, aiInstructions, supportsSystemMessage })
-	const { messages: messages4 } = prepareMessages_tools({ messages: messages3, supportsTools })
+	const { messages: messages2, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages1, aiInstructions, supportsSystemMessage })
+	const { messages: messages4 } = prepareMessages_tools({ messages: messages2, supportsTools })
 
 	return {
 		messages: messages4 as any,

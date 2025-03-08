@@ -1257,7 +1257,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const title = toolNameToTitle[toolRequest.name]
 			const { params } = toolRequest
 			return <DropdownComponent title={title} desc1={`"${params.command}"`} icon={<Dot className={`stroke-orange-500`} />}
-				// TODO!!! open the terminal with that ID
+			// TODO!!! open the terminal with that ID
 			/>
 		},
 		resultWrapper: ({ toolMessage }) => {

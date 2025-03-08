@@ -14,7 +14,7 @@ import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/llmMessageService.js';
 import { chat_userMessageContent, chat_systemMessage, chat_lastUserMessageWithFilesAdded, chat_selectionsString } from './prompt/prompts.js';
 import { InternalToolInfo, IToolsService, ToolCallParams, ToolResultType, ToolName, toolNamesThatRequireApproval, voidTools } from './toolsService.js';
-import { LLMChatMessage, toLLMChatMessage, ToolCallType } from '../common/llmMessageTypes.js';
+import { LLMChatMessage, ToolCallType } from '../common/llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IVoidFileService } from '../common/voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
@@ -29,6 +29,23 @@ const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
 		}
 	}
 	return -1;
+}
+
+
+
+const toLLMChatMessage = (c: ChatMessage): LLMChatMessage | null => {
+	if (c.role === 'user') {
+		return { role: c.role, content: c.content || '(empty message)' }
+	}
+	else if (c.role === 'assistant')
+		return { role: c.role, content: c.content || '(empty message)' }
+	else if (c.role === 'tool')
+		return { role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content || '(empty output)' }
+	else if (c.role === 'tool_request')
+		return null
+	else {
+		throw new Error(`Role ${(c as any).role} not recognized.`)
+	}
 }
 
 
@@ -73,7 +90,7 @@ export type ToolRequestApproval<T extends ToolName> = {
 
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
-	{
+	| {
 		role: 'user';
 		content: string | null; // content displayed to the LLM on future calls - allowed to be '', will be replaced with (empty)
 		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
@@ -460,6 +477,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								catch (e) {
 									console.log('ERR2')
 
+									// TODO!!! test rejection
+									// if (Math.random() > 0) throw new Error('TESTING')
+
 									const errorMessage = 'Tool call was rejected by the user.'
 									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
 									res_()
@@ -486,7 +506,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 								console.log('H')
 								toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
-								// if (Math.random() > 0) throw new Error('This is not an allowed repo.')
 
 							} catch (error) {
 								const errorMessage = `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`

@@ -168,7 +168,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
-	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicContent: false }) // can change supportsAnthropicContent if e.g. OpenRouter starts supporting anthropic extended thinking
+	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools })
 	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAICompatibleTool(tool)) : undefined
 
 	const includeInPayload = canIOReasoning ? providerReasoningIOSettings?.input?.includeInPayload || {} : {}
@@ -280,7 +280,7 @@ const toAnthropicTool = (toolInfo: InternalToolInfo) => {
 	} satisfies Anthropic.Messages.Tool
 }
 
-const toolCallsFrom_AnthropicContent = (content: Anthropic.Messages.ContentBlock[]): ToolCallsFrom_ReturnType => {
+const toolCallsFrom_Anthropic = (content: Anthropic.Messages.ContentBlock[]): ToolCallsFrom_ReturnType => {
 	return content.map(c => {
 		if (c.type !== 'tool_use') return null
 		if (!isAToolName(c.name)) return null
@@ -301,7 +301,10 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 		reasoningBudget,
 	} = getModelSelectionState(providerName, modelName_, optionsOfModelSelection) // user's modelName_ here
 
-	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicContent: true })
+	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools })
+
+
+	console.log('MESSAGES!!!!', JSON.stringify(messages, null, 5))
 
 	const thisConfig = settingsOfProvider.anthropic
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
@@ -370,8 +373,8 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 
 	// on done - (or when error/fail) - this is called AFTER last streamEvent
 	stream.on('finalMessage', (response) => {
-		const toolCalls = toolCallsFrom_AnthropicContent(response.content)
-		onFinalMessage({ fullText, fullReasoning, toolCalls, rawAnthropicAssistantContent: response.content as any })
+		const toolCalls = toolCallsFrom_Anthropic(response.content)
+		onFinalMessage({ fullText, fullReasoning, toolCalls })
 	})
 	// on error
 	stream.on('error', (error) => {
@@ -494,6 +497,11 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
+	// mistral: {
+	// 	sendChat: , // TODO
+	// 	sendFIM: , // TODO // https://docs.mistral.ai/api/#tag/fim
+	// 	list: null,
+	// },
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: sendOllamaFIM,

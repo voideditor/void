@@ -34,7 +34,6 @@ export type LLMChatMessage = {
 } | {
 	role: 'assistant',
 	content: string; // text content
-	rawAnthropicAssistantContent?: RawAnthropicAssistantContent[]; // used for anthropic signing
 } | {
 	role: 'tool';
 	content: string; // result
@@ -50,29 +49,12 @@ export type ToolCallType = {
 	id: string;
 }
 
-export type RawAnthropicAssistantContent = { type: 'thinking'; thinking: string; signature: string; } | { type: 'redacted_thinking'; data: string } | { type: 'text', text: string }
-
 
 export type OnText = (p: { fullText: string; fullReasoning: string }) => void
-export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[], fullReasoning?: string, rawAnthropicAssistantContent?: RawAnthropicAssistantContent[] }) => void // id is tool_use_id
+export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[], fullReasoning?: string }) => void // id is tool_use_id
 export type OnError = (p: { message: string, fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
 
-
-export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage | null => {
-	if (c.role === 'user') {
-		return { role: c.role, content: c.content || '(empty message)' }
-	}
-	else if (c.role === 'assistant')
-		return { role: c.role, content: c.content || '(empty message)' }
-	else if (c.role === 'tool')
-		return { role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content || '(empty output)' }
-	else if (c.role === 'tool_request')
-		return null
-	else {
-		throw new Error(`Role ${(c as any).role} not recognized.`)
-	}
-}
 
 
 export type LLMFIMMessage = {
@@ -98,7 +80,7 @@ export type ServiceSendLLMMessageParams = {
 	onError: OnError;
 	logging: { loggingName: string, };
 	useProviderFor: FeatureName;
-} & SendLLMType
+} & SendLLMType;
 
 // params to the true sendLLMMessage function
 export type SendLLMMessageParams = {

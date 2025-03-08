@@ -154,7 +154,7 @@ const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-$
 // 	const voidSettingsService = accessor.get('IVoidSettingsService')
 // 	const voidSettingsState = useSettingsState()
 
-// 	const modelSelection = voidSettingsState.modelSelectionOfFeature['Ctrl+L']
+// 	const modelSelection = voidSettingsState.modelSelectionOfFeature['Chat']
 // 	if (!modelSelection) return null
 
 // 	const { modelName, providerName } = modelSelection
@@ -210,13 +210,13 @@ const ReasoningOptionDropdown = () => {
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 	const voidSettingsState = useSettingsState()
 
-	const modelSelection = voidSettingsState.modelSelectionOfFeature['Ctrl+L']
+	const modelSelection = voidSettingsState.modelSelectionOfFeature['Chat']
 	if (!modelSelection) return null
 
 	const { modelName, providerName } = modelSelection
 	const { canToggleReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName).supportsReasoning || {}
 
-	const { isReasoningEnabled } = getModelSelectionState(providerName, modelName, voidSettingsState.optionsOfModelSelection)
+	const { isReasoningEnabled } = getModelSelectionState(providerName, modelName, voidSettingsState.optionsOfModelSelection[providerName]?.[modelName])
 
 	if (canToggleReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider (no models right now)
 		return null // unused right now
@@ -277,7 +277,6 @@ interface VoidChatAreaProps {
 	divRef?: React.RefObject<HTMLDivElement>;
 
 	// UI customization
-	featureName: FeatureName;
 	className?: string;
 	showModelDropdown?: boolean;
 	showSelections?: boolean;
@@ -304,7 +303,6 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	isDisabled = false,
 	className = '',
 	showModelDropdown = true,
-	featureName,
 	showSelections = false,
 	showProspectiveSelections = true,
 	selections,
@@ -363,7 +361,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 				{showModelDropdown && (
 					<div className='max-w-[200px] flex-grow'>
 						<ReasoningOptionDropdown />
-						<ModelDropdown featureName={featureName} />
+						<ModelDropdown featureName={'Chat'} />
 					</div>
 				)}
 
@@ -727,8 +725,6 @@ const DropdownComponent = ({
 
 const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'user' } }) => {
 
-	const role = chatMessage.role
-
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 
@@ -758,7 +754,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 	const _mustInitialize = useRef(true)
 	const _justEnabledEdit = useRef(false)
 	useEffect(() => {
-		const canInitialize = role === 'user' && mode === 'edit' && textAreaRefState
+		const canInitialize = mode === 'edit' && textAreaRefState
 		const shouldInitialize = _justEnabledEdit.current || _mustInitialize.current
 		if (canInitialize && shouldInitialize) {
 			setStagingSelections(chatMessage.selections || [])
@@ -771,7 +767,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 			_mustInitialize.current = false
 		}
 
-	}, [chatMessage, role, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
+	}, [chatMessage, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
 
 	const onOpenEdit = () => {
 		setIsBeingEdited(true)
@@ -843,7 +839,6 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 			isDisabled={isDisabled}
 			showSelections={true}
 			showProspectiveSelections={false}
-			featureName="Ctrl+L"
 			selections={stagingSelections}
 			setSelections={setStagingSelections}
 		>
@@ -893,7 +888,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 		</div>
 
 
-		{role === 'user' && <EditSymbol
+		{<EditSymbol
 			size={18}
 			className={`
 				absolute -top-1 -right-1
@@ -931,10 +926,14 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 	const hasReasoning = !!reasoningStr
 	const thread = chatThreadsService.getCurrentThread()
 
+
 	const chatMessageLocation: ChatMessageLocation = {
 		threadId: thread.id,
 		messageIdx: messageIdx,
 	}
+
+	const isEmpty = !chatMessage.content && !chatMessage.reasoning
+	if (isEmpty) return null
 
 	return <>
 
@@ -1034,9 +1033,13 @@ const toolNameToComponent: { [T in ToolName]: {
 } } = {
 	'read_file': {
 		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.toString())} icon={<Dot className={`stroke-orange-500`} />} />
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.toString())} icon={<Dot className={`stroke-orange-500`} />}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1198,9 +1201,13 @@ const toolNameToComponent: { [T in ToolName]: {
 	},
 	'delete_uri': {
 		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath) + ' (deleted)'} />
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath) + ' (deleted)'}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1218,9 +1225,15 @@ const toolNameToComponent: { [T in ToolName]: {
 	},
 	'edit': {
 		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />} />
+			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />}
+				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			>
+				<ChatMarkdownRender string={params.changeDescription} />
+			</DropdownComponent>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1240,9 +1253,13 @@ const toolNameToComponent: { [T in ToolName]: {
 	},
 	'terminal_command': {
 		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={`"${params.command}"`} icon={<Dot className={`stroke-orange-500`} />} />
+			return <DropdownComponent title={title} desc1={`"${params.command}"`} icon={<Dot className={`stroke-orange-500`} />}
+			// TODO!!! open the terminal with that ID
+			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1294,22 +1311,17 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => 
 	else if (role === 'tool_request') {
 		const isLastMessage = true // TODO!!! fix this
 		if (!isLastMessage) return null
-		const ToolMessageComponent = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
+		const ToolRequestComponent = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
 		return <>
-			<ToolMessageComponent
-				toolRequest={chatMessage}
-			/>
+			<ToolRequestComponent toolRequest={chatMessage} />
 			<ToolRequestAcceptRejectButtons toolRequest={chatMessage} />
 		</>
 	}
 	else if (role === 'tool') {
 		const title = toolNameToTitle[chatMessage.name]
 		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
-
-		const ToolMessageComponent = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
-		return <ToolMessageComponent
-			toolMessage={chatMessage}
-		/>
+		const ToolResultComponent = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
+		return <ToolResultComponent toolMessage={chatMessage} />
 	}
 
 
@@ -1363,7 +1375,7 @@ export const SidebarChat = () => {
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
 
-	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+L', settingsState)
+	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Chat', settingsState)
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
 	const [chatAreaRef, chatAreaDimensions] = useResizeObserver()
@@ -1382,6 +1394,9 @@ export const SidebarChat = () => {
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
+
+		// getModelCapabilities() // TODO!!! check if can go into agent mode
+
 		await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode: 'agent' })
 
 		setSelections([]) // clear staging
@@ -1420,8 +1435,9 @@ export const SidebarChat = () => {
 		<ChatBubble key={getChatBubbleId(currentThread.id, streamingChatIdx)}
 			messageIdx={streamingChatIdx} chatMessage={{
 				role: 'assistant',
-				content: messageSoFar ?? null,
-				reasoning: reasoningSoFar ?? null,
+				content: messageSoFar ?? '',
+				reasoning: reasoningSoFar ?? '',
+				anthropicReasoning: null,
 			}}
 			isLoading={isStreaming}
 		/> : null
@@ -1492,7 +1508,6 @@ export const SidebarChat = () => {
 			selections={selections}
 			setSelections={setSelections}
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
-			featureName="Ctrl+L"
 		>
 			<VoidInputBox2
 				className='min-h-[81px] px-0.5'

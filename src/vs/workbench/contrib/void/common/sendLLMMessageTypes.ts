@@ -3,9 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import type { ChatMessage } from '../browser/chatThreadService.js'
 import type { InternalToolInfo, ToolName } from '../browser/toolsService.js'
-import { FeatureName, OptionsOfModelSelection, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
+import { ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
 export const errorDetails = (fullError: Error | null): string | null => {
@@ -29,12 +28,15 @@ export const getErrorMessage: (error: unknown) => string = (error) => {
 
 
 export type LLMChatMessage = {
-	role: 'system' | 'user';
+	role: 'system';
+	content: string;
+} | {
+	role: 'user';
 	content: string;
 } | {
 	role: 'assistant',
 	content: string; // text content
-	rawAnthropicAssistantContent?: RawAnthropicAssistantContent[]; // used for anthropic signing
+	anthropicReasoning: AnthropicReasoning[] | null;
 } | {
 	role: 'tool';
 	content: string; // result
@@ -50,29 +52,12 @@ export type ToolCallType = {
 	id: string;
 }
 
-export type RawAnthropicAssistantContent = { type: 'thinking'; thinking: string; signature: string; } | { type: 'redacted_thinking'; data: string } | { type: 'text', text: string }
-
+export type AnthropicReasoning = ({ type: 'thinking'; thinking: any; signature: string; } | { type: 'redacted_thinking', data: any })
 
 export type OnText = (p: { fullText: string; fullReasoning: string }) => void
-export type OnFinalMessage = (p: { fullText: string, toolCalls?: ToolCallType[], fullReasoning?: string, rawAnthropicAssistantContent?: RawAnthropicAssistantContent[] }) => void // id is tool_use_id
-export type OnError = (p: { message: string, fullError: Error | null }) => void
+export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCalls?: ToolCallType[]; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
+export type OnError = (p: { message: string; fullError: Error | null }) => void
 export type AbortRef = { current: (() => void) | null }
-
-
-export const toLLMChatMessage = (c: ChatMessage): LLMChatMessage | null => {
-	if (c.role === 'user') {
-		return { role: c.role, content: c.content || '(empty message)' }
-	}
-	else if (c.role === 'assistant')
-		return { role: c.role, content: c.content || '(empty message)' }
-	else if (c.role === 'tool')
-		return { role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content || '(empty output)' }
-	else if (c.role === 'tool_request')
-		return null
-	else {
-		throw new Error(`Role ${(c as any).role} not recognized.`)
-	}
-}
 
 
 export type LLMFIMMessage = {
@@ -97,8 +82,9 @@ export type ServiceSendLLMMessageParams = {
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
 	logging: { loggingName: string, };
-	useProviderFor: FeatureName;
-} & SendLLMType
+	modelSelection: ModelSelection | null;
+	modelSelectionOptions: ModelSelectionOptions | undefined;
+} & SendLLMType;
 
 // params to the true sendLLMMessage function
 export type SendLLMMessageParams = {
@@ -110,10 +96,10 @@ export type SendLLMMessageParams = {
 
 	aiInstructions: string;
 
-	providerName: ProviderName;
-	modelName: string;
+	modelSelection: ModelSelection;
+	modelSelectionOptions: ModelSelectionOptions | undefined;
+
 	settingsOfProvider: SettingsOfProvider;
-	optionsOfModelSelection: OptionsOfModelSelection;
 } & SendLLMType
 
 

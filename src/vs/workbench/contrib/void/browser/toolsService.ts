@@ -370,7 +370,6 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async (params: string) => {
-				console.log('validating edit!!!')
 				const o = validateJSON(params)
 				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = o
 				const uri = validateURI(uriStr)
@@ -395,7 +394,7 @@ export class ToolsService implements IToolsService {
 
 				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
-				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) || '(empty)' // paginate
+				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) // paginate
 				const hasNextPage = (readFileContents.length - 1) - toIdx >= 1
 				return { fileContents, hasNextPage }
 			},
@@ -446,16 +445,13 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async ({ uri, changeDescription }) => {
-				console.log('editing!!!!')
-				const [_, p] = editCodeService.startApplying({
+				const [_, applyDonePromise] = editCodeService.startApplying({
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',
 					type: 'searchReplace',
 				}) ?? []
-				console.log('B')
-
-				await p
+				await applyDonePromise
 				return {}
 			},
 			terminal_command: async ({ command }) => {

@@ -293,7 +293,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough
 	private _convertThreadDataFromStorage(threadsStr: string): ChatThreads {
 		return JSON.parse(threadsStr, (key, value) => {
-			if (value && typeof value === 'object' && value.$mid === 1) { //$mid is the MarshalledId. $mid === 1 means it is a URI
+			if (value && typeof value === 'object' && value.$mid === 1) { // $mid is the MarshalledId. $mid === 1 means it is a URI
 				return URI.from(value);
 			}
 			return value;
@@ -587,22 +587,27 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// process codespan to understand what we are searching for
 		// TODO account for more complicated patterns eg `ITextEditorService.openEditor()`
-		const filePattern = /^[^\s.]+\.[^\s.]+$/;
-		const functionPattern = /^[^\s(]+\([^)]*\)$/;
+		const functionOrMethodPattern = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/; // `fUnCt10n_name`
+		const functionParensPattern = /^([^\s(]+)\([^)]*\)$/; // `functionName( args )`
 
 		let target = _codespanStr // the string to search for
 		let codespanType: 'file' | 'function-or-class' | 'unsearchable' = 'unsearchable';
-		if (filePattern.test(target)) {
+		if (target.includes('.')) {
 
 			codespanType = 'file'
 			target = _codespanStr
 
-		} else if (functionPattern.test(target)) {
-			const match = target.match(functionPattern)
-			if (match && match[0]) {
+		} else if (functionOrMethodPattern.test(target)) {
+
+			codespanType = 'function-or-class'
+			target = _codespanStr
+
+		} else if (functionParensPattern.test(target)) {
+			const match = target.match(functionParensPattern)
+			if (match && match[1]) {
 
 				codespanType = 'function-or-class'
-				target = match[0]
+				target = match[1]
 
 			}
 		}
@@ -616,7 +621,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			.map(s => s.fileURI)
 			.filter((uri, index, array) => array.findIndex(u => u.toString() === uri.toString()) === index) // O(n^2) but this is small
 			.reverse()
-
 
 
 		if (codespanType === 'file') {
@@ -650,96 +654,79 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 				try {
 					const matches = model.findMatches(
-						target.split('(')[0].trim(), // remove parameters
+						target,
 						false, // searchOnlyEditableRange
 						false, // isRegex
 						true,  // matchCase
-						null,  // wordSeparators
+						' ',   // wordSeparators
 						true   // captureMatches
 					);
 
 					const firstThree = matches.slice(0, 3);
 
 					// take first 3 occurences, attempt to goto definition on them
-
 					for (const match of firstThree) {
 						const position = new Position(match.range.startLineNumber, match.range.startColumn);
 						const definitionProviders = this._languageFeaturesService.definitionProvider.ordered(model);
 
 						for (const provider of definitionProviders) {
-							const definitions = await provider.provideDefinition(model, position, CancellationToken.None);
-							if (!definitions) continue;
 
-							const locationLinks: LocationLink[] = [];
+							const _definitions = await provider.provideDefinition(model, position, CancellationToken.None);
 
-							if (Array.isArray(definitions)) {
-								// Handle Location[] or LocationLink[]
-								for (const def of definitions) {
-									if ('uri' in def) {
-										locationLinks.push({
-											uri: def.uri,
-											range: def.range,
-											targetSelectionRange: def.range,
-											originSelectionRange: undefined
-										});
-									} else {
-										locationLinks.push(def);
+							if (!_definitions) continue;
+
+							const definitions = Array.isArray(_definitions) ? _definitions : [_definitions];
+
+							for (const definition of definitions) {
+
+								return {
+									uri: definition.uri,
+									selection: {
+										startLineNumber: definition.range.startLineNumber,
+										startColumn: definition.range.startColumn,
+										endLineNumber: definition.range.endLineNumber,
+										endColumn: definition.range.endColumn,
 									}
-								}
-							} else {
-								// Handle single Location
-								locationLinks.push({
-									uri: definitions.uri,
-									range: definitions.range,
-									targetSelectionRange: definitions.range,
-									originSelectionRange: undefined
-								});
-							}
+								};
 
-							const definition = locationLinks[0];
-							if (!definition) continue;
+								// const defModelRef = await this._textModelService.createModelReference(definition.uri);
+								// const defModel = defModelRef.object.textEditorModel;
 
-							// Load definition file model
-							const defModelRef = await this._textModelService.createModelReference(definition.uri);
-							const defModel = defModelRef.object.textEditorModel;
+								// try {
+								// 	const symbolProviders = this._languageFeaturesService.documentSymbolProvider.ordered(defModel);
 
-							try {
-								const symbolProviders = this._languageFeaturesService.documentSymbolProvider.ordered(defModel);
+								// 	for (const symbolProvider of symbolProviders) {
+								// 		const symbols = await symbolProvider.provideDocumentSymbols(
+								// 			defModel,
+								// 			CancellationToken.None
+								// 		);
 
-								for (const symbolProvider of symbolProviders) {
-									const symbols = await symbolProvider.provideDocumentSymbols(
-										defModel,
-										CancellationToken.None
-									);
+								// 		if (symbols) {
+								// 			const symbol = symbols.find(s => {
+								// 				const symbolRange = s.range;
+								// 				return symbolRange.startLineNumber <= definition.range.startLineNumber &&
+								// 					symbolRange.endLineNumber >= definition.range.endLineNumber &&
+								// 					(symbolRange.startLineNumber !== definition.range.startLineNumber || symbolRange.startColumn <= definition.range.startColumn) &&
+								// 					(symbolRange.endLineNumber !== definition.range.endLineNumber || symbolRange.endColumn >= definition.range.endColumn);
+								// 			});
 
-									if (symbols) {
-										const symbol = symbols.find(s => {
-											const symbolRange = s.range;
-											return symbolRange.startLineNumber <= definition.range.startLineNumber &&
-												symbolRange.endLineNumber >= definition.range.endLineNumber &&
-												(symbolRange.startLineNumber !== definition.range.startLineNumber || symbolRange.startColumn <= definition.range.startColumn) &&
-												(symbolRange.endLineNumber !== definition.range.endLineNumber || symbolRange.endColumn >= definition.range.endColumn);
-										});
-
-
-										console.log('@@@ symbol', symbol?.name, symbol?.kind)
-
-										// if we got to a class/function get the full range and return
-										if (symbol?.kind === SymbolKind.Function || symbol?.kind === SymbolKind.Class) {
-											return {
-												uri: definition.uri,
-												selection: {
-													startLineNumber: definition.range.startLineNumber,
-													startColumn: definition.range.startColumn,
-													endLineNumber: definition.range.endLineNumber,
-													endColumn: definition.range.endColumn,
-												}
-											};
-										}
-									}
-								}
-							} finally {
-								defModelRef.dispose();
+								// 			// if we got to a class/function get the full range and return
+								// 			if (symbol?.kind === SymbolKind.Function || symbol?.kind === SymbolKind.Method || symbol?.kind === SymbolKind.Class) {
+								// 				return {
+								// 					uri: definition.uri,
+								// 					selection: {
+								// 						startLineNumber: definition.range.startLineNumber,
+								// 						startColumn: definition.range.startColumn,
+								// 						endLineNumber: definition.range.endLineNumber,
+								// 						endColumn: definition.range.endColumn,
+								// 					}
+								// 				};
+								// 			}
+								// 		}
+								// 	}
+								// } finally {
+								// 	defModelRef.dispose();
+								// }
 							}
 						}
 					}
@@ -763,10 +750,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const links = thread.state.linksOfMessageIdx?.[messageIdx]
 		if (!links) return undefined;
 
-		const location = links[codespanStr]
-		if (!location) return undefined;
+		const link = links[codespanStr]
 
-		return location
+		return link
 	}
 
 	async addCodespanLink({ newLinkText, newLinkLocation, messageIdx, threadId }: { newLinkText: string, newLinkLocation: CodespanLocationLink, messageIdx: number, threadId: string }) {

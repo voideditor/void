@@ -50,26 +50,20 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 	const [didComputeCodespanLink, setDidComputeCodespanLink] = useState<boolean>(false)
 
-	console.log('rerender', didComputeCodespanLink ? 1 : 0)
-
 	let link = undefined
-
 	if (rawText.endsWith("`")) { // if codespan was completed
 
 		// get link from cache
 		link = chatThreadService.getCodespanLink({ codespanStr: text, messageIdx, threadId })
 
 		if (link === undefined) {
-
 			// generate link and add to cache
-			chatThreadService.generateCodespanLink(text)
+			(chatThreadService.generateCodespanLink(text)
 				.then(link => {
-
 					chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
-
-					setDidComputeCodespanLink(true)
-
+					setDidComputeCodespanLink(true) // rerender
 				})
+			)
 		}
 
 	}
@@ -83,21 +77,21 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 		// open the file
 		commandSerivce.executeCommand('vscode.open', link.uri).then(() => {
 
-			console.log('click:', selection, link.uri)
-
 			// select the text
-			if (!selection) return;
+			setTimeout(() => {
+				if (!selection) return;
 
-			const editor = editorService.getActiveCodeEditor()
-			if (!editor) return;
+				const editor = editorService.getActiveCodeEditor()
+				if (!editor) return;
 
-			editor.setSelection(selection)
-			editor.revealRange(selection, ScrollType.Immediate)
+				editor.setSelection(selection)
+				editor.revealRange(selection, ScrollType.Immediate)
+
+			}, 50) // needed when document was just opened and needs to initialize
 
 		})
 
 	}
-
 
 	return <Codespan
 		text={text}
@@ -310,9 +304,6 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx }: { token: 
 
 	// inline code
 	if (t.type === "codespan") {
-
-
-		console.log('chatmessagelocation', chatMessageLocation)
 
 		if (chatMessageLocation) {
 			return <CodespanWithLink

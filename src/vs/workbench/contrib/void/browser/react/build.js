@@ -3,7 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { spawn, execSync } from 'child_process';
+import { execSync } from 'child_process';
+import { spawn } from 'cross-spawn'
 // Added lines below
 import fs from 'fs';
 import path from 'path';
@@ -73,7 +74,7 @@ function saveStylesFile() {
 		} catch (err) {
 			console.error('[scope-tailwind] Error saving styles.css:', err);
 		}
-	}, 3000);
+	}, 4000);
 }
 
 const args = process.argv.slice(2);

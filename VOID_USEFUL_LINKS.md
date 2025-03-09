@@ -2,6 +2,8 @@
 
 The Void team put together this list of links to get up and running with VSCode's sourcecode. We hope it's helpful!
 
+For a complete guide on building Void, see [Contributing](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
+
 ## Contributing
 
 - [How VSCode's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. This is the most important read on this whole list! We recommend reading the whole thing.

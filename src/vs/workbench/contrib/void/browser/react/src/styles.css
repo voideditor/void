@@ -7,11 +7,39 @@
 @tailwind components;
 @tailwind utilities;
 
+& {
+	--void-bg-1: var(--vscode-input-background);
+	--void-bg-1-alt: var(--vscode-badge-background);
+	--void-bg-2: var(--vscode-sideBar-background);
+	--void-bg-2-alt: color-mix(in srgb, var(--vscode-sideBar-background) 30%, var(--vscode-editor-background) 70%);
+	--void-bg-3: var(--vscode-editor-background);
+
+	--void-fg-0: color-mix(in srgb, var(--vscode-tab-activeForeground) 90%, black 10%);
+	--void-fg-1: var(--vscode-editor-foreground);
+	--void-fg-2: var(--vscode-input-foreground);
+	--void-fg-3: var(--vscode-input-placeholderForeground);
+	/* --void-fg-4: var(--vscode-tab-inactiveForeground); */
+	--void-fg-4: var(--vscode-list-deemphasizedForeground);
+
+	--void-warning: var(--vscode-charts-yellow);
+
+	--void-border-1: var(--vscode-commandCenter-activeBorder);
+	--void-border-2: var(--vscode-commandCenter-border);
+	--void-border-3: var(--vscode-commandCenter-inactiveBorder);
+	--void-border-4: var(--vscode-editorGroup-border);
+
+	--void-ring-color: #007FD4;
+	--void-link-color: #007FD4;
+}
 
 .select-child-restyle select {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	padding-right: 24px;
+}
+
+.void-force-child-placeholder-void-fg-1 ::placeholder {
+	color: var(--void-fg-3);
 }
 
 * {

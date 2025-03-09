@@ -2,11 +2,6 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
-import React, { useEffect, useState } from 'react'
-import { mountFnGenerator } from '../util/mountFnGenerator.js'
-
-// import { SidebarSettings } from './SidebarSettings.js';
-
 
 import { useIsDark, useSidebarState } from '../util/services.js';
 // import { SidebarThreadSelector } from './SidebarThreadSelector.js';
@@ -20,9 +15,9 @@ export const Sidebar = ({ className }: { className: string }) => {
 	const sidebarState = useSidebarState()
 	const { currentTab: tab } = sidebarState
 
-	// const isDark = useIsDark()
+	const isDark = useIsDark()
 	return <div
-		className={`@@void-scope`} 	// ${isDark ? 'dark' : ''}
+		className={`@@void-scope ${isDark ? 'dark' : ''}`}
 		style={{ width: '100%', height: '100%' }}
 	>
 		<div

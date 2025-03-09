@@ -12,13 +12,13 @@ There are a few ways to contribute:
 
 ### Codebase Guide
 
-We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization.
+We [highly recommend reading this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization too. Void's codebase is pretty simple when you know what a service is and what `browser/` and `common/` mean, and the article covers all the jargon.
 
 <!-- ADD BLOG HERE
 We wrote a [guide to working in VSCode].
 -->
 
-Most of Void's code lives in the two folders called `void/`.
+Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
 
 
 
@@ -61,13 +61,14 @@ To build Void, open `void/` inside VSCode. Then open your terminal and run:
 3. Build Void.
 	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
    - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
-   - This step can take ~5 min. The build is done when you see two check marks.
+   - This step can take ~5 min. The build is done when you see two check marks (one of the items will continue spinning indefinitely - it compiles our React code).
 4. Run Void.
    - Run `./scripts/code.sh` (Mac/Linux).
    - Run `./scripts/code.bat` (Windows).
 6. Nice-to-knows.
    - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
    - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
+	- You can kill any of the build scripts by pressing `Ctrl+D` in VSCode terminal. If you press `Ctrl+C` the script will close but will keep running in the background (to open all background scripts, just re-build).
 
 #### Building Void from Terminal
 
@@ -85,7 +86,7 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 #### Common Fixes
 
 - Make sure you followed the prerequisite steps.
-- Make sure you have Node version `20.16.0` (the version in `.nvmrc`)!
+- Make sure you have Node version `20.18.2` (the version in `.nvmrc`)!
 - If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
 - If you see missing styles, wait a few seconds and then reload.
 - If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.

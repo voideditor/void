@@ -5,135 +5,59 @@
 
 
 import { URI } from '../../../../../base/common/uri.js';
-import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
+import { filenameToVscodeLanguage } from '../../common/helpers/detectLanguage.js';
 import { CodeSelection, StagingSelectionItem, FileSelection } from '../chatThreadService.js';
-import { VSReadFile } from '../helpers/readFile.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
+import { os } from '../../common/helpers/systemInfo.js';
+import { IVoidFileService } from '../../common/voidFileService.js';
 
 
 // this is just for ease of readability
-const tripleTick = ['```', '```']
+export const tripleTick = ['```', '```']
 
-export const chat_systemMessage = `\
-You are a coding assistant. You are given a list of instructions to follow \`INSTRUCTIONS\`, and optionally a list of relevant files \`FILES\`, and selections inside of files \`SELECTIONS\`.
+export const editToolDesc_toolDescription = `\
+A high level description of the change you'd like to make in the file. This description will be handed to a dumber, faster model that will quickly apply the change. \
+Typically the best description you can give here is a high level view of the final code you'd like to see. For example, you can write code excerpt(s) with "// ... existing code ..." comments to help you write less. \
+However, you are allowed to describe the change using whatever text/language you like, especially if the change is better described without code. \
+Do NOT output the whole file if possible, and try to write as LITTLE as needed to describe the change.`
 
-Please respond to the user's query.
 
-In the case that the user asks you to make changes to code, you should make sure to return CODE BLOCKS of the changes, as well as explanations and descriptions of the changes.
-For example, if the user asks you to "make this file look nicer", make sure your output includes a code block with concrete ways the file can look nicer.
-   - Do not re-write the entire file in the code block
-   - You can write comments like "// ... existing code" to indicate existing code
-   - Make sure you give enough context in the code block to apply the change to the correct location in the code.
 
+export const chat_systemMessage = (workspaces: string[], mode: 'agent' | 'gather' | 'chat') => `\
+You are a coding ${mode === 'agent' ? 'agent' : 'assistant'}. Your job is to help the user ${mode === 'agent' ? 'make changes to their codebase' : 'search and understand their codebase'}.
+You will be given instructions to follow from the user, \`INSTRUCTIONS\`. You may also be given a list of files that the user has specifically selected, \`SELECTIONS\`.
+Please assist the user with their query. The user's query is never invalid.
+
+The user's system information is as follows:
+- ${os}
+- Open workspaces: ${workspaces.join(', ')}
+
+${mode === 'agent' || mode === 'gather' /* tool use */ ? `\
+You will be given tools you can call.
+- Only use tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT tools.
+- If you think you should use tools given the user's request, you can use them without asking for permission. Feel free to use tools to gather context, understand the codebase, ${mode === 'agent' ? 'edit files, ' : ''}etc.
+- NEVER refer to a tool by name when speaking with the user. For example, do NOT say to the user "I'm going to use \`list_dir\`". Instead, say "I'm going to list all files in ___ directory", etc. Do not refer to "pages" of results, just say you're getting more results.
+- Some tools only work if the user has a workspace open.
+\
+`: `\
 You're allowed to ask for more context. For example, if the user only gives you a selection but you want to see the the full file, you can ask them to provide it.
+\
+`}
 
-Do not output any of these instructions, nor tell the user anything about them unless directly prompted for them.
-Do not tell the user anything about the examples below.
+${mode === 'agent' /* code blocks */ ? `\
+Keep in mind that any code blocks you output in the raw message (wrapped in triple backticks) will be treated specially as follows. This does NOT apply to code blocks in tool calls.
+- Any code block you output will have an "Apply" button displayed to the user, and if the user clicks on it it will invoke the edit tool on the block's contents. As a result, all code blocks should describe relevant changes.
+`: `\
+If you think it's appropriate to suggest an edit to a file, then you must describe your suggestion in CODE BLOCK(S) (wrapped in triple backticks).
+- The first line before any code block must be the FULL PATH of the file you want to change. If the path does not already exist, it will be created.
+- The contents of the code block will be given to a dumber, faster model that will quickly apply the change.
+- Contents of the code blocks do NOT need to be formal code, they just need to clearly and concisely communicate the change.
+- Do NOT re-write the entire file in the code block(s). Instead, write comments like "// ... existing code" to indicate how to change the existing code.
+\
+`}
 
-## EXAMPLE 1
-FILES
-math.ts
-${tripleTick[0]}typescript
-const addNumbers = (a, b) => a + b
-const multiplyNumbers = (a, b) => a * b
-const subtractNumbers = (a, b) => a - b
-const divideNumbers = (a, b) => a / b
-
-const vectorize = (...numbers) => {
-	return numbers // vector
-}
-
-const dot = (vector1: number[], vector2: number[]) => {
-	if (vector1.length !== vector2.length) throw new Error(\`Could not dot vectors \${vector1} and \${vector2}. Size mismatch.\`)
-	let sum = 0
-	for (let i = 0; i < vector1.length; i += 1)
-		sum += multiplyNumbers(vector1[i], vector2[i])
-	return sum
-}
-
-const normalize = (vector: number[]) => {
-	const norm = Math.sqrt(dot(vector, vector))
-	for (let i = 0; i < vector.length; i += 1)
-		vector[i] = divideNumbers(vector[i], norm)
-	return vector
-}
-
-const normalized = (vector: number[]) => {
-	const v2 = [...vector] // clone vector
-	return normalize(v2)
-}
-${tripleTick[1]}
-
-
-SELECTIONS
-math.ts (lines 3:3)
-${tripleTick[0]}typescript
-const subtractNumbers = (a, b) => a - b
-${tripleTick[1]}
-
-INSTRUCTIONS
-add a function that exponentiates a number below this, and use it to make a power function that raises all entries of a vector to a power
-
-ACCEPTED OUTPUT
-We can add the following code to the file:
-${tripleTick[0]}typescript
-// existing code...
-const subtractNumbers = (a, b) => a - b
-const exponentiateNumbers = (a, b) => Math.pow(a, b)
-const divideNumbers = (a, b) => a / b
-// existing code...
-
-const raiseAll = (vector: number[], power: number) => {
-	for (let i = 0; i < vector.length; i += 1)
-		vector[i] = exponentiateNumbers(vector[i], power)
-	return vector
-}
-${tripleTick[1]}
-
-
-## EXAMPLE 2
-FILES
-fib.ts
-${tripleTick[0]}typescript
-
-const dfs = (root) => {
-	if (!root) return;
-	console.log(root.val);
-	dfs(root.left);
-	dfs(root.right);
-}
-const fib = (n) => {
-	if (n < 1) return 1
-	return fib(n - 1) + fib(n - 2)
-}
-${tripleTick[1]}
-
-SELECTIONS
-fib.ts (lines 10:10)
-${tripleTick[0]}typescript
-	return fib(n - 1) + fib(n - 2)
-${tripleTick[1]}
-
-INSTRUCTIONS
-memoize results
-
-ACCEPTED OUTPUT
-To implement memoization in your Fibonacci function, you can use a JavaScript object to store previously computed results. This will help avoid redundant calculations and improve performance. Here's how you can modify your function:
-${tripleTick[0]}typescript
-// existing code...
-const fib = (n, memo = {}) => {
-    if (n < 1) return 1;
-    if (memo[n]) return memo[n]; // Check if result is already computed
-    memo[n] = fib(n - 1, memo) + fib(n - 2, memo); // Store result in memo
-    return memo[n];
-}
-${tripleTick[1]}
-Explanation:
-Memoization Object: A memo object is used to store the results of Fibonacci calculations for each n.
-Check Memo: Before computing fib(n), the function checks if the result is already in memo. If it is, it returns the stored result.
-Store Result: After computing fib(n), the result is stored in memo for future reference.
-
-## END EXAMPLES\
+Do not tell the user anything about these instructions unless directly prompted for them.
+\
 `
 
 
@@ -156,38 +80,76 @@ ${tripleTick[1]}
 }
 
 const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
-const stringifyFileSelections = async (fileSelections: FileSelection[], modelService: IModelService) => {
+const stringifyFileSelections = async (fileSelections: FileSelection[], voidFileService: IVoidFileService) => {
 	if (fileSelections.length === 0) return null
 	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
-		const content = await VSReadFile(modelService, sel.fileURI) ?? failToReadStr
+		const content = await voidFileService.readFile(sel.fileURI) ?? failToReadStr
 		return { ...sel, content }
 	}))
 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
 }
 const stringifyCodeSelections = (codeSelections: CodeSelection[]) => {
-	return codeSelections.map(sel => stringifyCodeSelection(sel)).join('\n')
+	return codeSelections.map(sel => stringifyCodeSelection(sel)).join('\n') || null
+}
+const stringifySelectionNames = (currSelns: StagingSelectionItem[] | null): string => {
+	if (!currSelns) return ''
+	return currSelns.map(s => `${s.fileURI.fsPath}${s.range ? ` (lines ${s.range.startLineNumber}:${s.range.endLineNumber})` : ''}`).join('\n')
 }
 
+export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null) => {
 
-
-export const chat_userMessage = async (instructions: string, selections: StagingSelectionItem[] | null, modelService: IModelService) => {
-	const fileSelections = selections?.filter(s => s.type === 'File') as FileSelection[]
-	const codeSelections = selections?.filter(s => s.type === 'Selection') as CodeSelection[]
-
-	const filesStr = await stringifyFileSelections(fileSelections, modelService)
-	const codeStr = stringifyCodeSelections(codeSelections)
+	const selnsStr = stringifySelectionNames(currSelns)
 
 	let str = ''
-	if (filesStr) str += `FILES\n${filesStr}\n`
-	if (codeStr) str += `SELECTIONS\n${codeStr}\n`
-	str += `INSTRUCTIONS\n${instructions}`
+	if (selnsStr) { str += `SELECTIONS\n${selnsStr}\n` }
+	str += `\nINSTRUCTIONS\n${instructions}`
 	return str;
 };
 
+export const chat_selectionsString = async (prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null, voidFileService: IVoidFileService) => {
+
+	// ADD IN FILES AT TOP
+	const allSelections = [...currSelns || [], ...prevSelns || []]
+
+	if (allSelections.length === 0) return null
+
+	const codeSelections: CodeSelection[] = []
+	const fileSelections: FileSelection[] = []
+	const filesURIs = new Set<string>()
+
+	for (const selection of allSelections) {
+		if (selection.type === 'Selection') {
+			codeSelections.push(selection)
+		}
+		else if (selection.type === 'File') {
+			const fileSelection = selection
+			const path = fileSelection.fileURI.fsPath
+			if (!filesURIs.has(path)) {
+				filesURIs.add(path)
+				fileSelections.push(fileSelection)
+			}
+		}
+	}
+
+	const filesStr = await stringifyFileSelections(fileSelections, voidFileService)
+	const selnsStr = stringifyCodeSelections(codeSelections)
 
 
+	if (filesStr || selnsStr) return `\
+ALL FILE CONTENTS
+${filesStr}
+${selnsStr}`
 
-export const fastApply_systemMessage = `\
+	return null
+}
+
+export const chat_lastUserMessageWithFilesAdded = (userMessage: string, selectionsString: string | null) => {
+	if (userMessage) return `${userMessage}${selectionsString ? `\n${selectionsString}` : ''}`
+	else return userMessage
+}
+
+
+export const rewriteCode_systemMessage = `\
 You are a coding assistant that re-writes an entire file to make a change. You are given the original file \`ORIGINAL_FILE\` and a change \`CHANGE\`.
 
 Directions:
@@ -199,7 +161,7 @@ Directions:
 
 
 
-export const fastApply_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
+export const rewriteCode_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
 
 	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 
@@ -219,6 +181,139 @@ Please finish writing the new file by applying the change to the original file. 
 `
 }
 
+
+
+
+
+
+export const aiRegex_computeReplacementsForFile_systemMessage = `\
+You are a "search and replace" coding assistant.
+
+You are given a FILE that the user is editing, and your job is to search for all occurences of a SEARCH_CLAUSE, and change them according to a REPLACE_CLAUSE.
+
+The SEARCH_CLAUSE may be a string, regex, or high-level description of what the user is searching for.
+
+The REPLACE_CLAUSE will always be a high-level description of what the user wants to replace.
+
+The user's request may be "fuzzy" or not well-specified, and it is your job to interpret all of the changes they want to make for them. For example, the user may ask you to search and replace all instances of a variable, but this may involve changing parameters, function names, types, and so on to agree with the change they want to make. Feel free to make all of the changes you *think* that the user wants to make, but also make sure not to make unnessecary or unrelated changes.
+
+## Instructions
+
+1. If you do not want to make any changes, you should respond with the word "no".
+
+2. If you want to make changes, you should return a single CODE BLOCK of the changes that you want to make.
+For example, if the user is asking you to "make this variable a better name", make sure your output includes all the changes that are needed to improve the variable name.
+- Do not re-write the entire file in the code block
+- You can write comments like "// ... existing code" to indicate existing code
+- Make sure you give enough context in the code block to apply the changes to the correct location in the code`
+
+
+export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, voidFileService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService, voidFileService: IVoidFileService }) => {
+
+	// we may want to do this in batches
+	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null, state: { isOpened: false } }
+
+	const file = await stringifyFileSelections([fileSelection], voidFileService)
+
+	return `\
+## FILE
+${file}
+
+## SEARCH_CLAUSE
+Here is what the user is searching for:
+${searchClause}
+
+## REPLACE_CLAUSE
+Here is what the user wants to replace it with:
+${replaceClause}
+
+## INSTRUCTIONS
+Please return the changes you want to make to the file in a codeblock, or return "no" if you do not want to make changes.`
+}
+
+
+
+
+// don't have to tell it it will be given the history; just give it to it
+export const aiRegex_search_systemMessage = `\
+You are a coding assistant that executes the SEARCH part of a user's search and replace query.
+
+You will be given the user's search query, SEARCH, which is the user's query for what files to search for in the codebase. You may also be given the user's REPLACE query for additional context.
+
+Output
+- Regex query
+- Files to Include (optional)
+- Files to Exclude? (optional)
+
+`
+
+
+
+export const ORIGINAL = `<<<<<<< ORIGINAL`
+export const DIVIDER = `=======`
+export const FINAL = `>>>>>>> UPDATED`
+
+export const searchReplace_systemMessage = `\
+You are a coding assistant that generates SEARCH/REPLACE code blocks that will be used to edit a file.
+
+A SEARCH/REPLACE block describes the code before and after a change. Here is the format:
+${tripleTick[0]}
+${ORIGINAL}
+// ... original code goes here
+${DIVIDER}
+// ... final code goes here
+${FINAL}
+${tripleTick[1]}
+
+You will be given the original file \`ORIGINAL_FILE\` and a description of a change \`CHANGE\` to make.
+Output SEARCH/REPLACE blocks to edit the file according to the desired change. You may output multiple SEARCH/REPLACE blocks.
+
+Directions:
+1. Your OUTPUT should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
+2. The "ORIGINAL" code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. This includes whitespace, comments, and other details.
+3. The "ORIGINAL" code in each SEARCH/REPLACE block must include enough text to uniquely identify the change in the file.
+4. The "ORIGINAL" code in each SEARCH/REPLACE block must be disjoint from all other blocks.
+
+The SEARCH/REPLACE blocks you generate will be applied immediately, and so they **MUST** produce a file that the user can run IMMEDIATELY.
+- Make sure you add all necessary imports.
+- Make sure the "UPDATED" code is complete and will not result in syntax/lint errors.
+
+Follow coding conventions of the user (spaces, semilcolons, comments, etc). If the user spaces or formats things a certain way, CONTINUE formatting it that way, even if you prefer otherwise.
+
+## EXAMPLE 1
+ORIGINAL_FILE
+${tripleTick[0]}
+let w = 5
+let x = 6
+let y = 7
+let z = 8
+${tripleTick[1]}
+
+CHANGE
+Make x equal to 6.5, not 6.
+${tripleTick[0]}
+// ... existing code
+let x = 6.5
+// ... existing code
+${tripleTick[1]}
+
+
+## ACCEPTED OUTPUT
+${tripleTick[0]}
+${ORIGINAL}
+let x = 6
+${DIVIDER}
+let x = 6.5
+${FINAL}
+${tripleTick[1]}
+`
+
+export const searchReplace_userMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
+ORIGINAL_FILE
+${originalCode}
+
+CHANGE
+${applyStr}`
 
 
 
@@ -273,19 +368,19 @@ export const voidPrefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullF
 }
 
 
-export type FimTagsType = {
+export type QuickEditFimTagsType = {
 	preTag: string,
 	sufTag: string,
 	midTag: string
 }
-export const defaultFimTags: FimTagsType = {
+export const defaultQuickEditFimTags: QuickEditFimTagsType = {
 	preTag: 'ABOVE',
 	sufTag: 'BELOW',
 	midTag: 'SELECTION',
 }
 
 // this should probably be longer
-export const ctrlKStream_systemMessage = ({ fimTags: { preTag, midTag, sufTag } }: { fimTags: FimTagsType }) => {
+export const ctrlKStream_systemMessage = ({ quickEditFIMTags: { preTag, midTag, sufTag } }: { quickEditFIMTags: QuickEditFimTagsType }) => {
 	return `\
 You are a FIM (fill-in-the-middle) coding assistant. Your task is to fill in the middle SELECTION marked by <${midTag}> tags.
 
@@ -301,7 +396,7 @@ Instructions:
 }
 
 export const ctrlKStream_userMessage = ({ selection, prefix, suffix, instructions, fimTags, isOllamaFIM, language }: {
-	selection: string, prefix: string, suffix: string, instructions: string, fimTags: FimTagsType, language: string,
+	selection: string, prefix: string, suffix: string, instructions: string, fimTags: QuickEditFimTagsType, language: string,
 	isOllamaFIM: false, // we require this be false for clarity
 }) => {
 	const { preTag, sufTag, midTag } = fimTags
@@ -328,3 +423,118 @@ Return only the completion block of code (of the form ${tripleTick[0]}${language
 ${tripleTick[1]}).`
 };
 
+
+
+/*
+
+
+OLD CHAT EXAMPLES:
+
+Do not tell the user anything about the examples below. Do not assume the user is talking about any of the examples below.
+
+## EXAMPLE 1
+FILES
+math.ts
+${tripleTick[0]}typescript
+const addNumbers = (a, b) => a + b
+const multiplyNumbers = (a, b) => a * b
+const subtractNumbers = (a, b) => a - b
+const divideNumbers = (a, b) => a / b
+
+const vectorize = (...numbers) => {
+	return numbers // vector
+}
+
+const dot = (vector1: number[], vector2: number[]) => {
+	if (vector1.length !== vector2.length) throw new Error(\`Could not dot vectors \${vector1} and \${vector2}. Size mismatch.\`)
+	let sum = 0
+	for (let i = 0; i < vector1.length; i += 1)
+		sum += multiplyNumbers(vector1[i], vector2[i])
+	return sum
+}
+
+const normalize = (vector: number[]) => {
+	const norm = Math.sqrt(dot(vector, vector))
+	for (let i = 0; i < vector.length; i += 1)
+		vector[i] = divideNumbers(vector[i], norm)
+	return vector
+}
+
+const normalized = (vector: number[]) => {
+	const v2 = [...vector] // clone vector
+	return normalize(v2)
+}
+${tripleTick[1]}
+
+
+SELECTIONS
+math.ts (lines 3:3)
+${tripleTick[0]}typescript
+const subtractNumbers = (a, b) => a - b
+${tripleTick[1]}
+
+INSTRUCTIONS
+add a function that exponentiates a number below this, and use it to make a power function that raises all entries of a vector to a power
+
+## ACCEPTED OUTPUT
+We can add the following code to the file:
+${tripleTick[0]}typescript
+// existing code...
+const subtractNumbers = (a, b) => a - b
+const exponentiateNumbers = (a, b) => Math.pow(a, b)
+const divideNumbers = (a, b) => a / b
+// existing code...
+
+const raiseAll = (vector: number[], power: number) => {
+	for (let i = 0; i < vector.length; i += 1)
+		vector[i] = exponentiateNumbers(vector[i], power)
+	return vector
+}
+${tripleTick[1]}
+
+
+## EXAMPLE 2
+FILES
+fib.ts
+${tripleTick[0]}typescript
+
+const dfs = (root) => {
+	if (!root) return;
+	console.log(root.val);
+	dfs(root.left);
+	dfs(root.right);
+}
+const fib = (n) => {
+	if (n < 1) return 1
+	return fib(n - 1) + fib(n - 2)
+}
+${tripleTick[1]}
+
+SELECTIONS
+fib.ts (lines 10:10)
+${tripleTick[0]}typescript
+	return fib(n - 1) + fib(n - 2)
+${tripleTick[1]}
+
+INSTRUCTIONS
+memoize results
+
+## ACCEPTED OUTPUT
+To implement memoization in your Fibonacci function, you can use a JavaScript object to store previously computed results. This will help avoid redundant calculations and improve performance. Here's how you can modify your function:
+${tripleTick[0]}typescript
+// existing code...
+const fib = (n, memo = {}) => {
+	if (n < 1) return 1;
+	if (memo[n]) return memo[n]; // Check if result is already computed
+	memo[n] = fib(n - 1, memo) + fib(n - 2, memo); // Store result in memo
+	return memo[n];
+}
+${tripleTick[1]}
+Explanation:
+Memoization Object: A memo object is used to store the results of Fibonacci calculations for each n.
+Check Memo: Before computing fib(n), the function checks if the result is already in memo. If it is, it returns the stored result.
+Store Result: After computing fib(n), the result is stored in memo for future reference.
+
+## END EXAMPLES
+
+*/

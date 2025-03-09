@@ -14,9 +14,9 @@ import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
 
 import { Model as OpenAIModel } from 'openai/resources/models.js';
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../browser/helpers/extractCodeFromResult.js';
-import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/llmMessageTypes.js';
+import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { InternalToolInfo, isAToolName, ToolName } from '../../browser/toolsService.js';
-import { defaultProviderSettings, displayInfoOfProviderName, OptionsOfModelSelection, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getModelSelectionState, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
 
@@ -28,7 +28,7 @@ type InternalCommonMessageParams = {
 	onError: OnError;
 	providerName: ProviderName;
 	settingsOfProvider: SettingsOfProvider;
-	optionsOfModelSelection: OptionsOfModelSelection;
+	modelSelectionOptions: ModelSelectionOptions | undefined;
 	modelName: string;
 	_setAborter: (aborter: () => void) => void;
 }
@@ -148,8 +148,9 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 			max_tokens: messages.maxTokens,
 		})
 		.then(async response => {
-			const fullText = response.choices[0]?.text || '';
-			onFinalMessage({ fullText, });
+
+			const fullText = response.choices[0]?.text
+			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
 		})
 		.catch(error => {
 			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }); }
@@ -219,7 +220,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
-	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicContent: false }) // can change supportsAnthropicContent if e.g. OpenRouter starts supporting anthropic extended thinking
+	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: false })
 	const tools = (supportsTools && ((tools_?.length ?? 0) !== 0)) ? tools_?.map(tool => toOpenAICompatibleTool(tool)) : undefined
 
 	const includeInPayload = canIOReasoning ? providerReasoningIOSettings?.input?.includeInPayload || {} : {}
@@ -273,9 +274,9 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 			else {
 				if (manuallyParseReasoning) {
 					const { fullText, fullReasoning } = extractReasoningOnFinalMessage(fullTextSoFar, openSourceThinkTags)
-					onFinalMessage({ fullText, fullReasoning, toolCalls });
+					onFinalMessage({ fullText, fullReasoning, toolCalls, anthropicReasoning: null });
 				} else {
-					onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, toolCalls });
+					onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, toolCalls, anthropicReasoning: null });
 				}
 			}
 		})
@@ -331,7 +332,7 @@ const toAnthropicTool = (toolInfo: InternalToolInfo) => {
 	} satisfies Anthropic.Messages.Tool
 }
 
-const toolCallsFrom_AnthropicContent = (content: Anthropic.Messages.ContentBlock[]): ToolCallsFrom_ReturnType => {
+const toolCallsFrom_Anthropic = (content: Anthropic.Messages.ContentBlock[]): ToolCallsFrom_ReturnType => {
 	return content.map(c => {
 		if (c.type !== 'tool_use') return null
 		if (!isAToolName(c.name)) return null
@@ -339,7 +340,7 @@ const toolCallsFrom_AnthropicContent = (content: Anthropic.Messages.ContentBlock
 	}).filter(t => !!t)
 }
 
-const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, optionsOfModelSelection, modelName: modelName_, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		supportsSystemMessage,
@@ -350,9 +351,9 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	const {
 		isReasoningEnabled,
 		reasoningBudget,
-	} = getModelSelectionState(providerName, modelName_, optionsOfModelSelection) // user's modelName_ here
+	} = getModelSelectionState(providerName, modelName_, modelSelectionOptions) // user's modelName_ here
 
-	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicContent: true })
+	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: true })
 
 	const thisConfig = settingsOfProvider.anthropic
 	const anthropic = new Anthropic({ apiKey: thisConfig.apiKey, dangerouslyAllowBrowser: true });
@@ -421,8 +422,9 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 
 	// on done - (or when error/fail) - this is called AFTER last streamEvent
 	stream.on('finalMessage', (response) => {
-		const toolCalls = toolCallsFrom_AnthropicContent(response.value.choices)
-		onFinalMessage({ fullText, fullReasoning, toolCalls, rawAnthropicAssistantContent: response.value.choices as any })
+		const toolCalls = toolCallsFrom_Anthropic(response.content)
+		const anthropicReasoning = response.content.filter(c => c.type === 'thinking' || c.type === 'redacted_thinking')
+		onFinalMessage({ fullText, fullReasoning, toolCalls, anthropicReasoning })
 	})
 	// on error
 	stream.on('error', (error) => {
@@ -506,7 +508,7 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 				const newText = chunk.response
 				fullText += newText
 			}
-			onFinalMessage({ fullText })
+			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null })
 		})
 		// when error/fail
 		.catch((error) => {
@@ -545,6 +547,11 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
+	// mistral: {
+	// 	sendChat: , // TODO
+	// 	sendFIM: , // TODO // https://docs.mistral.ai/api/#tag/fim
+	// 	list: null,
+	// },
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: sendOllamaFIM,

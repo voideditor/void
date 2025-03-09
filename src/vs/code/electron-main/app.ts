@@ -125,7 +125,7 @@ import { IMetricsService } from '../../workbench/contrib/void/common/metricsServ
 import { IVoidUpdateService } from '../../workbench/contrib/void/common/voidUpdateService.js';
 import { MetricsMainService } from '../../workbench/contrib/void/electron-main/metricsMainService.js';
 import { VoidMainUpdateService } from '../../workbench/contrib/void/electron-main/voidUpdateMainService.js';
-import { LLMMessageChannel } from '../../workbench/contrib/void/electron-main/llmMessageChannel.js';
+import { LLMMessageChannel } from '../../workbench/contrib/void/electron-main/sendLLMMessageChannel.js';
 
 /**
  * The main VS Code application. There will only ever be one instance,
@@ -1256,8 +1256,8 @@ export class CodeApplication extends Disposable {
 		const voidUpdatesChannel = ProxyChannel.fromService(accessor.get(IVoidUpdateService), disposables);
 		mainProcessElectronServer.registerChannel('void-channel-update', voidUpdatesChannel);
 
-		const llmMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
-		mainProcessElectronServer.registerChannel('void-channel-llmMessageService', llmMessageChannel);
+		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
+		mainProcessElectronServer.registerChannel('void-channel-llmMessage', sendLLMMessageChannel);
 
 		// Extension Host Debug Broadcasting
 		const electronExtensionHostDebugBroadcastChannel = new ElectronExtensionHostDebugBroadcastChannel(accessor.get(IWindowsMainService));

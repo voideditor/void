@@ -44,7 +44,7 @@ export const defaultProviderSettings = {
 		apiKey: ''
 	},
 	mistral: {
-		apiKey: ''
+    apiKey: ''
 	},
 } as const
 

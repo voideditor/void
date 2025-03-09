@@ -56,7 +56,6 @@ export const defaultModelsOfProvider = {
 		'mistral-large-latest',
 		'ministral-3b-latest',
 		'ministral-8b-latest',
-		''
 	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>
@@ -179,11 +178,24 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsTools: 'openai-style',
 		supportsReasoning: { canToggleReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
+	'mistral-large-latest': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoning: false,
+	},
 	// FIM only
 	'starcoder2': {
 		supportsFIM: true,
 		supportsSystemMessage: false,
 		supportsTools: false,
+		supportsReasoning: false,
+	},
+	// Mistral
+	'codestral-latest': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
 		supportsReasoning: false,
 	},
 	'codegemma:2b': {
@@ -354,6 +366,32 @@ const openAISettings: ProviderSettings = {
 	}
 }
 
+const mistralModelOptions = {
+	'codestral-latest': {
+		contextWindow: 32_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.00, output: 0.00 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoning: false,
+	},
+	'mistral-large-latest': {
+		contextWindow: 32_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.00, output: 0.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoning: false,
+	}
+} as const satisfies { [s: string]: ModelOptions }
+
+const mistralSettings: ProviderSettings = {
+	modelOptions: mistralModelOptions,
+	modelOptionsFallback: (modelName) => { return null }
+}
+
 // ---------------- XAI ----------------
 const xAIModelOptions = {
 	'grok-2': {
@@ -431,9 +469,6 @@ const geminiSettings: ProviderSettings = {
 	modelOptions: geminiModelOptions,
 	modelOptionsFallback: (modelName) => { return null }
 }
-
-
-
 // ---------------- DEEPSEEK API ----------------
 const deepseekModelOptions = {
 	'deepseek-chat': {
@@ -562,6 +597,13 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		supportsTools: 'openai-style',
 		supportsReasoning: false,
 	},
+	'mistralai/mistral-large-latest': {
+		...openSourceModelOptions_assumingOAICompat['mistral-large-latest'],
+		contextWindow: 256_000,
+		maxOutputTokens: null,
+		cost: { input: 0.3, output: 0.9 },
+	},
+
 	'qwen/qwen-2.5-coder-32b-instruct': {
 		...openSourceModelOptions_assumingOAICompat['qwen2.5coder'],
 		contextWindow: 33_000,
@@ -577,6 +619,9 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		cost: { input: 0.07, output: 0.16 },
 	}
 } as const satisfies { [s: string]: ModelOptions }
+
+
+
 
 const openRouterSettings: ProviderSettings = {
 	// reasoning: OAICompat + response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
@@ -615,7 +660,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	vLLM: vLLMSettings,
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
-
+	mistral: mistralSettings,
 	// googleVertex: {},
 	// microsoftAzure: {},
 } as const

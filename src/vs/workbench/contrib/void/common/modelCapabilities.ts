@@ -387,11 +387,10 @@ const mistralModelOptions = {
 	}
 } as const satisfies { [s: string]: ModelOptions }
 
-
-
-
-
-
+const mistralSettings: ProviderSettings = {
+	modelOptions: mistralModelOptions,
+	modelOptionsFallback: (modelName) => { return null }
+}
 
 // ---------------- XAI ----------------
 const xAIModelOptions = {
@@ -470,9 +469,6 @@ const geminiSettings: ProviderSettings = {
 	modelOptions: geminiModelOptions,
 	modelOptionsFallback: (modelName) => { return null }
 }
-
-
-
 // ---------------- DEEPSEEK API ----------------
 const deepseekModelOptions = {
 	'deepseek-chat': {
@@ -624,6 +620,9 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	}
 } as const satisfies { [s: string]: ModelOptions }
 
+
+
+
 const openRouterSettings: ProviderSettings = {
 	// reasoning: OAICompat + response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
 	providerReasoningIOSettings: {
@@ -655,7 +654,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	vLLM: vLLMSettings,
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
-
+	mistral: mistralSettings,
 	// googleVertex: {},
 	// microsoftAzure: {},
 } as const

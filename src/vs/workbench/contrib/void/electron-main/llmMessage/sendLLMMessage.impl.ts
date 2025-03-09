@@ -169,13 +169,13 @@ const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, setting
 	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
 
 	// DEBUG : request params
-	//	console.log('🔍 Sending FIM request with params:', {
-	//	model: modelName,
-	//	promptLength: messages.prefix.length,
-	//	suffixLength: messages.suffix.length,
-	//	stream: false,
-	//	maxTokens: messages.maxTokens
-	//});
+	console.log('🔍 Sending FIM request with params:', {
+		model: modelName,
+		promptLength: messages.prefix.length,
+		suffixLength: messages.suffix.length,
+		stream: false,
+		maxTokens: messages.maxTokens
+	});
 
 	fimComplete(
 		mistral, {
@@ -189,10 +189,11 @@ const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, setting
 	},
 	)
 		.then(async response => {
-			const fullText = response.choices[0]?.text || '';
-			onFinalMessage({ fullText, });
-			// console.log('✅ Réponse FIM reçue:', fullText);
-
+			let content = response?.ok ? response.value.choices?.[0]?.message?.content : '';
+			const fullText = typeof content === 'string' ? content :
+				Array.isArray(content) ? content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('') : '';
+			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
+			console.log('✅ Réponse FIM reçue:', fullText);
 		})
 		.catch(error => {
 			onError({ message: error + '', fullError: error });
@@ -580,7 +581,7 @@ export const sendLLMMessageToProviderImplementation = {
 	},
 	mistral: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
-		sendFIM: null,
+		sendFIM: (params) => _sendMistralFIM(params),
 		list: null,
 	},
 } satisfies CallFnOfProvider

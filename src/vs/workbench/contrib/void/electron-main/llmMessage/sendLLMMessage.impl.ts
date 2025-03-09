@@ -172,13 +172,13 @@ const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, setting
 	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
 
 	// DEBUG : request params
-	console.log('🔍 Sending FIM request with params:', {
-		model: modelName,
-		promptLength: messages.prefix.length,
-		suffixLength: messages.suffix.length,
-		stream: false,
-		maxTokens: messages.maxTokens
-	});
+	//	console.log('🔍 Sending FIM request with params:', {
+	//	model: modelName,
+	//	promptLength: messages.prefix.length,
+	//	suffixLength: messages.suffix.length,
+	//	stream: false,
+	//	maxTokens: messages.maxTokens
+	//});
 
 	fimComplete(
 		mistral, {
@@ -194,7 +194,7 @@ const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, setting
 		.then(async response => {
 			const fullText = response.choices[0]?.text || '';
 			onFinalMessage({ fullText, });
-			console.log('✅ Réponse FIM reçue:', fullText);
+			// console.log('✅ Réponse FIM reçue:', fullText);
 
 		})
 		.catch(error => {

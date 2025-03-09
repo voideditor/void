@@ -44,7 +44,7 @@ export const defaultProviderSettings = {
 		apiKey: ''
 	},
 	mistral: {
-		apiKey: '',
+    apiKey: ''
 	},
 } as const
 
@@ -310,7 +310,7 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.vLLM),
 		_didFillInProviderSettings: undefined,
 	},
-	mistral: {
+	mistral: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.mistral,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),

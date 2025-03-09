@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { OnText } from '../../common/llmMessageTypes.js'
+import { OnText } from '../../common/sendLLMMessageTypes.js'
 import { DIVIDER, FINAL, ORIGINAL } from '../prompt/prompts.js'
 
 class SurroundingsRemover {

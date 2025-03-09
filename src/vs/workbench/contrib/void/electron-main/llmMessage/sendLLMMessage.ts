@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';
@@ -19,15 +19,16 @@ export const sendLLMMessage = ({
 	abortRef: abortRef_,
 	logging: { loggingName },
 	settingsOfProvider,
-	optionsOfModelSelection,
-	providerName,
-	modelName,
+	modelSelection,
+	modelSelectionOptions,
 	tools,
 }: SendLLMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
 
+
+	const { providerName, modelName } = modelSelection
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
@@ -105,18 +106,19 @@ export const sendLLMMessage = ({
 		}
 		const { sendFIM, sendChat } = implementation
 		if (messagesType === 'chatMessages') {
-			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, optionsOfModelSelection, modelName, _setAborter, providerName, aiInstructions, tools })
+			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, aiInstructions, tools })
 			return
 		}
 		if (messagesType === 'FIMMessage') {
 			if (sendFIM) {
-				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, optionsOfModelSelection, modelName, _setAborter, providerName, aiInstructions })
+				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, aiInstructions })
 				return
 			}
 			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })
 			return
 		}
 		onError({ message: `Error: Message type "${messagesType}" not recognized.`, fullError: null })
+		return
 	}
 
 	catch (error) {

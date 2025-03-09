@@ -388,8 +388,9 @@ const mistralModelOptions = {
 } as const satisfies { [s: string]: ModelOptions }
 
 const mistralSettings: ProviderSettings = {
-	modelOptions: mistralModelOptions,
-	modelOptionsFallback: (modelName) => { return null }
+	...mistralModelOptions,
+	modelOptions: {},
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
 }
 
 // ---------------- XAI ----------------
@@ -635,12 +636,6 @@ const openRouterSettings: ProviderSettings = {
 }
 
 
-const mistralSettings: ProviderSettings = {
-	...openSourceModelOptions_assumingOAICompat.mistral,
-	modelOptions: {},
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
-}
-
 
 
 // ---------------- model settings of everything above ----------------
@@ -650,7 +645,6 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	anthropic: anthropicSettings,
 	xAI: xAISettings,
 	gemini: geminiSettings,
-	mistral: mistralSettings,
 	// open source models
 	deepseek: deepseekSettings,
 	groq: groqSettings,

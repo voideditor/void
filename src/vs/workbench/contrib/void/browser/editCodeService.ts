@@ -25,12 +25,12 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, } from './prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, } from '../common/prompt/prompts.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
-import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from './helpers/extractCodeFromResult.js';
+import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from '../common/helpers/extractCodeFromResult.js';
 import { filenameToVscodeLanguage } from '../common/helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
@@ -1527,11 +1527,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
+		const errHelper = (erroneousOriginal: string) => `All previous SEARCH/REPLACE blocks (if any) have been applied except the latest erroneous one. Please continue outputting SEARCH/REPLACE blocks. The ORIGINAL code with an error was: ${JSON.stringify(erroneousOriginal)}`
 		const errMsgOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>, blockOrig: string) => {
 			return str === `Not found` ?
-				`The ORIGINAL code provided could not be found in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in ORIGINAL is identical to a code snippet in the file. The ORIGINAL code provided: ${JSON.stringify(blockOrig)}`
+				`The ORIGINAL code provided could not be found in the file. You should make sure the text in ORIGINAL matches lines of code EXACTLY. ${errHelper(blockOrig)}`
 				: str === `Not unique` ?
-					`The ORIGINAL code provided shows up multiple times in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in each ORIGINAL section is unique in the file. The ORIGINAL code provided: ${JSON.stringify(blockOrig)}`
+					`The ORIGINAL code provided shows up multiple times in the file. We recommend making the ORIGINAL portion bigger so we can find a unique match. ${errHelper(blockOrig)}`
 					: ``
 		}
 
@@ -1627,6 +1628,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 									// REVERT
+									// TODO!!!!! don't actually revert - we want to change this so it doesn't revert but isntead gives the current file contents
 									const numLines = this._getNumLines(uri)
 									if (numLines !== null) this._writeText(uri, originalFileCode,
 										{ startLineNumber: 1, startColumn: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },

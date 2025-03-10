@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import type { InternalToolInfo, ToolName } from '../browser/toolsService.js'
+import { ToolName, InternalToolInfo } from './toolsServiceTypes.js'
 import { ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 

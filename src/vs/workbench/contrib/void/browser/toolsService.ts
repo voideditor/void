@@ -137,11 +137,18 @@ const validateRecursiveParamStr = (paramsUnknown: unknown) => {
 }
 
 const validateProposedTerminalId = (terminalIdUnknown: unknown) => {
+	if (!terminalIdUnknown) return '1'
 	const terminalId = terminalIdUnknown + ''
-	if (!terminalId) return ''
 	return terminalId
 }
 
+const validateWaitForCompletion = (b: unknown) => {
+	if (typeof b === 'string') {
+		if (b === 'true') return true
+		if (b === 'false') return false
+	}
+	return true // default is true
+}
 export interface IToolsService {
 	readonly _serviceBrand: undefined;
 	validateParams: ValidateParams;
@@ -238,10 +245,11 @@ export class ToolsService implements IToolsService {
 
 			terminal_command: async (s: string) => {
 				const o = validateJSON(s)
-				const { command: commandUnknown, terminalId: terminalIdUnknown } = o
+				const { command: commandUnknown, terminalId: terminalIdUnknown, waitForCompletion: waitForCompletionUnknown } = o
 				const command = validateStr('command', commandUnknown)
 				const proposedTerminalId = validateProposedTerminalId(terminalIdUnknown)
-				return { command, proposedTerminalId }
+				const waitForCompletion = validateWaitForCompletion(waitForCompletionUnknown)
+				return { command, proposedTerminalId, waitForCompletion }
 			},
 
 		}
@@ -313,8 +321,8 @@ export class ToolsService implements IToolsService {
 				await applyDonePromise
 				return {}
 			},
-			terminal_command: async ({ command, proposedTerminalId }) => {
-				const { terminalId, didCreateTerminal } = await this.terminalToolService.runCommand(command, proposedTerminalId)
+			terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
+				const { terminalId, didCreateTerminal } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
 				return { terminalId, didCreateTerminal }
 			},
 		}

@@ -112,7 +112,8 @@ export const voidTools = {
 		description: `Executes a terminal command.`,
 		params: {
 			command: { type: 'string', description: 'The terminal command to execute.' },
-			terminalId: { type: 'string', description: 'Optional. The terminal ID to execute the command in. Must be a number starting at 1. If a terminal does not exist with this ID, a new one will be created (not necessarily with the same ID as the provided one). ' },
+			waitForCompletion: { type: 'string', description: `Whether or not to await the command to complete and get the final result. Default is true. Make this value false when you want a command to run indefinitely without waiting for it.` },
+			terminalId: { type: 'string', description: 'Optional (if provided, value must be an integer >= 1). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
 		},
 		required: ['command'],
 	},
@@ -144,7 +145,7 @@ export type ToolCallParams = {
 	'edit': { uri: URI, changeDescription: string },
 	'create_uri': { uri: URI },
 	'delete_uri': { uri: URI, isRecursive: boolean },
-	'terminal_command': { command: string, proposedTerminalId: string },
+	'terminal_command': { command: string, proposedTerminalId: string, waitForCompletion: boolean },
 }
 
 

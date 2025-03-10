@@ -1527,11 +1527,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
+		const errHelper = (erroneousOriginal: string) => `All previous SEARCH/REPLACE blocks (if any) have been applied except the latest erroneous one. Please continue outputting SEARCH/REPLACE blocks. The ORIGINAL code with an error was: ${JSON.stringify(erroneousOriginal)}`
 		const errMsgOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>, blockOrig: string) => {
 			return str === `Not found` ?
-				`The ORIGINAL code provided could not be found in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in ORIGINAL is identical to a code snippet in the file. The ORIGINAL code provided: ${JSON.stringify(blockOrig)}`
+				`The ORIGINAL code provided could not be found in the file. You should make sure the text in ORIGINAL matches lines of code EXACTLY. ${errHelper(blockOrig)}`
 				: str === `Not unique` ?
-					`The ORIGINAL code provided shows up multiple times in the file. Please output all SEARCH/REPLACE blocks again, making sure the code in each ORIGINAL section is unique in the file. The ORIGINAL code provided: ${JSON.stringify(blockOrig)}`
+					`The ORIGINAL code provided shows up multiple times in the file. We recommend making the ORIGINAL portion bigger so we can find a unique match. ${errHelper(blockOrig)}`
 					: ``
 		}
 

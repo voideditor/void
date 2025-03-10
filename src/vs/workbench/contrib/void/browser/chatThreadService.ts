@@ -26,6 +26,7 @@ import { ILanguageFeaturesService } from '../../../../editor/common/services/lan
 import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
 import { ChatMessage, CodespanLocationLink, StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
 import { Position } from '../../../../editor/common/core/position.js';
+import { ITerminalToolService } from './terminalToolService.js';
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
 	for (let i = arr.length - 1; i >= 0; i--) {
@@ -203,6 +204,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		@ILanguageFeaturesService private readonly _languageFeaturesService: ILanguageFeaturesService,
 		@ITextModelService private readonly _textModelService: ITextModelService,
+		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -379,8 +381,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 				if (lastUserMsgIdx === -1) throw new Error(`Void: No user message found.`) // should never be -1
 
+				const workspaceFolders = this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
+				const terminalIds = this.terminalToolService.listTerminalIds()
 				const messages: LLMChatMessage[] = [
-					{ role: 'system', content: chat_systemMessage(this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath), chatMode), },
+					{ role: 'system', content: chat_systemMessage(workspaceFolders, terminalIds, chatMode), },
 					...messages_.slice(0, lastUserMsgIdx),
 					{ role: 'user', content: userMessageFullContent },
 					...messages_.slice(lastUserMsgIdx + 1, Infinity),

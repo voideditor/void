@@ -11,7 +11,6 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { StagingSelectionItem, IChatThreadService } from './chatThreadService.js';
 
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
@@ -29,6 +28,8 @@ import { IInstantiationService } from '../../../../platform/instantiation/common
 import { localize2 } from '../../../../nls.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IVoidUriStateService } from './voidUriStateService.js';
+import { StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
+import { IChatThreadService } from './chatThreadService.js';
 
 // ---------- Register commands and keybindings ----------
 

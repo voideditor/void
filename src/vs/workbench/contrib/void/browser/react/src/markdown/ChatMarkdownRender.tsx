@@ -10,7 +10,6 @@ import { nameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.
 import { ApplyBlockHoverButtons } from './ApplyBlockHoverButtons.js'
 import { useAccessor, useChatThreadsState } from '../util/services.js'
 import { Range } from '../../../../../../services/search/common/searchExtTypes.js'
-import { CodespanLocationLink } from '../../../chatThreadService.js'
 import { IRange } from '../../../../../../../base/common/range.js'
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js'
 

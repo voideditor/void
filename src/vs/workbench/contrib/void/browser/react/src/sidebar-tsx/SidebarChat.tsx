@@ -29,7 +29,7 @@ import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLangu
 import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
-import { ToolName } from '../../../../common/toolsServiceTypes.js';
+import { ToolCallParams, ToolName } from '../../../../common/toolsServiceTypes.js';
 
 
 
@@ -274,7 +274,7 @@ interface VoidChatAreaProps {
 	onAbort: () => void;
 	isStreaming: boolean;
 	isDisabled?: boolean;
-	divRef?: React.RefObject<HTMLDivElement|null>;
+	divRef?: React.RefObject<HTMLDivElement | null>;
 
 	// UI customization
 	className?: string;
@@ -659,11 +659,10 @@ export const SelectedFiles = (
 interface DropdownComponentProps {
 	title: string;
 	desc1: string;
-	desc2?: string;
+	desc2?: React.ReactNode;
 	numResults?: number;
 	children?: React.ReactNode;
 	onClick?: () => void;
-	icon?: React.ReactNode;
 }
 
 const DropdownComponent = ({
@@ -673,7 +672,6 @@ const DropdownComponent = ({
 	numResults,
 	children,
 	onClick,
-	icon,
 }: DropdownComponentProps) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
@@ -695,18 +693,21 @@ const DropdownComponent = ({
 							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
 						/>
 					)}
-					<div className="flex items-center flex-nowrap whitespace-nowrap gap-x-2">
-						{icon}
-						<span className="text-void-fg-3">{title}</span>
-						<span className="text-void-fg-4 text-xs italic">{desc1}</span>
-						{desc2 && <span className="text-void-fg-4 text-xs">
-							{desc2}
-						</span>}
-						{numResults !== undefined && (
-							<span className="text-void-fg-4 text-xs">
-								{`(`}{numResults}{` result`}{numResults !== 1 ? 's' : ''}{`)`}
-							</span>
-						)}
+					<div className="flex items-center justify-between w-full flex-nowrap whitespace-nowrap gap-x-2">
+						<div className="flex items-center gap-x-2">
+							<span className="text-void-fg-3">{title}</span>
+							<span className="text-void-fg-4 text-xs italic">{desc1}</span>
+						</div>
+						<div className="flex items-center gap-x-2">
+							{desc2 && <span className="text-void-fg-4 text-xs">
+								{desc2}
+							</span>}
+							{numResults !== undefined && (
+								<span className="text-void-fg-4 text-xs ml-auto mr-1">
+									{`(`}{numResults}{` result`}{numResults !== 1 ? 's' : ''}{`)`}
+								</span>
+							)}
+						</div>
 					</div>
 				</div>
 				<div
@@ -908,10 +909,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 			}}
 		/>}
 
-
 	</div>
-
-
 
 }
 
@@ -968,7 +966,6 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 			{hasReasoning && <DropdownComponent
 				title="Reasoning"
 				desc1=""
-				icon={<Dot className='stroke-blue-500' />}
 			>
 				<ChatMarkdownRender
 					string={reasoningStr}
@@ -991,28 +988,76 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 
 
 
-const ToolError = ({ title, errorMessage }: { title: string, errorMessage: string }) => {
+const ToolError = ({ title, desc1, errorMessage }: { title: string, desc1: string, errorMessage: string }) => {
 	return (
-		<div className='flex gap-2 p-3 bg-void-bg-2-alt bg-opacity-10 border border-void-warning border-opacity-20 rounded-md'>
-			<AlertTriangle className='text-void-warning flex-shrink-0' size={20} />
-			<div className='flex flex-col'>
-				<span className='text-void-fg-1 font-medium mb-1'>{title}</span>
-				<div className='text-void-fg-3 text-sm opacity-90'>{'Error: ' + errorMessage}</div>
-			</div>
-		</div>
+		// px-2 py-1
+		// <div className='flex gap-2 p-3 border border-void-border-3 text-void-fg-3 rounded bg-void-bg-2-alt'>
+		// 	<AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={20} />
+		// 	<div className='flex flex-col'>
+		// 		<span className='mb-1'>{title + ' error'}</span>
+		// 		<div className='text-sm opacity-90'>{errorMessage}</div>
+		// 	</div>
+		// </div>
+		<DropdownComponent
+			title={title}
+			desc1={desc1}
+			desc2={
+				<span className="flex items-center flex-nowrap gap-1">
+					<AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={12} />
+					Error
+				</span>
+			}
+		>
+			<div className='text-xs text-wrap whitespace-pre-wrap break-all break-words'>{errorMessage}</div>
+		</DropdownComponent>
+
 	)
 }
 
 
 const toolNameToTitle: Record<ToolName, string> = {
 	'read_file': 'Read file',
-	'list_dir': 'Inspect folder',
-	'pathname_search': 'Search (path only)',
-	'search': 'Search (file contents)',
+	'list_dir': 'Inspected folder',
+	'pathname_search': 'Searched by file name',
+	'search': 'Searched files',
 	'create_uri': 'Create file',
 	'delete_uri': 'Delete file',
 	'edit': 'Edit file',
 	'terminal_command': 'Ran terminal command'
+}
+const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
+
+	if (_toolParams === undefined) {
+		return '';
+	}
+
+	if (toolName === 'read_file') {
+		const toolParams = _toolParams as ToolCallParams['read_file']
+		return toolParams ? getBasename(toolParams.uri.fsPath) : '';
+	} else if (toolName === 'list_dir') {
+		const toolParams = _toolParams as ToolCallParams['list_dir']
+		return toolParams ? `${getBasename(toolParams.rootURI.fsPath)}/` : '';
+	} else if (toolName === 'pathname_search') {
+		const toolParams = _toolParams as ToolCallParams['pathname_search']
+		return toolParams ? `"${toolParams.queryStr}"` : '';
+	} else if (toolName === 'search') {
+		const toolParams = _toolParams as ToolCallParams['search']
+		return toolParams ? `"${toolParams.queryStr}"` : '';
+	} else if (toolName === 'create_uri') {
+		const toolParams = _toolParams as ToolCallParams['create_uri']
+		return toolParams ? getBasename(toolParams.uri.fsPath) : '';
+	} else if (toolName === 'delete_uri') {
+		const toolParams = _toolParams as ToolCallParams['delete_uri']
+		return toolParams ? getBasename(toolParams.uri.fsPath) + ' (deleted)' : '';
+	} else if (toolName === 'edit') {
+		const toolParams = _toolParams as ToolCallParams['edit']
+		return toolParams ? getBasename(toolParams.uri.fsPath) : '';
+	} else if (toolName === 'terminal_command') {
+		const toolParams = _toolParams as ToolCallParams['terminal_command']
+		return toolParams ? `"${toolParams.command}"` : '';
+	} else {
+		return ''
+	}
 }
 
 
@@ -1028,24 +1073,31 @@ const ToolRequestAcceptRejectButtons = ({ toolRequest }: { toolRequest: ToolRequ
 
 const toolNameToComponent: { [T in ToolName]: {
 	requestWrapper: (props: { toolRequest: ToolRequestApproval<T> }) => React.ReactNode,
-	resultWrapper: (props: { toolMessage: ToolMessage<T> & { result: { type: 'success' } } }) => React.ReactNode,
+	resultWrapper: (props: { toolMessage: ToolMessage<T> }) => React.ReactNode,
 } } = {
 	'read_file': {
 		requestWrapper: ({ toolRequest }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
-			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.toString())} icon={<Dot className={`stroke-orange-500`} />}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1}
+				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
 			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
 			const { value, params } = toolMessage.result
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.toString())} icon={<Dot className={`stroke-orange-500`} />}>
+
+			return <DropdownComponent title={title} desc1={desc1}>
 				<div
 					className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
 					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
@@ -1053,7 +1105,7 @@ const toolNameToComponent: { [T in ToolName]: {
 					<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
 					{params.uri.fsPath}
 				</div>
-				{value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
+				{toolMessage.result.value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
 
 			</DropdownComponent>
 		},
@@ -1061,23 +1113,26 @@ const toolNameToComponent: { [T in ToolName]: {
 	'list_dir': {
 		requestWrapper: ({ toolRequest }) => {
 			const title = toolNameToTitle[toolRequest.name]
-			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={`${getBasename(params.rootURI.fsPath)}/`} icon={<Dot className={`stroke-orange-500`} />} />
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const explorerService = accessor.get('IExplorerService')
 			const title = toolNameToTitle[toolMessage.name]
-			// message.result.hasNextPage = true
-			// message.result.itemsRemaining = 400
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
 
 			const { value, params } = toolMessage.result
+
 			return <DropdownComponent
 				title={title}
-				desc1={`${getBasename(params.rootURI.fsPath)}/`}
+				desc1={desc1}
 				numResults={value.children?.length}
-				icon={<Dot className={`stroke-orange-500`} />}
 			>
 				{value.children?.map((child, i) => (
 					<div
@@ -1098,72 +1153,76 @@ const toolNameToComponent: { [T in ToolName]: {
 					</div>
 				)}
 			</DropdownComponent>
-
 		}
 	},
 	'pathname_search': {
 		requestWrapper: ({ toolRequest }) => {
 			const title = toolNameToTitle[toolRequest.name]
-			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={`"${params.queryStr}"`} icon={<Dot className={`stroke-orange-500`} />} />
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1} />
 		},
 		resultWrapper: ({ toolMessage }) => {
-
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
 
 			const { value, params } = toolMessage.result
+
 			return (
 				<DropdownComponent
 					title={title}
-					desc1={`"${params.queryStr}"`}
+					desc1={desc1}
 					numResults={value.uris.length}
-					icon={<Dot className={`stroke-orange-500`} />}
 				>
-					{
-						value.uris.map((uri, i) => (
-							<div
-								key={i}
-								className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-								onClick={() => {
-									commandService.executeCommand('vscode.open', uri, { preview: true })
-								}}
-							>
-								<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-								{uri.fsPath.split('/').pop()}
-							</div>
-						))
-					}
-					{
-						value.hasNextPage && (
-							<div className="italic">
-								More results available...
-							</div>
-						)
-					}
-				</DropdownComponent >
+					{value.uris.map((uri, i) => (
+						<div
+							key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => {
+								commandService.executeCommand('vscode.open', uri, { preview: true })
+							}}
+						>
+							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+							{uri.fsPath.split('/').pop()}
+						</div>
+					))}
+					{value.hasNextPage && (
+						<div className="italic">
+							More results available...
+						</div>
+					)}
+				</DropdownComponent>
 			)
 		}
 	},
 	'search': {
 		requestWrapper: ({ toolRequest }) => {
 			const title = toolNameToTitle[toolRequest.name]
-			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={`"${params.queryStr}"`} icon={<Dot className={`stroke-orange-500`} />} />
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
 
 			const { value, params } = toolMessage.result
+
 			return (
 				<DropdownComponent
 					title={title}
-					desc1={`"${params.queryStr}"`}
+					desc1={desc1}
 					numResults={value.uris.length}
-					icon={<Dot className={`stroke-orange-500`} />}
 				>
 					{value.uris.map((uri, i) => (
 						<div key={i}
@@ -1179,24 +1238,29 @@ const toolNameToComponent: { [T in ToolName]: {
 			)
 		}
 	},
-
 	'create_uri': {
 		requestWrapper: ({ toolRequest }) => {
 			const title = toolNameToTitle[toolRequest.name]
-			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />} />
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
 			const { params } = toolMessage.result
+
 			return (
 				<DropdownComponent
 					title={title}
-					desc1={getBasename(params.uri.fsPath)}
+					desc1={desc1}
 					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-					icon={<Dot className={`stroke-orange-500`} />}
 				/>
 			)
 		}
@@ -1206,20 +1270,27 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
-			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath) + ' (deleted)'}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1}
+				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
 			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
 			const { params } = toolMessage.result
+
 			return (
 				<DropdownComponent
 					title={title}
-					desc1={getBasename(params.uri.fsPath) + ' (deleted)'}
+					desc1={desc1}
 					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
 				/>
 			)
@@ -1230,25 +1301,30 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
-			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={getBasename(params.uri.fsPath)} icon={<Dot className={`stroke-orange-500`} />}
-				onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1}
+				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
 			>
-				<ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
-			</DropdownComponent >
+				<ChatMarkdownRender string={toolRequest.params.changeDescription} chatMessageLocation={undefined} />
+			</DropdownComponent>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
 
 			const { params } = toolMessage.result
+
 			return (
 				<DropdownComponent
 					title={title}
-					desc1={getBasename(params.uri.fsPath)}
+					desc1={desc1}
 					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-					icon={<Dot className={`stroke-orange-500`} />}
 				/>
 			)
 		}
@@ -1258,8 +1334,8 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
-			const { params } = toolRequest
-			return <DropdownComponent title={title} desc1={`"${params.command}"`} icon={<Dot className={`stroke-orange-500`} />}
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1}
 			// TODO!!! open the terminal with that ID
 			/>
 		},
@@ -1267,13 +1343,18 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
 
 			const { params } = toolMessage.result
+
 			return (
 				<DropdownComponent
 					title={title}
-					desc1={`"${params.command}"`}
-					icon={<Dot className={`stroke-orange-500`} />}
+					desc1={desc1}
 				>
 					<div
 						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
@@ -1286,7 +1367,6 @@ const toolNameToComponent: { [T in ToolName]: {
 			)
 		}
 	}
-
 };
 
 
@@ -1320,8 +1400,10 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => 
 		</>
 	}
 	else if (role === 'tool') {
+
 		const title = toolNameToTitle[chatMessage.name]
-		if (chatMessage.result.type === 'error') return <ToolError title={title} errorMessage={chatMessage.result.value} />
+		// if (chatMessage.result.type === 'error') return <ToolError title={title} params={chatMessage.result.params} errorMessage={chatMessage.result.value} />
+
 		const ToolResultComponent = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
 		return <ToolResultComponent toolMessage={chatMessage} />
 	}

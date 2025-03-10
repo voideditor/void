@@ -423,7 +423,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								toolParams = params
 							} catch (error) {
 								const errorMessage = getErrorMessage(error)
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: undefined, value: errorMessage }, })
 								res_()
 								return
 							}
@@ -441,7 +441,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 									// TODO!!! test rejection
 									// if (Math.random() > 0) throw new Error('TESTING')
 									const errorMessage = 'Tool call was rejected by the user.'
-									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
 									res_()
 									return
 								}
@@ -453,7 +453,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								toolResult = await this._toolsService.callTool[toolName](toolParams as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
 							} catch (error) {
 								const errorMessage = getErrorMessage(error)
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
 								res_()
 								return
 							}
@@ -464,7 +464,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
 							} catch (error) {
 								const errorMessage = `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
 								res_()
 								return
 							}

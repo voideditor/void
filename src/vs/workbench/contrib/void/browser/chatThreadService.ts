@@ -10,21 +10,21 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_lastUserMessageWithFilesAdded, chat_selectionsString } from './prompt/prompts.js';
-import { InternalToolInfo, IToolsService, ToolCallParams, ToolResultType, ToolName, toolNamesThatRequireApproval, voidTools } from './toolsService.js';
-import { AnthropicReasoning, LLMChatMessage, ToolCallType } from '../common/sendLLMMessageTypes.js';
+import { chat_userMessageContent, chat_systemMessage, chat_lastUserMessageWithFilesAdded, chat_selectionsString } from '../common/prompt/prompts.js';
+import { LLMChatMessage, ToolCallType } from '../common/sendLLMMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IVoidFileService } from '../common/voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { getErrorMessage } from '../../../../base/common/errors.js';
 import { ChatMode, FeatureName } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
+import { ToolName, ToolCallParams, ToolResultType, InternalToolInfo, voidTools, toolNamesThatRequireApproval } from '../common/toolsServiceTypes.js';
+import { IToolsService } from './toolsService.js';
+import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
 import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
-import { LocationLink, SymbolKind } from '../../../../editor/common/languages.js';
-import { CancellationToken } from '../../../../base/common/cancellation.js';
+import { ChatMessage, CodespanLocationLink, StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
 import { Position } from '../../../../editor/common/core/position.js';
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
@@ -59,85 +59,15 @@ const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
 }
 
 
-// one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
-export type CodeSelection = {
-	type: 'Selection';
-	fileURI: URI;
-	selectionStr: string;
-	range: IRange;
-	state: {
-		isOpened: boolean;
-	};
-}
-
-export type FileSelection = {
-	type: 'File';
-	fileURI: URI;
-	selectionStr: null;
-	range: null;
-	state: {
-		isOpened: boolean;
-	};
-}
-
-export type StagingSelectionItem = CodeSelection | FileSelection
-
-export type CodespanLocationLink = {
-	uri: URI, // we handle serialization for this
-	selection?: { // store as JSON so dont have to worry about serialization
-		startLineNumber: number
-		startColumn: number,
-		endLineNumber: number
-		endColumn: number,
-	} | undefined
-} | null
-
-export type ToolMessage<T extends ToolName> = {
-	role: 'tool';
-	name: T; // internal use
-	paramsStr: string; // internal use
-	id: string; // apis require this tool use id
-	content: string; // give this result to LLM
-	result: { type: 'success'; params: ToolCallParams[T]; value: ToolResultType[T], } | { type: 'error'; value: string }; // give this result to user
-}
-export type ToolRequestApproval<T extends ToolName> = {
-	role: 'tool_request';
-	name: T; // internal use
-	params: ToolCallParams[T]; // internal use
-	voidToolId: string; // internal id Void uses
-}
-
-// WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
-export type ChatMessage =
-	| {
-		role: 'user';
-		content: string; // content displayed to the LLM on future calls - allowed to be '', will be replaced with (empty)
-		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
-		selections: StagingSelectionItem[] | null; // the user's selection
-		state: {
-			stagingSelections: StagingSelectionItem[];
-			isBeingEdited: boolean;
-		}
-	} | {
-		role: 'assistant';
-		content: string; // content received from LLM  - allowed to be '', will be replaced with (empty)
-		reasoning: string; // reasoning from the LLM, used for step-by-step thinking
-
-		anthropicReasoning: AnthropicReasoning[] | null; // anthropic reasoning
-	}
-	| ToolMessage<ToolName>
-	| ToolRequestApproval<ToolName>
-
 type UserMessageType = ChatMessage & { role: 'user' }
 type UserMessageState = UserMessageType['state']
-
-export const defaultMessageState: UserMessageState = {
+const defaultMessageState: UserMessageState = {
 	stagingSelections: [],
 	isBeingEdited: false,
 }
 
 // a 'thread' means a chat message history
-export type ChatThreads = {
+type ChatThreads = {
 	[id: string]: {
 		id: string; // store the id here too
 		createdAt: string; // ISO string
@@ -160,7 +90,7 @@ export type ChatThreads = {
 
 type ThreadType = ChatThreads[string]
 
-const defaultThreadState: ThreadType['state'] = {
+export const defaultThreadState: ThreadType['state'] = {
 	stagingSelections: [],
 	focusedMessageIdx: undefined,
 	isCheckedOfSelectionId: {},
@@ -483,11 +413,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								res_()
 								return
 							}
-							const toolName = tool.name
+							const toolName: ToolName = tool.name
 							shouldSendAnotherMessage = true
 
 							// 1. validate tool params
-							let toolParams: ToolCallParams[typeof toolName]
+							let toolParams: ToolCallParams[ToolName]
 							try {
 								const params = await this._toolsService.validateParams[toolName](tool.paramsStr)
 								toolParams = params

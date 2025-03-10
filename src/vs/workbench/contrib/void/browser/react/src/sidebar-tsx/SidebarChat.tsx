@@ -25,11 +25,11 @@ import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../chatThreadService.js';
 import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js';
-import { ToolName } from '../../../toolsService.js';
 import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, ChevronRight, Dot, Pencil, X } from 'lucide-react';
+import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
+import { ToolName } from '../../../../common/toolsServiceTypes.js';
 
 
 
@@ -274,7 +274,7 @@ interface VoidChatAreaProps {
 	onAbort: () => void;
 	isStreaming: boolean;
 	isDisabled?: boolean;
-	divRef?: React.RefObject<HTMLDivElement>;
+	divRef?: React.RefObject<HTMLDivElement|null>;
 
 	// UI customization
 	className?: string;

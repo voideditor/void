@@ -7,167 +7,19 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
-import { editToolDesc_toolDescription } from './prompt/prompts.js'
 import { IVoidFileService } from '../common/voidFileService.js'
+import { ITerminalToolService } from './terminalToolService.js'
+import { ToolCallParams, ToolDirectoryItem, ToolName, ToolResultType } from '../common/toolsServiceTypes.js'
 
 
 // tool use for AI
 
 
 
-// we do this using Anthropic's style and convert to OpenAI style later
-export type InternalToolInfo = {
-	name: string,
-	description: string,
-	params: {
-		[paramName: string]: { type: string, description: string | undefined } // name -> type
-	},
-	required: string[], // required paramNames
-}
 
-const paginationHelper = {
-	desc: `Very large results may be paginated (indicated in the result). Pagination fails gracefully if out of bounds or invalid page number.`,
-	param: { pageNumber: { type: 'number', description: 'The page number (optional, default is 1).' }, }
-} as const
-
-export const voidTools = {
-	// --- context-gathering (read/search/list) ---
-
-	read_file: {
-		name: 'read_file',
-		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
-		params: {
-			uri: { type: 'string', description: undefined },
-		},
-		required: ['uri'],
-	},
-
-	list_dir: {
-		name: 'list_dir',
-		description: `Returns all file names and folder names in a given URI. ${paginationHelper.desc}`,
-		params: {
-			uri: { type: 'string', description: undefined },
-			...paginationHelper.param
-		},
-		required: ['uri'],
-	},
-
-	pathname_search: {
-		name: 'pathname_search',
-		description: `Returns all pathnames that match a given grep query. You should use this when looking for a file with a specific name or path. This does NOT search file content. ${paginationHelper.desc}`,
-		params: {
-			query: { type: 'string', description: undefined },
-			...paginationHelper.param,
-		},
-		required: ['query'],
-	},
-
-	search: {
-		name: 'search',
-		description: `Returns all code excerpts containing the given string or grep query. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${paginationHelper.desc}`,
-		params: {
-			query: { type: 'string', description: undefined },
-			...paginationHelper.param,
-		},
-		required: ['query'],
-	},
-
-	// --- editing (create/delete) ---
-
-	create_uri: {
-		name: 'create_uri',
-		description: `Creates a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash. Fails gracefully if the file already exists. Missing ancestors in the path will be recursively created automatically.`,
-		params: {
-			uri: { type: 'string', description: undefined },
-		},
-		required: ['uri'],
-	},
-
-	delete_uri: {
-		name: 'delete_uri',
-		description: `Deletes the file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
-		params: {
-			uri: { type: 'string', description: undefined },
-			params: { type: 'string', description: 'Return -r here to delete this URI and all descendants (if applicable). Default is the empty string.' }
-		},
-		required: ['uri', 'params'],
-	},
-
-	edit: { // APPLY TOOL
-		name: 'edit',
-		description: `Edits the contents of a file at the given URI. Fails gracefully if the file does not exist.`,
-		params: {
-			uri: { type: 'string', description: undefined },
-			changeDescription: { type: 'string', description: editToolDesc_toolDescription }
-		},
-		required: ['uri', 'changeDescription'],
-	},
-
-	terminal_command: {
-		name: 'terminal_command',
-		description: `Executes a terminal command.`,
-		params: {
-			command: { type: 'string', description: 'The terminal command to execute.' }
-		},
-		required: ['command'],
-	},
-
-
-	// go_to_definition
-	// go_to_usages
-
-} satisfies { [name: string]: InternalToolInfo }
-
-export type ToolName = keyof typeof voidTools
-export const toolNames = Object.keys(voidTools) as ToolName[]
-
-const toolNamesSet = new Set<string>(toolNames)
-export const isAToolName = (toolName: string): toolName is ToolName => {
-	const isAToolName = toolNamesSet.has(toolName)
-	return isAToolName
-}
-
-
-export const toolNamesThatRequireApproval = new Set<ToolName>(['create_uri', 'delete_uri', 'edit', 'terminal_command'] satisfies ToolName[])
-
-type DirectoryItem = {
-	uri: URI;
-	name: string;
-	isDirectory: boolean;
-	isSymbolicLink: boolean;
-}
-
-
-export type ToolCallParams = {
-	'read_file': { uri: URI, pageNumber: number },
-	'list_dir': { rootURI: URI, pageNumber: number },
-	'pathname_search': { queryStr: string, pageNumber: number },
-	'search': { queryStr: string, pageNumber: number },
-	// ---
-	'edit': { uri: URI, changeDescription: string },
-	'create_uri': { uri: URI },
-	'delete_uri': { uri: URI, isRecursive: boolean },
-	'terminal_command': { command: string },
-}
-
-
-export type ToolResultType = {
-	'read_file': { fileContents: string, hasNextPage: boolean },
-	'list_dir': { children: DirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
-	'pathname_search': { uris: URI[], hasNextPage: boolean },
-	'search': { uris: URI[], hasNextPage: boolean },
-	// ---
-	'edit': {},
-	'create_uri': {},
-	'delete_uri': {},
-	'terminal_command': {},
-}
-
-
-
-export type ValidateParams = { [T in ToolName]: (p: string) => Promise<ToolCallParams[T]> }
-export type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<ToolResultType[T]> }
-export type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: ToolResultType[T]) => string }
+type ValidateParams = { [T in ToolName]: (p: string) => Promise<ToolCallParams[T]> }
+type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<ToolResultType[T]> }
+type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: ToolResultType[T]) => string }
 
 
 
@@ -193,7 +45,7 @@ const computeDirectoryResult = async (
 	const toChildIdx = MAX_CHILDREN_URIs_PAGE * pageNumber - 1; // INCLUSIVE
 	const listChildren = stat.children?.slice(fromChildIdx, toChildIdx + 1) ?? [];
 
-	const children: DirectoryItem[] = listChildren.map(child => ({
+	const children: ToolDirectoryItem[] = listChildren.map(child => ({
 		name: child.name,
 		uri: child.resource,
 		isDirectory: child.isDirectory,
@@ -284,6 +136,12 @@ const validateRecursiveParamStr = (paramsUnknown: unknown) => {
 	return isRecursive
 }
 
+const validateProposedTerminalId = (terminalIdUnknown: unknown) => {
+	const terminalId = terminalIdUnknown + ''
+	if (!terminalId) return ''
+	return terminalId
+}
+
 export interface IToolsService {
 	readonly _serviceBrand: undefined;
 	validateParams: ValidateParams;
@@ -309,7 +167,7 @@ export class ToolsService implements IToolsService {
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IVoidFileService voidFileService: IVoidFileService,
 		@IEditCodeService editCodeService: IEditCodeService,
-		// @ITerminalToolService private readonly terminalToolService: ITerminalToolService,
+		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -380,9 +238,10 @@ export class ToolsService implements IToolsService {
 
 			terminal_command: async (s: string) => {
 				const o = validateJSON(s)
-				const { command: commandUnknown } = o
+				const { command: commandUnknown, terminalId: terminalIdUnknown } = o
 				const command = validateStr('command', commandUnknown)
-				return { command }
+				const proposedTerminalId = validateProposedTerminalId(terminalIdUnknown)
+				return { command, proposedTerminalId }
 			},
 
 		}
@@ -454,10 +313,9 @@ export class ToolsService implements IToolsService {
 				await applyDonePromise
 				return {}
 			},
-			terminal_command: async ({ command }) => {
-				// TODO!!!!
-				// await // Await user confirmation and then command execution before resolving
-				return {}
+			terminal_command: async ({ command, proposedTerminalId }) => {
+				const { terminalId, didCreateTerminal } = await this.terminalToolService.runCommand(command, proposedTerminalId)
+				return { terminalId, didCreateTerminal }
 			},
 		}
 
@@ -490,7 +348,7 @@ export class ToolsService implements IToolsService {
 				return `Change successfully made ${params.uri.fsPath} successfully deleted.`
 			},
 			terminal_command: (params, result) => {
-				return `Terminal command "${params.command}" successfully executed.`
+				return `Terminal command "${params.command}" successfully executed in terminal ${result.terminalId}${result.didCreateTerminal ? `(a newly-created terminal)` : ''}.`
 			},
 
 		}

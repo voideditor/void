@@ -145,11 +145,13 @@ function hygiene(some, linting = true) {
 
 	const productJsonFilter = filter('product.json', { restore: true });
 	const snapshotFilter = filter(['**', '!**/*.snap', '!**/*.snap.actual']);
+	const yarnLockFilter = filter(['**', '!**/yarn.lock']);
 	const unicodeFilterStream = filter(unicodeFilter, { restore: true });
 
 	const result = input
 		.pipe(filter((f) => !f.stat.isDirectory()))
 		.pipe(snapshotFilter)
+		.pipe(yarnLockFilter)
 		.pipe(productJsonFilter)
 		.pipe(process.env['BUILD_SOURCEVERSION'] ? es.through() : productJson)
 		.pipe(productJsonFilter.restore)
@@ -263,8 +265,7 @@ function createGitIndexVinyls(paths) {
 
 	return pall(fns, { concurrency: 4 }).then((r) => r.filter((p) => !!p));
 }
-
-// NO PRE COMMIT HOOKS!!!! for now... - LineMage team
+// NO PRE COMMIT HOOKS!!!! for now... - Void team
 
 // // this allows us to run hygiene as a git pre-commit hook
 // if (require.main === module) {

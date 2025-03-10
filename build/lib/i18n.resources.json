@@ -19,7 +19,7 @@
 	],
 	"workbench": [
 		{
-			"name": "vs/workbench/contrib/linemage",
+			"name": "vs/workbench/contrib/void",
 			"project": "vscode-workbench"
 		},
 		{

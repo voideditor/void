@@ -5,7 +5,7 @@
 
 .file-icons-enabled .show-file-icons .vscode_getting_started_page-name-file-icon.file-icon::before {
 	content: ' ';
-	background-image: url('../../../../browser/media/code-icon.svg');
+	background-image: url('../../../../browser/media/void-icon-sm.png');
 }
 
 .monaco-workbench .part.editor > .content .gettingStartedContainer {
@@ -926,9 +926,10 @@
 	text-decoration: var(--text-link-decoration);
 }
 
-.monaco-workbench .part.editor > .content .gettingStartedContainer .button-link .codicon {
-	color: var(--vscode-textLink-foreground);
+.monaco-workbench .part.editor > .content .gettingStartedContainer .start-container .button-link {
+	line-height: 24px;
 }
+
 
 .monaco-workbench .part.editor > .content .gettingStartedContainer a:not(.hide-category-button):hover {
 	color: var(--vscode-textLink-activeForeground);

@@ -3,35 +3,37 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { compareBy, Permutation } from 'vs/base/common/arrays';
-import { mapFindFirst } from 'vs/base/common/arraysFind';
-import { itemsEquals } from 'vs/base/common/equals';
-import { BugIndicatingError, onUnexpectedError, onUnexpectedExternalError } from 'vs/base/common/errors';
-import { Disposable } from 'vs/base/common/lifecycle';
-import { IObservable, IReader, ITransaction, autorun, derived, derivedHandleChanges, derivedOpts, observableSignal, observableValue, recomputeInitiallyAndOnChange, subtransaction, transaction } from 'vs/base/common/observable';
-import { commonPrefixLength, splitLinesIncludeSeparators } from 'vs/base/common/strings';
-import { isDefined } from 'vs/base/common/types';
-import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
-import { EditOperation } from 'vs/editor/common/core/editOperation';
-import { Position } from 'vs/editor/common/core/position';
-import { Range } from 'vs/editor/common/core/range';
-import { Selection } from 'vs/editor/common/core/selection';
-import { SingleTextEdit, TextEdit } from 'vs/editor/common/core/textEdit';
-import { TextLength } from 'vs/editor/common/core/textLength';
-import { ScrollType } from 'vs/editor/common/editorCommon';
-import { Command, InlineCompletionContext, InlineCompletionTriggerKind, PartialAcceptTriggerKind } from 'vs/editor/common/languages';
-import { ILanguageConfigurationService } from 'vs/editor/common/languages/languageConfigurationRegistry';
-import { EndOfLinePreference, ITextModel } from 'vs/editor/common/model';
-import { IFeatureDebounceInformation } from 'vs/editor/common/services/languageFeatureDebounce';
-import { IModelContentChangedEvent } from 'vs/editor/common/textModelEvents';
-import { GhostText, GhostTextOrReplacement, ghostTextOrReplacementEquals, ghostTextsOrReplacementsEqual } from 'vs/editor/contrib/inlineCompletions/browser/model/ghostText';
-import { InlineCompletionWithUpdatedRange, InlineCompletionsSource } from 'vs/editor/contrib/inlineCompletions/browser/model/inlineCompletionsSource';
-import { computeGhostText, singleTextEditAugments, singleTextRemoveCommonPrefix } from 'vs/editor/contrib/inlineCompletions/browser/model/singleTextEdit';
-import { SuggestItemInfo } from 'vs/editor/contrib/inlineCompletions/browser/model/suggestWidgetAdaptor';
-import { addPositions, subtractPositions } from 'vs/editor/contrib/inlineCompletions/browser/utils';
-import { SnippetController2 } from 'vs/editor/contrib/snippet/browser/snippetController2';
-import { ICommandService } from 'vs/platform/commands/common/commands';
-import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
+import { mapFindFirst } from '../../../../../base/common/arraysFind.js';
+import { itemsEquals } from '../../../../../base/common/equals.js';
+import { BugIndicatingError, onUnexpectedError, onUnexpectedExternalError } from '../../../../../base/common/errors.js';
+import { Disposable } from '../../../../../base/common/lifecycle.js';
+import { IObservable, IReader, ITransaction, autorun, derived, derivedHandleChanges, derivedOpts, observableSignal, observableValue, recomputeInitiallyAndOnChange, subtransaction, transaction } from '../../../../../base/common/observable.js';
+import { commonPrefixLength } from '../../../../../base/common/strings.js';
+import { isDefined } from '../../../../../base/common/types.js';
+import { ICommandService } from '../../../../../platform/commands/common/commands.js';
+import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
+import { ICodeEditor } from '../../../../browser/editorBrowser.js';
+import { EditOperation } from '../../../../common/core/editOperation.js';
+import { Position } from '../../../../common/core/position.js';
+import { Range } from '../../../../common/core/range.js';
+import { Selection } from '../../../../common/core/selection.js';
+import { SingleTextEdit } from '../../../../common/core/textEdit.js';
+import { TextLength } from '../../../../common/core/textLength.js';
+import { ScrollType } from '../../../../common/editorCommon.js';
+import { Command, InlineCompletionContext, InlineCompletionTriggerKind, PartialAcceptTriggerKind } from '../../../../common/languages.js';
+import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
+import { EndOfLinePreference, ITextModel } from '../../../../common/model.js';
+import { IFeatureDebounceInformation } from '../../../../common/services/languageFeatureDebounce.js';
+import { IModelContentChangedEvent } from '../../../../common/textModelEvents.js';
+import { SnippetController2 } from '../../../snippet/browser/snippetController2.js';
+import { addPositions, getEndPositionsAfterApplying, substringPos, subtractPositions } from '../utils.js';
+import { computeGhostText } from './computeGhostText.js';
+import { GhostText, GhostTextOrReplacement, ghostTextOrReplacementEquals, ghostTextsOrReplacementsEqual } from './ghostText.js';
+import { InlineCompletionWithUpdatedRange, InlineCompletionsSource } from './inlineCompletionsSource.js';
+import { InlineEdit } from './inlineEdit.js';
+import { InlineCompletionItem } from './provideInlineCompletions.js';
+import { singleTextEditAugments, singleTextRemoveCommonPrefix } from './singleTextEditHelpers.js';
+import { SuggestItemInfo } from './suggestWidgetAdaptor.js';
 
 export class InlineCompletionsModel extends Disposable {
 	private readonly _source = this._register(this._instantiationService.createInstance(InlineCompletionsSource, this.textModel, this._textModelVersionId, this._debounceValue));
@@ -92,9 +94,12 @@ export class InlineCompletionsModel extends Disposable {
 		return VersionIdChangeReason.Other;
 	}
 
+	public readonly dontRefetchSignal = observableSignal(this);
+
 	private readonly _fetchInlineCompletionsPromise = derivedHandleChanges({
 		owner: this,
 		createEmptyChangeSummary: () => ({
+			dontRefetch: false,
 			preserveCurrentCompletion: false,
 			inlineCompletionTriggerKind: InlineCompletionTriggerKind.Automatic
 		}),
@@ -104,10 +109,13 @@ export class InlineCompletionsModel extends Disposable {
 				changeSummary.preserveCurrentCompletion = true;
 			} else if (ctx.didChange(this._forceUpdateExplicitlySignal)) {
 				changeSummary.inlineCompletionTriggerKind = InlineCompletionTriggerKind.Explicit;
+			} else if (ctx.didChange(this.dontRefetchSignal)) {
+				changeSummary.dontRefetch = true;
 			}
 			return true;
 		},
 	}, (reader, changeSummary) => {
+		this.dontRefetchSignal.read(reader);
 		this._forceUpdateExplicitlySignal.read(reader);
 		const shouldUpdate = (this._enabled.read(reader) && this.selectedSuggestItem.read(reader)) || this._isActive.read(reader);
 		if (!shouldUpdate) {
@@ -131,6 +139,10 @@ export class InlineCompletionsModel extends Disposable {
 		}
 
 		const cursorPosition = this._primaryPosition.read(reader);
+		if (changeSummary.dontRefetch) {
+			return Promise.resolve(true);
+		}
+
 		const context: InlineCompletionContext = {
 			triggerKind: changeSummary.inlineCompletionTriggerKind,
 			selectedSuggestionInfo: suggestItem?.toSelectedSuggestionInfo(),
@@ -161,12 +173,30 @@ export class InlineCompletionsModel extends Disposable {
 		});
 	}
 
-	private readonly _filteredInlineCompletionItems = derivedOpts({ owner: this, equalsFn: itemsEquals() }, reader => {
+	private readonly _inlineCompletionItems = derivedOpts({ owner: this }, reader => {
 		const c = this._source.inlineCompletions.read(reader);
-		if (!c) { return []; }
+		if (!c) { return undefined; }
 		const cursorPosition = this._primaryPosition.read(reader);
-		const filteredCompletions = c.inlineCompletions.filter(c => c.isVisible(this.textModel, cursorPosition, reader));
-		return filteredCompletions;
+		let inlineEditCompletion: InlineCompletionWithUpdatedRange | undefined = undefined;
+		const filteredCompletions: InlineCompletionWithUpdatedRange[] = [];
+		for (const completion of c.inlineCompletions) {
+			if (!completion.inlineCompletion.sourceInlineCompletion.isInlineEdit) {
+				if (completion.isVisible(this.textModel, cursorPosition, reader)) {
+					filteredCompletions.push(completion);
+				}
+			} else if (filteredCompletions.length === 0 && completion.inlineCompletion.sourceInlineCompletion.isInlineEdit) {
+				inlineEditCompletion = completion;
+			}
+		}
+		return {
+			items: filteredCompletions,
+			inlineEditCompletion,
+		};
+	});
+
+	private readonly _filteredInlineCompletionItems = derivedOpts({ owner: this, equalsFn: itemsEquals() }, reader => {
+		const c = this._inlineCompletionItems.read(reader);
+		return c?.items ?? [];
 	});
 
 	public readonly selectedInlineCompletionIndex = derived<number>(this, (reader) => {
@@ -203,22 +233,41 @@ export class InlineCompletionsModel extends Disposable {
 		}
 	});
 
-	public readonly state = derivedOpts<{
+	public readonly stateWithInlineEdit = derivedOpts<{
+		kind: 'ghostText';
 		edits: readonly SingleTextEdit[];
 		primaryGhostText: GhostTextOrReplacement;
 		ghostTexts: readonly GhostTextOrReplacement[];
 		suggestItem: SuggestItemInfo | undefined;
 		inlineCompletion: InlineCompletionWithUpdatedRange | undefined;
+	} | {
+		kind: 'inlineEdit';
+		edits: readonly SingleTextEdit[];
+		inlineEdit: InlineEdit;
+		inlineCompletion: InlineCompletionWithUpdatedRange;
 	} | undefined>({
 		owner: this,
 		equalsFn: (a, b) => {
 			if (!a || !b) { return a === b; }
-			return ghostTextsOrReplacementsEqual(a.ghostTexts, b.ghostTexts)
-				&& a.inlineCompletion === b.inlineCompletion
-				&& a.suggestItem === b.suggestItem;
+
+			if (a.kind === 'ghostText' && b.kind === 'ghostText') {
+				return ghostTextsOrReplacementsEqual(a.ghostTexts, b.ghostTexts)
+					&& a.inlineCompletion === b.inlineCompletion
+					&& a.suggestItem === b.suggestItem;
+			} else if (a.kind === 'inlineEdit' && b.kind === 'inlineEdit') {
+				return a.inlineEdit.edit.equals(b.inlineEdit.edit);
+			}
+			return false;
 		}
 	}, (reader) => {
 		const model = this.textModel;
+
+		const item = this._inlineCompletionItems.read(reader);
+		if (item?.inlineEditCompletion) {
+			let edit = item.inlineEditCompletion.toSingleTextEdit(reader);
+			edit = singleTextRemoveCommonPrefix(edit, model);
+			return { kind: 'inlineEdit', inlineEdit: new InlineEdit(edit), inlineCompletion: item.inlineEditCompletion, edits: [edit] };
+		}
 
 		const suggestItem = this.selectedSuggestItem.read(reader);
 		if (suggestItem) {
@@ -238,7 +287,7 @@ export class InlineCompletionsModel extends Disposable {
 				.map((edit, idx) => computeGhostText(edit, model, mode, positions[idx], fullEditPreviewLength))
 				.filter(isDefined);
 			const primaryGhostText = ghostTexts[0] ?? new GhostText(fullEdit.range.endLineNumber, []);
-			return { edits, primaryGhostText, ghostTexts, inlineCompletion: augmentation?.completion, suggestItem };
+			return { kind: 'ghostText', edits, primaryGhostText, ghostTexts, inlineCompletion: augmentation?.completion, suggestItem };
 		} else {
 			if (!this._isActive.read(reader)) { return undefined; }
 			const inlineCompletion = this.selectedInlineCompletion.read(reader);
@@ -252,8 +301,20 @@ export class InlineCompletionsModel extends Disposable {
 				.map((edit, idx) => computeGhostText(edit, model, mode, positions[idx], 0))
 				.filter(isDefined);
 			if (!ghostTexts[0]) { return undefined; }
-			return { edits, primaryGhostText: ghostTexts[0], ghostTexts, inlineCompletion, suggestItem: undefined };
+			return { kind: 'ghostText', edits, primaryGhostText: ghostTexts[0], ghostTexts, inlineCompletion, suggestItem: undefined };
 		}
+	});
+
+	public readonly state = derived(reader => {
+		const s = this.stateWithInlineEdit.read(reader);
+		if (!s || s.kind !== 'ghostText') { return undefined; }
+		return s;
+	});
+
+	public readonly stateInlineEdit = derived(reader => {
+		const s = this.stateWithInlineEdit.read(reader);
+		if (!s || s.kind !== 'inlineEdit') { return undefined; }
+		return s;
 	});
 
 	private _computeAugmentation(suggestCompletion: SingleTextEdit, reader: IReader | undefined) {
@@ -313,11 +374,19 @@ export class InlineCompletionsModel extends Disposable {
 			throw new BugIndicatingError();
 		}
 
-		const state = this.state.get();
-		if (!state || state.primaryGhostText.isEmpty() || !state.inlineCompletion) {
+		let completion: InlineCompletionItem;
+
+		const state = this.stateWithInlineEdit.get();
+		if (state?.kind === 'ghostText') {
+			if (!state || state.primaryGhostText.isEmpty() || !state.inlineCompletion) {
+				return;
+			}
+			completion = state.inlineCompletion.toInlineCompletion(undefined);
+		} else if (state?.kind === 'inlineEdit') {
+			completion = state.inlineCompletion.toInlineCompletion(undefined);
+		} else {
 			return;
 		}
-		const completion = state.inlineCompletion.toInlineCompletion(undefined);
 
 		if (completion.command) {
 			// Make sure the completion list will not be disposed.
@@ -514,21 +583,4 @@ export function getSecondaryEdits(textModel: ITextModel, positions: readonly Pos
 		const range = Range.fromPositions(pos, pos.delta(0, l));
 		return new SingleTextEdit(range, secondaryEditText);
 	});
-}
-
-function substringPos(text: string, pos: Position): string {
-	let subtext = '';
-	const lines = splitLinesIncludeSeparators(text);
-	for (let i = pos.lineNumber - 1; i < lines.length; i++) {
-		subtext += lines[i].substring(i === pos.lineNumber - 1 ? pos.column - 1 : 0);
-	}
-	return subtext;
-}
-
-function getEndPositionsAfterApplying(edits: readonly SingleTextEdit[]): Position[] {
-	const sortPerm = Permutation.createSortPermutation(edits, compareBy(e => e.range, Range.compareRangesUsingStarts));
-	const edit = new TextEdit(sortPerm.apply(edits));
-	const sortedNewRanges = edit.getNewRanges();
-	const newRanges = sortPerm.inverse().apply(sortedNewRanges);
-	return newRanges.map(range => range.getEndPosition());
 }

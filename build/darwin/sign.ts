@@ -11,8 +11,8 @@ import { spawn } from '@malept/cross-spawn-promise';
 const root = path.dirname(path.dirname(__dirname));
 
 function getElectronVersion(): string {
-	const yarnrc = fs.readFileSync(path.join(root, '.yarnrc'), 'utf8');
-	const target = /^target "(.*)"$/m.exec(yarnrc)![1];
+	const npmrc = fs.readFileSync(path.join(root, '.npmrc'), 'utf8');
+	const target = /^target="(.*)"$/m.exec(npmrc)![1];
 	return target;
 }
 
@@ -89,24 +89,24 @@ async function main(buildDir?: string): Promise<void> {
 	// universal will get its copy from the x64 build.
 	if (arch !== 'universal') {
 		await spawn('plutil', [
-			'-insert',
+			'-replace', // Void changed this to replace
 			'NSAppleEventsUsageDescription',
 			'-string',
-			'An application in Visual Studio Code wants to use AppleScript.',
+			'An application in Void wants to use AppleScript.',
 			`${infoPlistPath}`
 		]);
 		await spawn('plutil', [
 			'-replace',
 			'NSMicrophoneUsageDescription',
 			'-string',
-			'An application in Visual Studio Code wants to use the Microphone.',
+			'An application in Void wants to use the Microphone.',
 			`${infoPlistPath}`
 		]);
 		await spawn('plutil', [
 			'-replace',
 			'NSCameraUsageDescription',
 			'-string',
-			'An application in Visual Studio Code wants to use the Camera.',
+			'An application in Void wants to use the Camera.',
 			`${infoPlistPath}`
 		]);
 	}

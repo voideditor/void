@@ -3,13 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
-import { refineServiceDecorator } from 'vs/platform/instantiation/common/instantiation';
-import { IProductService } from 'vs/platform/product/common/productService';
-import { ClassifiedEvent, IGDPRProperty, OmitMetadata, StrictPropertyCheck } from 'vs/platform/telemetry/common/gdprTypings';
-import { ITelemetryData, ITelemetryService, TelemetryLevel } from 'vs/platform/telemetry/common/telemetry';
-import { ITelemetryServiceConfig, TelemetryService } from 'vs/platform/telemetry/common/telemetryService';
-import { NullTelemetryServiceShape } from 'vs/platform/telemetry/common/telemetryUtils';
+import { IConfigurationService } from '../../configuration/common/configuration.js';
+import { refineServiceDecorator } from '../../instantiation/common/instantiation.js';
+import { IProductService } from '../../product/common/productService.js';
+import { ClassifiedEvent, IGDPRProperty, OmitMetadata, StrictPropertyCheck } from './gdprTypings.js';
+import { ITelemetryData, ITelemetryService, TelemetryLevel } from './telemetry.js';
+import { ITelemetryServiceConfig, TelemetryService } from './telemetryService.js';
+import { NullTelemetryServiceShape } from './telemetryUtils.js';
 
 export interface IServerTelemetryService extends ITelemetryService {
 	updateInjectedTelemetryLevel(telemetryLevel: TelemetryLevel): Promise<void>;
@@ -31,25 +31,29 @@ export class ServerTelemetryService extends TelemetryService implements IServerT
 	}
 
 	override publicLog(eventName: string, data?: ITelemetryData) {
-		if (this._injectedTelemetryLevel < TelemetryLevel.USAGE) {
-			return;
-		}
-		return super.publicLog(eventName, data);
+		// Void commented this out
+		// if (this._injectedTelemetryLevel < TelemetryLevel.USAGE) {
+		// 	return;
+		// }
+		// return super.publicLog(eventName, data);
 	}
 
 	override publicLog2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>) {
-		return this.publicLog(eventName, data as ITelemetryData | undefined);
+		// Void commented this out
+		// return this.publicLog(eventName, data as ITelemetryData | undefined);
 	}
 
 	override publicLogError(errorEventName: string, data?: ITelemetryData) {
-		if (this._injectedTelemetryLevel < TelemetryLevel.ERROR) {
-			return Promise.resolve(undefined);
-		}
-		return super.publicLogError(errorEventName, data);
+		// Void commented this out
+		// if (this._injectedTelemetryLevel < TelemetryLevel.ERROR) {
+		// 	return Promise.resolve(undefined);
+		// }
+		// return super.publicLogError(errorEventName, data);
 	}
 
 	override publicLogError2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>) {
-		return this.publicLogError(eventName, data as ITelemetryData | undefined);
+		// Void commented this out
+		// return this.publicLogError(eventName, data as ITelemetryData | undefined);
 	}
 
 	async updateInjectedTelemetryLevel(telemetryLevel: TelemetryLevel): Promise<void> {

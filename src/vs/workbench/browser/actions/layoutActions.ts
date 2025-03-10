@@ -3,35 +3,35 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ILocalizedString, localize, localize2 } from 'vs/nls';
-import { MenuId, MenuRegistry, registerAction2, Action2 } from 'vs/platform/actions/common/actions';
-import { Categories } from 'vs/platform/action/common/actionCommonCategories';
-import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
-import { EditorActionsLocation, EditorTabsMode, IWorkbenchLayoutService, LayoutSettings, Parts, Position, ZenModeSettings, positionToString } from 'vs/workbench/services/layout/browser/layoutService';
-import { ServicesAccessor, IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
-import { KeyMod, KeyCode, KeyChord } from 'vs/base/common/keyCodes';
-import { isWindows, isLinux, isWeb, isMacintosh, isNative } from 'vs/base/common/platform';
-import { IsMacNativeContext } from 'vs/platform/contextkey/common/contextkeys';
-import { KeybindingsRegistry, KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
-import { ContextKeyExpr, ContextKeyExpression, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
-import { IViewDescriptorService, ViewContainerLocation, IViewDescriptor, ViewContainerLocationToString } from 'vs/workbench/common/views';
-import { IViewsService } from 'vs/workbench/services/views/common/viewsService';
-import { QuickPickItem, IQuickInputService, IQuickPickItem, IQuickPickSeparator, IQuickPick } from 'vs/platform/quickinput/common/quickInput';
-import { IDialogService } from 'vs/platform/dialogs/common/dialogs';
-import { IPaneCompositePartService } from 'vs/workbench/services/panecomposite/browser/panecomposite';
-import { ToggleAuxiliaryBarAction } from 'vs/workbench/browser/parts/auxiliarybar/auxiliaryBarActions';
-import { TogglePanelAction } from 'vs/workbench/browser/parts/panel/panelActions';
-import { ICommandService } from 'vs/platform/commands/common/commands';
-import { AuxiliaryBarVisibleContext, PanelAlignmentContext, PanelVisibleContext, SideBarVisibleContext, FocusedViewContext, InEditorZenModeContext, IsMainEditorCenteredLayoutContext, MainEditorAreaVisibleContext, IsMainWindowFullscreenContext, PanelPositionContext, IsAuxiliaryWindowFocusedContext, TitleBarStyleContext } from 'vs/workbench/common/contextkeys';
-import { Codicon } from 'vs/base/common/codicons';
-import { ThemeIcon } from 'vs/base/common/themables';
-import { DisposableStore } from 'vs/base/common/lifecycle';
-import { registerIcon } from 'vs/platform/theme/common/iconRegistry';
-import { ICommandActionTitle } from 'vs/platform/action/common/action';
-import { mainWindow } from 'vs/base/browser/window';
-import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
-import { TitlebarStyle } from 'vs/platform/window/common/window';
-import { IPreferencesService } from 'vs/workbench/services/preferences/common/preferences';
+import { ILocalizedString, localize, localize2 } from '../../../nls.js';
+import { MenuId, MenuRegistry, registerAction2, Action2 } from '../../../platform/actions/common/actions.js';
+import { Categories } from '../../../platform/action/common/actionCommonCategories.js';
+import { IConfigurationService } from '../../../platform/configuration/common/configuration.js';
+import { EditorActionsLocation, EditorTabsMode, IWorkbenchLayoutService, LayoutSettings, Parts, Position, ZenModeSettings, positionToString } from '../../services/layout/browser/layoutService.js';
+import { ServicesAccessor, IInstantiationService } from '../../../platform/instantiation/common/instantiation.js';
+import { KeyMod, KeyCode, KeyChord } from '../../../base/common/keyCodes.js';
+import { isWindows, isLinux, isWeb, isMacintosh, isNative } from '../../../base/common/platform.js';
+import { IsMacNativeContext } from '../../../platform/contextkey/common/contextkeys.js';
+import { KeybindingsRegistry, KeybindingWeight } from '../../../platform/keybinding/common/keybindingsRegistry.js';
+import { ContextKeyExpr, ContextKeyExpression, IContextKeyService } from '../../../platform/contextkey/common/contextkey.js';
+import { IViewDescriptorService, ViewContainerLocation, IViewDescriptor, ViewContainerLocationToString } from '../../common/views.js';
+import { IViewsService } from '../../services/views/common/viewsService.js';
+import { QuickPickItem, IQuickInputService, IQuickPickItem, IQuickPickSeparator, IQuickPick } from '../../../platform/quickinput/common/quickInput.js';
+import { IDialogService } from '../../../platform/dialogs/common/dialogs.js';
+import { IPaneCompositePartService } from '../../services/panecomposite/browser/panecomposite.js';
+import { ToggleAuxiliaryBarAction } from '../parts/auxiliarybar/auxiliaryBarActions.js';
+import { TogglePanelAction } from '../parts/panel/panelActions.js';
+import { ICommandService } from '../../../platform/commands/common/commands.js';
+import { AuxiliaryBarVisibleContext, PanelAlignmentContext, PanelVisibleContext, SideBarVisibleContext, FocusedViewContext, InEditorZenModeContext, IsMainEditorCenteredLayoutContext, MainEditorAreaVisibleContext, IsMainWindowFullscreenContext, PanelPositionContext, IsAuxiliaryWindowFocusedContext, TitleBarStyleContext } from '../../common/contextkeys.js';
+import { Codicon } from '../../../base/common/codicons.js';
+import { ThemeIcon } from '../../../base/common/themables.js';
+import { DisposableStore } from '../../../base/common/lifecycle.js';
+import { registerIcon } from '../../../platform/theme/common/iconRegistry.js';
+import { ICommandActionTitle } from '../../../platform/action/common/action.js';
+import { mainWindow } from '../../../base/browser/window.js';
+import { IKeybindingService } from '../../../platform/keybinding/common/keybinding.js';
+import { TitlebarStyle } from '../../../platform/window/common/window.js';
+import { IPreferencesService } from '../../services/preferences/common/preferences.js';
 
 // Register Icons
 const menubarIcon = registerIcon('menuBar', Codicon.layoutMenubar, localize('menuBarIcon', "Represents the menu bar"));
@@ -239,7 +239,7 @@ MenuRegistry.appendMenuItems([{
 		group: '3_workbench_layout_move',
 		command: {
 			id: ToggleSidebarPositionAction.ID,
-			title: localize('move second sidebar left', "Move Secondary Side Bar Left")
+			title: localize('move second sidebar left', "Move Void Side Bar Left")
 		},
 		when: ContextKeyExpr.and(ContextKeyExpr.notEquals('config.workbench.sideBar.location', 'right'), ContextKeyExpr.equals('viewLocation', ViewContainerLocationToString(ViewContainerLocation.AuxiliaryBar))),
 		order: 1
@@ -250,7 +250,7 @@ MenuRegistry.appendMenuItems([{
 		group: '3_workbench_layout_move',
 		command: {
 			id: ToggleSidebarPositionAction.ID,
-			title: localize('move second sidebar right', "Move Secondary Side Bar Right")
+			title: localize('move second sidebar right', "Move Void Side Bar Right")
 		},
 		when: ContextKeyExpr.and(ContextKeyExpr.equals('config.workbench.sideBar.location', 'right'), ContextKeyExpr.equals('viewLocation', ViewContainerLocationToString(ViewContainerLocation.AuxiliaryBar))),
 		order: 1
@@ -949,7 +949,7 @@ registerAction2(class extends Action2 {
 					if (!hasAddedView) {
 						results.push({
 							type: 'separator',
-							label: localize('secondarySideBarContainer', "Secondary Side Bar / {0}", containerModel.title)
+							label: localize('secondarySideBarContainer', "Void Side Bar / {0}", containerModel.title)
 						});
 						hasAddedView = true;
 					}
@@ -1056,7 +1056,7 @@ class MoveFocusedViewAction extends Action2 {
 		if (!(isViewSolo && currentLocation === ViewContainerLocation.AuxiliaryBar)) {
 			items.push({
 				id: '_.auxiliarybar.newcontainer',
-				label: localize('moveFocusedView.newContainerInSidePanel', "New Secondary Side Bar Entry")
+				label: localize('moveFocusedView.newContainerInSidePanel', "New Void Side Bar Entry")
 			});
 		}
 
@@ -1104,7 +1104,7 @@ class MoveFocusedViewAction extends Action2 {
 
 		items.push({
 			type: 'separator',
-			label: localize('secondarySideBar', "Secondary Side Bar")
+			label: localize('secondarySideBar', "Void Side Bar")
 		});
 
 		const pinnedAuxPanels = paneCompositePartService.getPinnedPaneCompositeIds(ViewContainerLocation.AuxiliaryBar);
@@ -1386,7 +1386,7 @@ if (!isMacintosh || !isNative) {
 ToggleVisibilityActions.push(...[
 	CreateToggleLayoutItem(ToggleActivityBarVisibilityActionId, ContextKeyExpr.notEquals('config.workbench.activityBar.location', 'hidden'), localize('activityBar', "Activity Bar"), { whenA: ContextKeyExpr.equals('config.workbench.sideBar.location', 'left'), iconA: activityBarLeftIcon, iconB: activityBarRightIcon }),
 	CreateToggleLayoutItem(ToggleSidebarVisibilityAction.ID, SideBarVisibleContext, localize('sideBar', "Primary Side Bar"), { whenA: ContextKeyExpr.equals('config.workbench.sideBar.location', 'left'), iconA: panelLeftIcon, iconB: panelRightIcon }),
-	CreateToggleLayoutItem(ToggleAuxiliaryBarAction.ID, AuxiliaryBarVisibleContext, localize('secondarySideBar', "Secondary Side Bar"), { whenA: ContextKeyExpr.equals('config.workbench.sideBar.location', 'left'), iconA: panelRightIcon, iconB: panelLeftIcon }),
+	CreateToggleLayoutItem(ToggleAuxiliaryBarAction.ID, AuxiliaryBarVisibleContext, localize('secondarySideBar', "Void Side Bar"), { whenA: ContextKeyExpr.equals('config.workbench.sideBar.location', 'left'), iconA: panelRightIcon, iconB: panelLeftIcon }),
 	CreateToggleLayoutItem(TogglePanelAction.ID, PanelVisibleContext, localize('panel', "Panel"), panelIcon),
 	CreateToggleLayoutItem(ToggleStatusbarVisibilityAction.ID, ContextKeyExpr.equals('config.workbench.statusBar.visible', true), localize('statusBar', "Status Bar"), statusBarIcon),
 ]);

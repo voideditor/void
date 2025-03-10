@@ -3,16 +3,16 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Registry } from 'vs/platform/registry/common/platform';
-import { localize } from 'vs/nls';
-import { IConfigurationRegistry, Extensions as ConfigurationExtensions, ConfigurationScope } from 'vs/platform/configuration/common/configurationRegistry';
-import { isMacintosh, isWindows, isLinux, isWeb, isNative } from 'vs/base/common/platform';
-import { ConfigurationMigrationWorkbenchContribution, DynamicWorkbenchSecurityConfiguration, IConfigurationMigrationRegistry, workbenchConfigurationNodeBase, Extensions, ConfigurationKeyValuePairs, problemsConfigurationNodeBase, windowConfigurationNodeBase, DynamicWindowConfiguration } from 'vs/workbench/common/configuration';
-import { isStandalone } from 'vs/base/browser/browser';
-import { WorkbenchPhase, registerWorkbenchContribution2 } from 'vs/workbench/common/contributions';
-import { ActivityBarPosition, EditorActionsLocation, EditorTabsMode, LayoutSettings } from 'vs/workbench/services/layout/browser/layoutService';
-import { defaultWindowTitle, defaultWindowTitleSeparator } from 'vs/workbench/browser/parts/titlebar/windowTitle';
-import { CustomEditorLabelService } from 'vs/workbench/services/editor/common/customEditorLabelService';
+import { Registry } from '../../platform/registry/common/platform.js';
+import { localize } from '../../nls.js';
+import { IConfigurationRegistry, Extensions as ConfigurationExtensions, ConfigurationScope } from '../../platform/configuration/common/configurationRegistry.js';
+import { isMacintosh, isWindows, isLinux, isWeb, isNative } from '../../base/common/platform.js';
+import { ConfigurationMigrationWorkbenchContribution, DynamicWorkbenchSecurityConfiguration, IConfigurationMigrationRegistry, workbenchConfigurationNodeBase, Extensions, ConfigurationKeyValuePairs, problemsConfigurationNodeBase, windowConfigurationNodeBase, DynamicWindowConfiguration } from '../common/configuration.js';
+import { isStandalone } from '../../base/browser/browser.js';
+import { WorkbenchPhase, registerWorkbenchContribution2 } from '../common/contributions.js';
+import { ActivityBarPosition, EditorActionsLocation, EditorTabsMode, LayoutSettings } from '../services/layout/browser/layoutService.js';
+import { defaultWindowTitle, defaultWindowTitleSeparator } from './parts/titlebar/windowTitle.js';
+import { CustomEditorLabelService } from '../services/editor/common/customEditorLabelService.js';
 
 const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 
@@ -512,7 +512,12 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 				'type': 'string',
 				'enum': ['left', 'right'],
 				'default': 'left',
-				'description': localize('sideBarLocation', "Controls the location of the primary side bar and activity bar. They can either show on the left or right of the workbench. The secondary side bar will show on the opposite side of the workbench.")
+				'description': localize('sideBarLocation', "Controls the location of the primary side bar and activity bar. They can either show on the left or right of the workbench. The Void side bar will show on the opposite side of the workbench.")
+			},
+			'workbench.panel.showLabel': {
+				'type': 'boolean',
+				'default': true,
+				'description': localize('panelShowLabel', "Controls whether activity items in the panel title are shown as label or icon."),
 			},
 			'workbench.panel.defaultLocation': {
 				'type': 'string',
@@ -540,12 +545,12 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 				'type': 'string',
 				'enum': ['default', 'top', 'bottom', 'hidden'],
 				'default': 'default',
-				'markdownDescription': localize({ comment: ['This is the description for a setting'], key: 'activityBarLocation' }, "Controls the location of the Activity Bar relative to the Primary and Secondary Side Bars."),
+				'markdownDescription': localize({ comment: ['This is the description for a setting'], key: 'activityBarLocation' }, "Controls the location of the Activity Bar relative to the Primary and Void Side Bars."),
 				'enumDescriptions': [
-					localize('workbench.activityBar.location.default', "Show the Activity Bar on the side of the Primary Side Bar and on top of the Secondary Side Bar."),
-					localize('workbench.activityBar.location.top', "Show the Activity Bar on top of the Primary and Secondary Side Bars."),
-					localize('workbench.activityBar.location.bottom', "Show the Activity Bar at the bottom of the Primary and Secondary Side Bars."),
-					localize('workbench.activityBar.location.hide', "Hide the Activity Bar in the Primary and Secondary Side Bars.")
+					localize('workbench.activityBar.location.default', "Show the Activity Bar on the side of the Primary Side Bar and on top of the Void Side Bar."),
+					localize('workbench.activityBar.location.top', "Show the Activity Bar on top of the Primary and Void Side Bars."),
+					localize('workbench.activityBar.location.bottom', "Show the Activity Bar at the bottom of the Primary and Void Side Bars."),
+					localize('workbench.activityBar.location.hide', "Hide the Activity Bar in the Primary and Void Side Bars.")
 				],
 			},
 			'workbench.activityBar.iconClickBehavior': {
@@ -593,7 +598,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 				'description': localize('workbench.hover.delay', "Controls the delay in milliseconds after which the hover is shown for workbench items (ex. some extension provided tree view items). Already visible items may require a refresh before reflecting this setting change."),
 				// Testing has indicated that on Windows and Linux 500 ms matches the native hovers most closely.
 				// On Mac, the delay is 1500.
-				'default': isMacintosh ? 1500 : 500,
+				'default': isMacintosh ? 300 : 300, // <-- Void edited this to 300 : 300 (was 1500 : 500)
 				'minimum': 0
 			},
 			'workbench.reduceMotion': {

@@ -12,7 +12,7 @@ build/node_modules
 coverage/
 test_data/
 test-results/
-yarn-error.log
+test-results.xml
 vscode.lsif
 vscode.db
 /.profile-oss
@@ -21,3 +21,6 @@ vscode.db
 product.overrides.json
 *.snap.actual
 .vscode-test
+.tmp/
+.tmp2/
+.tool-versions

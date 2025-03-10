@@ -1,186 +1,164 @@
+# Contributing to Void
+### Welcome! 👋
+This is the official guide on how to contribute to Void. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or discord!
 
+There are a few ways to contribute:
 
-# Contributing to LineMage
+- 💫 Complete items on the [Roadmap](https://github.com/orgs/voideditor/projects/2).
+- 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
+- 🪴 Start new Issues - see [Issues](https://github.com/voideditor/void/issues).
 
-Welcome! 👋 This is a guide on how to contribute to LineMage. We want to make it as easy as possible to contribute, so if you have any questions or comments, reach out via email or Discord!
 
-There are 3 main ways to contribute: 
 
-- Suggest New Features
-- Improve Documentation
-- Build New Features
+### Codebase Guide
 
+We highly recommend reading [this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization.
 
-See the [Roadmap](#roadmap) section for a list of the most important features to build, or feel free to build your own features.
+<!-- ADD BLOG HERE
+We wrote a [guide to working in VSCode].
+-->
 
-We use a [VSCode extension](https://code.visualstudio.com/api/get-started/your-first-extension) to implement most of LineMage's functionality.  Scroll down to see 1. How to contribute to the Extension, or 2. How to contribute to the full IDE (for more native changes).
+Most of Void's code lives in the two folders called `void/`.
 
 
 
 
-## Roadmap
+## Building Void
 
-Here are the most important topics on our Roadmap. More ⭐'s = more important.
+### a. Build Prerequisites - Mac
 
-## ⭐⭐⭐ Improve diffs. 
+If you're using a Mac, you need Python and XCode. You probably have these by default.
 
-We define a "diff" as a single green/red codeblock that denotes a change. Here are improvements to make:
+### b. Build Prerequisites - Windows
 
-1. Show deletions (-) inside diffs. Right now we're only showing insertions (+). Diffs currently work by highlighting all of the new code in green with a simple text decoration. Instead, we would like to use code from VS Code's native diffEditor to show the diffs ("inline" mode). We could alternatively keep what we have and add red zones of the deleted code between lines.
+If you're using a Windows computer, first get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community) (recommended) or [VS Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools) (not recommended). If you already have both, you might need to run the next few steps on both of them.
 
-2. Make diffs responsive. When a user accepts a diff, all of the diffs below it should be updated (because they are now on different line numbers). We're not doing this, so there is a lot of unexpected behavior. 
+Go to the "Workloads" tab and select:
+- `Desktop development with C++`
+- `Node.js build tools`
 
-3. Make diff highlighting dynamic. Right now when the user edits text, we clear all the diffs and their highlights. Instead, we should simply update the highlighting of the diff. Each diff lives on a range of lines, and all changes inside that range or intersecting with it should update its highlighting. 
+Go to the "Individual Components" tab and select:
+- `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)`
+- `C++ ATL for latest build tools with Spectre Mitigations`
+- `C++ MFC for latest build tools with Spectre Mitigations`
 
-## ⭐⭐⭐ Make History work well.
-When the user submits a response or presses the apply/accept/reject button, we should add these events to the history and allow the user to use undo/redo on them. Right now there is unexpected behavior if the user tries to undo or redo their LineMage changes.
+Finally, click Install.
 
-## ⭐⭐⭐ Build Cursor-style quick edits (ctrl+k). 
+### c. Build Prerequisites - Linux
 
-When the user presses ctrl+k, an input box should appear inline with the code that they were selecting. This is somewhat difficult to do because an extension alone cannot do this, and it requires creating a new component in the IDE. We think you can modify vscode's built-in "codelens" or "zone widget" components, but we are open to alternatives.
+First, run `npm install -g node-gyp`. Then:
 
-## ⭐⭐⭐ Improve Ctrl+L. 
+- Debian (Ubuntu, etc): `sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev python-is-python3`.
+- Red Hat (Fedora, etc): `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
+- Others: see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
-Change the prompt so we output changes like `// ... rest of file`, instead of always outputting the entire file. When the user clicks "apply", the model should rewrite the file and apply diffs in the correct locations.
+### d. Building Void
 
+To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
-## ⭐⭐ Integrate with Ollama. 
+1. `npm install` to install all dependencies.
+2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`).
+3. Build Void.
+	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
+   - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
+   - This step can take ~5 min. The build is done when you see two check marks.
+4. Run Void.
+   - Run `./scripts/code.sh` (Mac/Linux).
+   - Run `./scripts/code.bat` (Windows).
+6. Nice-to-knows.
+   - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
+   - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
 
-We have an Ollama integration coded up in the extension, but it breaks. This is because Ollama has Node.js dependencies like 'path' and 'os' which cannot run in extensions (extensions have to be able to run in the browser). To fix this, we need to migrate LineMage's extension so that it runs natively into the VS Code editor so that we can access Node.js.
+#### Building Void from Terminal
 
-## ⭐ One-stars.
+Alternatively, if you want to build Void from the terminal, instead of pressing <kbd>Cmd+Shift+B</kbd> you can run `npm run watch`. The build is done when you see something like this:
 
-⭐ When user presses ctrl+L it should clear the sidebar's state.
+```
+[watch-extensions] [00:37:39] Finished compilation extensions with 0 errors after 19303 ms
+[watch-client    ] [00:38:06] Finished compilation with 0 errors after 46248 ms
+[watch-client    ] [00:38:07] Starting compilation...
+[watch-client    ] [00:38:07] Finished compilation with 0 errors after 5 ms
+```
 
-⭐ Let the user accept / reject all Diffs in an entire file via the sidebar.
 
-⭐ Allow the user to make multiple selections of code or files at once.
 
-⭐ Allow user to X out of their current selection.
+#### Common Fixes
 
+- Make sure you followed the prerequisite steps.
+- Make sure you have Node version `20.16.0` (the version in `.nvmrc`)!
+- If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
+- If you see missing styles, wait a few seconds and then reload.
+- If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 
 
-## 1. Contributing to the Extension
-Here's how you can start contributing to the Extension:
 
-1. Clone the repository
+## Packaging
 
- `git clone https://github.com/linemagedev/linemage`
+We don't usually recommend packaging. Instead, you should probably just build. If you're sure you want to package Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). Be patient - packaging can take ~25 minutes.
 
-2. Open the extension folder
 
-`cd /extensions/linemage`
+### Mac
+- `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)
+- `npm run gulp vscode-darwin-x64` (Intel)
 
-3. Install dependencies
+### Windows
+- `npm run gulp vscode-win32-x64` - most common
+- `npm run gulp vscode-win32-ia32`
 
-`npm run install`
+### Linux
+- `npm run gulp vscode-linux-x64` - most common
+- `npm run gulp vscode-linux-arm`
+- `npm run gulp vscode-linux-ia32`
 
-4. Build the project
 
-`npm run build`. Note: We made this build command to run React in vscode. It converts `sidebar/index.tsx` into a CSS/JS bundle in `dist/`.
+### Output
 
-5. Run the project
+This will generate a folder outside of `void/`:
+```bash
+workspace/
+├── void/   # Your Void fork
+└── VSCode-darwin-arm64/ # Generated output
+```
 
-Press <kbd>F5</kbd>. This will start a new instance of VS Code with the extension enabled. If this does not work, you can press <kbd>F1</kbd>, select "Debug: Start Debugging", press <kbd>Enter</kbd>, and select "VS Code Extension Development".
+### Distributing
+Void's maintainers distribute Void on our website and in releases. If you'd like to see the scripts to convert `Mac .app -> .dmg`, `Windows folder -> .exe`, and `Linux folder -> appimage` for distribution, feel free to reach out.
 
-If you would like to use AI features, you need to provide an API key. You can do that by going to Settings (<kbd>Ctrl+,</kbd>) and modifying `linemage > "Anthropic Api Key"`. The "Which API" environment variable controls the provider and defaults to "anthropic".
+## Pull Request Guidelines
 
-## 2. Contributing to the full IDE
 
-Beyond the extension, we sometimes edit the IDE when we need to access more functionality. If you want to make a change to the IDE, please follow the steps below, or see VS Code's full [how to contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
-
-1. Install all dependencies by running `yarn`.
-
-2. Press <kbd>Ctrl+Shift+B</kbd> to start the build process - this can take some time.
-
-3. Run `./scripts/code.sh` to open up the built IDE. To see new changes without restarting the build, use <kbd>Ctrl+Shift+P</kbd> and run "Reload Window".
-
-To bundle the IDE, run `yarn gulp vscode-win32-x64`. Here are the full options: vscode-{win32-ia32 | win32-x64 | darwin-x64 | darwin-arm64 | linux-ia32 | linux-x64 | linux-arm}(-min)
-
-If you're on Windows, we recommend running the project inside a dev container. VSCode should prompt you to do this automatically.
-
-
-
-# Submitting a Pull Request
-
-When you've made changes and want to submit them, please submit a pull request.
-
-Please submit all Pull Requests to the `dev` branch.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- Please submit a pull request once you've made a change.
+- No need to submit an Issue unless you're creating a new feature that might involve multiple PRs.
+- Please don't use AI to write your PR 🙂
 
 
 
 
 
 <!--
+# Relevant files
 
-### Design principles
+We keep track of all the files we've changed with Void so it's easy to rebase:
 
-- Least amount of eye movement necessary; if user presses submit, show them the message where they submitted
+Edit: far too many changes to track... this is old
 
+- README.md
+- CONTRIBUTING.md
+- VOID_USEFUL_LINKS.md
+- product.json
+- package.json
 
-### Ctrl+L (chat)
+- src/vs/workbench/api/common/{extHost.api.impl.ts | extHostApiCommands.ts}
+- src/vs/workbench/workbench.common.main.ts
+- src/vs/workbench/contrib/void/\*
+- extensions/void/\*
 
+- .github/\*
+- .vscode/settings/\*
+- .eslintrc.json
+- build/hygiene.js
+- build/lib/i18n.resources.json
+- build/npm/dirs.js
 
+- vscode.proposed.editorInsets.d.ts - not modified, but code copied
 
-
-### Ctrl+K (inline edits)
-
-- Create a new input box that takes in the user's description.
-
-- Make it appear above each.
-
-- The input box should appear directly above the code selection - this requires using a Zone widget.
-
-
-### Core
-
-- Migrate the LineMage extension to live natively in VS Code. There's initial work here at `linemage.contribution.ts`.
-
-- Allow access to the VS Code extension marketplace.
-
-- Re-write the whole file when the user clicks "Apply" and show a gray progress indicator in the BG.
-
-
-
-### Diffs
-
-"Diffs" are the inline green/red highlights you see to approve or reject a change.
-
-- Diffs are not responsive to edits right now. To make them responsive, we need to update all Diffs' ranges every time there's a change.
-
-- Right now Diffs are only shown in green as a simple text decoration. We'd like to have them work better by using code from VS Code's native diffEditor ("inline" mode).
-
-- **Events:** On many types of events, we should reject all the current Diffs (user submits a new chat message, clicks Apply, etc).
-
-
-
-
-
-
-### Ollama
-
-- Ollama doesn't work now because its JS library depends on Node.js and uses imports like 'path', 'os', while extensions must be able to run in the browser. When we migrate the extension into the VS Code codebase, we'll be able to access Node.js and will uncomment the Ollama integration.
-
-### Greptile
-
-- Ideally we'd auto-detect -->
+-->

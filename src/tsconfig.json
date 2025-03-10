@@ -1,20 +1,22 @@
 {
 	"extends": "./tsconfig.base.json",
 	"compilerOptions": {
+		// "jsx": "react", // <-- Void added this
 		"esModuleInterop": true,
 		"removeComments": false,
 		"preserveConstEnums": true,
 		"sourceMap": false,
 		"allowJs": true,
 		"resolveJsonModule": true,
-		"isolatedModules": true,
+		"isolatedModules": false,
 		"outDir": "../out/vs",
 		"types": [
+			"@webgpu/types",
 			"mocha",
 			"semver",
 			"sinon",
-			"winreg",
 			"trusted-types",
+			"winreg",
 			"wicg-file-system-access"
 		],
 		"plugins": [
@@ -50,6 +52,10 @@
 		"./typings",
 		"./vs/**/*.ts",
 		"vscode-dts/vscode.proposed.*.d.ts",
-		"vscode-dts/vscode.d.ts"
+		"vscode-dts/vscode.d.ts",
+
+		// Void added these:
+		// "./vs/workbench/contrib/void/browser/**.tsx",
+		// "./vs/**/*.d.mts",
 	]
 }

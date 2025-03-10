@@ -8,7 +8,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { TerminalCapability } from '../../../../platform/terminal/common/capabilities/capabilities.js';
 import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
-import { ITerminalService, ITerminalInstance, ITerminalInstanceService } from '../../../../workbench/contrib/terminal/browser/terminal.js';
+import { ITerminalService, ITerminalInstance } from '../../../../workbench/contrib/terminal/browser/terminal.js';
 
 export interface ITerminalToolService {
 	readonly _serviceBrand: undefined;
@@ -39,7 +39,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 	private terminalInstanceOfId: Record<string, ITerminalInstance> = {}
 
 	constructor(
-		@ITerminalInstanceService private readonly terminalInstanceService: ITerminalInstanceService,
+		@ITerminalService private readonly terminalService: ITerminalService,
 	) {
 		super();
 
@@ -106,6 +106,10 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 		let data = ''
 		const d1 = terminal.onData(newData => { data += newData })
+
+		// terminal.onExit(() => {
+		// 	console.log('TERMINALEXIT')
+		// })
 
 		await terminal.sendText(command, true);
 		// wait for the command to finish

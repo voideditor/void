@@ -930,7 +930,7 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 		messageIdx: messageIdx,
 	}
 
-	const isEmpty = !chatMessage.content && !chatMessage.reasoning
+	const isEmpty = !chatMessage.content && !chatMessage.reasoning // && !(isLast && isLoading) // TODO!!!!
 	if (isEmpty) return null
 
 	return <>

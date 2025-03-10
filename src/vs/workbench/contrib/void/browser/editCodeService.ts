@@ -1628,6 +1628,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 									// REVERT
+									// TODO!!!!! don't actually revert - we want to change this so it doesn't revert but isntead gives the current file contents
 									const numLines = this._getNumLines(uri)
 									if (numLines !== null) this._writeText(uri, originalFileCode,
 										{ startLineNumber: 1, startColumn: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },

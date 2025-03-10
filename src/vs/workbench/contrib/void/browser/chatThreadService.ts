@@ -10,18 +10,23 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_lastUserMessageWithFilesAdded, chat_selectionsString } from './prompt/prompts.js';
-import { InternalToolInfo, IToolsService, ToolCallParams, ToolResultType, ToolName, toolNamesThatRequireApproval, voidTools } from './toolsService.js';
-import { AnthropicReasoning, LLMChatMessage, ToolCallType } from '../common/sendLLMMessageTypes.js';
+import { chat_userMessageContent, chat_systemMessage, chat_lastUserMessageWithFilesAdded, chat_selectionsString } from '../common/prompt/prompts.js';
+import { LLMChatMessage, ToolCallType } from '../common/sendLLMMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IVoidFileService } from '../common/voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { getErrorMessage } from '../../../../base/common/errors.js';
 import { ChatMode, FeatureName } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-
+import { ToolName, ToolCallParams, ToolResultType, InternalToolInfo, voidTools, toolNamesThatRequireApproval } from '../common/toolsServiceTypes.js';
+import { IToolsService } from './toolsService.js';
+import { CancellationToken } from '../../../../base/common/cancellation.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { ChatMessage, CodespanLocationLink, StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
+import { Position } from '../../../../editor/common/core/position.js';
+import { ITerminalToolService } from './terminalToolService.js';
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
 	for (let i = arr.length - 1; i >= 0; i--) {
@@ -55,76 +60,15 @@ const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
 }
 
 
-// one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
-export type CodeSelection = {
-	type: 'Selection';
-	fileURI: URI;
-	selectionStr: string;
-	range: IRange;
-	state: {
-		isOpened: boolean;
-	};
-}
-
-export type FileSelection = {
-	type: 'File';
-	fileURI: URI;
-	selectionStr: null;
-	range: null;
-	state: {
-		isOpened: boolean;
-	};
-}
-
-export type StagingSelectionItem = CodeSelection | FileSelection
-
-
-export type ToolMessage<T extends ToolName> = {
-	role: 'tool';
-	name: T; // internal use
-	paramsStr: string; // internal use
-	id: string; // apis require this tool use id
-	content: string; // give this result to LLM
-	result: { type: 'success'; params: ToolCallParams[T]; value: ToolResultType[T], } | { type: 'error'; value: string }; // give this result to user
-}
-export type ToolRequestApproval<T extends ToolName> = {
-	role: 'tool_request';
-	name: T; // internal use
-	params: ToolCallParams[T]; // internal use
-	voidToolId: string; // internal id Void uses
-}
-
-// WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
-export type ChatMessage =
-	| {
-		role: 'user';
-		content: string; // content displayed to the LLM on future calls - allowed to be '', will be replaced with (empty)
-		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
-		selections: StagingSelectionItem[] | null; // the user's selection
-		state: {
-			stagingSelections: StagingSelectionItem[];
-			isBeingEdited: boolean;
-		}
-	} | {
-		role: 'assistant';
-		content: string; // content received from LLM  - allowed to be '', will be replaced with (empty)
-		reasoning: string; // reasoning from the LLM, used for step-by-step thinking
-
-		anthropicReasoning: AnthropicReasoning[] | null; // anthropic reasoning
-	}
-	| ToolMessage<ToolName>
-	| ToolRequestApproval<ToolName>
-
 type UserMessageType = ChatMessage & { role: 'user' }
 type UserMessageState = UserMessageType['state']
-
-export const defaultMessageState: UserMessageState = {
+const defaultMessageState: UserMessageState = {
 	stagingSelections: [],
 	isBeingEdited: false,
 }
 
 // a 'thread' means a chat message history
-export type ChatThreads = {
+type ChatThreads = {
 	[id: string]: {
 		id: string; // store the id here too
 		createdAt: string; // ISO string
@@ -133,6 +77,13 @@ export type ChatThreads = {
 		state: {
 			stagingSelections: StagingSelectionItem[];
 			focusedMessageIdx: number | undefined; // index of the message that is being edited (undefined if none)
+
+			linksOfMessageIdx: { // eg. link = linksOfMessageIdx[4]['RangeFunction']
+				[messageIdx: number]: {
+					[codespanName: string]: CodespanLocationLink
+				}
+			}
+
 			isCheckedOfSelectionId: { [selectionId: string]: boolean }; // TODO
 		}
 	};
@@ -140,10 +91,11 @@ export type ChatThreads = {
 
 type ThreadType = ChatThreads[string]
 
-const defaultThreadState: ThreadType['state'] = {
+export const defaultThreadState: ThreadType['state'] = {
 	stagingSelections: [],
 	focusedMessageIdx: undefined,
-	isCheckedOfSelectionId: {}
+	isCheckedOfSelectionId: {},
+	linksOfMessageIdx: {},
 }
 
 export type ThreadsState = {
@@ -199,11 +151,18 @@ export interface IChatThreadService {
 	isFocusingMessage(): boolean;
 	setFocusedMessageIdx(messageIdx: number | undefined): void;
 
+
+
+	getCodespanLink({ codespanStr, messageIdx, threadId }: { codespanStr: string, messageIdx: number, threadId: string }): CodespanLocationLink | undefined;
+	addCodespanLink({ newLinkText, newLinkLocation, messageIdx, threadId }: { newLinkText: string, newLinkLocation: CodespanLocationLink, messageIdx: number, threadId: string }): void;
+	generateCodespanLink(codespanStr: string): Promise<CodespanLocationLink>
+
 	// exposed getters/setters
 	getCurrentMessageState: (messageIdx: number) => UserMessageState
 	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
 	getCurrentThreadState: () => ThreadType['state']
 	setCurrentThreadState: (newState: Partial<ThreadType['state']>) => void
+
 
 	closeStagingSelectionsInCurrentThread(): void;
 	closeStagingSelectionsInMessage(messageIdx: number): void;
@@ -243,6 +202,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IToolsService private readonly _toolsService: IToolsService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
+		@ILanguageFeaturesService private readonly _languageFeaturesService: ILanguageFeaturesService,
+		@ITextModelService private readonly _textModelService: ITextModelService,
+		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -260,9 +222,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	// !!! this is important for properly restoring URIs from storage
+	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough
 	private _convertThreadDataFromStorage(threadsStr: string): ChatThreads {
 		return JSON.parse(threadsStr, (key, value) => {
-			if (value && typeof value === 'object' && value.$mid === 1) { //$mid is the MarshalledId. $mid === 1 means it is a URI
+			if (value && typeof value === 'object' && value.$mid === 1) { // $mid is the MarshalledId. $mid === 1 means it is a URI
 				return URI.from(value);
 			}
 			return value;
@@ -418,8 +381,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 				if (lastUserMsgIdx === -1) throw new Error(`Void: No user message found.`) // should never be -1
 
+				const workspaceFolders = this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
+				const terminalIds = this.terminalToolService.listTerminalIds()
 				const messages: LLMChatMessage[] = [
-					{ role: 'system', content: chat_systemMessage(this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath), chatMode), },
+					{ role: 'system', content: chat_systemMessage(workspaceFolders, terminalIds, chatMode), },
 					...messages_.slice(0, lastUserMsgIdx),
 					{ role: 'user', content: userMessageFullContent },
 					...messages_.slice(lastUserMsgIdx + 1, Infinity),
@@ -452,17 +417,17 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								res_()
 								return
 							}
-							const toolName = tool.name
+							const toolName: ToolName = tool.name
 							shouldSendAnotherMessage = true
 
 							// 1. validate tool params
-							let toolParams: ToolCallParams[typeof toolName]
+							let toolParams: ToolCallParams[ToolName]
 							try {
 								const params = await this._toolsService.validateParams[toolName](tool.paramsStr)
 								toolParams = params
 							} catch (error) {
 								const errorMessage = getErrorMessage(error)
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: undefined, value: errorMessage }, })
 								res_()
 								return
 							}
@@ -480,7 +445,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 									// TODO!!! test rejection
 									// if (Math.random() > 0) throw new Error('TESTING')
 									const errorMessage = 'Tool call was rejected by the user.'
-									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
 									res_()
 									return
 								}
@@ -492,7 +457,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								toolResult = await this._toolsService.callTool[toolName](toolParams as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
 							} catch (error) {
 								const errorMessage = getErrorMessage(error)
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
 								res_()
 								return
 							}
@@ -503,7 +468,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
 							} catch (error) {
 								const errorMessage = `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', value: errorMessage }, })
+								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
 								res_()
 								return
 							}
@@ -550,6 +515,206 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 	// ---------- the rest ----------
+
+	// gets the location of codespan link so the user can click on it
+	async generateCodespanLink(_codespanStr: string): Promise<CodespanLocationLink> {
+
+		// process codespan to understand what we are searching for
+		// TODO account for more complicated patterns eg `ITextEditorService.openEditor()`
+		const functionOrMethodPattern = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/; // `fUnCt10n_name`
+		const functionParensPattern = /^([^\s(]+)\([^)]*\)$/; // `functionName( args )`
+
+		let target = _codespanStr // the string to search for
+		let codespanType: 'file' | 'function-or-class' | 'unsearchable' = 'unsearchable';
+		if (target.includes('.')) {
+
+			codespanType = 'file'
+			target = _codespanStr
+
+		} else if (functionOrMethodPattern.test(target)) {
+
+			codespanType = 'function-or-class'
+			target = _codespanStr
+
+		} else if (functionParensPattern.test(target)) {
+			const match = target.match(functionParensPattern)
+			if (match && match[1]) {
+
+				codespanType = 'function-or-class'
+				target = match[1]
+
+			}
+		}
+
+		if (codespanType === 'unsearchable') {
+			return null
+		}
+
+		// get history of all AI and user added files in conversation + store in reverse order (MRU)
+		const prevUris = this._getAllSelections()
+			.map(s => s.fileURI)
+			.filter((uri, index, array) => array.findIndex(u => u.toString() === uri.toString()) === index) // O(n^2) but this is small
+			.reverse()
+
+
+		if (codespanType === 'file') {
+
+
+			const doesUriMatchTarget = (uri: URI) => uri.path.includes(target)
+
+			// check if any prevFiles are the `codespanSearch`
+			for (const uri of prevUris) {
+				if (doesUriMatchTarget(uri)) return { uri }
+			}
+
+			// else search codebase for file
+			const { uris } = await this._toolsService.callTool['pathname_search']({ queryStr: target, pageNumber: 0 })
+
+			for (const uri of uris) {
+				if (doesUriMatchTarget(uri)) return { uri }
+			}
+
+		}
+
+
+		if (codespanType === 'function-or-class') {
+
+
+			// check all prevUris for the target
+			for (const uri of prevUris) {
+
+				const modelRef = await this._textModelService.createModelReference(uri);
+				const model = modelRef.object.textEditorModel;
+
+				try {
+					const matches = model.findMatches(
+						target,
+						false, // searchOnlyEditableRange
+						false, // isRegex
+						true,  // matchCase
+						' ',   // wordSeparators
+						true   // captureMatches
+					);
+
+					const firstThree = matches.slice(0, 3);
+
+					// take first 3 occurences, attempt to goto definition on them
+					for (const match of firstThree) {
+						const position = new Position(match.range.startLineNumber, match.range.startColumn);
+						const definitionProviders = this._languageFeaturesService.definitionProvider.ordered(model);
+
+						for (const provider of definitionProviders) {
+
+							const _definitions = await provider.provideDefinition(model, position, CancellationToken.None);
+
+							if (!_definitions) continue;
+
+							const definitions = Array.isArray(_definitions) ? _definitions : [_definitions];
+
+							for (const definition of definitions) {
+
+								return {
+									uri: definition.uri,
+									selection: {
+										startLineNumber: definition.range.startLineNumber,
+										startColumn: definition.range.startColumn,
+										endLineNumber: definition.range.endLineNumber,
+										endColumn: definition.range.endColumn,
+									}
+								};
+
+								// const defModelRef = await this._textModelService.createModelReference(definition.uri);
+								// const defModel = defModelRef.object.textEditorModel;
+
+								// try {
+								// 	const symbolProviders = this._languageFeaturesService.documentSymbolProvider.ordered(defModel);
+
+								// 	for (const symbolProvider of symbolProviders) {
+								// 		const symbols = await symbolProvider.provideDocumentSymbols(
+								// 			defModel,
+								// 			CancellationToken.None
+								// 		);
+
+								// 		if (symbols) {
+								// 			const symbol = symbols.find(s => {
+								// 				const symbolRange = s.range;
+								// 				return symbolRange.startLineNumber <= definition.range.startLineNumber &&
+								// 					symbolRange.endLineNumber >= definition.range.endLineNumber &&
+								// 					(symbolRange.startLineNumber !== definition.range.startLineNumber || symbolRange.startColumn <= definition.range.startColumn) &&
+								// 					(symbolRange.endLineNumber !== definition.range.endLineNumber || symbolRange.endColumn >= definition.range.endColumn);
+								// 			});
+
+								// 			// if we got to a class/function get the full range and return
+								// 			if (symbol?.kind === SymbolKind.Function || symbol?.kind === SymbolKind.Method || symbol?.kind === SymbolKind.Class) {
+								// 				return {
+								// 					uri: definition.uri,
+								// 					selection: {
+								// 						startLineNumber: definition.range.startLineNumber,
+								// 						startColumn: definition.range.startColumn,
+								// 						endLineNumber: definition.range.endLineNumber,
+								// 						endColumn: definition.range.endColumn,
+								// 					}
+								// 				};
+								// 			}
+								// 		}
+								// 	}
+								// } finally {
+								// 	defModelRef.dispose();
+								// }
+							}
+						}
+					}
+				} finally {
+					modelRef.dispose();
+				}
+			}
+
+			// unlike above do not search codebase (doesnt make sense)
+
+		}
+
+		return null
+
+	}
+
+	getCodespanLink({ codespanStr, messageIdx, threadId }: { codespanStr: string, messageIdx: number, threadId: string }): CodespanLocationLink | undefined {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return undefined;
+
+		const links = thread.state.linksOfMessageIdx?.[messageIdx]
+		if (!links) return undefined;
+
+		const link = links[codespanStr]
+
+		return link
+	}
+
+	async addCodespanLink({ newLinkText, newLinkLocation, messageIdx, threadId }: { newLinkText: string, newLinkLocation: CodespanLocationLink, messageIdx: number, threadId: string }) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+
+		this._setState({
+
+			allThreads: {
+				...this.state.allThreads,
+				[threadId]: {
+					...thread,
+					state: {
+						...thread.state,
+						linksOfMessageIdx: {
+							...thread.state.linksOfMessageIdx,
+							[messageIdx]: {
+								...thread.state.linksOfMessageIdx?.[messageIdx],
+								[newLinkText]: newLinkLocation
+							}
+						}
+					}
+
+				}
+			}
+		}, true)
+	}
+
 
 	getCurrentThread(): ChatThreads[string] {
 		const state = this.state
@@ -721,7 +886,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 	getCurrentThreadState = () => {
+
 		const currentThread = this.getCurrentThread()
+
 		return currentThread.state
 	}
 

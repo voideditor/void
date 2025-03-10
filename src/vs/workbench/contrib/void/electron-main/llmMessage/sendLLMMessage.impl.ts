@@ -8,12 +8,12 @@ import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 
 import { Model as OpenAIModel } from 'openai/resources/models.js';
-import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../browser/helpers/extractCodeFromResult.js';
+import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
-import { InternalToolInfo, isAToolName, ToolName } from '../../browser/toolsService.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getModelSelectionState, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
+import { InternalToolInfo, ToolName, isAToolName } from '../../common/toolsServiceTypes.js';
 
 
 type InternalCommonMessageParams = {

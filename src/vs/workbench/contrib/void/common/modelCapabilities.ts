@@ -51,13 +51,9 @@ export const defaultModelsOfProvider = {
 		'llama-3.1-8b-instant',
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)
 	],
-	// not supporting mistral right now- it's last on Void usage, and a huge pain to set up since it's nonstandard (it supports codestral FIM but it's on v1/fim/completions, etc)
-	// mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
-	// 	'codestral-latest',
-	// 	'mistral-large-latest',
-	// 	'ministral-3b-latest',
-	// 	'ministral-8b-latest',
-	// ],
+	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
+		'codestral-latest',
+	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>
 
@@ -187,6 +183,12 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsReasoning: false,
 	},
 	'codegemma:2b': {
+		supportsFIM: true,
+		supportsSystemMessage: false,
+		supportsTools: false,
+		supportsReasoning: false,
+	},
+	'codestral-latest': {
 		supportsFIM: true,
 		supportsSystemMessage: false,
 		supportsTools: false,

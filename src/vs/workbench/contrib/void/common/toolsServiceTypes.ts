@@ -25,6 +25,9 @@ export type ToolDirectoryItem = {
 }
 
 
+export type ResolveReason = { type: 'toofull' | 'timeout' | 'bgtask' } | { type: 'done', exitCode: number }
+
+
 
 
 
@@ -158,6 +161,6 @@ export type ToolResultType = {
 	'edit': {},
 	'create_uri': {},
 	'delete_uri': {},
-	'terminal_command': { terminalId: string, didCreateTerminal: boolean },
+	'terminal_command': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: ResolveReason; },
 }
 

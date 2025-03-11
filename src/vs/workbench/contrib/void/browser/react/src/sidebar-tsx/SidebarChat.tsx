@@ -914,7 +914,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 }
 
 
-const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'assistant' } }) => {
+const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'assistant' } }) => {
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -930,8 +930,9 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatB
 		messageIdx: messageIdx,
 	}
 
-	const isEmpty = !chatMessage.content && !chatMessage.reasoning // && !(isLast && isLoading) // TODO!!!!
-	if (isEmpty) return null
+	const isEmpty = !chatMessage.content && !chatMessage.reasoning
+	const isLastAndLoading = isLoading && isLast
+	if (isEmpty && !isLastAndLoading) return null
 
 	return <>
 		<div
@@ -1023,7 +1024,7 @@ const toolNameToTitle: Record<ToolName, string> = {
 	'create_uri': 'Create file',
 	'delete_uri': 'Delete file',
 	'edit': 'Edit file',
-	'terminal_command': 'Ran terminal command'
+	'terminal_command': 'Run terminal command'
 }
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
 
@@ -1335,8 +1336,10 @@ const toolNameToComponent: { [T in ToolName]: {
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <DropdownComponent title={title} desc1={desc1}
-			// TODO!!! open the terminal with that ID
+
+			const { waitForCompletion, command, proposedTerminalId } = toolRequest.params
+			return <DropdownComponent title={title} desc1={desc1} desc2={waitForCompletion ? '(background task)' : null}
+			// TODO!!! open terminal
 			/>
 		},
 		resultWrapper: ({ toolMessage }) => {
@@ -1349,19 +1352,32 @@ const toolNameToComponent: { [T in ToolName]: {
 				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
 			}
 
-			const { params } = toolMessage.result
+
+			const { command } = toolMessage.result.params
+			const { terminalId, resolveReason, result } = toolMessage.result.value
 
 			return (
 				<DropdownComponent
 					title={title}
 					desc1={desc1}
+					desc2={resolveReason.type === 'bgtask' ? '(background task)' : null}
 				>
 					<div
 						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
 					// TODO!!! open terminal
 					>
-						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-						<ChatMarkdownRender string={''} chatMessageLocation={undefined} />
+						<div>
+							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+							{resolveReason.type === 'bgtask' ? 'Result so far:' : null}
+							<ChatMarkdownRender string={`\`\`\`\n${result}\n\`\`\``} chatMessageLocation={undefined} />
+							{
+								resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `Error: exit code ${resolveReason.exitCode}` : null)
+									: resolveReason.type === 'bgtask' ? null :
+										resolveReason.type === 'timeout' ? `(partial results; request timed out)` :
+											resolveReason.type === 'toofull' ? `(truncated)`
+												: null
+							}
+						</div>
 					</div>
 				</DropdownComponent>
 			)
@@ -1371,8 +1387,9 @@ const toolNameToComponent: { [T in ToolName]: {
 
 
 type ChatBubbleMode = 'display' | 'edit'
-type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isLoading?: boolean, }
-const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => {
+type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isLoading?: boolean, isLast: boolean }
+
+const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubbleProps) => {
 
 	const role = chatMessage.role
 
@@ -1381,6 +1398,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => 
 			chatMessage={chatMessage}
 			messageIdx={messageIdx}
 			isLoading={isLoading}
+			isLast={isLast}
 		/>
 	}
 	else if (role === 'assistant') {
@@ -1388,6 +1406,7 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => 
 			chatMessage={chatMessage}
 			messageIdx={messageIdx}
 			isLoading={isLoading}
+			isLast={isLast}
 		/>
 	}
 	else if (role === 'tool_request') {
@@ -1508,7 +1527,7 @@ export const SidebarChat = () => {
 
 	const pastMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) =>
-			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} />
+			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} isLast={!isStreaming} />
 		)
 	}, [previousMessages, currentThread])
 
@@ -1524,6 +1543,7 @@ export const SidebarChat = () => {
 				anthropicReasoning: null,
 			}}
 			isLoading={isStreaming}
+			isLast={true}
 		/> : null
 
 	const allMessagesHTML = [...pastMessagesHTML, currStreamingMessageHTML]

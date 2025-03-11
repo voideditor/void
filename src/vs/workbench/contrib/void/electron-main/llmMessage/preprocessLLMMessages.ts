@@ -368,6 +368,7 @@ const prepareMessages_noEmptyMessage = ({ messages }: { messages: PrepareMessage
 				else if (c.type === 'tool_use') { }
 				else if (c.type === 'tool_result') { }
 			}
+			if (currMsg.content.length === 0) currMsg.content = [{ type: 'text', text: EMPTY_MESSAGE }]
 		}
 
 	}

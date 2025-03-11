@@ -446,6 +446,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 									// if (Math.random() > 0) throw new Error('TESTING')
 									const errorMessage = 'Tool call was rejected by the user.'
 									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
+									shouldSendAnotherMessage = false // interrupt flow by rejecting
 									res_()
 									return
 								}

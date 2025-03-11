@@ -27,6 +27,9 @@ type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Tool
 // pagination info
 const MAX_FILE_CHARS_PAGE = 50_000
 const MAX_CHILDREN_URIs_PAGE = 500
+export const MAX_TERMINAL_CHARS_PAGE = 50_000
+export const TERMINAL_TIMEOUT_TIME = 15
+export const TERMINAL_BG_WAIT_TIME = 1
 
 
 
@@ -322,8 +325,8 @@ export class ToolsService implements IToolsService {
 				return {}
 			},
 			terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
-				const { terminalId, didCreateTerminal } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
-				return { terminalId, didCreateTerminal }
+				const { terminalId, didCreateTerminal, result, resolveReason } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
+				return { terminalId, didCreateTerminal, result, resolveReason }
 			},
 		}
 
@@ -353,10 +356,32 @@ export class ToolsService implements IToolsService {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
 			edit: (params, result) => {
-				return `Change successfully made ${params.uri.fsPath} successfully deleted.`
+				return `Change successfully made to ${params.uri.fsPath}.`
 			},
 			terminal_command: (params, result) => {
-				return `Terminal command "${params.command}" successfully executed in terminal ${result.terminalId}${result.didCreateTerminal ? `(a newly-created terminal)` : ''}.`
+
+				const {
+					terminalId,
+					didCreateTerminal,
+					resolveReason,
+					result: result_,
+				} = result
+
+				const terminalDesc = `terminal ${terminalId}${didCreateTerminal ? ` (a newly-created terminal)` : ''}`
+
+				if (resolveReason.type === 'timeout') {
+					return `Terminal command ran in ${terminalDesc}, but timed out after ${TERMINAL_TIMEOUT_TIME} seconds. Result:\n${result_}`
+				}
+				else if (resolveReason.type === 'bgtask') {
+					return `Terminal command is running in the background in ${terminalDesc}. Here were the outputs after ${TERMINAL_BG_WAIT_TIME} seconds:\n${result_}`
+				}
+				else if (resolveReason.type === 'toofull') {
+					return `Terminal command executed in terminal ${terminalDesc}. Command was interrupted because output was too long. Result:\n${result_}`
+				}
+				else if (resolveReason.type === 'done') {
+					return `Terminal command executed in terminal ${terminalDesc}. Result (exit code ${resolveReason.exitCode}):\n${result_}`
+				}
+				throw new Error(`Unexpected internal error: Terminal command did not resolve with a valid reason.`)
 			},
 
 		}

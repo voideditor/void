@@ -50,10 +50,10 @@ const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
 }
 // gets converted to --vscode-void-greenBG, see void.css, asCssVariable
-const greenBG = new Color(new RGBA(155, 185, 85, .3)); // default is RGBA(155, 185, 85, .2)
+const greenBG = new Color(new RGBA(155, 185, 85, .1)); // default is RGBA(155, 185, 85, .2)
 registerColor('void.greenBG', configOfBG(greenBG), '', true);
 
-const redBG = new Color(new RGBA(255, 0, 0, .3)); // default is RGBA(255, 0, 0, .2)
+const redBG = new Color(new RGBA(255, 0, 0, .2)); // default is RGBA(255, 0, 0, .2)
 registerColor('void.redBG', configOfBG(redBG), '', true);
 
 const sweepBG = new Color(new RGBA(100, 100, 100, .2));
@@ -1481,7 +1481,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyDonePromise(new Error('Edit was interrupted by pressing undo.')) }
 		})
 
-		// TODO replace these with whatever block we're on initially if already started (caching apply)
+		// TODO replace these with whatever block we're on initially if already started (if add caching of apply S/R blocks)
 
 		type SearchReplaceDiffAreaMetadata = {
 			originalBounds: [number, number], // 1-indexed
@@ -1607,6 +1607,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 										shouldUpdateOrigStreamStyle = false
 									}
 								}
+								else {
+									// TODO!!! test this
+									// starting line is at least the number of lines in the generated code minus 1
+									const numLinesInOrig = block.orig.split('\n').length - 1
+									diffZone._streamState.line = Math.max(numLinesInOrig - 1, 1, diffZone._streamState.line ?? 1)
+								}
 								// must be done writing original to move on to writing streamed content
 								continue
 							}
@@ -1615,37 +1621,22 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 							// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming
 							if (!(blockNum in addedTrackingZoneOfBlockNum)) {
-								console.log('finding text in code...', { orig: block.orig })
 								const originalBounds = findTextInCode(block.orig, originalFileCode)
-
 								// if error
 								if (typeof originalBounds === 'string') {
+									console.log('TEXT NOT FOUND')
 									const content = errMsgOfInvalidStr(originalBounds, block.orig)
 									messages.push(
 										{ role: 'assistant', content: fullText, anthropicReasoning: null }, // latest output
 										{ role: 'user', content: content } // user explanation of what's wrong
 									)
 
-
-									// REVERT
-									// TODO!!!!! don't actually revert - we want to change this so it doesn't revert but isntead gives the current file contents
-									const numLines = this._getNumLines(uri)
-									if (numLines !== null) this._writeText(uri, originalFileCode,
-										{ startLineNumber: 1, startColumn: 1, endLineNumber: numLines, endColumn: Number.MAX_SAFE_INTEGER },
-										{ shouldRealignDiffAreas: false }
-									)
-									// reset state
-									diffZone.startLine = 1
-									diffZone.endLine = numLines ?? 1
-									if (diffZone._streamState.isStreaming) {
-										diffZone._streamState.line = 1
-									}
-
-									currStreamingBlockNum = 0
+									// REVERT THIS ONE BLOCK
+									// TODO!!! test this
 									latestStreamLocationMutable = null
 									shouldUpdateOrigStreamStyle = true
-									oldBlocks = []
-									addedTrackingZoneOfBlockNum.splice(0, Infinity) // clear the array
+									blocks.splice(blockNum, Infinity) // remove all blocks at and after this one
+									oldBlocks = blocks
 
 									// abort and resolve
 									shouldSendAnotherMessage = true

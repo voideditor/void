@@ -495,11 +495,11 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
-	// mistral: {
-	// 	sendChat: , // TODO
-	// 	sendFIM: , // TODO // https://docs.mistral.ai/api/#tag/fim
-	// 	list: null,
-	// },
+	mistral: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null, // TODO // https://docs.mistral.ai/api/#tag/fim
+		list: null,
+	},
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: sendOllamaFIM,

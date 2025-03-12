@@ -14,12 +14,13 @@ export type ToolMessage<T extends ToolName> = {
 	result:
 	| { type: 'success'; params: ToolCallParams[T]; value: ToolResultType[T], }
 	| { type: 'error'; params: ToolCallParams[T] | undefined; value: string }
-	| { type: 'rejected'; params: ToolCallParams[T]; value: string }
+	| { type: 'rejected'; params: ToolCallParams[T] }
 }
 export type ToolRequestApproval<T extends ToolName> = {
 	role: 'tool_request';
 	name: T; // internal use
 	params: ToolCallParams[T]; // internal use
+	paramsStr: string; // internal use - this is what the LLM outputted, not necessarily JSON.stringify(params)
 	voidToolId: string; // internal id Void uses
 }
 
@@ -28,7 +29,7 @@ export type ChatMessage =
 	| {
 		role: 'user';
 		content: string; // content displayed to the LLM on future calls - allowed to be '', will be replaced with (empty)
-		displayContent: string | null; // content displayed to user  - allowed to be '', will be ignored
+		displayContent: string; // content displayed to user  - allowed to be '', will be ignored
 		selections: StagingSelectionItem[] | null; // the user's selection
 		state: {
 			stagingSelections: StagingSelectionItem[];

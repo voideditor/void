@@ -828,7 +828,11 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 
 			// stream the edit
 			const userMessage = textAreaRefState.value;
-			await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx, })
+			try {
+				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx, })
+			} catch (e) {
+				console.error('Error while editing message:', e)
+			}
 		}
 
 		const onAbort = () => {
@@ -1058,12 +1062,16 @@ const ToolRequestAcceptRejectButtons = ({ voidToolId }: { voidToolId: string }) 
 	const metricsService = accessor.get('IMetricsService')
 
 	const onAccept = useCallback(() => {
-		chatThreadsService.approveTool(voidToolId)
-		metricsService.capture('Tool Request Accepted', {})
+		try {
+			chatThreadsService.approveTool(voidToolId)
+			metricsService.capture('Tool Request Accepted', {})
+		} catch (e) { console.error('Error while approving message in chat:', e) }
 	}, [chatThreadsService, voidToolId, metricsService])
 
 	const onReject = useCallback(() => {
-		chatThreadsService.rejectTool(voidToolId)
+		try {
+			chatThreadsService.rejectTool(voidToolId)
+		} catch (e) { console.error('Error while approving message in chat:', e) }
 		metricsService.capture('Tool Request Rejected', {})
 	}, [chatThreadsService, voidToolId, metricsService])
 
@@ -1583,7 +1591,11 @@ export const SidebarChat = () => {
 
 		// getModelCapabilities() // TODO!!! check if can go into agent mode
 
-		await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode: 'agent' })
+		try {
+			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode: 'agent' })
+		} catch (e) {
+			console.error('Error while sending message in chat:', e)
+		}
 
 		setSelections([]) // clear staging
 		textAreaFnsRef.current?.setValue('')

@@ -50,10 +50,10 @@ const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
 }
 // gets converted to --vscode-void-greenBG, see void.css, asCssVariable
-const greenBG = new Color(new RGBA(155, 185, 85, .1)); // default is RGBA(155, 185, 85, .2)
+const greenBG = new Color(new RGBA(155, 185, 85, .2)); // default is RGBA(155, 185, 85, .2)
 registerColor('void.greenBG', configOfBG(greenBG), '', true);
 
-const redBG = new Color(new RGBA(255, 0, 0, .05)); // default is RGBA(255, 0, 0, .2)
+const redBG = new Color(new RGBA(255, 0, 0, .2)); // default is RGBA(255, 0, 0, .2)
 registerColor('void.redBG', configOfBG(redBG), '', true);
 
 const sweepBG = new Color(new RGBA(100, 100, 100, .2));

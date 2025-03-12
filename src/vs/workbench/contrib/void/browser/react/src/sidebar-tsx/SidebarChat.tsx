@@ -1099,6 +1099,8 @@ const ToolRequestAcceptRejectButtons = ({ voidToolId }: { voidToolId: string }) 
 		</button>
 	)
 
+	// const isCancelled = state.cancelled || (!isLastMessage && state.awaiting)
+
 	return <div className="flex gap-2 my-1">
 		{approveButton}
 		{cancelButton}

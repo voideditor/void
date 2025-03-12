@@ -189,10 +189,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	private readonly _onDidChangeCurrentThread = new Emitter<void>();
 	readonly onDidChangeCurrentThread: Event<void> = this._onDidChangeCurrentThread.event;
 
-	readonly streamState: ThreadStreamState = {}
 	private readonly _onDidChangeStreamState = new Emitter<{ threadId: string }>();
 	readonly onDidChangeStreamState: Event<{ threadId: string }> = this._onDidChangeStreamState.event;
 
+	readonly streamState: ThreadStreamState = {}
 	state: ThreadsState // allThreads is persisted, currentThread is not
 
 	constructor(
@@ -445,7 +445,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 									// TODO!!! test rejection
 									// if (Math.random() > 0) throw new Error('TESTING')
 									const errorMessage = 'Tool call was rejected by the user.'
-									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
+									this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'rejected', params: toolParams, value: errorMessage }, })
 									shouldSendAnotherMessage = false // interrupt flow by rejecting
 									res_()
 									return

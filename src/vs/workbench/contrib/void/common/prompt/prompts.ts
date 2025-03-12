@@ -17,9 +17,8 @@ export const tripleTick = ['```', '```']
 
 export const editToolDesc_toolDescription = `\
 A high level description of the change you'd like to make in the file. This description will be handed to a dumber, faster model that will quickly apply the change. \
-Typically the best description you can give here is a high level view of the final code you'd like to see. For example, you can write code excerpt(s) with "// ... existing code ..." comments to help you write less. \
-However, you are allowed to describe the change using whatever text/language you like, especially if the change is better described without code. \
-Do NOT output the whole file if possible, and try to write as LITTLE as needed to describe the change.`
+Typically the best description you can give here is a single code block of the form:\n${tripleTick[0]}\n// ... existing code ...\n{{change 1}}\n// ... existing code ...\n{{change2}}\n// ... existing code ...\n{{change 3}}\n...\n${tripleTick[1]}.\
+Do NOT output the whole file here if possible, and try to write as LITTLE as needed to describe the change.`
 
 
 

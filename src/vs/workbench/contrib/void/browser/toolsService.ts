@@ -27,7 +27,7 @@ type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Tool
 // pagination info
 const MAX_FILE_CHARS_PAGE = 50_000
 const MAX_CHILDREN_URIs_PAGE = 500
-export const MAX_TERMINAL_CHARS_PAGE = 50_000
+export const MAX_TERMINAL_CHARS_PAGE = 20_000
 export const TERMINAL_TIMEOUT_TIME = 15
 export const TERMINAL_BG_WAIT_TIME = 1
 
@@ -116,7 +116,7 @@ const validateStr = (argName: string, value: unknown) => {
 }
 
 
-// TODO!!!! check to make sure in workspace
+// We are NOT checking to make sure in workspace
 const validateURI = (uriStr: unknown) => {
 	if (typeof uriStr !== 'string') throw new Error('Error: provided uri must be a string.')
 
@@ -152,6 +152,14 @@ const validateWaitForCompletion = (b: unknown) => {
 	}
 	return true // default is true
 }
+
+
+const checkIfIsFolder = (uriStr: string) => {
+	uriStr = uriStr.trim()
+	if (uriStr.endsWith('/') || uriStr.endsWith('\\')) return true
+	return false
+}
+
 export interface IToolsService {
 	readonly _serviceBrand: undefined;
 	validateParams: ValidateParams;
@@ -224,17 +232,21 @@ export class ToolsService implements IToolsService {
 
 			create_uri: async (params: string) => {
 				const o = validateJSON(params)
-				const { uri: uriStr } = o
-				const uri = validateURI(uriStr)
-				return { uri }
+				const { uri: uriUnknown } = o
+				const uri = validateURI(uriUnknown)
+				const uriStr = validateStr('uri', uriUnknown)
+				const isFolder = checkIfIsFolder(uriStr)
+				return { uri, isFolder }
 			},
 
 			delete_uri: async (params: string) => {
 				const o = validateJSON(params)
-				const { uri: uriStr, params: paramsStr } = o
-				const uri = validateURI(uriStr)
+				const { uri: uriUnknown, params: paramsStr } = o
+				const uri = validateURI(uriUnknown)
 				const isRecursive = validateRecursiveParamStr(paramsStr)
-				return { uri, isRecursive }
+				const uriStr = validateStr('uri', uriUnknown)
+				const isFolder = checkIfIsFolder(uriStr)
+				return { uri, isRecursive, isFolder }
 			},
 
 			edit: async (params: string) => {
@@ -242,7 +254,6 @@ export class ToolsService implements IToolsService {
 				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = o
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
-
 				return { uri, changeDescription }
 			},
 

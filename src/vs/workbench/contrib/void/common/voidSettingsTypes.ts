@@ -385,14 +385,13 @@ export type GlobalSettings = {
 	autoRefreshModels: boolean;
 	aiInstructions: string;
 	enableAutocomplete: boolean;
-	chatMode: ChatMode;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
 	aiInstructions: '',
 	enableAutocomplete: false,
-	chatMode: 'agent',
+
 }
 
 export type GlobalSettingName = keyof GlobalSettings

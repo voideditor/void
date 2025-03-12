@@ -285,7 +285,6 @@ const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMCh
 			role: 'user',
 			content: [
 				...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content || EMPTY_TOOL_CONTENT }] as const,
-				...currMsg.content ? [{ type: 'text', text: currMsg.content }] as const : [],
 			]
 		}
 	}

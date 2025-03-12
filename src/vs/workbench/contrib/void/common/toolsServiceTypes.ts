@@ -148,8 +148,8 @@ export type ToolCallParams = {
 	'search': { queryStr: string, pageNumber: number },
 	// ---
 	'edit': { uri: URI, changeDescription: string },
-	'create_uri': { uri: URI },
-	'delete_uri': { uri: URI, isRecursive: boolean },
+	'create_uri': { uri: URI, isFolder: boolean },
+	'delete_uri': { uri: URI, isRecursive: boolean, isFolder: boolean },
 	'terminal_command': { command: string, proposedTerminalId: string, waitForCompletion: boolean },
 }
 

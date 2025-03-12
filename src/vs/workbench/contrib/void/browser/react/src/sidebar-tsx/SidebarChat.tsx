@@ -656,52 +656,69 @@ export const SelectedFiles = (
 
 const ReasoningComponent = ({ children }: { children: React.ReactNode }) => {
 
+	const [isOpen, setIsOpen] = useState(false)
 	return children
 
 }
 
 
 
-const ToolComponent = ({
+type ToolHeaderParams = {
+	icon?: React.ReactNode;
+	title: string;
+	desc1: string;
+	desc2?: React.ReactNode;
+	isError?: boolean;
+	requestToolId?: string;
+	numResults?: number;
+	children?: React.ReactNode;
+	isLastMessage?: boolean;
+	onClick?: () => void;
+}
+
+const ToolHeaderComponent = ({
+	icon,
 	title,
 	desc1,
 	desc2,
 	numResults,
 	children,
+	isError,
+	requestToolId,
+	isLastMessage,
 	onClick,
-}: {
-	title: string;
-	desc1: string;
-	desc2?: React.ReactNode;
-	numResults?: number;
-	children?: React.ReactNode;
-	onClick?: () => void;
-}) => {
+}: ToolHeaderParams) => {
+
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const isDropdown = !!children
 	const isClickable = !!isDropdown || !!onClick
 
-	return (
-		<div className="select-none">
-			<div className="border border-void-border-3 rounded px-2 py-1 bg-void-bg-2-alt overflow-hidden">
-				<div
-					className={`flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
-					onClick={() => {
-						if (children) { setIsExpanded(v => !v); }
-						if (onClick) { onClick(); }
-					}}
-				>
-					{isDropdown && (
-						<ChevronRight
-							className={`text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
-						/>
-					)}
-					<div className="flex items-center justify-between w-full flex-nowrap whitespace-nowrap gap-x-2">
-						<div className="flex items-center gap-x-2">
-							<span className="text-void-fg-3">{title}</span>
-							<span className="text-void-fg-4 text-xs italic">{desc1}</span>
-						</div>
+	return (<div className=''>
+		<div className="border border-void-border-3 rounded px-2 py-1 bg-void-bg-2-alt overflow-hidden">
+
+			{/* header */}
+			<div
+				className={`select-none flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
+				onClick={() => {
+					if (children) { setIsExpanded(v => !v); }
+					if (onClick) { onClick(); }
+				}}
+			>
+				{isDropdown && (
+					<ChevronRight
+						className={`text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
+					/>
+				)}
+				<div className="flex items-center justify-between w-full flex-nowrap whitespace-nowrap gap-x-2">
+					<div className="flex items-center gap-x-2">
+						<span className="text-void-fg-3">{title}</span>
+						<span className="text-void-fg-4 text-xs italic">{desc1}</span>
+					</div>
+					<div
+						// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
+						className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
+					>
 						<div className="flex items-center gap-x-2">
 							{desc2 && <span className="text-void-fg-4 text-xs">
 								{desc2}
@@ -711,19 +728,23 @@ const ToolComponent = ({
 									{`(`}{numResults}{` result`}{numResults !== 1 ? 's' : ''}{`)`}
 								</span>
 							)}
+							{isError && <AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={12} />}
 						</div>
 					</div>
 				</div>
-				<div
-					// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
-					className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
-				>
-					<div className="text-xs text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-						{children}
-					</div>
+			</div>
+			{/* children */}
+			<div
+				// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
+				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
+			>
+				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					{children}
 				</div>
 			</div>
 		</div>
+		{!requestToolId ? null : <ToolRequestAcceptRejectButtons voidToolId={requestToolId} isLastMessage={!!isLastMessage} />}
+	</div>
 	);
 };
 
@@ -994,42 +1015,15 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 
 
 
-const ToolError = ({ title, desc1, errorMessage }: { title: string, desc1: string, errorMessage: string }) => {
-	return (
-		// px-2 py-1
-		// <div className='flex gap-2 p-3 border border-void-border-3 text-void-fg-3 rounded bg-void-bg-2-alt'>
-		// 	<AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={20} />
-		// 	<div className='flex flex-col'>
-		// 		<span className='mb-1'>{title + ' error'}</span>
-		// 		<div className='text-sm opacity-90'>{errorMessage}</div>
-		// 	</div>
-		// </div>
-		<ToolComponent
-			title={title}
-			desc1={desc1}
-			desc2={
-				<span className="flex items-center flex-nowrap gap-1">
-					<AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={12} />
-					Error
-				</span>
-			}
-		>
-			<div className='text-xs text-wrap whitespace-pre-wrap break-all break-words'>{errorMessage}</div>
-		</ToolComponent>
-
-	)
-}
-
-
 const toolNameToTitle: Record<ToolName, string> = {
 	'read_file': 'Read file',
-	'list_dir': 'Inspected folder',
-	'pathname_search': 'Searched by file name',
-	'search': 'Searched files',
-	'create_uri': 'Created file',
-	'delete_uri': 'Deleted file',
-	'edit': 'Edited file',
-	'terminal_command': 'Ran terminal command'
+	'list_dir': 'Inspect folder',
+	'pathname_search': 'Search by file name',
+	'search': 'Search',
+	'create_uri': 'Create file',
+	'delete_uri': 'Delete file',
+	'edit': 'Edit file',
+	'terminal_command': 'Run terminal command'
 }
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
 
@@ -1067,7 +1061,7 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 }
 
 
-const ToolRequestAcceptRejectButtons = ({ toolRequest, messageIdx, isLast }: { toolRequest: ToolRequestApproval<ToolName> } & Omit<ChatBubbleProps, 'chatMessage'>) => {
+const ToolRequestAcceptRejectButtons = ({ voidToolId, isLastMessage: isLast }: { voidToolId: string, isLastMessage: boolean }) => {
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const metricsService = accessor.get('IMetricsService')
@@ -1076,16 +1070,16 @@ const ToolRequestAcceptRejectButtons = ({ toolRequest, messageIdx, isLast }: { t
 	const [requestState, setRequestState] = useState<'accepted' | 'rejected' | 'awaiting_response'>(initRequestState)
 
 	const onAccept = useCallback(() => {
-		chatThreadsService.approveTool(toolRequest.voidToolId)
+		chatThreadsService.approveTool(voidToolId)
 		setRequestState('accepted')
 		metricsService.capture('Tool Request Accepted', {})
-	}, [chatThreadsService, toolRequest.voidToolId, metricsService])
+	}, [chatThreadsService, voidToolId, metricsService])
 
 	const onReject = useCallback(() => {
-		chatThreadsService.rejectTool(toolRequest.voidToolId)
+		chatThreadsService.rejectTool(voidToolId)
 		setRequestState('rejected')
 		metricsService.capture('Tool Request Rejected', {})
-	}, [chatThreadsService, toolRequest.voidToolId, metricsService])
+	}, [chatThreadsService, voidToolId, metricsService])
 
 	const approveButton = (
 		<button
@@ -1130,7 +1124,7 @@ const ToolRequestAcceptRejectButtons = ({ toolRequest, messageIdx, isLast }: { t
 }
 
 const toolNameToComponent: { [T in ToolName]: {
-	requestWrapper: T extends ToolNameWithApproval ? ((props: { toolRequest: ToolRequestApproval<T> }) => React.ReactNode) : null,
+	requestWrapper: T extends ToolNameWithApproval ? ((props: { toolRequest: ToolRequestApproval<T>, isLastMessage: boolean }) => React.ReactNode) : null,
 	resultWrapper: (props: { toolMessage: ToolMessage<T> }) => React.ReactNode,
 } } = {
 	'read_file': {
@@ -1139,25 +1133,27 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
-			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+			const { uri } = toolMessage.result.params ?? {}
+			const desc1 = uri ? getBasename(uri.fsPath) : '';
+			const icon = null
 
-			if (toolMessage.result.type === 'error') {
-				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			if (toolMessage.result.type === 'rejected') return null
+
+			const isError = toolMessage.result.type === 'error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+			if (toolMessage.result.type !== 'error') {
+				const { value, params } = toolMessage.result
+				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+				if (toolMessage.result.value.hasNextPage) componentParams.desc2 = `(AI can scroll for more)`
+			}
+			else {
+				componentParams.children = <>
+					{toolMessage.result.value}
+				</>
 			}
 
-			const { value, params } = toolMessage.result
-
-			return <ToolComponent title={title} desc1={desc1}>
-				<div
-					className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-				>
-					<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-					{params.uri.fsPath}
-				</div>
-				{toolMessage.result.value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
-
-			</ToolComponent>
+			return <ToolHeaderComponent {...componentParams} />
 		},
 	},
 	'list_dir': {
@@ -1168,37 +1164,44 @@ const toolNameToComponent: { [T in ToolName]: {
 			const explorerService = accessor.get('IExplorerService')
 			const title = toolNameToTitle[toolMessage.name]
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+			const icon = null
 
-			if (toolMessage.result.type === 'error') {
-				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			if (toolMessage.result.type === 'rejected') return null
+
+			const isError = toolMessage.result.type === 'error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+			if (toolMessage.result.type !== 'error') {
+				const { value, params } = toolMessage.result
+				componentParams.numResults = value.children?.length
+				componentParams.children = <>
+					{value.children?.map((child, i) => (
+						<div
+							key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => {
+								commandService.executeCommand('workbench.view.explorer');
+								explorerService.select(child.uri, true);
+							}}
+						>
+							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+							{`${child.name}${child.isDirectory ? '/' : ''}`}
+						</div>
+					))}
+					{value.hasNextPage && (
+						<div className="italic">
+							{value.itemsRemaining} more items...
+						</div>
+					)}
+				</>
+			}
+			else {
+				componentParams.children = <>
+					{toolMessage.result.value}
+				</>
 			}
 
-			const { value, params } = toolMessage.result
-
-			return <ToolComponent
-				title={title}
-				desc1={desc1}
-				numResults={value.children?.length}
-			>
-				{value.children?.map((child, i) => (
-					<div
-						key={i}
-						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-						onClick={() => {
-							commandService.executeCommand('workbench.view.explorer');
-							explorerService.select(child.uri, true);
-						}}
-					>
-						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-						{`${child.name}${child.isDirectory ? '/' : ''}`}
-					</div>
-				))}
-				{value.hasNextPage && (
-					<div className="italic">
-						{value.itemsRemaining} more items...
-					</div>
-				)}
-			</ToolComponent>
+			return <ToolHeaderComponent {...componentParams} />
 		}
 	},
 	'pathname_search': {
@@ -1208,19 +1211,16 @@ const toolNameToComponent: { [T in ToolName]: {
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+			const icon = null
 
-			if (toolMessage.result.type === 'error') {
-				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
-			}
+			if (toolMessage.result.type === 'rejected') return null
 
-			const { value, params } = toolMessage.result
+			const isError = toolMessage.result.type === 'error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			return (
-				<ToolComponent
-					title={title}
-					desc1={desc1}
-					numResults={value.uris.length}
-				>
+			if (toolMessage.result.type !== 'error') {
+				const { value, params } = toolMessage.result
+				componentParams.children = <>
 					{value.uris.map((uri, i) => (
 						<div
 							key={i}
@@ -1238,8 +1238,15 @@ const toolNameToComponent: { [T in ToolName]: {
 							More results available...
 						</div>
 					)}
-				</ToolComponent>
-			)
+				</>
+			}
+			else {
+				componentParams.children = <>
+					{toolMessage.result.value}
+				</>
+			}
+
+			return <ToolHeaderComponent {...componentParams} />
 		}
 	},
 	'search': {
@@ -1249,19 +1256,17 @@ const toolNameToComponent: { [T in ToolName]: {
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+			const icon = null
 
-			if (toolMessage.result.type === 'error') {
-				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
-			}
+			if (toolMessage.result.type === 'rejected') return null
 
-			const { value, params } = toolMessage.result
+			const isError = toolMessage.result.type === 'error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			return (
-				<ToolComponent
-					title={title}
-					desc1={desc1}
-					numResults={value.uris.length}
-				>
+			if (toolMessage.result.type !== 'error') {
+				const { value, params } = toolMessage.result
+
+				componentParams.children = <>
 					{value.uris.map((uri, i) => (
 						<div key={i}
 							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
@@ -1272,153 +1277,214 @@ const toolNameToComponent: { [T in ToolName]: {
 						</div>
 					))}
 					{value.hasNextPage && (<div className="italic">More results available...</div>)}
-				</ToolComponent>
-			)
+				</>
+			}
+			else {
+				componentParams.children = <>
+					{toolMessage.result.value}
+				</>
+			}
+			return <ToolHeaderComponent {...componentParams} />
 		}
 	},
 
 	// ---
 
 	'create_uri': {
-		requestWrapper: ({ toolRequest }) => {
+		requestWrapper: ({ toolRequest, isLastMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <ToolComponent title={title} desc1={desc1} />
+			const icon = null
+
+			const isError = false
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isLastMessage, requestToolId: toolRequest.voidToolId }
+
+			const { params } = toolRequest
+			componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+
+			return <ToolHeaderComponent title={title} desc1={desc1} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+			const icon = null
 
-			if (toolMessage.result.type === 'error') {
-				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			if (toolMessage.result.type === 'rejected') return null
+
+			const isError = toolMessage.result.type === 'error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+			if (toolMessage.result.type !== 'error') {
+				const { params } = toolMessage.result
+				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+			}
+			else {
+				componentParams.children = <>
+					{toolMessage.result.value}
+				</>
 			}
 
-			const { params } = toolMessage.result
-
-			return (
-				<ToolComponent
-					title={title}
-					desc1={desc1}
-					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-				/>
-			)
+			return <ToolHeaderComponent {...componentParams} />
 		}
 	},
 	'delete_uri': {
-		requestWrapper: ({ toolRequest }) => {
+		requestWrapper: ({ toolRequest, isLastMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <ToolComponent title={title} desc1={desc1}
-				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
-			/>
+			const icon = null
+
+			const isError = false
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isLastMessage, requestToolId: toolRequest.voidToolId }
+
+			const { params } = toolRequest
+			componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+
+			return <ToolHeaderComponent {...componentParams} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+			const icon = null
 
-			if (toolMessage.result.type === 'error') {
-				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			if (toolMessage.result.type === 'rejected') return null
+
+			const isError = toolMessage.result.type === 'error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+			if (toolMessage.result.type !== 'error') {
+				const { params } = toolMessage.result
+				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+			}
+			else {
+				componentParams.children = <>
+					{toolMessage.result.value}
+				</>
 			}
 
-			const { params } = toolMessage.result
-
-			return (
-				<ToolComponent
-					title={title}
-					desc1={desc1}
-					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-				/>
-			)
+			return <ToolHeaderComponent {...componentParams} />
 		}
 	},
 	'edit': {
-		requestWrapper: ({ toolRequest }) => {
+		requestWrapper: ({ toolRequest, isLastMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <ToolComponent title={title} desc1={desc1}
-				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
-			>
-				<ChatMarkdownRender string={toolRequest.params.changeDescription} chatMessageLocation={undefined} />
-			</ToolComponent>
+			const icon = null
+
+			const isError = false
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isLastMessage, requestToolId: toolRequest.voidToolId }
+
+			const { params } = toolRequest
+			componentParams.children = <ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
+			componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+
+			return <ToolHeaderComponent {...componentParams} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolMessage.name]
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+			const icon = null
 
-			if (toolMessage.result.type === 'error') {
-				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			if (toolMessage.result.type === 'rejected') return null
+
+			const isError = toolMessage.result.type === 'error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+			if (toolMessage.result.type !== 'error') {
+				const { params } = toolMessage.result
+				componentParams.children = <ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
+				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+			}
+			else {
+				componentParams.children = <>
+					{toolMessage.result.value}
+				</>
 			}
 
-			const { params } = toolMessage.result
-
-			return (
-				<ToolComponent
-					title={title}
-					desc1={desc1}
-					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
-				/>
-			)
+			return <ToolHeaderComponent {...componentParams} />
 		}
 	},
 	'terminal_command': {
-		requestWrapper: ({ toolRequest }) => {
+		requestWrapper: ({ toolRequest, isLastMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
+			const terminalToolsService = accessor.get('ITerminalToolService')
 			const title = toolNameToTitle[toolRequest.name]
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			const icon = null
 
-			const { waitForCompletion, command, proposedTerminalId } = toolRequest.params
-			return <ToolComponent title={title} desc1={desc1} desc2={waitForCompletion ? null : '(background task)'}
+			const isError = false
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isLastMessage, requestToolId: toolRequest.voidToolId }
+
+			const { proposedTerminalId } = toolRequest.params
+			if (terminalToolsService.terminalExists(proposedTerminalId))
+				componentParams.onClick = () => terminalToolsService.openTerminal(proposedTerminalId)
+
+			if (!toolRequest.params.waitForCompletion)
+				componentParams.desc2 = '(background task)'
+
 			// TODO!!! open terminal
-			/>
+			return <ToolHeaderComponent {...componentParams} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
+			const terminalToolsService = accessor.get('ITerminalToolService')
 			const title = toolNameToTitle[toolMessage.name]
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+			const icon = null
 
-			if (toolMessage.result.type === 'error') {
-				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			if (toolMessage.result.type === 'rejected') return null
+
+			const isError = toolMessage.result.type === 'error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+			if (toolMessage.result.type !== 'error') {
+				const { command } = toolMessage.result.params
+				const { terminalId, resolveReason, result } = toolMessage.result.value
+
+				componentParams.children = <div className='font-mono whitespace-pre text-nowrap text-xs overflow-auto bg-void-bg-1'>
+
+					<div
+						className='cursor-pointer'
+						onClick={() => terminalToolsService.openTerminal(terminalId)}
+					>$ {command}</div>
+
+					<hr className='border-void-border-1' />
+
+					{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}
+					{result}
+					{resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `\nError: exit code ${resolveReason.exitCode}` : null)
+						: resolveReason.type === 'bgtask' ? null :
+							resolveReason.type === 'timeout' ? `\n(partial results; request timed out)` :
+								resolveReason.type === 'toofull' ? `\n(truncated)`
+									: null
+					}
+				</div>
+
+				if (resolveReason.type === 'bgtask')
+					componentParams.desc2 = '(background task)'
+			}
+			else {
+				componentParams.children = <>
+					{toolMessage.result.value}
+				</>
 			}
 
+			// TODO!!! open terminal
 
-			const { command } = toolMessage.result.params
-			const { terminalId, resolveReason, result } = toolMessage.result.value
-
-			return (
-				<ToolComponent
-					title={title}
-					desc1={desc1}
-					desc2={resolveReason.type === 'bgtask' ? '(background task)' : null}
-				>
-
-					<div className='font-mono whitespace-pre text-nowrap text-xs overflow-auto bg-void-bg-1'>
-						{resolveReason.type === 'bgtask' ? 'Result so far:' : null}
-						{result}
-						{
-							resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `
-								Error: exit code ${resolveReason.exitCode}` : null)
-								: resolveReason.type === 'bgtask' ? null :
-									resolveReason.type === 'timeout' ? `
-									(partial results; request timed out)` :
-										resolveReason.type === 'toofull' ? `
-										(truncated)`
-											: null
-						}
-					</div>
-				</ToolComponent>
-			)
+			return <ToolHeaderComponent {...componentParams} />
 		}
 	}
 };
@@ -1448,10 +1514,8 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 		/>
 	}
 	else if (role === 'tool_request') {
-		const isLastMessage = true // TODO!!! fix this
-		if (!isLastMessage) return null
-		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
-		return <ToolRequestWrapper toolRequest={chatMessage} />
+		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any, isLastMessage: boolean }> // ts isnt smart enough...
+		return <ToolRequestWrapper toolRequest={chatMessage} isLastMessage={isLast} />
 
 	}
 	else if (role === 'tool') {

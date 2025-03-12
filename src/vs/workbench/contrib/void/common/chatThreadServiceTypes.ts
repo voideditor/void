@@ -9,7 +9,12 @@ export type ToolMessage<T extends ToolName> = {
 	paramsStr: string; // internal use
 	id: string; // apis require this tool use id
 	content: string; // give this result to LLM
-	result: { type: 'success'; params: ToolCallParams[T]; value: ToolResultType[T], } | { type: 'error'; params: ToolCallParams[T] | undefined; value: string }; // give this result to user
+
+	// if rejected, don't show in chat
+	result:
+	| { type: 'success'; params: ToolCallParams[T]; value: ToolResultType[T], }
+	| { type: 'error'; params: ToolCallParams[T] | undefined; value: string }
+	| { type: 'rejected'; params: ToolCallParams[T]; value: string }
 }
 export type ToolRequestApproval<T extends ToolName> = {
 	role: 'tool_request';

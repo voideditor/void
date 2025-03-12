@@ -563,9 +563,10 @@ export const SelectedFiles = (
 							px-1
 							w-fit h-fit
 							select-none
-							${isThisSelectionProspective ? 'bg-void-bg-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
 							text-xs text-nowrap
-							border rounded-sm ${isThisSelectionProspective
+							border rounded-sm
+							${isThisSelectionProspective ? 'bg-void-bg-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
+							${isThisSelectionProspective
 								? 'border-void-border-2'
 								: isThisSelectionOpened
 									? 'border-void-border-1 ring-1 ring-void-blue'
@@ -1009,16 +1010,16 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 }
 
 
-
+// should either be past or "-ing" tense, not present tense. Eg. when the LLM searches for something, the user expects it to say "I searched for X" or "I am searching for X". Not "I search X".
 const toolNameToTitle: Record<ToolName, string> = {
-	'read_file': 'Read file',
-	'list_dir': 'Inspect folder',
-	'pathname_search': 'Search by file name',
-	'search': 'Search',
-	'create_uri': 'Create file',
-	'delete_uri': 'Delete file',
-	'edit': 'Edit file',
-	'terminal_command': 'Run terminal command'
+	'read_file': 'Read file', // past tense
+	'list_dir': 'Inspected folder', // past tense
+	'pathname_search': 'Searched by file name', // past tense
+	'search': 'Searched', // past tense
+	'create_uri': 'Created file', // past tense
+	'delete_uri': 'Deleted file', // past tense
+	'edit': 'Edited file', // past tense
+	'terminal_command': 'Ran terminal command' // past tense
 }
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
 
@@ -1206,6 +1207,7 @@ const toolNameToComponent: { [T in ToolName]: {
 
 			if (toolMessage.result.type !== 'error') {
 				const { value, params } = toolMessage.result
+				componentParams.numResults = value.uris.length
 				componentParams.children = <>
 					{value.uris.map((uri, i) => (
 						<div
@@ -1251,7 +1253,7 @@ const toolNameToComponent: { [T in ToolName]: {
 
 			if (toolMessage.result.type !== 'error') {
 				const { value, params } = toolMessage.result
-
+				componentParams.numResults = value.uris.length
 				componentParams.children = <>
 					{value.uris.map((uri, i) => (
 						<div key={i}

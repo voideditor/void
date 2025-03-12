@@ -1043,7 +1043,7 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 		return getBasename(toolParams.uri.fsPath);
 	} else if (toolName === 'delete_uri') {
 		const toolParams = _toolParams as ToolCallParams['delete_uri']
-		return getBasename(toolParams.uri.fsPath) + ' (deleted)';
+		return getBasename(toolParams.uri.fsPath);
 	} else if (toolName === 'edit') {
 		const toolParams = _toolParams as ToolCallParams['edit']
 		return getBasename(toolParams.uri.fsPath);
@@ -1306,16 +1306,19 @@ const toolNameToComponent: { [T in ToolName]: {
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			if (toolMessage.result.type === 'rejected') return null
 
 			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			if (toolMessage.result.type !== 'error') {
+			if (toolMessage.result.type === 'success') {
 				const { params } = toolMessage.result
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
 			}
-			else {
+			else if (toolMessage.result.type === 'rejected') {
+				const { params } = toolMessage.result
+				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+			}
+			else if (toolMessage.result.type === 'error') {
 				componentParams.children = <>
 					{toolMessage.result.value}
 				</>
@@ -1347,16 +1350,18 @@ const toolNameToComponent: { [T in ToolName]: {
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			if (toolMessage.result.type === 'rejected') return null
-
 			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			if (toolMessage.result.type !== 'error') {
+			if (toolMessage.result.type === 'success') {
 				const { params } = toolMessage.result
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
 			}
-			else {
+			else if (toolMessage.result.type === 'rejected') {
+				const { params } = toolMessage.result
+				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+			}
+			else if (toolMessage.result.type === 'error') {
 				componentParams.children = <>
 					{toolMessage.result.value}
 				</>
@@ -1389,17 +1394,20 @@ const toolNameToComponent: { [T in ToolName]: {
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			if (toolMessage.result.type === 'rejected') return null
-
 			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			if (toolMessage.result.type !== 'error') {
+			if (toolMessage.result.type === 'success') {
 				const { params } = toolMessage.result
 				componentParams.children = <ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
 			}
-			else {
+			else if (toolMessage.result.type === 'rejected') {
+				const { params } = toolMessage.result
+				componentParams.children = <ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
+				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+			}
+			else if (toolMessage.result.type === 'error') {
 				componentParams.children = <>
 					{toolMessage.result.value}
 				</>
@@ -1420,11 +1428,10 @@ const toolNameToComponent: { [T in ToolName]: {
 			const isError = false
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
-			const { proposedTerminalId } = toolRequest.params
+			const { proposedTerminalId, waitForCompletion } = toolRequest.params
 			if (terminalToolsService.terminalExists(proposedTerminalId))
 				componentParams.onClick = () => terminalToolsService.openTerminal(proposedTerminalId)
-
-			if (!toolRequest.params.waitForCompletion)
+			if (!waitForCompletion)
 				componentParams.desc2 = '(background task)'
 
 			// TODO!!! open terminal
@@ -1438,12 +1445,10 @@ const toolNameToComponent: { [T in ToolName]: {
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			if (toolMessage.result.type === 'rejected') return null
-
 			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			if (toolMessage.result.type !== 'error') {
+			if (toolMessage.result.type === 'success') {
 				const { command } = toolMessage.result.params
 				const { terminalId, resolveReason, result } = toolMessage.result.value
 
@@ -1469,7 +1474,14 @@ const toolNameToComponent: { [T in ToolName]: {
 				if (resolveReason.type === 'bgtask')
 					componentParams.desc2 = '(background task)'
 			}
-			else {
+			else if (toolMessage.result.type === 'rejected') {
+				const { proposedTerminalId, waitForCompletion } = toolMessage.result.params
+				if (terminalToolsService.terminalExists(proposedTerminalId))
+					componentParams.onClick = () => terminalToolsService.openTerminal(proposedTerminalId)
+				if (!waitForCompletion)
+					componentParams.desc2 = '(background task)'
+			}
+			else if (toolMessage.result.type === 'error') {
 				componentParams.children = <>
 					{toolMessage.result.value}
 				</>

@@ -318,13 +318,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	private resRejOfToolAwaitingApproval: { [toolId: string]: { res: () => void, rej: () => void } } = {}
 	approveTool(toolId: string) {
 		const resRej = this.resRejOfToolAwaitingApproval[toolId]
-		resRej?.res()
 		delete this.resRejOfToolAwaitingApproval[toolId]
+		resRej?.res()
 	}
 	rejectTool(toolId: string) {
 		const resRej = this.resRejOfToolAwaitingApproval[toolId]
-		resRej?.rej()
 		delete this.resRejOfToolAwaitingApproval[toolId]
+		resRej?.rej()
 	}
 
 
@@ -363,16 +363,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// agent loop
 		const agentLoop = async () => {
 
-			let shouldSendAnotherMessage = true
 			let nMessagesSent = 0
+			let shouldSendAnotherMessage = true
 
 			while (shouldSendAnotherMessage) {
 				// recompute files at last message
 				const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidFileService) // all the file CONTENTS or "selections" de-duped
 				const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
 
-				shouldSendAnotherMessage = false // false by default
 				nMessagesSent += 1
+				shouldSendAnotherMessage = false // false by default
 
 				let resMessageIsDonePromise: () => void // resolves when user approves this tool use (or if tool doesn't require approval)
 				const messageIsDonePromise = new Promise<void>((res, rej) => { resMessageIsDonePromise = res })
@@ -454,9 +454,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 								console.log('successfully rejected', voidToolId)
 								// TODO!!! test rejection
 								// if (Math.random() > 0) throw new Error('TESTING')
+								shouldSendAnotherMessage = false // interrupt flow by rejecting
+
 								const errorMessage = 'Tool call was rejected by the user.'
 								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'rejected', params: toolParams, value: errorMessage }, })
-								shouldSendAnotherMessage = false // interrupt flow by rejecting
 								this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined })
 								resMessageIsDonePromise()
 								return
@@ -506,8 +507,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				this._setStreamState(threadId, { streamingToken: llmCancelToken })
 
 				await messageIsDonePromise
-				console.log('done awaiting...')
-			}
+
+			} // end while
+
 		}
 
 		agentLoop()

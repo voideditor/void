@@ -3,12 +3,61 @@ import { useAccessor, useURIStreamState, useSettingsState } from '../util/servic
 import { useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
+import { LucideIcon, RotateCw } from 'lucide-react'
+import { Check, X, Square, Copy, Play, } from 'lucide-react'
 
 enum CopyButtonText {
 	Idle = 'Copy',
 	Copied = 'Copied!',
 	Error = 'Could not copy',
 }
+
+
+type IconButtonProps = {
+	onClick: () => void
+	title: string
+	Icon: LucideIcon
+	disabled?: boolean
+	className?: string
+}
+
+export const IconShell1 = ({ onClick, title, Icon, disabled, className }: IconButtonProps) => (
+	<button
+		title={title}
+		disabled={disabled}
+		onClick={onClick}
+		className={`
+            size-6
+            flex items-center justify-center
+            text-sm bg-void-bg-3 text-void-fg-1
+            hover:brightness-110
+            border border-void-border-1 rounded
+            disabled:opacity-50 disabled:cursor-not-allowed
+			${className}
+        `}
+	>
+		<Icon size={14} />
+	</button>
+)
+
+
+export const IconShell2 = ({ onClick, title, Icon, disabled, className }: IconButtonProps) => (
+	<button
+		title={title}
+		disabled={disabled}
+		onClick={onClick}
+		className={`
+            size-6
+            flex items-center justify-center
+            text-sm
+            hover:opacity-80
+            disabled:opacity-50 disabled:cursor-not-allowed
+            ${className}
+        `}
+	>
+		<Icon size={14} />
+	</button>
+)
 
 const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
@@ -26,7 +75,6 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 		}, COPY_FEEDBACK_TIMEOUT)
 	}, [copyButtonText])
 
-
 	const onCopy = useCallback(() => {
 		clipboardService.writeText(codeStr)
 			.then(() => { setCopyButtonText(CopyButtonText.Copied) })
@@ -34,26 +82,20 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 		metricsService.capture('Copy Code', { length: codeStr.length }) // capture the length only
 	}, [metricsService, clipboardService, codeStr, setCopyButtonText])
 
-	const isSingleLine = false //!codeStr.includes('\n')
-
-	return <button
-		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-2 rounded`}
+	return <IconShell1
+		Icon={copyButtonText === CopyButtonText.Copied ? Check : copyButtonText === CopyButtonText.Error ? X : Copy}
 		onClick={onCopy}
-	>
-		{copyButtonText}
-	</button>
+		title={copyButtonText}
+	/>
 }
 
 
-
-
-
 // state persisted for duration of react only
+// TODO change this to use type `ChatThreads.applyBoxState[applyBoxId]`
 const applyingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undefined } } = { current: {} }
 
 
-
-export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: string, applyBoxId: string }) => {
+export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, applyBoxId: string }) => {
 
 	const settingsState = useSettingsState()
 	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
@@ -64,21 +106,21 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 
 	const [_, rerender] = useState(0)
 
-	const applyingUri = useCallback(() => applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null, [applyBoxId])
-	const streamState = useCallback(() => editCodeService.getURIStreamState({ uri: applyingUri() }), [editCodeService, applyingUri])
+	const getUriBeingApplied = useCallback(() => applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null, [applyBoxId])
+	const getStreamState = useCallback(() => editCodeService.getURIStreamState({ uri: getUriBeingApplied() }), [editCodeService, getUriBeingApplied])
 
 	// listen for stream updates
 	useURIStreamState(
 		useCallback((uri, newStreamState) => {
-			const shouldUpdate = applyingUri()?.fsPath !== uri.fsPath
-			if (shouldUpdate) return
+			const shouldUpdate = getUriBeingApplied()?.fsPath === uri.fsPath
+			if (!shouldUpdate) return
 			rerender(c => c + 1)
-		}, [applyBoxId, editCodeService, applyingUri])
+		}, [applyBoxId, editCodeService, getUriBeingApplied])
 	)
 
 	const onSubmit = useCallback(() => {
 		if (isDisabled) return
-		if (streamState() === 'streaming') return
+		if (getStreamState() === 'streaming') return
 		const [newApplyingUri, _] = editCodeService.startApplying({
 			from: 'ClickApply',
 			type: 'searchReplace',
@@ -88,61 +130,122 @@ export const ApplyBlockHoverButtons = ({ codeStr, applyBoxId }: { codeStr: strin
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
 		rerender(c => c + 1)
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
-	}, [isDisabled, streamState, editCodeService, codeStr, applyBoxId, metricsService])
+	}, [isDisabled, getStreamState, editCodeService, codeStr, applyBoxId, metricsService])
 
 
 	const onInterrupt = useCallback(() => {
-		if (streamState() !== 'streaming') return
-		const uri = applyingUri()
+		if (getStreamState() !== 'streaming') return
+		const uri = getUriBeingApplied()
 		if (!uri) return
 
 		editCodeService.interruptURIStreaming({ uri })
 		metricsService.capture('Stop Apply', {})
-	}, [streamState, applyingUri, editCodeService, metricsService])
+	}, [getStreamState, getUriBeingApplied, editCodeService, metricsService])
+
+	const onAccept = useCallback(() => {
+		const uri = getUriBeingApplied()
+		if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
+	}, [getUriBeingApplied, editCodeService])
+
+	const onReject = useCallback(() => {
+		const uri = getUriBeingApplied()
+		if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
+	}, [getUriBeingApplied, editCodeService])
+
+	const onReapply = useCallback(() => {
+		onReject()
+		onSubmit()
+	}, [onReject, onSubmit])
+
+	const currStreamState = getStreamState()
+
+	const copyButton = (
+		<CopyButton codeStr={codeStr} />
+	)
+
+	const playButton = (
+		<IconShell1
+			Icon={Play}
+			onClick={onSubmit}
+			title="Apply changes"
+		/>
+	)
+
+	const stopButton = (
+		<IconShell1
+			Icon={Square}
+			onClick={onInterrupt}
+			title="Stop applying"
+		/>
+	)
+
+	const reapplyButton = (
+		<IconShell1
+			Icon={RotateCw}
+			onClick={onReapply}
+			title="Reapply changes"
+		/>
+	)
+
+	const acceptButton = (
+		<IconShell1
+			Icon={Check}
+			onClick={onAccept}
+			title="Accept changes"
+			className="text-green-600"
+		/>
+	)
+
+	const rejectButton = (
+		<IconShell1
+			Icon={X}
+			onClick={onReject}
+			title="Reject changes"
+			className="text-red-600"
+		/>
+	)
 
 
-	const isSingleLine = false //!codeStr.includes('\n')
+	let buttonsHTML = <></>
 
-	const applyButton = <button
-		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-2 rounded`}
-		onClick={onSubmit}
-	>
-		Apply
-	</button>
+	if (currStreamState === 'streaming') {
+		buttonsHTML = <>
+			{stopButton}
+		</>
+	}
 
-	const stopButton = <button
-		className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-2 rounded`}
-		onClick={onInterrupt}
-	>
-		Stop
-	</button>
+	if (currStreamState === 'idle') {
+		buttonsHTML = <>
+			{copyButton}
+			{playButton}
+		</>
+	}
 
-	const acceptRejectButtons = <>
-		<button
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-2 rounded`}
-			onClick={() => {
-				const uri = applyingUri()
-				if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
-			}}
+	if (currStreamState === 'acceptRejectAll') {
+		buttonsHTML = <>
+			{reapplyButton}
+			{rejectButton}
+			{acceptButton}
+		</>
+	}
+
+	const statusIndicatorHTML = <div className='flex flex-row gap-2 items-center'>
+		<div
+			className={`size-1.5 rounded-full border
+				 ${currStreamState === 'idle' ? 'bg-void-bg-3 border-void-border-1' :
+					currStreamState === 'streaming' ? 'bg-orange-500 border-orange-500 shadow-[0_0_4px_0px_rgba(234,88,12,0.6)]' :
+						currStreamState === 'acceptRejectAll' ? 'bg-green-500 border-green-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
+							'bg-void-border-1 border-void-border-1'
+				}`
+			}
 		>
-			Accept
-		</button>
-		<button
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-void-bg-2 text-void-fg-1 hover:brightness-110 border border-void-border-2 rounded`}
-			onClick={() => {
-				const uri = applyingUri()
-				if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
-			}}
-		>
-			Reject
-		</button>
-	</>
+		</div>
+	</div>
 
-	const currStreamState = streamState()
-	return <>
-		{currStreamState !== 'streaming' && <CopyButton codeStr={codeStr} />}
-		{currStreamState === 'idle' && !isDisabled && applyButton}
-		{currStreamState === 'streaming' && stopButton}
-		{currStreamState === 'acceptRejectAll' && acceptRejectButtons}
-	</>
+	return {
+		statusIndicatorHTML,
+		buttonsHTML
+	}
+
+
 }

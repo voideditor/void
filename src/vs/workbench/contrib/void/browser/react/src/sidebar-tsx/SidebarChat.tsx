@@ -714,7 +714,7 @@ const DropdownComponent = ({
 					// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
 					className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
 				>
-					<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+					<div className="text-xs text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
 						{children}
 					</div>
 				</div>
@@ -971,6 +971,8 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 				<ChatMarkdownRender
 					string={reasoningStr}
 					chatMessageLocation={chatMessageLocation}
+					isApplyEnabled={false}
+					isLinkDetectionEnabled={true}
 				/>
 			</DropdownComponent>}
 
@@ -978,6 +980,8 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 			<ChatMarkdownRender
 				string={chatMessage.content || ''}
 				chatMessageLocation={chatMessageLocation}
+				isApplyEnabled={true}
+				isLinkDetectionEnabled={true}
 			/>
 
 			{/* loading indicator */}
@@ -1009,7 +1013,7 @@ const ToolError = ({ title, desc1, errorMessage }: { title: string, desc1: strin
 				</span>
 			}
 		>
-			<div className='text-xs text-wrap whitespace-pre-wrap break-all break-words'>{errorMessage}</div>
+			<div className='text-wrap whitespace-pre-wrap break-all break-words'>{errorMessage}</div>
 		</DropdownComponent>
 
 	)
@@ -1028,34 +1032,34 @@ const toolNameToTitle: Record<ToolName, string> = {
 }
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
 
-	if (_toolParams === undefined) {
+	if (!_toolParams) {
 		return '';
 	}
 
 	if (toolName === 'read_file') {
 		const toolParams = _toolParams as ToolCallParams['read_file']
-		return toolParams ? getBasename(toolParams.uri.fsPath) : '';
+		return getBasename(toolParams.uri.fsPath);
 	} else if (toolName === 'list_dir') {
 		const toolParams = _toolParams as ToolCallParams['list_dir']
-		return toolParams ? `${getBasename(toolParams.rootURI.fsPath)}/` : '';
+		return `${getBasename(toolParams.rootURI.fsPath)}/`;
 	} else if (toolName === 'pathname_search') {
 		const toolParams = _toolParams as ToolCallParams['pathname_search']
-		return toolParams ? `"${toolParams.queryStr}"` : '';
+		return `"${toolParams.queryStr}"`;
 	} else if (toolName === 'search') {
 		const toolParams = _toolParams as ToolCallParams['search']
-		return toolParams ? `"${toolParams.queryStr}"` : '';
+		return `"${toolParams.queryStr}"`;
 	} else if (toolName === 'create_uri') {
 		const toolParams = _toolParams as ToolCallParams['create_uri']
-		return toolParams ? getBasename(toolParams.uri.fsPath) : '';
+		return getBasename(toolParams.uri.fsPath);
 	} else if (toolName === 'delete_uri') {
 		const toolParams = _toolParams as ToolCallParams['delete_uri']
-		return toolParams ? getBasename(toolParams.uri.fsPath) + ' (deleted)' : '';
+		return getBasename(toolParams.uri.fsPath) + ' (deleted)';
 	} else if (toolName === 'edit') {
 		const toolParams = _toolParams as ToolCallParams['edit']
-		return toolParams ? getBasename(toolParams.uri.fsPath) : '';
+		return getBasename(toolParams.uri.fsPath);
 	} else if (toolName === 'terminal_command') {
 		const toolParams = _toolParams as ToolCallParams['terminal_command']
-		return toolParams ? `"${toolParams.command}"` : '';
+		return `"${toolParams.command}"`;
 	} else {
 		return ''
 	}
@@ -1063,13 +1067,22 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 
 
 
-const ToolRequestAcceptRejectButtons = ({ toolRequest }: { toolRequest: ToolRequestApproval<ToolName> }) => {
+const ToolRequestAcceptRejectButtons = ({ toolRequest, messageIdx, isLast, }: { toolRequest: ToolRequestApproval<ToolName> } & Omit<ChatBubbleProps, 'chatMessage'>) => {
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
-	return <>
-		<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.approveTool(toolRequest.voidToolId) }}>Accept</div>
-		<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.rejectTool(toolRequest.voidToolId) }}>Reject</div>
-	</>
+
+	const initRequestState = isLast ? 'awaiting_response' : 'rejected'
+
+	const [requestState, setRequestState] = useState<'accepted' | 'rejected' | 'awaiting_response'>(initRequestState)
+
+
+	if (requestState === 'awaiting_response') {
+		return <>
+			<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.approveTool(toolRequest.voidToolId); setRequestState('accepted') }}>Accept</div>
+			<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.rejectTool(toolRequest.voidToolId); setRequestState('rejected') }}>Reject</div>
+		</>
+	}
+
 }
 
 const toolNameToComponent: { [T in ToolName]: {
@@ -1306,7 +1319,10 @@ const toolNameToComponent: { [T in ToolName]: {
 			return <DropdownComponent title={title} desc1={desc1}
 				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
 			>
-				<ChatMarkdownRender string={toolRequest.params.changeDescription} chatMessageLocation={undefined} />
+				<ChatMarkdownRender
+					string={toolRequest.params.changeDescription}
+					chatMessageLocation={undefined}
+				/>
 			</DropdownComponent>
 		},
 		resultWrapper: ({ toolMessage }) => {
@@ -1412,10 +1428,10 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 	else if (role === 'tool_request') {
 		const isLastMessage = true // TODO!!! fix this
 		if (!isLastMessage) return null
-		const ToolRequestComponent = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
+		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
 		return <>
-			<ToolRequestComponent toolRequest={chatMessage} />
-			<ToolRequestAcceptRejectButtons toolRequest={chatMessage} />
+			<ToolRequestWrapper toolRequest={chatMessage} />
+			<ToolRequestAcceptRejectButtons toolRequest={chatMessage} messageIdx={messageIdx} isLast={isLast} />
 		</>
 	}
 	else if (role === 'tool') {
@@ -1423,8 +1439,8 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 		const title = toolNameToTitle[chatMessage.name]
 		// if (chatMessage.result.type === 'error') return <ToolError title={title} params={chatMessage.result.params} errorMessage={chatMessage.result.value} />
 
-		const ToolResultComponent = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
-		return <ToolResultComponent toolMessage={chatMessage} />
+		const ToolResultWrapper = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
+		return <ToolResultWrapper toolMessage={chatMessage} />
 	}
 
 
@@ -1524,19 +1540,19 @@ export const SidebarChat = () => {
 			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
 	}, [isHistoryOpen, currentThread.id])
 
+	const numMessages = previousMessages.length + (isStreaming ? 1 : 0)
 
-	const pastMessagesHTML = useMemo(() => {
+	const previousMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) =>
-			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} isLast={!isStreaming} />
+			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} isLast={i === numMessages - 1} />
 		)
 	}, [previousMessages, currentThread])
 
-
-
-	const streamingChatIdx = pastMessagesHTML.length
+	const streamingChatIdx = previousMessagesHTML.length
 	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isStreaming) ?
 		<ChatBubble key={getChatBubbleId(currentThread.id, streamingChatIdx)}
-			messageIdx={streamingChatIdx} chatMessage={{
+			messageIdx={streamingChatIdx}
+			chatMessage={{
 				role: 'assistant',
 				content: messageSoFar ?? '',
 				reasoning: reasoningSoFar ?? '',
@@ -1546,16 +1562,13 @@ export const SidebarChat = () => {
 			isLast={true}
 		/> : null
 
-	const allMessagesHTML = [...pastMessagesHTML, currStreamingMessageHTML]
-
+	const allMessagesHTML = [...previousMessagesHTML, currStreamingMessageHTML]
 
 	const threadSelector = <div ref={historyRef}
 		className={`w-full h-auto ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}
 	>
 		<SidebarThreadSelector />
 	</div>
-
-
 
 	const messagesHTML = <ScrollToBottomContainer
 		key={currentThread.id} // force rerender on all children if id changes
@@ -1566,7 +1579,7 @@ export const SidebarChat = () => {
 			w-full h-auto
 			overflow-x-hidden
 			overflow-y-auto
-			${pastMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
+			${previousMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
 		`}
 		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - (25) }} // the height of the previousMessages is determined by all other heights
 	>
@@ -1608,7 +1621,7 @@ export const SidebarChat = () => {
 			isStreaming={isStreaming}
 			isDisabled={isDisabled}
 			showSelections={true}
-			showProspectiveSelections={pastMessagesHTML.length === 0}
+			showProspectiveSelections={previousMessagesHTML.length === 0}
 			selections={selections}
 			setSelections={setSelections}
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}

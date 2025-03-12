@@ -1695,7 +1695,7 @@ export const SidebarChat = () => {
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 		>
 			<VoidInputBox2
-				className='min-h-[81px] px-0.5'
+				className={`${previousMessages.length > 0 ? 'min-h-[9px]' : 'min-h-[81px]'} px-0.5`}
 				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
 				onChangeText={onChangeText}
 				onKeyDown={onKeyDown}

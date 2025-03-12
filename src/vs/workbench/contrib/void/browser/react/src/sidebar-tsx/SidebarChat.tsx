@@ -712,21 +712,16 @@ const ToolHeaderComponent = ({
 						<span className="text-void-fg-3">{title}</span>
 						<span className="text-void-fg-4 text-xs italic">{desc1}</span>
 					</div>
-					<div
-						// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
-						className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
-					>
-						<div className="flex items-center gap-x-2">
-							{desc2 && <span className="text-void-fg-4 text-xs">
-								{desc2}
-							</span>}
-							{numResults !== undefined && (
-								<span className="text-void-fg-4 text-xs ml-auto mr-1">
-									{`(`}{numResults}{` result`}{numResults !== 1 ? 's' : ''}{`)`}
-								</span>
-							)}
-							{isError && <AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={12} />}
-						</div>
+					<div className="flex items-center gap-x-2">
+						{desc2 && <span className="text-void-fg-4 text-xs">
+							{desc2}
+						</span>}
+						{numResults !== undefined && (
+							<span className="text-void-fg-4 text-xs ml-auto mr-1">
+								{`(`}{numResults}{` result`}{numResults !== 1 ? 's' : ''}{`)`}
+							</span>
+						)}
+						{isError && <AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={12} />}
 					</div>
 				</div>
 			</div>

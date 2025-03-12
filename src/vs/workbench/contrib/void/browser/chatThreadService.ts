@@ -17,7 +17,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { IVoidFileService } from '../common/voidFileService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { getErrorMessage } from '../../../../base/common/errors.js';
-import { ChatMode, FeatureName } from '../common/voidSettingsTypes.js';
+import { ChatMode, FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ToolName, ToolCallParams, ToolResultType, InternalToolInfo, voidTools, toolNamesThatRequireApproval } from '../common/toolsServiceTypes.js';
 import { IToolsService } from './toolsService.js';
@@ -317,6 +317,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	private resRejOfToolAwaitingApproval: { [toolId: string]: { res: () => void, rej: () => void } } = {}
 	approveTool(toolId: string) {
+		// TODO!!! if not streaming, approveToolAndStreamResponse
+
+		// if streaming, do below
 		const resRej = this.resRejOfToolAwaitingApproval[toolId]
 		delete this.resRejOfToolAwaitingApproval[toolId]
 		resRej?.res()
@@ -326,6 +329,191 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		delete this.resRejOfToolAwaitingApproval[toolId]
 		resRej?.rej()
 	}
+
+
+
+
+	private _staticAgentLoopsProps = () => {
+		// these settings should not change throughout the loop (eg anthropic breaks if you change its thinking mode and it's using tools)
+		const featureName: FeatureName = 'Chat'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+		return { modelSelection, modelSelectionOptions }
+	}
+
+
+
+	private async _agentLoop({ threadId, tools, prevSelns, currSelns, modelSelection, modelSelectionOptions, chatMode, userMessageContent }: {
+		tools: InternalToolInfo[] | undefined,
+		threadId: string,
+		prevSelns: StagingSelectionItem[],
+		currSelns: StagingSelectionItem[],
+		modelSelection: ModelSelection | null,
+		modelSelectionOptions: ModelSelectionOptions | undefined,
+		chatMode: ChatMode,
+		userMessageContent: string, // content of LATEST user message
+	}) {
+		this._setStreamState(threadId, { error: undefined }) // clear any previous error
+
+		let nMessagesSent = 0
+		let shouldSendAnotherMessage = true
+
+		while (shouldSendAnotherMessage) {
+			// recompute files in last message
+			const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidFileService) // all the file CONTENTS or "selections" de-duped
+			const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
+
+			nMessagesSent += 1
+			shouldSendAnotherMessage = false // false by default
+
+			let resMessageIsDonePromise: () => void // resolves when user approves this tool use (or if tool doesn't require approval)
+			const messageIsDonePromise = new Promise<void>((res, rej) => { resMessageIsDonePromise = res })
+
+			// replace last userMessage with userMessageFullContent (which contains all the files too)
+			const messages_ = toLLMChatMessages(this.getCurrentThread().messages)
+			const lastUserMsgIdx = findLastIndex(messages_, m => m.role === 'user')
+
+			if (lastUserMsgIdx === -1) throw new Error(`Void: No user message found.`) // should never be -1
+
+			// system message
+			const workspaceFolders = this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
+			const terminalIds = this.terminalToolService.listTerminalIds()
+			const systemMessage = chat_systemMessage(workspaceFolders, terminalIds, chatMode)
+
+			// all messages so far in the chat history (including tools)
+			const messages: LLMChatMessage[] = [
+				{ role: 'system', content: systemMessage, },
+				...messages_.slice(0, lastUserMsgIdx),
+				{ role: 'user', content: userMessageFullContent },
+				...messages_.slice(lastUserMsgIdx + 1, Infinity),
+			]
+
+			// send llm message
+			const llmCancelToken = this._llmMessageService.sendLLMMessage({
+				messagesType: 'chatMessages',
+				messages,
+				tools: tools,
+				modelSelection,
+				modelSelectionOptions,
+				logging: { loggingName: `Agent` },
+				onText: ({ fullText, fullReasoning }) => { this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning }) },
+				onFinalMessage: async ({ fullText, toolCalls, fullReasoning, anthropicReasoning }) => {
+
+					this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning, anthropicReasoning })
+					this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, }) // added to history, so clear messages so far
+
+					// if no tool, finish
+					const tool: ToolCallType | undefined = toolCalls?.[0]
+					if (!tool) {
+						this._setStreamState(threadId, { streamingToken: undefined })
+						resMessageIsDonePromise()
+						return
+					}
+
+					// if tool
+					// clear messageSoFar since we added it to the chat history (but don't clear streamingToken, we're still streaming)
+					this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined })
+
+					// deal with the tool
+					const toolName: ToolName = tool.name
+					shouldSendAnotherMessage = true
+
+					// 1. validate tool params
+					let toolParams: ToolCallParams[ToolName]
+					try {
+						const params = await this._toolsService.validateParams[toolName](tool.paramsStr)
+						toolParams = params
+					} catch (error) {
+						const errorMessage = getErrorMessage(error)
+						this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: undefined, value: errorMessage }, })
+						this._setStreamState(threadId, { streamingToken: undefined })
+						resMessageIsDonePromise()
+						return
+					}
+
+					// 2. if tool requires approval, await the approval
+					if (toolNamesThatRequireApproval.has(toolName)) {
+						const voidToolId = generateUuid()
+						const toolApprovalPromise = new Promise<void>((res, rej) => { this.resRejOfToolAwaitingApproval[voidToolId] = { res, rej } })
+						this._addMessageToThread(threadId, { role: 'tool_request', name: toolName, params: toolParams, voidToolId: voidToolId })
+						try {
+							await toolApprovalPromise
+							// accepted tool
+						}
+						catch (e) {
+							// TODO!!! test rejection
+							// if (Math.random() > 0) throw new Error('TESTING')
+							shouldSendAnotherMessage = false // interrupt flow by rejecting
+
+							const errorMessage = 'Tool call was rejected by the user.'
+							this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'rejected', params: toolParams, value: errorMessage }, })
+							this._setStreamState(threadId, { streamingToken: undefined })
+							resMessageIsDonePromise()
+							return
+						}
+					}
+
+					// 3. call the tool
+					let toolResult: ToolResultType[typeof toolName]
+					try {
+						toolResult = await this._toolsService.callTool[toolName](toolParams as any) // ts is bad...
+					} catch (error) {
+						const errorMessage = getErrorMessage(error)
+						this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
+						this._setStreamState(threadId, { streamingToken: undefined })
+						resMessageIsDonePromise()
+						return
+					}
+
+					// 4. stringify the result to give to the LLM
+					let toolResultStr: string
+					try {
+						toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
+					} catch (error) {
+						const errorMessage = `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
+						this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
+						this._setStreamState(threadId, { streamingToken: undefined })
+						resMessageIsDonePromise()
+						return
+					}
+
+					// 5. add to history and keep going
+					this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
+					resMessageIsDonePromise()
+
+				},
+				onError: (error) => {
+					const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
+					const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
+					// add assistant's message to chat history, and clear selection
+					this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
+					this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, error })
+					resMessageIsDonePromise()
+				},
+			})
+
+			// should never happen, just for safety
+			if (llmCancelToken === null) {
+				this._setStreamState(threadId, {
+					messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined,
+					error: { message: 'There was an unexpected error when sending your chat message.', fullError: null }
+				})
+				break
+			}
+
+			this._setStreamState(threadId, { streamingToken: llmCancelToken }) // new stream token for the new message
+
+			await messageIsDonePromise
+		} // end while
+
+	}
+
+
+	// TODO!!!!
+	// called if we stopped streaming but want to accept the tool afterwards, lets us jump back into the loop as if no interruption happened
+	async approveToolAndStreamResponse({ chatMode, _chatSelections }: { userMessage: string, chatMode: ChatMode, _chatSelections?: { prevSelns?: StagingSelectionItem[], currSelns?: StagingSelectionItem[] } }) {
+	}
+
 
 
 	async addUserMessageAndStreamResponse({ userMessage, chatMode, _chatSelections }: { userMessage: string, chatMode: ChatMode, _chatSelections?: { prevSelns?: StagingSelectionItem[], currSelns?: StagingSelectionItem[] } }) {
@@ -344,9 +532,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)
 
-		this._setStreamState(threadId, { error: undefined })
-
-
 		const toolNames: ToolName[] | undefined = chatMode === 'chat' ? undefined
 			: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !toolNamesThatRequireApproval.has(toolName))
 				: chatMode === 'agent' ? Object.keys(voidTools) as ToolName[]
@@ -354,165 +539,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		const tools: InternalToolInfo[] | undefined = toolNames?.map(toolName => voidTools[toolName])
 
-		// these settings should not change throughout the loop (eg anthropic breaks if you change its thinking mode and it's using tools)
-		const featureName: FeatureName = 'Chat'
-		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+		const ps = this._staticAgentLoopsProps()
 
-
-		// agent loop
-		const agentLoop = async () => {
-
-			let nMessagesSent = 0
-			let shouldSendAnotherMessage = true
-
-			while (shouldSendAnotherMessage) {
-				// recompute files at last message
-				const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidFileService) // all the file CONTENTS or "selections" de-duped
-				const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
-
-				nMessagesSent += 1
-				shouldSendAnotherMessage = false // false by default
-
-				let resMessageIsDonePromise: () => void // resolves when user approves this tool use (or if tool doesn't require approval)
-				const messageIsDonePromise = new Promise<void>((res, rej) => { resMessageIsDonePromise = res })
-
-				// replace last userMessage with userMessageFullContent (which contains all the files too)
-				const messages_ = toLLMChatMessages(this.getCurrentThread().messages)
-				const lastUserMsgIdx = findLastIndex(messages_, m => m.role === 'user')
-
-				if (lastUserMsgIdx === -1) throw new Error(`Void: No user message found.`) // should never be -1
-
-				const workspaceFolders = this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
-				const terminalIds = this.terminalToolService.listTerminalIds()
-				const messages: LLMChatMessage[] = [
-					{ role: 'system', content: chat_systemMessage(workspaceFolders, terminalIds, chatMode), },
-					...messages_.slice(0, lastUserMsgIdx),
-					{ role: 'user', content: userMessageFullContent },
-					...messages_.slice(lastUserMsgIdx + 1, Infinity),
-				]
-
-
-				const llmCancelToken = this._llmMessageService.sendLLMMessage({
-					messagesType: 'chatMessages',
-					messages,
-					tools: tools,
-					modelSelection,
-					modelSelectionOptions,
-					logging: { loggingName: `Agent` },
-					onText: ({ fullText, fullReasoning }) => {
-						this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning })
-					},
-					onFinalMessage: async ({ fullText, toolCalls, fullReasoning, anthropicReasoning }) => {
-
-						this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning, anthropicReasoning })
-
-						// if no tools, finish
-						if ((toolCalls?.length ?? 0) === 0) {
-							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined })
-							resMessageIsDonePromise()
-							return
-						}
-
-						// if tools
-						// clear messageSoFar since we added it to the chat history (but don't clear streamingToken, we're still streaming)
-						this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined })
-
-						// deal with the tool
-						const tool: ToolCallType | undefined = toolCalls?.[0]
-						if (!tool) {
-							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined })
-							resMessageIsDonePromise()
-							return
-						}
-						const toolName: ToolName = tool.name
-						shouldSendAnotherMessage = true
-
-						// 1. validate tool params
-						let toolParams: ToolCallParams[ToolName]
-						try {
-							const params = await this._toolsService.validateParams[toolName](tool.paramsStr)
-							toolParams = params
-						} catch (error) {
-							const errorMessage = getErrorMessage(error)
-							this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: undefined, value: errorMessage }, })
-							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined })
-							resMessageIsDonePromise()
-							return
-						}
-
-						// 2. if tool requires approval, await the approval
-						if (toolNamesThatRequireApproval.has(toolName)) {
-							const voidToolId = generateUuid()
-							const toolApprovalPromise = new Promise<void>((res, rej) => { this.resRejOfToolAwaitingApproval[voidToolId] = { res, rej } })
-							this._addMessageToThread(threadId, { role: 'tool_request', name: toolName, params: toolParams, voidToolId: voidToolId })
-							try {
-								await toolApprovalPromise
-								// accepted tool
-							}
-							catch (e) {
-								console.log('successfully rejected', voidToolId)
-								// TODO!!! test rejection
-								// if (Math.random() > 0) throw new Error('TESTING')
-								shouldSendAnotherMessage = false // interrupt flow by rejecting
-
-								const errorMessage = 'Tool call was rejected by the user.'
-								this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'rejected', params: toolParams, value: errorMessage }, })
-								this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined })
-								resMessageIsDonePromise()
-								return
-							}
-						}
-
-						// 3. call the tool
-						let toolResult: ToolResultType[typeof toolName]
-						try {
-							toolResult = await this._toolsService.callTool[toolName](toolParams as any) // typescript is so bad it doesn't even couple the type of ToolResult with the type of the function being called here
-						} catch (error) {
-							const errorMessage = getErrorMessage(error)
-							this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
-							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined })
-							resMessageIsDonePromise()
-							return
-						}
-
-						// 4. stringify the result to give the LLM
-						let toolResultStr: string
-						try {
-							toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
-						} catch (error) {
-							const errorMessage = `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
-							this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
-							this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined })
-							resMessageIsDonePromise()
-							return
-						}
-
-						// 5. add to history
-						this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: tool.paramsStr, id: tool.id, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
-						this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined })
-						resMessageIsDonePromise()
-
-					},
-					onError: (error) => {
-						const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
-						const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
-						// add assistant's message to chat history, and clear selection
-						this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
-						this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, error })
-						resMessageIsDonePromise()
-					},
-				})
-				if (llmCancelToken === null) break
-				this._setStreamState(threadId, { streamingToken: llmCancelToken })
-
-				await messageIsDonePromise
-
-			} // end while
-
-		}
-
-		agentLoop()
+		this._agentLoop({ tools, prevSelns, currSelns, threadId, chatMode, userMessageContent, ...ps, })
 
 	}
 

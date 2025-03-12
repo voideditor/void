@@ -27,7 +27,7 @@ export const IconShell1 = ({ onClick, title, Icon, disabled, className }: IconBu
 		disabled={disabled}
 		onClick={onClick}
 		className={`
-            size-[18px]
+            size-[24px]
             flex items-center justify-center
             text-sm bg-void-bg-3 text-void-fg-1
             hover:brightness-110
@@ -36,7 +36,7 @@ export const IconShell1 = ({ onClick, title, Icon, disabled, className }: IconBu
 			${className}
         `}
 	>
-		<Icon size={12} />
+		<Icon size={16} />
 	</button>
 )
 
@@ -47,7 +47,7 @@ export const IconShell2 = ({ onClick, title, Icon, disabled, className }: IconBu
 		disabled={disabled}
 		onClick={onClick}
 		className={`
-            size-[18px]
+            size-[24px]
             flex items-center justify-center
             text-sm
             hover:opacity-80
@@ -55,7 +55,7 @@ export const IconShell2 = ({ onClick, title, Icon, disabled, className }: IconBu
             ${className}
         `}
 	>
-		<Icon size={12} />
+		<Icon size={16} />
 	</button>
 )
 

@@ -137,7 +137,9 @@ export const isAToolName = (toolName: string): toolName is ToolName => {
 }
 
 
-export const toolNamesThatRequireApproval = new Set<ToolName>(['create_uri', 'delete_uri', 'edit', 'terminal_command'] satisfies ToolName[])
+const toolNamesWithApproval = ['create_uri', 'delete_uri', 'edit', 'terminal_command'] as const satisfies readonly ToolName[]
+export type ToolNameWithApproval = typeof toolNamesWithApproval[number]
+export const toolNamesThatRequireApproval = new Set<ToolName>(toolNamesWithApproval)
 
 export type ToolCallParams = {
 	'read_file': { uri: URI, pageNumber: number },

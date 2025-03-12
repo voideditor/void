@@ -942,4 +942,3 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 registerWorkbenchContribution2(AutocompleteService.ID, AutocompleteService, WorkbenchPhase.BlockRestore);
 
 
-

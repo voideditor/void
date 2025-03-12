@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
+import { removeAnsiEscapeCodes } from '../../../../base/common/strings.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
@@ -171,6 +172,11 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 		console.log('res', { terminalId, didCreateTerminal, result, resolveReason })
 
+		result = removeAnsiEscapeCodes(result)
+			.split('\n').slice(1, -1) // remove first and last line (first = command, last = andrewpareles/void %)
+			.join('\n')
+
+		console.log('TerminalToolService: Command completed:', JSON.stringify(result))
 
 		return { terminalId, didCreateTerminal, result, resolveReason }
 	}
@@ -180,5 +186,3 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 }
 
 registerSingleton(ITerminalToolService, TerminalToolService, InstantiationType.Delayed);
-
-

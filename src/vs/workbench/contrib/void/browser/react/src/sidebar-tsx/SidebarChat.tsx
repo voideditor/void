@@ -29,7 +29,7 @@ import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLangu
 import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
-import { ToolCallParams, ToolName } from '../../../../common/toolsServiceTypes.js';
+import { ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 
 
 
@@ -654,25 +654,29 @@ export const SelectedFiles = (
 
 
 
+const ReasoningComponent = ({ children }: { children: React.ReactNode }) => {
 
+	return children
 
-interface DropdownComponentProps {
-	title: string;
-	desc1: string;
-	desc2?: React.ReactNode;
-	numResults?: number;
-	children?: React.ReactNode;
-	onClick?: () => void;
 }
 
-const DropdownComponent = ({
+
+
+const ToolComponent = ({
 	title,
 	desc1,
 	desc2,
 	numResults,
 	children,
 	onClick,
-}: DropdownComponentProps) => {
+}: {
+	title: string;
+	desc1: string;
+	desc2?: React.ReactNode;
+	numResults?: number;
+	children?: React.ReactNode;
+	onClick?: () => void;
+}) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const isDropdown = !!children
@@ -690,7 +694,7 @@ const DropdownComponent = ({
 				>
 					{isDropdown && (
 						<ChevronRight
-							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
+							className={`text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
 						/>
 					)}
 					<div className="flex items-center justify-between w-full flex-nowrap whitespace-nowrap gap-x-2">
@@ -964,17 +968,14 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 		>
 
 			{/* reasoning token */}
-			{hasReasoning && <DropdownComponent
-				title="Reasoning"
-				desc1=""
-			>
+			{hasReasoning && <ReasoningComponent>
 				<ChatMarkdownRender
 					string={reasoningStr}
 					chatMessageLocation={chatMessageLocation}
 					isApplyEnabled={false}
 					isLinkDetectionEnabled={true}
 				/>
-			</DropdownComponent>}
+			</ReasoningComponent>}
 
 			{/* assistant message */}
 			<ChatMarkdownRender
@@ -1003,7 +1004,7 @@ const ToolError = ({ title, desc1, errorMessage }: { title: string, desc1: strin
 		// 		<div className='text-sm opacity-90'>{errorMessage}</div>
 		// 	</div>
 		// </div>
-		<DropdownComponent
+		<ToolComponent
 			title={title}
 			desc1={desc1}
 			desc2={
@@ -1013,8 +1014,8 @@ const ToolError = ({ title, desc1, errorMessage }: { title: string, desc1: strin
 				</span>
 			}
 		>
-			<div className='text-wrap whitespace-pre-wrap break-all break-words'>{errorMessage}</div>
-		</DropdownComponent>
+			<div className='text-xs text-wrap whitespace-pre-wrap break-all break-words'>{errorMessage}</div>
+		</ToolComponent>
 
 	)
 }
@@ -1064,7 +1065,6 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 		return ''
 	}
 }
-
 
 
 const ToolRequestAcceptRejectButtons = ({ toolRequest, messageIdx, isLast }: { toolRequest: ToolRequestApproval<ToolName> } & Omit<ChatBubbleProps, 'chatMessage'>) => {
@@ -1130,19 +1130,11 @@ const ToolRequestAcceptRejectButtons = ({ toolRequest, messageIdx, isLast }: { t
 }
 
 const toolNameToComponent: { [T in ToolName]: {
-	requestWrapper: (props: { toolRequest: ToolRequestApproval<T> }) => React.ReactNode,
+	requestWrapper: T extends ToolNameWithApproval ? ((props: { toolRequest: ToolRequestApproval<T> }) => React.ReactNode) : null,
 	resultWrapper: (props: { toolMessage: ToolMessage<T> }) => React.ReactNode,
 } } = {
 	'read_file': {
-		requestWrapper: ({ toolRequest }) => {
-			const accessor = useAccessor()
-			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolRequest.name]
-			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <DropdownComponent title={title} desc1={desc1}
-				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
-			/>
-		},
+		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
@@ -1155,7 +1147,7 @@ const toolNameToComponent: { [T in ToolName]: {
 
 			const { value, params } = toolMessage.result
 
-			return <DropdownComponent title={title} desc1={desc1}>
+			return <ToolComponent title={title} desc1={desc1}>
 				<div
 					className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
 					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
@@ -1165,15 +1157,11 @@ const toolNameToComponent: { [T in ToolName]: {
 				</div>
 				{toolMessage.result.value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
 
-			</DropdownComponent>
+			</ToolComponent>
 		},
 	},
 	'list_dir': {
-		requestWrapper: ({ toolRequest }) => {
-			const title = toolNameToTitle[toolRequest.name]
-			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <DropdownComponent title={title} desc1={desc1} />
-		},
+		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
@@ -1187,7 +1175,7 @@ const toolNameToComponent: { [T in ToolName]: {
 
 			const { value, params } = toolMessage.result
 
-			return <DropdownComponent
+			return <ToolComponent
 				title={title}
 				desc1={desc1}
 				numResults={value.children?.length}
@@ -1210,15 +1198,11 @@ const toolNameToComponent: { [T in ToolName]: {
 						{value.itemsRemaining} more items...
 					</div>
 				)}
-			</DropdownComponent>
+			</ToolComponent>
 		}
 	},
 	'pathname_search': {
-		requestWrapper: ({ toolRequest }) => {
-			const title = toolNameToTitle[toolRequest.name]
-			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <DropdownComponent title={title} desc1={desc1} />
-		},
+		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
@@ -1232,7 +1216,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const { value, params } = toolMessage.result
 
 			return (
-				<DropdownComponent
+				<ToolComponent
 					title={title}
 					desc1={desc1}
 					numResults={value.uris.length}
@@ -1254,16 +1238,12 @@ const toolNameToComponent: { [T in ToolName]: {
 							More results available...
 						</div>
 					)}
-				</DropdownComponent>
+				</ToolComponent>
 			)
 		}
 	},
 	'search': {
-		requestWrapper: ({ toolRequest }) => {
-			const title = toolNameToTitle[toolRequest.name]
-			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <DropdownComponent title={title} desc1={desc1} />
-		},
+		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
@@ -1277,7 +1257,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const { value, params } = toolMessage.result
 
 			return (
-				<DropdownComponent
+				<ToolComponent
 					title={title}
 					desc1={desc1}
 					numResults={value.uris.length}
@@ -1292,15 +1272,18 @@ const toolNameToComponent: { [T in ToolName]: {
 						</div>
 					))}
 					{value.hasNextPage && (<div className="italic">More results available...</div>)}
-				</DropdownComponent>
+				</ToolComponent>
 			)
 		}
 	},
+
+	// ---
+
 	'create_uri': {
 		requestWrapper: ({ toolRequest }) => {
 			const title = toolNameToTitle[toolRequest.name]
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <DropdownComponent title={title} desc1={desc1} />
+			return <ToolComponent title={title} desc1={desc1} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1315,7 +1298,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const { params } = toolMessage.result
 
 			return (
-				<DropdownComponent
+				<ToolComponent
 					title={title}
 					desc1={desc1}
 					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
@@ -1329,7 +1312,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <DropdownComponent title={title} desc1={desc1}
+			return <ToolComponent title={title} desc1={desc1}
 				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
 			/>
 		},
@@ -1346,7 +1329,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const { params } = toolMessage.result
 
 			return (
-				<DropdownComponent
+				<ToolComponent
 					title={title}
 					desc1={desc1}
 					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
@@ -1360,14 +1343,11 @@ const toolNameToComponent: { [T in ToolName]: {
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
-			return <DropdownComponent title={title} desc1={desc1}
+			return <ToolComponent title={title} desc1={desc1}
 				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
 			>
-				<ChatMarkdownRender
-					string={toolRequest.params.changeDescription}
-					chatMessageLocation={undefined}
-				/>
-			</DropdownComponent>
+				<ChatMarkdownRender string={toolRequest.params.changeDescription} chatMessageLocation={undefined} />
+			</ToolComponent>
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1382,7 +1362,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const { params } = toolMessage.result
 
 			return (
-				<DropdownComponent
+				<ToolComponent
 					title={title}
 					desc1={desc1}
 					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
@@ -1398,7 +1378,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 
 			const { waitForCompletion, command, proposedTerminalId } = toolRequest.params
-			return <DropdownComponent title={title} desc1={desc1} desc2={waitForCompletion ? '(background task)' : null}
+			return <ToolComponent title={title} desc1={desc1} desc2={waitForCompletion ? null : '(background task)'}
 			// TODO!!! open terminal
 			/>
 		},
@@ -1417,29 +1397,27 @@ const toolNameToComponent: { [T in ToolName]: {
 			const { terminalId, resolveReason, result } = toolMessage.result.value
 
 			return (
-				<DropdownComponent
+				<ToolComponent
 					title={title}
 					desc1={desc1}
 					desc2={resolveReason.type === 'bgtask' ? '(background task)' : null}
 				>
-					<div
-						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-					// TODO!!! open terminal
-					>
-						<div>
-							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-							{resolveReason.type === 'bgtask' ? 'Result so far:' : null}
-							<ChatMarkdownRender string={`\`\`\`\n${result}\n\`\`\``} chatMessageLocation={undefined} />
-							{
-								resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `Error: exit code ${resolveReason.exitCode}` : null)
-									: resolveReason.type === 'bgtask' ? null :
-										resolveReason.type === 'timeout' ? `(partial results; request timed out)` :
-											resolveReason.type === 'toofull' ? `(truncated)`
-												: null
-							}
-						</div>
+
+					<div className='font-mono whitespace-pre text-nowrap text-xs overflow-auto bg-void-bg-1'>
+						{resolveReason.type === 'bgtask' ? 'Result so far:' : null}
+						{result}
+						{
+							resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `
+								Error: exit code ${resolveReason.exitCode}` : null)
+								: resolveReason.type === 'bgtask' ? null :
+									resolveReason.type === 'timeout' ? `
+									(partial results; request timed out)` :
+										resolveReason.type === 'toofull' ? `
+										(truncated)`
+											: null
+						}
 					</div>
-				</DropdownComponent>
+				</ToolComponent>
 			)
 		}
 	}
@@ -1473,16 +1451,10 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 		const isLastMessage = true // TODO!!! fix this
 		if (!isLastMessage) return null
 		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
-		return <>
-			<ToolRequestWrapper toolRequest={chatMessage} />
-			<ToolRequestAcceptRejectButtons toolRequest={chatMessage} messageIdx={messageIdx} isLast={isLast} />
-		</>
+		return <ToolRequestWrapper toolRequest={chatMessage} />
+
 	}
 	else if (role === 'tool') {
-
-		const title = toolNameToTitle[chatMessage.name]
-		// if (chatMessage.result.type === 'error') return <ToolError title={title} params={chatMessage.result.params} errorMessage={chatMessage.result.value} />
-
 		const ToolResultWrapper = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
 		return <ToolResultWrapper toolMessage={chatMessage} />
 	}
@@ -1692,3 +1664,4 @@ export const SidebarChat = () => {
 
 	</div>
 }
+

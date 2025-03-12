@@ -730,14 +730,14 @@ const ToolHeaderComponent = ({
 				</div>
 			</div>
 			{/* children */}
-			<div
+			{children && <div
 				// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
 				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
 			>
 				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
 					{children}
 				</div>
-			</div>
+			</div>}
 		</div>
 	</div>
 	);

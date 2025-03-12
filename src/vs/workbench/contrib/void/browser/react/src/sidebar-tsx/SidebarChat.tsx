@@ -669,10 +669,8 @@ type ToolHeaderParams = {
 	desc1: string;
 	desc2?: React.ReactNode;
 	isError?: boolean;
-	requestToolId?: string;
 	numResults?: number;
 	children?: React.ReactNode;
-	isLastMessage?: boolean;
 	onClick?: () => void;
 }
 
@@ -684,8 +682,6 @@ const ToolHeaderComponent = ({
 	numResults,
 	children,
 	isError,
-	requestToolId,
-	isLastMessage,
 	onClick,
 }: ToolHeaderParams) => {
 
@@ -743,7 +739,6 @@ const ToolHeaderComponent = ({
 				</div>
 			</div>
 		</div>
-		{!requestToolId ? null : <ToolRequestAcceptRejectButtons voidToolId={requestToolId} isLastMessage={!!isLastMessage} />}
 	</div>
 	);
 };
@@ -1061,23 +1056,18 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 }
 
 
-const ToolRequestAcceptRejectButtons = ({ voidToolId, isLastMessage: isLast }: { voidToolId: string, isLastMessage: boolean }) => {
+const ToolRequestAcceptRejectButtons = ({ voidToolId }: { voidToolId: string }) => {
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const metricsService = accessor.get('IMetricsService')
 
-	const initRequestState = isLast ? 'awaiting_response' : 'rejected'
-	const [requestState, setRequestState] = useState<'accepted' | 'rejected' | 'awaiting_response'>(initRequestState)
-
 	const onAccept = useCallback(() => {
 		chatThreadsService.approveTool(voidToolId)
-		setRequestState('accepted')
 		metricsService.capture('Tool Request Accepted', {})
 	}, [chatThreadsService, voidToolId, metricsService])
 
 	const onReject = useCallback(() => {
 		chatThreadsService.rejectTool(voidToolId)
-		setRequestState('rejected')
 		metricsService.capture('Tool Request Rejected', {})
 	}, [chatThreadsService, voidToolId, metricsService])
 
@@ -1113,18 +1103,14 @@ const ToolRequestAcceptRejectButtons = ({ voidToolId, isLastMessage: isLast }: {
 		</button>
 	)
 
-	if (requestState === 'awaiting_response') {
-		return <div className="flex gap-2 my-1">
-			{approveButton}
-			{cancelButton}
-		</div>
-	}
-
-	return null
+	return <div className="flex gap-2 my-1">
+		{approveButton}
+		{cancelButton}
+	</div>
 }
 
 const toolNameToComponent: { [T in ToolName]: {
-	requestWrapper: T extends ToolNameWithApproval ? ((props: { toolRequest: ToolRequestApproval<T>, isLastMessage: boolean }) => React.ReactNode) : null,
+	requestWrapper: T extends ToolNameWithApproval ? ((props: { toolRequest: ToolRequestApproval<T> }) => React.ReactNode) : null,
 	resultWrapper: (props: { toolMessage: ToolMessage<T> }) => React.ReactNode,
 } } = {
 	'read_file': {
@@ -1291,7 +1277,7 @@ const toolNameToComponent: { [T in ToolName]: {
 	// ---
 
 	'create_uri': {
-		requestWrapper: ({ toolRequest, isLastMessage }) => {
+		requestWrapper: ({ toolRequest }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
@@ -1299,7 +1285,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const icon = null
 
 			const isError = false
-			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isLastMessage, requestToolId: toolRequest.voidToolId }
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			const { params } = toolRequest
 			componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
@@ -1332,7 +1318,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		}
 	},
 	'delete_uri': {
-		requestWrapper: ({ toolRequest, isLastMessage }) => {
+		requestWrapper: ({ toolRequest, }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
@@ -1340,7 +1326,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const icon = null
 
 			const isError = false
-			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isLastMessage, requestToolId: toolRequest.voidToolId }
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			const { params } = toolRequest
 			componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
@@ -1373,7 +1359,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		}
 	},
 	'edit': {
-		requestWrapper: ({ toolRequest, isLastMessage }) => {
+		requestWrapper: ({ toolRequest, }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const title = toolNameToTitle[toolRequest.name]
@@ -1381,7 +1367,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const icon = null
 
 			const isError = false
-			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isLastMessage, requestToolId: toolRequest.voidToolId }
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			const { params } = toolRequest
 			componentParams.children = <ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
@@ -1416,7 +1402,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		}
 	},
 	'terminal_command': {
-		requestWrapper: ({ toolRequest, isLastMessage }) => {
+		requestWrapper: ({ toolRequest, }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
@@ -1425,7 +1411,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const icon = null
 
 			const isError = false
-			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isLastMessage, requestToolId: toolRequest.voidToolId }
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			const { proposedTerminalId } = toolRequest.params
 			if (terminalToolsService.terminalExists(proposedTerminalId))
@@ -1514,15 +1500,17 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 		/>
 	}
 	else if (role === 'tool_request') {
-		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any, isLastMessage: boolean }> // ts isnt smart enough...
-		return <ToolRequestWrapper toolRequest={chatMessage} isLastMessage={isLast} />
-
+		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
+		if (!isLast) return null
+		return <>
+			<ToolRequestWrapper toolRequest={chatMessage} />
+			<ToolRequestAcceptRejectButtons voidToolId={chatMessage.voidToolId} />
+		</>
 	}
 	else if (role === 'tool') {
 		const ToolResultWrapper = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
 		return <ToolResultWrapper toolMessage={chatMessage} />
 	}
-
 
 }
 

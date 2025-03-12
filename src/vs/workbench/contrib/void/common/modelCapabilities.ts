@@ -53,6 +53,11 @@ export const defaultModelsOfProvider = {
 	],
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
+		'open-codestral-mamba',
+		'mistral-small-latest',
+		'mistral-large-latest',
+		'ministral-3b-latest',
+		'ministral-8b-latest',
 	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>
@@ -117,6 +122,41 @@ const modelOptionsDefaults: ModelOptions = {
 	supportsReasoning: false,
 }
 
+const mistralModelOptions = {
+	'codestral-latest': {
+		contextWindow: 32_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.00, output: 0.00 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoning: false,
+	},
+	'open-codestral-mamba': {
+		contextWindow: 32_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.00, output: 0.00 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoning: false,
+	},
+	'mistral-large-latest': {
+		contextWindow: 32_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.00, output: 0.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoning: false,
+	}
+} as const satisfies { [s: string]: ModelOptions }
+
+const mistralSettings: ProviderSettings = {
+	...mistralModelOptions,
+	modelOptions: {},
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
+}
 
 const openSourceModelOptions_assumingOAICompat = {
 	'deepseekR1': {
@@ -129,12 +169,6 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsFIM: false,
 		supportsSystemMessage: false, // unstable
 		supportsTools: false,
-		supportsReasoning: false,
-	},
-	'codestral': {
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		supportsReasoning: false,
 	},
 	// llama
@@ -188,16 +222,8 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsTools: false,
 		supportsReasoning: false,
 	},
-	'codestral-latest': {
-		supportsFIM: true,
-		supportsSystemMessage: false,
-		supportsTools: false,
-		supportsReasoning: false,
-	},
+	...mistralModelOptions,
 } as const satisfies { [s: string]: Partial<ModelOptions> }
-
-
-
 
 const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelName) => {
 	const toFallback = (opts: Omit<ModelOptions, 'cost'>): ModelOptions & { modelName: string } => {
@@ -216,15 +242,14 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
+
+	/* Mistral Options fallback for Mistral and others providers keeping the code relatively clean for all models */
+	if (modelName.includes('mistral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['mistral-large-latest'] })
+	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['codestral-latest'] })
+
 	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
 	return toFallback(modelOptionsDefaults)
 }
-
-
-
-
-
 
 // ---------------- ANTHROPIC ----------------
 const anthropicModelOptions = {
@@ -591,9 +616,6 @@ const openRouterSettings: ProviderSettings = {
 	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
 }
 
-
-
-
 // ---------------- model settings of everything above ----------------
 
 const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSettings } = {
@@ -611,7 +633,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	vLLM: vLLMSettings,
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
-
+	mistral: mistralSettings,
 	// googleVertex: {},
 	// microsoftAzure: {},
 } as const

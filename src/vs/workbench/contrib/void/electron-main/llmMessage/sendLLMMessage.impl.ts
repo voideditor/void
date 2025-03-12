@@ -7,6 +7,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 
+
+
+
+
 import { Model as OpenAIModel } from 'openai/resources/models.js';
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
@@ -111,6 +115,10 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 	else if (providerName === 'xAI') {
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+	else if (providerName === 'mistral') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
@@ -495,11 +503,6 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
-	mistral: {
-		sendChat: (params) => _sendOpenAICompatibleChat(params),
-		sendFIM: null, // TODO // https://docs.mistral.ai/api/#tag/fim
-		list: null,
-	},
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: sendOllamaFIM,
@@ -528,6 +531,11 @@ export const sendLLMMessageToProviderImplementation = {
 	groq: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
+		list: null,
+	},
+	mistral: {
+		sendChat: (params) => _sendMistralChat(params),
+		sendFIM: (params) => _sendMistralFIM(params),
 		list: null,
 	},
 } satisfies CallFnOfProvider

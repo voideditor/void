@@ -1025,10 +1025,10 @@ const toolNameToTitle: Record<ToolName, string> = {
 	'list_dir': 'Inspected folder',
 	'pathname_search': 'Searched by file name',
 	'search': 'Searched files',
-	'create_uri': 'Create file',
-	'delete_uri': 'Delete file',
-	'edit': 'Edit file',
-	'terminal_command': 'Run terminal command'
+	'create_uri': 'Created file',
+	'delete_uri': 'Deleted file',
+	'edit': 'Edited file',
+	'terminal_command': 'Ran terminal command'
 }
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
 
@@ -1067,22 +1067,66 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 
 
 
-const ToolRequestAcceptRejectButtons = ({ toolRequest, messageIdx, isLast, }: { toolRequest: ToolRequestApproval<ToolName> } & Omit<ChatBubbleProps, 'chatMessage'>) => {
+const ToolRequestAcceptRejectButtons = ({ toolRequest, messageIdx, isLast }: { toolRequest: ToolRequestApproval<ToolName> } & Omit<ChatBubbleProps, 'chatMessage'>) => {
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
+	const metricsService = accessor.get('IMetricsService')
 
 	const initRequestState = isLast ? 'awaiting_response' : 'rejected'
-
 	const [requestState, setRequestState] = useState<'accepted' | 'rejected' | 'awaiting_response'>(initRequestState)
 
+	const onAccept = useCallback(() => {
+		chatThreadsService.approveTool(toolRequest.voidToolId)
+		setRequestState('accepted')
+		metricsService.capture('Tool Request Accepted', {})
+	}, [chatThreadsService, toolRequest.voidToolId, metricsService])
+
+	const onReject = useCallback(() => {
+		chatThreadsService.rejectTool(toolRequest.voidToolId)
+		setRequestState('rejected')
+		metricsService.capture('Tool Request Rejected', {})
+	}, [chatThreadsService, toolRequest.voidToolId, metricsService])
+
+	const approveButton = (
+		<button
+			onClick={onAccept}
+			className={`
+                px-4 py-1.5
+                bg-[var(--vscode-button-background)]
+                text-[var(--vscode-button-foreground)]
+                hover:bg-[var(--vscode-button-hoverBackground)]
+                rounded
+                text-sm font-medium
+            `}
+		>
+			Approve
+		</button>
+	)
+
+	const cancelButton = (
+		<button
+			onClick={onReject}
+			className={`
+                px-4 py-1.5
+                bg-[var(--vscode-button-secondaryBackground)]
+                text-[var(--vscode-button-secondaryForeground)]
+                hover:bg-[var(--vscode-button-secondaryHoverBackground)]
+                rounded
+                text-sm font-medium
+            `}
+		>
+			Cancel
+		</button>
+	)
 
 	if (requestState === 'awaiting_response') {
-		return <>
-			<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.approveTool(toolRequest.voidToolId); setRequestState('accepted') }}>Accept</div>
-			<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.rejectTool(toolRequest.voidToolId); setRequestState('rejected') }}>Reject</div>
-		</>
+		return <div className="flex gap-2 my-1">
+			{approveButton}
+			{cancelButton}
+		</div>
 	}
 
+	return null
 }
 
 const toolNameToComponent: { [T in ToolName]: {

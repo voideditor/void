@@ -582,7 +582,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		supportsReasoning: false,
 	},
 	'mistralai/codestral-2501': {
-		...openSourceModelOptions_assumingOAICompat.codestral,
+		...openSourceModelOptions_assumingOAICompat['codestral-latest'],
 		contextWindow: 256_000,
 		maxOutputTokens: null,
 		cost: { input: 0.3, output: 0.9 },

@@ -1620,13 +1620,13 @@ export const SidebarChat = () => {
 			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
 	}, [isHistoryOpen, currentThread.id])
 
-	const numMessages = previousMessages.length + (isStreaming ? 1 : 0)
+	const numMessages = previousMessages.length
 
 	const previousMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) =>
 			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} isLast={i === numMessages - 1} />
 		)
-	}, [previousMessages, currentThread])
+	}, [previousMessages, currentThread, numMessages])
 
 	const streamingChatIdx = previousMessagesHTML.length
 	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isStreaming) ?

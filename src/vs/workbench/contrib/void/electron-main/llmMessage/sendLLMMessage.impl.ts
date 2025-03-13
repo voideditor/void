@@ -6,20 +6,20 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
-
-import Mistral from "@mistralai/mistralai";
-import { chatComplete } from "@mistralai/mistralai/funcs/chatComplete.js";
-import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
-
-
 import { Model as OpenAIModel } from 'openai/resources/models.js';
+
+// Mistral Core functions  //
+import { MistralCore } from "@mistralai/mistralai/core.js";
+import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
+import { chatComplete } from "@mistralai/mistralai/funcs/chatComplete.js";
+
+
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getModelSelectionState, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
 import { InternalToolInfo, ToolName, isAToolName } from '../../common/toolsServiceTypes.js';
-
 
 
 type InternalCommonMessageParams = {
@@ -120,7 +120,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 	}
 	else if (providerName === 'mistral') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
@@ -474,67 +474,19 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 		})
 }
 
+//////// MISTRAL ////////
 const sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendChatParams_Internal) => {
-	const {
-		modelName,
-		supportsSystemMessage,
-		supportsTools,
-	} = getModelCapabilities(providerName, modelName_)
-
-	const { messages } = prepareMessages({
+	_sendOpenAICompatibleChat({
 		messages: messages_,
-		aiInstructions,
-		supportsSystemMessage,
-		supportsTools,
-		supportsAnthropicReasoningSignature: false
-	})
-
-	const mistral = new Mistral({ apiKey: settingsOfProvider[providerName].apiKey })
-
-	let fullText = ''
-
-	console.log('🔍 Debug - Messages envoyés:', messages)
-
-	chatComplete(
-		mistral, {
-		model: modelName,
-		messages: messages.map((m: any) => ({
-			role: m.role,
-			content: m.content
-		})),
-		stream: true,
-	}
-	)
-		.then(response => {
-			console.log('🔍 Debug - Réponse initiale:', response)
-
-			if (!response?.ok) {
-				throw new Error('Response not ok')
-			}
-
-			// Traitement direct de la réponse
-			const content = response.value.choices?.[0]?.message?.content
-			if (content) {
-				fullText = typeof content === 'string' ? content : content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('')
-				onText({ fullText, fullReasoning: '' })
-				onFinalMessage({
-					fullText,
-					fullReasoning: '',
-					toolCalls: [],
-					anthropicReasoning: null
-				})
-			} else {
-				onError({ message: 'Void: Response from model was empty.', fullError: null })
-			}
-		})
-		.catch(error => {
-			console.error('❌ Debug - Erreur capturée:', error)
-			if (error.status === 401) {
-				onError({ message: invalidApiKeyMessage(providerName), fullError: error })
-			} else {
-				onError({ message: error + '', fullError: error })
-			}
-		})
+		onText,
+		onFinalMessage,
+		onError,
+		settingsOfProvider,
+		modelName: modelName_,
+		_setAborter,
+		providerName,
+		aiInstructions
+	});
 }
 
 const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendFIMParams_Internal) => {
@@ -548,31 +500,18 @@ const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settings
 	}
 	const messages = prepareFIMMessage({ messages: messages_, aiInstructions })
 
-	const mistral = new Mistral({ apiKey: settingsOfProvider[providerName].apiKey })
-
-	console.log('messages FIM', messages)
-	fimComplete(
-		mistral, {
-		model: modelName,
-		prompt: messages.prefix,
-		suffix: messages.suffix,
-		stream: false,
-		topP: 1,
-		maxTokens: messages.maxTokens,
-		stop: messages.stopTokens
-	},
-	)
-		.then(async response => {
-			let content = response?.ok ? response.value.choices?.[0]?.message?.content : '';
-			const fullText = typeof content === 'string' ? content :
-				Array.isArray(content) ? content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('') : '';
-			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
-			console.log('✅ Réponse FIM reçue:', fullText);
-		})
-		.catch(error => {
-			onError({ message: error + '', fullError: error });
-		})
+	_sendOpenAICompatibleFIM({
+		messages: messages_,
+		onFinalMessage,
+		onError,
+		settingsOfProvider,
+		modelName: modelName_,
+		_setAborter,
+		providerName,
+		aiInstructions
+	});
 }
+
 
 type CallFnOfProvider = {
 	[providerName in ProviderName]: {

@@ -3,10 +3,10 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
-import { sendLLMMessageToProviderImplementation } from './MODELS.js';
+import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';
 
 
 export const sendLLMMessage = ({
@@ -19,14 +19,16 @@ export const sendLLMMessage = ({
 	abortRef: abortRef_,
 	logging: { loggingName },
 	settingsOfProvider,
-	providerName,
-	modelName,
+	modelSelection,
+	modelSelectionOptions,
 	tools,
 }: SendLLMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
 
+
+	const { providerName, modelName } = modelSelection
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
@@ -63,22 +65,23 @@ export const sendLLMMessage = ({
 		_fullTextSoFar = fullText
 	}
 
-	const onFinalMessage: OnFinalMessage = ({ fullText, toolCalls }) => {
+	const onFinalMessage: OnFinalMessage = (params) => {
+		const { fullText, fullReasoning } = params
 		if (_didAbort) return
-		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
-		onFinalMessage_({ fullText, toolCalls })
+		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, reasoningLength: fullReasoning?.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+		onFinalMessage_(params)
 	}
 
-	const onError: OnError = ({ message: error, fullError }) => {
+	const onError: OnError = ({ message: errorMessage, fullError }) => {
 		if (_didAbort) return
-		console.error('sendLLMMessage onError:', error)
+		console.error('sendLLMMessage onError:', errorMessage)
 
 		// handle failed to fetch errors, which give 0 information by design
-		if (error === 'TypeError: fetch failed')
-			error = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void's Settings, or your local model provider like Ollama is powered off.`
+		if (errorMessage === 'TypeError: fetch failed')
+			errorMessage = `Failed to fetch from ${displayInfoOfProviderName(providerName).title}. This likely means you specified the wrong endpoint in Void's Settings, or your local model provider like Ollama is powered off.`
 
-		captureLLMEvent(`${loggingName} - Error`, { error })
-		onError_({ message: error, fullError })
+		captureLLMEvent(`${loggingName} - Error`, { error: errorMessage })
+		onError_({ message: errorMessage, fullError })
 	}
 
 	const onAbort = () => {
@@ -103,18 +106,19 @@ export const sendLLMMessage = ({
 		}
 		const { sendFIM, sendChat } = implementation
 		if (messagesType === 'chatMessages') {
-			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools })
+			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, aiInstructions, tools })
 			return
 		}
 		if (messagesType === 'FIMMessage') {
 			if (sendFIM) {
-				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions })
+				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, aiInstructions })
 				return
 			}
 			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })
 			return
 		}
 		onError({ message: `Error: Message type "${messagesType}" not recognized.`, fullError: null })
+		return
 	}
 
 	catch (error) {

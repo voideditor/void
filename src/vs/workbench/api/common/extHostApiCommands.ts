@@ -304,16 +304,6 @@ const newCommands: ApiCommand[] = [
 			})(value);
 		})
 	),
-	// // --- Void code lens
-	// new ApiCommand(
-	// 	'vscode.executeVoidCodeLensProvider', '_executeVoidCodeLensProvider', 'Execute Void code lens provider.',
-	// 	[ApiCommandArgument.Uri, ApiCommandArgument.Number.with('itemResolveCount', 'Number of lenses that should be resolved and returned. Will only return resolved lenses, will impact performance)').optional()],
-	// 	new ApiCommandResult<languages.CodeLens[], vscode.CodeLens[] | undefined>('A promise that resolves to an array of VoidCodeLens-instances.', (value, _args, converter) => {
-	// 		return tryMapWith<languages.CodeLens, vscode.CodeLens>(item => {
-	// 			return new types.CodeLens(typeConverters.Range.to(item.range), item.command && converter.fromInternal(item.command));
-	// 		})(value);
-	// 	})
-	// ),
 	// --- code actions
 	new ApiCommand(
 		'vscode.executeCodeActionProvider', '_executeCodeActionProvider', 'Execute code action provider.',
@@ -519,6 +509,16 @@ const newCommands: ApiCommand[] = [
 		[ApiCommandArgument.TestItem],
 		ApiCommandResult.Void
 	),
+	new ApiCommand(
+		'vscode.startContinuousTestRun', 'testing.startContinuousRunFromExtension', 'Starts running the given tests with continuous run mode.',
+		[ApiCommandArgument.TestProfile, ApiCommandArgument.Arr(ApiCommandArgument.TestItem)],
+		ApiCommandResult.Void
+	),
+	new ApiCommand(
+		'vscode.stopContinuousTestRun', 'testing.stopContinuousRunFromExtension', 'Stops running the given tests with continuous run mode.',
+		[ApiCommandArgument.Arr(ApiCommandArgument.TestItem)],
+		ApiCommandResult.Void
+	),
 	// --- continue edit session
 	new ApiCommand(
 		'vscode.experimental.editSession.continue', '_workbench.editSessions.actions.continueEditSession', 'Continue the current edit session in a different workspace',
@@ -533,25 +533,6 @@ const newCommands: ApiCommand[] = [
 			new ApiCommandArgument('value', 'The context key value', () => true, v => v),
 		],
 		ApiCommandResult.Void
-	),
-	// --- mapped edits
-	new ApiCommand(
-		'vscode.executeMappedEditsProvider', '_executeMappedEditsProvider', 'Execute Mapped Edits Provider',
-		[
-			ApiCommandArgument.Uri,
-			ApiCommandArgument.StringArray,
-			new ApiCommandArgument(
-				'MappedEditsContext',
-				'Mapped Edits Context',
-				(v: unknown) => typeConverters.MappedEditsContext.is(v),
-				(v: vscode.MappedEditsContext) => typeConverters.MappedEditsContext.from(v)
-			)
-		],
-		new ApiCommandResult<IWorkspaceEditDto | null, vscode.WorkspaceEdit | null>(
-			'A promise that resolves to a workspace edit or null',
-			(value) => {
-				return value ? typeConverters.WorkspaceEdit.to(value) : null;
-			})
 	),
 	// --- inline chat
 	new ApiCommand(

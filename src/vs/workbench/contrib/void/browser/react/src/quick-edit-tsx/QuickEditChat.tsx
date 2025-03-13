@@ -93,7 +93,6 @@ export const QuickEditChat = ({
 			onClose={onX}
 			isStreaming={isStreamingRef.current}
 			isDisabled={isDisabled}
-			featureName="Ctrl+K"
 			className="py-2 w-full"
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 		>

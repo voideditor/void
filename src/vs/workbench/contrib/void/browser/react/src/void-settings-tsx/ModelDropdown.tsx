@@ -10,7 +10,7 @@ import { _VoidSelectBox, VoidCustomDropdownBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
 import { VOID_OPEN_SETTINGS_ACTION_ID, VOID_TOGGLE_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
-import { ModelOption } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
+import { modelFilterOfFeatureName, ModelOption } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { WarningBox } from './WarningBox.js'
 
 const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
@@ -37,9 +37,10 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 		selectedOption={selectedOption}
 		onChangeOption={onChangeOption}
 		getOptionDisplayName={(option) => option.selection.modelName}
-		getOptionDropdownName={(option) => option.name}
+		getOptionDropdownName={(option) => option.selection.modelName}
+		getOptionDropdownDetail={(option) => option.selection.providerName}
 		getOptionsEqual={(a, b) => optionsEqual([a], [b])}
-		className='text-xs text-void-fg-3 px-1'
+		className='text-xs text-void-fg-3'
 		matchInputWidth={false}
 	/>
 }
@@ -81,14 +82,21 @@ const MemoizedModelDropdown = ({ featureName }: { featureName: FeatureName }) =>
 	const oldOptionsRef = useRef<ModelOption[]>([])
 	const [memoizedOptions, setMemoizedOptions] = useState(oldOptionsRef.current)
 
+	const { filter, emptyMessage } = modelFilterOfFeatureName[featureName]
+
 	useEffect(() => {
 		const oldOptions = oldOptionsRef.current
-		const newOptions = settingsState._modelOptions
+		const newOptions = settingsState._modelOptions.filter((o) => filter(o.selection))
+
 		if (!optionsEqual(oldOptions, newOptions)) {
 			setMemoizedOptions(newOptions)
 		}
 		oldOptionsRef.current = newOptions
-	}, [settingsState._modelOptions])
+	}, [settingsState._modelOptions, filter])
+
+	if (memoizedOptions.length === 0) { // Pretty sure this will never be reached unless filter is enabled
+		return <WarningBox text={emptyMessage || 'No models available'} />
+	}
 
 	return <ModelSelectBox featureName={featureName} options={memoizedOptions} />
 
@@ -102,13 +110,17 @@ export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => 
 
 	const openSettings = () => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID); };
 
+
+	const { emptyMessage } = modelFilterOfFeatureName[featureName]
+
 	const isDisabled = isFeatureNameDisabled(featureName, settingsState)
 	if (isDisabled)
 		return <WarningBox onClick={openSettings} text={
-			isDisabled === 'needToEnableModel' ? 'Enable a model'
-				: isDisabled === 'addModel' ? 'Add a model'
-					: (isDisabled === 'addProvider' || isDisabled === 'notFilledIn' || isDisabled === 'providerNotAutoDetected') ? 'Provider required'
-						: 'Provider required'
+			emptyMessage ? emptyMessage :
+				isDisabled === 'needToEnableModel' ? 'Enable a model'
+					: isDisabled === 'addModel' ? 'Add a model'
+						: (isDisabled === 'addProvider' || isDisabled === 'notFilledIn' || isDisabled === 'providerNotAutoDetected') ? 'Provider required'
+							: 'Provider required'
 		} />
 
 	return <MemoizedModelDropdown featureName={featureName} />

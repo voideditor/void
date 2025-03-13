@@ -77,18 +77,6 @@
 				process.on(type, callback);
 			}
 		},
-
-		// Void : {
-		// 	/**
-		// 	 * Send a message to the LLM.
-		// 	 * @param {any} data The data to send to the LLM.
-		// 	 * @returns {Promise<any>} The response from the LLM.
-		// 	 */
-		// 	sendLLMMessage: async (data) => {
-		// 		// Use ipcRenderer.invoke to send the message to the main process (see app.ts)
-		// 		return await ipcRenderer.invoke('vscode:sendLLMMessage', data);
-		// 	}
-		// },
 	};
 
 	if (process.contextIsolated) {

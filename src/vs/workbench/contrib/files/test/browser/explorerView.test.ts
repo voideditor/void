@@ -96,11 +96,6 @@ suite('Files - ExplorerView', () => {
 				container: label,
 				onDidRender: emitter.event
 			},
-			// voidLabels: <any>{
-			// 	container: label,
-			// 	onDidRender: emitter.event
-			// },
-
 		}, 1, false);
 
 		ds.add(navigationController);

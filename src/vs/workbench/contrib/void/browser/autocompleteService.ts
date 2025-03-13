@@ -15,11 +15,18 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
-import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
+import { extractCodeFromRegular } from '../common/helpers/extractCodeFromResult.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
-import { ILLMMessageService } from '../common/llmMessageService.js';
-import { _ln, allLinebreakSymbols } from '../common/voidFileService.js';
+import { ILLMMessageService } from '../common/sendLLMMessageService.js';
+import { isWindows } from '../../../../base/common/platform.js';
+import { IVoidSettingsService } from '../common/voidSettingsService.js';
+import { FeatureName } from '../common/voidSettingsTypes.js';
 // import { IContextGatheringService } from './contextGatheringService.js';
+
+
+
+const allLinebreakSymbols = ['\r\n', '\n']
+const _ln = isWindows ? allLinebreakSymbols[0] : allLinebreakSymbols[1]
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
 
@@ -762,8 +769,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 
 
-		// console.log('B')
-
 		// create a new autocompletion and add it to cache
 		const newAutocompletion: Autocompletion = {
 			id: this._autocompletionId++,
@@ -783,8 +788,14 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		console.log('starting autocomplete...', predictionType)
 
+		const featureName: FeatureName = 'Autocomplete'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+
+		const isEnabled = this._settingsService.state.globalSettings.enableAutocomplete
+
 		// set parameters of `newAutocompletion` appropriately
-		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
+		newAutocompletion.llmPromise = isEnabled ? new Promise((resolve, reject) => reject('Autocomplete is disabled')) : new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
 				messagesType: 'FIMMessage',
@@ -793,7 +804,8 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					suffix: llmSuffix,
 					stopTokens: stopTokens,
 				},
-				useProviderFor: 'Autocomplete',
+				modelSelection,
+				modelSelectionOptions,
 				logging: { loggingName: 'Autocomplete' },
 				onText: () => { }, // unused in FIMMessage
 				// onText: async ({ fullText, newText }) => {
@@ -877,6 +889,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IModelService private readonly _modelService: IModelService,
+		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		// @IContextGatheringService private readonly _contextGatheringService: IContextGatheringService,
 	) {
 		super()

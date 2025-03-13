@@ -9,7 +9,7 @@
 	/>
 </div>
 
-Void is the open-source Cursor alternative. 
+Void is the open-source Cursor alternative.
 
 This repo contains the full sourcecode for Void. We are currently in [open beta](https://voideditor.com/email) for Discord members (see the `announcements` channel), with a waitlist for our official release. If you're new, welcome!
 

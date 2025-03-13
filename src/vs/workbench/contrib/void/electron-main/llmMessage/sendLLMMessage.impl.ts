@@ -8,12 +8,6 @@ import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 import { Model as OpenAIModel } from 'openai/resources/models.js';
 
-// Mistral Core functions  //
-import { MistralCore } from "@mistralai/mistralai/core.js";
-import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
-import { chatComplete } from "@mistralai/mistralai/funcs/chatComplete.js";
-
-
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';

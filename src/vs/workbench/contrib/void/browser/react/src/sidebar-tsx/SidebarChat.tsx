@@ -33,8 +33,7 @@ import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } f
 import { ToolCallParams, ToolName } from '../../../../common/toolsServiceTypes.js';
 import { text } from 'stream/consumers';
 import { clear } from 'console';
-
-
+import getCaretCoordinates from 'textarea-caret';
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
 	return (
@@ -1588,6 +1587,9 @@ export const SidebarChat = () => {
     const [showDropdown, setShowDropdown] = useState(false);
 	const [searchText, setSearchText] = useState('');
 
+	// state for caret position
+	const [caretPosition, setCaretPosition] = useState({top: 0, left: 0, height: 0});
+
 	useScrollbarStyles(sidebarRef)
 
 
@@ -1711,6 +1713,9 @@ export const SidebarChat = () => {
 				console.log('[Mentions] @ detected!');
 				// Show the dropdown
 				setShowDropdown(true);
+				const position = getCaretCoordinates(textAreaRef.current, cursorPosition);
+				setCaretPosition(position);
+				console.log("CARET COORDS!", JSON.stringify(position));
 
 			// Check for "@" with text after (e.g. @anything_written_without_spaces)
 			} else if (text.substring(text.lastIndexOf(' ', cursorPosition - 1) + 1, cursorPosition).startsWith('@')) {
@@ -1795,8 +1800,17 @@ export const SidebarChat = () => {
                     fnsRef={textAreaFnsRef}
                     multiline={true}
                 />
-
-                {showDropdown && <MentionsDropdown onClose={handleMentionClose} onFileAdded={handleOnFileAdded} searchText={searchText} />}
+                {/* {showDropdown && <MentionsDropdown onClose={handleMentionClose} onFileAdded={handleOnFileAdded} searchText={searchText} />} */}
+				<div
+					style={{
+					position: 'absolute',
+					top: caretPosition.top,
+					left: caretPosition.left,
+					height: caretPosition.height,
+					width: '2px',
+					backgroundColor: 'red'
+					}}
+				/>
             </div>
 
 

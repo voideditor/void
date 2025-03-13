@@ -7,7 +7,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 
-import Mistral from '@mistralai/mistralai';
+import Mistral from "@mistralai/mistralai";
+import { chatComplete } from "@mistralai/mistralai/funcs/chatComplete.js";
 import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
 
 
@@ -18,6 +19,7 @@ import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptio
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getModelSelectionState, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
 import { InternalToolInfo, ToolName, isAToolName } from '../../common/toolsServiceTypes.js';
+
 
 
 type InternalCommonMessageParams = {
@@ -118,7 +120,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 	}
 	else if (providerName === 'mistral') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new Mistral({ apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return new OpenAI({ apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
@@ -472,60 +474,70 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 		})
 }
 
-const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+const sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendChatParams_Internal) => {
 	const {
 		modelName,
-		supportsReasoning,
 		supportsSystemMessage,
 		supportsTools,
-		// maxOutputTokens, right now we are ignoring this
 	} = getModelCapabilities(providerName, modelName_)
 
-	const {
-		canIOReasoning,
-		openSourceThinkTags,
-	} = supportsReasoning || {}
-
-	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
-
-	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: false })
-
-	const thisConfig = settingsOfProvider[providerName]
-	const mistral = new Mistral({ apiKey: thisConfig.apiKey })
-
-	let fullTextSoFar = ''
-	let fullReasoningSoFar = ''
-
-	const { needsManualParse: needsManualReasoningParse } = providerReasoningIOSettings?.output ?? {}
-	const manuallyParseReasoning = needsManualReasoningParse && canIOReasoning && openSourceThinkTags
-	if (manuallyParseReasoning) {
-		onText = extractReasoningOnTextWrapper(onText, openSourceThinkTags)
-	}
-
-	mistral.chat.complete({
-		model: modelName,
-		messages: messages,
-		stream: false,
+	const { messages } = prepareMessages({
+		messages: messages_,
+		aiInstructions,
+		supportsSystemMessage,
+		supportsTools,
+		supportsAnthropicReasoningSignature: false
 	})
-		.then(response => {
-			const content = response.choices?.[0]?.message?.content
-			const fullText = typeof content === 'string' ? content :
-				Array.isArray(content) ? content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('') : '';
 
-			onFinalMessage({ fullText, fullReasoning: '', toolCalls: [], anthropicReasoning: null });
-		})
-		.catch(error => {
-			if (error.status === 401) {
-				onError({ message: invalidApiKeyMessage(providerName), fullError: error });
+	const mistral = new Mistral({ apiKey: settingsOfProvider[providerName].apiKey })
+
+	let fullText = ''
+
+	console.log('🔍 Debug - Messages envoyés:', messages)
+
+	chatComplete(
+		mistral, {
+		model: modelName,
+		messages: messages.map((m: any) => ({
+			role: m.role,
+			content: m.content
+		})),
+		stream: true,
+	}
+	)
+		.then(response => {
+			console.log('🔍 Debug - Réponse initiale:', response)
+
+			if (!response?.ok) {
+				throw new Error('Response not ok')
+			}
+
+			// Traitement direct de la réponse
+			const content = response.value.choices?.[0]?.message?.content
+			if (content) {
+				fullText = typeof content === 'string' ? content : content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('')
+				onText({ fullText, fullReasoning: '' })
+				onFinalMessage({
+					fullText,
+					fullReasoning: '',
+					toolCalls: [],
+					anthropicReasoning: null
+				})
 			} else {
-				onError({ message: error + '', fullError: error });
+				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			}
 		})
-
+		.catch(error => {
+			console.error('❌ Debug - Erreur capturée:', error)
+			if (error.status === 401) {
+				onError({ message: invalidApiKeyMessage(providerName), fullError: error })
+			} else {
+				onError({ message: error + '', fullError: error })
+			}
+		})
 }
 
-
-const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendFIMParams_Internal) => {
+const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -536,8 +548,9 @@ const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, setting
 	}
 	const messages = prepareFIMMessage({ messages: messages_, aiInstructions })
 
-	const mistral = new Mistral({ providerName, settingsOfProvider, includeInPayload })
+	const mistral = new Mistral({ apiKey: settingsOfProvider[providerName].apiKey })
 
+	console.log('messages FIM', messages)
 	fimComplete(
 		mistral, {
 		model: modelName,
@@ -621,8 +634,8 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 	mistral: {
-		sendChat: (params) => _sendMistralChat(params),
-		sendFIM: (params) => _sendMistralFIM(params),
+		sendChat: (params) => sendMistralChat(params),
+		sendFIM: (params) => sendMistralFIM(params),
 		list: null,
 	},
 } satisfies CallFnOfProvider
@@ -640,7 +653,7 @@ codestral https://ollama.com/library/codestral/blobs/51707752a87c
 [SUFFIX]{{ .Suffix }}[PREFIX] {{ .Prompt }}
 
 deepseek-coder-v2 https://ollama.com/library/deepseek-coder-v2/blobs/22091531faf0
-<｜fim▁begin｜>{{ .Prompt }}<｜fim▁hole｜>{{ .Suffix }}<｜fim▁end｜>
+{{ .Prompt }}
 
 starcoder2 https://ollama.com/library/starcoder2/blobs/3b190e68fefe
 <file_sep>

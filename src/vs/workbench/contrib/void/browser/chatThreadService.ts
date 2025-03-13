@@ -818,6 +818,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						}
 					}
 				} finally {
+					modelRef.object.dispose();
 					modelRef.dispose();
 				}
 			}

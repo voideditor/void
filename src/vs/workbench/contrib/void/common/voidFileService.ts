@@ -3,18 +3,22 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { VSBuffer } from '../../../../base/common/buffer.js';
 import { URI } from '../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../editor/common/model.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+import { IEditorService } from '../../../services/editor/common/editorService.js';
 
 export interface IVoidFileService {
 	readonly _serviceBrand: undefined;
 
-	readFile(uri: URI, range?: { startLineNumber: number, endLineNumber: number }): Promise<string>;
+	readFile(uri: URI, range?: { startLineNumber: number, endLineNumber: number }): Promise<string | null>;
 	readModel(uri: URI, range?: { startLineNumber: number, endLineNumber: number }): string | null;
+
+	saveOrWriteFileAssumingModelExists(uri: URI): Promise<void>;
 }
 
 export const IVoidFileService = createDecorator<IVoidFileService>('VoidFileService');
@@ -26,11 +30,12 @@ export class VoidFileService implements IVoidFileService {
 	constructor(
 		@IModelService private readonly modelService: IModelService,
 		@IFileService private readonly fileService: IFileService,
+		@IEditorService private readonly _editorService: IEditorService,
 	) {
 
 	}
 
-	readFile = async (uri: URI, range?: { startLineNumber: number, endLineNumber: number }): Promise<string> => {
+	readFile = async (uri: URI, range?: { startLineNumber: number, endLineNumber: number }): Promise<string | null> => {
 
 		// attempt to read the model
 		const modelResult = this.readModel(uri, range);
@@ -40,7 +45,7 @@ export class VoidFileService implements IVoidFileService {
 		const fileResult = await this._readFileRaw(uri, range);
 		if (fileResult) return fileResult;
 
-		return '';
+		return null;
 	}
 
 	_readFileRaw = async (uri: URI, range?: { startLineNumber: number, endLineNumber: number }): Promise<string | null> => {
@@ -77,16 +82,31 @@ export class VoidFileService implements IVoidFileService {
 
 		// if range, read it
 		if (range) {
-			return model.getValueInRange({
-				startLineNumber: range.startLineNumber,
-				endLineNumber: range.endLineNumber,
-				startColumn: 1,
-				endColumn: Number.MAX_VALUE
-			}, EndOfLinePreference.LF);
+			return model.getValueInRange({ startLineNumber: range.startLineNumber, endLineNumber: range.endLineNumber, startColumn: 1, endColumn: Number.MAX_VALUE }, EndOfLinePreference.LF);
 		} else {
 			return model.getValue(EndOfLinePreference.LF)
 		}
 
+	}
+
+
+
+	saveOrWriteFileAssumingModelExists = async (uri: URI): Promise<void> => {
+
+		const editorsOpen = [...this._editorService.findEditors(uri)]
+		if (editorsOpen.length !== 0) {
+			this._editorService.save(editorsOpen)
+		}
+		else {
+			// write the file using the contents of the existing model
+			const fileStr = this.modelService.getModel(uri)?.getValue()
+			if (fileStr === undefined) {
+				console.error('model not found for uri', uri.fsPath)
+				return
+			}
+			const buffer = VSBuffer.fromString(fileStr)
+			await this.fileService.writeFile(uri, buffer);
+		}
 	}
 
 }

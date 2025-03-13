@@ -272,7 +272,7 @@ export class ToolsService implements IToolsService {
 		this.callTool = {
 			read_file: async ({ uri, pageNumber }) => {
 				const readFileContents = await voidFileService.readFile(uri)
-
+				if (readFileContents === null) { throw new Error(`Contents were empty. There may have been an error, or the file may not exist.`) }
 				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
 				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) // paginate
@@ -326,11 +326,12 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async ({ uri, changeDescription }) => {
-				const [_, applyDonePromise] = editCodeService.startApplying({
+				const [_, applyDonePromise] = await editCodeService.startApplying({ // throws error if error
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',
 					type: 'searchReplace',
+					startBehavior: 'accept-conflicts',
 				}) ?? []
 				await applyDonePromise
 				return {}

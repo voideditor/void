@@ -728,11 +728,10 @@ const ToolHeaderComponent = ({
 			{/* children */}
 			{<div
 				// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
-				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
+				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100' : 'max-h-0 opacity-0'}
+							text-void-fg-4 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm`}
 			>
-				<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
-					{children || '(no results)'}
-				</div>
+				{children || '(no results)'}
 			</div>}
 		</div>
 	</div>
@@ -1382,8 +1381,14 @@ const toolNameToComponent: { [T in ToolName]: {
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			const { params } = toolRequest
-			componentParams.children = <ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
-			componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+			componentParams.children = <div>
+				<div
+					className=''
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}>
+					{getBasename(params.uri.fsPath)}
+				</div>
+				<ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
+			</div>
 
 			return <ToolHeaderComponent {...componentParams} />
 		},
@@ -1452,8 +1457,7 @@ const toolNameToComponent: { [T in ToolName]: {
 				const { command } = toolMessage.result.params
 				const { terminalId, resolveReason, result } = toolMessage.result.value
 
-				componentParams.children = <div className='font-mono whitespace-pre text-nowrap text-xs overflow-auto bg-void-bg-1'>
-
+				componentParams.children = <div className='font-mono whitespace-pre text-nowrap text-xs overflow-auto bg-void-bg-3'>
 					<div
 						className='cursor-pointer'
 						onClick={() => terminalToolsService.openTerminal(terminalId)}

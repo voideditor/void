@@ -315,9 +315,7 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx, ...options 
 	// inline code
 	if (t.type === "codespan") {
 
-		console.log('isLinkDetectionEnabled', options.isLinkDetectionEnabled)
 		if (options.isLinkDetectionEnabled && chatMessageLocation) {
-
 			return <CodespanWithLink
 				text={t.text}
 				rawText={t.raw}

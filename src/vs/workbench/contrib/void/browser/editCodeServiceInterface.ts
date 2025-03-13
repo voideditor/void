@@ -20,6 +20,7 @@ export type StartApplyingOpts = ({
 	type: 'searchReplace' | 'rewrite';
 	applyStr: string;
 	uri: 'current' | URI;
+	startBehavior: 'accept-conflicts' | 'reject-conflicts';
 })
 
 
@@ -37,7 +38,7 @@ export const IEditCodeService = createDecorator<IEditCodeService>('editCodeServi
 
 export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
-	startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null;
+	startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null>;
 
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 	removeCtrlKZone(opts: { diffareaid: number }): void;

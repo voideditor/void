@@ -118,16 +118,18 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, a
 		}, [applyBoxId, editCodeService, getUriBeingApplied])
 	)
 
-	const onSubmit = useCallback(() => {
+	const onClickSubmit = useCallback(async () => {
 		if (isDisabled) return
 		if (getStreamState() === 'streaming') return
-		const [newApplyingUri, _] = editCodeService.startApplying({
+		const [newApplyingUri, _] = await editCodeService.startApplying({
 			from: 'ClickApply',
 			type: 'searchReplace',
 			applyStr: codeStr,
 			uri: 'current',
+			startBehavior: 'reject-conflicts',
 		}) ?? []
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
+
 		rerender(c => c + 1)
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
 	}, [isDisabled, getStreamState, editCodeService, codeStr, applyBoxId, metricsService])
@@ -154,8 +156,8 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, a
 
 	const onReapply = useCallback(() => {
 		onReject()
-		onSubmit()
-	}, [onReject, onSubmit])
+		onClickSubmit()
+	}, [onReject, onClickSubmit])
 
 	const currStreamState = getStreamState()
 
@@ -166,7 +168,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, a
 	const playButton = (
 		<IconShell1
 			Icon={Play}
-			onClick={onSubmit}
+			onClick={onClickSubmit}
 			title="Apply changes"
 		/>
 	)

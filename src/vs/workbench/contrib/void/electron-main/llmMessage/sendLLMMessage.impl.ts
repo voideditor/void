@@ -121,7 +121,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 }
 
 
-const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, }: SendFIMParams_Internal) => {
+const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions, }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -155,7 +155,7 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 
 
 
-const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions, tools: tools_ }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		supportsReasoning,
@@ -469,7 +469,7 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 }
 
 //////// MISTRAL ////////
-const sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendChatParams_Internal) => {
+const sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendChatParams_Internal) => {
 	_sendOpenAICompatibleChat({
 		messages: messages_,
 		onText,
@@ -479,11 +479,12 @@ const sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError,
 		modelName: modelName_,
 		_setAborter,
 		providerName,
-		aiInstructions
+		aiInstructions,
+		modelSelectionOptions
 	});
 }
 
-const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendFIMParams_Internal) => {
+const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -492,7 +493,8 @@ const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settings
 			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
 		return
 	}
-	const messages = prepareFIMMessage({ messages: messages_, aiInstructions })
+
+	prepareFIMMessage({ messages: messages_, aiInstructions })
 
 	_sendOpenAICompatibleFIM({
 		messages: messages_,
@@ -502,7 +504,9 @@ const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settings
 		modelName: modelName_,
 		_setAborter,
 		providerName,
-		aiInstructions
+		aiInstructions,
+		modelSelectionOptions,
+		onText: () => { }
 	});
 }
 

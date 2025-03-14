@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { Disposable } from '../../../../base/common/lifecycle.js';
+import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ICodeEditor, IOverlayWidget, IViewZone, OverlayWidgetPositionPreference } from '../../../../editor/browser/editorBrowser.js';
@@ -331,7 +331,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		// initialize all existing models + initialize when a new model mounts
 		for (let model of this._modelService.getModels()) { initializeModel(model) }
-		this._register(this._modelService.onModelAdded(model => { console.log('initialized model!!', model.uri.fsPath); initializeModel(model) }));
+		this._register(this._modelService.onModelAdded(model => { initializeModel(model) }));
 
 
 		// this function adds listeners to refresh styles when editor changes tab
@@ -517,8 +517,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			})
 
 			// mount react
+			let disposablesRef: IDisposable[] | undefined = undefined
 			this._instantiationService.invokeFunction(accessor => {
-				mountCtrlK(domNode, accessor, {
+				disposablesRef = mountCtrlK(domNode, accessor, {
 
 					diffareaid: ctrlKZone.diffareaid,
 
@@ -547,10 +548,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 			})
 
-			return () => editor.changeViewZones(accessor => {
-				if (zoneId)
-					accessor.removeZone(zoneId)
-			})
+			// cleanup
+			return () => {
+				editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) })
+				disposablesRef?.forEach(d => d.dispose())
+			}
 		})
 
 		return {
@@ -746,9 +748,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		return model
 	}
-	// not obvious at all, but if we want the model we can just create it. our listeners in the constructor handle it
-	private async _forceModel(uri: URI) {
 
+	// not obvious at all, but if we want the model we can just create it. our listeners in the constructor handle it. call this the moment we know we have a uri that we want to make changes to
+	private async _ensureModelExists(uri: URI) {
 		const m = this._getModel(uri)
 		if (m !== null) return m
 
@@ -770,10 +772,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	weAreWriting = false
 	private async _writeURIText(uri: URI, text: string, range_: IRange | 'wholeFileRange', { shouldRealignDiffAreas, }: { shouldRealignDiffAreas: boolean, }) {
-		let m = this._getModel(uri)
-		if (m === null) { m = await this._forceModel(uri) }
-		if (m === null) return // if still null, return
-		const model: ITextModel = m
+		const model = this._getModel(uri)
+		if (model === null) return
 
 		const range: IRange = range_ === 'wholeFileRange' ?
 			{ startLineNumber: 1, startColumn: 1, endLineNumber: model.getLineCount(), endColumn: Number.MAX_SAFE_INTEGER } // whole file
@@ -890,7 +890,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		this._undoRedoService.pushElement(elt)
 
-		const onFinishEdit = async () => { afterSnapshot = getCurrentSnapshot() }
+		const onFinishEdit = () => { afterSnapshot = getCurrentSnapshot() }
 		return { onFinishEdit }
 	}
 
@@ -1160,8 +1160,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	// called first, then call startApplying
 	public addCtrlKZone({ startLine, endLine, editor }: AddCtrlKOpts) {
 
+		// don't need to await this, because in order to add a ctrl+K zone must already have the model open on your screen
+		// await this._ensureModelExists(uri)
+
 		const uri = editor.getModel()?.uri
 		if (!uri) return
+
 
 		// check if there's overlap with any other ctrlKZone and if so, focus it
 		const overlappingCtrlKZone = this._findOverlappingDiffArea({ startLine, endLine, uri, filter: (diffArea) => diffArea.type === 'CtrlKZone' })
@@ -1219,18 +1223,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	// the applyDonePromise this returns can throw an error (reject)
 	public async startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null> {
 		let res: [DiffZone, Promise<void>] | undefined = undefined
-		if (opts.type === 'rewrite') res = await this._initializeWriteoverStream(opts)
-		else if (opts.type === 'searchReplace') res = await this._initializeSearchAndReplaceStream(opts)
+
+		if (Math.random() > 0) {
+			console.log('writeover....')
+			res = await this._initializeWriteoverStream(opts)
+		} else {
+
+			if (opts.type === 'rewrite') res = await this._initializeWriteoverStream(opts)
+			else if (opts.type === 'searchReplace') res = await this._initializeSearchAndReplaceStream(opts)
+		}
 
 		if (!res) return null
 		const [diffZone, applyDonePromise] = res
-		applyDonePromise.then(() => {
-			const diffareaids = this.diffAreasOfURI[diffZone._URI.fsPath]
-			for (const diffareaid of diffareaids || []) {
-				const diffArea = this.diffAreaOfId[diffareaid]
-				console.log('DA!!', diffArea)
-			}
-		})
 		return [diffZone._URI, applyDonePromise]
 	}
 
@@ -1270,9 +1274,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const uri_ = this._getActiveEditorURI()
 			if (!uri_) return
 			uri = uri_
+			await this._ensureModelExists(uri)
+
 			const c_ = await this._voidFileService.readFile(uri)
 			if (c_ === null) return
 			currentFileStr = c_
+			console.log('got curent file', c_.length)
 
 			const numLines = numLinesOfStr(currentFileStr)
 
@@ -1291,6 +1298,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 			const { startLine: startLine_, endLine: endLine_, _URI } = ctrlKZone
 			uri = _URI
+			await this._ensureModelExists(uri)
 
 			const c_ = await this._voidFileService.readFile(uri)
 			if (c_ === null) return
@@ -1317,7 +1325,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) }
 		})
 
-		// __TODO__ let users customize modelFimTags
+		// TODO!!! let users customize modelFimTags
 		const quickEditFIMTags = defaultQuickEditFimTags
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
@@ -1377,6 +1385,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 		const onDone = () => {
+			console.log('called onDone')
 			diffZone._streamState = { isStreaming: false, }
 			this._onDidChangeDiffZoneStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 
@@ -1463,6 +1472,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			})
 
 			await messageDonePromise
+			console.log('done waiting')
 		}
 
 		writeover().then(() => resApplyPromise()).catch((e) => rejApplyPromise(e))
@@ -1485,6 +1495,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		else {
 			uri = givenURI
 		}
+		await this._ensureModelExists(uri)
+
 
 		// generate search/replace block text
 		const originalFileCode = await this._voidFileService.readFile(uri)
@@ -1543,8 +1555,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const diffZone = this._addDiffArea(adding)
 		this._onDidChangeDiffZoneStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
-
-		console.log('b', uri)
 
 
 		const convertOriginalRangeToFinalRange = (originalRange: readonly [number, number]): [number, number] => {
@@ -1613,6 +1623,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			while (shouldSendAnotherMessage) {
 				shouldSendAnotherMessage = false
 				nMessagesSent += 1
+
+				if (nMessagesSent >= 5) {
+					this._notifyError({ message: 'Void Error: Tried to Fast Apply 5 times but failed. Please try again with a smarter model or disable Fast Apply.', fullError: null })
+					onDone()
+					this._undoHistory(uri)
+					break
+				}
 
 				let resMessageDonePromise: () => void = () => { }
 				const messageDonePromise = new Promise<void>((res, rej) => { resMessageDonePromise = res })

@@ -38,9 +38,10 @@ export const IEditCodeService = createDecorator<IEditCodeService>('editCodeServi
 
 export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
+	// main entrypoints (initialize things for the functions below to be called):
 	startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null>;
-
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
+
 	removeCtrlKZone(opts: { diffareaid: number }): void;
 	removeDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept' }): void;
 

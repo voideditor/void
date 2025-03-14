@@ -85,17 +85,9 @@ const uriStreamingStateListeners: Set<(uri: URI, s: URIStreamState) => void> = n
 
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
-let wasCalled = false
 export const _registerServices = (accessor: ServicesAccessor) => {
 
 	const disposables: IDisposable[] = []
-
-	// don't register services twice
-	if (wasCalled) {
-		return
-		// console.error(`⚠️ Void _registerServices was called again! It should only be called once.`)
-	}
-	wasCalled = true
 
 	_registerAccessor(accessor)
 

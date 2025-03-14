@@ -8,7 +8,6 @@ import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditSta
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX, VoidChatArea } from '../sidebar-tsx/SidebarChat.js';
-import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 import { useRefState } from '../util/helpers.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';

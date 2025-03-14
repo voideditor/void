@@ -236,7 +236,7 @@ const ReasoningOptionDropdown = () => {
 		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
 
 		const nSteps = 8 // only used in calculating stepSize, stepSize is what actually matters
-		const stepSize = Math.round((max - min_) / 8)
+		const stepSize = Math.round((max - min_) / nSteps)
 		const min = canToggleReasoning ? min_ - stepSize : min_
 
 		return <div className='flex items-center gap-x-2'>
@@ -249,7 +249,6 @@ const ReasoningOptionDropdown = () => {
 				step={stepSize}
 				value={value}
 				onChange={(newVal) => {
-					console.log('NEWVAL', newVal)
 					const disabled = newVal === min && canToggleReasoning
 					voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
 				}}

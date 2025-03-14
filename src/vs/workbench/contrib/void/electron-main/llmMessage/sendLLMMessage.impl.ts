@@ -143,6 +143,7 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 			max_tokens: messages.maxTokens,
 		})
 		.then(async response => {
+
 			const fullText = response.choices[0]?.text
 			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
 		})
@@ -153,7 +154,49 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 }
 
 
+const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendFIMParams_Internal) => {
+	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
+	if (!supportsFIM) {
+		if (modelName === modelName_)
+			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
+		else
+			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
+		return
+	}
+	const messages = prepareFIMMessage({ messages: messages_, aiInstructions })
 
+	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
+
+	// DEBUG : request params
+	//	console.log('🔍 Sending FIM request with params:', {
+	//	model: modelName,
+	//	promptLength: messages.prefix.length,
+	//	suffixLength: messages.suffix.length,
+	//	stream: false,
+	//	maxTokens: messages.maxTokens
+	//});
+
+	fimComplete(
+		mistral, {
+		model: modelName,
+		prompt: messages.prefix,
+		suffix: messages.suffix,
+		stream: false,
+		topP: 1,
+		maxTokens: messages.maxTokens,
+		stop: messages.stopTokens
+	},
+	)
+		.then(async response => {
+			const fullText = response.choices[0]?.text || '';
+			onFinalMessage({ fullText, });
+			// console.log('✅ Réponse FIM reçue:', fullText);
+
+		})
+		.catch(error => {
+			onError({ message: error + '', fullError: error });
+		})
+}
 
 const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions, tools: tools_ }: SendChatParams_Internal) => {
 	const {
@@ -576,29 +619,3 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 } satisfies CallFnOfProvider
-
-
-
-
-/*
-FIM info (this may be useful in the future with vLLM, but in most cases the only way to use FIM is if the provider explicitly supports it):
-
-qwen2.5-coder https://ollama.com/library/qwen2.5-coder/blobs/e94a8ecb9327
-<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
-
-codestral https://ollama.com/library/codestral/blobs/51707752a87c
-[SUFFIX]{{ .Suffix }}[PREFIX] {{ .Prompt }}
-
-deepseek-coder-v2 https://ollama.com/library/deepseek-coder-v2/blobs/22091531faf0
-{{ .Prompt }}
-
-starcoder2 https://ollama.com/library/starcoder2/blobs/3b190e68fefe
-<file_sep>
-<fim_prefix>
-{{ .Prompt }}<fim_suffix>{{ .Suffix }}<fim_middle>
-<|end_of_text|>
-
-codegemma https://ollama.com/library/codegemma:2b/blobs/48d9a8140749
-<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
-
-*/

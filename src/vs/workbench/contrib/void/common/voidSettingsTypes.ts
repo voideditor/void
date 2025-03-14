@@ -298,6 +298,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible),
 		_didFillInProviderSettings: undefined,
 	},
+	mistral: { // aggregator
+		...defaultCustomSettings,
+		...defaultProviderSettings.mistral,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
+		_didFillInProviderSettings: undefined,
+	},
 	ollama: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.ollama,

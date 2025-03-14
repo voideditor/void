@@ -6,13 +6,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
-
-/* Mistral standalone Fim endpoint */
-import { MistralCore } from "@mistralai/mistralai/core.js";
-import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
-/* End Mistral standalone Fim endpoint */
-
 import { Model as OpenAIModel } from 'openai/resources/models.js';
+
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
@@ -126,7 +121,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 }
 
 
-const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, }: SendFIMParams_Internal) => {
+const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions, }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -203,7 +198,7 @@ const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, setting
 		})
 }
 
-const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
+const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions, tools: tools_ }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		supportsReasoning,
@@ -516,6 +511,47 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 		})
 }
 
+//////// MISTRAL ////////
+const sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendChatParams_Internal) => {
+	_sendOpenAICompatibleChat({
+		messages: messages_,
+		onText,
+		onFinalMessage,
+		onError,
+		settingsOfProvider,
+		modelName: modelName_,
+		_setAborter,
+		providerName,
+		aiInstructions,
+		modelSelectionOptions
+	});
+}
+
+const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
+	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
+	if (!supportsFIM) {
+		if (modelName === modelName_)
+			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
+		else
+			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
+		return
+	}
+
+	prepareFIMMessage({ messages: messages_, aiInstructions })
+
+	_sendOpenAICompatibleFIM({
+		messages: messages_,
+		onFinalMessage,
+		onError,
+		settingsOfProvider,
+		modelName: modelName_,
+		_setAborter,
+		providerName,
+		aiInstructions,
+		modelSelectionOptions,
+		onText: () => { }
+	});
+}
 
 
 type CallFnOfProvider = {
@@ -547,11 +583,6 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
-	// mistral: {
-	// 	sendChat: , // TODO
-	// 	sendFIM: , // TODO // https://docs.mistral.ai/api/#tag/fim
-	// 	list: null,
-	// },
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: sendOllamaFIM,
@@ -583,31 +614,8 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 	mistral: {
-		sendChat: (params) => _sendOpenAICompatibleChat(params),
-		sendFIM: (params) => _sendMistralFIM(params),
-		list: null
+		sendChat: (params) => sendMistralChat(params),
+		sendFIM: (params) => sendMistralFIM(params),
+		list: null,
 	},
 } satisfies CallFnOfProvider
-
-
-
-
-/*
-FIM info (this may be useful in the future with vLLM, but in most cases the only way to use FIM is if the provider explicitly supports it):
-
-qwen2.5-coder https://ollama.com/library/qwen2.5-coder/blobs/e94a8ecb9327
-<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
-
-codestral https://ollama.com/library/codestral/blobs/51707752a87c
-{{ .Prompt }}
-
-starcoder2 https://ollama.com/library/starcoder2/blobs/3b190e68fefe
-<file_sep>
-<fim_prefix>
-{{ .Prompt }}<fim_suffix>{{ .Suffix }}<fim_middle>
-<|end_of_text|>
-
-codegemma https://ollama.com/library/codegemma:2b/blobs/48d9a8140749
-<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
-
-*/

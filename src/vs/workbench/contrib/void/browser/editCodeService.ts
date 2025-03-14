@@ -771,7 +771,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 	weAreWriting = false
-	private async _writeURIText(uri: URI, text: string, range_: IRange | 'wholeFileRange', { shouldRealignDiffAreas, }: { shouldRealignDiffAreas: boolean, }) {
+	private _writeURIText(uri: URI, text: string, range_: IRange | 'wholeFileRange', { shouldRealignDiffAreas, }: { shouldRealignDiffAreas: boolean, }) {
 		const model = this._getModel(uri)
 		if (model === null) return
 
@@ -1470,6 +1470,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					resMessageDonePromise()
 				},
 			})
+			// should never happen, just for safety
+			if (streamRequestIdRef.current === null) { return }
 
 			await messageDonePromise
 			console.log('done waiting')
@@ -1798,6 +1800,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					},
 
 				})
+
+				// should never happen, just for safety
+				if (streamRequestIdRef.current === null) { break }
 
 				await messageDonePromise
 

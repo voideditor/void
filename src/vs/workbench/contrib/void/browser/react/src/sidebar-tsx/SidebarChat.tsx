@@ -204,13 +204,13 @@ const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-$
 
 
 // SLIDER ONLY:
-const ReasoningOptionDropdown = () => {
+const ReasoningOptionDropdown = ({ featureName }: { featureName: FeatureName }) => {
 	const accessor = useAccessor()
 
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 	const voidSettingsState = useSettingsState()
 
-	const modelSelection = voidSettingsState.modelSelectionOfFeature['Chat']
+	const modelSelection = voidSettingsState.modelSelectionOfFeature[featureName]
 	if (!modelSelection) return null
 
 	const { modelName, providerName } = modelSelection
@@ -289,6 +289,8 @@ interface VoidChatAreaProps {
 	onClickAnywhere?: () => void;
 	// Optional close button
 	onClose?: () => void;
+
+	featureName: FeatureName;
 }
 
 export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
@@ -306,6 +308,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	showProspectiveSelections = true,
 	selections,
 	setSelections,
+	featureName,
 }) => {
 	return (
 		<div
@@ -359,8 +362,8 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			<div className='flex flex-row justify-between items-end gap-1'>
 				{showModelDropdown && (
 					<div className='max-w-[200px] flex-grow'>
-						<ReasoningOptionDropdown />
-						<ModelDropdown featureName={'Chat'} />
+						<ReasoningOptionDropdown featureName={featureName} />
+						<ModelDropdown featureName={featureName} />
 					</div>
 				)}
 
@@ -852,6 +855,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 		}
 
 		chatbubbleContents = <VoidChatArea
+			featureName='Chat'
 			onSubmit={onSubmit}
 			onAbort={onAbort}
 			isStreaming={false}
@@ -1709,6 +1713,7 @@ export const SidebarChat = () => {
 	}, [onSubmit, onAbort, isStreaming])
 	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
 		<VoidChatArea
+			featureName='Chat'
 			divRef={chatAreaRef}
 			onSubmit={onSubmit}
 			onAbort={onAbort}

@@ -86,6 +86,7 @@ export const QuickEditChat = ({
 	const chatAreaRef = useRef<HTMLDivElement | null>(null)
 	return <div ref={sizerRef} style={{ maxWidth: 450 }} className={`py-2 w-full`}>
 		<VoidChatArea
+			featureName='Ctrl+K'
 			divRef={chatAreaRef}
 			onSubmit={onSubmit}
 			onAbort={onInterrupt}

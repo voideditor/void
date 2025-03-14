@@ -123,7 +123,6 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, a
 		if (getStreamState() === 'streaming') return
 		const [newApplyingUri, _] = await editCodeService.startApplying({
 			from: 'ClickApply',
-			type: 'searchReplace',
 			applyStr: codeStr,
 			uri: 'current',
 			startBehavior: 'reject-conflicts',

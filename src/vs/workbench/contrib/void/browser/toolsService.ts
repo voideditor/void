@@ -330,7 +330,6 @@ export class ToolsService implements IToolsService {
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',
-					type: 'searchReplace',
 					startBehavior: 'accept-conflicts',
 				}) ?? []
 				await applyDonePromise

@@ -1224,13 +1224,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	public async startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null> {
 		let res: [DiffZone, Promise<void>] | undefined = undefined
 
-		if (Math.random() > 0) {
-			console.log('writeover....')
-			res = await this._initializeWriteoverStream(opts)
-		} else {
-
-			if (opts.type === 'rewrite') res = await this._initializeWriteoverStream(opts)
-			else if (opts.type === 'searchReplace') res = await this._initializeSearchAndReplaceStream(opts)
+		if (opts.from === 'QuickEdit') {
+			res = await this._initializeWriteoverStream(opts) // rewrite
+		}
+		else if (opts.from === 'ClickApply') {
+			if (this._settingsService.state.globalSettings.enableFastApply) {
+				res = await this._initializeSearchAndReplaceStream(opts) // fast apply
+			}
+			else {
+				res = await this._initializeWriteoverStream(opts) // rewrite
+			}
 		}
 
 		if (!res) return null

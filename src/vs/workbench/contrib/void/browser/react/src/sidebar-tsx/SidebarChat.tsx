@@ -363,7 +363,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 				{showModelDropdown && (
 					<div className='max-w-[200px] flex-grow'>
 						<ReasoningOptionDropdown featureName={featureName} />
-						<ModelDropdown featureName={featureName} />
+						<ModelDropdown featureName={featureName} className='text-xs text-void-fg-3' />
 					</div>
 				)}
 

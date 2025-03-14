@@ -324,7 +324,7 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 	else if (featureName === 'Chat')
 		return 'Chat'
 	else if (featureName === 'Apply')
-		return 'Fast Apply'
+		return 'Apply'
 	else
 		throw new Error(`Feature Name ${featureName} not allowed`)
 }
@@ -385,14 +385,16 @@ export type GlobalSettings = {
 	autoRefreshModels: boolean;
 	aiInstructions: string;
 	enableAutocomplete: boolean;
-	syncFastApplyToChat: boolean;
+	syncApplyToChat: boolean;
+	enableFastApply: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
 	aiInstructions: '',
 	enableAutocomplete: false,
-	syncFastApplyToChat: true,
+	syncApplyToChat: true,
+	enableFastApply: true,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

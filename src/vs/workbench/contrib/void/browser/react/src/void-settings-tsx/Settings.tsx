@@ -398,6 +398,30 @@ export const AIInstructionsBox = () => {
 	/>
 }
 
+const FastApplyMethodDropdown = () => {
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+
+	const options = useMemo(() => [true, false], [])
+
+	const onChangeOption = useCallback((newVal: boolean) => {
+		voidSettingsService.setGlobalSetting('enableFastApply', newVal)
+	}, [voidSettingsService])
+
+	return <VoidCustomDropdownBox
+		className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1'
+		options={options}
+		selectedOption={voidSettingsService.state.globalSettings.enableFastApply}
+		onChangeOption={onChangeOption}
+		getOptionDisplayName={(val) => val ? 'Fast Apply' : 'Slow Apply'}
+		getOptionDropdownName={(val) => val ? 'Fast Apply' : 'Slow Apply'}
+		getOptionDropdownDetail={(val) => val ? 'Output Search/Replace blocks' : 'Rewrite whole files'}
+		getOptionsEqual={(a, b) => a === b}
+	/>
+
+}
+
+
 export const FeaturesTab = () => {
 	const voidSettingsState = useSettingsState()
 	const accessor = useAccessor()
@@ -445,41 +469,65 @@ export const FeaturesTab = () => {
 		<h2 className={`text-3xl mt-12`}>Feature Options</h2>
 		<ErrorBoundary>
 			<div className='flex items-start justify-around mt-4 mb-16 gap-x-8'>
+				{/* FIM */}
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
-					<div className='text-sm italic text-void-fg-3 my-1'>Experimental. Only works with models that support FIM.</div>
-					<div className='flex items-center gap-x-2 my-1'>
-						<VoidSwitch
-							size='xs'
-							value={voidSettingsState.globalSettings.enableAutocomplete}
-							onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
-						/>
-						<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Experimental. Only works with models that support FIM.</div>
+
+					<div className='my-2'>
+						{/* Enable Switch */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<VoidSwitch
+								size='xs'
+								value={voidSettingsState.globalSettings.enableAutocomplete}
+								onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
+							/>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
+						</div>
+						{/* Model Dropdown */}
+						<div className={`my-2 ${!voidSettingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}`}>
+							<ModelDropdown featureName={'Autocomplete'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+						</div>
 					</div>
 
-					<div className={`my-1 ${!voidSettingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}`}>
-						<ModelDropdown featureName={'Autocomplete'} />
-					</div>
 				</div>
 
+				{/* Apply */}
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-					<div className='text-sm italic text-void-fg-3 my-1'>If you customize this, we recommend using Claude 3.7 or DeepSeek R1.</div>
-					<div className='flex items-center gap-x-2 my-1'>
-						<VoidSwitch
-							size='xs'
-							value={!voidSettingsState.globalSettings.syncFastApplyToChat}
-							onChange={(newVal) => voidSettingsService.setGlobalSetting('syncFastApplyToChat', !newVal)}
-						/>
-						<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.syncFastApplyToChat ? 'Sync with Chat' : 'Use Another Model'}</span>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control the behavior of the Apply button and the Edit tool.</div>
+
+					<div className='my-2'>
+						{/* Sync to Chat Switch */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<VoidSwitch
+								size='xs'
+								value={voidSettingsState.globalSettings.syncApplyToChat}
+								onChange={(newVal) => voidSettingsService.setGlobalSetting('syncApplyToChat', newVal)}
+							/>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.syncApplyToChat ? 'Sync with Chat model' : 'Use another model'}</span>
+						</div>
+
+						{/* Model Dropdown */}
+						<div className={`my-2 ${voidSettingsState.globalSettings.syncApplyToChat ? 'hidden' : ''}`}>
+							<ModelDropdown featureName={'Apply'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+						</div>
 					</div>
 
-					<div className={`my-1 ${voidSettingsState.globalSettings.syncFastApplyToChat ? 'hidden' : ''}`}>
-						<ModelDropdown featureName={'Apply'} />
+
+					<div className='my-2'>
+						{/* Fast Apply Method Dropdown */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<FastApplyMethodDropdown />
+						</div>
 					</div>
+
+
 
 				</div>
+
 			</div>
+
 
 		</ErrorBoundary>
 

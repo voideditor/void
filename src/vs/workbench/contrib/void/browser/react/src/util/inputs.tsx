@@ -460,7 +460,7 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 
 
 
-export const VoidCustomDropdownBox = <T extends any>({
+export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 	options,
 	selectedOption,
 	onChangeOption,
@@ -537,7 +537,7 @@ export const VoidCustomDropdownBox = <T extends any>({
 	// if the selected option is null, set the selection to the 0th option
 	useEffect(() => {
 		if (options.length === 0) return
-		if (selectedOption) return
+		if (selectedOption !== undefined) return
 		onChangeOption(options[0])
 	}, [selectedOption, onChangeOption, options])
 
@@ -566,7 +566,7 @@ export const VoidCustomDropdownBox = <T extends any>({
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, [isOpen, refs.floating, refs.reference]);
 
-	if (!selectedOption)
+	if (selectedOption === undefined)
 		return null
 
 	return (

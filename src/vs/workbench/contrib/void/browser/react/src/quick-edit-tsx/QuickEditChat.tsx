@@ -62,7 +62,6 @@ export const QuickEditChat = ({
 
 		editCodeService.startApplying({
 			from: 'QuickEdit',
-			type: 'rewrite',
 			diffareaid,
 		})
 	}, [isStreamingRef, isDisabled, editCodeService, diffareaid])

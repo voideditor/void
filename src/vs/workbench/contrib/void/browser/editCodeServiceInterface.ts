@@ -13,11 +13,9 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 
 export type StartApplyingOpts = ({
 	from: 'QuickEdit';
-	type: 'rewrite';
 	diffareaid: number; // id of the CtrlK area (contains text selection)
 } | {
 	from: 'ClickApply';
-	type: 'searchReplace' | 'rewrite';
 	applyStr: string;
 	uri: 'current' | URI;
 	startBehavior: 'accept-conflicts' | 'reject-conflicts';

@@ -204,7 +204,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		@ILanguageFeaturesService private readonly _languageFeaturesService: ILanguageFeaturesService,
 		@ITextModelService private readonly _textModelService: ITextModelService,
-		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
+		@ITerminalToolService private readonly _terminalToolService: ITerminalToolService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -226,7 +226,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	private _convertThreadDataFromStorage(threadsStr: string): ChatThreads {
 		return JSON.parse(threadsStr, (key, value) => {
 			if (value && typeof value === 'object' && value.$mid === 1) { // $mid is the MarshalledId. $mid === 1 means it is a URI
-				return URI.from(value);
+				return URI.from(value); // TODO URI.revive instead of this?
 			}
 			return value;
 		});
@@ -400,7 +400,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			// system message
 			const workspaceFolders = this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
-			const terminalIds = this.terminalToolService.listTerminalIds()
+			const terminalIds = this._terminalToolService.listTerminalIds()
 			const systemMessage = chat_systemMessage(workspaceFolders, terminalIds, chatMode)
 
 			// all messages so far in the chat history (including tools)

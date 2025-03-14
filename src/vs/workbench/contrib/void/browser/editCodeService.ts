@@ -31,7 +31,6 @@ import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from '../common/helpers/extractCodeFromResult.js';
-import { filenameToVscodeLanguage } from '../common/helpers/detectLanguage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
@@ -46,6 +45,7 @@ import { IEditCodeService, URIStreamState, AddCtrlKOpts, StartApplyingOpts } fro
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';
 import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { getFullLanguage, getLanguageFromModel } from '../common/helpers/getLanguage.js';
 // import { IFileService } from '../../../../platform/files/common/files.js';
 // import { VSBuffer } from '../../../../base/common/buffer.js';
 
@@ -756,7 +756,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const fileStr = await this._voidFileService.readFile(uri)
 		if (fileStr === null) return null
-		const lang = this._languageService.createByFilepathOrFirstLine(uri, fileStr?.split('\n')?.[0])
+		const lang = getFullLanguage(this._languageService, { uri, fileContents: fileStr })
 		const model = this._modelService.createModel(fileStr, lang, uri);
 		return model
 	}
@@ -1279,7 +1279,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const c_ = await this._voidFileService.readFile(uri)
 			if (c_ === null) return
 			currentFileStr = c_
-			console.log('got curent file', c_.length)
 
 			const numLines = numLinesOfStr(currentFileStr)
 
@@ -1312,6 +1311,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 		const originalCode = currentFileStr.split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
+		const language = getLanguageFromModel(uri, this._modelService)
+
 		let streamRequestIdRef: { current: string | null } = { current: null }
 
 		// promise that resolves when the apply is done
@@ -1346,6 +1347,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._onDidChangeDiffZoneStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
+
+
 		if (from === 'QuickEdit') {
 			const { diffareaid } = opts
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
@@ -1359,7 +1362,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let messages: LLMChatMessage[]
 
 		if (from === 'ClickApply') {
-			const userContent = rewriteCode_userMessage({ originalCode, applyStr: opts.applyStr, uri })
+			const userContent = rewriteCode_userMessage({ originalCode, applyStr: opts.applyStr, language })
 			messages = [
 				{ role: 'system', content: rewriteCode_systemMessage, },
 				{ role: 'user', content: userContent, }
@@ -1373,7 +1376,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
 
 			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: currentFileStr, startLine, endLine })
-			const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
 			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: quickEditFIMTags, language })
 			// type: 'messages',
 			messages = [

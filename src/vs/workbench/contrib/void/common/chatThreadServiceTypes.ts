@@ -50,6 +50,7 @@ export type ChatMessage =
 export type CodeSelection = {
 	type: 'Selection';
 	fileURI: URI;
+	language: string;
 	selectionStr: string;
 	range: IRange;
 	state: {
@@ -60,6 +61,7 @@ export type CodeSelection = {
 export type FileSelection = {
 	type: 'File';
 	fileURI: URI;
+	language: string;
 	selectionStr: null;
 	range: null;
 	state: {

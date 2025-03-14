@@ -25,11 +25,11 @@ import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js';
 import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
 import { ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
+import { getLanguageFromModel } from '../../../../common/helpers/getLanguage.js';
 
 
 
@@ -505,6 +505,7 @@ export const SelectedFiles = (
 
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
+	const modelService = accessor.get('IModelService')
 
 	// state for tracking prospective files
 	const { currentUri } = useUriState()
@@ -528,6 +529,7 @@ export const SelectedFiles = (
 			.map(uri => ({
 				type: 'File',
 				fileURI: uri,
+				language: getLanguageFromModel(uri, modelService),
 				selectionStr: null,
 				range: null,
 				state: { isOpened: false },
@@ -638,7 +640,7 @@ export const SelectedFiles = (
 						>
 							<BlockCode
 								initValue={selection.selectionStr}
-								language={filenameToVscodeLanguage(selection.fileURI.path)}
+								language={selection.language}
 								maxHeight={200}
 								showScrollbars={true}
 							/>

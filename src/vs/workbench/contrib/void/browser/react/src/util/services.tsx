@@ -46,6 +46,7 @@ import { IMetricsService } from '../../../../../../../workbench/contrib/void/com
 import { URI } from '../../../../../../../base/common/uri.js'
 import { IChatThreadService, ThreadsState, ThreadStreamState } from '../../../chatThreadService.js'
 import { ITerminalToolService } from '../../../terminalToolService.js'
+import { ILanguageService } from '../../../../../../../editor/common/languages/language.js'
 
 
 
@@ -225,7 +226,8 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IConfigurationService: accessor.get(IConfigurationService),
 		IPathService: accessor.get(IPathService),
 		IMetricsService: accessor.get(IMetricsService),
-		ITerminalToolService: accessor.get(ITerminalToolService)
+		ITerminalToolService: accessor.get(ITerminalToolService),
+		ILanguageService: accessor.get(ILanguageService),
 
 	} as const
 	return reactAccessor

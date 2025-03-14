@@ -6,12 +6,13 @@
 import React, { JSX, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode, BlockCodeWithApply } from './BlockCode.js'
-import { nameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js'
+import { convertToVscodeLang, getFirstLine, getLanguage } from '../../../../common/helpers/getLanguage.js'
 import { useApplyButtonHTML } from './ApplyBlockHoverButtons.js'
 import { useAccessor, useChatThreadsState } from '../util/services.js'
 import { Range } from '../../../../../../services/search/common/searchExtTypes.js'
 import { IRange } from '../../../../../../../base/common/range.js'
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js'
+import { URI } from '../../../../../../../base/common/uri.js'
 
 
 export type ChatMessageLocation = {
@@ -101,7 +102,9 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 
 export type RenderTokenOptions = { isApplyEnabled?: boolean, isLinkDetectionEnabled?: boolean }
-const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx, ...options }: { token: Token | string, nested?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string, } & RenderTokenOptions): JSX.Element => {
+const RenderToken = ({ token, inPTag, chatMessageLocation, tokenIdx, ...options }: { token: Token | string, inPTag?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string, } & RenderTokenOptions): JSX.Element => {
+	const accessor = useAccessor()
+	const languageService = accessor.get('ILanguageService')
 
 	// deal with built-in tokens first (assume marked token)
 	const t = token as MarkedToken
@@ -115,28 +118,41 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx, ...options 
 	}
 
 	if (t.type === "code") {
+		const [firstLine, remainingContents] = getFirstLine(t.text)
+		const firstLineIsURI = URI.isUri(firstLine)
 
-		const language = t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]
+		let language: string | undefined = undefined
+		if (t.lang !== undefined) {
+			// convert markdown language to language that vscode recognizes (eg markdown doesn't know bash but it does know shell)
+			language = convertToVscodeLang(languageService, t.lang)
+		}
 
-		// TODO user should only be able to apply this when the code has been closed (t.raw ends with "```")
+		else if (!language) { // if still no lang
+			if (firstLineIsURI) { // get lang from the uri
+				const uri = URI.file(firstLine)
+				language = getLanguage(languageService, { uri, fileContents: remainingContents ?? undefined })
+			}
+			else { // get lang from the contents
+				language = getLanguage(languageService, { uri: null, fileContents: remainingContents ?? undefined })
+			}
+		}
+		const contents = firstLineIsURI ? (remainingContents || '') : t.text // exclude first-line URI from contents
 
+		// TODO!!! user should only be able to apply this when the code has been closed (t.raw ends with "```")
 		if (options.isApplyEnabled && chatMessageLocation) {
-
 			const applyBoxId = getApplyBoxId({
 				threadId: chatMessageLocation.threadId,
 				messageIdx: chatMessageLocation.messageIdx,
 				tokenIdx: tokenIdx,
 			})
-
 			return <BlockCodeWithApply
-				initValue={t.text}
+				initValue={contents}
 				language={language}
 				applyBoxId={applyBoxId}
 			/>
 		}
-
 		return <BlockCode
-			initValue={t.text}
+			initValue={contents}
 			language={language}
 		/>
 	}
@@ -223,7 +239,7 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx, ...options 
 		return <li>
 			<input type="checkbox" checked={t.checked} readOnly />
 			<span>
-				<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} nested={true} {...options} />
+				<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} inPTag={true} {...options} />
 			</span>
 		</li>
 	}
@@ -239,7 +255,7 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx, ...options 
 							<input type="checkbox" checked={item.checked} readOnly />
 						)}
 						<span>
-							<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} nested={true} {...options} />
+							<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} inPTag={true} {...options} />
 						</span>
 					</li>
 				))}
@@ -252,14 +268,15 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx, ...options 
 			{t.tokens.map((token, index) => (
 				<RenderToken key={index}
 					token={token}
-					tokenIdx={`${tokenIdx ? `${tokenIdx}-` : ''}${index}`} // assign a unique tokenId to nested components
+					tokenIdx={`${tokenIdx ? `${tokenIdx}-` : ''}${index}`} // assign a unique tokenId to inPTag components
 					chatMessageLocation={chatMessageLocation}
+					inPTag={true} // TODO!!! check this
 					{...options}
 				/>
 			))}
 		</>
 
-		if (nested) return contents
+		if (inPTag) return contents
 
 		return <p>
 			{contents}
@@ -343,12 +360,13 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx, ...options 
 	)
 }
 
-export const ChatMarkdownRender = ({ string, nested = false, chatMessageLocation, ...options }: { string: string, nested?: boolean, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
+
+export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
-				<RenderToken key={index} token={token} nested={nested} chatMessageLocation={chatMessageLocation} tokenIdx={index + ''} {...options} />
+				<RenderToken key={index} token={token} inPTag={inPTag} chatMessageLocation={chatMessageLocation} tokenIdx={index + ''} {...options} />
 			))}
 		</>
 	)

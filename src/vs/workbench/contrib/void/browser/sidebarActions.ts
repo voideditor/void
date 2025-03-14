@@ -123,12 +123,14 @@ registerAction2(class extends Action2 {
 		const selection: StagingSelectionItem = !selectionRange || !selectionStr || (selectionRange.startLineNumber > selectionRange.endLineNumber) ? {
 			type: 'File',
 			fileURI: model.uri,
+			language: model.getLanguageId(),
 			selectionStr: null,
 			range: null,
 			state: { isOpened: false, }
 		} : {
 			type: 'Selection',
 			fileURI: model.uri,
+			language: model.getLanguageId(),
 			selectionStr: selectionStr,
 			range: selectionRange,
 			state: { isOpened: true, }

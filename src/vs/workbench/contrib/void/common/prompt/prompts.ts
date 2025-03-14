@@ -5,8 +5,6 @@
 
 
 import { URI } from '../../../../../base/common/uri.js';
-import { filenameToVscodeLanguage } from '../helpers/detectLanguage.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
 import { os } from '../helpers/systemInfo.js';
 import { IVoidFileService } from '../voidFileService.js';
 import { CodeSelection, FileSelection, StagingSelectionItem } from '../chatThreadServiceTypes.js';
@@ -17,8 +15,8 @@ export const tripleTick = ['```', '```']
 
 export const editToolDesc_toolDescription = `\
 A high level description of the change you'd like to make in the file. This description will be handed to a dumber, faster model that will quickly apply the change. \
-Typically the best description you can give here is a single code block of the form:\n${tripleTick[0]}\n// ... existing code ...\n{{change 1}}\n// ... existing code ...\n{{change2}}\n// ... existing code ...\n{{change 3}}\n...\n${tripleTick[1]}.\
-Do NOT output the whole file here if possible, and try to write as LITTLE as needed to describe the change.`
+Typically the best description you can give here is a single code block of the form:\n${tripleTick[0]}\n// ... existing code ...\n{{change 1}}\n// ... existing code ...\n{{change2}}\n// ... existing code ...\n{{change 3}}\n...\n${tripleTick[1]}. \
+Do NOT output the whole file here if possible, and try to write as LITTLE code as needed to describe the change.`
 
 
 
@@ -42,35 +40,37 @@ You will be given tools you can call.
 - NEVER modify a file outside one of the the user's workspaces without confirmation from the user.`}
 \
 `: `\
-You're allowed to ask for more context. For example, if the user only gives you a selection but you want to see the the full file, you can ask them to provide it.
-\
+You're allowed to ask for more context. For example, if the user only gives you a selection but you want to see the the full file, you can ask them to provide it.\
 `}
 
 ${mode === 'agent' /* code blocks */ ? `\
-If you have a change to make, you should almost always use a tool to edit the file. Even if you don't (e.g. if the user asks you not to), you should still NEVER re-write the entire file for the user. Instead, you should write comments like "// ... existing code" to indicate how to change the existing code.
+If you have a change to make, you should almost always use a tool to edit the file. Even if you don't (e.g. if the user asks you not to), you should still NEVER re-write the entire file for the user. Instead, you should write comments like "// ... existing code" to indicate how to change the existing code. \
 `: `\
 If you think it's appropriate to suggest an edit to a file, then you must describe your suggestion in CODE BLOCK(S) (wrapped in triple backticks).
-- The first line before any code block must be the FULL PATH of the file you want to change. If the path does not already exist, it will be created.
-- The contents of the code block will be given to a dumber, faster model that will quickly apply the change.
+- The first line of the code block must be the FULL PATH of the file you want to change. If the path does not already exist, it will be created.
+- The remaining contents of the code block will be given to a dumber, faster model that will quickly apply the change.
 - Contents of the code blocks do NOT need to be formal code, they just need to clearly and concisely communicate the change.
-- Do NOT re-write the entire file in the code block(s). Instead, write comments like "// ... existing code" to indicate how to change the existing code.
+- Do NOT re-write the entire file in the code block(s). Instead, write comments like "// ... existing code" to indicate how to change the existing code.`}
+
+Misc:
+- Always wrap any code you produce in triple backticks.
 \
-`}`
+`
 
 
-type FileSelnLocal = { fileURI: URI, content: string }
-const stringifyFileSelection = ({ fileURI, content }: FileSelnLocal) => {
+type FileSelnLocal = { fileURI: URI, language: string, content: string }
+const stringifyFileSelection = ({ fileURI, language, content }: FileSelnLocal) => {
 	return `\
 ${fileURI.fsPath}
-${tripleTick[0]}${filenameToVscodeLanguage(fileURI.fsPath) ?? ''}
+${tripleTick[0]}${language}
 ${content}
 ${tripleTick[1]}
 `
 }
-const stringifyCodeSelection = ({ fileURI, selectionStr, range }: CodeSelection) => {
+const stringifyCodeSelection = ({ fileURI, language, selectionStr, range }: CodeSelection) => {
 	return `\
 ${fileURI.fsPath} (lines ${range.startLineNumber}:${range.endLineNumber})
-${tripleTick[0]}${filenameToVscodeLanguage(fileURI.fsPath) ?? ''}
+${tripleTick[0]}${language}
 ${selectionStr}
 ${tripleTick[1]}
 `
@@ -85,13 +85,19 @@ const stringifyFileSelections = async (fileSelections: FileSelection[], voidFile
 	}))
 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
 }
+
+
 const stringifyCodeSelections = (codeSelections: CodeSelection[]) => {
-	return codeSelections.map(sel => stringifyCodeSelection(sel)).join('\n') || null
+	return codeSelections.map(sel => {
+		stringifyCodeSelection(sel)
+	}).join('\n') || null
 }
+
 const stringifySelectionNames = (currSelns: StagingSelectionItem[] | null): string => {
 	if (!currSelns) return ''
 	return currSelns.map(s => `${s.fileURI.fsPath}${s.range ? ` (lines ${s.range.startLineNumber}:${s.range.endLineNumber})` : ''}`).join('\n')
 }
+
 
 export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null) => {
 
@@ -103,7 +109,10 @@ export const chat_userMessageContent = async (instructions: string, currSelns: S
 	return str;
 };
 
-export const chat_selectionsString = async (prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null, voidFileService: IVoidFileService) => {
+export const chat_selectionsString = async (
+	prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null,
+	voidFileService: IVoidFileService,
+) => {
 
 	// ADD IN FILES AT TOP
 	const allSelections = [...currSelns || [], ...prevSelns || []]
@@ -158,9 +167,7 @@ Directions:
 
 
 
-export const rewriteCode_userMessage = ({ originalCode, applyStr, uri }: { originalCode: string, applyStr: string, uri: URI }) => {
-
-	const language = filenameToVscodeLanguage(uri.fsPath) ?? ''
+export const rewriteCode_userMessage = ({ originalCode, applyStr, language }: { originalCode: string, applyStr: string, language: string }) => {
 
 	return `\
 ORIGINAL_FILE
@@ -205,44 +212,44 @@ For example, if the user is asking you to "make this variable a better name", ma
 - Make sure you give enough context in the code block to apply the changes to the correct location in the code`
 
 
-export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, voidFileService }: { searchClause: string, replaceClause: string, fileURI: URI, modelService: IModelService, voidFileService: IVoidFileService }) => {
+// export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, voidFileService }: { searchClause: string, replaceClause: string, fileURI: URI, voidFileService: IVoidFileService }) => {
 
-	// we may want to do this in batches
-	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null, state: { isOpened: false } }
+// 	// we may want to do this in batches
+// 	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null, state: { isOpened: false } }
 
-	const file = await stringifyFileSelections([fileSelection], voidFileService)
+// 	const file = await stringifyFileSelections([fileSelection], voidFileService)
 
-	return `\
-## FILE
-${file}
+// 	return `\
+// ## FILE
+// ${file}
 
-## SEARCH_CLAUSE
-Here is what the user is searching for:
-${searchClause}
+// ## SEARCH_CLAUSE
+// Here is what the user is searching for:
+// ${searchClause}
 
-## REPLACE_CLAUSE
-Here is what the user wants to replace it with:
-${replaceClause}
+// ## REPLACE_CLAUSE
+// Here is what the user wants to replace it with:
+// ${replaceClause}
 
-## INSTRUCTIONS
-Please return the changes you want to make to the file in a codeblock, or return "no" if you do not want to make changes.`
-}
-
-
+// ## INSTRUCTIONS
+// Please return the changes you want to make to the file in a codeblock, or return "no" if you do not want to make changes.`
+// }
 
 
-// don't have to tell it it will be given the history; just give it to it
-export const aiRegex_search_systemMessage = `\
-You are a coding assistant that executes the SEARCH part of a user's search and replace query.
 
-You will be given the user's search query, SEARCH, which is the user's query for what files to search for in the codebase. You may also be given the user's REPLACE query for additional context.
 
-Output
-- Regex query
-- Files to Include (optional)
-- Files to Exclude? (optional)
+// // don't have to tell it it will be given the history; just give it to it
+// export const aiRegex_search_systemMessage = `\
+// You are a coding assistant that executes the SEARCH part of a user's search and replace query.
 
-`
+// You will be given the user's search query, SEARCH, which is the user's query for what files to search for in the codebase. You may also be given the user's REPLACE query for additional context.
+
+// Output
+// - Regex query
+// - Files to Include (optional)
+// - Files to Exclude? (optional)
+
+// `
 
 
 

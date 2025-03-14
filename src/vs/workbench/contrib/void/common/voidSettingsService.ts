@@ -273,6 +273,13 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 
+	private _onUpdate_syncFastApplyToChat() {
+		// if sync is turned on, sync (call this whenever Chat model or !!sync changes)
+		if (this.state.globalSettings.syncFastApplyToChat) {
+			this.setModelSelectionOfFeature('Apply', deepClone(this.state.modelSelectionOfFeature['Chat']))
+		}
+	}
+
 	setGlobalSetting: SetGlobalSettingFn = async (settingName, newVal) => {
 		const newState: VoidSettingsState = {
 			...this.state,
@@ -285,6 +292,8 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		await this._storeState()
 		this._onDidChangeState.fire()
 
+		// hooks
+		this._onUpdate_syncFastApplyToChat()
 	}
 
 
@@ -301,6 +310,9 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		await this._storeState()
 		this._onDidChangeState.fire()
+
+		// hooks
+		if (featureName === 'Chat') { this._onUpdate_syncFastApplyToChat() }
 	}
 
 

@@ -444,11 +444,11 @@ export const FeaturesTab = () => {
 
 		<h2 className={`text-3xl mt-12`}>Feature Options</h2>
 		<ErrorBoundary>
-			<div className='flex gap-x-4 items-start justify-around mt-4 mb-16'>
+			<div className='flex items-start justify-around mt-4 mb-16 gap-x-8'>
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
 					<div className='text-sm italic text-void-fg-3 my-1'>Experimental. Only works with models that support FIM.</div>
-					<div className='flex items-center gap-x-2'>
+					<div className='flex items-center gap-x-2 my-1'>
 						<VoidSwitch
 							size='xs'
 							value={voidSettingsState.globalSettings.enableAutocomplete}
@@ -457,15 +457,27 @@ export const FeaturesTab = () => {
 						<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
 					</div>
 
-					<div className={!voidSettingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}>
+					<div className={`my-1 ${!voidSettingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}`}>
 						<ModelDropdown featureName={'Autocomplete'} />
 					</div>
 				</div>
 
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-					<div className='text-sm italic text-void-fg-3 my-1'>We recommend using Claude 3.7 or GPT 4o.</div>
-					<ModelDropdown featureName={'Apply'} />
+					<div className='text-sm italic text-void-fg-3 my-1'>If you customize this, we recommend using Claude 3.7 or DeepSeek R1.</div>
+					<div className='flex items-center gap-x-2 my-1'>
+						<VoidSwitch
+							size='xs'
+							value={!voidSettingsState.globalSettings.syncFastApplyToChat}
+							onChange={(newVal) => voidSettingsService.setGlobalSetting('syncFastApplyToChat', !newVal)}
+						/>
+						<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.syncFastApplyToChat ? 'Sync with Chat' : 'Use Another Model'}</span>
+					</div>
+
+					<div className={`my-1 ${voidSettingsState.globalSettings.syncFastApplyToChat ? 'hidden' : ''}`}>
+						<ModelDropdown featureName={'Apply'} />
+					</div>
+
 				</div>
 			</div>
 

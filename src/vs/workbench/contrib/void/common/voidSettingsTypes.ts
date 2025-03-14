@@ -385,13 +385,14 @@ export type GlobalSettings = {
 	autoRefreshModels: boolean;
 	aiInstructions: string;
 	enableAutocomplete: boolean;
+	syncFastApplyToChat: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
 	aiInstructions: '',
 	enableAutocomplete: false,
-
+	syncFastApplyToChat: true,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

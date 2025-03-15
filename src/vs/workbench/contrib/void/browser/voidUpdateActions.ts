@@ -87,7 +87,7 @@ class VoidUpdateWorkbenchContribution extends Disposable implements IWorkbenchCo
 		// check every 3 hours
 		const { window } = dom.getActiveWindow()
 
-		const intervalId = window.setInterval(() => autoCheck(), 3 * 60 * 60 * 1000)
+		const intervalId = window.setInterval(() => autoCheck(), 3 * 60 * 60 * 1000) // every 3 hrs
 		this._register({ dispose: () => window.clearInterval(intervalId) })
 
 	}

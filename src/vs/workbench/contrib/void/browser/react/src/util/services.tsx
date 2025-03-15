@@ -10,7 +10,6 @@ import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
 import { VoidUriState } from '../../../voidUriStateService.js';
-import { VoidQuickEditState } from '../../../quickEditStateService.js'
 import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
 
 import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
@@ -27,7 +26,6 @@ import { IVoidSettingsService } from '../../../../../../../workbench/contrib/voi
 import { IEditCodeService, URIStreamState } from '../../../editCodeServiceInterface.js'
 
 import { IVoidUriStateService } from '../../../voidUriStateService.js';
-import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
 import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
@@ -56,9 +54,6 @@ import { ILanguageService } from '../../../../../../../editor/common/languages/l
 // React listens by adding a setState function to these listeners.
 let uriState: VoidUriState
 const uriStateListeners: Set<(s: VoidUriState) => void> = new Set()
-
-let quickEditState: VoidQuickEditState
-const quickEditStateListeners: Set<(s: VoidQuickEditState) => void> = new Set()
 
 let sidebarState: VoidSidebarState
 const sidebarStateListeners: Set<(s: VoidSidebarState) => void> = new Set()
@@ -94,7 +89,6 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 
 	const stateServices = {
 		uriStateService: accessor.get(IVoidUriStateService),
-		quickEditStateService: accessor.get(IQuickEditStateService),
 		sidebarStateService: accessor.get(ISidebarStateService),
 		chatThreadsStateService: accessor.get(IChatThreadService),
 		settingsStateService: accessor.get(IVoidSettingsService),
@@ -103,21 +97,13 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		editCodeService: accessor.get(IEditCodeService),
 	}
 
-	const { uriStateService, sidebarStateService, quickEditStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService } = stateServices
+	const { uriStateService, sidebarStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService } = stateServices
 
 	uriState = uriStateService.state
 	disposables.push(
 		uriStateService.onDidChangeState(() => {
 			uriState = uriStateService.state
 			uriStateListeners.forEach(l => l(uriState))
-		})
-	)
-
-	quickEditState = quickEditStateService.state
-	disposables.push(
-		quickEditStateService.onDidChangeState(() => {
-			quickEditState = quickEditStateService.state
-			quickEditStateListeners.forEach(l => l(quickEditState))
 		})
 	)
 
@@ -206,7 +192,6 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IVoidSettingsService: accessor.get(IVoidSettingsService),
 		IEditCodeService: accessor.get(IEditCodeService),
 		IVoidUriStateService: accessor.get(IVoidUriStateService),
-		IQuickEditStateService: accessor.get(IQuickEditStateService),
 		ISidebarStateService: accessor.get(ISidebarStateService),
 		IChatThreadService: accessor.get(IChatThreadService),
 
@@ -261,16 +246,6 @@ export const useUriState = () => {
 		ss(uriState)
 		uriStateListeners.add(ss)
 		return () => { uriStateListeners.delete(ss) }
-	}, [ss])
-	return s
-}
-
-export const useQuickEditState = () => {
-	const [s, ss] = useState(quickEditState)
-	useEffect(() => {
-		ss(quickEditState)
-		quickEditStateListeners.add(ss)
-		return () => { quickEditStateListeners.delete(ss) }
 	}, [ss])
 	return s
 }

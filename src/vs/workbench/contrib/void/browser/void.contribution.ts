@@ -40,6 +40,9 @@ import './terminalToolService.js'
 // register Thread History
 import './chatThreadService.js'
 
+// ping
+import './metricsPollService.js'
+
 
 
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------

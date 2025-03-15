@@ -1611,6 +1611,11 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 }
 
 
+const VoidCommandBarNavButtonsShell = () => {
+
+}
+
+
 const VoidCommandBar = () => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
@@ -1618,6 +1623,8 @@ const VoidCommandBar = () => {
 	const commandService = accessor.get('ICommandService')
 
 	const [_, rerender] = useState(0)
+	// Add a state variable to track focus
+	const [isFocused, setIsFocused] = useState(false)
 	console.log('rerender count: ', _)
 
 	// state for what the user is currently focused on (both URI and diff)
@@ -1694,76 +1701,83 @@ const VoidCommandBar = () => {
 	}, [getCurrentUri, editCodeService._sortedUrisWithDiffs])
 
 
+	const gotoNextDiff = ({ step }: { step: 1 | -1 }) => {
 
-	return <div className='bg-red-500 min-h-4 min-w-4 flex gap-4'>
+		// get the next diff
+		const res = getNextDiff({ step: 1 })
+		if (!res) return;
 
-		<button
-			className='bg-[var(--vscode-button-secondaryBackground)] text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)] px-4 py-1.5 rounded text-sm font-medium'
-			onClick={() => {
-				rerender(c => c + 1)
-			}}
-		>
-			rerender
-		</button>
+		// scroll to the next diff
+		const { nextDiff, nextDiffIdx } = res;
+		const editor = editorService.getActiveCodeEditor()
+		if (!editor) return;
 
-		<button
-			onClick={() => {
+		const range = { startLineNumber: nextDiff.startLine, endLineNumber: nextDiff.startLine, startColumn: 1, endColumn: 1 };
+		editor.revealRange(range, ScrollType.Immediate)
 
-				// get the next diff
-				const res = getNextDiff({ step: 1 })
-				if (!res) return;
+		// update state
+		const diffArea = editCodeService.diffAreaOfId[nextDiff.diffareaid]
+		setDiffIdxOfFspath(v => ({ ...v, [diffArea._URI.fsPath]: nextDiffIdx }))
 
-				// scroll to the next diff
-				const { nextDiff, nextDiffIdx } = res;
+	}
+
+	const gotoNextUri = ({ step }: { step: 1 | -1 }) => {
+
+		// get the next uri
+		const res = getNextUri({ step: 1 })
+		if (!res) return;
+
+		const { nextUri, nextUriIdx } = res;
+
+		// open the uri and scroll to diff
+		const sortedDiffs = editCodeService._sortedDiffsOfFspath[nextUri.fsPath]
+		if (!sortedDiffs) return;
+
+		const diffIdx = diffIdxOfFspath[nextUri.fsPath] || 0
+		const diff = sortedDiffs[diffIdx]
+
+		const range = { startLineNumber: diff.startLine, endLineNumber: diff.startLine, startColumn: 1, endColumn: 1 };
+
+		commandService.executeCommand('vscode.open', nextUri).then(() => {
+
+			// select the text
+			setTimeout(() => {
+
 				const editor = editorService.getActiveCodeEditor()
 				if (!editor) return;
 
-				const range = { startLineNumber: nextDiff.startLine, endLineNumber: nextDiff.startLine, startColumn: 1, endColumn: 1 };
 				editor.revealRange(range, ScrollType.Immediate)
 
-				// update state
-				const diffArea = editCodeService.diffAreaOfId[nextDiff.diffareaid]
-				setDiffIdxOfFspath(v => ({ ...v, [diffArea._URI.fsPath]: nextDiffIdx }))
+			}, 50)
 
-			}}
-		>
-			next diff:
-		</button>
+		})
+	}
+
+	return <div
+		className={`bg-red-500 m-4 p-4 min-h-4 min-w-4 flex gap-4 ${isFocused ? 'ring-2 ring-[var(--vscode-focusBorder)]' : ''}`}
+		onFocusCapture={() => setIsFocused(true)}
+		onBlurCapture={() => setIsFocused(false)}
+	>
 		<button
-			onClick={() => {
+			disabled={!getNextDiff({ step: 1 })}
+			onClick={() => gotoNextDiff({ step: 1 })}
+		>↓</button>
 
-				// get the next uri
-				const res = getNextUri({ step: 1 })
-				if (!res) return;
+		<button
+			disabled={!getNextDiff({ step: -1 })}
+			onClick={() => gotoNextDiff({ step: -1 })}
+		>↑</button>
 
-				const { nextUri, nextUriIdx } = res;
+		<button
+			disabled={!getNextUri({ step: -1 })}
+			onClick={() => gotoNextUri({ step: -1 })}
+		>←</button>
 
-				// open the uri and scroll to diff
-				const sortedDiffs = editCodeService._sortedDiffsOfFspath[nextUri.fsPath]
-				if (!sortedDiffs) return;
+		<button
+			disabled={!getNextUri({ step: 1 })}
+			onClick={() => gotoNextUri({ step: 1 })}
+		>→</button>
 
-				const diffIdx = diffIdxOfFspath[nextUri.fsPath] || 0
-				const diff = sortedDiffs[diffIdx]
-
-				const range = { startLineNumber: diff.startLine, endLineNumber: diff.startLine, startColumn: 1, endColumn: 1 };
-
-				commandService.executeCommand('vscode.open', nextUri).then(() => {
-
-					// select the text
-					setTimeout(() => {
-
-						const editor = editorService.getActiveCodeEditor()
-						if (!editor) return;
-
-						editor.revealRange(range, ScrollType.Immediate)
-
-					}, 50)
-
-				})
-			}}
-		>
-			next diff area
-		</button>
 		<div>
 			<div className='gap-2 text-[var(--vscode-editor-foreground)] flex'>
 				<div>numUris: {Object.keys(editCodeService._sortedDiffsOfFspath).length}</div>
@@ -1908,7 +1922,7 @@ export const SidebarChat = () => {
 	</div>
 
 	const messagesHTML = <ScrollToBottomContainer
-		key={currentThread.id} // force rerender on all children if id changes
+		key={'messages' + chatThreadsState.currentThreadId} // force rerender on all children if id changes
 		scrollContainerRef={scrollContainerRef}
 		className={`
 			flex flex-col
@@ -1950,7 +1964,9 @@ export const SidebarChat = () => {
 			onAbort()
 		}
 	}, [onSubmit, onAbort, isStreaming])
-	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
+	const inputForm = <div
+		key={'input' + chatThreadsState.currentThreadId}
+		className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
 		<VoidChatArea
 			featureName='Chat'
 			divRef={chatAreaRef}
@@ -1974,9 +1990,9 @@ export const SidebarChat = () => {
 				fnsRef={textAreaFnsRef}
 				multiline={true}
 			/>
-			<VoidCommandBar />
 
 		</VoidChatArea>
+		<VoidCommandBar />
 	</div>
 
 	return <div ref={sidebarRef} className={`w-full h-full`}>

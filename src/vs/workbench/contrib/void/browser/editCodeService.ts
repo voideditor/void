@@ -384,7 +384,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			// Update or remove the entry for this URI
 			if (diffsInUri.length > 0) {
 				this._sortedDiffsOfFspath[uri.fsPath] = diffsInUri.sort((a, b) => a.startLine - b.startLine);
-				console.log('_sortedDiffsOfFspath', this._sortedDiffsOfFspath)
 			} else {
 				delete this._sortedDiffsOfFspath[uri.fsPath];
 			}

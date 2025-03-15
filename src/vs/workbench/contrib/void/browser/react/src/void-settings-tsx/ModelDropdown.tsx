@@ -86,7 +86,7 @@ const MemoizedModelDropdown = ({ featureName, className }: { featureName: Featur
 
 	useEffect(() => {
 		const oldOptions = oldOptionsRef.current
-		const newOptions = settingsState._modelOptions.filter((o) => filter(o.selection))
+		const newOptions = settingsState._modelOptions.filter((o) => filter(o.selection, { chatMode: settingsState.globalSettings.chatMode }))
 
 		if (!optionsEqual(oldOptions, newOptions)) {
 			setMemoizedOptions(newOptions)
@@ -95,7 +95,7 @@ const MemoizedModelDropdown = ({ featureName, className }: { featureName: Featur
 	}, [settingsState._modelOptions, filter])
 
 	if (memoizedOptions.length === 0) { // Pretty sure this will never be reached unless filter is enabled
-		return <WarningBox text={emptyMessage || 'No models available'} />
+		return <WarningBox text={emptyMessage?.message || 'No models available'} />
 	}
 
 	return <ModelSelectBox featureName={featureName} options={memoizedOptions} className={className} />
@@ -116,7 +116,7 @@ export const ModelDropdown = ({ featureName, className }: { featureName: Feature
 	const isDisabled = isFeatureNameDisabled(featureName, settingsState)
 	if (isDisabled)
 		return <WarningBox onClick={openSettings} text={
-			emptyMessage ? emptyMessage :
+			emptyMessage && emptyMessage.priority === 'always' ? emptyMessage.message :
 				isDisabled === 'needToEnableModel' ? 'Enable a model'
 					: isDisabled === 'addModel' ? 'Add a model'
 						: (isDisabled === 'addProvider' || isDisabled === 'notFilledIn' || isDisabled === 'providerNotAutoDetected') ? 'Provider required'

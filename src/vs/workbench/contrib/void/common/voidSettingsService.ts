@@ -12,7 +12,7 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
 import { getModelCapabilities } from './modelCapabilities.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings, ModelSelectionOptions, OptionsOfModelSelection } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode } from './voidSettingsTypes.js';
 
 // past values:
 // 'void.settingsServiceStorage'
@@ -97,15 +97,15 @@ const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], opt
 }
 
 
-export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter: (o: ModelSelection) => boolean; emptyMessage: string | null } } = {
-	'Autocomplete': { filter: o => getModelCapabilities(o.providerName, o.modelName).supportsFIM, emptyMessage: 'No models support FIM' },
-	'Chat': { filter: o => true, emptyMessage: null },
-	'Ctrl+K': { filter: o => true, emptyMessage: null },
-	'Apply': { filter: o => true, emptyMessage: null },
+export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter: (o: ModelSelection, opts: { chatMode: ChatMode }) => boolean; emptyMessage: null | { message: string, priority: 'always' | 'fallback' } } } = {
+	'Autocomplete': { filter: (o) => getModelCapabilities(o.providerName, o.modelName).supportsFIM, emptyMessage: { message: 'No models support FIM', priority: 'always' } },
+	'Chat': { filter: (o, { chatMode }) => chatMode === 'chat' ? true : !!getModelCapabilities(o.providerName, o.modelName).supportsTools, emptyMessage: { message: 'No models support tool use', priority: 'fallback' } },
+	'Ctrl+K': { filter: o => true, emptyMessage: null, },
+	'Apply': { filter: o => true, emptyMessage: null, },
 }
 
 
-const _validatedState = (state: Omit<VoidSettingsState, '_modelOptions'>) => {
+const _validatedModelState = (state: Omit<VoidSettingsState, '_modelOptions'>) => {
 
 	let newSettingsOfProvider = state.settingsOfProvider
 
@@ -143,7 +143,8 @@ const _validatedState = (state: Omit<VoidSettingsState, '_modelOptions'>) => {
 	for (const featureName of featureNames) {
 
 		const { filter } = modelFilterOfFeatureName[featureName]
-		const modelOptionsForThisFeature = newModelOptions.filter((o) => filter(o.selection))
+		const filterOpts = { chatMode: state.globalSettings.chatMode }
+		const modelOptionsForThisFeature = newModelOptions.filter((o) => filter(o.selection, filterOpts))
 
 		const modelSelectionAtFeature = newModelSelectionOfFeature[featureName]
 		const selnIdx = modelSelectionAtFeature === null ? -1 : modelOptionsForThisFeature.findIndex(m => modelSelectionsEqual(m.selection, modelSelectionAtFeature))
@@ -218,7 +219,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		// the stored data structure might be outdated, so we need to update it here
 		const finalState = readS
-		this.state = _validatedState(finalState);
+		this.state = _validatedModelState(finalState);
 
 		this._resolver();
 		this._onDidChangeState.fire();
@@ -265,7 +266,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			globalSettings: newGlobalSettings,
 		}
 
-		this.state = _validatedState(newState)
+		this.state = _validatedModelState(newState)
 
 		await this._storeState()
 		this._onDidChangeState.fire()
@@ -287,7 +288,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				[settingName]: newVal
 			}
 		}
-		this.state = newState
+		this.state = _validatedModelState(newState)
 		await this._storeState()
 		this._onDidChangeState.fire()
 
@@ -305,7 +306,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			}
 		}
 
-		this.state = newState
+		this.state = _validatedModelState(newState)
 
 		await this._storeState()
 		this._onDidChangeState.fire()
@@ -331,7 +332,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				}
 			}
 		}
-		this.state = newState
+		this.state = _validatedModelState(newState)
 
 		await this._storeState()
 		this._onDidChangeState.fire()

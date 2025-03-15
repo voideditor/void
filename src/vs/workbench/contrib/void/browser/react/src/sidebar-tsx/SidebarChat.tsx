@@ -149,62 +149,6 @@ const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-$
 
 
 
-
-// const ReasoningOptionDropdown = () => {
-// 	const accessor = useAccessor()
-
-// 	const voidSettingsService = accessor.get('IVoidSettingsService')
-// 	const voidSettingsState = useSettingsState()
-
-// 	const modelSelection = voidSettingsState.modelSelectionOfFeature['Chat']
-// 	if (!modelSelection) return null
-
-// 	const { modelName, providerName } = modelSelection
-// 	const { canToggleReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName).supportsReasoningOutput || {}
-
-// 	const defaultEnabledVal = canToggleReasoning ? true : false
-// 	const isEnabled = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEnabled ?? defaultEnabledVal
-
-// 	let toggleButton: React.ReactNode = null
-// 	if (canToggleReasoning) {
-// 		toggleButton = <div className='flex items-center gap-x-3'>
-// 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isEnabled ? 'Thinking' : 'Thinking'}</span>
-// 			<VoidSwitch
-// 				size='xxs'
-// 				value={isEnabled}
-// 				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: newVal }) }}
-// 			/>
-// 		</div>
-// 	}
-
-// 	let slider: React.ReactNode = null
-// 	if (isEnabled && reasoningBudgetSlider?.type === 'slider') {
-// 		const { min, max, default: defaultVal } = reasoningBudgetSlider
-// 		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
-// 		slider = <div className='flex items-center gap-x-3'>
-// 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>Budget</span>
-// 			<VoidSlider
-// 				width={50}
-// 				size='xxs'
-// 				min={min}
-// 				max={max}
-// 				step={(max - min) / 8}
-// 				value={value}
-// 				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningBudget: newVal }) }}
-// 			/>
-// 			<span className='text-void-fg-3 text-xs pointer-events-none'>{`${value} tokens`}</span>
-// 		</div>
-
-// 	}
-
-// 	return <>
-// 		{toggleButton}
-// 		{slider}
-// 	</>
-// }
-
-
-
 // SLIDER ONLY:
 const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) => {
 	const accessor = useAccessor()
@@ -705,24 +649,17 @@ export const SelectedFiles = (
 
 
 
-const ReasoningComponent = ({ children }: { children: React.ReactNode }) => {
-
-	const [isOpen, setIsOpen] = useState(false)
-	return children
-
-}
-
-
 
 type ToolHeaderParams = {
 	icon?: React.ReactNode;
 	title: string;
-	desc1: string;
+	desc1: React.ReactNode;
 	desc2?: React.ReactNode;
 	isError?: boolean;
 	numResults?: number;
 	children?: React.ReactNode;
 	onClick?: () => void;
+	isOpen?: boolean,
 }
 
 const ToolHeaderWrapper = ({
@@ -734,9 +671,11 @@ const ToolHeaderWrapper = ({
 	children,
 	isError,
 	onClick,
+	isOpen,
 }: ToolHeaderParams) => {
 
-	const [isExpanded, setIsExpanded] = useState(false);
+	const [isExpanded_, setIsExpanded] = useState(false);
+	const isExpanded = isOpen ? isOpen : isExpanded_
 
 	const isDropdown = children !== undefined // null ALLOWS dropdown
 	const isClickable = !!(isDropdown || onClick)
@@ -780,7 +719,8 @@ const ToolHeaderWrapper = ({
 			{/* children */}
 			{<div
 				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100' : 'max-h-0 opacity-0'}
-				  text-void-fg-4 rounded-sm`}
+					text-void-fg-4 rounded-sm
+				  `}
 			//    bg-black bg-opacity-10 border border-void-border-4 border-opacity-50
 			>
 				{children}
@@ -994,6 +934,7 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 
 	const reasoningStr = chatMessage.reasoning?.trim() || null
 	const hasReasoning = !!reasoningStr
+	const isDoneReasoning = !!chatMessage.content
 	const thread = chatThreadsService.getCurrentThread()
 
 
@@ -1035,14 +976,15 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 		>
 
 			{/* reasoning token */}
-			{hasReasoning && <ReasoningComponent>
+			{hasReasoning && <ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!!isLoading}>
 				<ChatMarkdownRender
 					string={reasoningStr}
 					chatMessageLocation={chatMessageLocation}
 					isApplyEnabled={false}
 					isLinkDetectionEnabled={true}
+					inPTag={true}
 				/>
-			</ReasoningComponent>}
+			</ReasoningWrapper>}
 
 			{/* assistant message */}
 			<ChatMarkdownRender
@@ -1168,7 +1110,7 @@ const ToolRequestAcceptRejectButtons = ({ voidToolId }: { voidToolId: string }) 
 
 export const ToolContentsWrapper = ({ children, className }: { children: React.ReactNode, className?: string }) => {
 	return <div className={`${className ? className : ''} overflow-x-auto cursor-default select-none`}>
-		<div className='px-2 py-1 min-w-full'>
+		<div className='px-2 min-w-full'>
 			{children}
 		</div>
 	</div>
@@ -1203,7 +1145,7 @@ const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescript
 		<ListableToolItem
 			showDot={false}
 			name={uri.fsPath}
-			className='w-full overflow-auto mb-2'
+			className='w-full overflow-auto py-1'
 			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
 		/>
 		<div className='border border-void-border-1 rounded p-1'>
@@ -1227,7 +1169,7 @@ const TerminalToolChildren = ({ command, terminalId, result, resolveReason }: { 
 		<ListableToolItem
 			showDot={false}
 			name={`$ ${command}`}
-			className='w-full overflow-auto mb-2'
+			className='w-full overflow-auto py-1'
 			onClick={() => terminalToolsService.openTerminal(terminalId)}
 		/>
 		<div className='border border-void-border-1 rounded p-1'>
@@ -1240,6 +1182,23 @@ const TerminalToolChildren = ({ command, terminalId, result, resolveReason }: { 
 	</ToolContentsWrapper>
 }
 
+
+
+const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneReasoning: boolean, isStreaming: boolean, children: React.ReactNode }) => {
+	const isDone = isDoneReasoning || !isStreaming
+	const isWriting = !isDone
+	const [isOpen, setIsOpen] = useState(isWriting)
+	useEffect(() => {
+		if (!isWriting) setIsOpen(isWriting) // if just finished reasoning, close
+	}, [isWriting])
+	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen}>
+		<ToolContentsWrapper className='bg-void-bg-3'>
+			<div className='!select-text cursor-auto'>
+				{children}
+			</div>
+		</ToolContentsWrapper>
+	</ToolHeaderWrapper>
+}
 
 const toolNameToComponent: { [T in ToolName]: {
 	requestWrapper: T extends ToolNameWithApproval ? ((props: { toolRequest: ToolRequestApproval<T> }) => React.ReactNode) : null,
@@ -1296,14 +1255,14 @@ const toolNameToComponent: { [T in ToolName]: {
 					: <ToolContentsWrapper>
 						{value.children.map((child, i) => (<ListableToolItem key={i}
 							name={`${child.name}${child.isDirectory ? '/' : ''}`}
-							className='w-full overflow-auto mb-2'
+							className='w-full overflow-auto py-1'
 							onClick={() => {
 								commandService.executeCommand('workbench.view.explorer');
 								explorerService.select(child.uri, true);
 							}}
 						/>))}
 						{value.hasNextPage &&
-							<ListableToolItem name={`Results truncated (${value.itemsRemaining} remaining).`} isSmall={true} />
+							<ListableToolItem name={`Results truncated (${value.itemsRemaining} remaining).`} isSmall={true} className='w-full overflow-auto py-1' />
 						}
 					</ToolContentsWrapper>
 			}
@@ -1337,11 +1296,11 @@ const toolNameToComponent: { [T in ToolName]: {
 					: <ToolContentsWrapper>
 						{value.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
-							className='w-full overflow-auto mb-2'
+							className='w-full overflow-auto py-1'
 							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
 						/>))}
 						{value.hasNextPage &&
-							<ListableToolItem name={'Results truncated.'} isSmall={true} />
+							<ListableToolItem name={'Results truncated.'} isSmall={true} className='w-full overflow-auto py-1' />
 						}
 
 					</ToolContentsWrapper>
@@ -1376,11 +1335,11 @@ const toolNameToComponent: { [T in ToolName]: {
 					: <ToolContentsWrapper>
 						{value.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
-							className='w-full overflow-auto mb-2'
+							className='w-full overflow-auto py-1'
 							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
 						/>))}
 						{value.hasNextPage &&
-							<ListableToolItem name={`Results truncated.`} isSmall={true} />
+							<ListableToolItem name={`Results truncated.`} isSmall={true} className='w-full overflow-auto py-1' />
 						}
 
 					</ToolContentsWrapper>
@@ -1611,7 +1570,7 @@ const toolNameToComponent: { [T in ToolName]: {
 
 
 type ChatBubbleMode = 'display' | 'edit'
-type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isLoading?: boolean, isLast: boolean }
+type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isLoading: boolean, isLast: boolean }
 
 const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubbleProps) => {
 
@@ -1753,7 +1712,7 @@ export const SidebarChat = () => {
 
 	const previousMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) =>
-			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} isLast={i === numMessages - 1} />
+			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} isLast={i === numMessages - 1} isLoading={false} />
 		)
 	}, [previousMessages, currentThread, numMessages])
 

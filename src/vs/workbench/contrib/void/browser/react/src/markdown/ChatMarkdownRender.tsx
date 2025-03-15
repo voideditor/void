@@ -278,13 +278,13 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 					token={token}
 					tokenIdx={`${tokenIdx ? `${tokenIdx}-` : ''}${index}`} // assign a unique tokenId to inPTag components
 					chatMessageLocation={chatMessageLocation}
-					inPTag={true} // TODO!!! check this
+					inPTag={true}
 					{...options}
 				/>
 			))}
 		</>
 
-		if (inPTag) return contents
+		if (inPTag) return <span className='block my-2'>{contents}</span>
 
 		return <p>
 			{contents}

@@ -280,7 +280,7 @@ export const BlockCodeApplyWrapper = ({
 	const { statusIndicatorHTML, buttonsHTML } = useApplyButtonHTML({ codeStr: initValue, applyBoxId, uri })
 
 	return <div
-		className='border border-void-border-3 rounded overflow-hidden bg-void-bg-3'
+		className='border border-void-border-3 rounded overflow-hidden bg-void-bg-3 my-1'
 	>
 
 		{/* header */}

@@ -271,9 +271,9 @@ const nameOfChatMode = {
 }
 
 const detailOfChatMode = {
-	'chat': 'Chat only',
-	'gather': 'Read files',
-	'agent': 'Read and edit files',
+	'chat': 'Normal chat',
+	'gather': 'Read and search only',
+	'agent': 'Full tool use',
 }
 
 

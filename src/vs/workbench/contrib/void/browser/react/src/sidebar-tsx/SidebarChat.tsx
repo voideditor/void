@@ -268,6 +268,7 @@ interface VoidChatAreaProps {
 	showModelDropdown?: boolean;
 	showSelections?: boolean;
 	showProspectiveSelections?: boolean;
+	loadingIcon?: React.ReactNode;
 
 	selections?: StagingSelectionItem[]
 	setSelections?: (s: StagingSelectionItem[]) => void
@@ -297,6 +298,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	selections,
 	setSelections,
 	featureName,
+	loadingIcon,
 }) => {
 	return (
 		<div
@@ -359,14 +361,21 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 					</div>
 				)}
 
-				{isStreaming ? (
-					<ButtonStop onClick={onAbort} />
-				) : (
-					<ButtonSubmit
-						onClick={onSubmit}
-						disabled={isDisabled}
-					/>
-				)}
+
+				<div className="flex items-center gap-2">
+
+					{isStreaming && loadingIcon}
+
+					{isStreaming ? (
+						<ButtonStop onClick={onAbort} />
+					) : (
+						<ButtonSubmit
+							onClick={onSubmit}
+							disabled={isDisabled}
+						/>
+					)}
+				</div>
+
 			</div>
 		</div>
 	);

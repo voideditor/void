@@ -54,6 +54,9 @@ export const QuickEditChat = ({
 		setIsStreamingRef(isStreaming)
 	}, [diffareaid, setIsStreamingRef]))
 
+	const loadingIcon = <div
+		className="@@codicon @@codicon-loading @@codicon-modifier-spin @@codicon-no-default-spin text-void-fg-3"
+	/>
 
 	const onSubmit = useCallback(() => {
 		if (isDisabled) return
@@ -91,6 +94,7 @@ export const QuickEditChat = ({
 			onAbort={onInterrupt}
 			onClose={onX}
 			isStreaming={isStreamingRef.current}
+			loadingIcon={loadingIcon}
 			isDisabled={isDisabled}
 			className="py-2 w-full"
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}

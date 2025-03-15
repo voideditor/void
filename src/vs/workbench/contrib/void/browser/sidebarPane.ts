@@ -66,7 +66,7 @@ class SidebarViewPane extends ViewPane {
 		// @ICodeEditorService private readonly editorService: ICodeEditorService,
 		// @IContextKeyService private readonly editorContextKeyService: IContextKeyService,
 	) {
-		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService, hoverService)
+		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService)
 
 	}
 

@@ -11,7 +11,6 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { StagingSelectionItem, IChatThreadService } from './chatThreadService.js';
 
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
@@ -29,6 +28,8 @@ import { IInstantiationService } from '../../../../platform/instantiation/common
 import { localize2 } from '../../../../nls.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IVoidUriStateService } from './voidUriStateService.js';
+import { StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
+import { IChatThreadService } from './chatThreadService.js';
 
 // ---------- Register commands and keybindings ----------
 
@@ -124,20 +125,34 @@ registerAction2(class extends Action2 {
 			fileURI: model.uri,
 			selectionStr: null,
 			range: null,
+			state: { isOpened: false, }
 		} : {
 			type: 'Selection',
 			fileURI: model.uri,
 			selectionStr: selectionStr,
 			range: selectionRange,
+			state: { isOpened: true, }
 		}
 
 		// update the staging selections
 		const chatThreadService = accessor.get(IChatThreadService)
 
 		const focusedMessageIdx = chatThreadService.getFocusedMessageIdx()
-		const [staging, setStaging] = chatThreadService._useFocusedStagingState(focusedMessageIdx)
-		const selections = staging.selections || []
-		const setSelections = (s: StagingSelectionItem[]) => setStaging({ ...staging, selections: s })
+
+		// set the selections to the proper value
+		let selections: StagingSelectionItem[] = []
+		let setSelections = (s: StagingSelectionItem[]) => { }
+
+		if (focusedMessageIdx === undefined) {
+			selections = chatThreadService.getCurrentThreadState().stagingSelections
+			setSelections = (s: StagingSelectionItem[]) => chatThreadService.setCurrentThreadState({ stagingSelections: s })
+		} else {
+			selections = chatThreadService.getCurrentMessageState(focusedMessageIdx).stagingSelections
+			setSelections = (s) => chatThreadService.setCurrentMessageState(focusedMessageIdx, { stagingSelections: s })
+		}
+
+		// close all selections besides the new one
+		selections = selections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
 
 		// if matches with existing selection, overwrite (since text may change)
 		const matchingStagingEltIdx = findMatchingStagingIndex(selections, selection)
@@ -230,7 +245,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'void.settingsAction',
-			title: 'Void Settings',
+			title: `Void's Settings`,
 			icon: { id: 'settings-gear' },
 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
 		});

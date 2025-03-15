@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-
 import { Event } from '../../../base/common/event.js';
 import { ICodeEditor, IDiffEditor } from '../editorBrowser.js';
 import { IDecorationRenderOptions } from '../../common/editorCommon.js';

@@ -68,13 +68,12 @@ export const SidebarThreadSelector = () => {
 							let firstMsg = null;
 							// let secondMsg = null;
 
-							const firstMsgIdx = pastThread.messages.findIndex(
-								(msg) => msg.role !== 'system' && !!msg.displayContent
-							);
+							const firstUserMsgIdx = pastThread.messages.findIndex((msg) =>  msg.role !== 'tool' && msg.role !== 'tool_request');
 
-							if (firstMsgIdx !== -1) {
+							if (firstUserMsgIdx !== -1) {
 								// firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');
-								firstMsg = pastThread.messages[firstMsgIdx].displayContent ?? '';
+								const firsUsertMsgObj = pastThread.messages[firstUserMsgIdx]
+								firstMsg = firsUsertMsgObj.role === 'user' && firsUsertMsgObj.displayContent || '';
 							} else {
 								firstMsg = '""';
 							}
@@ -87,9 +86,7 @@ export const SidebarThreadSelector = () => {
 							// 	secondMsg = truncate(pastThread.messages[secondMsgIdx].displayContent ?? '');
 							// }
 
-							const numMessages = pastThread.messages.filter(
-								(msg) => msg.role !== 'system'
-							).length;
+							const numMessages = pastThread.messages.filter((msg) => msg.role !== 'tool_request').length;
 
 							return (
 								<li key={pastThread.id}>

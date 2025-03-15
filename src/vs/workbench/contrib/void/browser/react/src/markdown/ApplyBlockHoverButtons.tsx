@@ -5,7 +5,7 @@ import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { LucideIcon, RotateCw } from 'lucide-react'
 import { Check, X, Square, Copy, Play, } from 'lucide-react'
-import { ToolContentsWrapper } from '../sidebar-tsx/SidebarChat.js'
+import { getBasename, ToolContentsWrapper } from '../sidebar-tsx/SidebarChat.js'
 import { ChatMarkdownRender } from './ChatMarkdownRender.js'
 
 enum CopyButtonText {
@@ -288,7 +288,7 @@ export const BlockCodeApplyWrapper = ({
 			<div className="flex items-center">
 				{statusIndicatorHTML}
 				<span className="text-[13px] font-light text-void-fg-3">
-					{language || 'text'}
+					{uri !== 'current' ? getBasename(uri.fsPath) : language || 'text'}
 				</span>
 			</div>
 			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>

@@ -28,7 +28,7 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
-import { ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
+import { ResolveReason, ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { getLanguageFromModel } from '../../../../common/helpers/getLanguage.js';
 import { dirname } from '../../../../../../../base/common/resources.js';
 import { useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
@@ -1143,27 +1143,57 @@ const ListableToolItem = ({ name, onClick, isSmall, className, showDot }: { name
 	</div>
 }
 
-const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescription: string }) => {
-	const accessor = useAccessor()
-	const commandService = accessor.get('ICommandService')
-	return <ToolContentsWrapper className='bg-void-bg-3'>
-		<ListableToolItem
-			showDot={false}
-			className='w-full overflow-auto mb-2'
-			name={uri.fsPath}
-			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
-		/>
-		<div className='select-auto cursor-auto'>
-			<ChatMarkdownRender string={changeDescription} codeURI={uri} chatMessageLocation={undefined} />
-		</div>
-	</ToolContentsWrapper>
-}
 const EditToolApplyButton = ({ changeDescription, applyBoxId, uri }: { changeDescription: string, applyBoxId: string, uri: URI }) => {
 	const { statusIndicatorHTML, buttonsHTML } = useApplyButtonHTML({ codeStr: changeDescription, applyBoxId, uri })
 	return <div className='flex items-center gap-1'>
 		{statusIndicatorHTML}
 		{buttonsHTML}
 	</div>
+}
+
+
+const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescription: string }) => {
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
+	return <ToolContentsWrapper className='bg-void-bg-3'>
+		<ListableToolItem
+			showDot={false}
+			name={uri.fsPath}
+			className='w-full overflow-auto mb-2'
+			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+		/>
+		<div className='border border-void-border-1 rounded p-1'>
+			<div className='!select-text cursor-auto'>
+				<ChatMarkdownRender string={changeDescription} codeURI={uri} chatMessageLocation={undefined} />
+			</div>
+		</div>
+	</ToolContentsWrapper>
+}
+const TerminalToolChildren = ({ command, terminalId, result, resolveReason }: { command: string, terminalId: string, result: string, resolveReason: ResolveReason }) => {
+	const accessor = useAccessor()
+	const terminalToolsService = accessor.get('ITerminalToolService')
+
+	const resultStr = resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `\nError: exit code ${resolveReason.exitCode}` : null)
+		: resolveReason.type === 'bgtask' ? null :
+			resolveReason.type === 'timeout' ? `\n(partial results; request timed out)` :
+				resolveReason.type === 'toofull' ? `\n(truncated)`
+					: null
+
+	return <ToolContentsWrapper className='bg-void-bg-3 font-mono whitespace-pre text-nowrap overflow-auto text-sm'>
+		<ListableToolItem
+			showDot={false}
+			name={`$ ${command}`}
+			className='w-full overflow-auto mb-2'
+			onClick={() => terminalToolsService.openTerminal(terminalId)}
+		/>
+		<div className='border border-void-border-1 rounded p-1'>
+			<div className='!select-text cursor-auto'>
+				{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}
+				{result}
+				{resultStr}
+			</div>
+		</div>
+	</ToolContentsWrapper>
 }
 
 
@@ -1222,6 +1252,7 @@ const toolNameToComponent: { [T in ToolName]: {
 					: <ToolContentsWrapper>
 						{value.children.map((child, i) => (<ListableToolItem key={i}
 							name={`${child.name}${child.isDirectory ? '/' : ''}`}
+							className='w-full overflow-auto mb-2'
 							onClick={() => {
 								commandService.executeCommand('workbench.view.explorer');
 								explorerService.select(child.uri, true);
@@ -1262,6 +1293,7 @@ const toolNameToComponent: { [T in ToolName]: {
 					: <ToolContentsWrapper>
 						{value.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
+							className='w-full overflow-auto mb-2'
 							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
 						/>))}
 						{value.hasNextPage &&
@@ -1300,6 +1332,7 @@ const toolNameToComponent: { [T in ToolName]: {
 					: <ToolContentsWrapper>
 						{value.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
+							className='w-full overflow-auto mb-2'
 							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
 						/>))}
 						{value.hasNextPage &&
@@ -1504,23 +1537,12 @@ const toolNameToComponent: { [T in ToolName]: {
 				const { command } = toolMessage.result.params
 				const { terminalId, resolveReason, result } = toolMessage.result.value
 
-				componentParams.children = <div className='font-mono whitespace-pre text-nowrap text-xs overflow-auto bg-void-bg-3'>
-					<div
-						className='cursor-pointer'
-						onClick={() => terminalToolsService.openTerminal(terminalId)}
-					>$ {command}</div>
-
-					<hr className='border-void-border-1' />
-
-					{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}
-					{result}
-					{resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `\nError: exit code ${resolveReason.exitCode}` : null)
-						: resolveReason.type === 'bgtask' ? null :
-							resolveReason.type === 'timeout' ? `\n(partial results; request timed out)` :
-								resolveReason.type === 'toofull' ? `\n(truncated)`
-									: null
-					}
-				</div>
+				componentParams.children = <TerminalToolChildren
+					command={command}
+					terminalId={terminalId}
+					result={result}
+					resolveReason={resolveReason}
+				/>
 
 				if (resolveReason.type === 'bgtask')
 					componentParams.desc2 = '(background task)'

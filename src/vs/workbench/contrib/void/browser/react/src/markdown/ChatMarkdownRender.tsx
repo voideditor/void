@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { JSX, useState } from 'react'
+import React, { JSX, useMemo, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 import { BlockCode } from './BlockCode.js'
 import { convertToVscodeLang, getFirstLine, getLanguage } from '../../../../common/helpers/getLanguage.js'
@@ -11,6 +11,7 @@ import { BlockCodeApplyWrapper, useApplyButtonHTML } from './ApplyBlockHoverButt
 import { useAccessor } from '../util/services.js'
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js'
 import { URI } from '../../../../../../../base/common/uri.js'
+import { getBasename } from '../sidebar-tsx/SidebarChat.js'
 
 
 export type ChatMessageLocation = {
@@ -27,11 +28,15 @@ export const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocati
 
 const Codespan = ({ text, className, onClick }: { text: string, className?: string, onClick?: () => void }) => {
 
+	// TODO compute this once for efficiency. we should use `labels.ts/shorten` to display duplicates properly
+
+	const filename = useMemo(() => getBasename(text), [text])
+
 	return <code
 		className={`font-mono font-medium rounded-sm bg-void-bg-1 px-1 ${className}`}
 		onClick={onClick}
 	>
-		{text}
+		{filename}
 	</code>
 
 }

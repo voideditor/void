@@ -505,7 +505,7 @@ export const FeaturesTab = () => {
 								value={voidSettingsState.globalSettings.syncApplyToChat}
 								onChange={(newVal) => voidSettingsService.setGlobalSetting('syncApplyToChat', newVal)}
 							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.syncApplyToChat ? 'Sync with Chat model' : 'Use another model'}</span>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.syncApplyToChat ? 'Same as Chat model' : 'Different model'}</span>
 						</div>
 
 						{/* Model Dropdown */}

@@ -32,6 +32,8 @@ import { ResolveReason, ToolCallParams, ToolName, ToolNameWithApproval } from '.
 import { getLanguageFromModel } from '../../../../common/helpers/getLanguage.js';
 import { dirname } from '../../../../../../../base/common/resources.js';
 import { useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
+import { DiffZone } from '../../../editCodeService.js';
+import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 
 
 
@@ -1609,6 +1611,173 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 }
 
 
+const VoidCommandBar = () => {
+	const accessor = useAccessor()
+	const editCodeService = accessor.get('IEditCodeService')
+	const editorService = accessor.get('ICodeEditorService')
+	const commandService = accessor.get('ICommandService')
+
+	const [_, rerender] = useState(0)
+	console.log('rerender count: ', _)
+
+	// state for what the user is currently focused on (both URI and diff)
+	const [diffIdxOfFspath, setDiffIdxOfFspath] = useState<Record<string, number | undefined>>({})
+	// const [currentUriIdx, setCurrentUriIdx] = useState(-1) // we are doing O(n) search for this
+
+	const getCurrentUri = useCallback(() => {
+		const editor = editorService.getActiveCodeEditor()
+		if (!editor) return null
+		const uri = editor.getModel()?.uri
+		if (!uri) return null
+		return uri
+	}, [editorService])
+
+	const diffZones: DiffZone[] = []
+
+
+	// trigger rerender when diffzone is created (TODO need to also update when diff is accepted/rejected)
+	useEffect(() => {
+		const disposable = editCodeService.onDidAddOrDeleteDiffInDiffZone(() => {
+			rerender(c => c + 1) // rerender
+		})
+		return () => disposable.dispose()
+	}, [editCodeService, rerender])
+
+
+	const getNextDiff = useCallback(({ step }: { step: 1 | -1 }) => {
+
+		const currentUri = getCurrentUri()
+
+		if (!currentUri) {
+			return;
+		}
+
+		const sortedDiffs = editCodeService._sortedDiffsOfFspath[currentUri.fsPath]
+
+		if (!sortedDiffs || sortedDiffs.length === 0) {
+			return;
+		}
+
+		const currentDiffIdx = diffIdxOfFspath[currentUri.fsPath] || 0
+		const nextDiffIdx = (currentDiffIdx + step) % sortedDiffs.length
+
+		const nextDiff = sortedDiffs[nextDiffIdx]
+
+		return { nextDiff, nextDiffIdx, }
+
+	}, [getCurrentUri, editCodeService._sortedDiffsOfFspath, diffIdxOfFspath])
+
+	const getNextUri = useCallback(({ step }: { step: 1 | -1 }) => {
+
+		const sortedUris = editCodeService._sortedUrisWithDiffs
+		if (sortedUris.length === 0) {
+			return;
+		}
+
+		const currentUri = getCurrentUri()
+
+		const defaultUriIdx = step === 1 ? -1 : 0 // defaults: if next, currentIdx = -1; if prev, currentIdx = 0
+		let currentUriIdx = -1
+		if (currentUri) {
+			currentUriIdx = sortedUris.findIndex(u => u.fsPath === currentUri.fsPath)
+		}
+
+		if (currentUriIdx === -1) { // not found
+			currentUriIdx = defaultUriIdx // set to default
+		}
+
+		const nextUriIdx = (currentUriIdx + step) % sortedUris.length
+		const nextUri = sortedUris[nextUriIdx]
+
+		return { nextUri, nextUriIdx, }
+
+	}, [getCurrentUri, editCodeService._sortedUrisWithDiffs])
+
+
+
+	return <div className='bg-red-500 min-h-4 min-w-4 flex gap-4'>
+
+		<button
+			className='bg-[var(--vscode-button-secondaryBackground)] text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)] px-4 py-1.5 rounded text-sm font-medium'
+			onClick={() => {
+				rerender(c => c + 1)
+			}}
+		>
+			rerender
+		</button>
+
+		<button
+			onClick={() => {
+
+				// get the next diff
+				const res = getNextDiff({ step: 1 })
+				if (!res) return;
+
+				// scroll to the next diff
+				const { nextDiff, nextDiffIdx } = res;
+				const editor = editorService.getActiveCodeEditor()
+				if (!editor) return;
+
+				const range = { startLineNumber: nextDiff.startLine, endLineNumber: nextDiff.startLine, startColumn: 1, endColumn: 1 };
+				editor.revealRange(range, ScrollType.Immediate)
+
+				// update state
+				const diffArea = editCodeService.diffAreaOfId[nextDiff.diffareaid]
+				setDiffIdxOfFspath(v => ({ ...v, [diffArea._URI.fsPath]: nextDiffIdx }))
+
+			}}
+		>
+			next diff:
+		</button>
+		<button
+			onClick={() => {
+
+				// get the next uri
+				const res = getNextUri({ step: 1 })
+				if (!res) return;
+
+				const { nextUri, nextUriIdx } = res;
+
+				// open the uri and scroll to diff
+				const sortedDiffs = editCodeService._sortedDiffsOfFspath[nextUri.fsPath]
+				if (!sortedDiffs) return;
+
+				const diffIdx = diffIdxOfFspath[nextUri.fsPath] || 0
+				const diff = sortedDiffs[diffIdx]
+
+				const range = { startLineNumber: diff.startLine, endLineNumber: diff.startLine, startColumn: 1, endColumn: 1 };
+
+				commandService.executeCommand('vscode.open', nextUri).then(() => {
+
+					// select the text
+					setTimeout(() => {
+
+						const editor = editorService.getActiveCodeEditor()
+						if (!editor) return;
+
+						editor.revealRange(range, ScrollType.Immediate)
+
+					}, 50)
+
+				})
+			}}
+		>
+			next diff area
+		</button>
+		<div>
+			<div className='gap-2 text-[var(--vscode-editor-foreground)] flex'>
+				<div>numUris: {Object.keys(editCodeService._sortedDiffsOfFspath).length}</div>
+				<div>numDiffs: {Object.values(editCodeService._sortedDiffsOfFspath).reduce((acc, diffs) => acc + (diffs?.length || 0), 0)}</div>
+			</div>
+		</div>
+		{diffZones.map((area, index) => (
+			<>
+				<div key={index} className='bg-red-500 p-2 rounded-lg m-2 text-white'>{getBasename(area?._URI?.toString())}</div>
+			</>
+		))}
+	</div>
+}
+
 export const SidebarChat = () => {
 
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -1805,6 +1974,8 @@ export const SidebarChat = () => {
 				fnsRef={textAreaFnsRef}
 				multiline={true}
 			/>
+			<VoidCommandBar />
+
 		</VoidChatArea>
 	</div>
 

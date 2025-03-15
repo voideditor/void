@@ -41,7 +41,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 	const accessor = useAccessor()
 
 	const chatThreadService = accessor.get('IChatThreadService')
-	const commandSerivce = accessor.get('ICommandService')
+	const commandService = accessor.get('ICommandService')
 	const editorService = accessor.get('ICodeEditorService')
 
 	const { messageIdx, threadId } = chatMessageLocation
@@ -73,7 +73,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 		const selection = link.selection
 
 		// open the file
-		commandSerivce.executeCommand('vscode.open', link.uri).then(() => {
+		commandService.executeCommand('vscode.open', link.uri).then(() => {
 
 			// select the text
 			setTimeout(() => {

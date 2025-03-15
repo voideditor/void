@@ -7,6 +7,7 @@ import { Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+import { Diff, DiffArea } from './editCodeService.js';
 
 
 
@@ -36,12 +37,23 @@ export const IEditCodeService = createDecorator<IEditCodeService>('editCodeServi
 
 export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
+
 	// main entrypoints (initialize things for the functions below to be called):
 	startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null>;
+	_sortedUrisWithDiffs: URI[];
+	_sortedDiffsOfFspath: { [fsPath: string]: Diff[] | undefined };
+
+	diffAreaOfId: Record<string, DiffArea>;
+	diffOfId: Record<string, Diff>;
+
+
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 
 	removeCtrlKZone(opts: { diffareaid: number }): void;
 	removeDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept' }): void;
+
+	onDidAddOrDeleteDiffZones: Event<{ uri: URI }>;
+	onDidAddOrDeleteDiffInDiffZone: Event<{ uri: URI }>;
 
 	// CtrlKZone streaming state
 	isCtrlKZoneStreaming(opts: { diffareaid: number }): boolean;

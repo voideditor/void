@@ -177,7 +177,7 @@ type CtrlKZone = {
 } & CommonZoneProps
 
 
-type DiffZone = {
+export type DiffZone = {
 	type: 'DiffZone',
 	originalCode: string;
 	_diffOfId: Record<string, Diff>; // diffid -> diff in this DiffArea
@@ -207,7 +207,7 @@ type TrackingZone<T> = {
 
 
 // called DiffArea for historical purposes, we can rename to something like TextRegion if we want
-type DiffArea = CtrlKZone | DiffZone | TrackingZone<any>
+export type DiffArea = CtrlKZone | DiffZone | TrackingZone<any>
 
 const diffAreaSnapshotKeys = [
 	'type',
@@ -240,16 +240,22 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	// URI <--> model
-	diffAreasOfURI: Record<string, Set<string> | undefined> = {}
+	diffAreasOfURI: Record<string, Set<string> | undefined> = {}; // uri -> diffareaId
 
-	diffAreaOfId: Record<string, DiffArea> = {};
-	diffOfId: Record<string, Diff> = {}; // redundant with diffArea._diffs
+	diffAreaOfId: Record<string, DiffArea> = {}; // diffareaId -> diffArea
+	diffOfId: Record<string, Diff> = {}; // diffid -> diff (redundant with diffArea._diffOfId)
 
+	_sortedUrisWithDiffs: URI[] = [] // derivative of diffAreaOfId
+	_sortedDiffsOfFspath: { [uriString: string]: Diff[] | undefined } = {} // derivative of diffAreaOfId
 
 	// only applies to diffZones
 	// streamingDiffZones: Set<number> = new Set()
 	private readonly _onDidChangeDiffZoneStreaming = new Emitter<{ uri: URI; diffareaid: number }>();
 	private readonly _onDidAddOrDeleteDiffZones = new Emitter<{ uri: URI }>();
+	onDidAddOrDeleteDiffZones = this._onDidAddOrDeleteDiffZones.event;
+
+	private readonly _onDidFinishAddOrDeleteDiffInDiffZone = new Emitter<{ uri: URI }>();
+	onDidAddOrDeleteDiffInDiffZone = this._onDidFinishAddOrDeleteDiffInDiffZone.event;
 
 	private readonly _onDidChangeCtrlKZoneStreaming = new Emitter<{ uri: URI; diffareaid: number }>();
 	onDidChangeCtrlKZoneStreaming = this._onDidChangeCtrlKZoneStreaming.event
@@ -343,6 +349,46 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		// add listeners for all existing editors + listen for editor being added
 		for (let editor of this._codeEditorService.listCodeEditors()) { initializeEditor(editor) }
 		this._register(this._codeEditorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
+
+
+		// update `_sortedUrisWithDiffs` and `_sortedDiffsOfUri` on all changes to diffzones
+		this._register(this._onDidFinishAddOrDeleteDiffInDiffZone.event(({ uri }) => {
+
+
+			// 1. Update _sortedUrisWithDiffs
+			const hasDiffZones = Array.from(this.diffAreasOfURI[uri.fsPath] || [])
+				.some(diffAreaId => this.diffAreaOfId[diffAreaId]?.type === 'DiffZone');
+
+			// Add or remove this URI from _sortedUrisWithDiffs
+			const currentIndex = this._sortedUrisWithDiffs.findIndex(u => u.fsPath === uri.fsPath);
+			if (hasDiffZones && currentIndex === -1) {
+				// Add URI and maintain sort
+				this._sortedUrisWithDiffs.push(uri);
+				this._sortedUrisWithDiffs.sort((a, b) => a.fsPath.localeCompare(b.fsPath));
+			} else if (!hasDiffZones && currentIndex !== -1) {
+				// Remove URI
+				this._sortedUrisWithDiffs.splice(currentIndex, 1);
+			}
+
+			// 2. Update _sortedDiffsOfUri only for this URI
+			const diffsInUri: Diff[] = [];
+
+			// Collect all diffs from DiffZones in this URI
+			for (const diffAreaId of this.diffAreasOfURI[uri.fsPath] || []) {
+				const diffArea = this.diffAreaOfId[diffAreaId];
+				if (diffArea?.type === 'DiffZone') {
+					diffsInUri.push(...Object.values(diffArea._diffOfId));
+				}
+			}
+
+			// Update or remove the entry for this URI
+			if (diffsInUri.length > 0) {
+				this._sortedDiffsOfFspath[uri.fsPath] = diffsInUri.sort((a, b) => a.startLine - b.startLine);
+				console.log('_sortedDiffsOfFspath', this._sortedDiffsOfFspath)
+			} else {
+				delete this._sortedDiffsOfFspath[uri.fsPath];
+			}
+		}));
 
 	}
 
@@ -901,6 +947,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		if (diffArea.type !== 'DiffZone') return
 		delete diffArea._diffOfId[diff.diffid]
 		delete this.diffOfId[diff.diffid]
+
+		if (!diffArea._streamState.isStreaming) {
+			this._onDidFinishAddOrDeleteDiffInDiffZone.fire({ uri: diffArea._URI })
+		}
 	}
 
 	private _deleteDiffs(diffZone: DiffZone) {
@@ -992,6 +1042,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		this.diffOfId[diffid] = newDiff
 		diffZone._diffOfId[diffid] = newDiff
+
+		if (!diffZone._streamState.isStreaming) {
+			this._onDidFinishAddOrDeleteDiffInDiffZone.fire({ uri })
+		}
 
 		return newDiff
 	}

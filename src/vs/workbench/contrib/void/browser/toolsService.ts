@@ -75,7 +75,7 @@ const directoryResultToString = (params: ToolCallParams['list_dir'], result: Too
 	let output = '';
 	const entries = result.children;
 
-	if (!result.hasPrevPage) {
+	if (!result.hasPrevPage) { // is first page
 		output += `${params.rootURI}\n`;
 	}
 
@@ -351,7 +351,7 @@ export class ToolsService implements IToolsService {
 			},
 			list_dir: (params, result) => {
 				const dirTreeStr = directoryResultToString(params, result)
-				return dirTreeStr + nextPageStr(result.hasNextPage)
+				return dirTreeStr // + nextPageStr(result.hasNextPage) // already handles num results remaining
 			},
 			pathname_search: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)

@@ -5,12 +5,10 @@
 
 import React, { JSX, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
-import { BlockCode, BlockCodeWithApply } from './BlockCode.js'
+import { BlockCode } from './BlockCode.js'
 import { convertToVscodeLang, getFirstLine, getLanguage } from '../../../../common/helpers/getLanguage.js'
-import { useApplyButtonHTML } from './ApplyBlockHoverButtons.js'
-import { useAccessor, useChatThreadsState } from '../util/services.js'
-import { Range } from '../../../../../../services/search/common/searchExtTypes.js'
-import { IRange } from '../../../../../../../base/common/range.js'
+import { BlockCodeApplyWrapper, useApplyButtonHTML } from './ApplyBlockHoverButtons.js'
+import { useAccessor } from '../util/services.js'
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 
@@ -102,7 +100,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 
 export type RenderTokenOptions = { isApplyEnabled?: boolean, isLinkDetectionEnabled?: boolean }
-const RenderToken = ({ token, inPTag, chatMessageLocation, tokenIdx, ...options }: { token: Token | string, inPTag?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string, } & RenderTokenOptions): JSX.Element => {
+const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ...options }: { token: Token | string, inPTag?: boolean, codeURI?: URI, chatMessageLocation?: ChatMessageLocation, tokenIdx: string, } & RenderTokenOptions): JSX.Element => {
 	const accessor = useAccessor()
 	const languageService = accessor.get('ILanguageService')
 
@@ -120,36 +118,45 @@ const RenderToken = ({ token, inPTag, chatMessageLocation, tokenIdx, ...options 
 	if (t.type === "code") {
 		const [firstLine, remainingContents] = getFirstLine(t.text)
 		const firstLineIsURI = URI.isUri(firstLine)
-
-		let language: string | undefined = undefined
-		if (t.lang !== undefined) {
-			// convert markdown language to language that vscode recognizes (eg markdown doesn't know bash but it does know shell)
-			language = convertToVscodeLang(languageService, t.lang)
-		}
-
-		else if (!language) { // if still no lang
-			if (firstLineIsURI) { // get lang from the uri
-				const uri = URI.file(firstLine)
-				language = getLanguage(languageService, { uri, fileContents: remainingContents ?? undefined })
-			}
-			else { // get lang from the contents
-				language = getLanguage(languageService, { uri: null, fileContents: remainingContents ?? undefined })
-			}
-		}
 		const contents = firstLineIsURI ? (remainingContents || '') : t.text // exclude first-line URI from contents
 
-		// TODO!!! user should only be able to apply this when the code has been closed (t.raw ends with "```")
+		// figure out langauge
+		let language: string | undefined = undefined
+		let uri: URI | undefined = undefined
+		if (t.lang) { // a language was provided. empty string is common so check truthy, not just undefined
+			uri = codeURI
+			language = convertToVscodeLang(languageService, t.lang) // convert markdown language to language that vscode recognizes (eg markdown doesn't know bash but it does know shell)
+		}
+		else { // no language provided - fallback
+			if (firstLineIsURI) { // get lang from the uri in the markdown
+				uri = codeURI ?? URI.file(firstLine)
+				language = getLanguage(languageService, { uri, fileContents: remainingContents ?? undefined })
+			}
+			else { // get lang from the given URI and contents
+				uri = codeURI
+				language = getLanguage(languageService, { uri: codeURI ?? null, fileContents: remainingContents ?? undefined })
+			}
+		}
+
 		if (options.isApplyEnabled && chatMessageLocation) {
+			const isCodeblockClosed = t.raw.trimEnd().endsWith('```') // user should only be able to Apply when the code has been closed (t.raw ends with "```")
+
 			const applyBoxId = getApplyBoxId({
 				threadId: chatMessageLocation.threadId,
 				messageIdx: chatMessageLocation.messageIdx,
 				tokenIdx: tokenIdx,
 			})
-			return <BlockCodeWithApply
+			return <BlockCodeApplyWrapper
+				canApply={isCodeblockClosed}
+				applyBoxId={applyBoxId}
 				initValue={contents}
 				language={language}
-				applyBoxId={applyBoxId}
-			/>
+			>
+				<BlockCode
+					initValue={contents}
+					language={language}
+				/>
+			</BlockCodeApplyWrapper>
 		}
 		return <BlockCode
 			initValue={contents}
@@ -239,7 +246,7 @@ const RenderToken = ({ token, inPTag, chatMessageLocation, tokenIdx, ...options 
 		return <li>
 			<input type="checkbox" checked={t.checked} readOnly />
 			<span>
-				<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} inPTag={true} {...options} />
+				<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} inPTag={true} codeURI={codeURI} {...options} />
 			</span>
 		</li>
 	}
@@ -361,7 +368,7 @@ const RenderToken = ({ token, inPTag, chatMessageLocation, tokenIdx, ...options 
 }
 
 
-export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
+export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, codeURI?: URI, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>

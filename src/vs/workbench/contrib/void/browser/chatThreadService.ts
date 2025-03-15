@@ -237,7 +237,228 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		if (!threadsStr) {
 			return null
 		}
-		return this._convertThreadDataFromStorage(threadsStr);
+		const threads = this._convertThreadDataFromStorage(threadsStr);
+
+		// threads['abc'] = {
+		// 	id: 'abc',
+		// 	createdAt: new Date().toISOString(),
+		// 	lastModified: new Date().toISOString(),
+		// 	messages: [
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'pathname_search',
+		// 			id: 'tool-1',
+		// 			paramsStr: '{"query": "hello", "pageNumber": 0}',
+		// 			content: '/users/andrew/void/Desktop/etc/abc.txt',
+		// 			result: { type: 'success', params: { queryStr: 'hello', pageNumber: 0 }, value: { uris: [URI.file('/Users/username/Downloads/helloooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo.txt'), URI.file('/Users/username/Downloads/hello1.txt'), URI.file('/Users/username/Downloads/hello2.txt'), URI.file('/Users/username/Downloads/hello3.txt'), URI.file('/Users/username/hello.txt')], hasNextPage: true } },
+		// 		} satisfies ToolMessage<'pathname_search'>,
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'pathname_search',
+		// 			id: 'tool-1',
+		// 			paramsStr: '{"query": "hello", "pageNumber": 0}',
+		// 			content: '/users/andrew/void/Desktop/etc/abc.txt',
+		// 			result: { type: 'success', params: { queryStr: 'hello', pageNumber: 0 }, value: { uris: [], hasNextPage: false } },
+		// 		} satisfies ToolMessage<'pathname_search'>,
+
+		// 		// {
+		// 		// 	role: 'tool_request',
+		// 		// 	name: 'pathname_search',
+		// 		// 	params: { queryStr: 'hello', pageNumber: 0 },
+		// 		// 	paramsStr: '{"query": "hello", "pageNumber": 0}',
+		// 		// 	voidToolId: 'request-1',
+		// 		// } satisfies ToolRequestApproval<'pathname_search'>,
+
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'list_dir',
+		// 			id: 'tool-2',
+		// 			paramsStr: '{"uri": "/Users/username/Documents"}',
+		// 			content: 'Directory listing of /Users/username/Documents',
+		// 			result: {
+		// 				type: 'success',
+		// 				params: { rootURI: URI.file('/Users/username/Documents'), pageNumber: 1, },
+		// 				value: {
+		// 					children: [
+		// 						{ uri: URI.file('/Users/username/Documents/file1.txt'), name: 'file1.txt', isDirectory: false, isSymbolicLink: false },
+		// 						{ uri: URI.file('/Users/username/Documents/folder1'), name: 'folder1', isDirectory: true, isSymbolicLink: false }
+		// 					],
+		// 					hasNextPage: true,
+		// 					hasPrevPage: true,
+		// 					itemsRemaining: 5,
+		// 				}
+		// 			},
+		// 		} satisfies ToolMessage<'list_dir'>,
+
+		// 		// {
+		// 		// 	role: 'tool_request',
+		// 		// 	name: 'list_dir',
+		// 		// 	params: { rootURI: URI.file('/Users/username/Documents'), pageNumber: 0 },
+		// 		// 	paramsStr: '{"uri": "/Users/username/Documents"}',
+		// 		// 	voidToolId: 'request-2',
+		// 		// } satisfies ToolRequestApproval<'list_dir'>,
+
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'read_file',
+		// 			id: 'tool-3',
+		// 			paramsStr: '{"uri": "/Users/username/Documents/file1.txt"}',
+		// 			content: 'Content of file1.txt\nThis is a sample file.\nHello world!',
+		// 			result: {
+		// 				type: 'success',
+		// 				params: { uri: URI.file('/Users/username/Documents/file1.txt'), pageNumber: 0 },
+		// 				value: { fileContents: 'Content of file1.txt\nThis is a sample file.\nHello world!', hasNextPage: false }
+		// 			},
+		// 		} satisfies ToolMessage<'read_file'>,
+
+		// 		// {
+		// 		// 	role: 'tool_request',
+		// 		// 	name: 'read_file',
+		// 		// 	params: { uri: URI.file('/Users/username/Documents/file1.txt'), pageNumber: 0 },
+		// 		// 	paramsStr: '{"uri": "/Users/username/Documents/file1.txt"}',
+		// 		// 	voidToolId: 'request-3',
+		// 		// } satisfies ToolRequestApproval<'read_file'>,
+
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'search',
+		// 			id: 'tool-4',
+		// 			paramsStr: '{"query": "function main"}',
+		// 			content: 'Found matches in 3 files',
+		// 			result: {
+		// 				type: 'success',
+		// 				params: { queryStr: 'function main', pageNumber: 0 },
+		// 				value: {
+		// 					uris: [
+		// 						URI.file('/Users/username/Project/main.js'),
+		// 						URI.file('/Users/username/Project/src/app.js'),
+		// 						URI.file('/Users/username/Project/test/test.js')
+		// 					],
+		// 					hasNextPage: false
+		// 				}
+		// 			},
+		// 		} satisfies ToolMessage<'search'>,
+
+		// 		// {
+		// 		// 	role: 'tool_request',
+		// 		// 	name: 'search',
+		// 		// 	params: { queryStr: 'function main', pageNumber: 0 },
+		// 		// 	paramsStr: '{"query": "function main"}',
+		// 		// 	voidToolId: 'request-4',
+		// 		// } satisfies ToolRequestApproval<'search'>,
+
+		// 		// ---
+
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'edit',
+		// 			id: 'tool-5',
+		// 			paramsStr: '{"uri": "/Users/username/Project/main.js", "changeDescription": "Add console.log statement"}',
+		// 			content: 'Successfully edited the file at /Users/username/Project/main.js',
+		// 			result: {
+		// 				type: 'success',
+		// 				params: { uri: URI.file('/Users/username/Project/main.js'), changeDescription: 'Add console.log statement' },
+		// 				value: {}
+		// 			},
+		// 		} satisfies ToolMessage<'edit'>,
+		// 		{
+		// 			role: 'tool_request',
+		// 			name: 'edit',
+		// 			params: { uri: URI.file('/Users/username/Project/main.js'), changeDescription: 'Add console.log statement' },
+		// 			paramsStr: '{"uri": "/Users/username/Project/main.js", "changeDescription": "Add console.log statement"}',
+		// 			voidToolId: 'request-5',
+		// 		} satisfies ToolRequestApproval<'edit'>,
+
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'create_uri',
+		// 			id: 'tool-6',
+		// 			paramsStr: '{"uri": "/Users/username/Project/new-file.js"}',
+		// 			content: 'Successfully created file at /Users/username/Project/new-file.js',
+		// 			result: {
+		// 				type: 'success',
+		// 				params: { uri: URI.file('/Users/username/Project/new-file.js'), isFolder: false },
+		// 				value: {}
+		// 			},
+		// 		} satisfies ToolMessage<'create_uri'>,
+		// 		{
+		// 			role: 'tool_request',
+		// 			name: 'create_uri',
+		// 			params: { uri: URI.file('/Users/username/Project/new-file.js'), isFolder: false },
+		// 			paramsStr: '{"uri": "/Users/username/Project/new-file.js"}',
+		// 			voidToolId: 'request-6',
+		// 		} satisfies ToolRequestApproval<'create_uri'>,
+
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'delete_uri',
+		// 			id: 'tool-7',
+		// 			paramsStr: '{"uri": "/Users/username/Project/old-file.js", "params": ""}',
+		// 			content: 'Successfully deleted file at /Users/username/Project/old-file.js',
+		// 			result: {
+		// 				type: 'success',
+		// 				params: { uri: URI.file('/Users/username/Project/old-file.js'), isRecursive: false, isFolder: false },
+		// 				value: {}
+		// 			},
+		// 		} satisfies ToolMessage<'delete_uri'>,
+		// 		{
+		// 			role: 'tool_request',
+		// 			name: 'delete_uri',
+		// 			params: { uri: URI.file('/Users/username/Project/old-file.js'), isRecursive: false, isFolder: false },
+		// 			paramsStr: '{"uri": "/Users/username/Project/old-file.js", "params": ""}',
+		// 			voidToolId: 'request-7',
+		// 		} satisfies ToolRequestApproval<'delete_uri'>,
+
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'terminal_command',
+		// 			id: 'tool-8',
+		// 			paramsStr: '{"command": "npm install", "waitForCompletion": "true"}',
+		// 			content: 'Command executed: npm install\nAdded 123 packages in 3.5s',
+		// 			result: {
+		// 				type: 'success',
+		// 				params: { command: 'npm install', proposedTerminalId: '1', waitForCompletion: true },
+		// 				value: {
+		// 					terminalId: '1',
+		// 					didCreateTerminal: false,
+		// 					result: 'Added 123 packages in 3.5s',
+		// 					resolveReason: { type: 'done', exitCode: 0 }
+		// 				}
+		// 			},
+		// 		} satisfies ToolMessage<'terminal_command'>,
+		// 		{
+		// 			role: 'tool_request',
+		// 			name: 'terminal_command',
+		// 			params: { command: 'npm install', proposedTerminalId: '1', waitForCompletion: true },
+		// 			paramsStr: '{"command": "npm install", "waitForCompletion": "true"}',
+		// 			voidToolId: 'request-8',
+		// 		} satisfies ToolRequestApproval<'terminal_command'>,
+
+
+
+		// 		// Examples of error and rejected states
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'pathname_search',
+		// 			id: 'tool-error',
+		// 			paramsStr: '{"query": "invalid**query"}',
+		// 			content: 'Error: Invalid search pattern',
+		// 			result: { type: 'error', params: { queryStr: 'invalid**query', pageNumber: 0 }, value: 'Error: Invalid search pattern' },
+		// 		} satisfies ToolMessage<'pathname_search'>,
+
+		// 		{
+		// 			role: 'tool',
+		// 			name: 'pathname_search',
+		// 			id: 'tool-rejected',
+		// 			paramsStr: '{"query": "sensitive-data"}',
+		// 			content: 'Tool call was rejected by the user.',
+		// 			result: { type: 'rejected', params: { queryStr: 'sensitive-data', pageNumber: 0 } },
+		// 		} satisfies ToolMessage<'pathname_search'>,
+		// 	],
+		// 	state: defaultThreadState,
+		// }
+
+		return threads
 	}
 
 	private _storeAllThreads(threads: ChatThreads) {

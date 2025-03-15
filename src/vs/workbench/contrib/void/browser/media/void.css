@@ -83,7 +83,7 @@
 .void-scrollable-element::-webkit-scrollbar,
 .void-scrollable-element *::-webkit-scrollbar {
     width: 14px !important;
-    height: 14px !important;
+    height: 4px !important;
 }
 
 .void-scrollable-element::-webkit-scrollbar-track,

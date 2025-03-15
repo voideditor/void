@@ -696,8 +696,7 @@ const ToolHeaderComponent = ({
 	const isClickable = !!(isDropdown || onClick)
 
 	return (<div className=''>
-		<div className="border border-void-border-3 rounded px-2 py-1 bg-void-bg-2-alt overflow-hidden">
-
+		<div className="w-full border border-void-border-3 rounded px-2 py-1 bg-void-bg-2-alt overflow-hidden">
 			{/* header */}
 			<div
 				className={`select-none flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
@@ -711,12 +710,14 @@ const ToolHeaderComponent = ({
 						className={`text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
 					/>
 				)}
-				<div className="flex items-center justify-between w-full flex-nowrap whitespace-nowrap gap-x-2">
-					<div className="flex items-center gap-x-2">
-						<span className="text-void-fg-3">{title}</span>
-						<span className="text-void-fg-4 text-xs italic">{desc1}</span>
+				<div className="flex items-center w-full gap-x-2 overflow-hidden">
+					<div className="flex items-center gap-x-2 min-w-0 overflow-hidden">
+						<span className="text-void-fg-3 flex-shrink-0">{title}</span>
+
+						{/* Fixed description with proper ellipsis */}
+						<span className="text-void-fg-4 text-xs italic truncate">{desc1}</span>
 					</div>
-					<div className="flex items-center gap-x-2">
+					<div className="flex items-center gap-x-2 flex-shrink-0">
 						{desc2 && <span className="text-void-fg-4 text-xs">
 							{desc2}
 						</span>}
@@ -731,11 +732,10 @@ const ToolHeaderComponent = ({
 			</div>
 			{/* children */}
 			{<div
-				// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
 				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100' : 'max-h-0 opacity-0'}
-							text-void-fg-4 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm`}
+				  text-void-fg-4 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm`}
 			>
-				{children || '(no results)'}
+				{children}
 			</div>}
 		</div>
 	</div>
@@ -938,6 +938,29 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 }
 
 
+
+export const ToolContentsWrapper = ({ children, className }: { children: React.ReactNode, className?: string }) => {
+	return <div className={`${className ? className : ''} max-h-64 overflow-x-auto cursor-default select-none`}>
+		<div className='px-2 py-1 min-w-full'>
+			{children}
+		</div>
+	</div>
+}
+const ListableToolItem = ({ name, onClick, isSmall, className }: { name: string, onClick?: () => void, isSmall?: boolean, className?: string }) => {
+	return <div
+		className={`
+			${onClick ? 'hover:brightness-125 hover:cursor-pointer transition-all duration-200 ' : ''}
+			flex items-center flex-nowrap whitespace-nowrap
+			${className ? className : ''}
+			`}
+		onClick={onClick}
+	>
+		<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+		<div className={`${isSmall ? 'italic text-sm leading-4 flex items-center' : ''}`}>{name}</div>
+	</div>
+}
+
+
 const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'assistant' } }) => {
 
 	const accessor = useAccessor()
@@ -962,7 +985,6 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 		<div
 			className='
 			text-void-fg-2
-
 
 			prose
 			prose-sm
@@ -1014,15 +1036,15 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 
 
 // should either be past or "-ing" tense, not present tense. Eg. when the LLM searches for something, the user expects it to say "I searched for X" or "I am searching for X". Not "I search X".
-const toolNameToTitle: Record<ToolName, string> = {
-	'read_file': 'Read file', // past tense
-	'list_dir': 'Inspected folder', // past tense
-	'pathname_search': 'Searched by file name', // past tense
-	'search': 'Searched', // past tense
-	'create_uri': 'Created file', // past tense
-	'delete_uri': 'Deleted file', // past tense
-	'edit': 'Edited file', // past tense
-	'terminal_command': 'Ran terminal command' // past tense
+const toolNameToTitle: Record<ToolName, { past: string, current: string, proposed: string }> = {
+	'read_file': { past: 'Read file', current: 'Reading file', proposed: 'Read file' },
+	'list_dir': { past: 'Inspected folder', current: 'Inspecting folder', proposed: 'Inspect folder' },
+	'pathname_search': { past: 'Searched by file name', current: 'Searching by file name', proposed: 'Search by file name' },
+	'search': { past: 'Searched', current: 'Searching', proposed: 'Search' },
+	'create_uri': { past: 'Created file', current: 'Creating file', proposed: 'Create file' },
+	'delete_uri': { past: 'Deleted file', current: 'Deleting file', proposed: 'Delete file' },
+	'edit': { past: 'Edited file', current: 'Editing file', proposed: 'Edit file' },
+	'terminal_command': { past: 'Ran terminal command', current: 'Running terminal command', proposed: 'Run terminal command' }
 }
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
 
@@ -1128,17 +1150,17 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name]
+			const title = toolNameToTitle[toolMessage.name].past
 			const { uri } = toolMessage.result.params ?? {}
 			const desc1 = uri ? getBasename(uri.fsPath) : '';
 			const icon = null
 
-			if (toolMessage.result.type === 'rejected') return null
+			if (toolMessage.result.type === 'rejected') return null // will never happen, not rejectable
 
 			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			if (toolMessage.result.type !== 'error') {
+			if (toolMessage.result.type === 'success') {
 				const { value, params } = toolMessage.result
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
 				if (toolMessage.result.value.hasNextPage) componentParams.desc2 = `(AI can scroll for more)`
@@ -1158,38 +1180,34 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const explorerService = accessor.get('IExplorerService')
-			const title = toolNameToTitle[toolMessage.name]
+			const title = toolNameToTitle[toolMessage.name].past
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			if (toolMessage.result.type === 'rejected') return null
+			if (toolMessage.result.type === 'rejected') return null // will never happen, not rejectable
 
 			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			if (toolMessage.result.type !== 'error') {
+			if (toolMessage.result.type === 'success') {
 				const { value, params } = toolMessage.result
 				componentParams.numResults = value.children?.length
-				componentParams.children = (value.children?.length ?? 0) === 0 ? null : <>
-					{value.children?.map((child, i) => (
-						<div
-							key={i}
-							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+				componentParams.children = <ToolContentsWrapper>
+					{!value.children || (value.children.length ?? 0) === 0 ? <>
+						<ListableToolItem name={'No results found.'} isSmall={true} />
+					</> : <>
+						{value.children.map((child, i) => (<ListableToolItem key={i}
+							name={`${child.name}${child.isDirectory ? '/' : ''}`}
 							onClick={() => {
 								commandService.executeCommand('workbench.view.explorer');
 								explorerService.select(child.uri, true);
 							}}
-						>
-							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-							{`${child.name}${child.isDirectory ? '/' : ''}`}
-						</div>
-					))}
-					{value.hasNextPage && (
-						<div className="italic">
-							{value.itemsRemaining} more items...
-						</div>
-					)}
-				</>
+						/>))}
+						{value.hasNextPage &&
+							<ListableToolItem name={`Results truncated (${value.itemsRemaining} remaining).`} isSmall={true} />
+						}
+					</>}
+				</ToolContentsWrapper>
 			}
 			else {
 				componentParams.children = <>
@@ -1205,37 +1223,31 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name]
+			const title = toolNameToTitle[toolMessage.name].past
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			if (toolMessage.result.type === 'rejected') return null
+			if (toolMessage.result.type === 'rejected') return null // will never happen, not rejectable
 
 			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			if (toolMessage.result.type !== 'error') {
+			if (toolMessage.result.type === 'success') {
 				const { value, params } = toolMessage.result
 				componentParams.numResults = value.uris.length
-				componentParams.children = value.uris.length === 0 ? null : <>
-					{value.uris.map((uri, i) => (
-						<div
-							key={i}
-							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
-							onClick={() => {
-								commandService.executeCommand('vscode.open', uri, { preview: true })
-							}}
-						>
-							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-							{uri.fsPath.split('/').pop()}
-						</div>
-					))}
-					{value.hasNextPage && (
-						<div className="italic">
-							More results available...
-						</div>
-					)}
-				</>
+				componentParams.children = <ToolContentsWrapper>
+					{value.uris.length === 0 ? <>
+						<ListableToolItem name={'No results found.'} isSmall={true} />
+					</> : <>
+						{value.uris.map((uri, i) => (<ListableToolItem key={i}
+							name={getBasename(uri.fsPath)}
+							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+						/>))}
+						{value.hasNextPage &&
+							<ListableToolItem name={'Results truncated.'} isSmall={true} />
+						}
+					</>}
+				</ToolContentsWrapper>
 			}
 			else {
 				componentParams.children = <>
@@ -1251,30 +1263,31 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name]
+			const title = toolNameToTitle[toolMessage.name].past
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			if (toolMessage.result.type === 'rejected') return null
+			if (toolMessage.result.type === 'rejected') return null // will never happen, not rejectable
 
 			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-			if (toolMessage.result.type !== 'error') {
+			if (toolMessage.result.type === 'success') {
 				const { value, params } = toolMessage.result
 				componentParams.numResults = value.uris.length
-				componentParams.children = value.uris.length === 0 ? null : <>
-					{value.uris.map((uri, i) => (
-						<div key={i}
-							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+				componentParams.children = <ToolContentsWrapper>
+					{value.uris.length === 0 ? <>
+						<ListableToolItem name={'No results found.'} isSmall={true} />
+					</> : <>
+						{value.uris.map((uri, i) => (<ListableToolItem key={i}
+							name={getBasename(uri.fsPath)}
 							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
-						>
-							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
-							{uri.fsPath.split('/').pop()}
-						</div>
-					))}
-					{value.hasNextPage && (<div className="italic">More results available...</div>)}
-				</>
+						/>))}
+						{value.hasNextPage &&
+							<ListableToolItem name={`Results truncated.`} isSmall={true} />
+						}
+					</>}
+				</ToolContentsWrapper>
 			}
 			else {
 				componentParams.children = <>
@@ -1291,7 +1304,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		requestWrapper: ({ toolRequest }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolRequest.name]
+			const title = toolNameToTitle[toolRequest.name].proposed
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
@@ -1306,7 +1319,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name]
+			const title = toolNameToTitle[toolMessage.name].past
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1335,7 +1348,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		requestWrapper: ({ toolRequest, }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolRequest.name]
+			const title = toolNameToTitle[toolRequest.name].proposed
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
@@ -1350,7 +1363,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name]
+			const title = toolNameToTitle[toolMessage.name].past
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1378,7 +1391,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		requestWrapper: ({ toolRequest, }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolRequest.name]
+			const title = toolNameToTitle[toolRequest.name].proposed
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
@@ -1386,21 +1399,22 @@ const toolNameToComponent: { [T in ToolName]: {
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			const { params } = toolRequest
-			componentParams.children = <div>
-				<div
-					className=''
-					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}>
-					{getBasename(params.uri.fsPath)}
+			componentParams.children = <ToolContentsWrapper className='bg-void-bg-3'>
+				<ListableToolItem
+					name={getBasename(params.uri.fsPath)}
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+				/>
+				<div className='select-auto cursor-auto'>
+					<ChatMarkdownRender string={params.changeDescription} codeURI={params.uri} chatMessageLocation={undefined} />
 				</div>
-				<ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
-			</div>
+			</ToolContentsWrapper>
 
 			return <ToolHeaderComponent {...componentParams} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name]
+			const title = toolNameToTitle[toolMessage.name].past
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1409,12 +1423,12 @@ const toolNameToComponent: { [T in ToolName]: {
 
 			if (toolMessage.result.type === 'success') {
 				const { params } = toolMessage.result
-				componentParams.children = <ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
+				componentParams.children = <ChatMarkdownRender string={params.changeDescription} codeURI={params.uri} chatMessageLocation={undefined} />
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
 			}
 			else if (toolMessage.result.type === 'rejected') {
 				const { params } = toolMessage.result
-				componentParams.children = <ChatMarkdownRender string={params.changeDescription} chatMessageLocation={undefined} />
+				componentParams.children = <ChatMarkdownRender string={params.changeDescription} codeURI={params.uri} chatMessageLocation={undefined} />
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
 			}
 			else if (toolMessage.result.type === 'error') {
@@ -1431,7 +1445,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
-			const title = toolNameToTitle[toolRequest.name]
+			const title = toolNameToTitle[toolRequest.name].proposed
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
@@ -1451,7 +1465,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
-			const title = toolNameToTitle[toolMessage.name]
+			const title = toolNameToTitle[toolMessage.name].past
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1529,7 +1543,8 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 	}
 	else if (role === 'tool_request') {
 		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
-		if (!isLast) return null
+		// if (!isLast) return null
+		if (!ToolRequestWrapper) return null
 		return <>
 			<ToolRequestWrapper toolRequest={chatMessage} />
 			<ToolRequestAcceptRejectButtons voidToolId={chatMessage.voidToolId} />

@@ -5,6 +5,8 @@ import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { LucideIcon, RotateCw } from 'lucide-react'
 import { Check, X, Square, Copy, Play, } from 'lucide-react'
+import { ToolContentsWrapper } from '../sidebar-tsx/SidebarChat.js'
+import { ChatMarkdownRender } from './ChatMarkdownRender.js'
 
 enum CopyButtonText {
 	Idle = 'Copy',
@@ -27,7 +29,8 @@ export const IconShell1 = ({ onClick, title, Icon, disabled, className }: IconBu
 		disabled={disabled}
 		onClick={onClick}
 		className={`
-            size-[24px]
+            size-[22px]
+			p-[4px]
             flex items-center justify-center
             text-sm bg-void-bg-3 text-void-fg-1
             hover:brightness-110
@@ -36,28 +39,28 @@ export const IconShell1 = ({ onClick, title, Icon, disabled, className }: IconBu
 			${className}
         `}
 	>
-		<Icon size={16} />
+		<Icon />
 	</button>
 )
 
 
-export const IconShell2 = ({ onClick, title, Icon, disabled, className }: IconButtonProps) => (
-	<button
-		title={title}
-		disabled={disabled}
-		onClick={onClick}
-		className={`
-            size-[24px]
-            flex items-center justify-center
-            text-sm
-            hover:opacity-80
-            disabled:opacity-50 disabled:cursor-not-allowed
-            ${className}
-        `}
-	>
-		<Icon size={16} />
-	</button>
-)
+// export const IconShell2 = ({ onClick, title, Icon, disabled, className }: IconButtonProps) => (
+// 	<button
+// 		title={title}
+// 		disabled={disabled}
+// 		onClick={onClick}
+// 		className={`
+//             size-[24px]
+//             flex items-center justify-center
+//             text-sm
+//             hover:opacity-80
+//             disabled:opacity-50 disabled:cursor-not-allowed
+//             ${className}
+//         `}
+// 	>
+// 		<Icon size={16} />
+// 	</button>
+// )
 
 const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
 
@@ -230,17 +233,16 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, a
 		</>
 	}
 
-	const statusIndicatorHTML = <div className='flex flex-row gap-2 items-center'>
+	const statusIndicatorHTML = <div className='flex flex-row items-center size-4'>
 		<div
-			className={`size-1.5 rounded-full border
+			className={` size-1.5 rounded-full border
 				 ${currStreamState === 'idle' ? 'bg-void-bg-3 border-void-border-1' :
 					currStreamState === 'streaming' ? 'bg-orange-500 border-orange-500 shadow-[0_0_4px_0px_rgba(234,88,12,0.6)]' :
 						currStreamState === 'acceptRejectAll' ? 'bg-green-500 border-green-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
 							'bg-void-border-1 border-void-border-1'
 				}`
 			}
-		>
-		</div>
+		/>
 	</div>
 
 	return {
@@ -248,5 +250,52 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, a
 		buttonsHTML
 	}
 
+}
+
+
+
+
+
+
+export const BlockCodeApplyWrapper = ({
+	children,
+	initValue,
+	applyBoxId,
+	language,
+	canApply,
+
+}: {
+	initValue: string;
+	children: React.ReactNode;
+	applyBoxId: string;
+	canApply: boolean;
+	language: string;
+}) => {
+
+
+	const { statusIndicatorHTML, buttonsHTML } = useApplyButtonHTML({ codeStr: initValue, applyBoxId })
+
+	return <div
+		className='border border-void-border-3 rounded overflow-hidden bg-void-bg-3'
+	>
+
+		{/* header */}
+		<div className=" select-none flex justify-between items-center py-1 px-2 border-b border-void-border-3 cursor-default">
+			<div className="flex items-center">
+				{statusIndicatorHTML}
+				<span className="text-[13px] font-light text-void-fg-3">
+					{language || 'text'}
+				</span>
+			</div>
+			<div className={`${canApply ? '' : 'hidden'} flex gap-1`}>
+				{buttonsHTML}
+			</div>
+		</div>
+
+		{/* contents */}
+		<ToolContentsWrapper>
+			{children}
+		</ToolContentsWrapper>
+	</div>
 
 }

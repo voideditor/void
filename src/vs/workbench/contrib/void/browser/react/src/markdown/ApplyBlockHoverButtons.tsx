@@ -98,7 +98,7 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 const applyingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undefined } } = { current: {} }
 
 
-export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, applyBoxId: string }) => {
+export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: string, applyBoxId: string, uri: URI | 'current' }) => {
 
 	const settingsState = useSettingsState()
 	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
@@ -112,13 +112,16 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, a
 	const getUriBeingApplied = useCallback(() => applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null, [applyBoxId])
 	const getStreamState = useCallback(() => editCodeService.getURIStreamState({ uri: getUriBeingApplied() }), [editCodeService, getUriBeingApplied])
 
-	// listen for stream updates
+	// listen for stream updates on this box
 	useURIStreamState(
-		useCallback((uri, newStreamState) => {
-			const shouldUpdate = getUriBeingApplied()?.fsPath === uri.fsPath
+		useCallback((uri_, newStreamState) => {
+			const shouldUpdate = (
+				getUriBeingApplied()?.fsPath === uri_.fsPath
+				|| (uri === 'current' ? false : uri.fsPath === uri_.fsPath)
+			)
 			if (!shouldUpdate) return
 			rerender(c => c + 1)
-		}, [applyBoxId, editCodeService, getUriBeingApplied])
+		}, [applyBoxId, editCodeService, getUriBeingApplied, uri])
 	)
 
 	const onClickSubmit = useCallback(async () => {
@@ -127,14 +130,14 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId }: { codeStr: string, a
 		const [newApplyingUri, _] = await editCodeService.startApplying({
 			from: 'ClickApply',
 			applyStr: codeStr,
-			uri: 'current',
+			uri: uri,
 			startBehavior: 'reject-conflicts',
 		}) ?? []
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
 
 		rerender(c => c + 1)
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
-	}, [isDisabled, getStreamState, editCodeService, codeStr, applyBoxId, metricsService])
+	}, [isDisabled, getStreamState, editCodeService, codeStr, uri, applyBoxId, metricsService])
 
 
 	const onInterrupt = useCallback(() => {
@@ -263,17 +266,18 @@ export const BlockCodeApplyWrapper = ({
 	applyBoxId,
 	language,
 	canApply,
-
+	uri,
 }: {
 	initValue: string;
 	children: React.ReactNode;
 	applyBoxId: string;
 	canApply: boolean;
 	language: string;
+	uri: URI | 'current',
 }) => {
 
 
-	const { statusIndicatorHTML, buttonsHTML } = useApplyButtonHTML({ codeStr: initValue, applyBoxId })
+	const { statusIndicatorHTML, buttonsHTML } = useApplyButtonHTML({ codeStr: initValue, applyBoxId, uri })
 
 	return <div
 		className='border border-void-border-3 rounded overflow-hidden bg-void-bg-3'
@@ -287,7 +291,7 @@ export const BlockCodeApplyWrapper = ({
 					{language || 'text'}
 				</span>
 			</div>
-			<div className={`${canApply ? '' : 'hidden'} flex gap-1`}>
+			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>
 				{buttonsHTML}
 			</div>
 		</div>

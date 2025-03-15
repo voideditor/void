@@ -67,10 +67,10 @@ const markdownLangToVscodeLang: { [key: string]: string } = {
 	'less': 'less',
 	'javascript': 'typescript',
 	'js': 'typescript', // use more general renderer
-	'jsx': 'typescript',
+	'jsx': 'typescriptreact',
 	'typescript': 'typescript',
 	'ts': 'typescript',
-	'tsx': 'typescript',
+	'tsx': 'typescriptreact',
 	'json': 'json',
 	'jsonc': 'json',
 

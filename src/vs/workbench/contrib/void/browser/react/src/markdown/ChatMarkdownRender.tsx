@@ -20,7 +20,7 @@ export type ChatMessageLocation = {
 
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }
 
-const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
+export const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
 	return `${threadId}-${messageIdx}-${tokenIdx}`
 }
 
@@ -120,7 +120,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		const firstLineIsURI = URI.isUri(firstLine)
 		const contents = firstLineIsURI ? (remainingContents || '') : t.text // exclude first-line URI from contents
 
-		// figure out langauge
+		// figure out langauge and URI
 		let language: string | undefined = undefined
 		let uri: URI | undefined = undefined
 		if (t.lang) { // a language was provided. empty string is common so check truthy, not just undefined
@@ -151,6 +151,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 				applyBoxId={applyBoxId}
 				initValue={contents}
 				language={language}
+				uri={uri || 'current'}
 			>
 				<BlockCode
 					initValue={contents}

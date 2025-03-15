@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------*/
 
 import { VoidCodeEditor, VoidCodeEditorProps } from '../util/inputs.js';
-import { BlockCodeApplyWrapper, useApplyButtonHTML } from './ApplyBlockHoverButtons.js';
 
 
 export const BlockCode = ({ ...codeEditorProps }: VoidCodeEditorProps) => {

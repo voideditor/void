@@ -387,6 +387,7 @@ export type GlobalSettings = {
 	enableAutocomplete: boolean;
 	syncApplyToChat: boolean;
 	enableFastApply: boolean;
+	chatMode: ChatMode;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -395,6 +396,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	enableAutocomplete: false,
 	syncApplyToChat: true,
 	enableFastApply: true,
+	chatMode: 'agent',
 }
 
 export type GlobalSettingName = keyof GlobalSettings

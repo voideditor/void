@@ -540,11 +540,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// CAN THROW ERRORS
 	approveTool(toolId: string) {
+		const chatMode = this._settingsService.state.globalSettings.chatMode
+
 		// if not streaming, approveToolAndStreamResponse
 		const threadId = this.getCurrentThread().id
 		const isStreaming = !!this.streamState[threadId]?.streamingToken
 		if (!isStreaming) {
-			this._approveToolAndStreamResponse_NotStreamingNow({ chatMode: 'agent' })
+			this._approveToolAndStreamResponse_NotStreamingNow({ chatMode })
 		}
 		else {
 			const resRej = this.resRejOfToolAwaitingApproval[toolId]

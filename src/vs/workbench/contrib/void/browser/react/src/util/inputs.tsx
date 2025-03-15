@@ -316,18 +316,18 @@ export const VoidSlider = ({
 					{/* Track */}
 					<div
 						className={`relative ${size === 'xxs' ? 'h-0.5' :
-								size === 'xs' ? 'h-1' :
-									size === 'sm' ? 'h-1.5' :
-										size === 'sm+' ? 'h-2' : 'h-2.5'
+							size === 'xs' ? 'h-1' :
+								size === 'sm' ? 'h-1.5' :
+									size === 'sm+' ? 'h-2' : 'h-2.5'
 							} bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer`}
 						onClick={handleTrackClick}
 					>
 						{/* Filled part of track */}
 						<div
 							className={`absolute left-0 ${size === 'xxs' ? 'h-0.5' :
-									size === 'xs' ? 'h-1' :
-										size === 'sm' ? 'h-1.5' :
-											size === 'sm+' ? 'h-2' : 'h-2.5'
+								size === 'xs' ? 'h-1' :
+									size === 'sm' ? 'h-1.5' :
+										size === 'sm+' ? 'h-2' : 'h-2.5'
 								} bg-gray-900 dark:bg-white rounded-full`}
 							style={{ width: `${percentage}%` }}
 						/>
@@ -471,7 +471,8 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 	className,
 	arrowTouchesText = true,
 	matchInputWidth = false,
-	gap = 0,
+	gapPx = 0,
+	offsetPx = -6,
 }: {
 	options: T[];
 	selectedOption: T | undefined;
@@ -483,7 +484,8 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 	className?: string;
 	arrowTouchesText?: boolean;
 	matchInputWidth?: boolean;
-	gap?: number;
+	gapPx?: number;
+	offsetPx?:number;
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const measureRef = useRef<HTMLDivElement>(null);
@@ -502,7 +504,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 		placement: 'bottom-start',
 
 		middleware: [
-			offset(gap),
+			offset({ mainAxis: gapPx, crossAxis: offsetPx }),
 			flip({
 				boundary: document.body,
 				padding: 8

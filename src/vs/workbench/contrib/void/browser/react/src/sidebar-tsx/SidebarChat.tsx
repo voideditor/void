@@ -17,13 +17,13 @@ import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markd
 import { URI } from '../../../../../../../base/common/uri.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { TextAreaFns, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
+import { TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
+import { ChatMode, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, ChevronRight, Dot, Pencil, X } from 'lucide-react';
@@ -206,7 +206,7 @@ const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-$
 
 
 // SLIDER ONLY:
-const ReasoningOptionDropdown = ({ featureName }: { featureName: FeatureName }) => {
+const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) => {
 	const accessor = useAccessor()
 
 	const voidSettingsService = accessor.get('IVoidSettingsService')
@@ -260,6 +260,46 @@ const ReasoningOptionDropdown = ({ featureName }: { featureName: FeatureName }) 
 	}
 
 	return null
+}
+
+
+
+const nameOfChatMode = {
+	'chat': 'Chat',
+	'gather': 'Gather',
+	'agent': 'Agent',
+}
+
+const detailOfChatMode = {
+	'chat': 'Chat only',
+	'gather': 'Read files',
+	'agent': 'Read and edit files',
+}
+
+
+const ChatModeDropdown = ({ className }: { className: string }) => {
+	const accessor = useAccessor()
+
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
+
+	const options: ChatMode[] = useMemo(() => ['chat', 'gather', 'agent'], [])
+
+	const onChangeOption = useCallback((newVal: ChatMode) => {
+		voidSettingsService.setGlobalSetting('chatMode', newVal)
+	}, [voidSettingsService])
+
+	return <VoidCustomDropdownBox
+		className={className}
+		options={options}
+		selectedOption={voidSettingsService.state.globalSettings.chatMode}
+		onChangeOption={onChangeOption}
+		getOptionDisplayName={(val) => nameOfChatMode[val]}
+		getOptionDropdownName={(val) => nameOfChatMode[val]}
+		getOptionDropdownDetail={(val) => detailOfChatMode[val]}
+		getOptionsEqual={(a, b) => a === b}
+	/>
+
 }
 
 
@@ -363,9 +403,13 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			{/* Bottom row */}
 			<div className='flex flex-row justify-between items-end gap-1'>
 				{showModelDropdown && (
-					<div className='max-w-[200px] flex-grow'>
-						<ReasoningOptionDropdown featureName={featureName} />
-						<ModelDropdown featureName={featureName} className='text-xs text-void-fg-3' />
+					<div className='flex flex-col gap-1'>
+						<ReasoningOptionSlider featureName={featureName} />
+
+						<div className='flex items-center flex-wrap gap-x-1 gap-y-1'>
+							<ModelDropdown featureName={featureName} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+							<ChatModeDropdown className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+						</div>
 					</div>
 				)}
 
@@ -1675,8 +1719,10 @@ export const SidebarChat = () => {
 
 		// getModelCapabilities() // TODO!!! check if can go into agent mode
 
+		const chatMode = settingsState.globalSettings.chatMode
+
 		try {
-			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode: 'agent' })
+			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode })
 		} catch (e) {
 			console.error('Error while sending message in chat:', e)
 		}

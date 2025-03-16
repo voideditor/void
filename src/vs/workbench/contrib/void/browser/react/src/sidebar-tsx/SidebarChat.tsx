@@ -35,6 +35,9 @@ import { text } from 'stream/consumers';
 import { clear } from 'console';
 import getCaretCoordinates from 'textarea-caret';
 
+// Test dropdown for files
+import { FileSelectBox } from '../void-settings-tsx/FileDropdown.js';
+
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
 	return (
 		<svg
@@ -1712,10 +1715,15 @@ export const SidebarChat = () => {
 			if ((charBeforeCursor === '@' && charBeforeCursor2 === ' ') || (charBeforeCursor === '@' && cursorPosition === 1)) {
 				console.log('[Mentions] @ detected!');
 				// Show the dropdown
+				const {top, left, height} = getCaretCoordinates(textAreaRef.current, cursorPosition);
+				const textAreaRect = textAreaRef.current.getBoundingClientRect();
+				setCaretPosition({
+					top: textAreaRect.top + top,
+					left: textAreaRect.left + left,
+					height: height,
+				});
+				// console.log("CARET COORDS!", JSON.stringify(position));
 				setShowDropdown(true);
-				const position = getCaretCoordinates(textAreaRef.current, cursorPosition);
-				setCaretPosition(position);
-				console.log("CARET COORDS!", JSON.stringify(position));
 
 			// Check for "@" with text after (e.g. @anything_written_without_spaces)
 			} else if (text.substring(text.lastIndexOf(' ', cursorPosition - 1) + 1, cursorPosition).startsWith('@')) {
@@ -1801,19 +1809,14 @@ export const SidebarChat = () => {
                     multiline={true}
                 />
                 {/* {showDropdown && <MentionsDropdown onClose={handleMentionClose} onFileAdded={handleOnFileAdded} searchText={searchText} />} */}
-				<div
-					style={{
-					position: 'absolute',
-					top: caretPosition.top,
-					left: caretPosition.left,
-					height: caretPosition.height,
-					width: '2px',
-					backgroundColor: 'red'
-					}}
-				/>
             </div>
-
-
+			{showDropdown && <FileSelectBox
+				searchText={searchText}
+				onClickOption={handleOnFileAdded}
+				onClose={handleMentionClose}
+				position={caretPosition}
+				isTextAreaAtBottom={previousMessages.length > 0}
+			/>}
 		</VoidChatArea>
 	</div>
 

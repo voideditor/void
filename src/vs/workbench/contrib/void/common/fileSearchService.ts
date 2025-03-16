@@ -169,10 +169,22 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		duplicatesMap.forEach(group => {
 			if (group.length > 1) {
 				group.forEach(info => info.hasDuplicate = true);
-				const fullPaths = group.map(info => info.uri.toString());
+				const fullPaths = group.map(info => info.uri.fsPath);
 				const shortenedPaths = shorten(fullPaths); // Get short file path to be rendered for duplicates fileNames
+				const modifiedShortenedPaths = shortenedPaths.map((path) => {
+					if (path) {
+						// Remove the root folder name from the path
+						const modifiedPath = path.replace(/^\/[^/]+\//, '');
+						console.log("Modified path:", modifiedPath);
+						return modifiedPath;
+					} else {
+						return ""
+					}
+
+				})
+				// console.log("Further shortened paths:", modifiedShortenedPaths);
 				group.forEach((info, index) => {
-					info.shortPath = shortenedPaths[index];
+					info.shortPath = modifiedShortenedPaths[index];
 				});
 			}
 		});

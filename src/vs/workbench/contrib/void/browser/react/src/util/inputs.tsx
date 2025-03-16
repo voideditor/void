@@ -680,6 +680,127 @@ export const VoidCustomDropdownBox = <T extends any>({
 	);
 };
 
+export const VoidCustomMentionDropdownBox = <T extends any>({
+    options,
+    onClickOption,
+    getOptionDropdownName,
+    getOptionDropdownDetail,
+	isTextAreaAtBottom,
+    className,
+    matchInputWidth = false,
+    position = { top: 0, left: 0, height: 0 },
+    width,
+    gap = 0,
+	isLoading = false,
+}: {
+    options: T[];
+    onClickOption: (clickedValue: T) => void;
+    getOptionDropdownName: (option: T) => string;
+    getOptionDropdownDetail?: (option: T) => string;
+	isTextAreaAtBottom: boolean;
+    className?: string;
+    matchInputWidth?: boolean;
+    position?: { top: number; left: number; height: number };
+    width?: number;
+    gap?: number;
+	isLoading?: boolean;
+}) => {
+    const measureRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(target)
+            ) {
+                // Have a function to handle the click outside the component to hide it
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [dropdownRef]);
+
+    const handleFileClick = (option: T) => {
+		console.log("OPTION CLICKED: ", option)
+        onClickOption(option);
+    };
+
+    // Calculate final width based on provided width or measured content
+    // const finalWidth = width || (measureRef.current?.offsetWidth || 200);
+
+	// Dropdown placement relative to the cursor
+	const bottomLeft = 'translateX(-100%)';
+	const cursorHeight = '25px';
+	const topLeft = `translate(-100%, calc(-100% - ${cursorHeight}))`;
+
+    return (
+        <div className={`inline-block absolute ${className}`}>
+            <div
+                ref={measureRef}
+                className="opacity-0 pointer-events-none absolute -left-[999999px] -top-[999999px] flex flex-col"
+                aria-hidden="true"
+            >
+                {options.map((option) => {
+                    const optionName = getOptionDropdownName(option);
+                    const optionDetail = getOptionDropdownDetail?.(option) || '';
+
+                    return (
+                        <div key={optionName + optionDetail} className="flex items-center whitespace-nowrap">
+                            <div className="w-4" />
+                            <span className="flex justify-between w-full">
+                                <span>{optionName}</span>
+                                <span>{optionDetail}</span>
+                                <span>______</span>
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+
+            <div
+                ref={dropdownRef}
+                className="z-50 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg"
+                style={{
+                    position: 'fixed',
+                    top: position.top + position.height + gap,
+                    left: position.left,
+                    width: 350,
+					height: 300,
+					overflowY: 'auto',
+					overflowX: 'hidden',
+					transform: isTextAreaAtBottom ? topLeft : bottomLeft,
+                }}
+            >
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-full">
+                        {/* Simple spinner loader */}
+                        <div className="w-6 h-6 border-2 border-t-2 border-gray-500 rounded-full animate-spin"></div>
+                    </div>
+                ) : (options.map((option) => {
+                    const optionName = getOptionDropdownName(option);
+                    const optionDetail = getOptionDropdownDetail?.(option) || '';
+
+                    return (
+                        <div
+                            key={optionName}
+                            className="flex items-center px-2 py-1 cursor-pointer whitespace-nowrap transition-all duration-100 bg-void-bg-1 hover:bg-void-bg-2"
+                            onClick={() => handleFileClick(option)}
+                        >
+                            <span className="flex justify-between w-full">
+                                <span>{optionName}</span>
+                                <span className='text-void-fg-4 opacity-60'>{optionDetail}</span>
+                            </span>
+                        </div>
+                    );
+                }))}
+            </div>
+        </div>
+    );
+};
+
 
 
 export const _VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options, className }: {

@@ -1768,14 +1768,14 @@ const VoidCommandBar = () => {
 		onBlurCapture={() => setIsFocused(false)}
 	>
 		<button
-			disabled={!getNextDiff({ step: 1 })}
-			onClick={() => gotoNextDiff({ step: 1 })}
-		>↓</button>
-
-		<button
 			disabled={!getNextDiff({ step: -1 })}
 			onClick={() => gotoNextDiff({ step: -1 })}
 		>↑</button>
+
+		<button
+			disabled={!getNextDiff({ step: 1 })}
+			onClick={() => gotoNextDiff({ step: 1 })}
+		>↓</button>
 
 		<button
 			disabled={!getNextUri({ step: -1 })}
@@ -1789,10 +1789,11 @@ const VoidCommandBar = () => {
 
 		<div>
 			<div className='gap-2 text-[var(--vscode-editor-foreground)] flex'>
-				<div>numUris: {Object.keys(editCodeService._sortedDiffsOfFspath).length}</div>
-				<div>numDiffs: {Object.values(editCodeService._sortedDiffsOfFspath).reduce((acc, diffs) => acc + (diffs?.length || 0), 0)}</div>
+				<div>File: {(editCodeService._sortedUrisWithDiffs.findIndex(u => u.fsPath === getCurrentUri()?.fsPath) ?? 0) + 1}/{editCodeService._sortedUrisWithDiffs.length}</div>
+				<div>Diff: {(diffIdxOfFspath[getCurrentUri()?.fsPath ?? ''] ?? 0) + 1}/{editCodeService._sortedDiffsOfFspath[getCurrentUri()?.fsPath ?? '']?.length ?? 0}</div>
 			</div>
 		</div>
+
 		{diffZones.map((area, index) => (
 			<>
 				<div key={index} className='bg-red-500 p-2 rounded-lg m-2 text-white'>{getBasename(area?._URI?.toString())}</div>

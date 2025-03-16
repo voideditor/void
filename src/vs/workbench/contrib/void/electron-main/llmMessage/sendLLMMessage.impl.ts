@@ -516,7 +516,6 @@ const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, setting
 			const fullText = typeof content === 'string' ? content :
 				Array.isArray(content) ? content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('') : '';
 			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
-			console.log('✅ Réponse FIM reçue:', fullText);
 		})
 		.catch(error => {
 			onError({ message: error + '', fullError: error });

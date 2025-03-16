@@ -925,7 +925,7 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 
 export const VoidButton = ({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) => {
 	return <button disabled={disabled}
-		className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
+		className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden whitespace-nowrap'
 		onClick={onClick}
 	>{children}</button>
 }

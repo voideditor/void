@@ -18,13 +18,12 @@ import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
+import { IconX } from '../sidebar-tsx/SidebarChat.js'
 
-const SubtleButton = ({ onClick, text, icon, disabled }: { onClick: () => void, text: string, icon: React.ReactNode, disabled: boolean }) => {
+const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
 	return <div className='flex items-center text-void-fg-3 px-3 py-0.5 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
-		<button className='flex items-center' disabled={disabled} onClick={onClick}>
-			{icon}
-		</button>
+		{leftButton ? leftButton : null}
 		<span>
 			{text}
 		</span>
@@ -57,22 +56,28 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 	const { state } = refreshModelState[providerName]
 
 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
-	return <SubtleButton
-		onClick={() => {
-			refreshModelService.startRefreshingModels(providerName, { enableProviderOnSuccess: false, doNotFire: false })
-			metricsService.capture('Click', { providerName, action: 'Refresh Models' })
-		}}
-		text={justFinished === 'finished' ? `${providerTitle} Models are up-to-date!`
-			: justFinished === 'error' ? `${providerTitle} not found!`
-				: `Manually refresh ${providerTitle} models.`
-		}
-		icon={justFinished === 'finished' ? <Check className='stroke-green-500 size-3' />
-			: justFinished === 'error' ? <X className='stroke-red-500 size-3' />
-				: state === 'refreshing' ? <Loader2 className='size-3 animate-spin' />
-					: <RefreshCw className='size-3' />
+
+	return <ButtonLeftTextRightOption
+
+		leftButton={
+			<button
+				className='flex items-center'
+				disabled={state === 'refreshing' || justFinished !== null}
+				onClick={() => {
+					refreshModelService.startRefreshingModels(providerName, { enableProviderOnSuccess: false, doNotFire: false })
+					metricsService.capture('Click', { providerName, action: 'Refresh Models' })
+				}}
+			>
+				{justFinished === 'finished' ? <Check className='stroke-green-500 size-3' />
+					: justFinished === 'error' ? <X className='stroke-red-500 size-3' />
+						: state === 'refreshing' ? <Loader2 className='size-3 animate-spin' />
+							: <RefreshCw className='size-3' />}
+			</button>
 		}
 
-		disabled={state === 'refreshing' || justFinished !== null}
+		text={justFinished === 'finished' ? `${providerTitle} Models are up-to-date!`
+			: justFinished === 'error' ? `${providerTitle} not found!`
+				: `Manually refresh ${providerTitle} models.`}
 	/>
 }
 
@@ -93,7 +98,7 @@ const RefreshableModels = () => {
 
 
 
-const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
+const AddModelMenu = ({ onSubmit, onClose }: { onSubmit: () => void, onClose: () => void }) => {
 
 	const accessor = useAccessor()
 	const settingsStateService = accessor.get('IVoidSettingsService')
@@ -116,8 +121,8 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 				options={providerNames}
 				selectedOption={providerName}
 				onChangeOption={(pn) => setProviderName(pn)}
-				getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
-				getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
+				getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
+				getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
 				getOptionsEqual={(a, b) => a === b}
 				className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
 					py-[4px] px-[6px]
@@ -141,8 +146,8 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 			</div>
 
 			{/* button */}
-			<div className='max-w-40'>
-				<VoidButton onClick={() => {
+			<VoidButton
+				onClick={() => {
 					const modelName = modelNameRef.current?.value
 
 					if (providerName === null) {
@@ -161,15 +166,15 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 
 					settingsStateService.addModel(providerName, modelName)
 					onSubmit()
-
 				}}
-				>Add model</VoidButton>
-			</div>
+			>Add model</VoidButton>
 
-			{!errorString ? null : <div className='text-red-500 truncate whitespace-nowrap'>
-				{errorString}
-			</div>}
+			<button onClick={onClose} className='ml-auto'><X className='size-4' /></button>
 		</div>
+
+		{!errorString ? null : <div className='text-red-500 truncate whitespace-nowrap mt-1'>
+			{errorString}
+		</div>}
 
 	</>
 
@@ -178,9 +183,9 @@ const AddModelMenu = ({ onSubmit }: { onSubmit: () => void }) => {
 const AddModelMenuFull = () => {
 	const [open, setOpen] = useState(false)
 
-	return <div className='hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 my-4 pb-1 px-3 rounded-sm overflow-hidden '>
+	return <div className='hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 my-4 px-3 rounded-sm overflow-hidden'>
 		{open ?
-			<AddModelMenu onSubmit={() => { setOpen(false) }} />
+			<AddModelMenu onSubmit={() => setOpen(false)} onClose={() => setOpen(false)} />
 			: <VoidButton onClick={() => setOpen(true)}>Add Model</VoidButton>
 		}
 	</div>
@@ -354,7 +359,7 @@ export const VoidProviderSettings = ({ providerNames }: { providerNames: Provide
 
 
 type TabName = 'models' | 'general'
-export const AutoRefreshToggle = () => {
+export const AutoDetectLocalModelsToggle = () => {
 	const settingName: GlobalSettingName = 'autoRefreshModels'
 
 	const accessor = useAccessor()
@@ -366,19 +371,17 @@ export const AutoRefreshToggle = () => {
 	// right now this is just `enabled_autoRefreshModels`
 	const enabled = voidSettingsState.globalSettings[settingName]
 
-	return <div className='flex items-center px-3 gap-x-1.5'>
-		<VoidSwitch
+	return <ButtonLeftTextRightOption
+		leftButton={<VoidSwitch
 			size='xxs'
 			value={enabled}
 			onChange={(newVal) => {
 				voidSettingsService.setGlobalSetting(settingName, newVal)
 				metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: newVal })
-			}} />
-
-		<span className='text-void-fg-3'>
-			{`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
-		</span>
-	</div>
+			}}
+		/>}
+		text={`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
+	/>
 
 
 }
@@ -431,11 +434,10 @@ export const FeaturesTab = () => {
 	return <>
 		<h2 className={`text-3xl mb-2`}>Models</h2>
 		<ErrorBoundary>
-			<AutoRefreshToggle />
-			<RefreshableModels />
-			<div className='py-2' />
 			<ModelDump />
 			<AddModelMenuFull />
+			<AutoDetectLocalModelsToggle />
+			<RefreshableModels />
 		</ErrorBoundary>
 
 

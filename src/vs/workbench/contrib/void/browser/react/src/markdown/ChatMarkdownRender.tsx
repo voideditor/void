@@ -12,6 +12,7 @@ import { useAccessor } from '../util/services.js'
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { getBasename } from '../sidebar-tsx/SidebarChat.js'
+import { isAbsolute } from '../../../../../../../base/common/path.js'
 
 
 export type ChatMessageLocation = {
@@ -25,6 +26,9 @@ export const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocati
 	return `${threadId}-${messageIdx}-${tokenIdx}`
 }
 
+function isValidUri(s: string): boolean {
+	return s.includes('/') && s.length > 5 && isAbsolute(s)
+}
 
 const Codespan = ({ text, className, onClick }: { text: string, className?: string, onClick?: () => void }) => {
 
@@ -122,25 +126,24 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 
 	if (t.type === "code") {
 		const [firstLine, remainingContents] = getFirstLine(t.text)
-		const firstLineIsURI = URI.isUri(firstLine)
-		const contents = firstLineIsURI ? (remainingContents || '') : t.text // exclude first-line URI from contents
+		const firstLineIsURI = isValidUri(firstLine)
+		const contents = firstLineIsURI ? (remainingContents?.trimStart() || '') : t.text // exclude first-line URI from contents
 
 		// figure out langauge and URI
+		let uri: URI | null
 		let language: string | undefined = undefined
-		let uri: URI | undefined = undefined
+		if (firstLineIsURI) { // get lang from the uri in the first line of the markdown
+			uri = codeURI ?? URI.from(URI.file(firstLine))
+		}
+		else {
+			uri = codeURI || null
+		}
+
 		if (t.lang) { // a language was provided. empty string is common so check truthy, not just undefined
-			uri = codeURI
 			language = convertToVscodeLang(languageService, t.lang) // convert markdown language to language that vscode recognizes (eg markdown doesn't know bash but it does know shell)
 		}
-		else { // no language provided - fallback
-			if (firstLineIsURI) { // get lang from the uri in the markdown
-				uri = codeURI ?? URI.file(firstLine)
-				language = getLanguage(languageService, { uri, fileContents: remainingContents ?? undefined })
-			}
-			else { // get lang from the given URI and contents
-				uri = codeURI
-				language = getLanguage(languageService, { uri: codeURI ?? null, fileContents: remainingContents ?? undefined })
-			}
+		else { // no language provided - fallback - get lang from the uri and contents
+			language = getLanguage(languageService, { uri, fileContents: remainingContents ?? undefined })
 		}
 
 		if (options.isApplyEnabled && chatMessageLocation) {

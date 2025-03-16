@@ -96,7 +96,6 @@ export const QuickEditChat = ({
 			isStreaming={isStreamingRef.current}
 			loadingIcon={loadingIcon}
 			isDisabled={isDisabled}
-			className="py-2 w-full"
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 		>
 			<VoidInputBox2

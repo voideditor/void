@@ -26,11 +26,10 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
-import { AlertTriangle, ChevronRight, Dot, Pencil, X } from 'lucide-react';
+import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
 import { ResolveReason, ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { getLanguageFromModel } from '../../../../common/helpers/getLanguage.js';
-import { dirname } from '../../../../../../../base/common/resources.js';
 import { useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
 import { DiffZone } from '../../../editCodeService.js';
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
@@ -211,15 +210,15 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 
 
 const nameOfChatMode = {
-	'chat': 'Chat',
+	'normal': 'Normal',
 	'gather': 'Gather',
 	'agent': 'Agent',
 }
 
 const detailOfChatMode = {
-	'chat': 'Normal chat',
-	'gather': 'Read and search only',
-	'agent': 'Full tool use',
+	'normal': 'Normal chat',
+	'gather': 'Discover relevant files',
+	'agent': 'Edit files and use tools',
 }
 
 
@@ -227,9 +226,8 @@ const ChatModeDropdown = ({ className }: { className: string }) => {
 	const accessor = useAccessor()
 
 	const voidSettingsService = accessor.get('IVoidSettingsService')
-	const voidSettingsState = useSettingsState()
 
-	const options: ChatMode[] = useMemo(() => ['chat', 'gather', 'agent'], [])
+	const options: ChatMode[] = useMemo(() => ['normal', 'gather', 'agent'], [])
 
 	const onChangeOption = useCallback((newVal: ChatMode) => {
 		voidSettingsService.setGlobalSetting('chatMode', newVal)
@@ -304,7 +302,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 		<div
 			ref={divRef}
 			className={`
-				gap-1
+				gap-x-1
                 flex flex-col p-2 relative input text-left shrink-0
                 transition-all duration-200
                 rounded-md
@@ -351,12 +349,12 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			{/* Bottom row */}
 			<div className='flex flex-row justify-between items-end gap-1'>
 				{showModelDropdown && (
-					<div className='flex flex-col gap-1'>
+					<div className='flex flex-col gap-y-1'>
 						<ReasoningOptionSlider featureName={featureName} />
 
-						<div className='flex items-center flex-wrap gap-x-1 gap-y-1'>
-							<ModelDropdown featureName={featureName} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
-							<ChatModeDropdown className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+						<div className='flex items-center flex-wrap gap-x-2 gap-y-1'>
+							{featureName === 'Chat' && <ChatModeDropdown className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-2 rounded py-0.5 px-1' />}
+							<ModelDropdown featureName={featureName} className='text-xs text-void-fg-3 bg-void-bg-1 rounded' />
 						</div>
 					</div>
 				)}
@@ -667,6 +665,7 @@ type ToolHeaderParams = {
 	desc1: React.ReactNode;
 	desc2?: React.ReactNode;
 	isError?: boolean;
+	isRejected?: boolean;
 	numResults?: number;
 	children?: React.ReactNode;
 	onClick?: () => void;
@@ -683,6 +682,7 @@ const ToolHeaderWrapper = ({
 	isError,
 	onClick,
 	isOpen,
+	isRejected,
 }: ToolHeaderParams) => {
 
 	const [isExpanded_, setIsExpanded] = useState(false);
@@ -692,7 +692,7 @@ const ToolHeaderWrapper = ({
 	const isClickable = !!(isDropdown || onClick)
 
 	return (<div className=''>
-		<div className="w-full border border-void-border-3 rounded px-2 py-1 bg-void-bg-3 overflow-hidden">
+		<div className="w-full border border-void-border-3 rounded px-2 py-1 bg-void-bg-3 overflow-hidden ">
 			{/* header */}
 			<div
 				className={`select-none flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
@@ -706,7 +706,7 @@ const ToolHeaderWrapper = ({
 						className={`text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
 					/>
 				)}
-				<div className="flex items-center w-full gap-x-2 overflow-hidden justify-between">
+				<div className={`flex items-center w-full gap-x-2 overflow-hidden justify-between ${isRejected ? 'line-through' : ''}`}>
 					{/* left */}
 					<div className="flex items-center gap-x-2 min-w-0 overflow-hidden">
 						<span className="text-void-fg-3 flex-shrink-0">{title}</span>
@@ -723,7 +723,8 @@ const ToolHeaderWrapper = ({
 								{`(`}{numResults}{` result`}{numResults !== 1 ? 's' : ''}{`)`}
 							</span>
 						)}
-						{isError && <AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={12} />}
+						{isError && <AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={14} />}
+						{isRejected && <Ban className='text-void-fg-4 opacity-90 flex-shrink-0' size={14} />}
 					</div>
 				</div>
 			</div>
@@ -820,7 +821,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 
 			// cancel any streams on this thread
 			const thread = chatThreadsService.getCurrentThread()
-			chatThreadsService.cancelStreaming(thread.id)
+			chatThreadsService.stopRunning(thread.id)
 
 			// update state
 			setIsBeingEdited(false)
@@ -830,7 +831,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 			// stream the edit
 			const userMessage = textAreaRefState.value;
 			try {
-				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx, })
+				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, messageIdx, })
 			} catch (e) {
 				console.error('Error while editing message:', e)
 			}
@@ -838,7 +839,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 
 		const onAbort = () => {
 			const threadId = chatThreadsService.state.currentThreadId
-			chatThreadsService.cancelStreaming(threadId)
+			chatThreadsService.stopRunning(threadId)
 		}
 
 		const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1014,15 +1015,15 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 
 
 // should either be past or "-ing" tense, not present tense. Eg. when the LLM searches for something, the user expects it to say "I searched for X" or "I am searching for X". Not "I search X".
-const toolNameToTitle: Record<ToolName, { past: string, current: string, proposed: string }> = {
-	'read_file': { past: 'Read file', current: 'Reading file', proposed: 'Read file' },
-	'list_dir': { past: 'Inspected folder', current: 'Inspecting folder', proposed: 'Inspect folder' },
-	'pathname_search': { past: 'Searched by file name', current: 'Searching by file name', proposed: 'Search by file name' },
-	'search': { past: 'Searched', current: 'Searching', proposed: 'Search' },
-	'create_uri': { past: 'Created file', current: 'Creating file', proposed: 'Create file' },
-	'delete_uri': { past: 'Deleted file', current: 'Deleting file', proposed: 'Delete file' },
-	'edit': { past: 'Edited file', current: 'Editing file', proposed: 'Edit file' },
-	'terminal_command': { past: 'Ran terminal command', current: 'Running terminal command', proposed: 'Run terminal command' }
+const toolNameToTitle: Record<ToolName, { past: string, proposed: string }> = {
+	'read_file': { past: 'Read file', proposed: 'Read file' },
+	'list_dir': { past: 'Inspected folder', proposed: 'Inspect folder' },
+	'pathname_search': { past: 'Searched by file name', proposed: 'Search by file name' },
+	'search': { past: 'Searched', proposed: 'Search' },
+	'create_uri': { past: 'Created file', proposed: 'Create file' },
+	'delete_uri': { past: 'Deleted file', proposed: 'Delete file' },
+	'edit': { past: 'Edited file', proposed: 'Edit file' },
+	'terminal_command': { past: 'Ran terminal command', proposed: 'Run terminal command' }
 }
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
 
@@ -1060,24 +1061,27 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 }
 
 
-const ToolRequestAcceptRejectButtons = ({ voidToolId }: { voidToolId: string }) => {
+const ToolRequestAcceptRejectButtons = () => {
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const metricsService = accessor.get('IMetricsService')
 
+
 	const onAccept = useCallback(() => {
-		try {
-			chatThreadsService.approveTool(voidToolId)
+		try { // this doesn't need to be wrapped in try/catch anymore
+			const threadId = chatThreadsService.state.currentThreadId
+			chatThreadsService.approveTool(threadId)
 			metricsService.capture('Tool Request Accepted', {})
 		} catch (e) { console.error('Error while approving message in chat:', e) }
-	}, [chatThreadsService, voidToolId, metricsService])
+	}, [chatThreadsService, metricsService])
 
 	const onReject = useCallback(() => {
 		try {
-			chatThreadsService.rejectTool(voidToolId)
+			const threadId = chatThreadsService.state.currentThreadId
+			chatThreadsService.rejectTool(threadId)
 		} catch (e) { console.error('Error while approving message in chat:', e) }
 		metricsService.capture('Tool Request Rejected', {})
-	}, [chatThreadsService, voidToolId, metricsService])
+	}, [chatThreadsService, metricsService])
 
 	const approveButton = (
 		<button
@@ -1126,7 +1130,7 @@ export const ToolContentsWrapper = ({ children, className }: { children: React.R
 		</div>
 	</div>
 }
-const ListableToolItem = ({ name, onClick, isSmall, className, showDot }: { name: React.ReactNode, onClick?: () => void, isSmall?: boolean, className?: string, showDot?: boolean }) => {
+export const ListableToolItem = ({ name, onClick, isSmall, className, showDot }: { name: React.ReactNode, onClick?: () => void, isSmall?: boolean, className?: string, showDot?: boolean }) => {
 	return <div
 		className={`
 			${onClick ? 'hover:brightness-125 hover:cursor-pointer transition-all duration-200 ' : ''}
@@ -1159,10 +1163,8 @@ const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescript
 			className='w-full overflow-auto py-1'
 			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
 		/>
-		<div className='border border-void-border-1 rounded p-1'>
-			<div className='!select-text cursor-auto'>
-				<ChatMarkdownRender string={changeDescription} codeURI={uri} chatMessageLocation={undefined} />
-			</div>
+		<div className='!select-text cursor-auto my-4'>
+			<ChatMarkdownRender string={changeDescription} codeURI={uri} chatMessageLocation={undefined} />
 		</div>
 	</ToolContentsWrapper>
 }
@@ -1183,12 +1185,10 @@ const TerminalToolChildren = ({ command, terminalId, result, resolveReason }: { 
 			className='w-full overflow-auto py-1'
 			onClick={() => terminalToolsService.openTerminal(terminalId)}
 		/>
-		<div className='border border-void-border-1 rounded p-1'>
-			<div className='!select-text cursor-auto'>
-				{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}
-				{result}
-				{resultStr}
-			</div>
+		<div className='!select-text cursor-auto my-4'>
+			{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}
+			{result}
+			{resultStr}
 		</div>
 	</ToolContentsWrapper>
 }
@@ -1203,7 +1203,7 @@ const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneRe
 		if (!isWriting) setIsOpen(isWriting) // if just finished reasoning, close
 	}, [isWriting])
 	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen}>
-		<ToolContentsWrapper className='bg-void-bg-3'>
+		<ToolContentsWrapper className='bg-void-bg-3 prose-sm'>
 			<div className='!select-text cursor-auto'>
 				{children}
 			</div>
@@ -1396,7 +1396,8 @@ const toolNameToComponent: { [T in ToolName]: {
 
 
 			const isError = toolMessage.result.type === 'error'
-			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+			const isRejected = toolMessage.result.type === 'rejected'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected }
 
 			if (toolMessage.result.type === 'success') {
 				const { params } = toolMessage.result
@@ -1434,12 +1435,13 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name].past
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].past : toolNameToTitle[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
 			const isError = toolMessage.result.type === 'error'
-			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+			const isRejected = toolMessage.result.type === 'rejected'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected }
 
 			if (toolMessage.result.type === 'success') {
 				const { params } = toolMessage.result
@@ -1480,12 +1482,13 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage, messageIdx }) => {
 			const accessor = useAccessor()
 			const chatThreadsService = accessor.get('IChatThreadService')
-			const title = toolNameToTitle[toolMessage.name].past
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].past : toolNameToTitle[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
 			const isError = toolMessage.result.type === 'error'
-			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+			const isRejected = toolMessage.result.type === 'rejected'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected }
 
 			if (toolMessage.result.type === 'success' || toolMessage.result.type === 'rejected') {
 				const { params } = toolMessage.result
@@ -1540,12 +1543,13 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
-			const title = toolNameToTitle[toolMessage.name].past
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].past : toolNameToTitle[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
 			const isError = toolMessage.result.type === 'error'
-			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+			const isRejected = toolMessage.result.type === 'rejected'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected }
 
 			if (toolMessage.result.type === 'success') {
 				const { command } = toolMessage.result.params
@@ -1605,11 +1609,11 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 	}
 	else if (role === 'tool_request') {
 		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
-		// if (!isLast) return null
+		if (!isLast) return null
 		if (!ToolRequestWrapper) return null
 		return <>
 			<ToolRequestWrapper toolRequest={chatMessage} />
-			<ToolRequestAcceptRejectButtons voidToolId={chatMessage.voidToolId} />
+			<ToolRequestAcceptRejectButtons />
 		</>
 	}
 	else if (role === 'tool') {
@@ -1838,7 +1842,7 @@ export const SidebarChat = () => {
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
-	const isStreaming = !!currThreadStreamState?.streamingToken
+	const isRunning = !!currThreadStreamState?.isRunning
 	const latestError = currThreadStreamState?.error
 	const messageSoFar = currThreadStreamState?.messageSoFar
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
@@ -1861,7 +1865,7 @@ export const SidebarChat = () => {
 	const onSubmit = useCallback(async () => {
 
 		if (isDisabled) return
-		if (isStreaming) return
+		if (isRunning) return
 
 		// update state
 		chatThreadsService.closeStagingSelectionsInCurrentThread() // close all selections
@@ -1871,10 +1875,8 @@ export const SidebarChat = () => {
 
 		// getModelCapabilities() // TODO!!! check if can go into agent mode
 
-		const chatMode = settingsState.globalSettings.chatMode
-
 		try {
-			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode })
+			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage })
 		} catch (e) {
 			console.error('Error while sending message in chat:', e)
 		}
@@ -1883,11 +1885,11 @@ export const SidebarChat = () => {
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, setSelections])
+	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState])
 
 	const onAbort = () => {
 		const threadId = currentThread.id
-		chatThreadsService.cancelStreaming(threadId)
+		chatThreadsService.stopRunning(threadId)
 	}
 
 	// const [_test_messages, _set_test_messages] = useState<string[]>([])
@@ -1910,7 +1912,7 @@ export const SidebarChat = () => {
 	}, [previousMessages, currentThread, numMessages])
 
 	const streamingChatIdx = previousMessagesHTML.length
-	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isStreaming) ?
+	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isRunning) ?
 		<ChatBubble key={getChatBubbleId(currentThread.id, streamingChatIdx)}
 			messageIdx={streamingChatIdx}
 			chatMessage={{
@@ -1919,7 +1921,7 @@ export const SidebarChat = () => {
 				reasoning: reasoningSoFar ?? '',
 				anthropicReasoning: null,
 			}}
-			isLoading={isStreaming}
+			isLoading={isRunning}
 			isLast={true}
 		/> : null
 
@@ -1970,10 +1972,10 @@ export const SidebarChat = () => {
 	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			onSubmit()
-		} else if (e.key === 'Escape' && isStreaming) {
+		} else if (e.key === 'Escape' && isRunning) {
 			onAbort()
 		}
-	}, [onSubmit, onAbort, isStreaming])
+	}, [onSubmit, onAbort, isRunning])
 	const inputForm = <div
 		key={'input' + chatThreadsState.currentThreadId}
 		className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
@@ -1982,7 +1984,7 @@ export const SidebarChat = () => {
 			divRef={chatAreaRef}
 			onSubmit={onSubmit}
 			onAbort={onAbort}
-			isStreaming={isStreaming}
+			isStreaming={isRunning}
 			isDisabled={isDisabled}
 			showSelections={true}
 			showProspectiveSelections={previousMessagesHTML.length === 0}
@@ -1991,7 +1993,8 @@ export const SidebarChat = () => {
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 		>
 			<VoidInputBox2
-				className={`${previousMessages.length > 0 ? 'min-h-[9px]' : 'min-h-[81px]'} px-0.5`}
+				// className={`${previousMessages.length > 0 ? 'min-h-[9px]' : 'min-h-[81px]'} px-0.5`}
+				className={`min-h-[81px] px-0.5 py-0.5`}
 				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
 				onChangeText={onChangeText}
 				onKeyDown={onKeyDown}

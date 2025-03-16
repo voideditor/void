@@ -21,7 +21,7 @@ export type ToolRequestApproval<T extends ToolName> = {
 	name: T; // internal use
 	params: ToolCallParams[T]; // internal use
 	paramsStr: string; // internal use - this is what the LLM outputted, not necessarily JSON.stringify(params)
-	voidToolId: string; // internal id Void uses
+	id: string; // proposed tool's id
 }
 
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.

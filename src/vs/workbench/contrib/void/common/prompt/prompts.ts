@@ -8,6 +8,7 @@ import { URI } from '../../../../../base/common/uri.js';
 import { os } from '../helpers/systemInfo.js';
 import { IVoidFileService } from '../voidFileService.js';
 import { CodeSelection, FileSelection, StagingSelectionItem } from '../chatThreadServiceTypes.js';
+import { ChatMode } from '../voidSettingsTypes.js';
 
 
 // this is just for ease of readability
@@ -21,8 +22,8 @@ Do NOT output the whole file here if possible, and try to write as LITTLE code a
 
 
 
-export const chat_systemMessage = (workspaces: string[], runningTerminalIds: string[], mode: 'agent' | 'gather' | 'chat') => `\
-You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} created by Void. Your job is to help the user ${mode === 'agent' ? 'develop, run, and make changes to their project' : 'search and understand their codebase'}.
+export const chat_systemMessage = (workspaces: string[], runningTerminalIds: string[], mode: ChatMode) => `\
+You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} created by Void. Your job is to help the user ${mode === 'agent' ? 'develop, run, and make changes to their project' : 'search and understand their codebase by providing specific references to files and content'}.
 You will be given instructions to follow from the user, \`INSTRUCTIONS\`. You may also be given a list of files that the user has specifically selected, \`SELECTIONS\`.
 Please assist the user with their query${mode === 'agent' ? `, bringing the task to completion (make all necessary changes, and do not be lazy)` : ''}. The user's query is never invalid.
 
@@ -56,6 +57,7 @@ If you think it's appropriate to suggest an edit to a file, then you must descri
 
 Misc:
 - Do not make things up.
+- Do not be lazy.
 - Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.\
 `
 

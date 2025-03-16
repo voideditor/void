@@ -17,7 +17,7 @@ export const sendLLMMessage = ({
 	onFinalMessage: onFinalMessage_,
 	onError: onError_,
 	abortRef: abortRef_,
-	logging: { loggingName },
+	logging: { loggingName, loggingExtras },
 	settingsOfProvider,
 	modelSelection,
 	modelSelectionOptions,
@@ -48,6 +48,7 @@ export const sendLLMMessage = ({
 				suffixLength: messages_.suffix.length,
 			} : {},
 
+			...loggingExtras,
 			...extras,
 		})
 	}

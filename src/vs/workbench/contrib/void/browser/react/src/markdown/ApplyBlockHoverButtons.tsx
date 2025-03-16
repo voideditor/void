@@ -5,7 +5,7 @@ import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { LucideIcon, RotateCw } from 'lucide-react'
 import { Check, X, Square, Copy, Play, } from 'lucide-react'
-import { getBasename, ToolContentsWrapper } from '../sidebar-tsx/SidebarChat.js'
+import { getBasename, ListableToolItem, ToolContentsWrapper } from '../sidebar-tsx/SidebarChat.js'
 import { ChatMarkdownRender } from './ChatMarkdownRender.js'
 
 enum CopyButtonText {
@@ -278,17 +278,27 @@ export const BlockCodeApplyWrapper = ({
 
 
 	const { statusIndicatorHTML, buttonsHTML } = useApplyButtonHTML({ codeStr: initValue, applyBoxId, uri })
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
 
-	return <div
-		className='border border-void-border-3 rounded overflow-hidden bg-void-bg-3 my-1'
-	>
+	const name = uri !== 'current' ?
+		<ListableToolItem
+			name={<span className='not-italic'>{getBasename(uri.fsPath)}</span>}
+			isSmall={true}
+			showDot={false}
+			// TODO!!! this uri is not correct, it is not recognized as an actual file for some stupid reason
+			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+		/>
+		: <span>{language}</span>
 
+
+	return <div className='border border-void-border-3 rounded overflow-hidden bg-void-bg-3 my-1'>
 		{/* header */}
 		<div className=" select-none flex justify-between items-center py-1 px-2 border-b border-void-border-3 cursor-default">
 			<div className="flex items-center">
 				{statusIndicatorHTML}
 				<span className="text-[13px] font-light text-void-fg-3">
-					{uri !== 'current' ? getBasename(uri.fsPath) : language || 'text'}
+					{name}
 				</span>
 			</div>
 			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>

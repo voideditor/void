@@ -1912,8 +1912,7 @@ export const SidebarChat = () => {
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
-	const isRunning = !!currThreadStreamState?.isRunning
-	const isStreaming = !!currThreadStreamState?.streamingToken // might be running but not streaming
+	const isRunning = currThreadStreamState?.isRunning
 	const latestError = currThreadStreamState?.error
 	const messageSoFar = currThreadStreamState?.messageSoFar
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
@@ -1978,7 +1977,7 @@ export const SidebarChat = () => {
 
 	const previousMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) => {
-			const isLast = i === numMessages - 1 && !isStreaming // last if there is no streaming assistant message currently
+			const isLast = i === numMessages - 1 && isRunning !== 'tool'
 			return <ChatBubble key={getChatBubbleId(currentThread.id, i)}
 				chatMessage={message}
 				messageIdx={i}
@@ -1987,10 +1986,10 @@ export const SidebarChat = () => {
 			/>
 		}
 		)
-	}, [previousMessages, isStreaming, currentThread, numMessages])
+	}, [previousMessages, isRunning, currentThread, numMessages])
 
 	const streamingChatIdx = previousMessagesHTML.length
-	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isRunning || isStreaming) ?
+	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isRunning) ?
 		<ChatBubble key={getChatBubbleId(currentThread.id, streamingChatIdx)}
 			chatMessage={{
 				role: 'assistant',
@@ -2062,7 +2061,7 @@ export const SidebarChat = () => {
 			divRef={chatAreaRef}
 			onSubmit={onSubmit}
 			onAbort={onAbort}
-			isStreaming={isRunning}
+			isStreaming={!!isRunning}
 			isDisabled={isDisabled}
 			showSelections={true}
 			showProspectiveSelections={previousMessagesHTML.length === 0}

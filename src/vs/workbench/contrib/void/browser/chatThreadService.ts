@@ -108,7 +108,7 @@ export type ThreadsState = {
 export type ThreadStreamState = {
 	[threadId: string]: undefined | {
 		// state related
-		isRunning?: undefined | true;  // whether or not actually running the agent loop (can be running and not streaming, like if it's calling a tool and awaiting user response)
+		isRunning?: undefined | 'message' | 'tool';  // whether or not actually running the agent loop (can be running and not streaming, like if it's calling a tool and awaiting user response)
 		error?: { message: string, fullError: Error | null, };
 
 		// streaming related
@@ -722,6 +722,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 
 			// 3. call the tool
+			this._setStreamState(threadId, { isRunning: 'tool' }, 'merge')
 			try {
 				toolResult = await this._toolsService.callTool[toolName](toolParams as any) // ts is bad...
 			} catch (error) {
@@ -748,8 +749,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const { chatMode } = this._settingsService.state.globalSettings // should not change as we loop even if user changes it, so it goes here
 		const tools = this._tools(chatMode)
 
-		// clear any previous error + set running
-		this._setStreamState(threadId, { isRunning: true, error: undefined }, 'set')
+		// clear any previous error
+		this._setStreamState(threadId, { error: undefined }, 'set')
 
 		let nMessagesSent = 0
 		let shouldSendAnotherMessage = true
@@ -757,11 +758,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// before enter loop, call tool
 		if (callThisToolFirst) {
+			this._setStreamState(threadId, { isRunning: 'tool' }, 'merge')
 			await handleToolCall(callThisToolFirst, { preapproved: true, toolParams: callThisToolFirst.params })
 		}
 
 		// tool use loop
 		while (shouldSendAnotherMessage) {
+			this._setStreamState(threadId, { isRunning: 'message' }, 'merge')
 
 			// false by default each iteration
 			shouldSendAnotherMessage = false

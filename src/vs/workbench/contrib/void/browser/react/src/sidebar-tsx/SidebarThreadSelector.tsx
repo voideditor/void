@@ -106,7 +106,7 @@ export const SidebarThreadSelector = () => {
 									`}
 										onClick={() => chatThreadsService.switchToThread(pastThread.id)}
 										onDoubleClick={() => sidebarStateService.setState({ isHistoryOpen: false })}
-										title={new Date(pastThread.createdAt).toLocaleString()}
+										title={new Date(pastThread.lastModified).toLocaleString()}
 									>
 										<div className='truncate'>{`${firstMsg}`}</div>
 										<div>{`\u00A0(${numMessages})`}</div>

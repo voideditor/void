@@ -19,7 +19,7 @@ export const editToolDesc_toolDescription = `\
 A high level description of the change you'd like to make in the file. This description will be handed to a dumber, faster model that will quickly apply the change.\
 The model does not have ANY context except the file content and this description, so make sure to include all necessary information to make the change here.\
 Typically the best description you can give is a code block of the form:\n${tripleTick[0]}\n// ... existing code ...\n{{change 1}}\n// ... existing code ...\n{{change2}}\n// ... existing code ...\n{{change 3}}\n...\n${tripleTick[1]}. \
-Do NOT output the whole file here if possible, and try to write as LITTLE code as needed to describe the change.`
+Wrap your output in triple ticks. Do NOT output the whole file here if possible, and try to write as LITTLE code as needed to describe the change.`
 
 
 

@@ -68,7 +68,10 @@
     "extensions-ci": "node ./node_modules/gulp/bin/gulp.js extensions-ci",
     "extensions-ci-pr": "node ./node_modules/gulp/bin/gulp.js extensions-ci-pr",
     "perf": "node scripts/code-perf.js",
-    "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json"
+    "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json",
+    "void-version-patch": "node scripts/update-version.js patch && git add product.json && git commit -m \"Bump: voidVersion\" && git tag v$(node -e \"console.log(require('./product.json').voidVersion)\") && git push && git push --tags",
+    "void-version-minor": "node scripts/update-version.js minor && git add product.json && git commit -m \"Bump: voidVersion minor\" && git tag v$(node -e \"console.log(require('./product.json').voidVersion)\") && git push && git push --tags",
+    "void-version-major": "node scripts/update-version.js major && git add product.json && git commit -m \"Bump: voidVersion major\" && git tag v$(node -e \"console.log(require('./product.json').voidVersion)\") && git push && git push --tags"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

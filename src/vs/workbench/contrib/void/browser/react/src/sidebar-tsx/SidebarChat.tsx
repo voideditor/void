@@ -1654,7 +1654,12 @@ const toolNameToComponent: { [T in ToolName]: {
 
 
 type ChatBubbleMode = 'display' | 'edit'
-type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isCommitted: boolean, isLast: boolean }
+type ChatBubbleProps = {
+	chatMessage: ChatMessage,
+	messageIdx: number,
+	isCommitted: boolean,
+	isLast: boolean, // includes the streaming message (if streaming, isLast is false except for the streaming message)
+}
 
 const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast }: ChatBubbleProps) => {
 	const role = chatMessage.role

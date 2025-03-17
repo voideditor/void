@@ -6,9 +6,10 @@
 
 import { URI } from '../../../../../base/common/uri.js';
 import { os } from '../helpers/systemInfo.js';
-import { IVoidFileService } from '../voidFileService.js';
 import { CodeSelection, FileSelection, StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { ChatMode } from '../voidSettingsTypes.js';
+import { IVoidModelService } from '../voidModelService.js';
+import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 
 
 // this is just for ease of readability
@@ -81,10 +82,11 @@ ${tripleTick[1]}
 }
 
 const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
-const stringifyFileSelections = async (fileSelections: FileSelection[], voidFileService: IVoidFileService) => {
+const stringifyFileSelections = async (fileSelections: FileSelection[], voidModelService: IVoidModelService) => {
 	if (fileSelections.length === 0) return null
 	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
-		const content = await voidFileService.readFile(sel.fileURI) ?? failToReadStr
+		const { model } = await voidModelService.getModelSafe(sel.fileURI)
+		const content = model?.getValue(EndOfLinePreference.LF) ?? failToReadStr
 		return { ...sel, content }
 	}))
 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
@@ -115,7 +117,7 @@ export const chat_userMessageContent = async (instructions: string, currSelns: S
 
 export const chat_selectionsString = async (
 	prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null,
-	voidFileService: IVoidFileService,
+	voidModelService: IVoidModelService,
 ) => {
 
 	// ADD IN FILES AT TOP
@@ -141,7 +143,7 @@ export const chat_selectionsString = async (
 		}
 	}
 
-	const filesStr = await stringifyFileSelections(fileSelections, voidFileService)
+	const filesStr = await stringifyFileSelections(fileSelections, voidModelService)
 	const selnsStr = stringifyCodeSelections(codeSelections)
 
 

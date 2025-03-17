@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAccessor, useURIStreamState, useSettingsState } from '../util/services.js'
-import { useRefState } from '../util/helpers.js'
+import { usePromise, useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
-import { LucideIcon, RotateCw } from 'lucide-react'
+import { FileSymlink, LucideIcon, RotateCw } from 'lucide-react'
 import { Check, X, Square, Copy, Play, } from 'lucide-react'
 import { getBasename, ListableToolItem, ToolContentsWrapper } from '../sidebar-tsx/SidebarChat.js'
 import { ChatMarkdownRender } from './ChatMarkdownRender.js'
@@ -16,7 +16,7 @@ enum CopyButtonText {
 
 
 type IconButtonProps = {
-	onClick: () => void
+	onClick: () => void;
 	title: string
 	Icon: LucideIcon
 	disabled?: boolean
@@ -27,7 +27,11 @@ export const IconShell1 = ({ onClick, title, Icon, disabled, className }: IconBu
 	<button
 		title={title}
 		disabled={disabled}
-		onClick={onClick}
+		onClick={(e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			onClick?.();
+		}}
 		className={`
             size-[22px]
 			p-[4px]
@@ -106,6 +110,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
+	const commandService = accessor.get('ICommandService')
 
 	const [_, rerender] = useState(0)
 
@@ -212,17 +217,27 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		/>
 	)
 
+	const jumpToFileHTML = uri !== 'current' && (
+		<IconShell1
+			Icon={FileSymlink}
+			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+			title="Reject changes"
+		/>
+	)
+
 
 	let buttonsHTML = <></>
 
 	if (currStreamState === 'streaming') {
 		buttonsHTML = <>
+			{jumpToFileHTML}
 			{stopButton}
 		</>
 	}
 
 	if (currStreamState === 'idle') {
 		buttonsHTML = <>
+			{jumpToFileHTML}
 			{copyButton}
 			{playButton}
 		</>
@@ -230,6 +245,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 
 	if (currStreamState === 'acceptRejectAll') {
 		buttonsHTML = <>
+			{jumpToFileHTML}
 			{reapplyButton}
 			{rejectButton}
 			{acceptButton}
@@ -250,11 +266,10 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 
 	return {
 		statusIndicatorHTML,
-		buttonsHTML
+		buttonsHTML,
 	}
 
 }
-
 
 
 
@@ -272,7 +287,7 @@ export const BlockCodeApplyWrapper = ({
 	children: React.ReactNode;
 	applyBoxId: string;
 	canApply: boolean;
-	language: string;
+	language:string;
 	uri: URI | 'current',
 }) => {
 

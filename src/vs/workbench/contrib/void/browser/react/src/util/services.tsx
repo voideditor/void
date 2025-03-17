@@ -45,6 +45,8 @@ import { URI } from '../../../../../../../base/common/uri.js'
 import { IChatThreadService, ThreadsState, ThreadStreamState } from '../../../chatThreadService.js'
 import { ITerminalToolService } from '../../../terminalToolService.js'
 import { ILanguageService } from '../../../../../../../editor/common/languages/language.js'
+import { IVoidModelService } from '../../../../common/voidModelService.js'
+import { IWorkspaceContextService } from '../../../../../../../platform/workspace/common/workspace.js'
 
 
 
@@ -213,6 +215,8 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IMetricsService: accessor.get(IMetricsService),
 		ITerminalToolService: accessor.get(ITerminalToolService),
 		ILanguageService: accessor.get(ILanguageService),
+		IVoidModelService: accessor.get(IVoidModelService),
+		IWorkspaceContextService: accessor.get(IWorkspaceContextService),
 
 	} as const
 	return reactAccessor

@@ -12,12 +12,11 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
 
-import { BlockCode } from '../markdown/BlockCode.js';
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
+import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
@@ -29,7 +28,6 @@ import { getModelSelectionState, getModelCapabilities } from '../../../../common
 import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
 import { ResolveReason, ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
-import { getLanguageFromModel } from '../../../../common/helpers/getLanguage.js';
 import { useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
 import { DiffZone } from '../../../editCodeService.js';
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
@@ -504,7 +502,7 @@ export const SelectedFiles = (
 
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
-	const modelService = accessor.get('IModelService')
+	const modelReferenceService = accessor.get('IVoidModelService')
 
 	// state for tracking prospective files
 	const { currentUri } = useUriState()
@@ -519,21 +517,39 @@ export const SelectedFiles = (
 			return withCurrent.slice(0, maxRecentUris)
 		})
 	}, [currentUri])
-	let prospectiveSelections: StagingSelectionItem[] = []
-	if (type === 'staging' && showProspectiveSelections) { // handle prospective files
+	const [prospectiveSelections, setProspectiveSelections] = useState<StagingSelectionItem[]>([])
+
+
+	// handle prospective files
+	useEffect(() => {
+		const computeRecents = async () => {
+			const prospectiveURIs = recentUris
+				.filter(uri => !selections.find(s => s.type === 'File' && s.fileURI.fsPath === uri.fsPath))
+				.slice(0, maxProspectiveFiles)
+
+			const answer: StagingSelectionItem[] = []
+			for (const uri of prospectiveURIs) {
+				answer.push({
+					type: 'File',
+					fileURI: uri,
+					language: (await modelReferenceService.getModelSafe(uri)).model?.getLanguageId() || 'plaintext',
+					selectionStr: null,
+					range: null,
+					state: { isOpened: false },
+				})
+			}
+			return answer
+		}
+
 		// add a prospective file if type === 'staging' and if the user is in a file, and if the file is not selected yet
-		prospectiveSelections = recentUris
-			.filter(uri => !selections.find(s => s.type === 'File' && s.fileURI.fsPath === uri.fsPath))
-			.slice(0, maxProspectiveFiles)
-			.map(uri => ({
-				type: 'File',
-				fileURI: uri,
-				language: getLanguageFromModel(uri, modelService),
-				selectionStr: null,
-				range: null,
-				state: { isOpened: false },
-			}))
-	}
+		if (type === 'staging' && showProspectiveSelections) {
+			computeRecents().then((a) => setProspectiveSelections(a))
+		}
+		else {
+			setProspectiveSelections([])
+		}
+	}, [recentUris, selections, type, showProspectiveSelections])
+
 
 	const allSelections = [...selections, ...prospectiveSelections]
 
@@ -685,8 +701,8 @@ const ToolHeaderWrapper = ({
 	isRejected,
 }: ToolHeaderParams) => {
 
-	const [isExpanded_, setIsExpanded] = useState(false);
-	const isExpanded = isOpen ? isOpen : isExpanded_
+	const [isOpen_, setIsOpen] = useState(false);
+	const isExpanded = isOpen !== undefined ? isOpen : isOpen_
 
 	const isDropdown = children !== undefined // null ALLOWS dropdown
 	const isClickable = !!(isDropdown || onClick)
@@ -697,7 +713,7 @@ const ToolHeaderWrapper = ({
 			<div
 				className={`select-none flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
 				onClick={() => {
-					if (isDropdown) { setIsExpanded(v => !v); }
+					if (isDropdown) { setIsOpen(v => !v); }
 					if (onClick) { onClick(); }
 				}}
 			>
@@ -742,7 +758,7 @@ const ToolHeaderWrapper = ({
 };
 
 
-const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'user' } }) => {
+const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMessage: ChatMessage & { role: 'user' }, messageIdx: number, isCommitted: boolean, }) => {
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -851,7 +867,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 			}
 		}
 
-		if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show).
+		if (!chatMessage.content && isCommitted) { // don't show if empty and not loading (if loading, want to show).
 			return null
 		}
 
@@ -938,7 +954,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubble
 
 
 
-const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'assistant' } }) => {
+const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLast }: { chatMessage: ChatMessage & { role: 'assistant' }, messageIdx: number, isCommitted: boolean, isLast: boolean, }) => {
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -956,7 +972,7 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 	}
 
 	const isEmpty = !chatMessage.content && !chatMessage.reasoning
-	const isLastAndLoading = isLoading && isLast
+	const isLastAndLoading = !isCommitted && isLast
 	if (isEmpty && !isLastAndLoading) return null
 
 	return <>
@@ -988,7 +1004,7 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 		>
 
 			{/* reasoning token */}
-			{hasReasoning && <ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!!isLoading}>
+			{hasReasoning && <ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
 				<ChatMarkdownRender
 					string={reasoningStr}
 					chatMessageLocation={chatMessageLocation}
@@ -1007,7 +1023,7 @@ const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx, isLast 
 			/>
 
 			{/* loading indicator */}
-			{isLoading && <IconLoading className='opacity-50 text-sm' />}
+			{!isCommitted && <IconLoading className='opacity-50 text-sm' />}
 		</div>
 	</>
 
@@ -1065,7 +1081,6 @@ const ToolRequestAcceptRejectButtons = () => {
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const metricsService = accessor.get('IMetricsService')
-
 
 	const onAccept = useCallback(() => {
 		try { // this doesn't need to be wrapped in try/catch anymore
@@ -1154,15 +1169,7 @@ const EditToolApplyButton = ({ changeDescription, applyBoxId, uri }: { changeDes
 
 
 const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescription: string }) => {
-	const accessor = useAccessor()
-	const commandService = accessor.get('ICommandService')
 	return <ToolContentsWrapper className='bg-void-bg-3'>
-		<ListableToolItem
-			showDot={false}
-			name={uri.fsPath}
-			className='w-full overflow-auto py-1'
-			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
-		/>
 		<div className='!select-text cursor-auto my-4'>
 			<ChatMarkdownRender string={changeDescription} codeURI={uri} chatMessageLocation={undefined} />
 		</div>
@@ -1200,9 +1207,9 @@ const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneRe
 	const isWriting = !isDone
 	const [isOpen, setIsOpen] = useState(isWriting)
 	useEffect(() => {
-		if (!isWriting) setIsOpen(isWriting) // if just finished reasoning, close
+		if (!isWriting) setIsOpen(false) // if just finished reasoning, close
 	}, [isWriting])
-	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen}>
+	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen} onClick={() => setIsOpen(v => !v)}>
 		<ToolContentsWrapper className='bg-void-bg-3 prose-sm'>
 			<div className='!select-text cursor-auto'>
 				{children}
@@ -1585,36 +1592,36 @@ const toolNameToComponent: { [T in ToolName]: {
 
 
 type ChatBubbleMode = 'display' | 'edit'
-type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isLoading: boolean, isLast: boolean }
+type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isCommitted: boolean, isLast: boolean, showApproveRejectButtons: boolean }
 
-const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubbleProps) => {
-
+const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, showApproveRejectButtons }: ChatBubbleProps) => {
 	const role = chatMessage.role
 
 	if (role === 'user') {
 		return <UserMessageComponent
 			chatMessage={chatMessage}
 			messageIdx={messageIdx}
-			isLoading={isLoading}
-			isLast={isLast}
+			isCommitted={isCommitted}
 		/>
 	}
 	else if (role === 'assistant') {
 		return <AssistantMessageComponent
 			chatMessage={chatMessage}
 			messageIdx={messageIdx}
-			isLoading={isLoading}
+			isCommitted={isCommitted}
 			isLast={isLast}
 		/>
 	}
 	else if (role === 'tool_request') {
 		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
-		if (!isLast) return null
-		if (!ToolRequestWrapper) return null
-		return <>
-			<ToolRequestWrapper toolRequest={chatMessage} />
-			<ToolRequestAcceptRejectButtons />
-		</>
+		if (ToolRequestWrapper) {
+			return <>
+				{isLast && <ToolRequestWrapper toolRequest={chatMessage} />}
+				{showApproveRejectButtons && <ToolRequestAcceptRejectButtons />}
+			</>
+
+		}
+		return null
 	}
 	else if (role === 'tool') {
 		const ToolResultWrapper = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any, messageIdx: number }> // ts isnt smart enough...
@@ -1623,10 +1630,6 @@ const ChatBubble = ({ chatMessage, isLoading, messageIdx, isLast }: ChatBubblePr
 
 }
 
-
-const VoidCommandBarNavButtonsShell = () => {
-
-}
 
 
 const VoidCommandBar = () => {
@@ -1638,7 +1641,6 @@ const VoidCommandBar = () => {
 	const [_, rerender] = useState(0)
 	// Add a state variable to track focus
 	const [isFocused, setIsFocused] = useState(false)
-	console.log('rerender count: ', _)
 
 	// state for what the user is currently focused on (both URI and diff)
 	const [diffIdxOfFspath, setDiffIdxOfFspath] = useState<Record<string, number | undefined>>({})
@@ -1843,6 +1845,7 @@ export const SidebarChat = () => {
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
 	const isRunning = !!currThreadStreamState?.isRunning
+	const isStreaming = !!currThreadStreamState?.streamingToken // might be running but not streaming
 	const latestError = currThreadStreamState?.error
 	const messageSoFar = currThreadStreamState?.messageSoFar
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
@@ -1906,23 +1909,32 @@ export const SidebarChat = () => {
 	const numMessages = previousMessages.length
 
 	const previousMessagesHTML = useMemo(() => {
-		return previousMessages.map((message, i) =>
-			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} isLast={i === numMessages - 1} isLoading={false} />
+		return previousMessages.map((message, i) => {
+			const isLast = i === numMessages - 1 && !isStreaming // last if there is no streaming assistant message currently
+			return <ChatBubble key={getChatBubbleId(currentThread.id, i)}
+				chatMessage={message}
+				messageIdx={i}
+				isLast={isLast}
+				isCommitted={true}
+				showApproveRejectButtons={isLast}
+			/>
+		}
 		)
-	}, [previousMessages, currentThread, numMessages])
+	}, [previousMessages, isStreaming, currentThread, numMessages])
 
 	const streamingChatIdx = previousMessagesHTML.length
-	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isRunning) ?
+	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isRunning || isStreaming) ?
 		<ChatBubble key={getChatBubbleId(currentThread.id, streamingChatIdx)}
-			messageIdx={streamingChatIdx}
 			chatMessage={{
 				role: 'assistant',
 				content: messageSoFar ?? '',
 				reasoning: reasoningSoFar ?? '',
 				anthropicReasoning: null,
 			}}
-			isLoading={isRunning}
+			messageIdx={streamingChatIdx}
+			isCommitted={!isRunning}
 			isLast={true}
+			showApproveRejectButtons={false}
 		/> : null
 
 	const allMessagesHTML = [...previousMessagesHTML, currStreamingMessageHTML]

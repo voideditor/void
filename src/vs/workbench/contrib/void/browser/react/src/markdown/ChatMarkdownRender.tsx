@@ -5,14 +5,16 @@
 
 import React, { JSX, useMemo, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
-import { BlockCode } from './BlockCode.js'
-import { convertToVscodeLang, getFirstLine, getLanguage } from '../../../../common/helpers/getLanguage.js'
-import { BlockCodeApplyWrapper, useApplyButtonHTML } from './ApplyBlockHoverButtons.js'
+
+import { convertToVscodeLang, detectLanguage } from '../../../../common/helpers/languageHelpers.js'
+import { BlockCodeApplyWrapper } from './ApplyBlockHoverButtons.js'
 import { useAccessor } from '../util/services.js'
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { getBasename } from '../sidebar-tsx/SidebarChat.js'
 import { isAbsolute } from '../../../../../../../base/common/path.js'
+import { separateOutFirstLine } from '../../../../common/helpers/util.js'
+import { BlockCode } from '../util/inputs.js'
 
 
 export type ChatMessageLocation = {
@@ -27,7 +29,7 @@ export const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocati
 }
 
 function isValidUri(s: string): boolean {
-	return s.includes('/') && s.length > 5 && isAbsolute(s)
+	return s.length > 5 && isAbsolute(s) && !s.startsWith('//') // common case that is a false positive is comments like //
 }
 
 const Codespan = ({ text, className, onClick }: { text: string, className?: string, onClick?: () => void }) => {
@@ -124,25 +126,28 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 	}
 
 	if (t.type === "code") {
-		const [firstLine, remainingContents] = getFirstLine(t.text)
+		const [firstLine, remainingContents] = separateOutFirstLine(t.text)
 		const firstLineIsURI = isValidUri(firstLine)
 		const contents = firstLineIsURI ? (remainingContents?.trimStart() || '') : t.text // exclude first-line URI from contents
 
 		// figure out langauge and URI
 		let uri: URI | null
-		let language: string | undefined = undefined
-		if (firstLineIsURI) { // get lang from the uri in the first line of the markdown
-			uri = codeURI ?? URI.from(URI.file(firstLine))
+		let language: string
+		if (codeURI) {
+			uri = codeURI
+		}
+		else if (firstLineIsURI) { // get lang from the uri in the first line of the markdown
+			uri = URI.file(firstLine)
 		}
 		else {
-			uri = codeURI || null
+			uri = null
 		}
 
 		if (t.lang) { // a language was provided. empty string is common so check truthy, not just undefined
 			language = convertToVscodeLang(languageService, t.lang) // convert markdown language to language that vscode recognizes (eg markdown doesn't know bash but it does know shell)
 		}
 		else { // no language provided - fallback - get lang from the uri and contents
-			language = getLanguage(languageService, { uri, fileContents: remainingContents ?? undefined })
+			language = detectLanguage(languageService, { uri, fileContents: contents })
 		}
 
 		if (options.isApplyEnabled && chatMessageLocation) {

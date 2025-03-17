@@ -7,9 +7,10 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
-import { IVoidFileService } from '../common/voidFileService.js'
 import { ITerminalToolService } from './terminalToolService.js'
 import { ToolCallParams, ToolDirectoryItem, ToolName, ToolResultType } from '../common/toolsServiceTypes.js'
+import { IVoidModelService } from '../common/voidModelService.js'
+import { EndOfLinePreference } from '../../../../editor/common/model.js'
 
 
 // tool use for AI
@@ -183,7 +184,7 @@ export class ToolsService implements IToolsService {
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 		@ISearchService searchService: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@IVoidFileService voidFileService: IVoidFileService,
+		@IVoidModelService voidModelService: IVoidModelService,
 		@IEditCodeService editCodeService: IEditCodeService,
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 	) {
@@ -271,8 +272,10 @@ export class ToolsService implements IToolsService {
 
 		this.callTool = {
 			read_file: async ({ uri, pageNumber }) => {
-				const readFileContents = await voidFileService.readFile(uri)
-				if (readFileContents === null) { throw new Error(`Contents were empty. There may have been an error, or the file may not exist.`) }
+				const { model } = await voidModelService.getModelSafe(uri)
+				if (model === null) { throw new Error(`Contents were empty. There may have been an error, or the file may not exist.`) }
+				const readFileContents = model.getValue(EndOfLinePreference.LF)
+
 				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
 				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) // paginate

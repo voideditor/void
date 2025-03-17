@@ -485,7 +485,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 	arrowTouchesText?: boolean;
 	matchInputWidth?: boolean;
 	gapPx?: number;
-	offsetPx?:number;
+	offsetPx?: number;
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const measureRef = useRef<HTMLDivElement>(null);
@@ -787,8 +787,8 @@ const normalizeIndentation = (code: string): string => {
 
 
 const modelOfEditorId: { [id: string]: ITextModel | undefined } = {}
-export type VoidCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
-export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars }: VoidCodeEditorProps) => {
+export type BlockCodeProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
+export const BlockCode = ({ initValue, language, maxHeight, showScrollbars }: BlockCodeProps) => {
 
 	initValue = normalizeIndentation(initValue)
 
@@ -802,7 +802,6 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 	const instantiationService = accessor.get('IInstantiationService')
 	// const languageDetectionService = accessor.get('ILanguageDetectionService')
 	const modelService = accessor.get('IModelService')
-
 
 	const id = useId()
 

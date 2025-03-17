@@ -5,56 +5,24 @@
 
 import { URI } from '../../../../../base/common/uri.js';
 import { ILanguageService } from '../../../../../editor/common/languages/language.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
-
-export const getFirstLine = (content: string): [string, string] | [string, undefined] => {
-	const newLineIdx = content.indexOf('\r\n')
-	if (newLineIdx !== -1) {
-		const A = content.substring(0, newLineIdx + 2)
-		const B = content.substring(newLineIdx + 2, Infinity);
-		return [A, B]
-	}
-
-	const newLineIdx2 = content.indexOf('\n')
-	if (newLineIdx2 !== -1) {
-		const A = content.substring(0, newLineIdx2 + 1)
-		const B = content.substring(newLineIdx2 + 1, Infinity);
-		return [A, B]
-	}
-
-	return [content, undefined]
-}
+import { separateOutFirstLine } from './util.js';
 
 
-export function getFullLanguage(languageService: ILanguageService, opts: { uri: URI | null, fileContents: string | undefined }) {
-	const firstLine = opts.fileContents ? getFirstLine(opts.fileContents)?.[0] : undefined
+// this works better than model.getLanguageId()
+export function detectLanguage(languageService: ILanguageService, opts: { uri: URI | null, fileContents: string | undefined }) {
+	const firstLine = opts.fileContents ? separateOutFirstLine(opts.fileContents)?.[0] : undefined
 	const fullLang = languageService.createByFilepathOrFirstLine(opts.uri, firstLine)
-	return fullLang
+	return fullLang.languageId || 'plaintext'
 }
 
-export function getLanguage(languageService: ILanguageService, opts: { uri: URI | null, fileContents: string | undefined }): string {
-	return getFullLanguage(languageService, opts).languageId
-}
-
-export function getLanguageFromModel(uri: URI, modelService: IModelService): string {
-	return modelService.getModel(uri)?.getLanguageId() || ''
-}
-
-
-
-// conversions
-const convertToVoidLanguage = (languageService: ILanguageService, language: string) => {
-	const { languageId } = languageService.createById(language)
-	return languageId
-}
-
+// --- conversions
 export const convertToVscodeLang = (languageService: ILanguageService, markdownLang: string) => {
 	if (markdownLang in markdownLangToVscodeLang)
 		return markdownLangToVscodeLang[markdownLang]
-	return convertToVoidLanguage(languageService, markdownLang)
+
+	const { languageId } = languageService.createById(markdownLang)
+	return languageId
 }
-
-
 
 
 // // eg "bash" -> "shell"

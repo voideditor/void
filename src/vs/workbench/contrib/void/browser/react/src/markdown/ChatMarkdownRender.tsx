@@ -34,13 +34,11 @@ const Codespan = ({ text, className, onClick }: { text: string, className?: stri
 
 	// TODO compute this once for efficiency. we should use `labels.ts/shorten` to display duplicates properly
 
-	const filename = useMemo(() => getBasename(text), [text])
-
 	return <code
 		className={`font-mono font-medium rounded-sm bg-void-bg-1 px-1 ${className}`}
 		onClick={onClick}
 	>
-		{filename}
+		{text}
 	</code>
 
 }
@@ -101,7 +99,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 	}
 
 	return <Codespan
-		text={text}
+		text={link?.displayText || text}
 		onClick={onClick}
 		className={link ? 'underline hover:brightness-90 transition-all duration-200 cursor-pointer' : ''}
 	/>

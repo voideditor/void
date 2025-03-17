@@ -75,6 +75,7 @@ export type StagingSelectionItem = CodeSelection | FileSelection
 
 export type CodespanLocationLink = {
 	uri: URI, // we handle serialization for this
+	displayText: string,
 	selection?: { // store as JSON so dont have to worry about serialization
 		startLineNumber: number
 		startColumn: number,

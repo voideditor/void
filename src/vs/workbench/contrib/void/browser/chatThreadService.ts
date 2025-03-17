@@ -27,6 +27,7 @@ import { ChatMessage, CodespanLocationLink, StagingSelectionItem, ToolMessage, T
 import { Position } from '../../../../editor/common/core/position.js';
 import { ITerminalToolService } from './terminalToolService.js';
 import { IMetricsService } from '../common/metricsService.js';
+import { shorten } from '../../../../base/common/labels.js';
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
 	for (let i = arr.length - 1; i >= 0; i--) {
@@ -910,15 +911,30 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const doesUriMatchTarget = (uri: URI) => uri.path.includes(target)
 
 			// check if any prevFiles are the `codespanSearch`
-			for (const uri of prevUris) {
-				if (doesUriMatchTarget(uri)) return { uri }
+			for (const [idx, uri] of prevUris.entries()) {
+				if (doesUriMatchTarget(uri)) {
+
+					// shorten it
+					const prevUriStrs = prevUris.map(uri => uri.toString())
+					const shortenedUriStrs = shorten(prevUriStrs)
+					const displayText = shortenedUriStrs[idx]
+
+					return { uri, displayText }
+				}
 			}
 
 			// else search codebase for file
 			const { uris } = await this._toolsService.callTool['pathname_search']({ queryStr: target, pageNumber: 0 })
 
-			for (const uri of uris) {
-				if (doesUriMatchTarget(uri)) return { uri }
+			for (const [idx, uri] of uris.entries()) {
+				if (doesUriMatchTarget(uri)) {
+
+					const prevUriStrs = prevUris.map(uri => uri.toString())
+					const shortenedUriStrs = shorten(prevUriStrs)
+					const displayText = shortenedUriStrs[idx]
+
+					return { uri, displayText }
+				}
 			}
 
 		}
@@ -967,7 +983,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 										startColumn: definition.range.startColumn,
 										endLineNumber: definition.range.endLineNumber,
 										endColumn: definition.range.endColumn,
-									}
+									},
+									displayText: _codespanStr,
 								};
 
 								// const defModelRef = await this._textModelService.createModelReference(definition.uri);

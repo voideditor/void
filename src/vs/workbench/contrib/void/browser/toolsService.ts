@@ -332,7 +332,7 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async ({ uri, changeDescription }) => {
-				const [_, applyDonePromise] = await editCodeService.startApplying({ // throws error if error
+				const [_, applyDonePromise] = await editCodeService.startApplying({
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',

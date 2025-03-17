@@ -364,15 +364,15 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					content: 'Successfully edited the file at /Users/username/Project/main.js',
 					result: {
 						type: 'success',
-						params: { uri: URI.file('/Users/username/Project/main.js'), changeDescription: 'Add console.log statement' },
+						params: { uri: URI.file('/Users/username/Project/main.js'), changeDescription: 'I think we should do this:\n```typescript\n//Add console.log statement\n for i in ...\n\t\tdo:\nabc\n```' },
 						value: {}
 					},
 				} satisfies ToolMessage<'edit'>,
 				{
 					role: 'tool_request',
 					name: 'edit',
-					params: { uri: URI.file('/Users/username/Project/main.js'), changeDescription: 'Add console.log statement' },
-					paramsStr: '{"uri": "/Users/username/Project/main.js", "changeDescription": "Add console.log statement"}',
+					params: { uri: URI.file('/Users/username/Project/main.js'), changeDescription: 'I think we should do this:\n```typescript\n//Add console.log statement\n for i in ...\n\t\tdo:\nabc\n```' },
+					paramsStr: '{"uri": "/Users/username/Project/main.js", "changeDescription": "I think we should do this:```Add console.log statement\n for i in ...\n\t\tdo:\nabc```"}',
 					id: 'request-5',
 				} satisfies ToolRequestApproval<'edit'>,
 

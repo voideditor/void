@@ -952,8 +952,90 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 
 }
 
+const SmallProseWrapper = ({ children }: { children: React.ReactNode }) => {
+	return <div className='
+	text-void-fg-4
+	prose
+	prose-sm
+	break-words
+	max-w-none
+	leading-snug
+	text-[13px]
 
+	prose-h1:text-[14px]
+	prose-h1:my-4
 
+	prose-h2:text-[13px]
+	prose-h2:my-4
+
+	prose-h3:text-[13px]
+	prose-h3:my-3
+
+	prose-h4:text-[13px]
+	prose-h4:my-2
+
+	prose-p:my-1
+	prose-p:leading-snug
+
+	prose-ul:my-2
+	prose-ul:pl-4
+	prose-ul:list-outside
+	prose-ul:list-disc
+	prose-ul:leading-snug
+
+	prose-ol:my-2
+	prose-ol:pl-4
+	prose-ol:list-outside
+	prose-ol:list-decimal
+	prose-ol:leading-snug
+
+	marker:text-inherit
+
+	prose-blockquote:pl-2
+	prose-blockquote:my-2
+
+	prose-code:text-[12px]
+	prose-code:before:content-none
+	prose-code:after:content-none
+
+	prose-pre:text-[12px]
+	prose-pre:p-2
+	prose-pre:my-2
+
+	prose-table:text-[13px]
+	'>
+		{children}
+	</div>
+}
+
+const ProseWrapper = ({ children }: { children: React.ReactNode }) => {
+	return <div className='
+	text-void-fg-2
+	prose
+	prose-sm
+	break-words
+	prose-p:block
+	prose-pre:my-2
+	marker:text-inherit
+	prose-ol:list-outside
+	prose-ol:list-decimal
+	prose-ul:list-outside
+	prose-ul:list-disc
+	prose-li:my-0
+	prose-code:before:content-none
+	prose-code:after:content-none
+	prose-headings:prose-sm
+	prose-headings:font-bold
+
+	prose-p:leading-normal
+	prose-ol:leading-normal
+	prose-ul:leading-normal
+	max-w-none
+'
+	>
+		{children}
+	</div>
+}
 const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLast }: { chatMessage: ChatMessage & { role: 'assistant' }, messageIdx: number, isCommitted: boolean, isLast: boolean, }) => {
 
 	const accessor = useAccessor()
@@ -976,58 +1058,50 @@ const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLas
 	if (isEmpty && !isLastAndLoading) return null
 
 	return <>
-		<div
-			className='
-			text-void-fg-2
-
-			prose
-			prose-sm
-			break-words
-			prose-p:block
-			prose-pre:my-2
-			marker:text-inherit
-			prose-ol:list-outside
-			prose-ol:list-decimal
-			prose-ul:list-outside
-			prose-ul:list-disc
-			prose-li:my-0
-			prose-code:before:content-none
-			prose-code:after:content-none
-			prose-headings:prose-sm
-			prose-headings:font-bold
-
-			prose-p:leading-normal
-			prose-ol:leading-normal
-			prose-ul:leading-normal
-			max-w-none
-		'
-		>
-
-			{/* reasoning token */}
-			{hasReasoning && <ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
+		{/* reasoning token */}
+		{hasReasoning && <ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
+			<SmallProseWrapper>
 				<ChatMarkdownRender
 					string={reasoningStr}
 					chatMessageLocation={chatMessageLocation}
 					isApplyEnabled={false}
 					isLinkDetectionEnabled={true}
-					inPTag={true}
 				/>
-			</ReasoningWrapper>}
+			</SmallProseWrapper>
+		</ReasoningWrapper>}
 
-			{/* assistant message */}
+		{/* assistant message */}
+		<ProseWrapper>
 			<ChatMarkdownRender
 				string={chatMessage.content || ''}
 				chatMessageLocation={chatMessageLocation}
 				isApplyEnabled={true}
 				isLinkDetectionEnabled={true}
 			/>
-
 			{/* loading indicator */}
 			{!isCommitted && <IconLoading className='opacity-50 text-sm' />}
-		</div>
+		</ProseWrapper>
 	</>
 
 }
+
+const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneReasoning: boolean, isStreaming: boolean, children: React.ReactNode }) => {
+	const isDone = isDoneReasoning || !isStreaming
+	const isWriting = !isDone
+	const [isOpen, setIsOpen] = useState(isWriting)
+	useEffect(() => {
+		if (!isWriting) setIsOpen(false) // if just finished reasoning, close
+	}, [isWriting])
+	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen} onClick={() => setIsOpen(v => !v)}>
+		<ToolContentsWrapper className='bg-void-bg-3'>
+			<div className='!select-text cursor-auto'>
+				{children}
+			</div>
+		</ToolContentsWrapper>
+	</ToolHeaderWrapper>
+}
+
+
 
 
 // should either be past or "-ing" tense, not present tense. Eg. when the LLM searches for something, the user expects it to say "I searched for X" or "I am searching for X". Not "I search X".
@@ -1168,13 +1242,6 @@ const EditToolApplyButton = ({ changeDescription, applyBoxId, uri }: { changeDes
 }
 
 
-const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescription: string }) => {
-	return <ToolContentsWrapper className='bg-void-bg-3'>
-		<div className='!select-text cursor-auto my-4'>
-			<ChatMarkdownRender string={changeDescription} codeURI={uri} chatMessageLocation={undefined} />
-		</div>
-	</ToolContentsWrapper>
-}
 const TerminalToolChildren = ({ command, terminalId, result, resolveReason }: { command: string, terminalId: string, result: string, resolveReason: ResolveReason }) => {
 	const accessor = useAccessor()
 	const terminalToolsService = accessor.get('ITerminalToolService')
@@ -1192,7 +1259,7 @@ const TerminalToolChildren = ({ command, terminalId, result, resolveReason }: { 
 			className='w-full overflow-auto py-1'
 			onClick={() => terminalToolsService.openTerminal(terminalId)}
 		/>
-		<div className='!select-text cursor-auto my-4'>
+		<div className='!select-text cursor-auto'>
 			{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}
 			{result}
 			{resultStr}
@@ -1200,23 +1267,17 @@ const TerminalToolChildren = ({ command, terminalId, result, resolveReason }: { 
 	</ToolContentsWrapper>
 }
 
-
-
-const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneReasoning: boolean, isStreaming: boolean, children: React.ReactNode }) => {
-	const isDone = isDoneReasoning || !isStreaming
-	const isWriting = !isDone
-	const [isOpen, setIsOpen] = useState(isWriting)
-	useEffect(() => {
-		if (!isWriting) setIsOpen(false) // if just finished reasoning, close
-	}, [isWriting])
-	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen} onClick={() => setIsOpen(v => !v)}>
-		<ToolContentsWrapper className='bg-void-bg-3 prose-sm'>
-			<div className='!select-text cursor-auto'>
-				{children}
-			</div>
-		</ToolContentsWrapper>
-	</ToolHeaderWrapper>
+const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescription: string }) => {
+	return <ToolContentsWrapper className='bg-void-bg-3'>
+		<div className='!select-text cursor-auto'>
+			<SmallProseWrapper>
+				<ChatMarkdownRender string={changeDescription} codeURI={uri} chatMessageLocation={undefined} />
+			</SmallProseWrapper>
+		</div>
+	</ToolContentsWrapper>
 }
+
+
 
 const toolNameToComponent: { [T in ToolName]: {
 	requestWrapper: T extends ToolNameWithApproval ? ((props: { toolRequest: ToolRequestApproval<T> }) => React.ReactNode) : null,

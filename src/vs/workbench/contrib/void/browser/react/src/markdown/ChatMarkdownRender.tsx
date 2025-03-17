@@ -296,7 +296,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 			))}
 		</>
 
-		if (inPTag) return <span className='block my-2'>{contents}</span>
+		if (inPTag) return <span className='block'>{contents}</span>
 
 		return <p>
 			{contents}

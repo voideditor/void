@@ -8,6 +8,11 @@ import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 import { Model as OpenAIModel } from 'openai/resources/models.js';
 
+// Mistral FIM
+import { MistralCore } from "@mistralai/mistralai/core.js";
+import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
+//
+
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
@@ -150,51 +155,6 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 		.catch(error => {
 			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }); }
 			else { onError({ message: error + '', fullError: error }); }
-		})
-}
-
-
-const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendFIMParams_Internal) => {
-	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
-	if (!supportsFIM) {
-		if (modelName === modelName_)
-			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
-		else
-			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
-		return
-	}
-	const messages = prepareFIMMessage({ messages: messages_, aiInstructions })
-
-	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
-
-	// DEBUG : request params
-	//	console.log('🔍 Sending FIM request with params:', {
-	//	model: modelName,
-	//	promptLength: messages.prefix.length,
-	//	suffixLength: messages.suffix.length,
-	//	stream: false,
-	//	maxTokens: messages.maxTokens
-	//});
-
-	fimComplete(
-		mistral, {
-		model: modelName,
-		prompt: messages.prefix,
-		suffix: messages.suffix,
-		stream: false,
-		topP: 1,
-		maxTokens: messages.maxTokens,
-		stop: messages.stopTokens
-	},
-	)
-		.then(async response => {
-			const fullText = response.choices[0]?.text || '';
-			onFinalMessage({ fullText, });
-			// console.log('✅ Réponse FIM reçue:', fullText);
-
-		})
-		.catch(error => {
-			onError({ message: error + '', fullError: error });
 		})
 }
 
@@ -512,7 +472,7 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 }
 
 //////// MISTRAL ////////
-const sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendChatParams_Internal) => {
+const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendChatParams_Internal) => {
 	_sendOpenAICompatibleChat({
 		messages: messages_,
 		onText,
@@ -527,7 +487,7 @@ const sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError,
 	});
 }
 
-const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
+const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -539,18 +499,27 @@ const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settings
 
 	prepareFIMMessage({ messages: messages_, aiInstructions })
 
-	_sendOpenAICompatibleFIM({
-		messages: messages_,
-		onFinalMessage,
-		onError,
-		settingsOfProvider,
-		modelName: modelName_,
-		_setAborter,
-		providerName,
-		aiInstructions,
-		modelSelectionOptions,
-		onText: () => { }
-	});
+	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
+
+	fimComplete(
+		mistral, {
+		model: modelName,
+		prompt: messages_.prefix,
+		suffix: messages_.suffix,
+		stream: false,
+		topP: 1,
+		stop: messages_.stopTokens
+	},
+	)
+		.then(async response => {
+			let content = response?.ok ? response.value.choices?.[0]?.message?.content : '';
+			const fullText = typeof content === 'string' ? content :
+				Array.isArray(content) ? content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('') : '';
+			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
+		})
+		.catch(error => {
+			onError({ message: error + '', fullError: error });
+		})
 }
 
 
@@ -614,8 +583,8 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 	mistral: {
-		sendChat: (params) => sendMistralChat(params),
-		sendFIM: (params) => sendMistralFIM(params),
+		sendChat: (params) => _sendMistralChat(params),
+		sendFIM: (params) => _sendMistralFIM(params),
 		list: null,
 	},
 } satisfies CallFnOfProvider

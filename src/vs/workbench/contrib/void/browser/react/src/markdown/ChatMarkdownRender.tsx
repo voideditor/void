@@ -65,7 +65,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 		if (link === undefined) {
 			// if no link, generate link and add to cache
-			(chatThreadService.generateCodespanLink(text)
+			(chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
 				.then(link => {
 					chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
 					setDidComputeCodespanLink(true) // rerender

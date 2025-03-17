@@ -69,28 +69,29 @@ const defaultMessageState: UserMessageState = {
 }
 
 // a 'thread' means a chat message history
-type ChatThreads = {
-	[id: string]: {
-		id: string; // store the id here too
-		createdAt: string; // ISO string
-		lastModified: string; // ISO string
-		messages: ChatMessage[];
-		state: {
-			stagingSelections: StagingSelectionItem[];
-			focusedMessageIdx: number | undefined; // index of the message that is being edited (undefined if none)
 
-			linksOfMessageIdx: { // eg. link = linksOfMessageIdx[4]['RangeFunction']
-				[messageIdx: number]: {
-					[codespanName: string]: CodespanLocationLink
-				}
+type ThreadType = {
+	id: string; // store the id here too
+	createdAt: string; // ISO string
+	lastModified: string; // ISO string
+	messages: ChatMessage[];
+	state: {
+		stagingSelections: StagingSelectionItem[];
+		focusedMessageIdx: number | undefined; // index of the message that is being edited (undefined if none)
+
+		linksOfMessageIdx: { // eg. link = linksOfMessageIdx[4]['RangeFunction']
+			[messageIdx: number]: {
+				[codespanName: string]: CodespanLocationLink
 			}
-
-			isCheckedOfSelectionId: { [selectionId: string]: boolean }; // TODO
 		}
-	};
+
+		isCheckedOfSelectionId: { [selectionId: string]: boolean }; // TODO
+	}
 }
 
-type ThreadType = ChatThreads[string]
+type ChatThreads = {
+	[id: string]: undefined | ThreadType;
+}
 
 export const defaultThreadState: ThreadType['state'] = {
 	stagingSelections: [],
@@ -146,43 +147,40 @@ export interface IChatThreadService {
 	onDidChangeCurrentThread: Event<void>;
 	onDidChangeStreamState: Event<{ threadId: string }>
 
-	getCurrentThread(): ChatThreads[string];
+	getCurrentThread(): ThreadType;
 	openNewThread(): void;
 	switchToThread(threadId: string): void;
 
-	// you can edit multiple messages
-	// the one you're currently editing is "focused", and we add items to that one when you press cmd+L.
-	getFocusedMessageIdx(): number | undefined;
-	isFocusingMessage(): boolean;
-	setFocusedMessageIdx(messageIdx: number | undefined): void;
-
-
-
-	getCodespanLink({ codespanStr, messageIdx, threadId }: { codespanStr: string, messageIdx: number, threadId: string }): CodespanLocationLink | undefined;
-	addCodespanLink({ newLinkText, newLinkLocation, messageIdx, threadId }: { newLinkText: string, newLinkLocation: CodespanLocationLink, messageIdx: number, threadId: string }): void;
-	generateCodespanLink(codespanStr: string): Promise<CodespanLocationLink>
-
 	// exposed getters/setters
+	// these all apply to current thread
 	getCurrentMessageState: (messageIdx: number) => UserMessageState
 	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
 	getCurrentThreadState: () => ThreadType['state']
 	setCurrentThreadState: (newState: Partial<ThreadType['state']>) => void
+	// you can edit multiple messages - the one you're currently editing is "focused", and we add items to that one when you press cmd+L.
+	getCurrentFocusedMessageIdx(): number | undefined;
+	isCurrentlyFocusingMessage(): boolean;
+	setCurrentlyFocusedMessageIdx(messageIdx: number | undefined): void;
+	// current thread's staging selections
+	closeCurrentStagingSelectionsInMessage(opts: { messageIdx: number }): void;
+	closeCurrentStagingSelectionsInThread(): void;
 
+	// codespan links (link to symbols in the markdown)
+	getCodespanLink(opts: { codespanStr: string, messageIdx: number, threadId: string }): CodespanLocationLink | undefined;
+	addCodespanLink(opts: { newLinkText: string, newLinkLocation: CodespanLocationLink, messageIdx: number, threadId: string }): void;
+	generateCodespanLink(opts: { codespanStr: string, threadId: string }): Promise<CodespanLocationLink>
 
-	closeStagingSelectionsInCurrentThread(): void;
-	closeStagingSelectionsInMessage(messageIdx: number): void;
-
-
+	// entry pts
 	stopRunning(threadId: string): void;
 	dismissStreamError(threadId: string): void;
 
-	// call to edit a message - CAN THROW
-	editUserMessageAndStreamResponse({ userMessage, messageIdx }: { userMessage: string, messageIdx: number }): Promise<void>;
+	// call to edit a message
+	editUserMessageAndStreamResponse({ userMessage, messageIdx, threadId }: { userMessage: string, messageIdx: number, threadId: string }): Promise<void>;
 
-	// call to add a message - CAN THROW
-	addUserMessageAndStreamResponse({ userMessage }: { userMessage: string }): Promise<void>;
+	// call to add a message
+	addUserMessageAndStreamResponse({ userMessage, threadId }: { userMessage: string, threadId: string }): Promise<void>;
 
-	// approve/reject - CAN THROW
+	// approve/reject
 	approveTool(threadId: string): void;
 	rejectTool(threadId: string): void;
 }
@@ -489,8 +487,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._onDidChangeCurrentThread.fire()
 	}
 
-	private _getAllSelections() {
-		const thread = this.getCurrentThread()
+	private _getAllSelections(threadId: string) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return []
 		return thread.messages.flatMap(m => m.role === 'user' && m.selections || [])
 	}
 
@@ -525,7 +524,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 
-	async editUserMessageAndStreamResponse({ userMessage, messageIdx }: { userMessage: string, messageIdx: number }) {
+	editUserMessageAndStreamResponse: IChatThreadService['editUserMessageAndStreamResponse'] = async ({ userMessage, messageIdx, threadId }) => {
 
 		const thread = this.getCurrentThread()
 
@@ -550,7 +549,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}, true)
 
 		// re-add the message and stream it
-		this.addUserMessageAndStreamResponse({ userMessage, _chatSelections: { prevSelns, currSelns } })
+		this.addUserMessageAndStreamResponse({ userMessage, _chatSelections: { prevSelns, currSelns }, threadId })
 
 	}
 
@@ -577,7 +576,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		if (lastUserMsgIdx === -1 || !lastUserMessage) return // should never happen
 
 		const instructions = lastUserMessage.displayContent || ''
-		const prevSelns: StagingSelectionItem[] = this._getAllSelections()
+		const prevSelns: StagingSelectionItem[] = this._getAllSelections(threadId)
 		const currSelns: StagingSelectionItem[] = []
 
 		const callThisToolFirst: ToolRequestApproval<ToolName> = lastMessage
@@ -663,7 +662,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
 
 			// replace last userMessage with userMessageFullContent (which contains all the files too)
-			const messages_ = toLLMChatMessages(this.getCurrentThread().messages)
+			const thread = this.state.allThreads[threadId]
+			const latestMessages = thread?.messages ?? []
+			const messages_ = toLLMChatMessages(latestMessages)
 			const lastUserMsgIdx = findLastIndex(messages_, m => m.role === 'user')
 			if (lastUserMsgIdx === -1) return [] // should never happen (or how did they send the message?!)
 
@@ -838,13 +839,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 
-	async addUserMessageAndStreamResponse({ userMessage, _chatSelections }: { userMessage: string, _chatSelections?: { prevSelns?: StagingSelectionItem[], currSelns?: StagingSelectionItem[] } }) {
-
-		const thread = this.getCurrentThread()
-		const threadId = thread.id
+	async addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: { prevSelns?: StagingSelectionItem[], currSelns?: StagingSelectionItem[], }, threadId: string }) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return // should never happen
 
 		// selections in all past chats, then in current chat (can have many duplicates here)
-		const prevSelns: StagingSelectionItem[] = _chatSelections?.prevSelns ?? this._getAllSelections()
+		const prevSelns: StagingSelectionItem[] = _chatSelections?.prevSelns ?? this._getAllSelections(threadId)
 		const currSelns: StagingSelectionItem[] = _chatSelections?.currSelns ?? thread.state.stagingSelections
 
 		// add user's message to chat history
@@ -866,7 +866,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	// ---------- the rest ----------
 
 	// gets the location of codespan link so the user can click on it
-	async generateCodespanLink(_codespanStr: string): Promise<CodespanLocationLink> {
+	generateCodespanLink: IChatThreadService['generateCodespanLink'] = async ({ codespanStr: _codespanStr, threadId }) => {
 
 		// process codespan to understand what we are searching for
 		// TODO account for more complicated patterns eg `ITextEditorService.openEditor()`
@@ -900,7 +900,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 
 		// get history of all AI and user added files in conversation + store in reverse order (MRU)
-		const prevUris = this._getAllSelections()
+		const prevUris = this._getAllSelections(threadId)
 			.map(s => s.fileURI)
 			.filter((uri, index, array) => array.findIndex(u => u.toString() === uri.toString()) === index) // O(n^2) but this is small
 			.reverse()
@@ -1094,13 +1094,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
-	getCurrentThread(): ChatThreads[string] {
+	getCurrentThread(): ThreadType {
 		const state = this.state
 		const thread = state.allThreads[state.currentThreadId]
+		if (!thread) throw new Error(`Current thread should never be undefined`)
 		return thread
 	}
 
-	getFocusedMessageIdx() {
+	getCurrentFocusedMessageIdx() {
 		const thread = this.getCurrentThread()
 
 		// get the focusedMessageIdx
@@ -1115,8 +1116,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		return focusedMessageIdx
 	}
 
-	isFocusingMessage() {
-		return this.getFocusedMessageIdx() !== undefined
+	isCurrentlyFocusingMessage() {
+		return this.getCurrentFocusedMessageIdx() !== undefined
 	}
 
 	switchToThread(threadId: string) {
@@ -1128,7 +1129,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// if a thread with 0 messages already exists, switch to it
 		const { allThreads: currentThreads } = this.state
 		for (const threadId in currentThreads) {
-			if (currentThreads[threadId].messages.length === 0) {
+			if (currentThreads[threadId]!.messages.length === 0) {
 				this.switchToThread(threadId)
 				return
 			}
@@ -1150,6 +1151,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const { allThreads } = this.state
 
 		const oldThread = allThreads[threadId]
+		if (!oldThread) return // should never happen
 
 		// update state and store it
 		const newThreads = {
@@ -1165,7 +1167,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	// sets the currently selected message (must be undefined if no message is selected)
-	setFocusedMessageIdx(messageIdx: number | undefined) {
+	setCurrentlyFocusedMessageIdx(messageIdx: number | undefined) {
 
 		const threadId = this.state.currentThreadId
 		const thread = this.state.allThreads[threadId]
@@ -1235,7 +1237,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
-	closeStagingSelectionsInCurrentThread = () => {
+	closeCurrentStagingSelectionsInThread = () => {
 		const currThread = this.getCurrentThreadState()
 
 		// close all stagingSelections
@@ -1248,7 +1250,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	}
 
-	closeStagingSelectionsInMessage = (messageIdx: number) => {
+	closeCurrentStagingSelectionsInMessage: IChatThreadService['closeCurrentStagingSelectionsInMessage'] = ({ messageIdx }) => {
 		const currMessage = this.getCurrentMessageState(messageIdx)
 
 		// close all stagingSelections
@@ -1264,12 +1266,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 	getCurrentThreadState = () => {
-
 		const currentThread = this.getCurrentThread()
-
 		return currentThread.state
 	}
-
 	setCurrentThreadState = (newState: Partial<ThreadType['state']>) => {
 		this._setCurrentThreadState(newState)
 	}

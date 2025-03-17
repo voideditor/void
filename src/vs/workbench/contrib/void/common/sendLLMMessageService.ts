@@ -91,6 +91,13 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			return null
 		}
 
+		if (params.messagesType === 'chatMessages' && (params.messages?.length ?? 0) === 0) {
+			const message = `No messages detected.`
+			onError({ message, fullError: null })
+			return null
+		}
+
+
 		// add state for request id
 		const requestId = generateUuid();
 		this.llmMessageHooks.onText[requestId] = onText

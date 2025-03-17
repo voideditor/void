@@ -139,7 +139,7 @@ registerAction2(class extends Action2 {
 		// update the staging selections
 		const chatThreadService = accessor.get(IChatThreadService)
 
-		const focusedMessageIdx = chatThreadService.getFocusedMessageIdx()
+		const focusedMessageIdx = chatThreadService.getCurrentFocusedMessageIdx()
 
 		// set the selections to the proper value
 		let selections: StagingSelectionItem[] = []

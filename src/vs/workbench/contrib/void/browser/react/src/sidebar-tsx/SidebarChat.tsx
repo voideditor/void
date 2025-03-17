@@ -806,14 +806,14 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 
 	const onOpenEdit = () => {
 		setIsBeingEdited(true)
-		chatThreadsService.setFocusedMessageIdx(messageIdx)
+		chatThreadsService.setCurrentlyFocusedMessageIdx(messageIdx)
 		_justEnabledEdit.current = true
 	}
 	const onCloseEdit = () => {
 		setIsFocused(false)
 		setIsHovered(false)
 		setIsBeingEdited(false)
-		chatThreadsService.setFocusedMessageIdx(undefined)
+		chatThreadsService.setCurrentlyFocusedMessageIdx(undefined)
 
 	}
 
@@ -836,18 +836,18 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 			if (messageIdx === undefined) return;
 
 			// cancel any streams on this thread
-			const thread = chatThreadsService.getCurrentThread()
-			chatThreadsService.stopRunning(thread.id)
+			const threadId = chatThreadsService.state.currentThreadId
+			chatThreadsService.stopRunning(threadId)
 
 			// update state
 			setIsBeingEdited(false)
-			chatThreadsService.setFocusedMessageIdx(undefined)
-			chatThreadsService.closeStagingSelectionsInMessage(messageIdx)
+			chatThreadsService.setCurrentlyFocusedMessageIdx(undefined)
+			chatThreadsService.closeCurrentStagingSelectionsInMessage({ messageIdx })
 
 			// stream the edit
 			const userMessage = textAreaRefState.value;
 			try {
-				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, messageIdx, })
+				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, messageIdx, threadId })
 			} catch (e) {
 				console.error('Error while editing message:', e)
 			}
@@ -889,7 +889,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 				onChangeText={(text) => setIsDisabled(!text)}
 				onFocus={() => {
 					setIsFocused(true)
-					chatThreadsService.setFocusedMessageIdx(messageIdx);
+					chatThreadsService.setCurrentlyFocusedMessageIdx(messageIdx);
 				}}
 				onBlur={() => {
 					setIsFocused(false)
@@ -1562,7 +1562,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			if (toolMessage.result.type === 'success' || toolMessage.result.type === 'rejected') {
 				const { params } = toolMessage.result
 
-				const threadId = chatThreadsService.getCurrentThread().id
+				const threadId = chatThreadsService.state.currentThreadId
 				const applyBoxId = getApplyBoxId({
 					threadId: threadId,
 					messageIdx: messageIdx,
@@ -1891,8 +1891,8 @@ export const SidebarChat = () => {
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { !chatThreadsService.isFocusingMessage() && textAreaRef.current?.focus() }),
-			sidebarStateService.onDidBlurChat(() => { !chatThreadsService.isFocusingMessage() && textAreaRef.current?.blur() })
+			sidebarStateService.onDidFocusChat(() => { !chatThreadsService.isCurrentlyFocusingMessage() && textAreaRef.current?.focus() }),
+			sidebarStateService.onDidBlurChat(() => { !chatThreadsService.isCurrentlyFocusingMessage() && textAreaRef.current?.blur() })
 		)
 		return () => disposables.forEach(d => d.dispose())
 	}, [sidebarStateService, textAreaRef])
@@ -1936,8 +1936,10 @@ export const SidebarChat = () => {
 		if (isDisabled) return
 		if (isRunning) return
 
+		const threadId = chatThreadsService.state.currentThreadId
+
 		// update state
-		chatThreadsService.closeStagingSelectionsInCurrentThread() // close all selections
+		chatThreadsService.closeCurrentStagingSelectionsInThread() // close all selections
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
@@ -1945,7 +1947,7 @@ export const SidebarChat = () => {
 		// getModelCapabilities() // TODO!!! check if can go into agent mode
 
 		try {
-			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage })
+			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, threadId })
 		} catch (e) {
 			console.error('Error while sending message in chat:', e)
 		}
@@ -2074,7 +2076,7 @@ export const SidebarChat = () => {
 				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
 				onChangeText={onChangeText}
 				onKeyDown={onKeyDown}
-				onFocus={() => { chatThreadsService.setFocusedMessageIdx(undefined) }}
+				onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}
 				ref={textAreaRef}
 				fnsRef={textAreaFnsRef}
 				multiline={true}

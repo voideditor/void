@@ -44,6 +44,8 @@ import { IEditCodeService, URIStreamState, AddCtrlKOpts, StartApplyingOpts } fro
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';
 import { IVoidModelService } from '../common/voidModelService.js';
+import { ITextFileService } from '../../../services/textfile/common/textfiles.js';
+import { deepClone } from '../../../../base/common/objects.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -277,6 +279,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		// @IFileService private readonly _fileService: IFileService,
 		@IVoidModelService private readonly _voidModelService: IVoidModelService,
+		@ITextFileService private readonly _textFileService: ITextFileService,
 	) {
 		super();
 
@@ -784,7 +787,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	weAreWriting = false
 	private _writeURIText(uri: URI, text: string, range_: IRange | 'wholeFileRange', { shouldRealignDiffAreas, }: { shouldRealignDiffAreas: boolean, }) {
 		const { model } = this._voidModelService.getModel(uri)
-		if (!model) return // TODO!!!! make sure this works
+		if (!model) {
+			this._refreshStylesAndDiffsInURI(uri) // at the end of a write, we still expect to refresh all styles. e.g. sometimes we expect to restore all the decorations even if no edits were made when _writeText is used
+			return
+		}
 
 		const range: IRange = range_ === 'wholeFileRange' ?
 			{ startLineNumber: 1, startColumn: 1, endLineNumber: model.getLineCount(), endColumn: Number.MAX_SAFE_INTEGER } // whole file
@@ -817,8 +823,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	private _addToHistory(uri: URI, opts?: { onUndo?: () => void }) {
 
-		const getCurrentSnapshot = async (): Promise<HistorySnapshot> => {
-			await this._voidModelService.initializeModel(uri)
+		const getCurrentSnapshot = (): HistorySnapshot => {
+
 			const { model } = this._voidModelService.getModel(uri)
 			const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
 
@@ -827,7 +833,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 				if (diffArea._URI.fsPath !== uri.fsPath) continue
 
-				snapshottedDiffAreaOfId[diffareaid] = structuredClone( // a structured clone must be on a JSON object
+				snapshottedDiffAreaOfId[diffareaid] = deepClone(
 					Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
 				) as DiffAreaSnapshot
 			}
@@ -841,8 +847,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			}
 		}
 
-		const restoreDiffAreas = async (snapshotPromise: Promise<HistorySnapshot>) => {
-			const snapshot = await snapshotPromise
+		const restoreDiffAreas = async (snapshot: HistorySnapshot) => {
 
 			// for each diffarea in this uri, stop streaming if currently streaming
 			for (const diffareaid in this.diffAreaOfId) {
@@ -855,7 +860,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			this._deleteAllDiffAreas(uri)
 			this.diffAreasOfURI[uri.fsPath]?.clear()
 
-			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = structuredClone(snapshot) // don't want to destroy the snapshot
+			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = deepClone(snapshot) // don't want to destroy the snapshot
 
 			// restore diffAreaOfId and diffAreasOfModelId
 			for (const diffareaid in snapshottedDiffAreaOfId) {
@@ -885,7 +890,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			}
 			this._onDidAddOrDeleteDiffZones.fire({ uri })
 
-			await this._voidModelService.initializeModel(uri)
 			// restore file content
 			this._writeURIText(uri, entireModelCode,
 				'wholeFileRange',
@@ -894,8 +898,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			// this._noLongerNeedModelReference(uri)
 		}
 
-		const beforeSnapshot: Promise<HistorySnapshot> = getCurrentSnapshot()
-		let afterSnapshot: Promise<HistorySnapshot> | null = null
+		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
+		let afterSnapshot: HistorySnapshot | null = null
 
 		const elt: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
@@ -907,7 +911,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		this._undoRedoService.pushElement(elt)
 
-		const onFinishEdit = () => { afterSnapshot = getCurrentSnapshot() }
+		const onFinishEdit = async () => {
+			afterSnapshot = getCurrentSnapshot()
+			await this._textFileService.save(uri, { // we want [our change] -> [save] so it's all treated as one change.
+				skipSaveParticipants: true // avoid triggering extensions etc (if they reformat the page, it will add another item to the undo stack)
+			})
+		}
 		return { onFinishEdit }
 	}
 
@@ -1298,7 +1307,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let currentFileStr: string
 
 		if (from === 'ClickApply') {
-
 			const uri_ = this._getActiveEditorURI()
 			if (!uri_) return
 			uri = uri_
@@ -1492,8 +1500,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						{ shouldRealignDiffAreas: true }
 					)
 
-					const { editorModel } = this._voidModelService.getModel(uri)
-					editorModel?.save() // save the file
 					onDone()
 					resMessageDonePromise()
 				},
@@ -1534,6 +1540,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		else {
 			uri = givenURI
 		}
+
+		await this._voidModelService.initializeModel(uri)
+
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
 
@@ -1823,8 +1832,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							{ shouldRealignDiffAreas: true }
 						)
 
-						const { editorModel } = this._voidModelService.getModel(uri)
-						editorModel?.save() // save the file // TODO!!! make sure this works
 						onDone()
 						resMessageDonePromise()
 					},

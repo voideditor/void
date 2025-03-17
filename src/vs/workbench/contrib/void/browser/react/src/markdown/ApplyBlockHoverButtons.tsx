@@ -138,6 +138,9 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 			uri: uri,
 			startBehavior: 'reject-conflicts',
 		}) ?? []
+
+		if (!newApplyingUri) console.log('NOT new applying')
+
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
 
 		rerender(c => c + 1)
@@ -291,7 +294,6 @@ export const BlockCodeApplyWrapper = ({
 	uri: URI | 'current',
 }) => {
 
-
 	const { statusIndicatorHTML, buttonsHTML } = useApplyButtonHTML({ codeStr: initValue, applyBoxId, uri })
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
@@ -301,7 +303,6 @@ export const BlockCodeApplyWrapper = ({
 			name={<span className='not-italic'>{getBasename(uri.fsPath)}</span>}
 			isSmall={true}
 			showDot={false}
-			// TODO!!! this uri is not correct, it is not recognized as an actual file for some stupid reason
 			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
 		/>
 		: <span>{language}</span>

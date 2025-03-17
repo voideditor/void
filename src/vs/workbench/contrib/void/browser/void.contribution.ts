@@ -44,7 +44,6 @@ import './chatThreadService.js'
 import './metricsPollService.js'
 
 
-
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
 
 // llmMessage
@@ -62,3 +61,5 @@ import '../common/metricsService.js'
 // updates
 import '../common/voidUpdateService.js'
 
+// model service
+import '../common/voidModelService.js'

@@ -594,6 +594,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		const errorMessage = this.errMsgs.rejected
 		this._addMessageToThread(threadId, { role: 'tool', name: name, paramsStr: paramsStr, id, content: errorMessage, result: { type: 'rejected', params: params }, })
+		this._setStreamState(threadId, {}, 'set')
 	}
 	stopRunning(threadId: string) {
 		const thread = this.state.allThreads[threadId]

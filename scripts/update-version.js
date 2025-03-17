@@ -5,7 +5,7 @@ const semver = require('semver');
 function updateProductJson(type = 'patch') {
 	// Read product.json
 	const productJsonPath = './product.json';
-	const product = require('../' + productJsonPath);
+	const product = JSON.parse(fs.readFileSync(productJsonPath, 'utf8'));
 
 	// Update the version
 	product.voidVersion = semver.inc(product.voidVersion, type);

@@ -1336,8 +1336,9 @@ const toolNameToComponent: { [T in ToolName]: {
 							name={`${child.name}${child.isDirectory ? '/' : ''}`}
 							className='w-full overflow-auto py-1'
 							onClick={() => {
-								commandService.executeCommand('workbench.view.explorer');
-								explorerService.select(child.uri, true);
+								commandService.executeCommand('vscode.open', child.uri, { preview: true })
+								// commandService.executeCommand('workbench.view.explorer'); // open in explorer folders view instead
+								// explorerService.select(child.uri, true);
 							}}
 						/>))}
 						{value.hasNextPage &&

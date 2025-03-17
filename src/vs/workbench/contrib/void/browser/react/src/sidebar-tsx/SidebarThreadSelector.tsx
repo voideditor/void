@@ -29,8 +29,8 @@ export const SidebarThreadSelector = () => {
 
 	// sorted by most recent to least recent
 	const sortedThreadIds = Object.keys(allThreads ?? {})
-		.sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
-		.filter(threadId => allThreads![threadId].messages.length !== 0)
+		.sort((threadId1, threadId2) => (allThreads[threadId1]?.lastModified ?? 0) > (allThreads[threadId2]?.lastModified ?? 0) ? -1 : 1)
+		.filter(threadId => (allThreads![threadId]?.messages.length ?? 0) !== 0)
 
 	return (
 		<div className="flex p-2 flex-col gap-y-1 max-h-[200px] overflow-y-auto">
@@ -63,12 +63,16 @@ export const SidebarThreadSelector = () => {
 							if (!allThreads) {
 								return <li key="error" className="text-void-warning">{`Error accessing chat history.`}</li>;
 							}
-
 							const pastThread = allThreads[threadId];
+							if (!pastThread) {
+								return <li key="error" className="text-void-warning">{`Error accessing chat history.`}</li>;
+							}
+
+
 							let firstMsg = null;
 							// let secondMsg = null;
 
-							const firstUserMsgIdx = pastThread.messages.findIndex((msg) =>  msg.role !== 'tool' && msg.role !== 'tool_request');
+							const firstUserMsgIdx = pastThread.messages.findIndex((msg) => msg.role !== 'tool' && msg.role !== 'tool_request');
 
 							if (firstUserMsgIdx !== -1) {
 								// firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');

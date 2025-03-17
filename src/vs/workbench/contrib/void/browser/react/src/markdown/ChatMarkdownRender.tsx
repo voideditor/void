@@ -99,6 +99,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 	}
 
 	return <Codespan
+		// text={link?.displayText || text}
 		text={link?.displayText || text}
 		onClick={onClick}
 		className={link ? 'underline hover:brightness-90 transition-all duration-200 cursor-pointer' : ''}

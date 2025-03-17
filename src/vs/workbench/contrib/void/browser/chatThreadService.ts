@@ -910,28 +910,40 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			const doesUriMatchTarget = (uri: URI) => uri.path.includes(target)
 
-			// check if any prevFiles are the `codespanSearch`
+			// check if any prevFiles are the `target`
 			for (const [idx, uri] of prevUris.entries()) {
 				if (doesUriMatchTarget(uri)) {
 
 					// shorten it
+
+					// TODO make this logic more general
 					const prevUriStrs = prevUris.map(uri => uri.toString())
 					const shortenedUriStrs = shorten(prevUriStrs)
-					const displayText = shortenedUriStrs[idx]
+					let displayText = shortenedUriStrs[idx]
+					const ellipsisIdx = displayText.lastIndexOf('…/');
+					if (ellipsisIdx >= 0) {
+						displayText = displayText.slice(ellipsisIdx + 2)
+					}
 
 					return { uri, displayText }
 				}
 			}
 
-			// else search codebase for file
+			// else search codebase for `target`
 			const { uris } = await this._toolsService.callTool['pathname_search']({ queryStr: target, pageNumber: 0 })
 
 			for (const [idx, uri] of uris.entries()) {
 				if (doesUriMatchTarget(uri)) {
 
+					// TODO make this logic more general
 					const prevUriStrs = prevUris.map(uri => uri.toString())
 					const shortenedUriStrs = shorten(prevUriStrs)
-					const displayText = shortenedUriStrs[idx]
+					let displayText = shortenedUriStrs[idx]
+					const ellipsisIdx = displayText.lastIndexOf('…/');
+					if (ellipsisIdx >= 0) {
+						displayText = displayText.slice(ellipsisIdx + 2)
+					}
+
 
 					return { uri, displayText }
 				}

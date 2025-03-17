@@ -1,7 +1,7 @@
 {
 	"extends": "./tsconfig.base.json",
+	// "jsx": "react", // <-- Void added this
 	"compilerOptions": {
-		// "jsx": "react", // <-- Void added this
 		"esModuleInterop": true,
 		"removeComments": false,
 		"preserveConstEnums": true,
@@ -27,35 +27,10 @@
 		]
 	},
 	"include": [
-		"./bootstrap-amd.js",
-		"./bootstrap-cli.js",
-		"./bootstrap-fork.js",
-		"./bootstrap-import.js",
-		"./bootstrap-meta.js",
-		"./bootstrap-node.js",
-		"./bootstrap-server.js",
-		"./bootstrap-window.js",
-		"./cli.js",
-		"./main.js",
-		"./server-main.js",
-		"./server-cli.js",
-		"./vs/base/common/jsonc.js",
-		"./vs/base/common/performance.js",
-		"./vs/base/node/unc.js",
-		"./vs/base/node/nls.js",
-		"./vs/platform/environment/node/userDataPath.js",
-		"./vs/base/parts/sandbox/electron-sandbox/preload-aux.js",
-		"./vs/base/parts/sandbox/electron-sandbox/preload.js",
-		"./vs/code/electron-sandbox/processExplorer/processExplorer.js",
-		"./vs/code/electron-sandbox/workbench/workbench.js",
-		"./vs/workbench/contrib/issue/electron-sandbox/issueReporter.js",
+		"./*.ts",
 		"./typings",
 		"./vs/**/*.ts",
-		"vscode-dts/vscode.proposed.*.d.ts",
-		"vscode-dts/vscode.d.ts",
-
-		// Void added these:
-		// "./vs/workbench/contrib/void/browser/**.tsx",
-		// "./vs/**/*.d.mts",
+		"./vscode-dts/vscode.proposed.*.d.ts",
+		"./vscode-dts/vscode.d.ts"
 	]
 }

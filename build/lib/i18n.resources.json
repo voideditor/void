@@ -19,10 +19,6 @@
 	],
 	"workbench": [
 		{
-			"name": "vs/workbench/contrib/void",
-			"project": "vscode-workbench"
-		},
-		{
 			"name": "vs/code",
 			"project": "vscode-workbench"
 		},
@@ -60,10 +56,6 @@
 		},
 		{
 			"name": "vs/workbench/contrib/commands",
-			"project": "vscode-workbench"
-		},
-		{
-			"name": "vs/workbench/contrib/mappedEdits",
 			"project": "vscode-workbench"
 		},
 		{

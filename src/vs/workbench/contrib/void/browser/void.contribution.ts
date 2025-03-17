@@ -5,7 +5,7 @@
 
 
 // register inline diffs
-import './inlineDiffsService.js'
+import './editCodeService.js'
 
 // register Sidebar pane, state, actions (keybinds, menus) (Ctrl+L)
 import './sidebarActions.js'
@@ -15,14 +15,12 @@ import './sidebarStateService.js'
 // register quick edit (Ctrl+K)
 import './quickEditActions.js'
 
-// register Thread History
-import './chatThreadService.js'
 
 // register Autocomplete
 import './autocompleteService.js'
 
 // register Context services
-import './contextGatheringService.js'
+// import './contextGatheringService.js'
 // import './contextUserChangesService.js'
 
 // settings pane
@@ -33,3 +31,31 @@ import './media/void.css'
 
 // update (frontend part, also see platform/)
 import './voidUpdateActions.js'
+
+
+// tools
+import './toolsService.js'
+import './terminalToolService.js'
+
+// register Thread History
+import './chatThreadService.js'
+
+
+
+// ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
+
+// llmMessage
+import '../common/sendLLMMessageService.js'
+
+// voidSettings
+import '../common/voidSettingsService.js'
+
+// refreshModel
+import '../common/refreshModelService.js'
+
+// metrics
+import '../common/metricsService.js'
+
+// updates
+import '../common/voidUpdateService.js'
+

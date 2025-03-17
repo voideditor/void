@@ -32,13 +32,6 @@ import { FindSectionHeaderOptions, SectionHeader, findSectionHeaders } from './f
 import { IRawModelData, IWorkerTextModelSyncChannelServer } from './textModelSync/textModelSync.protocol.js';
 import { ICommonModel, WorkerTextModelSyncServer } from './textModelSync/textModelSync.impl.js';
 
-// ESM-comment-begin
-// const isESM = false;
-// ESM-comment-end
-// ESM-uncomment-begin
-const isESM = true;
-// ESM-uncomment-end
-
 export interface IMirrorModel extends IMirrorTextModel {
 	readonly uri: URI;
 	readonly version: number;
@@ -223,11 +216,6 @@ export class BaseEditorSimpleWorker implements IDisposable, IWorkerTextModelSync
 	private static readonly _diffLimit = 100000;
 
 	public async $computeMoreMinimalEdits(modelUrl: string, edits: TextEdit[], pretty: boolean): Promise<TextEdit[]> {
-		return this.$Void_computeMoreMinimalEdits(modelUrl, edits, pretty)
-	}
-
-	// Void added this as non async
-	public $Void_computeMoreMinimalEdits(modelUrl: string, edits: TextEdit[], pretty: boolean): TextEdit[] {
 		const model = this._getModel(modelUrl);
 		if (!model) {
 			return edits;
@@ -570,12 +558,8 @@ export class EditorSimpleWorker extends BaseEditorSimpleWorker {
 				resolve(getAllMethodNames(this._foreignModule));
 			};
 
-			if (!isESM) {
-				require([`${moduleId}`], onModuleCallback, reject);
-			} else {
-				const url = FileAccess.asBrowserUri(`${moduleId}.js` as AppResourcePath).toString(true);
-				import(`${url}`).then(onModuleCallback).catch(reject);
-			}
+			const url = FileAccess.asBrowserUri(`${moduleId}.js` as AppResourcePath).toString(true);
+			import(`${url}`).then(onModuleCallback).catch(reject);
 		});
 	}
 

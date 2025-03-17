@@ -11,15 +11,22 @@ import { Position } from '../../../../editor/common/core/position.js';
 import { InlineCompletion, InlineCompletionContext, } from '../../../../editor/common/languages.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Range } from '../../../../editor/common/core/range.js';
-import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
-import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
-import { isWindows } from '../../../../base/common/platform.js';
+import { extractCodeFromRegular } from '../common/helpers/extractCodeFromResult.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { ILLMMessageService } from '../common/sendLLMMessageService.js';
+import { isWindows } from '../../../../base/common/platform.js';
+import { IVoidSettingsService } from '../common/voidSettingsService.js';
+import { FeatureName } from '../common/voidSettingsTypes.js';
 // import { IContextGatheringService } from './contextGatheringService.js';
+
+
+
+const allLinebreakSymbols = ['\r\n', '\n']
+const _ln = isWindows ? allLinebreakSymbols[0] : allLinebreakSymbols[1]
 
 // The extension this was called from is here - https://github.com/voideditor/void/blob/autocomplete/extensions/void/src/extension/extension.ts
 
@@ -415,9 +422,6 @@ const toInlineCompletions = ({ autocompletionMatchup, autocompletion, prefixAndS
 // }
 
 
-const allLinebreakSymbols = ['\r\n', '\n']
-const _ln = isWindows ? allLinebreakSymbols[0] : allLinebreakSymbols[1]
-
 type PrefixAndSuffixInfo = { prefix: string, suffix: string, prefixLines: string[], suffixLines: string[], prefixToTheLeftOfCursor: string, suffixToTheRightOfCursor: string }
 const getPrefixAndSuffixInfo = (model: ITextModel, position: Position): PrefixAndSuffixInfo => {
 
@@ -765,8 +769,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 
 
-		// console.log('B')
-
 		// create a new autocompletion and add it to cache
 		const newAutocompletion: Autocompletion = {
 			id: this._autocompletionId++,
@@ -784,11 +786,16 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			_newlineCount: 0,
 		}
 
-		console.log('BB')
-		console.log('type', predictionType)
+		console.log('starting autocomplete...', predictionType)
+
+		const featureName: FeatureName = 'Autocomplete'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+
+		const isEnabled = this._settingsService.state.globalSettings.enableAutocomplete
 
 		// set parameters of `newAutocompletion` appropriately
-		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
+		newAutocompletion.llmPromise = isEnabled ? new Promise((resolve, reject) => reject('Autocomplete is disabled')) : new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
 				messagesType: 'FIMMessage',
@@ -797,28 +804,30 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					suffix: llmSuffix,
 					stopTokens: stopTokens,
 				},
-				useProviderFor: 'Autocomplete',
+				modelSelection,
+				modelSelectionOptions,
 				logging: { loggingName: 'Autocomplete' },
-				onText: async ({ fullText, newText }) => {
+				onText: () => { }, // unused in FIMMessage
+				// onText: async ({ fullText, newText }) => {
 
-					newAutocompletion.insertText = fullText
+				// 	newAutocompletion.insertText = fullText
 
-					// count newlines in newText
-					const numNewlines = newText.match(/\n|\r\n/g)?.length || 0
-					newAutocompletion._newlineCount += numNewlines
+				// 	// count newlines in newText
+				// 	const numNewlines = newText.match(/\n|\r\n/g)?.length || 0
+				// 	newAutocompletion._newlineCount += numNewlines
 
-					// if too many newlines, resolve up to last newline
-					if (newAutocompletion._newlineCount > 10) {
-						const lastNewlinePos = fullText.lastIndexOf('\n')
-						newAutocompletion.insertText = fullText.substring(0, lastNewlinePos)
-						resolve(newAutocompletion.insertText)
-						return
-					}
+				// 	// if too many newlines, resolve up to last newline
+				// 	if (newAutocompletion._newlineCount > 10) {
+				// 		const lastNewlinePos = fullText.lastIndexOf('\n')
+				// 		newAutocompletion.insertText = fullText.substring(0, lastNewlinePos)
+				// 		resolve(newAutocompletion.insertText)
+				// 		return
+				// 	}
 
-					// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
-					// 	reject('LLM response did not match user\'s text.')
-					// }
-				},
+				// 	// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
+				// 	// 	reject('LLM response did not match user\'s text.')
+				// 	// }
+				// },
 				onFinalMessage: ({ fullText }) => {
 
 					// console.log('____res: ', JSON.stringify(newAutocompletion.insertText))
@@ -880,6 +889,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IModelService private readonly _modelService: IModelService,
+		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		// @IContextGatheringService private readonly _contextGatheringService: IContextGatheringService,
 	) {
 		super()

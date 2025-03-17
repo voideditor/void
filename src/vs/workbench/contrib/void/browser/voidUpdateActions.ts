@@ -9,9 +9,10 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 import { localize2 } from '../../../../nls.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
-import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
-import { IVoidUpdateService } from '../../../../platform/void/common/voidUpdateService.js';
+import { IMetricsService } from '../common/metricsService.js';
+import { IVoidUpdateService } from '../common/voidUpdateService.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import * as dom from '../../../../base/browser/dom.js';
 
 
 
@@ -84,8 +85,10 @@ class VoidUpdateWorkbenchContribution extends Disposable implements IWorkbenchCo
 		this._register({ dispose: () => clearTimeout(initId) })
 
 		// check every 3 hours
-		const intervalId = setInterval(() => autoCheck(), 3 * 60 * 60 * 1000)
-		this._register({ dispose: () => clearInterval(intervalId) })
+		const { window } = dom.getActiveWindow()
+
+		const intervalId = window.setInterval(() => autoCheck(), 3 * 60 * 60 * 1000)
+		this._register({ dispose: () => window.clearInterval(intervalId) })
 
 	}
 }

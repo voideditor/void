@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
+import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor, useCtrlKZoneStreamingState } from '../util/services.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX, VoidChatArea } from '../sidebar-tsx/SidebarChat.js';
@@ -12,11 +12,10 @@ import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 import { useRefState } from '../util/helpers.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
-import { isFeatureNameDisabled } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
+import { isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 
 export const QuickEditChat = ({
 	diffareaid,
-	initStreamingDiffZoneId,
 	onChangeHeight,
 	onChangeText: onChangeText_,
 	textAreaRef: textAreaRef_,
@@ -24,7 +23,7 @@ export const QuickEditChat = ({
 }: QuickEditPropsType) => {
 
 	const accessor = useAccessor()
-	const inlineDiffsService = accessor.get('IInlineDiffsService')
+	const editCodeService = accessor.get('IEditCodeService')
 	const sizerRef = useRef<HTMLDivElement | null>(null)
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
@@ -49,33 +48,37 @@ export const QuickEditChat = ({
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!(initText ?? '')) // the user's instructions
 	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+K', settingsState)
 
-	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
-	const isStreaming = currStreamingDiffZoneRef.current !== null
+
+	const [isStreamingRef, setIsStreamingRef] = useRefState(editCodeService.isCtrlKZoneStreaming({ diffareaid }))
+	useCtrlKZoneStreamingState(useCallback((diffareaid2, isStreaming) => {
+		if (diffareaid !== diffareaid2) return
+		setIsStreamingRef(isStreaming)
+	}, [diffareaid, setIsStreamingRef]))
+
 
 	const onSubmit = useCallback(() => {
 		if (isDisabled) return
-		if (currStreamingDiffZoneRef.current !== null) return
+		if (isStreamingRef.current) return
 		textAreaFnsRef.current?.disable()
 
-		const id = inlineDiffsService.startApplying({
+		editCodeService.startApplying({
 			from: 'QuickEdit',
-			diffareaid: diffareaid,
+			type: 'rewrite',
+			diffareaid,
 		})
-		setCurrentlyStreamingDiffZone(id ?? null)
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, inlineDiffsService, diffareaid])
+	}, [isStreamingRef, isDisabled, editCodeService, diffareaid])
 
 	const onInterrupt = useCallback(() => {
-		if (currStreamingDiffZoneRef.current === null) return
-		inlineDiffsService.interruptStreaming(currStreamingDiffZoneRef.current)
-		setCurrentlyStreamingDiffZone(null)
+		if (!isStreamingRef.current) return
+		editCodeService.interruptCtrlKStreaming({ diffareaid })
 		textAreaFnsRef.current?.enable()
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, inlineDiffsService])
+	}, [isStreamingRef, editCodeService])
 
 
 	const onX = useCallback(() => {
 		onInterrupt()
-		inlineDiffsService.removeCtrlKZone({ diffareaid })
-	}, [inlineDiffsService, diffareaid])
+		editCodeService.removeCtrlKZone({ diffareaid })
+	}, [editCodeService, diffareaid])
 
 	useScrollbarStyles(sizerRef)
 
@@ -88,9 +91,8 @@ export const QuickEditChat = ({
 			onSubmit={onSubmit}
 			onAbort={onInterrupt}
 			onClose={onX}
-			isStreaming={isStreaming}
+			isStreaming={isStreamingRef.current}
 			isDisabled={isDisabled}
-			featureName="Ctrl+K"
 			className="py-2 w-full"
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 		>

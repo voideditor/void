@@ -15,8 +15,7 @@ import { IProductService } from '../../product/common/productService.js';
 import { Registry } from '../../registry/common/platform.js';
 import { ClassifiedEvent, IGDPRProperty, OmitMetadata, StrictPropertyCheck } from './gdprTypings.js';
 import { ITelemetryData, ITelemetryService, TelemetryConfiguration, TelemetryLevel, TELEMETRY_CRASH_REPORTER_SETTING_ID, TELEMETRY_OLD_SETTING_ID, TELEMETRY_SECTION_ID, TELEMETRY_SETTING_ID, ICommonProperties } from './telemetry.js';
-import { getTelemetryLevel, ITelemetryAppender } from './telemetryUtils.js';
-// import { cleanData } from './telemetryUtils.js';
+import { /*cleanData,*/ getTelemetryLevel, ITelemetryAppender } from './telemetryUtils.js';
 
 export interface ITelemetryServiceConfig {
 	appenders: ITelemetryAppender[];
@@ -39,6 +38,7 @@ export class TelemetryService implements ITelemetryService {
 	readonly firstSessionDate: string;
 	readonly msftInternal: boolean | undefined;
 
+	// Void commented this out (no longer used)
 	// private _appenders: ITelemetryAppender[];
 	private _commonProperties: ICommonProperties;
 	private _experimentProperties: { [name: string]: string } = {};
@@ -54,6 +54,7 @@ export class TelemetryService implements ITelemetryService {
 		@IConfigurationService private _configurationService: IConfigurationService,
 		@IProductService private _productService: IProductService
 	) {
+		// Void commented this out (no longer used)
 		// this._appenders = config.appenders;
 		this._commonProperties = config.commonProperties ?? Object.create(null);
 
@@ -143,10 +144,12 @@ export class TelemetryService implements ITelemetryService {
 	// }
 
 	publicLog(eventName: string, data?: ITelemetryData) {
+		// Void commented this out
 		// this._log(eventName, TelemetryLevel.USAGE, data);
 	}
 
 	publicLog2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>) {
+		// Void commented this out
 		// this.publicLog(eventName, data as ITelemetryData);
 	}
 

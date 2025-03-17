@@ -44,6 +44,7 @@ const dirs = [
 	'extensions/typescript-language-features',
 	'extensions/vscode-api-tests',
 	'extensions/vscode-colorize-tests',
+	'extensions/vscode-colorize-perf-tests',
 	'extensions/vscode-test-resolver',
 	'remote',
 	'remote/web',
@@ -53,10 +54,7 @@ const dirs = [
 	'test/smoke',
 	'.vscode/extensions/vscode-selfhost-import-aid',
 	'.vscode/extensions/vscode-selfhost-test-provider',
-
-	// Void added these:
-	// 'extensions/void',
-	// 'void-imports',
+	'extensions/open-remote-ssh', // Void added this
 
 ];
 

@@ -3,36 +3,32 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useState, useEffect } from 'react'
-import { ThreadStreamState, ThreadsState } from '../../../chatThreadService.js'
-import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../platform/void/common/voidSettingsTypes.js'
+import React, { useState, useEffect, useCallback } from 'react'
+import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
-import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
+import { VoidSettingsState } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
 import { VoidUriState } from '../../../voidUriStateService.js';
 import { VoidQuickEditState } from '../../../quickEditStateService.js'
-import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
-
-
-
-
+import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
 
 import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
+import { IExplorerService } from '../../../../../../../workbench/contrib/files/browser/files.js'
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { IClipboardService } from '../../../../../../../platform/clipboard/common/clipboardService.js';
 import { IContextViewService, IContextMenuService } from '../../../../../../../platform/contextview/browser/contextView.js';
 import { IFileService } from '../../../../../../../platform/files/common/files.js';
 import { IHoverService } from '../../../../../../../platform/hover/browser/hover.js';
 import { IThemeService } from '../../../../../../../platform/theme/common/themeService.js';
-import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
-import { IRefreshModelService } from '../../../../../../../platform/void/common/refreshModelService.js';
-import { IVoidSettingsService } from '../../../../../../../platform/void/common/voidSettingsService.js';
-import { IInlineDiffsService } from '../../../inlineDiffsService.js';
+import { ILLMMessageService } from '../../../../common/sendLLMMessageService.js';
+import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
+import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
+import { IEditCodeService, URIStreamState } from '../../../editCodeServiceInterface.js'
+
 import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { IQuickEditStateService } from '../../../quickEditStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
-import { IChatThreadService } from '../../../chatThreadService.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
 import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
 import { ICommandService } from '../../../../../../../platform/commands/common/commands.js'
@@ -46,7 +42,9 @@ import { IKeybindingService } from '../../../../../../../platform/keybinding/com
 import { IEnvironmentService } from '../../../../../../../platform/environment/common/environment.js'
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
-import { IMetricsService } from '../../../../../../../platform/void/common/metricsService.js'
+import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
+import { URI } from '../../../../../../../base/common/uri.js'
+import { IChatThreadService, ThreadsState, ThreadStreamState } from '../../../chatThreadService.js'
 
 
 
@@ -79,6 +77,11 @@ const refreshModelProviderListeners: Set<(p: RefreshableProviderName, s: Refresh
 let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 
+const ctrlKZoneStreamingStateListeners: Set<(diffareaid: number, s: boolean) => void> = new Set()
+const uriStreamingStateListeners: Set<(uri: URI, s: URIStreamState) => void> = new Set()
+
+
+
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
 let wasCalled = false
@@ -103,10 +106,10 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		settingsStateService: accessor.get(IVoidSettingsService),
 		refreshModelService: accessor.get(IRefreshModelService),
 		themeService: accessor.get(IThemeService),
-		inlineDiffsService: accessor.get(IInlineDiffsService),
+		editCodeService: accessor.get(IEditCodeService),
 	}
 
-	const { uriStateService, sidebarStateService, quickEditStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, inlineDiffsService } = stateServices
+	const { uriStateService, sidebarStateService, quickEditStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService } = stateServices
 
 	uriState = uriStateService.state
 	disposables.push(
@@ -162,17 +165,32 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		refreshModelService.onDidChangeState((providerName) => {
 			refreshModelState = refreshModelService.state
 			refreshModelStateListeners.forEach(l => l(refreshModelState))
-			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState))
+			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState)) // no state
 		})
 	)
 
 	colorThemeState = themeService.getColorTheme().type
 	disposables.push(
-		themeService.onDidColorThemeChange(theme => {
+		themeService.onDidColorThemeChange(({ theme }) => {
 			colorThemeState = theme.type
 			colorThemeStateListeners.forEach(l => l(colorThemeState))
 		})
 	)
+
+	// no state
+	disposables.push(
+		editCodeService.onDidChangeCtrlKZoneStreaming(({ diffareaid }) => {
+			const isStreaming = editCodeService.isCtrlKZoneStreaming({ diffareaid })
+			ctrlKZoneStreamingStateListeners.forEach(l => l(diffareaid, isStreaming))
+		})
+	)
+	disposables.push(
+		editCodeService.onDidChangeURIStreamState(({ uri }) => {
+			const isStreaming = editCodeService.getURIStreamState({ uri })
+			uriStreamingStateListeners.forEach(l => l(uri, isStreaming))
+		})
+	)
+
 
 
 	return disposables
@@ -192,7 +210,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILLMMessageService: accessor.get(ILLMMessageService),
 		IRefreshModelService: accessor.get(IRefreshModelService),
 		IVoidSettingsService: accessor.get(IVoidSettingsService),
-		IInlineDiffsService: accessor.get(IInlineDiffsService),
+		IEditCodeService: accessor.get(IEditCodeService),
 		IVoidUriStateService: accessor.get(IVoidUriStateService),
 		IQuickEditStateService: accessor.get(IQuickEditStateService),
 		ISidebarStateService: accessor.get(ISidebarStateService),
@@ -209,6 +227,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
 		IKeybindingService: accessor.get(IKeybindingService),
 
+		IExplorerService: accessor.get(IExplorerService),
 		IEnvironmentService: accessor.get(IEnvironmentService),
 		IConfigurationService: accessor.get(IConfigurationService),
 		IPathService: accessor.get(IPathService),
@@ -288,6 +307,17 @@ export const useChatThreadsState = () => {
 		return () => { chatThreadsStateListeners.delete(ss) }
 	}, [ss])
 	return s
+	// allow user to set state natively in react
+	// const ss: React.Dispatch<React.SetStateAction<ThreadsState>> = (action)=>{
+	// 	_ss(action)
+	// 	if (typeof action === 'function') {
+	// 		const newState = action(chatThreadsState)
+	// 		chatThreadsState = newState
+	// 	} else {
+	// 		chatThreadsState = action
+	// 	}
+	// }
+	// return [s, ss] as const
 }
 
 
@@ -325,7 +355,21 @@ export const useRefreshModelListener = (listener: (providerName: RefreshableProv
 	useEffect(() => {
 		refreshModelProviderListeners.add(listener)
 		return () => { refreshModelProviderListeners.delete(listener) }
-	}, [listener])
+	}, [listener, refreshModelProviderListeners])
+}
+
+export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boolean) => void) => {
+	useEffect(() => {
+		ctrlKZoneStreamingStateListeners.add(listener)
+		return () => { ctrlKZoneStreamingStateListeners.delete(listener) }
+	}, [listener, ctrlKZoneStreamingStateListeners])
+}
+
+export const useURIStreamState = (listener: (uri: URI, s: URIStreamState) => void) => {
+	useEffect(() => {
+		uriStreamingStateListeners.add(listener)
+		return () => { uriStreamingStateListeners.delete(listener) }
+	}, [listener, uriStreamingStateListeners])
 }
 
 
@@ -342,3 +386,4 @@ export const useIsDark = () => {
 	return isDark
 
 }
+

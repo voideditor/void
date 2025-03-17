@@ -1,3 +1,7 @@
+//!!!! merged
+
+
+
 /*--------------------------------------------------------------------------------------
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
@@ -7,23 +11,26 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 
 import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
-import { ChatMessage, StagingSelectionItem } from '../../../chatThreadService.js';
 
 import { BlockCode } from '../markdown/BlockCode.js';
-import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
+import { ChatMarkdownRender, ChatMessageLocation } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
+import { TextAreaFns, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
-import { filenameToVscodeLanguage } from '../../../helpers/detectLanguage.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { Pencil } from 'lucide-react';
-import { FeatureName, isFeatureNameDisabled } from '../../../../../../../platform/void/common/voidSettingsTypes.js';
+import { FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
+import { filenameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js';
+import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
+import { AlertTriangle, ChevronRight, Dot, Pencil, X } from 'lucide-react';
+import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
+import { ToolCallParams, ToolName } from '../../../../common/toolsServiceTypes.js';
+
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -136,6 +143,128 @@ export const IconLoading = ({ className = '' }: { className?: string }) => {
 }
 
 
+const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-${messageIdx}`;
+
+
+
+
+// const ReasoningOptionDropdown = () => {
+// 	const accessor = useAccessor()
+
+// 	const voidSettingsService = accessor.get('IVoidSettingsService')
+// 	const voidSettingsState = useSettingsState()
+
+// 	const modelSelection = voidSettingsState.modelSelectionOfFeature['Chat']
+// 	if (!modelSelection) return null
+
+// 	const { modelName, providerName } = modelSelection
+// 	const { canToggleReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName).supportsReasoningOutput || {}
+
+// 	const defaultEnabledVal = canToggleReasoning ? true : false
+// 	const isEnabled = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEnabled ?? defaultEnabledVal
+
+// 	let toggleButton: React.ReactNode = null
+// 	if (canToggleReasoning) {
+// 		toggleButton = <div className='flex items-center gap-x-3'>
+// 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isEnabled ? 'Thinking' : 'Thinking'}</span>
+// 			<VoidSwitch
+// 				size='xxs'
+// 				value={isEnabled}
+// 				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: newVal }) }}
+// 			/>
+// 		</div>
+// 	}
+
+// 	let slider: React.ReactNode = null
+// 	if (isEnabled && reasoningBudgetSlider?.type === 'slider') {
+// 		const { min, max, default: defaultVal } = reasoningBudgetSlider
+// 		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
+// 		slider = <div className='flex items-center gap-x-3'>
+// 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>Budget</span>
+// 			<VoidSlider
+// 				width={50}
+// 				size='xxs'
+// 				min={min}
+// 				max={max}
+// 				step={(max - min) / 8}
+// 				value={value}
+// 				onChange={(newVal) => { voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningBudget: newVal }) }}
+// 			/>
+// 			<span className='text-void-fg-3 text-xs pointer-events-none'>{`${value} tokens`}</span>
+// 		</div>
+
+// 	}
+
+// 	return <>
+// 		{toggleButton}
+// 		{slider}
+// 	</>
+// }
+
+
+
+// SLIDER ONLY:
+const ReasoningOptionDropdown = () => {
+	const accessor = useAccessor()
+
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
+
+	const modelSelection = voidSettingsState.modelSelectionOfFeature['Chat']
+	if (!modelSelection) return null
+
+	const { modelName, providerName } = modelSelection
+	const { canToggleReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName).supportsReasoning || {}
+
+	const { isReasoningEnabled } = getModelSelectionState(providerName, modelName, voidSettingsState.optionsOfModelSelection[providerName]?.[modelName])
+
+	if (canToggleReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider (no models right now)
+		return null // unused right now
+		// return <div className='flex items-center gap-x-2'>
+		// 	<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isReasoningEnabled ? 'Thinking' : 'Thinking'}</span>
+		// 	<VoidSwitch
+		// 		size='xs'
+		// 		value={isReasoningEnabled}
+		// 		onChange={(newVal) => { } }
+		// 	/>
+		// </div>
+	}
+
+	if (reasoningBudgetSlider?.type === 'slider') { // if it's a slider
+		const { min: min_, max, default: defaultVal } = reasoningBudgetSlider
+
+		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
+
+		const nSteps = 8 // only used in calculating stepSize, stepSize is what actually matters
+		const stepSize = Math.round((max - min_) / 8)
+		const min = canToggleReasoning ? min_ - stepSize : min_
+
+		return <div className='flex items-center gap-x-2'>
+			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
+			<VoidSlider
+				width={50}
+				size='xs'
+				min={min}
+				max={max}
+				step={stepSize}
+				value={value}
+				onChange={(newVal) => {
+					console.log('NEWVAL', newVal)
+					const disabled = newVal === min && canToggleReasoning
+					voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
+				}}
+			/>
+			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${value} tokens` : 'Thinking disabled'}</span>
+		</div>
+	}
+
+	return null
+}
+
+
+
+
+
 interface VoidChatAreaProps {
 	// Required
 	children: React.ReactNode; // This will be the input component
@@ -145,15 +274,18 @@ interface VoidChatAreaProps {
 	onAbort: () => void;
 	isStreaming: boolean;
 	isDisabled?: boolean;
-	divRef: React.RefObject<HTMLDivElement>;
+	divRef?: React.RefObject<HTMLDivElement | null>;
 
 	// UI customization
-	featureName: FeatureName;
 	className?: string;
 	showModelDropdown?: boolean;
 	showSelections?: boolean;
-	selections?: any[];
-	onSelectionsChange?: (selections: any[]) => void;
+	showProspectiveSelections?: boolean;
+
+	selections?: StagingSelectionItem[]
+	setSelections?: (s: StagingSelectionItem[]) => void
+	// selections?: any[];
+	// onSelectionsChange?: (selections: any[]) => void;
 
 	onClickAnywhere?: () => void;
 	// Optional close button
@@ -171,32 +303,40 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	isDisabled = false,
 	className = '',
 	showModelDropdown = true,
-	featureName,
 	showSelections = false,
-	selections = [],
-	onSelectionsChange,
+	showProspectiveSelections = true,
+	selections,
+	setSelections,
 }) => {
 	return (
 		<div
 			ref={divRef}
 			className={`
-                flex flex-col gap-1 p-2 relative input text-left shrink-0
+				gap-1
+                flex flex-col p-2 relative input text-left shrink-0
                 transition-all duration-200
                 rounded-md
                 bg-vscode-input-bg
-                border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
+				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
+				max-h-[80vh] overflow-y-auto
                 ${className}
             `}
 			onClick={(e) => {
 				onClickAnywhere?.()
 			}}
+			onKeyDown={(e: React.KeyboardEvent) => {
+				if (e.key === 'Escape' && isStreaming && onAbort) {
+					onAbort();
+				}
+			}}
 		>
 			{/* Selections section */}
-			{showSelections && onSelectionsChange && (
+			{showSelections && selections && setSelections && (
 				<SelectedFiles
 					type='staging'
 					selections={selections}
-					setSelections={onSelectionsChange}
+					setSelections={setSelections}
+					showProspectiveSelections={showProspectiveSelections}
 				/>
 			)}
 
@@ -219,9 +359,9 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			{/* Bottom row */}
 			<div className='flex flex-row justify-between items-end gap-1'>
 				{showModelDropdown && (
-					<div className='max-w-[150px] @@[&_select]:!void-border-none @@[&_select]:!void-outline-none flex-grow'
-						onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
-						<ModelDropdown featureName={featureName} />
+					<div className='max-w-[200px] flex-grow'>
+						<ReasoningOptionDropdown />
+						<ModelDropdown featureName={'Chat'} />
 					</div>
 				)}
 
@@ -239,7 +379,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 };
 
 const useResizeObserver = () => {
-	const ref = useRef(null);
+	const ref = useRef<any>(null);
 	const [dimensions, setDimensions] = useState({ height: 0, width: 0 });
 
 	useEffect(() => {
@@ -286,7 +426,6 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 }
 
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
-
 	return <button
 		className={`rounded-full flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
 			bg-white
@@ -362,12 +501,6 @@ export const SelectedFiles = (
 		| { type: 'staging', selections: StagingSelectionItem[]; setSelections: ((newSelections: StagingSelectionItem[]) => void), showProspectiveSelections?: boolean }
 ) => {
 
-	// index -> isOpened
-	const [selectionIsOpened, setSelectionIsOpened] = useState<(boolean)[]>(selections?.map(() => false) ?? [])
-
-	// state for tracking hover on clear all button
-	const [isClearHovered, setIsClearHovered] = useState(false)
-
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 
@@ -395,6 +528,7 @@ export const SelectedFiles = (
 				fileURI: uri,
 				selectionStr: null,
 				range: null,
+				state: { isOpened: false },
 			}))
 	}
 
@@ -405,106 +539,96 @@ export const SelectedFiles = (
 	}
 
 	return (
-		<div className='flex items-center flex-wrap text-left relative'>
+		<div className='flex items-center flex-wrap text-left relative gap-x-0.5 gap-y-1'>
 
 			{allSelections.map((selection, i) => {
 
-				const isThisSelectionOpened = !!(selection.selectionStr && selectionIsOpened[i])
+				const isThisSelectionOpened = (!!selection.selectionStr && selection.state.isOpened && type === 'staging')
 				const isThisSelectionAFile = selection.selectionStr === null
 				const isThisSelectionProspective = i > selections.length - 1
 
 				const thisKey = `${isThisSelectionProspective}-${i}-${selections.length}`
 
-				const selectionHTML = (<div key={thisKey} // container for `selectionSummary` and `selectionText`
+				return <div // container for summarybox and code
+					key={thisKey}
 					className={`
+						flex flex-col space-y-[1px]
 						${isThisSelectionOpened ? 'w-full' : ''}
 					`}
 				>
-					{/* selection summary */}
-					<div // container for item and its delete button (if it's last)
-						className='flex items-center gap-1 mr-0.5 my-0.5'
+					{/* summarybox */}
+					<div
+						className={`
+							flex items-center gap-0.5 relative
+							px-1
+							w-fit h-fit
+							select-none
+							${isThisSelectionProspective ? 'bg-void-bg-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
+							text-xs text-nowrap
+							border rounded-sm ${isThisSelectionProspective
+								? 'border-void-border-2'
+								: isThisSelectionOpened
+									? 'border-void-border-1 ring-1 ring-void-blue'
+									: 'border-void-border-1'
+							}
+							hover:border-void-border-1
+							transition-all duration-150
+						`}
+						onClick={() => {
+							if (type !== 'staging') return; // (never)
+							if (isThisSelectionProspective) { // add prospective selection to selections
+								setSelections([...selections, selection])
+							} else if (isThisSelectionAFile) { // open files
+								commandService.executeCommand('vscode.open', selection.fileURI, {
+									preview: true,
+									// preserveFocus: false,
+								});
+							} else { // show text
+
+								const selection = selections[i]
+								const newSelection = { ...selection, state: { isOpened: !selection.state.isOpened } }
+								const newSelections = [
+									...selections.slice(0, i),
+									newSelection,
+									...selections.slice(i + 1)
+								]
+								setSelections(newSelections)
+
+								// setSelectionIsOpened(s => {
+								// 	const newS = [...s]
+								// 	newS[i] = !newS[i]
+								// 	return newS
+								// });
+
+							}
+						}}
 					>
-						<div // styled summary box
-							className={`flex items-center gap-0.5 relative
-									px-1
-									w-fit h-fit
-									select-none
-									${isThisSelectionProspective ? 'bg-void-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
-									text-xs text-nowrap
-									border rounded-sm ${isClearHovered && !isThisSelectionProspective ? 'border-void-border-1' : 'border-void-border-2'} hover:border-void-border-1
-									transition-all duration-150`}
-							onClick={() => {
-								if (isThisSelectionProspective) { // add prospective selection to selections
-									if (type !== 'staging') return; // (never)
-									setSelections([...selections, selection])
+						{ // file name and range
+							getBasename(selection.fileURI.fsPath)
+							+ (isThisSelectionAFile ? '' : ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})`)
+						}
 
-								} else if (isThisSelectionAFile) { // open files
-									commandService.executeCommand('vscode.open', selection.fileURI, {
-										preview: true,
-										// preserveFocus: false,
-									});
-								} else { // show text
-									setSelectionIsOpened(s => {
-										const newS = [...s]
-										newS[i] = !newS[i]
-										return newS
-									});
-								}
-							}}
-						>
-							<span>
-								{/* file name */}
-								{getBasename(selection.fileURI.fsPath)}
-								{/* selection range */}
-								{!isThisSelectionAFile ? ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})` : ''}
-							</span>
-
-							{/* X button */}
-							{type === 'staging' && !isThisSelectionProspective &&
-								<span
-									className='cursor-pointer z-1'
-									onClick={(e) => {
-										e.stopPropagation(); // don't open/close selection
-										if (type !== 'staging') return;
-										setSelections([...selections.slice(0, i), ...selections.slice(i + 1)])
-										setSelectionIsOpened(o => [...o.slice(0, i), ...o.slice(i + 1)])
-									}}
-								>
-									<IconX size={10} className="stroke-[2]" />
-								</span>}
-
-
-						</div>
-
-						{/* clear all selections button */}
-						{/* {type !== 'staging' || selections.length === 0 || i !== selections.length - 1
-							? null
-							: <div className={`flex items-center ${isThisSelectionOpened ? 'w-full' : ''}`}>
-								<div
-									className='rounded-md'
-									onMouseEnter={() => setIsClearHovered(true)}
-									onMouseLeave={() => setIsClearHovered(false)}
-								>
-									<Delete
-										size={16}
-										className={`stroke-[1]
-												stroke-void-fg-1
-												fill-void-bg-3
-												opacity-40
-												hover:opacity-60
-												transition-all duration-150
-												cursor-pointer
-											`}
-										onClick={() => { setSelections([]) }}
-									/>
-								</div>
-							</div>
-						} */}
+						{type === 'staging' && !isThisSelectionProspective ? // X button
+							<IconX
+								className='cursor-pointer z-1 stroke-[2]'
+								onClick={(e) => {
+									e.stopPropagation(); // don't open/close selection
+									if (type !== 'staging') return;
+									setSelections([...selections.slice(0, i), ...selections.slice(i + 1)])
+								}}
+								size={10}
+							/>
+							: <></>
+						}
 					</div>
-					{/* selection text */}
-					{isThisSelectionOpened &&
+
+					{/* code box */}
+					{isThisSelectionOpened ?
 						<div
-							className='w-full px-1 rounded-sm border-vscode-editor-border'
+							className={`
+								w-full rounded-sm border-vscode-editor-border
+								${isThisSelectionOpened ? 'ring-1 ring-void-blue' : ''}
+							`}
 							onClick={(e) => {
 								e.stopPropagation(); // don't focus input box
 							}}
@@ -516,14 +640,9 @@ export const SelectedFiles = (
 								showScrollbars={true}
 							/>
 						</div>
+						: <></>
 					}
-				</div>)
-
-				return <Fragment key={thisKey}>
-					{/* divider between `selections` and `prospectiveSelections` */}
-					{/* {selections.length > 0 && i === selections.length && <div className='w-full'></div>} */}
-					{selectionHTML}
-				</Fragment>
+				</div>
 
 			})}
 
@@ -534,58 +653,224 @@ export const SelectedFiles = (
 }
 
 
-type ChatBubbleMode = 'display' | 'edit'
-const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLoading?: boolean, }) => {
 
-	const role = chatMessage.role
 
-	// edit mode state
-	const [mode, setMode] = useState<ChatBubbleMode>('display')
-	const [editText, setEditText] = useState(chatMessage.displayContent ?? '')
+
+interface DropdownComponentProps {
+	title: string;
+	desc1: string;
+	desc2?: React.ReactNode;
+	numResults?: number;
+	children?: React.ReactNode;
+	onClick?: () => void;
+}
+
+const DropdownComponent = ({
+	title,
+	desc1,
+	desc2,
+	numResults,
+	children,
+	onClick,
+}: DropdownComponentProps) => {
+	const [isExpanded, setIsExpanded] = useState(false);
+
+	const isDropdown = !!children
+	const isClickable = !!isDropdown || !!onClick
+
+	return (
+		<div className="select-none">
+			<div className="border border-void-border-3 rounded px-2 py-1 bg-void-bg-2-alt overflow-hidden">
+				<div
+					className={`flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
+					onClick={() => {
+						if (children) { setIsExpanded(v => !v); }
+						if (onClick) { onClick(); }
+					}}
+				>
+					{isDropdown && (
+						<ChevronRight
+							className={`text-void-fg-3 mr-0.5 h-5 w-5 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
+						/>
+					)}
+					<div className="flex items-center justify-between w-full flex-nowrap whitespace-nowrap gap-x-2">
+						<div className="flex items-center gap-x-2">
+							<span className="text-void-fg-3">{title}</span>
+							<span className="text-void-fg-4 text-xs italic">{desc1}</span>
+						</div>
+						<div className="flex items-center gap-x-2">
+							{desc2 && <span className="text-void-fg-4 text-xs">
+								{desc2}
+							</span>}
+							{numResults !== undefined && (
+								<span className="text-void-fg-4 text-xs ml-auto mr-1">
+									{`(`}{numResults}{` result`}{numResults !== 1 ? 's' : ''}{`)`}
+								</span>
+							)}
+						</div>
+					</div>
+				</div>
+				<div
+					// the py-1 here makes sure all elements in the container have py-2 total. this makes a nice animation effect during transition.
+					className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}`}
+				>
+					<div className="text-void-fg-4 px-2 py-1 bg-black bg-opacity-20 border border-void-border-4 border-opacity-50 rounded-sm">
+						{children}
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+};
+
+
+const UserMessageComponent = ({ chatMessage, messageIdx, isLoading }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'user' } }) => {
+
+	const accessor = useAccessor()
+	const chatThreadsService = accessor.get('IChatThreadService')
+
+	// global state
+	let isBeingEdited = false
+	let stagingSelections: StagingSelectionItem[] = []
+	let setIsBeingEdited = (_: boolean) => { }
+	let setStagingSelections = (_: StagingSelectionItem[]) => { }
+
+	if (messageIdx !== undefined) {
+		const _state = chatThreadsService.getCurrentMessageState(messageIdx)
+		isBeingEdited = _state.isBeingEdited
+		stagingSelections = _state.stagingSelections
+		setIsBeingEdited = (v) => chatThreadsService.setCurrentMessageState(messageIdx, { isBeingEdited: v })
+		setStagingSelections = (s) => chatThreadsService.setCurrentMessageState(messageIdx, { stagingSelections: s })
+	}
+
+
+	// local state
+	const mode: ChatBubbleMode = isBeingEdited ? 'edit' : 'display'
+	const [isFocused, setIsFocused] = useState(false)
 	const [isHovered, setIsHovered] = useState(false)
+	const [isDisabled, setIsDisabled] = useState(false)
+	const [textAreaRefState, setTextAreaRef] = useState<HTMLTextAreaElement | null>(null)
+	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
+	// initialize on first render, and when edit was just enabled
+	const _mustInitialize = useRef(true)
+	const _justEnabledEdit = useRef(false)
+	useEffect(() => {
+		const canInitialize = mode === 'edit' && textAreaRefState
+		const shouldInitialize = _justEnabledEdit.current || _mustInitialize.current
+		if (canInitialize && shouldInitialize) {
+			setStagingSelections(chatMessage.selections || [])
+			if (textAreaFnsRef.current)
+				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
 
-	if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show)
-		return null
+			textAreaRefState.focus();
+
+			_justEnabledEdit.current = false
+			_mustInitialize.current = false
+		}
+
+	}, [chatMessage, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
+
+	const onOpenEdit = () => {
+		setIsBeingEdited(true)
+		chatThreadsService.setFocusedMessageIdx(messageIdx)
+		_justEnabledEdit.current = true
+	}
+	const onCloseEdit = () => {
+		setIsFocused(false)
+		setIsHovered(false)
+		setIsBeingEdited(false)
+		chatThreadsService.setFocusedMessageIdx(undefined)
+
 	}
 
-	// set chat bubble contents
+	const EditSymbol = mode === 'display' ? Pencil : X
+
+
 	let chatbubbleContents: React.ReactNode
-	if (role === 'user') {
-		if (mode === 'display') {
-			chatbubbleContents = <>
-				<SelectedFiles type='past' selections={chatMessage.selections || []} />
-				{chatMessage.displayContent}
-			</>
-		}
-		else if (mode === 'edit') {
-			chatbubbleContents = <>
-				<SelectedFiles type='past' selections={chatMessage.selections || []} />
-				<textarea
-					value={editText}
-					onChange={(e) => setEditText(e.target.value)}
-					className={`
-						w-full max-w-full
-						h-auto min-h-[81px] max-h-[500px]
-						bg-void-bg-1 resize-none
-					`}
-					style={{ marginTop: 0 }}
-				/>
-			</>
-		}
+	if (mode === 'display') {
+		chatbubbleContents = <>
+			<SelectedFiles type='past' selections={chatMessage.selections || []} />
+			<span className='px-0.5'>{chatMessage.displayContent}</span>
+		</>
 	}
-	else if (role === 'assistant') {
-		chatbubbleContents = <ChatMarkdownRender string={chatMessage.displayContent ?? ''} />
+	else if (mode === 'edit') {
+
+		const onSubmit = async () => {
+
+			if (isDisabled) return;
+			if (!textAreaRefState) return;
+			if (messageIdx === undefined) return;
+
+			// cancel any streams on this thread
+			const thread = chatThreadsService.getCurrentThread()
+			chatThreadsService.cancelStreaming(thread.id)
+
+			// update state
+			setIsBeingEdited(false)
+			chatThreadsService.setFocusedMessageIdx(undefined)
+			chatThreadsService.closeStagingSelectionsInMessage(messageIdx)
+
+			// stream the edit
+			const userMessage = textAreaRefState.value;
+			await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, chatMode: 'agent', messageIdx, })
+		}
+
+		const onAbort = () => {
+			const threadId = chatThreadsService.state.currentThreadId
+			chatThreadsService.cancelStreaming(threadId)
+		}
+
+		const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+			if (e.key === 'Escape') {
+				onCloseEdit()
+			}
+			if (e.key === 'Enter' && !e.shiftKey) {
+				onSubmit()
+			}
+		}
+
+		if (!chatMessage.content && !isLoading) { // don't show if empty and not loading (if loading, want to show).
+			return null
+		}
+
+		chatbubbleContents = <VoidChatArea
+			onSubmit={onSubmit}
+			onAbort={onAbort}
+			isStreaming={false}
+			isDisabled={isDisabled}
+			showSelections={true}
+			showProspectiveSelections={false}
+			selections={stagingSelections}
+			setSelections={setStagingSelections}
+		>
+			<VoidInputBox2
+				ref={setTextAreaRef}
+				className='min-h-[81px] max-h-[500px] px-0.5'
+				placeholder="Edit your message..."
+				onChangeText={(text) => setIsDisabled(!text)}
+				onFocus={() => {
+					setIsFocused(true)
+					chatThreadsService.setFocusedMessageIdx(messageIdx);
+				}}
+				onBlur={() => {
+					setIsFocused(false)
+				}}
+				onKeyDown={onKeyDown}
+				fnsRef={textAreaFnsRef}
+				multiline={true}
+			/>
+		</VoidChatArea>
 	}
+
+
 
 	return <div
 		// align chatbubble accoridng to role
 		className={`
-			relative
-			${mode === 'edit' ? 'px-2 w-full max-w-full'
-				: role === 'user' ? `px-2 self-end w-fit max-w-full whitespace-pre-wrap` // user words should be pre
-					: role === 'assistant' ? `px-2 self-start w-full max-w-full` : ''
+			relative ml-auto
+			${mode === 'edit' ? 'w-full max-w-full'
+				: mode === 'display' ? `self-end w-fit max-w-full whitespace-pre-wrap` : '' // user words should be pre
 			}
-			${role !== 'assistant' ? 'my-2' : ''}
 		`}
 		onMouseEnter={() => setIsHovered(true)}
 		onMouseLeave={() => setIsHovered(false)}
@@ -593,30 +878,537 @@ const ChatBubble = ({ chatMessage, isLoading }: { chatMessage: ChatMessage, isLo
 		<div
 			// style chatbubble according to role
 			className={`
-				text-left rounded-lg
-				overflow-x-auto max-w-full
-				${role === 'user' ? 'p-2 bg-void-bg-1 text-void-fg-1' : 'px-2'}
+				text-left rounded-lg max-w-full
+				${mode === 'edit' ? ''
+					: mode === 'display' ? 'p-2 flex flex-col gap-1 bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
+				}
 			`}
+			onClick={() => { if (mode === 'display') { onOpenEdit() } }}
 		>
 			{chatbubbleContents}
-			{isLoading && <IconLoading className='opacity-50 text-sm' />}
 		</div>
 
-		{/* edit button */}
-		{role === 'user' && <Pencil
+
+		{<EditSymbol
 			size={18}
 			className={`
-				absolute -top-1 right-1
+				absolute -top-1 -right-1
 				translate-x-0 -translate-y-0
 				cursor-pointer z-1
 				p-[2px]
 				bg-void-bg-1 border border-void-border-1 rounded-md
 				transition-opacity duration-200 ease-in-out
-				${isHovered ? 'opacity-100' : 'opacity-0'}
+				${isHovered || (isFocused && mode === 'edit') ? 'opacity-100' : 'opacity-0'}
 			`}
-			onClick={() => setMode(m => m === 'display' ? 'edit' : 'display')}
+			onClick={() => {
+				if (mode === 'display') {
+					onOpenEdit()
+				} else if (mode === 'edit') {
+					onCloseEdit()
+				}
+			}}
 		/>}
+
 	</div>
+
+}
+
+
+const AssistantMessageComponent = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps & { chatMessage: ChatMessage & { role: 'assistant' } }) => {
+
+	const accessor = useAccessor()
+	const chatThreadsService = accessor.get('IChatThreadService')
+
+
+	const reasoningStr = chatMessage.reasoning?.trim() || null
+	const hasReasoning = !!reasoningStr
+	const thread = chatThreadsService.getCurrentThread()
+
+
+	const chatMessageLocation: ChatMessageLocation = {
+		threadId: thread.id,
+		messageIdx: messageIdx,
+	}
+
+	const isEmpty = !chatMessage.content && !chatMessage.reasoning // && !(isLast && isLoading) // TODO!!!!
+	if (isEmpty) return null
+
+	return <>
+		<div
+			className='
+			text-void-fg-2
+
+
+			prose
+			prose-sm
+			break-words
+			prose-p:block
+			prose-pre:my-2
+			marker:text-inherit
+			prose-ol:list-outside
+			prose-ol:list-decimal
+			prose-ul:list-outside
+			prose-ul:list-disc
+			prose-li:my-0
+			prose-code:before:content-none
+			prose-code:after:content-none
+			prose-headings:prose-sm
+			prose-headings:font-bold
+
+			prose-p:leading-normal
+			prose-ol:leading-normal
+			prose-ul:leading-normal
+			max-w-none
+		'
+		>
+
+			{/* reasoning token */}
+			{hasReasoning && <DropdownComponent
+				title="Reasoning"
+				desc1=""
+			>
+				<ChatMarkdownRender
+					string={reasoningStr}
+					chatMessageLocation={chatMessageLocation}
+				/>
+			</DropdownComponent>}
+
+			{/* assistant message */}
+			<ChatMarkdownRender
+				string={chatMessage.content || ''}
+				chatMessageLocation={chatMessageLocation}
+			/>
+
+			{/* loading indicator */}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
+		</div>
+	</>
+
+}
+
+
+
+const ToolError = ({ title, desc1, errorMessage }: { title: string, desc1: string, errorMessage: string }) => {
+	return (
+		// px-2 py-1
+		// <div className='flex gap-2 p-3 border border-void-border-3 text-void-fg-3 rounded bg-void-bg-2-alt'>
+		// 	<AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={20} />
+		// 	<div className='flex flex-col'>
+		// 		<span className='mb-1'>{title + ' error'}</span>
+		// 		<div className='text-sm opacity-90'>{errorMessage}</div>
+		// 	</div>
+		// </div>
+		<DropdownComponent
+			title={title}
+			desc1={desc1}
+			desc2={
+				<span className="flex items-center flex-nowrap gap-1">
+					<AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={12} />
+					Error
+				</span>
+			}
+		>
+			<div className='text-xs text-wrap whitespace-pre-wrap break-all break-words'>{errorMessage}</div>
+		</DropdownComponent>
+
+	)
+}
+
+
+const toolNameToTitle: Record<ToolName, string> = {
+	'read_file': 'Read file',
+	'list_dir': 'Inspected folder',
+	'pathname_search': 'Searched by file name',
+	'search': 'Searched files',
+	'create_uri': 'Create file',
+	'delete_uri': 'Delete file',
+	'edit': 'Edit file',
+	'terminal_command': 'Ran terminal command'
+}
+const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
+
+	if (_toolParams === undefined) {
+		return '';
+	}
+
+	if (toolName === 'read_file') {
+		const toolParams = _toolParams as ToolCallParams['read_file']
+		return toolParams ? getBasename(toolParams.uri.fsPath) : '';
+	} else if (toolName === 'list_dir') {
+		const toolParams = _toolParams as ToolCallParams['list_dir']
+		return toolParams ? `${getBasename(toolParams.rootURI.fsPath)}/` : '';
+	} else if (toolName === 'pathname_search') {
+		const toolParams = _toolParams as ToolCallParams['pathname_search']
+		return toolParams ? `"${toolParams.queryStr}"` : '';
+	} else if (toolName === 'search') {
+		const toolParams = _toolParams as ToolCallParams['search']
+		return toolParams ? `"${toolParams.queryStr}"` : '';
+	} else if (toolName === 'create_uri') {
+		const toolParams = _toolParams as ToolCallParams['create_uri']
+		return toolParams ? getBasename(toolParams.uri.fsPath) : '';
+	} else if (toolName === 'delete_uri') {
+		const toolParams = _toolParams as ToolCallParams['delete_uri']
+		return toolParams ? getBasename(toolParams.uri.fsPath) + ' (deleted)' : '';
+	} else if (toolName === 'edit') {
+		const toolParams = _toolParams as ToolCallParams['edit']
+		return toolParams ? getBasename(toolParams.uri.fsPath) : '';
+	} else if (toolName === 'terminal_command') {
+		const toolParams = _toolParams as ToolCallParams['terminal_command']
+		return toolParams ? `"${toolParams.command}"` : '';
+	} else {
+		return ''
+	}
+}
+
+
+
+const ToolRequestAcceptRejectButtons = ({ toolRequest }: { toolRequest: ToolRequestApproval<ToolName> }) => {
+	const accessor = useAccessor()
+	const chatThreadsService = accessor.get('IChatThreadService')
+	return <>
+		<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.approveTool(toolRequest.voidToolId) }}>Accept</div>
+		<div className='text-void-fg-4 italic' onClick={() => { chatThreadsService.rejectTool(toolRequest.voidToolId) }}>Reject</div>
+	</>
+}
+
+const toolNameToComponent: { [T in ToolName]: {
+	requestWrapper: (props: { toolRequest: ToolRequestApproval<T> }) => React.ReactNode,
+	resultWrapper: (props: { toolMessage: ToolMessage<T> }) => React.ReactNode,
+} } = {
+	'read_file': {
+		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolRequest.name]
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1}
+				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
+			/>
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
+			const { value, params } = toolMessage.result
+
+			return <DropdownComponent title={title} desc1={desc1}>
+				<div
+					className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+				>
+					<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+					{params.uri.fsPath}
+				</div>
+				{toolMessage.result.value.hasNextPage && (<div className="italic">AI can scroll for more content...</div>)}
+
+			</DropdownComponent>
+		},
+	},
+	'list_dir': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const explorerService = accessor.get('IExplorerService')
+			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
+			const { value, params } = toolMessage.result
+
+			return <DropdownComponent
+				title={title}
+				desc1={desc1}
+				numResults={value.children?.length}
+			>
+				{value.children?.map((child, i) => (
+					<div
+						key={i}
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+						onClick={() => {
+							commandService.executeCommand('workbench.view.explorer');
+							explorerService.select(child.uri, true);
+						}}
+					>
+						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+						{`${child.name}${child.isDirectory ? '/' : ''}`}
+					</div>
+				))}
+				{value.hasNextPage && (
+					<div className="italic">
+						{value.itemsRemaining} more items...
+					</div>
+				)}
+			</DropdownComponent>
+		}
+	},
+	'pathname_search': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
+			const { value, params } = toolMessage.result
+
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={desc1}
+					numResults={value.uris.length}
+				>
+					{value.uris.map((uri, i) => (
+						<div
+							key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => {
+								commandService.executeCommand('vscode.open', uri, { preview: true })
+							}}
+						>
+							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+							{uri.fsPath.split('/').pop()}
+						</div>
+					))}
+					{value.hasNextPage && (
+						<div className="italic">
+							More results available...
+						</div>
+					)}
+				</DropdownComponent>
+			)
+		}
+	},
+	'search': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
+			const { value, params } = toolMessage.result
+
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={desc1}
+					numResults={value.uris.length}
+				>
+					{value.uris.map((uri, i) => (
+						<div key={i}
+							className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+						>
+							<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+							{uri.fsPath.split('/').pop()}
+						</div>
+					))}
+					{value.hasNextPage && (<div className="italic">More results available...</div>)}
+				</DropdownComponent>
+			)
+		}
+	},
+	'create_uri': {
+		requestWrapper: ({ toolRequest }) => {
+			const title = toolNameToTitle[toolRequest.name]
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1} />
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
+			const { params } = toolMessage.result
+
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={desc1}
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+				/>
+			)
+		}
+	},
+	'delete_uri': {
+		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolRequest.name]
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1}
+				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
+			/>
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
+			const { params } = toolMessage.result
+
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={desc1}
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+				/>
+			)
+		}
+	},
+	'edit': {
+		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolRequest.name]
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1}
+				onClick={() => { commandService.executeCommand('vscode.open', toolRequest.params.uri, { preview: true }) }}
+			>
+				<ChatMarkdownRender string={toolRequest.params.changeDescription} chatMessageLocation={undefined} />
+			</DropdownComponent>
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
+			const { params } = toolMessage.result
+
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={desc1}
+					onClick={() => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }}
+				/>
+			)
+		}
+	},
+	'terminal_command': {
+		requestWrapper: ({ toolRequest }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolRequest.name]
+			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
+			return <DropdownComponent title={title} desc1={desc1}
+			// TODO!!! open the terminal with that ID
+			/>
+		},
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+			const title = toolNameToTitle[toolMessage.name]
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+
+			if (toolMessage.result.type === 'error') {
+				return <ToolError title={title} desc1={desc1} errorMessage={toolMessage.result.value} />
+			}
+
+			const { params } = toolMessage.result
+
+			return (
+				<DropdownComponent
+					title={title}
+					desc1={desc1}
+				>
+					<div
+						className="hover:brightness-125 hover:cursor-pointer transition-all duration-200 flex items-center flex-nowrap"
+					// TODO!!! open terminal
+					>
+						<div className="flex-shrink-0"><svg className="w-1 h-1 opacity-60 mr-1.5 fill-current" viewBox="0 0 100 40"><rect x="0" y="15" width="100" height="10" /></svg></div>
+						<ChatMarkdownRender string={''} chatMessageLocation={undefined} />
+					</div>
+				</DropdownComponent>
+			)
+		}
+	}
+};
+
+
+type ChatBubbleMode = 'display' | 'edit'
+type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isLoading?: boolean, }
+const ChatBubble = ({ chatMessage, isLoading, messageIdx }: ChatBubbleProps) => {
+
+	const role = chatMessage.role
+
+	if (role === 'user') {
+		return <UserMessageComponent
+			chatMessage={chatMessage}
+			messageIdx={messageIdx}
+			isLoading={isLoading}
+		/>
+	}
+	else if (role === 'assistant') {
+		return <AssistantMessageComponent
+			chatMessage={chatMessage}
+			messageIdx={messageIdx}
+			isLoading={isLoading}
+		/>
+	}
+	else if (role === 'tool_request') {
+		const isLastMessage = true // TODO!!! fix this
+		if (!isLastMessage) return null
+		const ToolRequestComponent = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
+		return <>
+			<ToolRequestComponent toolRequest={chatMessage} />
+			<ToolRequestAcceptRejectButtons toolRequest={chatMessage} />
+		</>
+	}
+	else if (role === 'tool') {
+
+		const title = toolNameToTitle[chatMessage.name]
+		// if (chatMessage.result.type === 'error') return <ToolError title={title} params={chatMessage.result.params} errorMessage={chatMessage.result.value} />
+
+		const ToolResultComponent = toolNameToComponent[chatMessage.name].resultWrapper as React.FC<{ toolMessage: any }> // ts isnt smart enough...
+		return <ToolResultComponent toolMessage={chatMessage} />
+	}
+
+
 }
 
 
@@ -628,6 +1420,7 @@ export const SidebarChat = () => {
 	const accessor = useAccessor()
 	// const modelService = accessor.get('IModelService')
 	const commandService = accessor.get('ICommandService')
+	const chatThreadsService = accessor.get('IChatThreadService')
 
 	const settingsState = useSettingsState()
 	// ----- HIGHER STATE -----
@@ -636,8 +1429,8 @@ export const SidebarChat = () => {
 	useEffect(() => {
 		const disposables: IDisposable[] = []
 		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { textAreaRef.current?.focus() }),
-			sidebarStateService.onDidBlurChat(() => { textAreaRef.current?.blur() })
+			sidebarStateService.onDidFocusChat(() => { !chatThreadsService.isFocusingMessage() && textAreaRef.current?.focus() }),
+			sidebarStateService.onDidBlurChat(() => { !chatThreadsService.isFocusingMessage() && textAreaRef.current?.blur() })
 		)
 		return () => disposables.forEach(d => d.dispose())
 	}, [sidebarStateService, textAreaRef])
@@ -646,17 +1439,19 @@ export const SidebarChat = () => {
 
 	// threads state
 	const chatThreadsState = useChatThreadsState()
-	const chatThreadsService = accessor.get('IChatThreadService')
 
 	const currentThread = chatThreadsService.getCurrentThread()
 	const previousMessages = currentThread?.messages ?? []
-	const selections = chatThreadsState.currentStagingSelections
+
+	const selections = currentThread.state.stagingSelections
+	const setSelections = (s: StagingSelectionItem[]) => { chatThreadsService.setCurrentThreadState({ stagingSelections: s }) }
 
 	// stream state
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
 	const isStreaming = !!currThreadStreamState?.streamingToken
 	const latestError = currThreadStreamState?.error
 	const messageSoFar = currThreadStreamState?.messageSoFar
+	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -664,7 +1459,7 @@ export const SidebarChat = () => {
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
 
-	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+L', settingsState)
+	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Chat', settingsState)
 
 	const [sidebarRef, sidebarDimensions] = useResizeObserver()
 	const [chatAreaRef, chatAreaDimensions] = useResizeObserver()
@@ -675,20 +1470,24 @@ export const SidebarChat = () => {
 
 	const onSubmit = useCallback(async () => {
 
-		console.log('onSubmit')
-
 		if (isDisabled) return
 		if (isStreaming) return
 
+		// update state
+		chatThreadsService.closeStagingSelectionsInCurrentThread() // close all selections
+
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
-		await chatThreadsService.addUserMessageAndStreamResponse(userMessage)
 
-		chatThreadsService.setStaging([]) // clear staging
+		// getModelCapabilities() // TODO!!! check if can go into agent mode
+
+		await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, chatMode: 'agent' })
+
+		setSelections([]) // clear staging
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef])
+	}, [chatThreadsService, isDisabled, isStreaming, textAreaRef, textAreaFnsRef, setSelections])
 
 	const onAbort = () => {
 		const threadId = currentThread.id
@@ -707,11 +1506,27 @@ export const SidebarChat = () => {
 	}, [isHistoryOpen, currentThread.id])
 
 
-	const prevMessagesHTML = useMemo(() => {
+	const pastMessagesHTML = useMemo(() => {
 		return previousMessages.map((message, i) =>
-			<ChatBubble key={i} chatMessage={message} />
+			<ChatBubble key={getChatBubbleId(currentThread.id, i)} chatMessage={message} messageIdx={i} />
 		)
-	}, [previousMessages])
+	}, [previousMessages, currentThread])
+
+
+
+	const streamingChatIdx = pastMessagesHTML.length
+	const currStreamingMessageHTML = !!(reasoningSoFar || messageSoFar || isStreaming) ?
+		<ChatBubble key={getChatBubbleId(currentThread.id, streamingChatIdx)}
+			messageIdx={streamingChatIdx} chatMessage={{
+				role: 'assistant',
+				content: messageSoFar ?? '',
+				reasoning: reasoningSoFar ?? '',
+				anthropicReasoning: null,
+			}}
+			isLoading={isStreaming}
+		/> : null
+
+	const allMessagesHTML = [...pastMessagesHTML, currStreamingMessageHTML]
 
 
 	const threadSelector = <div ref={historyRef}
@@ -723,27 +1538,25 @@ export const SidebarChat = () => {
 
 
 	const messagesHTML = <ScrollToBottomContainer
+		key={currentThread.id} // force rerender on all children if id changes
 		scrollContainerRef={scrollContainerRef}
 		className={`
-		w-full h-auto
-		flex flex-col
-		overflow-x-hidden
-		overflow-y-auto
-		py-4
-		${prevMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
-	`}
-		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - 36 }} // the height of the previousMessages is determined by all other heights
+			flex flex-col
+			px-4 py-4 space-y-4
+			w-full h-auto
+			overflow-x-hidden
+			overflow-y-auto
+			${pastMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
+		`}
+		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - (25) }} // the height of the previousMessages is determined by all other heights
 	>
 		{/* previous messages */}
-		{prevMessagesHTML}
-
-		{/* message stream */}
-		<ChatBubble chatMessage={{ role: 'assistant', content: messageSoFar ?? '', displayContent: messageSoFar || null }} isLoading={isStreaming} />
+		{allMessagesHTML}
 
 
 		{/* error message */}
 		{latestError === undefined ? null :
-			<div className='px-2'>
+			<div className='px-2 my-1'>
 				<ErrorDisplay
 					message={latestError.message}
 					fullError={latestError.fullError}
@@ -763,8 +1576,10 @@ export const SidebarChat = () => {
 	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			onSubmit()
+		} else if (e.key === 'Escape' && isStreaming) {
+			onAbort()
 		}
-	}, [onSubmit])
+	}, [onSubmit, onAbort, isStreaming])
 	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
 		<VoidChatArea
 			divRef={chatAreaRef}
@@ -773,16 +1588,17 @@ export const SidebarChat = () => {
 			isStreaming={isStreaming}
 			isDisabled={isDisabled}
 			showSelections={true}
-			selections={selections || []}
-			onSelectionsChange={chatThreadsService.setStaging.bind(chatThreadsService)}
+			showProspectiveSelections={pastMessagesHTML.length === 0}
+			selections={selections}
+			setSelections={setSelections}
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
-			featureName="Ctrl+L"
 		>
 			<VoidInputBox2
-				className='min-h-[81px] p-1'
+				className='min-h-[81px] px-0.5'
 				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
 				onChangeText={onChangeText}
 				onKeyDown={onKeyDown}
+				onFocus={() => { chatThreadsService.setFocusedMessageIdx(undefined) }}
 				ref={textAreaRef}
 				fnsRef={textAreaFnsRef}
 				multiline={true}
@@ -799,5 +1615,3 @@ export const SidebarChat = () => {
 
 	</div>
 }
-
-

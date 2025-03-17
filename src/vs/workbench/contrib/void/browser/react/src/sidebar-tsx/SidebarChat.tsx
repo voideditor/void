@@ -1676,12 +1676,11 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast }: ChatBubble
 	}
 	else if (role === 'tool_request') {
 		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
-		if (ToolRequestWrapper) {
-			return isLast ? <>
+		if (ToolRequestWrapper && isLast) { // if it's the last message
+			return <>
 				<ToolRequestWrapper toolRequest={chatMessage} />
 				<ToolRequestAcceptRejectButtons />
-			</> : null
-
+			</>
 		}
 		return null
 	}

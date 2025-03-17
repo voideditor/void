@@ -318,8 +318,11 @@ export class ToolsService implements IToolsService {
 
 			// ---
 
-			create_uri: async ({ uri }) => {
-				await fileService.createFile(uri)
+			create_uri: async ({ uri, isFolder }) => {
+				if (isFolder)
+					await fileService.createFolder(uri)
+				else
+					await fileService.createFile(uri)
 				return {}
 			},
 

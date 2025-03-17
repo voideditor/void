@@ -484,7 +484,18 @@ const ScrollToBottomContainer = ({ children, className, style, scrollContainerRe
 		</div>
 	);
 };
-
+export const getFolderName = (pathStr: string) => {
+	// 'unixify' path
+	pathStr = pathStr.replace(/[/\\]+/g, '/') // replace any / or \ or \\ with /
+	const parts = pathStr.split('/') // split on /
+	// Filter out empty parts (the last element will be empty if path ends with /)
+	const nonEmptyParts = parts.filter(part => part.length > 0)
+	if (nonEmptyParts.length === 0) return '/' // Root directory
+	if (nonEmptyParts.length === 1) return nonEmptyParts[0] + '/' // Only one folder
+	// Get the last two parts
+	const lastTwo = nonEmptyParts.slice(-2)
+	return lastTwo.join('/') + '/'
+}
 
 export const getBasename = (pathStr: string) => {
 	// 'unixify' path
@@ -711,7 +722,7 @@ const ToolHeaderWrapper = ({
 		<div className="w-full border border-void-border-3 rounded px-2 py-1 bg-void-bg-3 overflow-hidden ">
 			{/* header */}
 			<div
-				className={`select-none flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''} ${!isDropdown ? 'mx-1' : ''}`}
+				className={`select-none flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer' : ''} ${!isDropdown ? 'mx-1' : ''}`}
 				onClick={() => {
 					if (isDropdown) { setIsOpen(v => !v); }
 					if (onClick) { onClick(); }
@@ -724,7 +735,7 @@ const ToolHeaderWrapper = ({
 				)}
 				<div className={`flex items-center w-full gap-x-2 overflow-hidden justify-between ${isRejected ? 'line-through' : ''}`}>
 					{/* left */}
-					<div className="flex items-center gap-x-2 min-w-0 overflow-hidden">
+					<div className={`flex items-center gap-x-2 min-w-0 overflow-hidden ${isClickable ? 'hover:brightness-125 transition-all duration-150' : ''}`}>
 						<span className="text-void-fg-3 flex-shrink-0">{title}</span>
 						<span className="text-void-fg-4 text-xs italic truncate">{desc1}</span>
 					</div>
@@ -1105,16 +1116,19 @@ const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneRe
 
 
 // should either be past or "-ing" tense, not present tense. Eg. when the LLM searches for something, the user expects it to say "I searched for X" or "I am searching for X". Not "I search X".
-const toolNameToTitle: Record<ToolName, { past: string, proposed: string }> = {
+
+const folderFileStr = (isFolder: boolean) => isFolder ? 'folder' : 'file'
+const toolNameToTitle = {
 	'read_file': { past: 'Read file', proposed: 'Read file' },
 	'list_dir': { past: 'Inspected folder', proposed: 'Inspect folder' },
 	'pathname_search': { past: 'Searched by file name', proposed: 'Search by file name' },
 	'search': { past: 'Searched', proposed: 'Search' },
-	'create_uri': { past: 'Created file', proposed: 'Create file' },
-	'delete_uri': { past: 'Deleted file', proposed: 'Delete file' },
+	'create_uri': { past: (isFolder: boolean) => `Created ${folderFileStr(isFolder)}`, proposed: (isFolder: boolean) => `Create ${folderFileStr(isFolder)}` },
+	'delete_uri': { past: (isFolder: boolean) => `Deleted ${folderFileStr(isFolder)}`, proposed: (isFolder: boolean) => `Delete ${folderFileStr(isFolder)}` },
 	'edit': { past: 'Edited file', proposed: 'Edit file' },
 	'terminal_command': { past: 'Ran terminal command', proposed: 'Run terminal command' }
-}
+} as const satisfies Record<ToolName, { past: any, proposed: any }>
+
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
 
 	if (!_toolParams) {
@@ -1135,10 +1149,10 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 		return `"${toolParams.queryStr}"`;
 	} else if (toolName === 'create_uri') {
 		const toolParams = _toolParams as ToolCallParams['create_uri']
-		return getBasename(toolParams.uri.fsPath);
+		return toolParams.isFolder ? getFolderName(toolParams.uri.fsPath) : getBasename(toolParams.uri.fsPath);
 	} else if (toolName === 'delete_uri') {
 		const toolParams = _toolParams as ToolCallParams['delete_uri']
-		return getBasename(toolParams.uri.fsPath);
+		return toolParams.isFolder ? getFolderName(toolParams.uri.fsPath) : getBasename(toolParams.uri.fsPath);
 	} else if (toolName === 'edit') {
 		const toolParams = _toolParams as ToolCallParams['edit']
 		return getBasename(toolParams.uri.fsPath);
@@ -1242,31 +1256,6 @@ const EditToolApplyButton = ({ changeDescription, applyBoxId, uri }: { changeDes
 }
 
 
-const TerminalToolChildren = ({ command, terminalId, result, resolveReason }: { command: string, terminalId: string, result: string, resolveReason: ResolveReason }) => {
-	const accessor = useAccessor()
-	const terminalToolsService = accessor.get('ITerminalToolService')
-
-	const resultStr = resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `\nError: exit code ${resolveReason.exitCode}` : null)
-		: resolveReason.type === 'bgtask' ? null :
-			resolveReason.type === 'timeout' ? `\n(partial results; request timed out)` :
-				resolveReason.type === 'toofull' ? `\n(truncated)`
-					: null
-
-	return <ToolContentsWrapper className='bg-void-bg-3 font-mono whitespace-pre text-nowrap overflow-auto text-sm'>
-		<ListableToolItem
-			showDot={false}
-			name={`$ ${command}`}
-			className='w-full overflow-auto py-1'
-			onClick={() => terminalToolsService.openTerminal(terminalId)}
-		/>
-		<div className='!select-text cursor-auto'>
-			{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}
-			{result}
-			{resultStr}
-		</div>
-	</ToolContentsWrapper>
-}
-
 const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescription: string }) => {
 	return <ToolContentsWrapper className='bg-void-bg-3'>
 		<div className='!select-text cursor-auto'>
@@ -1334,7 +1323,7 @@ const toolNameToComponent: { [T in ToolName]: {
 					: <ToolContentsWrapper>
 						{value.children.map((child, i) => (<ListableToolItem key={i}
 							name={`${child.name}${child.isDirectory ? '/' : ''}`}
-							className='w-full overflow-auto py-1'
+							className='w-full overflow-auto'
 							onClick={() => {
 								commandService.executeCommand('vscode.open', child.uri, { preview: true })
 								// commandService.executeCommand('workbench.view.explorer'); // open in explorer folders view instead
@@ -1342,7 +1331,7 @@ const toolNameToComponent: { [T in ToolName]: {
 							}}
 						/>))}
 						{value.hasNextPage &&
-							<ListableToolItem name={`Results truncated (${value.itemsRemaining} remaining).`} isSmall={true} className='w-full overflow-auto py-1' />
+							<ListableToolItem name={`Results truncated (${value.itemsRemaining} remaining).`} isSmall={true} className='w-full overflow-auto' />
 						}
 					</ToolContentsWrapper>
 			}
@@ -1376,11 +1365,11 @@ const toolNameToComponent: { [T in ToolName]: {
 					: <ToolContentsWrapper>
 						{value.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
-							className='w-full overflow-auto py-1'
+							className='w-full overflow-auto'
 							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
 						/>))}
 						{value.hasNextPage &&
-							<ListableToolItem name={'Results truncated.'} isSmall={true} className='w-full overflow-auto py-1' />
+							<ListableToolItem name={'Results truncated.'} isSmall={true} className='w-full overflow-auto' />
 						}
 
 					</ToolContentsWrapper>
@@ -1415,11 +1404,11 @@ const toolNameToComponent: { [T in ToolName]: {
 					: <ToolContentsWrapper>
 						{value.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
-							className='w-full overflow-auto py-1'
+							className='w-full overflow-auto'
 							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
 						/>))}
 						{value.hasNextPage &&
-							<ListableToolItem name={`Results truncated.`} isSmall={true} className='w-full overflow-auto py-1' />
+							<ListableToolItem name={`Results truncated.`} isSmall={true} className='w-full overflow-auto' />
 						}
 
 					</ToolContentsWrapper>
@@ -1440,26 +1429,19 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const explorerService = accessor.get('IExplorerService')
-			const title = toolNameToTitle[toolRequest.name].proposed
+			const title = toolNameToTitle[toolRequest.name].proposed(toolRequest.params.isFolder)
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
 			const isError = false
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
-			const { params } = toolRequest
-
-			// TODO!!! would be cool to open up the lowest parent that exists
-			// componentParams.onClick = () => {
-			// 	// open the parent
-			// }
-
 			return <ToolHeaderWrapper  {...componentParams} />
 		},
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name].past
+			const title = toolNameToTitle[toolMessage.name].past(toolMessage.result.params?.isFolder ?? false)
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1489,7 +1471,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		requestWrapper: ({ toolRequest, }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolRequest.name].proposed
+			const title = toolNameToTitle[toolRequest.name].proposed(toolRequest.params.isFolder)
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
@@ -1504,7 +1486,8 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].past : toolNameToTitle[toolMessage.name].proposed
+			const isFolder = toolMessage.result.params?.isFolder ?? false
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].past(isFolder) : toolNameToTitle[toolMessage.name].proposed(isFolder)
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1626,12 +1609,26 @@ const toolNameToComponent: { [T in ToolName]: {
 				const { command } = toolMessage.result.params
 				const { terminalId, resolveReason, result } = toolMessage.result.value
 
-				componentParams.children = <TerminalToolChildren
-					command={command}
-					terminalId={terminalId}
-					result={result}
-					resolveReason={resolveReason}
-				/>
+				const resultStr = resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `\nError: exit code ${resolveReason.exitCode}` : null)
+					: resolveReason.type === 'bgtask' ? null :
+						resolveReason.type === 'timeout' ? `\n(partial results; request timed out)` :
+							resolveReason.type === 'toofull' ? `\n(truncated)`
+								: null
+
+				componentParams.children = <ToolContentsWrapper className='bg-void-bg-3 font-mono whitespace-pre text-nowrap overflow-auto text-sm'>
+					<ListableToolItem
+						showDot={false}
+						name={`$ ${command}`}
+						className='w-full overflow-auto py-1'
+						onClick={() => terminalToolsService.openTerminal(terminalId)}
+					/>
+					<div className='!select-text cursor-auto'>
+						{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}
+						{result}
+						{resultStr}
+					</div>
+				</ToolContentsWrapper>
+
 
 				if (resolveReason.type === 'bgtask')
 					componentParams.desc2 = '(background task)'
@@ -1683,7 +1680,7 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast }: ChatBubble
 	}
 	else if (role === 'tool_request') {
 		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
-		if (ToolRequestWrapper && isLast) { // if it's the last message
+		if (ToolRequestWrapper) { // && isLast // if it's the last message
 			return <>
 				<ToolRequestWrapper toolRequest={chatMessage} />
 				<ToolRequestAcceptRejectButtons />

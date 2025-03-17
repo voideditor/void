@@ -379,10 +379,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					name: 'create_uri',
 					id: 'tool-6',
 					paramsStr: '{"uri": "/Users/username/Project/new-file.js"}',
-					content: 'Successfully created file at /Users/username/Project/new-file.js',
+					content: 'Successfully created file at /Users/username/Project/new-file/',
 					result: {
 						type: 'success',
-						params: { uri: URI.file('Users/andrew/Desktop/void/src/vs/workbench/hi'), isFolder: false },
+						params: { uri: URI.file('Users/andrew/Desktop/void/src/vs/workbench/hi/'), isFolder: true },
 						value: {}
 					},
 				} satisfies ToolMessage<'create_uri'>,

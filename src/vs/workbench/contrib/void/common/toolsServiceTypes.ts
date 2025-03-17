@@ -83,7 +83,7 @@ export const voidTools = {
 
 	create_uri: {
 		name: 'create_uri',
-		description: `Creates a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash. Fails gracefully if the file already exists. Missing ancestors in the path will be recursively created automatically.`,
+		description: `Create a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash. Fails gracefully if the file already exists. Missing ancestors in the path will be recursively created automatically.`,
 		params: {
 			uri: { type: 'string', description: undefined },
 		},
@@ -92,7 +92,7 @@ export const voidTools = {
 
 	delete_uri: {
 		name: 'delete_uri',
-		description: `Deletes the file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
+		description: `Delete a file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
 		params: {
 			uri: { type: 'string', description: undefined },
 			params: { type: 'string', description: 'Return -r here to delete this URI and all descendants (if applicable). Default is the empty string.' }

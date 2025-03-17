@@ -11,7 +11,6 @@ import { BlockCodeApplyWrapper } from './ApplyBlockHoverButtons.js'
 import { useAccessor } from '../util/services.js'
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js'
 import { URI } from '../../../../../../../base/common/uri.js'
-import { getBasename } from '../sidebar-tsx/SidebarChat.js'
 import { isAbsolute } from '../../../../../../../base/common/path.js'
 import { separateOutFirstLine } from '../../../../common/helpers/util.js'
 import { BlockCode } from '../util/inputs.js'
@@ -110,7 +109,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 
 export type RenderTokenOptions = { isApplyEnabled?: boolean, isLinkDetectionEnabled?: boolean }
-const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ...options }: { token: Token | string, inPTag?: boolean, codeURI?: URI, chatMessageLocation?: ChatMessageLocation, tokenIdx: string, } & RenderTokenOptions): JSX.Element => {
+const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ...options }: { token: Token | string, inPTag?: boolean, codeURI?: URI, chatMessageLocation?: ChatMessageLocation, tokenIdx: string, } & RenderTokenOptions): React.ReactNode => {
 	const accessor = useAccessor()
 	const languageService = accessor.get('ILanguageService')
 
@@ -118,7 +117,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 	const t = token as MarkedToken
 
 	if (t.raw.trim() === '') {
-		return <></>;
+		return null;
 	}
 
 	if (t.type === "space") {
@@ -127,8 +126,10 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 
 	if (t.type === "code") {
 		const [firstLine, remainingContents] = separateOutFirstLine(t.text)
-		const firstLineIsURI = isValidUri(firstLine)
+		const firstLineIsURI = isValidUri(firstLine) && !codeURI
 		const contents = firstLineIsURI ? (remainingContents?.trimStart() || '') : t.text // exclude first-line URI from contents
+
+		if (!contents) return null
 
 		// figure out langauge and URI
 		let uri: URI | null
@@ -171,6 +172,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 				/>
 			</BlockCodeApplyWrapper>
 		}
+
 		return <BlockCode
 			initValue={contents}
 			language={language}
@@ -382,6 +384,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 
 
 export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, codeURI?: URI, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
+	console.log('STRING!!!', string)
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>

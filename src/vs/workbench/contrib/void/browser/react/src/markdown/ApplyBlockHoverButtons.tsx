@@ -243,6 +243,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 	if (currStreamState === 'streaming') {
 		buttonsHTML = <>
 			<JumpToFileButton uri={uri} />
+			{copyButton}
 			{stopButton}
 		</>
 	}

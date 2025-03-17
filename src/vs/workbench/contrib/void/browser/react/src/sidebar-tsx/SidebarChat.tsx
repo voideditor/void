@@ -28,7 +28,7 @@ import { getModelSelectionState, getModelCapabilities } from '../../../../common
 import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
 import { ResolveReason, ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
-import { useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
+import { JumpToFileButton, useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
 import { DiffZone } from '../../../editCodeService.js';
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 
@@ -1546,6 +1546,8 @@ const toolNameToComponent: { [T in ToolName]: {
 				changeDescription={params.changeDescription}
 			/>
 
+			componentParams.desc2 = <JumpToFileButton uri={params.uri} />
+
 			return <ToolHeaderWrapper {...componentParams} />
 		},
 		resultWrapper: ({ toolMessage, messageIdx }) => {
@@ -1943,8 +1945,6 @@ export const SidebarChat = () => {
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''
-
-		// getModelCapabilities() // TODO!!! check if can go into agent mode
 
 		try {
 			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, threadId })

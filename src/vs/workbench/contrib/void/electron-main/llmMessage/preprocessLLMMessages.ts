@@ -397,7 +397,6 @@ export const prepareMessages = ({
 	const { messages: messages4 } = prepareMessages_tools({ messages: messages3, supportsTools })
 	const { messages: messages5 } = prepareMessages_noEmptyMessage({ messages: messages4 })
 
-	console.log('MESSAGES!!!', JSON.stringify(messages, null, 2))
 	return {
 		messages: messages5 as any,
 		separateSystemMessageStr

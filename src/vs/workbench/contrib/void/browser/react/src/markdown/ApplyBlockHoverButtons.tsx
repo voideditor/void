@@ -102,6 +102,23 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 const applyingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undefined } } = { current: {} }
 
 
+
+
+export const JumpToFileButton = ({ uri }: { uri: URI | 'current' }) => {
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
+
+	const jumpToFileButton = uri !== 'current' && (
+		<IconShell1
+			Icon={FileSymlink}
+			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+			title="Reject changes"
+		/>
+	)
+
+	return jumpToFileButton
+}
+
 export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: string, applyBoxId: string, uri: URI | 'current' }) => {
 
 	const settingsState = useSettingsState()
@@ -110,7 +127,6 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
-	const commandService = accessor.get('ICommandService')
 
 	const [_, rerender] = useState(0)
 
@@ -220,27 +236,20 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		/>
 	)
 
-	const jumpToFileHTML = uri !== 'current' && (
-		<IconShell1
-			Icon={FileSymlink}
-			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
-			title="Reject changes"
-		/>
-	)
 
 
 	let buttonsHTML = <></>
 
 	if (currStreamState === 'streaming') {
 		buttonsHTML = <>
-			{jumpToFileHTML}
+			<JumpToFileButton uri={uri} />
 			{stopButton}
 		</>
 	}
 
 	if (currStreamState === 'idle') {
 		buttonsHTML = <>
-			{jumpToFileHTML}
+			<JumpToFileButton uri={uri} />
 			{copyButton}
 			{playButton}
 		</>
@@ -248,7 +257,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 
 	if (currStreamState === 'acceptRejectAll') {
 		buttonsHTML = <>
-			{jumpToFileHTML}
+			<JumpToFileButton uri={uri} />
 			{reapplyButton}
 			{rejectButton}
 			{acceptButton}
@@ -290,7 +299,7 @@ export const BlockCodeApplyWrapper = ({
 	children: React.ReactNode;
 	applyBoxId: string;
 	canApply: boolean;
-	language:string;
+	language: string;
 	uri: URI | 'current',
 }) => {
 

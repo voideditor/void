@@ -1654,9 +1654,9 @@ const toolNameToComponent: { [T in ToolName]: {
 
 
 type ChatBubbleMode = 'display' | 'edit'
-type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isCommitted: boolean, isLast: boolean, showApproveRejectButtons: boolean }
+type ChatBubbleProps = { chatMessage: ChatMessage, messageIdx: number, isCommitted: boolean, isLast: boolean }
 
-const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, showApproveRejectButtons }: ChatBubbleProps) => {
+const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast }: ChatBubbleProps) => {
 	const role = chatMessage.role
 
 	if (role === 'user') {
@@ -1677,10 +1677,10 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, showApproveR
 	else if (role === 'tool_request') {
 		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
 		if (ToolRequestWrapper) {
-			return <>
-				{isLast && <ToolRequestWrapper toolRequest={chatMessage} />}
-				{showApproveRejectButtons && <ToolRequestAcceptRejectButtons />}
-			</>
+			return isLast ? <>
+				<ToolRequestWrapper toolRequest={chatMessage} />
+				<ToolRequestAcceptRejectButtons />
+			</> : null
 
 		}
 		return null
@@ -1978,7 +1978,6 @@ export const SidebarChat = () => {
 				messageIdx={i}
 				isLast={isLast}
 				isCommitted={true}
-				showApproveRejectButtons={isLast}
 			/>
 		}
 		)
@@ -1996,7 +1995,6 @@ export const SidebarChat = () => {
 			messageIdx={streamingChatIdx}
 			isCommitted={!isRunning}
 			isLast={true}
-			showApproveRejectButtons={false}
 		/> : null
 
 	const allMessagesHTML = [...previousMessagesHTML, currStreamingMessageHTML]

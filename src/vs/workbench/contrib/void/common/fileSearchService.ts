@@ -32,11 +32,11 @@ export const IRepoFilesService = createDecorator<IRepoFilesService>('repoFilesSe
 class RepoFilesService extends Disposable implements IRepoFilesService {
 	_serviceBrand: undefined;
 
-	private _fileCache: URI[] = [];
+	private _fileCache: IFileDisplayInfo[] = [];
 	// Limit for the number of files to scan.
 	// Note that this affects showing duplicates and filepaths because
 	// it only shows the duplicates of the loaded files.
-	private _maxFiles = 50;
+	// private _maxFiles = 50;
 	private _workspaceFolders: URI[] = [];
 	private _excludePatterns: string[] = [
 		'out/**',
@@ -87,7 +87,9 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 	private async _refreshFileList(searchText?: string): Promise<void> {
 
 		try {
-			await this._getFiles(searchText || '');
+			const uris = await this._getFiles(searchText || '');
+			const fileInfos = await this._formatFiles(uris);
+			this._fileCache = fileInfos
 			console.log(`Found ${this._fileCache.length} files`);
 		} catch (error) {
 			console.error(`Error refreshing files:`, error);
@@ -96,7 +98,7 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 
 	private async _getFiles(
 		searchText: string,
-	): Promise<void> {
+	): Promise<URI[]> {
 		const folderQueries = this._workspaceFolders.map(folder => ({ folder }));
 		const globPattern = `**/*${searchText}*`; // Search for file names that contain the search text recursively
 		const query: IFileQuery = {
@@ -104,52 +106,18 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 			folderQueries,
 			filePattern: globPattern,
 			excludePattern: this._getExcludePatternObject(),
-			maxResults: this._maxFiles,
+			// maxResults: this._maxFiles,
 			shouldGlobMatchFilePattern: true, // Use glob pattern for file search
 		};
 
 		const result = await this.searchService.fileSearch(query, CancellationToken.None);
-		this._fileCache = result.results.map(match => match.resource);
+		return result.results.map(match => match.resource);
 	};
 
-	private debounceify<T extends (...args: any[]) => Promise<any>>(func: T, delay: number) {
-		console.log("Setting up debounce for function:", func.name);
-		const debouncedFunction = (...args: Parameters<T>): Promise<ReturnType<T>> => {
-			return new Promise((resolve, reject) => {
-				if (this._timeoutId) clearTimeout(this._timeoutId);
-				this._timeoutId = setTimeout(async () => {
-					try {
-						console.log("Debounced function called with args:", args);
-						const result = await func(...args);
-						this._timeoutId = null;
-						resolve(result);
-					} catch (error) {
-						reject(error);
-					}
-				}, delay);
-			});
-		};
-
-		debouncedFunction.cancel = () => {
-			if (this._timeoutId) {
-				clearTimeout(this._timeoutId);
-				this._timeoutId = null;
-			}
-		};
-
-		return debouncedFunction as T & { cancel: () => void };
-	}
-
-	public async getFilesByName(searchText?: string): Promise<IFileDisplayInfo[]> {
-
-		// Create debounced version of refreshFileList
-		const debouncedRefreshFileList = this.debounceify(this._refreshFileList.bind(this), 300);
-
-		// Update the file cache with the latest files
-		await debouncedRefreshFileList(searchText);
+	private async _formatFiles(fileUris: URI[]): Promise<IFileDisplayInfo[]> {
 
 		// Create fileInfo objects in the original order.
-		const fileInfos: IFileDisplayInfo[] = this._fileCache.map(uri => ({
+		const fileInfos: IFileDisplayInfo[] = fileUris.map(uri => ({
 			fileName: uri.path.split('/').pop() || '',
 			uri,
 			hasDuplicate: false,
@@ -191,6 +159,50 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 
 		// The order of fileInfos remains the same as the original _fileCache order.
 		return fileInfos;
+	}
+
+	private _debounceify<T extends (...args: any[]) => Promise<any>>(func: T, delay: number) {
+		console.log("Setting up debounce for function:", func.name);
+		const debouncedFunction = (...args: Parameters<T>): Promise<ReturnType<T>> => {
+			return new Promise((resolve, reject) => {
+				// Cancel the previous timeout
+				if (this._timeoutId) clearTimeout(this._timeoutId);
+				this._timeoutId = setTimeout(async () => {
+					try {
+						console.log("Debounced function called with args:", args);
+						const result = await func(...args);
+						this._timeoutId = null;
+						resolve(result);
+					} catch (error) {
+						reject(error);
+					}
+				}, delay);
+			});
+		};
+
+		debouncedFunction.cancel = () => {
+			if (this._timeoutId) {
+				clearTimeout(this._timeoutId);
+				this._timeoutId = null;
+			}
+		};
+
+		return debouncedFunction as T & { cancel: () => void };
+	}
+
+	public async getFilesByName(searchText?: string): Promise<IFileDisplayInfo[]> {
+
+		// Clear the file cache
+		this._fileCache = [];
+
+		// Create debounced version of refreshFileList
+		const debouncedRefreshFileList = this._debounceify(this._refreshFileList.bind(this), 300);
+
+		// Update the file cache with the latest files
+		await debouncedRefreshFileList(searchText);
+
+		// The order of fileInfos remains the same as the original _fileCache order.
+		return this._fileCache.slice(0, 50);
 	}
 
 }

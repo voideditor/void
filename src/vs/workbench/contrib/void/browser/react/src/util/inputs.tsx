@@ -692,6 +692,7 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
     width,
     gap = 0,
 	isLoading = false,
+	noOptionsText = 'No options available',
 }: {
     options: T[];
     onClickOption: (clickedValue: T) => void;
@@ -704,6 +705,7 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
     width?: number;
     gap?: number;
 	isLoading?: boolean;
+	noOptionsText?: string;
 }) => {
     const measureRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -767,7 +769,7 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
                     position: 'fixed',
                     top: position.top + position.height + gap,
                     left: position.left,
-                    width: 350,
+                    width: 400,
 					height: 300,
 					overflowY: 'auto',
 					overflowX: 'hidden',
@@ -779,7 +781,11 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
                         {/* Simple spinner loader */}
                         <div className="w-6 h-6 border-2 border-t-2 border-gray-500 rounded-full animate-spin"></div>
                     </div>
-                ) : (options.map((option) => {
+                ) : options.length === 0 ? (
+					<div className="flex justify-center items-center h-full">
+						<span>{noOptionsText}</span>
+					</div>
+				) : (options.map((option) => {
                     const optionName = getOptionDropdownName(option);
                     const optionDetail = getOptionDropdownDetail?.(option) || '';
 

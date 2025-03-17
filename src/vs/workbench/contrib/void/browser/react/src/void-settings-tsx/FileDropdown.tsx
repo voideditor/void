@@ -109,5 +109,6 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 		position={position}
 		isTextAreaAtBottom={isTextAreaAtBottom}
 		isLoading={loading}
+		noOptionsText='No files found'
 	/>
 }

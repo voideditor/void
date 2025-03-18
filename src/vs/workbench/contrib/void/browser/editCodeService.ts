@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, } from '../common/prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, FINAL, ORIGINAL, DIVIDER, tripleTick, } from '../common/prompt/prompts.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { mountVoidCommandBar } from './react/out/void-command-bar-tsx/index.js'
@@ -1629,13 +1629,24 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
-		const errHelper = (erroneousOriginal: string) => `All previous SEARCH/REPLACE blocks (if any) have been applied except the latest erroneous one. Please continue outputting SEARCH/REPLACE blocks. The ORIGINAL code with an error was: ${JSON.stringify(erroneousOriginal)}`
-		const errMsgOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>, blockOrig: string) => {
-			return str === `Not found` ?
-				`The ORIGINAL code provided could not be found in the file. You should make sure the text in ORIGINAL matches lines of code EXACTLY. ${errHelper(blockOrig)}`
+		const errMsgOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>, blockOrig: string, blockNum: number, blocks: ExtractedSearchReplaceBlock[]) => {
+
+			const descStr = str === `Not found` ?
+				`The most recent ORIGINAL code could not be found in the file, so you were interrupted. You should make sure the text in ORIGINAL matches lines of code EXACTLY. Erroneous ORIGINAL code:\n${JSON.stringify(blockOrig)}`
 				: str === `Not unique` ?
-					`The ORIGINAL code provided shows up multiple times in the file. We recommend making the ORIGINAL portion bigger so we can find a unique match. ${errHelper(blockOrig)}`
+					`The most recent ORIGINAL code shows up multiple times in the file, so you were interrupted. Please make the ORIGINAL excerpt bigger so it's unique. Erroneous ORIGINAL code:\n${JSON.stringify(blockOrig)}`
 					: ``
+
+			// string of <<<<< ORIGINAL >>>>> REPLACE blocks so far so LLM can understand what it currently has
+			const blocksSoFarStr = blocks.slice(0, blockNum).map(block => `${ORIGINAL}\n${block.orig}\n${DIVIDER}\n${block.final}\n${FINAL}`).join('\n')
+			const soFarStr = blocksSoFarStr ? `These are the Search/Replace blocks that have been applied so far:${tripleTick[0]}\n${blocksSoFarStr}\n${tripleTick[1]}` : ''
+			const continueMsg = soFarStr ? `${soFarStr}Please continue outputting SEARCH/REPLACE blocks starting where this leaves off.` : ''
+
+			const errMsg = `${descStr}${continueMsg ? `\n${continueMsg}` : ''}`
+
+			console.log('ERr msg:', errMsg)
+			return errMsg
+
 		}
 
 
@@ -1729,7 +1740,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							shouldUpdateOrigStreamStyle = true
 
 
-							// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming
+							// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming in it
 							if (!(blockNum in addedTrackingZoneOfBlockNum)) {
 								const originalBounds = findTextInCode(block.orig, originalFileCode)
 								// if error
@@ -1738,7 +1749,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									console.log('fullText', { fullText })
 									console.log('error:', originalBounds)
 									console.log('block.orig:', block.orig)
-									const content = errMsgOfInvalidStr(originalBounds, block.orig)
+									const content = errMsgOfInvalidStr(originalBounds, block.orig, blockNum, blocks)
 									messages.push(
 										{ role: 'assistant', content: fullText, anthropicReasoning: null }, // latest output
 										{ role: 'user', content: content } // user explanation of what's wrong
@@ -1746,10 +1757,29 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 									// REVERT THIS ONE BLOCK
 									// TODO!!! test this
-									latestStreamLocationMutable = null
-									shouldUpdateOrigStreamStyle = true
 									blocks.splice(blockNum, Infinity) // remove all blocks at and after this one
 									oldBlocks = deepClone(blocks)
+
+									// Reset streaming state but preserve line context
+									shouldUpdateOrigStreamStyle = true
+									// initialize with the last known good position
+									if (blockNum > 0 && blockNum - 1 < addedTrackingZoneOfBlockNum.length) {
+										const lastGoodZone = addedTrackingZoneOfBlockNum[blockNum - 1];
+										latestStreamLocationMutable = {
+											line: lastGoodZone.endLine + 1,
+											addedSplitYet: false,
+											col: 1,
+											originalCodeStartLine: 1
+										};
+									} else {
+										// If we're at the first block, reset to beginning
+										latestStreamLocationMutable = {
+											line: diffZone.startLine,
+											addedSplitYet: false,
+											col: 1,
+											originalCodeStartLine: 1
+										};
+									}
 
 									// abort and resolve
 									shouldSendAnotherMessage = true

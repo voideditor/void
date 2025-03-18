@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 
-import { useAccessor, useIsDark } from '../util/services.js';
+import { useAccessor, useIsDark, useUriState } from '../util/services.js';
 
 import '../styles.css'
 import { DiffZone } from '../../../editCodeService.js';
@@ -39,16 +39,7 @@ const VoidCommandBar = () => {
 	const [diffIdxOfFspath, setDiffIdxOfFspath] = useState<Record<string, number | undefined>>({})
 	// const [currentUriIdx, setCurrentUriIdx] = useState(-1) // we are doing O(n) search for this
 
-	const getCurrentUri = useCallback(() => {
-		const editor = editorService.getActiveCodeEditor()
-		if (!editor) return null
-		const uri = editor.getModel()?.uri
-		if (!uri) return null
-		return uri
-	}, [editorService])
-
-	const diffZones: DiffZone[] = []
-
+	const { currentUri } = useUriState()
 
 	// trigger rerender when diffzone is created (TODO need to also update when diff is accepted/rejected)
 	useEffect(() => {
@@ -58,11 +49,7 @@ const VoidCommandBar = () => {
 		return () => disposable.dispose()
 	}, [editCodeService, rerender])
 
-
 	const getNextDiff = useCallback(({ step }: { step: 1 | -1 }) => {
-
-		const currentUri = getCurrentUri()
-
 		if (!currentUri) {
 			return;
 		}
@@ -78,9 +65,9 @@ const VoidCommandBar = () => {
 
 		const nextDiff = sortedDiffs[nextDiffIdx]
 
-		return { nextDiff, nextDiffIdx, }
+		return { nextDiff, nextDiffIdx }
 
-	}, [getCurrentUri, editCodeService._sortedDiffsOfFspath, diffIdxOfFspath])
+	}, [currentUri, editCodeService._sortedDiffsOfFspath, diffIdxOfFspath])
 
 	const getNextUri = useCallback(({ step }: { step: 1 | -1 }) => {
 
@@ -88,8 +75,6 @@ const VoidCommandBar = () => {
 		if (sortedUris.length === 0) {
 			return;
 		}
-
-		const currentUri = getCurrentUri()
 
 		const defaultUriIdx = step === 1 ? -1 : 0 // defaults: if next, currentIdx = -1; if prev, currentIdx = 0
 		let currentUriIdx = -1
@@ -104,15 +89,14 @@ const VoidCommandBar = () => {
 		const nextUriIdx = (currentUriIdx + step) % sortedUris.length
 		const nextUri = sortedUris[nextUriIdx]
 
-		return { nextUri, nextUriIdx, }
+		return { nextUri, nextUriIdx }
 
-	}, [getCurrentUri, editCodeService._sortedUrisWithDiffs])
-
+	}, [currentUri, editCodeService._sortedUrisWithDiffs])
 
 	const gotoNextDiff = ({ step }: { step: 1 | -1 }) => {
 
 		// get the next diff
-		const res = getNextDiff({ step: 1 })
+		const res = getNextDiff({ step })
 		if (!res) return;
 
 		// scroll to the next diff
@@ -132,7 +116,7 @@ const VoidCommandBar = () => {
 	const gotoNextUri = ({ step }: { step: 1 | -1 }) => {
 
 		// get the next uri
-		const res = getNextUri({ step: 1 })
+		const res = getNextUri({ step })
 		if (!res) return;
 
 		const { nextUri, nextUriIdx } = res;
@@ -197,8 +181,8 @@ const VoidCommandBar = () => {
 		</div>
 
 		<div className="text-[var(--vscode-editor-foreground)] text-xs flex gap-4">
-			<div>File {(editCodeService._sortedUrisWithDiffs.findIndex(u => u.fsPath === getCurrentUri()?.fsPath) ?? 0) + 1} of {editCodeService._sortedUrisWithDiffs.length}</div>
-			<div>Diff {(diffIdxOfFspath[getCurrentUri()?.fsPath ?? ''] ?? 0) + 1} of {editCodeService._sortedDiffsOfFspath[getCurrentUri()?.fsPath ?? '']?.length ?? 0}</div>
+			<div>File {(editCodeService._sortedUrisWithDiffs.findIndex(u => u.fsPath === currentUri?.fsPath) ?? 0) + 1} of {editCodeService._sortedUrisWithDiffs.length}</div>
+			<div>Diff {(diffIdxOfFspath[currentUri?.fsPath ?? ''] ?? 0) + 1} of {editCodeService._sortedDiffsOfFspath[currentUri?.fsPath ?? '']?.length ?? 0}</div>
 		</div>
 	</div>
 

@@ -1733,6 +1733,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								const originalBounds = findTextInCode(block.orig, originalFileCode)
 								// if error
 								if (typeof originalBounds === 'string') {
+									console.log('fullText', { fullText })
+									console.log('error:', originalBounds)
+									console.log('block.orig:', block.orig)
 									const content = errMsgOfInvalidStr(originalBounds, block.orig)
 									messages.push(
 										{ role: 'assistant', content: fullText, anthropicReasoning: null }, // latest output

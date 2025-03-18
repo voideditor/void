@@ -377,33 +377,6 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	);
 };
 
-const useResizeObserver = () => {
-	const ref = useRef<any>(null);
-	const [dimensions, setDimensions] = useState({ height: 0, width: 0 });
-
-	useEffect(() => {
-		if (ref.current) {
-			const resizeObserver = new ResizeObserver((entries) => {
-				if (entries.length > 0) {
-					const entry = entries[0];
-					setDimensions({
-						height: entry.contentRect.height,
-						width: entry.contentRect.width
-					});
-				}
-			});
-
-			resizeObserver.observe(ref.current);
-
-			return () => {
-				if (ref.current)
-					resizeObserver.unobserve(ref.current);
-			};
-		}
-	}, []);
-
-	return [ref, dimensions] as const;
-};
 
 
 
@@ -474,7 +447,6 @@ const ScrollToBottomContainer = ({ children, className, style, scrollContainerRe
 
 	return (
 		<div
-			// options={{ vertical: ScrollbarVisibility.Auto, horizontal: ScrollbarVisibility.Auto }}
 			ref={divRef}
 			onScroll={onScroll}
 			className={className}
@@ -1684,7 +1656,7 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast }: ChatBubble
 	}
 	else if (role === 'tool_request') {
 		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as React.FC<{ toolRequest: any }> // ts isnt smart enough...
-		if (ToolRequestWrapper) { // && isLast // if it's the last message
+		if (ToolRequestWrapper && isLast) { // if it's the last message
 			return <>
 				<ToolRequestWrapper toolRequest={chatMessage} />
 				<ToolRequestAcceptRejectButtons />
@@ -1924,12 +1896,10 @@ export const SidebarChat = () => {
 
 	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Chat', settingsState)
 
-	const [sidebarRef, sidebarDimensions] = useResizeObserver()
-	const [chatAreaRef, chatAreaDimensions] = useResizeObserver()
-	const [historyRef, historyDimensions] = useResizeObserver()
+	const sidebarRef = useRef<HTMLDivElement>(null)
+	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
 	useScrollbarStyles(sidebarRef)
-
 
 	const onSubmit = useCallback(async () => {
 
@@ -1961,12 +1931,9 @@ export const SidebarChat = () => {
 		chatThreadsService.stopRunning(threadId)
 	}
 
-	// const [_test_messages, _set_test_messages] = useState<string[]>([])
-
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_L_ACTION_ID)?.getLabel()
 
 	// scroll to top on thread switch
-	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 	useEffect(() => {
 		if (isHistoryOpen)
 			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
@@ -2003,8 +1970,8 @@ export const SidebarChat = () => {
 
 	const allMessagesHTML = [...previousMessagesHTML, currStreamingMessageHTML]
 
-	const threadSelector = <div ref={historyRef}
-		className={`w-full h-auto ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}
+	const threadSelector = <div
+		className={`w-full ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}
 	>
 		<SidebarThreadSelector />
 	</div>
@@ -2015,12 +1982,11 @@ export const SidebarChat = () => {
 		className={`
 			flex flex-col
 			px-4 py-4 space-y-4
-			w-full h-auto
+			w-full h-full
 			overflow-x-hidden
 			overflow-y-auto
 			${previousMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
 		`}
-		style={{ maxHeight: sidebarDimensions.height - historyDimensions.height - chatAreaDimensions.height - (25) }} // the height of the previousMessages is determined by all other heights
 	>
 		{/* previous messages */}
 		{allMessagesHTML}
@@ -2052,12 +2018,12 @@ export const SidebarChat = () => {
 			onAbort()
 		}
 	}, [onSubmit, onAbort, isRunning])
+
 	const inputForm = <div
 		key={'input' + chatThreadsState.currentThreadId}
-		className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
+		className='px-2 pb-2'>
 		<VoidChatArea
 			featureName='Chat'
-			divRef={chatAreaRef}
 			onSubmit={onSubmit}
 			onAbort={onAbort}
 			isStreaming={!!isRunning}
@@ -2069,7 +2035,6 @@ export const SidebarChat = () => {
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 		>
 			<VoidInputBox2
-				// className={`${previousMessages.length > 0 ? 'min-h-[9px]' : 'min-h-[81px]'} px-0.5`}
 				className={`min-h-[81px] px-0.5 py-0.5`}
 				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
 				onChangeText={onChangeText}
@@ -2084,13 +2049,15 @@ export const SidebarChat = () => {
 		<VoidCommandBar />
 	</div>
 
-	return <div ref={sidebarRef} className={`w-full h-full`}>
-		{threadSelector}
-
-		{messagesHTML}
-
-		{inputForm}
-
-	</div>
+	return (
+		<div ref={sidebarRef} className='w-full h-full flex flex-col overflow-hidden'>
+			{threadSelector}
+			<div className='flex-1 flex flex-col overflow-hidden'>
+				<div className={`flex-1 overflow-hidden ${previousMessages.length === 0 ? 'h-0 max-h-0 pb-2' : ''}`}>
+					{messagesHTML}
+				</div>
+				{inputForm}
+			</div>
+		</div>
+	)
 }
-

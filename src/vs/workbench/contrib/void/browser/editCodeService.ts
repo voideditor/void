@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, FINAL, ORIGINAL, DIVIDER, tripleTick, } from '../common/prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, } from '../common/prompt/prompts.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -512,11 +512,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				const buttonsWidget = new AcceptAllRejectAllWidget({
 					editor,
 					onAcceptAll: () => {
-						this.acceptOrRejectDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false, _addToHistory: true })
+						this.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false, _addToHistory: true })
 						this._metricsService.capture('Accept All', {})
 					},
 					onRejectAll: () => {
-						this.acceptOrRejectDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false, _addToHistory: true })
+						this.acceptOrRejectAllDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false, _addToHistory: true })
 						this._metricsService.capture('Reject All', {})
 					},
 					instantiationService: this._instantiationService,
@@ -1319,24 +1319,20 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const endLine = startRange === 'fullFile' ? model.getLineCount() : startRange[1]
 		let originalCode = startRange === 'fullFile' ? model.getValue(EndOfLinePreference.LF) : model.getValue(EndOfLinePreference.LF).split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
 
-		const diffZones = this._getDiffZonesOnURI(uri)
+		// add to history as a checkpoint, before we start modifying
+		const { onFinishEdit } = this._addToHistory(uri, { onUndo })
 
 		// clear diffZones so no conflict
-		if (startBehavior === 'keep-conflicts' && diffZones.length !== 0) {
+		if (startBehavior === 'keep-conflicts') {
 			// delete them then re-apply their change
-			this.acceptOrRejectDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
+			this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
 			const originalCodeReplacement = model.getValue(EndOfLinePreference.LF) // use this as original code
 			this._writeURIText(uri, originalCode, 'wholeFileRange', { shouldRealignDiffAreas: false }) // un-revert
 			originalCode = originalCodeReplacement
 		}
-		else {
-			const behavior = startBehavior === 'accept-conflicts' ? 'accept'
-				: startBehavior === 'reject-conflicts' ? 'reject'
-					: startBehavior === 'keep-conflicts' ? null // do nothing
-						: null
-
-			if (behavior)
-				this.acceptOrRejectDiffAreas({ uri, removeCtrlKs: true, behavior: behavior, _addToHistory: false })
+		else if (startBehavior === 'accept-conflicts' || startBehavior === 'reject-conflicts') {
+			const behavior = startBehavior === 'accept-conflicts' ? 'accept' : 'reject'
+			this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior, _addToHistory: false })
 		}
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
@@ -1358,8 +1354,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._onDidChangeDiffZoneStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
-		// add to history
-		const { onFinishEdit } = this._addToHistory(uri, { onUndo })
+
+		console.log('DONE _STREAMING', diffZone)
 		return { diffZone, onFinishEdit }
 	}
 
@@ -1642,19 +1638,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const errMsgOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>, blockOrig: string, blockNum: number, blocks: ExtractedSearchReplaceBlock[]) => {
 
 			const descStr = str === `Not found` ?
-				`The most recent ORIGINAL code could not be found in the file, so you were interrupted. You should make sure the text in ORIGINAL matches lines of code EXACTLY. Erroneous ORIGINAL code:\n${JSON.stringify(blockOrig)}`
+				`The most recent ORIGINAL code could not be found in the file, so you were interrupted. The text in ORIGINAL must EXACTLY match lines of code. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
 				: str === `Not unique` ?
-					`The most recent ORIGINAL code shows up multiple times in the file, so you were interrupted. Please make the ORIGINAL excerpt bigger so it's unique. Erroneous ORIGINAL code:\n${JSON.stringify(blockOrig)}`
+					`The most recent ORIGINAL code shows up multiple times in the file, so you were interrupted. You might want to expand the ORIGINAL excerpt so it's unique. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
 					: ``
 
 			// string of <<<<< ORIGINAL >>>>> REPLACE blocks so far so LLM can understand what it currently has
-			const blocksSoFarStr = blocks.slice(0, blockNum).map(block => `${ORIGINAL}\n${block.orig}\n${DIVIDER}\n${block.final}\n${FINAL}`).join('\n')
-			const soFarStr = blocksSoFarStr ? `These are the Search/Replace blocks that have been applied so far:${tripleTick[0]}\n${blocksSoFarStr}\n${tripleTick[1]}` : ''
-			const continueMsg = soFarStr ? `${soFarStr}Please continue outputting SEARCH/REPLACE blocks starting where this leaves off.` : ''
-
-			const errMsg = `${descStr}${continueMsg ? `\n${continueMsg}` : ''}`
-
-			console.log('ERr msg:', errMsg)
+			// const blocksSoFarStr = blocks.slice(0, blockNum).map(block => `${ORIGINAL}\n${block.orig}\n${DIVIDER}\n${block.final}\n${FINAL}`).join('\n')
+			// const soFarStr = blocksSoFarStr ? `These are the Search/Replace blocks that have been applied so far:${tripleTick[0]}\n${blocksSoFarStr}\n${tripleTick[1]}` : ''
+			// const continueMsg = soFarStr ? `${soFarStr}Please continue outputting SEARCH/REPLACE blocks starting where this leaves off.` : ''
+			// const errMsg = `${descStr}${continueMsg ? `\n${continueMsg}` : ''}`
+			const soFarStr = 'All of your previous outputs have been ignored. Please re-output ALL SEARCH/REPLACE blocks starting from the first one, and avoid the error.'
+			const errMsg = `${descStr}\n${soFarStr}`
 			return errMsg
 
 		}
@@ -1679,6 +1674,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let shouldUpdateOrigStreamStyle = true
 		let oldBlocks: ExtractedSearchReplaceBlock[] = []
 		const addedTrackingZoneOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
+		diffZone._streamState.line = 1
+
 
 		const featureName: FeatureName = 'Apply'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
@@ -1732,15 +1729,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 										shouldUpdateOrigStreamStyle = false
 									}
 								}
-								else {
-									// starting line is at least the number of lines in the generated code minus 1
-									const numLinesInOrig = numLinesOfStr(block.orig)
-									const newLine = Math.max(numLinesInOrig - 1, 1, diffZone._streamState.line ?? 1)
-									if (newLine !== diffZone._streamState.line) {
-										diffZone._streamState.line = newLine
-										this._refreshStylesAndDiffsInURI(uri)
-									}
-								}
+
+								// // starting line is at least the number of lines in the generated code minus 1
+								// const numLinesInOrig = numLinesOfStr(block.orig)
+								// const newLine = Math.max(numLinesInOrig - 1, 1, diffZone._streamState.line ?? 1)
+								// if (newLine !== diffZone._streamState.line) {
+								// 	diffZone._streamState.line = newLine
+								// 	this._refreshStylesAndDiffsInURI(uri)
+								// }
+
+
 								// must be done writing original to move on to writing streamed content
 								continue
 							}
@@ -1763,32 +1761,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 										{ role: 'user', content: content } // user explanation of what's wrong
 									)
 
-									// REVERT THIS ONE BLOCK
-									// TODO!!! test this
-									blocks.splice(blockNum, Infinity) // remove all blocks at and after this one
-									oldBlocks = deepClone(blocks)
-									addedTrackingZoneOfBlockNum.splice(blockNum, Infinity) // also remove corresponding tracking zones
-
-									// Reset streaming state but preserve line context
+									// REVERT ALL BLOCKS
+									latestStreamLocationMutable = null
 									shouldUpdateOrigStreamStyle = true
-									// initialize with the last known good position
-									if (blockNum > 0 && blockNum - 1 < addedTrackingZoneOfBlockNum.length) {
-										const lastGoodZone = addedTrackingZoneOfBlockNum[blockNum - 1];
-										latestStreamLocationMutable = {
-											line: lastGoodZone.endLine + 1,
-											addedSplitYet: false,
-											col: 1,
-											originalCodeStartLine: 1
-										};
-									} else {
-										// If we're at the first block, reset to beginning
-										latestStreamLocationMutable = {
-											line: diffZone.startLine,
-											addedSplitYet: false,
-											col: 1,
-											originalCodeStartLine: 1
-										};
-									}
+									oldBlocks = []
+									addedTrackingZoneOfBlockNum.splice(0, Infinity)
+									this._writeURIText(uri, originalFileCode, 'wholeFileRange', { shouldRealignDiffAreas: true })
 
 									// abort and resolve
 									shouldSendAnotherMessage = true
@@ -1796,8 +1774,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 										weAreAborting = true
 										this._llmMessageService.abort(streamRequestIdRef.current)
 										weAreAborting = false
-										resMessageDonePromise()
 									}
+									resMessageDonePromise()
 									this._refreshStylesAndDiffsInURI(uri)
 									return
 								}
@@ -2037,7 +2015,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	// remove a batch of diffareas all at once (and handle accept/reject of their diffs)
-	public acceptOrRejectDiffAreas: IEditCodeService['acceptOrRejectDiffAreas'] = async ({ uri, behavior, removeCtrlKs, _addToHistory }) => {
+	public acceptOrRejectAllDiffAreas: IEditCodeService['acceptOrRejectAllDiffAreas'] = async ({ uri, behavior, removeCtrlKs, _addToHistory }) => {
 
 		const diffareaids = this.diffAreasOfURI[uri.fsPath]
 		if ((diffareaids?.size ?? 0) === 0) return // do nothing

@@ -52,7 +52,7 @@ export interface IEditCodeService {
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 
 	removeCtrlKZone(opts: { diffareaid: number }): void;
-	acceptOrRejectDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept', _addToHistory?: boolean }): void;
+	acceptOrRejectAllDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept', _addToHistory?: boolean }): void;
 
 	onDidAddOrDeleteDiffZones: Event<{ uri: URI }>;
 	onDidAddOrDeleteDiffInDiffZone: Event<{ uri: URI }>;

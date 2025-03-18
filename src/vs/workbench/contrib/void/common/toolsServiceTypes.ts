@@ -69,8 +69,8 @@ export const voidTools = {
 		required: ['query'],
 	},
 
-	search: {
-		name: 'search',
+	text_search: {
+		name: 'text_search',
 		description: `Returns pathnames of files with an exact match of the query. The query can be any regex. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
@@ -145,7 +145,7 @@ export type ToolCallParams = {
 	'read_file': { uri: URI, pageNumber: number },
 	'list_dir': { rootURI: URI, pageNumber: number },
 	'pathname_search': { queryStr: string, pageNumber: number },
-	'search': { queryStr: string, pageNumber: number },
+	'text_search': { queryStr: string, pageNumber: number },
 	// ---
 	'edit': { uri: URI, changeDescription: string },
 	'create_uri': { uri: URI, isFolder: boolean },
@@ -158,7 +158,7 @@ export type ToolResultType = {
 	'read_file': { fileContents: string, hasNextPage: boolean },
 	'list_dir': { children: ToolDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
 	'pathname_search': { uris: URI[], hasNextPage: boolean },
-	'search': { uris: URI[], hasNextPage: boolean },
+	'text_search': { uris: URI[], hasNextPage: boolean },
 	// ---
 	'edit': {},
 	'create_uri': {},

@@ -1100,7 +1100,7 @@ const toolNameToTitle = {
 	'read_file': { past: 'Read file', proposed: 'Read file' },
 	'list_dir': { past: 'Inspected folder', proposed: 'Inspect folder' },
 	'pathname_search': { past: 'Searched by file name', proposed: 'Search by file name' },
-	'search': { past: 'Searched', proposed: 'Search' },
+	'text_search': { past: 'Searched', proposed: 'Search text' },
 	'create_uri': { past: (isFolder: boolean) => `Created ${folderFileStr(isFolder)}`, proposed: (isFolder: boolean) => `Create ${folderFileStr(isFolder)}` },
 	'delete_uri': { past: (isFolder: boolean) => `Deleted ${folderFileStr(isFolder)}`, proposed: (isFolder: boolean) => `Delete ${folderFileStr(isFolder)}` },
 	'edit': { past: 'Edited file', proposed: 'Edit file' },
@@ -1122,8 +1122,8 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 	} else if (toolName === 'pathname_search') {
 		const toolParams = _toolParams as ToolCallParams['pathname_search']
 		return `"${toolParams.queryStr}"`;
-	} else if (toolName === 'search') {
-		const toolParams = _toolParams as ToolCallParams['search']
+	} else if (toolName === 'text_search') {
+		const toolParams = _toolParams as ToolCallParams['text_search']
 		return `"${toolParams.queryStr}"`;
 	} else if (toolName === 'create_uri') {
 		const toolParams = _toolParams as ToolCallParams['create_uri']
@@ -1380,7 +1380,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'search': {
+	'text_search': {
 		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1881,7 +1881,7 @@ export const SidebarChat = () => {
 		>
 			<VoidInputBox2
 				className={`min-h-[81px] px-0.5 py-0.5`}
-				placeholder={`${keybindingString ? `${keybindingString} to select. ` : ''}Enter instructions...`}
+				placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
 				onChangeText={onChangeText}
 				onKeyDown={onKeyDown}
 				onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}

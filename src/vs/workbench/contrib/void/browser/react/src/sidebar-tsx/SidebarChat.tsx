@@ -1204,13 +1204,13 @@ const ToolRequestAcceptRejectButtons = () => {
 	)
 
 	const autoApproveToggle = (
-		<div className="flex items-center ml-2 gap-x-1" title="Auto-accept future tool calls">
+		<div className="flex items-center ml-2 gap-x-1">
 			<VoidSwitch
 				size="xs"
 				value={voidSettingsState.globalSettings.autoApprove}
 				onChange={onToggleAutoApprove}
 			/>
-			<span className="text-void-fg-3 text-xs">Auto</span>
+			<span className="text-void-fg-3 text-xs">Auto-approve</span>
 		</div>
 	)
 

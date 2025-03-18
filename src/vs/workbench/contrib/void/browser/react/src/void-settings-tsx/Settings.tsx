@@ -545,7 +545,7 @@ export const FeaturesTab = () => {
 								value={voidSettingsState.globalSettings.autoApprove}
 								onChange={(newVal) => voidSettingsService.setGlobalSetting('autoApprove', newVal)}
 							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.autoApprove ? 'Auto-approve' : 'User-approve'}</span>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Auto-approve'}</span>
 						</div>
 					</div>
 				</div>

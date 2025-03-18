@@ -28,6 +28,7 @@ import { IConsistentEditorItemService, IConsistentItemService } from './helperSe
 import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, } from '../common/prompt/prompts.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
+import { mountVoidCommandBar } from './react/out/void-command-bar-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from '../common/helpers/extractCodeFromResult.js';
@@ -331,7 +332,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			}))
 			this._register(this._onDidChangeDiffZoneStreaming.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
 			this._register(this._onDidAddOrDeleteDiffZones.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
-
 			// when the model first mounts, refresh any diffs that might be on it (happens if diffs were added in the BG)
 			this._refreshStylesAndDiffsInURI(model.uri)
 		}
@@ -520,6 +520,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
 						this._metricsService.capture('Reject All', {})
 					},
+					instantiationService: this._instantiationService,
 				})
 				return () => { buttonsWidget.dispose() }
 			}
@@ -2351,15 +2352,23 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 	private readonly _domNode: HTMLElement;
 	private readonly editor: ICodeEditor;
 	private readonly ID: string;
+	private readonly _instantiationService: IInstantiationService;
 
-	constructor({ editor, onAcceptAll, onRejectAll }: { editor: ICodeEditor, onAcceptAll: () => void, onRejectAll: () => void }) {
+	constructor({ editor, onAcceptAll, onRejectAll, instantiationService }: {
+		editor: ICodeEditor,
+		onAcceptAll: () => void,
+		onRejectAll: () => void,
+		instantiationService: IInstantiationService
+	}) {
 		super();
 
 		this.ID = editor.getModel()?.uri.fsPath + '';
 		this.editor = editor;
+		this._instantiationService = instantiationService;
 
 		// Create container div with buttons
-		const { acceptButton, rejectButton, buttons } = dom.h('div@buttons', [
+		const { voidCommandBar, acceptButton, rejectButton, buttons } = dom.h('div@buttons', [
+			dom.h('div@voidCommandBar', []),
 			dom.h('button@acceptButton', []),
 			dom.h('button@rejectButton', [])
 		]);
@@ -2370,6 +2379,11 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 		buttons.style.display = 'flex';
 		buttons.style.gap = '4px';
 		buttons.style.alignItems = 'center';
+
+		// Mount command bar using mountVoidCommandBar
+		this._instantiationService.invokeFunction(accessor => {
+			mountVoidCommandBar(voidCommandBar, accessor, {})
+		});
 
 		// Style accept button
 		acceptButton.addEventListener('click', onAcceptAll)

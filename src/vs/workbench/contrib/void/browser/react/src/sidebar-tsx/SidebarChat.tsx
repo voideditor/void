@@ -1147,6 +1147,8 @@ const ToolRequestAcceptRejectButtons = () => {
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const metricsService = accessor.get('IMetricsService')
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
 
 	const onAccept = useCallback(() => {
 		try { // this doesn't need to be wrapped in try/catch anymore
@@ -1163,6 +1165,11 @@ const ToolRequestAcceptRejectButtons = () => {
 		} catch (e) { console.error('Error while approving message in chat:', e) }
 		metricsService.capture('Tool Request Rejected', {})
 	}, [chatThreadsService, metricsService])
+
+	const onToggleAutoApprove = useCallback((newValue: boolean) => {
+		voidSettingsService.setGlobalSetting('autoApprove', newValue)
+		metricsService.capture('Tool Auto-Accept Toggle', { enabled: newValue })
+	}, [voidSettingsService, metricsService])
 
 	const approveButton = (
 		<button
@@ -1196,11 +1203,21 @@ const ToolRequestAcceptRejectButtons = () => {
 		</button>
 	)
 
-	// const isCancelled = state.cancelled || (!isLastMessage && state.awaiting)
+	const autoApproveToggle = (
+		<div className="flex items-center ml-2 gap-x-1" title="Auto-accept future tool calls">
+			<VoidSwitch
+				size="xs"
+				value={voidSettingsState.globalSettings.autoApprove}
+				onChange={onToggleAutoApprove}
+			/>
+			<span className="text-void-fg-3 text-xs">Auto</span>
+		</div>
+	)
 
-	return <div className="flex gap-2 my-1">
+	return <div className="flex gap-2 my-1 items-center">
 		{approveButton}
 		{cancelButton}
+		{autoApproveToggle}
 	</div>
 }
 

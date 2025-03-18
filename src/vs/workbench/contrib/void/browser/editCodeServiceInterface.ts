@@ -19,7 +19,7 @@ export type StartApplyingOpts = ({
 	from: 'ClickApply';
 	applyStr: string;
 	uri: 'current' | URI;
-	startBehavior: 'accept-conflicts' | 'reject-conflicts';
+	startBehavior: 'accept-conflicts' | 'reject-conflicts' | 'keep-conflicts';
 })
 
 

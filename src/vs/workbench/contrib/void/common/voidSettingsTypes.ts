@@ -388,6 +388,7 @@ export type GlobalSettings = {
 	syncApplyToChat: boolean;
 	enableFastApply: boolean;
 	chatMode: ChatMode;
+	autoApprove: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -397,6 +398,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	syncApplyToChat: true,
 	enableFastApply: true,
 	chatMode: 'agent',
+	autoApprove: false,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

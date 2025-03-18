@@ -28,7 +28,6 @@ import { IConsistentEditorItemService, IConsistentItemService } from './helperSe
 import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, FINAL, ORIGINAL, DIVIDER, tripleTick, } from '../common/prompt/prompts.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
-import { mountVoidCommandBar } from './react/out/void-command-bar-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from '../common/helpers/extractCodeFromResult.js';
@@ -1558,8 +1557,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const originalFileCode = model.getValue(EndOfLinePreference.LF)
 		const numLines = model.getLineCount()
 
-		// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
-		this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
+		// Only reject diffZones if we're not using keep-conflicts
+		if (opts.startBehavior !== 'keep-conflicts') {
+			// reject all diffZones on this URI, adding to history (there can't possibly be overlap after this)
+			this.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: true })
+		}
 
 		const startLine = 1
 		const endLine = numLines
@@ -1692,7 +1694,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				nMessagesSent += 1
 
 				if (nMessagesSent >= 5) {
-					this._notifyError({ message: 'Void Error: Tried to Fast Apply 5 times but failed. Please try again with a smarter model or disable Fast Apply.', fullError: null })
+					this._notifyError({ message: 'Tried to Fast Apply 5 times but failed. Please try again with a smarter model or disable Fast Apply.', fullError: null })
 					onDone()
 					this._undoHistory(uri)
 					break
@@ -1732,7 +1734,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								else {
 									// starting line is at least the number of lines in the generated code minus 1
 									const numLinesInOrig = numLinesOfStr(block.orig)
-									diffZone._streamState.line = Math.max(numLinesInOrig - 1, 1, diffZone._streamState.line ?? 1)
+									const newLine = Math.max(numLinesInOrig - 1, 1, diffZone._streamState.line ?? 1)
+									if (newLine !== diffZone._streamState.line) {
+										diffZone._streamState.line = newLine
+										this._refreshStylesAndDiffsInURI(uri)
+									}
 								}
 								// must be done writing original to move on to writing streamed content
 								continue
@@ -1746,6 +1752,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								// if error
 								if (typeof originalBounds === 'string') {
 									console.log('Error finding text in code:')
+									console.log('originalFileCode', { originalFileCode })
 									console.log('fullText', { fullText })
 									console.log('error:', originalBounds)
 									console.log('block.orig:', block.orig)
@@ -1759,6 +1766,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									// TODO!!! test this
 									blocks.splice(blockNum, Infinity) // remove all blocks at and after this one
 									oldBlocks = deepClone(blocks)
+									addedTrackingZoneOfBlockNum.splice(blockNum, Infinity) // also remove corresponding tracking zones
 
 									// Reset streaming state but preserve line context
 									shouldUpdateOrigStreamStyle = true
@@ -2412,7 +2420,11 @@ class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
 
 		// Mount command bar using mountVoidCommandBar
 		this._instantiationService.invokeFunction(accessor => {
-			mountVoidCommandBar(voidCommandBar, accessor, {})
+			console.log(voidCommandBar)
+			if (voidCommandBar) { // remove this
+				Math.random()
+			}
+			// mountVoidCommandBar(voidCommandBar, accessor, {})
 		});
 
 		// Style accept button

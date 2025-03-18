@@ -524,10 +524,29 @@ export const FeaturesTab = () => {
 						</div>
 					</div>
 
-
-
 				</div>
 
+			</div>
+
+			{/* Tools Section */}
+			<h2 className={`text-3xl mb-2 mt-12`}>Agent Options</h2>
+			<div className='flex items-start mt-4 mb-8'>
+				<div className='w-full'>
+					<h4 className={`text-base`}>Tools</h4>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control Tool behavior.</div>
+
+					<div className='my-2'>
+						{/* Auto Accept Switch */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<VoidSwitch
+								size='xs'
+								value={voidSettingsState.globalSettings.autoApprove}
+								onChange={(newVal) => voidSettingsService.setGlobalSetting('autoApprove', newVal)}
+							/>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Ask for approval'}</span>
+						</div>
+					</div>
+				</div>
 			</div>
 
 

@@ -348,7 +348,7 @@ export class ToolsService implements IToolsService {
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',
-					startBehavior: 'accept-conflicts',
+					startBehavior: 'keep-conflicts',
 				})
 				if (!res) throw new Error(`The Apply model did not start running on ${basename(uri.fsPath)}. Please try again.`)
 				const [_, applyDonePromise] = res

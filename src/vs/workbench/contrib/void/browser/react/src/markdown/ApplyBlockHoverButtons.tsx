@@ -154,7 +154,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 			from: 'ClickApply',
 			applyStr: codeStr,
 			uri: uri,
-			startBehavior: 'reject-conflicts',
+			startBehavior: 'keep-conflicts',
 		}) ?? []
 
 		if (!newApplyingUri) console.log('NOT new applying')

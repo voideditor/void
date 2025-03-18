@@ -11,15 +11,17 @@ import { Diff, DiffArea } from './editCodeService.js';
 
 
 
+export type StartBehavior = 'accept-conflicts' | 'reject-conflicts' | 'keep-conflicts'
 
 export type StartApplyingOpts = ({
 	from: 'QuickEdit';
 	diffareaid: number; // id of the CtrlK area (contains text selection)
+	startBehavior: StartBehavior;
 } | {
 	from: 'ClickApply';
 	applyStr: string;
 	uri: 'current' | URI;
-	startBehavior: 'accept-conflicts' | 'reject-conflicts' | 'keep-conflicts';
+	startBehavior: StartBehavior;
 })
 
 
@@ -50,7 +52,7 @@ export interface IEditCodeService {
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 
 	removeCtrlKZone(opts: { diffareaid: number }): void;
-	removeDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept' }): void;
+	acceptOrRejectDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept', _addToHistory?: boolean }): void;
 
 	onDidAddOrDeleteDiffZones: Event<{ uri: URI }>;
 	onDidAddOrDeleteDiffInDiffZone: Event<{ uri: URI }>;

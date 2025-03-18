@@ -177,12 +177,12 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 
 	const onAccept = useCallback(() => {
 		const uri = getUriBeingApplied()
-		if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
+		if (uri) editCodeService.acceptOrRejectDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
 	}, [getUriBeingApplied, editCodeService])
 
 	const onReject = useCallback(() => {
 		const uri = getUriBeingApplied()
-		if (uri) editCodeService.removeDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
+		if (uri) editCodeService.acceptOrRejectDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
 	}, [getUriBeingApplied, editCodeService])
 
 	const onReapply = useCallback(() => {

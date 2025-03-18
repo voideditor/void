@@ -533,7 +533,7 @@ export const FeaturesTab = () => {
 			<div className='flex items-start mt-4 mb-8'>
 				<div className='w-full'>
 					<h4 className={`text-base`}>Tools</h4>
-					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control Tool behavior.</div>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Tools that can modify files on your computer require approval by default.</div>
 
 					<div className='my-2'>
 						{/* Auto Accept Switch */}

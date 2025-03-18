@@ -1118,7 +1118,7 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 		return getBasename(toolParams.uri.fsPath);
 	} else if (toolName === 'list_dir') {
 		const toolParams = _toolParams as ToolCallParams['list_dir']
-		return `${getBasename(toolParams.rootURI.fsPath)}/`;
+		return `${getFolderName(toolParams.rootURI.fsPath)}`;
 	} else if (toolName === 'pathname_search') {
 		const toolParams = _toolParams as ToolCallParams['pathname_search']
 		return `"${toolParams.queryStr}"`;

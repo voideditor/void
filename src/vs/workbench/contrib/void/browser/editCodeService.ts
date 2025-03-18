@@ -1733,6 +1733,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								const originalBounds = findTextInCode(block.orig, originalFileCode)
 								// if error
 								if (typeof originalBounds === 'string') {
+									console.log('Error finding text in code:')
 									console.log('fullText', { fullText })
 									console.log('error:', originalBounds)
 									console.log('block.orig:', block.orig)
@@ -1819,6 +1820,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					},
 					onFinalMessage: async (params) => {
 						const { fullText } = params
+
+						console.log('DONE!', fullText)
 
 						// 1. wait 500ms and fix lint errors - call lint error workflow
 						// (update react state to say "Fixing errors")

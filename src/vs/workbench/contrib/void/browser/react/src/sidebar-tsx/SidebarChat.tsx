@@ -666,6 +666,7 @@ type ToolHeaderParams = {
 	isError?: boolean;
 	isRejected?: boolean;
 	numResults?: number;
+	hasNextPage?: boolean;
 	children?: React.ReactNode;
 	onClick?: () => void;
 	isOpen?: boolean,
@@ -677,6 +678,7 @@ const ToolHeaderWrapper = ({
 	desc1,
 	desc2,
 	numResults,
+	hasNextPage,
 	children,
 	isError,
 	onClick,
@@ -719,7 +721,7 @@ const ToolHeaderWrapper = ({
 						</span>}
 						{numResults !== undefined && (
 							<span className="text-void-fg-4 text-xs ml-auto mr-1">
-								{`(`}{numResults}{` result`}{numResults !== 1 ? 's' : ''}{`)`}
+								{`(${numResults}${hasNextPage ? '+' : ''} result${numResults !== 1 ? 's' : ''})`}
 							</span>
 						)}
 						{isError && <AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={14} />}
@@ -1295,6 +1297,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			if (toolMessage.result.type === 'success') {
 				const { value, params } = toolMessage.result
 				componentParams.numResults = value.children?.length
+				componentParams.hasNextPage = value.hasNextPage
 				componentParams.children = !value.children || (value.children.length ?? 0) === 0 ? undefined
 					: <ToolContentsWrapper>
 						{value.children.map((child, i) => (<ListableToolItem key={i}
@@ -1337,6 +1340,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			if (toolMessage.result.type === 'success') {
 				const { value, params } = toolMessage.result
 				componentParams.numResults = value.uris.length
+				componentParams.hasNextPage = value.hasNextPage
 				componentParams.children = value.uris.length === 0 ? undefined
 					: <ToolContentsWrapper>
 						{value.uris.map((uri, i) => (<ListableToolItem key={i}
@@ -1376,6 +1380,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			if (toolMessage.result.type === 'success') {
 				const { value, params } = toolMessage.result
 				componentParams.numResults = value.uris.length
+				componentParams.hasNextPage = value.hasNextPage
 				componentParams.children = value.uris.length === 0 ? undefined
 					: <ToolContentsWrapper>
 						{value.uris.map((uri, i) => (<ListableToolItem key={i}

@@ -1311,8 +1311,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			if (!uri_) return
 			uri = uri_
 			await this._voidModelService.initializeModel(uri)
+			console.log('initd2')
 			const { model } = this._voidModelService.getModel(uri)
 			if (!model) return
+			console.log('a2')
 
 			currentFileStr = model.getValue(EndOfLinePreference.LF)
 			const numLines = model.getLineCount()
@@ -1333,9 +1335,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const { startLine: startLine_, endLine: endLine_, _URI } = ctrlKZone
 			uri = _URI
 			await this._voidModelService.initializeModel(uri)
+			console.log('initd3')
 			const { model } = this._voidModelService.getModel(uri)
 			if (!model) return
-
+			console.log('a3')
 			currentFileStr = model.getValue(EndOfLinePreference.LF)
 
 			startLine = startLine_
@@ -1456,9 +1459,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const latestStreamInfoMutable: StreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 
-		// state used in onText:
-		let fullTextSoFar = '' // so far (INCLUDING ignored suffix)
-		let prevIgnoredSuffix = ''
 
 		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
@@ -1468,6 +1468,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 			let resMessageDonePromise: () => void = () => { }
 			const messageDonePromise = new Promise<void>((res_) => { resMessageDonePromise = res_ })
+
+			// state used in onText:
+			let fullTextSoFar = '' // so far (INCLUDING ignored suffix)
+			let prevIgnoredSuffix = ''
+			let aborted = false
 
 			streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 				messagesType: 'chatMessages',
@@ -1509,12 +1514,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					this._undoHistory(uri)
 					resMessageDonePromise()
 				},
+				onAbort: () => {
+					// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
+					resMessageDonePromise()
+					aborted = true
+				},
 			})
 			// should never happen, just for safety
 			if (streamRequestIdRef.current === null) { return }
 
 			await messageDonePromise
-			console.log('done waiting')
+			if (aborted) { return }
+
 		}
 
 		writeover().then(() => {
@@ -1542,9 +1553,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 		await this._voidModelService.initializeModel(uri)
+		console.log('initd')
+
 
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
+		console.log('a')
 
 		// generate search/replace block text
 		const originalFileCode = model.getValue(EndOfLinePreference.LF)
@@ -1666,6 +1680,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			let shouldSendAnotherMessage = true
 			let nMessagesSent = 0
 			let currStreamingBlockNum = 0
+			let aborted = false
 			while (shouldSendAnotherMessage) {
 				shouldSendAnotherMessage = false
 				nMessagesSent += 1
@@ -1841,13 +1856,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						this._undoHistory(uri)
 						resMessageDonePromise()
 					},
-
+					onAbort: () => {
+						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
+						resMessageDonePromise()
+						aborted = true
+					},
 				})
 
 				// should never happen, just for safety
 				if (streamRequestIdRef.current === null) { break }
 
 				await messageDonePromise
+				if (aborted) { return }
 
 			} // end while
 

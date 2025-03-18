@@ -526,7 +526,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	editUserMessageAndStreamResponse: IChatThreadService['editUserMessageAndStreamResponse'] = async ({ userMessage, messageIdx, threadId }) => {
 
-		const thread = this.getCurrentThread()
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return // should never happen
 
 		if (thread.messages?.[messageIdx]?.role !== 'user') {
 			throw new Error(`Error: editing a message with role !=='user'`)
@@ -599,8 +600,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
-		const llmCancelToken = this.streamState[threadId]?.streamingToken
-		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
 		const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
 		const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
 
@@ -613,7 +612,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// interrupt assistant message
 			this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
 		}
-		this._setStreamState(threadId, {}, 'set')
+
+		const llmCancelToken = this.streamState[threadId]?.streamingToken
+		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
 	}
 
 
@@ -755,6 +756,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		let nMessagesSent = 0
 		let shouldSendAnotherMessage = true
 		let exitReason: 'end' | 'awaitingToolApproval' = 'end' as 'end' | 'awaitingToolApproval'
+		let aborted = false
 
 		// before enter loop, call tool
 		if (callThisToolFirst) {
@@ -803,7 +805,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 					}
 					resMessageIsDonePromise()
-					return
 				},
 				onError: (error) => {
 					const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
@@ -812,6 +813,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
 					this._setStreamState(threadId, { error }, 'set')
 					resMessageIsDonePromise()
+				},
+				onAbort: () => {
+					// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
+					resMessageIsDonePromise()
+					aborted = true
 				},
 			})
 
@@ -826,6 +832,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._setStreamState(threadId, { streamingToken: llmCancelToken }, 'merge') // new stream token for the new message
 
 			await messageIsDonePromise
+			if (aborted) {
+				this._metricsService.capture('Agent Loop Done', { nMessagesSent, chatMode })
+				return
+			}
 		} // end while
 
 		// if awaiting user approval, keep isRunning true, else end isRunning
@@ -845,6 +855,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	async addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: { prevSelns?: StagingSelectionItem[], currSelns?: StagingSelectionItem[], }, threadId: string }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
+
+		// if the current thread is already streaming, stop it (this simply resolves the promise to free up space)
+		const llmCancelToken = this.streamState[threadId]?.streamingToken
+		if (llmCancelToken) {
+			if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
+		}
 
 		// selections in all past chats, then in current chat (can have many duplicates here)
 		const prevSelns: StagingSelectionItem[] = _chatSelections?.prevSelns ?? this._getAllSelections(threadId)

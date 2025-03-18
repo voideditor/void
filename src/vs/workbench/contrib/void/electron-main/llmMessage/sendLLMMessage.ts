@@ -85,6 +85,7 @@ export const sendLLMMessage = ({
 		onError_({ message: errorMessage, fullError })
 	}
 
+	// we should NEVER call onAbort internally, only from the outside
 	const onAbort = () => {
 		captureLLMEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
 		try { _aborter?.() } // aborter sometimes automatically throws an error

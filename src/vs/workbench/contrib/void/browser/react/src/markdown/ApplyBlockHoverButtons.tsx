@@ -111,7 +111,9 @@ export const JumpToFileButton = ({ uri }: { uri: URI | 'current' }) => {
 	const jumpToFileButton = uri !== 'current' && (
 		<IconShell1
 			Icon={FileSymlink}
-			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+			onClick={() => {
+				commandService.executeCommand('vscode.open', uri, { preview: true })
+			}}
 			title="Reject changes"
 		/>
 	)

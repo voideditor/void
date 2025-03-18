@@ -852,6 +852,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(message)
 				},
+				onAbort: () => { },
 			})
 			newAutocompletion.requestId = requestId
 

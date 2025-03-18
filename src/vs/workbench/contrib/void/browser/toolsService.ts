@@ -11,6 +11,7 @@ import { ITerminalToolService } from './terminalToolService.js'
 import { ToolCallParams, ToolDirectoryItem, ToolName, ToolResultType } from '../common/toolsServiceTypes.js'
 import { IVoidModelService } from '../common/voidModelService.js'
 import { EndOfLinePreference } from '../../../../editor/common/model.js'
+import { basename } from '../../../../base/common/path.js'
 
 
 // tool use for AI
@@ -332,12 +333,14 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async ({ uri, changeDescription }) => {
-				const [_, applyDonePromise] = await editCodeService.startApplying({
+				const res = await editCodeService.startApplying({
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',
 					startBehavior: 'accept-conflicts',
-				}) ?? []
+				})
+				if (!res) throw new Error(`The Apply model did not start running on ${basename(uri.fsPath)}. Please try again.`)
+				const [_, applyDonePromise] = res
 				await applyDonePromise
 				return {}
 			},

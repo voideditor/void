@@ -1311,10 +1311,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			if (!uri_) return
 			uri = uri_
 			await this._voidModelService.initializeModel(uri)
-			console.log('initd2')
 			const { model } = this._voidModelService.getModel(uri)
 			if (!model) return
-			console.log('a2')
 
 			currentFileStr = model.getValue(EndOfLinePreference.LF)
 			const numLines = model.getLineCount()
@@ -1335,10 +1333,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const { startLine: startLine_, endLine: endLine_, _URI } = ctrlKZone
 			uri = _URI
 			await this._voidModelService.initializeModel(uri)
-			console.log('initd3')
 			const { model } = this._voidModelService.getModel(uri)
 			if (!model) return
-			console.log('a3')
 			currentFileStr = model.getValue(EndOfLinePreference.LF)
 
 			startLine = startLine_
@@ -1553,12 +1549,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 		await this._voidModelService.initializeModel(uri)
-		console.log('initd')
-
 
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
-		console.log('a')
 
 		// generate search/replace block text
 		const originalFileCode = model.getValue(EndOfLinePreference.LF)
@@ -1823,7 +1816,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					},
 					onFinalMessage: async (params) => {
 						const { fullText } = params
-						console.log('final message!!', fullText)
 
 						// 1. wait 500ms and fix lint errors - call lint error workflow
 						// (update react state to say "Fixing errors")

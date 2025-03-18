@@ -183,7 +183,9 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 
 		const HeadingTag = `h${t.depth}` as keyof JSX.IntrinsicElements
 
-		return <HeadingTag>{t.text}</HeadingTag>
+		return <HeadingTag>
+			<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} inPTag={true} codeURI={codeURI} {...options} />
+		</HeadingTag>
 	}
 
 	if (t.type === "table") {

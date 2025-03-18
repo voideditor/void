@@ -985,14 +985,16 @@ const SmallProseWrapper = ({ children }: { children: React.ReactNode }) => {
 	prose-h4:text-[13px]
 	prose-h4:my-2
 
-	prose-p:my-1
+	prose-p:my-2
 	prose-p:leading-snug
+	prose-hr:my-2
 
 	prose-ul:my-2
 	prose-ul:pl-4
 	prose-ul:list-outside
 	prose-ul:list-disc
 	prose-ul:leading-snug
+
 
 	prose-ol:my-2
 	prose-ol:pl-4
@@ -1026,6 +1028,7 @@ const ProseWrapper = ({ children }: { children: React.ReactNode }) => {
 	prose-sm
 	break-words
 	prose-p:block
+	prose-hr:my-4
 	prose-pre:my-2
 	marker:text-inherit
 	prose-ol:list-outside
@@ -1041,6 +1044,7 @@ const ProseWrapper = ({ children }: { children: React.ReactNode }) => {
 	prose-p:leading-normal
 	prose-ol:leading-normal
 	prose-ul:leading-normal
+
 	max-w-none
 '
 	>
@@ -1874,12 +1878,10 @@ const VoidCommandBar = () => {
 }
 
 export const SidebarChat = () => {
-
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
 
 	const accessor = useAccessor()
-	// const modelService = accessor.get('IModelService')
 	const commandService = accessor.get('ICommandService')
 	const chatThreadsService = accessor.get('IChatThreadService')
 

@@ -71,7 +71,7 @@ export const voidTools = {
 
 	search: {
 		name: 'search',
-		description: `Returns all code excerpts containing the given string or grep query. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${paginationHelper.desc}`,
+		description: `Returns pathnames of files with an exact match of the query. The query can be any regex. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,

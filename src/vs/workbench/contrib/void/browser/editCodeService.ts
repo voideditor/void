@@ -1681,6 +1681,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			let nMessagesSent = 0
 			let currStreamingBlockNum = 0
 			let aborted = false
+			let weAreAborting = false
 			while (shouldSendAnotherMessage) {
 				shouldSendAnotherMessage = false
 				nMessagesSent += 1
@@ -1739,7 +1740,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								const originalBounds = findTextInCode(block.orig, originalFileCode)
 								// if error
 								if (typeof originalBounds === 'string') {
-									console.log('TEXT NOT FOUND, RETRYING')
 									const content = errMsgOfInvalidStr(originalBounds, block.orig)
 									messages.push(
 										{ role: 'assistant', content: fullText, anthropicReasoning: null }, // latest output
@@ -1751,13 +1751,17 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									latestStreamLocationMutable = null
 									shouldUpdateOrigStreamStyle = true
 									blocks.splice(blockNum, Infinity) // remove all blocks at and after this one
-									oldBlocks = blocks
+									oldBlocks = deepClone(blocks)
 
 									// abort and resolve
 									shouldSendAnotherMessage = true
-									if (streamRequestIdRef.current) this._llmMessageService.abort(streamRequestIdRef.current)
+									if (streamRequestIdRef.current) {
+										weAreAborting = true
+										this._llmMessageService.abort(streamRequestIdRef.current)
+										weAreAborting = false
+										resMessageDonePromise()
+									}
 									this._refreshStylesAndDiffsInURI(uri)
-									resMessageDonePromise()
 									return
 								}
 
@@ -1800,7 +1804,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 							// write the added text to the file
 							if (!latestStreamLocationMutable) continue
-							const deltaFinalText = block.final.substring((oldBlocks[blockNum]?.final ?? '').length, Infinity)
+							const oldBlock = oldBlocks[blockNum]
+							const oldFinalLen = (oldBlock?.final ?? '').length
+							const deltaFinalText = block.final.substring(oldFinalLen, Infinity)
+
 							this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
 							oldBlocks = blocks // oldblocks is only used if writingFinal
 
@@ -1857,6 +1864,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						resMessageDonePromise()
 					},
 					onAbort: () => {
+						if (weAreAborting) return
 						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
 						resMessageDonePromise()
 						aborted = true
@@ -1866,7 +1874,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				// should never happen, just for safety
 				if (streamRequestIdRef.current === null) { break }
 
+				console.log('awaiting...')
 				await messageDonePromise
+				console.log('done awaiting, aborted=', aborted)
 				if (aborted) { return }
 
 			} // end while
@@ -1874,6 +1884,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		} // end retryLoop
 
 		retryLoop().then(() => {
+			console.log('resolving Apply Done')
 			resApplyDonePromise();
 			// this._noLongerNeedModelReference(uri)
 		}).catch((e) => rejApplyDonePromise(e))

@@ -21,7 +21,6 @@ import { ToolName, ToolCallParams, ToolResultType, InternalToolInfo, voidTools, 
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
 import { ChatMessage, CodespanLocationLink, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../common/chatThreadServiceTypes.js';
 import { Position } from '../../../../editor/common/core/position.js';
 import { ITerminalToolService } from './terminalToolService.js';
@@ -207,7 +206,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		@ILanguageFeaturesService private readonly _languageFeaturesService: ILanguageFeaturesService,
-		@ITextModelService private readonly _textModelService: ITextModelService,
 		@ITerminalToolService private readonly _terminalToolService: ITerminalToolService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
 	) {
@@ -615,6 +613,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		const llmCancelToken = this.streamState[threadId]?.streamingToken
 		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
+
+		this._setStreamState(threadId, {}, 'set')
 	}
 
 
@@ -817,6 +817,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				onAbort: () => {
 					// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
 					resMessageIsDonePromise()
+					this._metricsService.capture('Agent Loop Done (Aborted)', { nMessagesSent, chatMode })
 					aborted = true
 				},
 			})
@@ -832,10 +833,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._setStreamState(threadId, { streamingToken: llmCancelToken }, 'merge') // new stream token for the new message
 
 			await messageIsDonePromise
-			if (aborted) {
-				this._metricsService.capture('Agent Loop Done', { nMessagesSent, chatMode })
-				return
-			}
+			if (aborted) { return }
 		} // end while
 
 		// if awaiting user approval, keep isRunning true, else end isRunning
@@ -978,91 +976,87 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// check all prevUris for the target
 			for (const uri of prevUris) {
 
-				const modelRef = await this._textModelService.createModelReference(uri);
-				const model = modelRef.object.textEditorModel;
+				const modelRef = await this._voidModelService.getModelSafe(uri)
+				const { model } = modelRef
+				if (!model) continue
 
-				try {
-					const matches = model.findMatches(
-						target,
-						false, // searchOnlyEditableRange
-						false, // isRegex
-						true,  // matchCase
-						' ',   // wordSeparators
-						true   // captureMatches
-					);
+				const matches = model.findMatches(
+					target,
+					false, // searchOnlyEditableRange
+					false, // isRegex
+					true,  // matchCase
+					' ',   // wordSeparators
+					true   // captureMatches
+				);
 
-					const firstThree = matches.slice(0, 3);
+				const firstThree = matches.slice(0, 3);
 
-					// take first 3 occurences, attempt to goto definition on them
-					for (const match of firstThree) {
-						const position = new Position(match.range.startLineNumber, match.range.startColumn);
-						const definitionProviders = this._languageFeaturesService.definitionProvider.ordered(model);
+				// take first 3 occurences, attempt to goto definition on them
+				for (const match of firstThree) {
+					const position = new Position(match.range.startLineNumber, match.range.startColumn);
+					const definitionProviders = this._languageFeaturesService.definitionProvider.ordered(model);
 
-						for (const provider of definitionProviders) {
+					for (const provider of definitionProviders) {
 
-							const _definitions = await provider.provideDefinition(model, position, CancellationToken.None);
+						const _definitions = await provider.provideDefinition(model, position, CancellationToken.None);
 
-							if (!_definitions) continue;
+						if (!_definitions) continue;
 
-							const definitions = Array.isArray(_definitions) ? _definitions : [_definitions];
+						const definitions = Array.isArray(_definitions) ? _definitions : [_definitions];
 
-							for (const definition of definitions) {
+						for (const definition of definitions) {
 
-								return {
-									uri: definition.uri,
-									selection: {
-										startLineNumber: definition.range.startLineNumber,
-										startColumn: definition.range.startColumn,
-										endLineNumber: definition.range.endLineNumber,
-										endColumn: definition.range.endColumn,
-									},
-									displayText: _codespanStr,
-								};
+							return {
+								uri: definition.uri,
+								selection: {
+									startLineNumber: definition.range.startLineNumber,
+									startColumn: definition.range.startColumn,
+									endLineNumber: definition.range.endLineNumber,
+									endColumn: definition.range.endColumn,
+								},
+								displayText: _codespanStr,
+							};
 
-								// const defModelRef = await this._textModelService.createModelReference(definition.uri);
-								// const defModel = defModelRef.object.textEditorModel;
+							// const defModelRef = await this._textModelService.createModelReference(definition.uri);
+							// const defModel = defModelRef.object.textEditorModel;
 
-								// try {
-								// 	const symbolProviders = this._languageFeaturesService.documentSymbolProvider.ordered(defModel);
+							// try {
+							// 	const symbolProviders = this._languageFeaturesService.documentSymbolProvider.ordered(defModel);
 
-								// 	for (const symbolProvider of symbolProviders) {
-								// 		const symbols = await symbolProvider.provideDocumentSymbols(
-								// 			defModel,
-								// 			CancellationToken.None
-								// 		);
+							// 	for (const symbolProvider of symbolProviders) {
+							// 		const symbols = await symbolProvider.provideDocumentSymbols(
+							// 			defModel,
+							// 			CancellationToken.None
+							// 		);
 
-								// 		if (symbols) {
-								// 			const symbol = symbols.find(s => {
-								// 				const symbolRange = s.range;
-								// 				return symbolRange.startLineNumber <= definition.range.startLineNumber &&
-								// 					symbolRange.endLineNumber >= definition.range.endLineNumber &&
-								// 					(symbolRange.startLineNumber !== definition.range.startLineNumber || symbolRange.startColumn <= definition.range.startColumn) &&
-								// 					(symbolRange.endLineNumber !== definition.range.endLineNumber || symbolRange.endColumn >= definition.range.endColumn);
-								// 			});
+							// 		if (symbols) {
+							// 			const symbol = symbols.find(s => {
+							// 				const symbolRange = s.range;
+							// 				return symbolRange.startLineNumber <= definition.range.startLineNumber &&
+							// 					symbolRange.endLineNumber >= definition.range.endLineNumber &&
+							// 					(symbolRange.startLineNumber !== definition.range.startLineNumber || symbolRange.startColumn <= definition.range.startColumn) &&
+							// 					(symbolRange.endLineNumber !== definition.range.endLineNumber || symbolRange.endColumn >= definition.range.endColumn);
+							// 			});
 
-								// 			// if we got to a class/function get the full range and return
-								// 			if (symbol?.kind === SymbolKind.Function || symbol?.kind === SymbolKind.Method || symbol?.kind === SymbolKind.Class) {
-								// 				return {
-								// 					uri: definition.uri,
-								// 					selection: {
-								// 						startLineNumber: definition.range.startLineNumber,
-								// 						startColumn: definition.range.startColumn,
-								// 						endLineNumber: definition.range.endLineNumber,
-								// 						endColumn: definition.range.endColumn,
-								// 					}
-								// 				};
-								// 			}
-								// 		}
-								// 	}
-								// } finally {
-								// 	defModelRef.dispose();
-								// }
-							}
+							// 			// if we got to a class/function get the full range and return
+							// 			if (symbol?.kind === SymbolKind.Function || symbol?.kind === SymbolKind.Method || symbol?.kind === SymbolKind.Class) {
+							// 				return {
+							// 					uri: definition.uri,
+							// 					selection: {
+							// 						startLineNumber: definition.range.startLineNumber,
+							// 						startColumn: definition.range.startColumn,
+							// 						endLineNumber: definition.range.endLineNumber,
+							// 						endColumn: definition.range.endColumn,
+							// 					}
+							// 				};
+							// 			}
+							// 		}
+							// 	}
+							// } finally {
+							// 	defModelRef.dispose();
+							// }
 						}
 					}
-				} finally {
-					modelRef.object.dispose();
-					modelRef.dispose();
 				}
 			}
 

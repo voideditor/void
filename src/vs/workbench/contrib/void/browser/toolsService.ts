@@ -273,6 +273,7 @@ export class ToolsService implements IToolsService {
 
 		this.callTool = {
 			read_file: async ({ uri, pageNumber }) => {
+				await voidModelService.initializeModel(uri)
 				const { model } = await voidModelService.getModelSafe(uri)
 				if (model === null) { throw new Error(`Contents were empty. There may have been an error, or the file may not exist.`) }
 				const readFileContents = model.getValue(EndOfLinePreference.LF)
@@ -281,6 +282,7 @@ export class ToolsService implements IToolsService {
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
 				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) // paginate
 				const hasNextPage = (readFileContents.length - 1) - toIdx >= 1
+
 				return { fileContents, hasNextPage }
 			},
 
@@ -290,7 +292,9 @@ export class ToolsService implements IToolsService {
 			},
 
 			pathname_search: async ({ queryStr, pageNumber }) => {
-				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), { filePattern: queryStr, })
+				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), {
+					filePattern: queryStr,
+				})
 				const data = await searchService.fileSearch(query, CancellationToken.None)
 
 				const fromIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1)
@@ -304,7 +308,11 @@ export class ToolsService implements IToolsService {
 			},
 
 			search: async ({ queryStr, pageNumber }) => {
-				const query = queryBuilder.text({ pattern: queryStr, }, workspaceContextService.getWorkspace().folders.map(f => f.uri))
+				const query = queryBuilder.text({
+					pattern: queryStr,
+					isRegExp: true,
+				}, workspaceContextService.getWorkspace().folders.map(f => f.uri))
+
 				const data = await searchService.textSearch(query, CancellationToken.None)
 
 				const fromIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1)
@@ -322,8 +330,10 @@ export class ToolsService implements IToolsService {
 			create_uri: async ({ uri, isFolder }) => {
 				if (isFolder)
 					await fileService.createFolder(uri)
-				else
+				else {
+					await voidModelService.initializeModel(uri)
 					await fileService.createFile(uri)
+				}
 				return {}
 			},
 
@@ -333,6 +343,7 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit: async ({ uri, changeDescription }) => {
+				await voidModelService.initializeModel(uri)
 				const res = await editCodeService.startApplying({
 					uri,
 					applyStr: changeDescription,

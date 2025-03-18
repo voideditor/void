@@ -54,10 +54,13 @@ export const defaultModelsOfProvider = {
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
 		'open-codestral-mamba',
-		'mistral-small-latest',
-		'mistral-large-latest',
-		'ministral-3b-latest',
 		'ministral-8b-latest',
+		'ministral-3b-latest',
+		'mistral-large-latest',
+		'mistral-small-latest',
+		'mistral-saba-latest',
+		'open-mistral-nemo',
+		'mistral-ocr-latest'
 	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>
@@ -140,7 +143,8 @@ const mistralModelOptions = {
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
 		supportsReasoning: false,
-	}
+	},
+
 } as const satisfies { [s: string]: ModelOptions }
 
 const mistralSettings: ProviderSettings = {

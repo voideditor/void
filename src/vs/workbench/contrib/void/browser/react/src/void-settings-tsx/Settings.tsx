@@ -470,7 +470,8 @@ export const FeaturesTab = () => {
 
 		<h2 className={`text-3xl mt-12`}>Feature Options</h2>
 		<ErrorBoundary>
-			<div className='flex items-start justify-around mt-4 mb-16 gap-x-8'>
+			{/* L1 */}
+			<div className='flex items-start justify-around mt-4 my-4 gap-x-8'>
 				{/* FIM */}
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
@@ -528,12 +529,13 @@ export const FeaturesTab = () => {
 
 			</div>
 
-			{/* Tools Section */}
-			<h2 className={`text-3xl mb-2 mt-12`}>Agent Options</h2>
-			<div className='flex items-start mt-4 mb-8'>
+			{/* L2 */}
+			<div className='flex items-start justify-around my-4 gap-x-8'>
+
+				{/* Tools Section */}
 				<div className='w-full'>
 					<h4 className={`text-base`}>Tools</h4>
-					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Tools that can modify files on your computer require approval by default.</div>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>If a tool can modify files on your computer, it requires approval by default.</div>
 
 					<div className='my-2'>
 						{/* Auto Accept Switch */}
@@ -543,12 +545,18 @@ export const FeaturesTab = () => {
 								value={voidSettingsState.globalSettings.autoApprove}
 								onChange={(newVal) => voidSettingsService.setGlobalSetting('autoApprove', newVal)}
 							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Ask for approval'}</span>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.autoApprove ? 'Auto-approve' : 'User-approve'}</span>
 						</div>
 					</div>
 				</div>
+
+				<div className='w-full'>
+				</div>
+
 			</div>
 
+
+			<div className='py-8' />
 
 		</ErrorBoundary>
 

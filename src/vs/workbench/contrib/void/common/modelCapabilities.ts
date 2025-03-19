@@ -54,10 +54,13 @@ export const defaultModelsOfProvider = {
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
 		'open-codestral-mamba',
-		'mistral-small-latest',
-		'mistral-large-latest',
-		'ministral-3b-latest',
 		'ministral-8b-latest',
+		'ministral-3b-latest',
+		'mistral-large-latest',
+		'mistral-small-latest',
+		'mistral-saba-latest',
+		'open-mistral-nemo',
+		'mistral-ocr-latest'
 	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>
@@ -132,15 +135,6 @@ const mistralModelOptions = {
 		supportsTools: 'openai-style',
 		supportsReasoning: false,
 	},
-	'open-codestral-mamba': {
-		contextWindow: 32_000,
-		maxOutputTokens: 4_096,
-		cost: { input: 0.00, output: 0.00 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoning: false,
-	},
 	'mistral-large-latest': {
 		contextWindow: 32_000,
 		maxOutputTokens: 4_096,
@@ -149,7 +143,8 @@ const mistralModelOptions = {
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
 		supportsReasoning: false,
-	}
+	},
+
 } as const satisfies { [s: string]: ModelOptions }
 
 const mistralSettings: ProviderSettings = {
@@ -209,24 +204,11 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsTools: 'openai-style',
 		supportsReasoning: { canToggleReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
-	'mistral-large-latest': {
-		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoning: false,
-	},
 	// FIM only
 	'starcoder2': {
 		supportsFIM: true,
 		supportsSystemMessage: false,
 		supportsTools: false,
-		supportsReasoning: false,
-	},
-	// Mistral
-	'codestral-latest': {
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		supportsReasoning: false,
 	},
 	'codegemma:2b': {
@@ -391,26 +373,6 @@ const openAISettings: ProviderSettings = {
 	}
 }
 
-const mistralModelOptions = {
-	'codestral-latest': {
-		contextWindow: 32_000,
-		maxOutputTokens: 4_096,
-		cost: { input: 0.00, output: 0.00 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoning: false,
-	},
-	'mistral-large-latest': {
-		contextWindow: 32_000,
-		maxOutputTokens: 4_096,
-		cost: { input: 0.00, output: 0.00 },
-		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
-		supportsReasoning: false,
-	}
-} as const satisfies { [s: string]: ModelOptions }
 
 
 
@@ -668,7 +630,6 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	anthropic: anthropicSettings,
 	xAI: xAISettings,
 	gemini: geminiSettings,
-	mistral: mistralSettings,
 	// open source models
 	deepseek: deepseekSettings,
 	groq: groqSettings,

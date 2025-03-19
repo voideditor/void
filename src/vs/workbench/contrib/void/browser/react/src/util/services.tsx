@@ -9,7 +9,6 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
-import { VoidUriState } from '../../../voidUriStateService.js';
 import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
 
 import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
@@ -23,9 +22,8 @@ import { IThemeService } from '../../../../../../../platform/theme/common/themeS
 import { ILLMMessageService } from '../../../../common/sendLLMMessageService.js';
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
-import { IEditCodeService, URIStreamState } from '../../../editCodeServiceInterface.js'
+import { IEditCodeService } from '../../../editCodeServiceInterface.js'
 
-import { IVoidUriStateService } from '../../../voidUriStateService.js';
 import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
 import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
@@ -47,15 +45,13 @@ import { ITerminalToolService } from '../../../terminalToolService.js'
 import { ILanguageService } from '../../../../../../../editor/common/languages/language.js'
 import { IVoidModelService } from '../../../../common/voidModelService.js'
 import { IWorkspaceContextService } from '../../../../../../../platform/workspace/common/workspace.js'
-
+import { IVoidCommandBarService } from '../../../voidCommandBarService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
 
 // even if React hasn't mounted yet, the variables are always updated to the latest state.
 // React listens by adding a setState function to these listeners.
-let uriState: VoidUriState
-const uriStateListeners: Set<(s: VoidUriState) => void> = new Set()
 
 let sidebarState: VoidSidebarState
 const sidebarStateListeners: Set<(s: VoidSidebarState) => void> = new Set()
@@ -77,8 +73,8 @@ let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 
 const ctrlKZoneStreamingStateListeners: Set<(diffareaid: number, s: boolean) => void> = new Set()
-const uriStreamingStateListeners: Set<(uri: URI, s: URIStreamState) => void> = new Set()
-
+const commandBarURIStateListeners: Set<(uri: URI) => void> = new Set();
+const activeURIListeners: Set<(uri: URI | null) => void> = new Set();
 
 
 // must call this before you can use any of the hooks below
@@ -90,24 +86,17 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 	_registerAccessor(accessor)
 
 	const stateServices = {
-		uriStateService: accessor.get(IVoidUriStateService),
 		sidebarStateService: accessor.get(ISidebarStateService),
 		chatThreadsStateService: accessor.get(IChatThreadService),
 		settingsStateService: accessor.get(IVoidSettingsService),
 		refreshModelService: accessor.get(IRefreshModelService),
 		themeService: accessor.get(IThemeService),
 		editCodeService: accessor.get(IEditCodeService),
+		voidCommandBarService: accessor.get(IVoidCommandBarService),
+		modelService: accessor.get(IModelService),
 	}
 
-	const { uriStateService, sidebarStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService } = stateServices
-
-	uriState = uriStateService.state
-	disposables.push(
-		uriStateService.onDidChangeState(() => {
-			uriState = uriStateService.state
-			uriStateListeners.forEach(l => l(uriState))
-		})
-	)
+	const { sidebarStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService } = stateServices
 
 	sidebarState = sidebarStateService.state
 	disposables.push(
@@ -161,15 +150,21 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 
 	// no state
 	disposables.push(
-		editCodeService.onDidChangeCtrlKZoneStreaming(({ diffareaid }) => {
+		editCodeService.onDidChangeStreamingInCtrlKZone(({ diffareaid }) => {
 			const isStreaming = editCodeService.isCtrlKZoneStreaming({ diffareaid })
 			ctrlKZoneStreamingStateListeners.forEach(l => l(diffareaid, isStreaming))
 		})
 	)
+
 	disposables.push(
-		editCodeService.onDidChangeURIStreamState(({ uri }) => {
-			const isStreaming = editCodeService.getURIStreamState({ uri })
-			uriStreamingStateListeners.forEach(l => l(uri, isStreaming))
+		voidCommandBarService.onDidChangeState(({ uri }) => {
+			commandBarURIStateListeners.forEach(l => l(uri));
+		})
+	)
+
+	disposables.push(
+		voidCommandBarService.onDidChangeActiveURI(({ uri }) => {
+			activeURIListeners.forEach(l => l(uri));
 		})
 	)
 
@@ -193,7 +188,6 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IRefreshModelService: accessor.get(IRefreshModelService),
 		IVoidSettingsService: accessor.get(IVoidSettingsService),
 		IEditCodeService: accessor.get(IEditCodeService),
-		IVoidUriStateService: accessor.get(IVoidUriStateService),
 		ISidebarStateService: accessor.get(ISidebarStateService),
 		IChatThreadService: accessor.get(IChatThreadService),
 
@@ -217,6 +211,8 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageService: accessor.get(ILanguageService),
 		IVoidModelService: accessor.get(IVoidModelService),
 		IWorkspaceContextService: accessor.get(IWorkspaceContextService),
+
+		IVoidCommandBarService: accessor.get(IVoidCommandBarService),
 
 	} as const
 	return reactAccessor
@@ -243,16 +239,6 @@ export const useAccessor = () => {
 
 
 // -- state of services --
-
-export const useUriState = () => {
-	const [s, ss] = useState(uriState)
-	useEffect(() => {
-		ss(uriState)
-		uriStateListeners.add(ss)
-		return () => { uriStateListeners.delete(ss) }
-	}, [ss])
-	return s
-}
 
 export const useSidebarState = () => {
 	const [s, ss] = useState(sidebarState)
@@ -340,14 +326,6 @@ export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boo
 	}, [listener, ctrlKZoneStreamingStateListeners])
 }
 
-export const useURIStreamState = (listener: (uri: URI, s: URIStreamState) => void) => {
-	useEffect(() => {
-		uriStreamingStateListeners.add(listener)
-		return () => { uriStreamingStateListeners.delete(listener) }
-	}, [listener, uriStreamingStateListeners])
-}
-
-
 export const useIsDark = () => {
 	const [s, ss] = useState(colorThemeState)
 	useEffect(() => {
@@ -359,6 +337,40 @@ export const useIsDark = () => {
 	// s is the theme, return isDark instead of s
 	const isDark = s === ColorScheme.DARK || s === ColorScheme.HIGH_CONTRAST_DARK
 	return isDark
-
 }
+
+export const useCommandBarURIListener = (listener: (uri: URI) => void) => {
+	useEffect(() => {
+		commandBarURIStateListeners.add(listener);
+		return () => { commandBarURIStateListeners.delete(listener) };
+	}, [listener]);
+};
+export const useCommandBarState = () => {
+	const accessor = useAccessor()
+	const commandBarService = accessor.get('IVoidCommandBarService')
+	const [s, ss] = useState({ state: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
+	const listener = useCallback(() => {
+		ss({ state: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
+	}, [commandBarService])
+	useCommandBarURIListener(listener)
+
+	return s;
+}
+
+
+
+// roughly gets the active URI - this is used to get the history of recent URIs
+export const useActiveURI = () => {
+	const accessor = useAccessor()
+	const commandBarService = accessor.get('IVoidCommandBarService')
+	const [s, ss] = useState(commandBarService.activeURI)
+	useEffect(() => {
+		const listener = () => { ss(commandBarService.activeURI) }
+		activeURIListeners.add(listener);
+		return () => { activeURIListeners.delete(listener) };
+	}, [])
+	return { uri: s }
+}
+
+
 

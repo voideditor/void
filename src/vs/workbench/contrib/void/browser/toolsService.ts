@@ -331,7 +331,6 @@ export class ToolsService implements IToolsService {
 				if (isFolder)
 					await fileService.createFolder(uri)
 				else {
-					await voidModelService.initializeModel(uri)
 					await fileService.createFile(uri)
 				}
 				return {}

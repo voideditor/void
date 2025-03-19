@@ -3,10 +3,10 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { ICodeEditor, IOverlayWidget, IViewZone, OverlayWidgetPositionPreference } from '../../../../editor/browser/editorBrowser.js';
+import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/browser/editorBrowser.js';
 
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
@@ -40,12 +40,13 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
 import { LLMChatMessage, OnError, errorDetails } from '../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
-import { IEditCodeService, URIStreamState, AddCtrlKOpts, StartApplyingOpts } from './editCodeServiceInterface.js';
+import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts } from './editCodeServiceInterface.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { ITextFileService } from '../../../services/textfile/common/textfiles.js';
 import { deepClone } from '../../../../base/common/objects.js';
+import { acceptBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../common/helpers/colors.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -236,32 +237,29 @@ type StreamLocationMutable = { line: number, col: number, addedSplitYet: boolean
 class EditCodeService extends Disposable implements IEditCodeService {
 	_serviceBrand: undefined;
 
-
 	// URI <--> model
 	diffAreasOfURI: Record<string, Set<string> | undefined> = {}; // uri -> diffareaId
 
 	diffAreaOfId: Record<string, DiffArea> = {}; // diffareaId -> diffArea
 	diffOfId: Record<string, Diff> = {}; // diffid -> diff (redundant with diffArea._diffOfId)
 
-	_sortedUrisWithDiffs: URI[] = [] // derivative of diffAreaOfId (computed from it)
-	_sortedDiffsOfFspath: { [uriString: string]: Diff[] | undefined } = {} // derivative of diffAreaOfId (computed from it)
 
-	// only applies to diffZones
-	// streamingDiffZones: Set<number> = new Set()
-	private readonly _onDidChangeDiffZoneStreaming = new Emitter<{ uri: URI; diffareaid: number }>();
+	// events
+
+
+	// uri: diffZones  // listen on change diffZones
 	private readonly _onDidAddOrDeleteDiffZones = new Emitter<{ uri: URI }>();
 	onDidAddOrDeleteDiffZones = this._onDidAddOrDeleteDiffZones.event;
 
-	private readonly _onDidFinishAddOrDeleteDiffInDiffZone = new Emitter<{ uri: URI }>();
-	onDidAddOrDeleteDiffInDiffZone = this._onDidFinishAddOrDeleteDiffInDiffZone.event;
+	// diffZone: [uri], diffs, isStreaming  // listen on change diffs, change streaming (uri is const)
+	private readonly _onDidChangeDiffsInDiffZone = new Emitter<{ uri: URI, diffareaid: number }>();
+	private readonly _onDidChangeStreamingInDiffZone = new Emitter<{ uri: URI, diffareaid: number }>();
+	onDidChangeDiffsInDiffZone = this._onDidChangeDiffsInDiffZone.event;
+	onDidChangeStreamingInDiffZone = this._onDidChangeStreamingInDiffZone.event;
 
-	private readonly _onDidChangeCtrlKZoneStreaming = new Emitter<{ uri: URI; diffareaid: number }>();
-	onDidChangeCtrlKZoneStreaming = this._onDidChangeCtrlKZoneStreaming.event
-
-	private readonly _onDidChangeURIStreamState = new Emitter<{ uri: URI; state: URIStreamState }>();
-	onDidChangeURIStreamState = this._onDidChangeURIStreamState.event
-
-
+	// ctrlKZone: [uri], isStreaming  // listen on change streaming
+	private readonly _onDidChangeStreamingInCtrlKZone = new Emitter<{ uri: URI; diffareaid: number }>();
+	onDidChangeStreamingInCtrlKZone = this._onDidChangeStreamingInCtrlKZone.event
 
 
 	constructor(
@@ -284,14 +282,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		super();
 
 		// this function initializes data structures and listens for changes
-		const registeredModelListeners = new Set<string>()
+		const registeredModelURIs = new Set<string>()
 		const initializeModel = async (model: ITextModel) => {
 
 			await this._voidModelService.initializeModel(model.uri)
 
 			// do not add listeners to the same model twice - important, or will see duplicates
-			if (registeredModelListeners.has(model.uri.fsPath)) return
-			registeredModelListeners.add(model.uri.fsPath)
+			if (registeredModelURIs.has(model.uri.fsPath)) return
+			registeredModelURIs.add(model.uri.fsPath)
 
 			if (!(model.uri.fsPath in this.diffAreasOfURI)) {
 				this.diffAreasOfURI[model.uri.fsPath] = new Set();
@@ -307,30 +305,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				})
 			)
 
-			// when a stream starts or ends, fire the event for onDidChangeURIStreamState
-			let prevStreamState = this.getURIStreamState({ uri: null })
-			const updateAcceptRejectAllUI = () => {
-				const state = this.getURIStreamState({ uri: model.uri })
-				let prevStateActual = prevStreamState
-				prevStreamState = state
-				if (state === prevStateActual) return
-				this._onDidChangeURIStreamState.fire({ uri: model.uri, state })
-			}
-
-
-			let _removeAcceptRejectAllUI: (() => void) | null = null
-			this._register(this._onDidChangeURIStreamState.event(({ uri, state }) => {
-				if (uri.fsPath !== model.uri.fsPath) return
-				if (state === 'acceptRejectAll') {
-					if (!_removeAcceptRejectAllUI)
-						_removeAcceptRejectAllUI = this._addAcceptRejectAllUI(model.uri) ?? null
-				} else {
-					_removeAcceptRejectAllUI?.()
-					_removeAcceptRejectAllUI = null
-				}
-			}))
-			this._register(this._onDidChangeDiffZoneStreaming.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
-			this._register(this._onDidAddOrDeleteDiffZones.event(({ uri: uri_ }) => { if (uri_.fsPath === model.uri.fsPath) updateAcceptRejectAllUI() }))
 			// when the model first mounts, refresh any diffs that might be on it (happens if diffs were added in the BG)
 			this._refreshStylesAndDiffsInURI(model.uri)
 		}
@@ -349,44 +323,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		for (let editor of this._codeEditorService.listCodeEditors()) { initializeEditor(editor) }
 		this._register(this._codeEditorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
 
-
-		// update `_sortedUrisWithDiffs` and `_sortedDiffsOfUri` on all changes to diffzones
-		this._register(this._onDidFinishAddOrDeleteDiffInDiffZone.event(({ uri }) => {
-
-
-			// 1. Update _sortedUrisWithDiffs
-			const hasDiffZones = Array.from(this.diffAreasOfURI[uri.fsPath] || [])
-				.some(diffAreaId => this.diffAreaOfId[diffAreaId]?.type === 'DiffZone');
-
-			// Add or remove this URI from _sortedUrisWithDiffs
-			const currentIndex = this._sortedUrisWithDiffs.findIndex(u => u.fsPath === uri.fsPath);
-			if (hasDiffZones && currentIndex === -1) {
-				// Add URI and maintain sort
-				this._sortedUrisWithDiffs.push(uri);
-				this._sortedUrisWithDiffs.sort((a, b) => a.fsPath.localeCompare(b.fsPath));
-			} else if (!hasDiffZones && currentIndex !== -1) {
-				// Remove URI
-				this._sortedUrisWithDiffs.splice(currentIndex, 1);
-			}
-
-			// 2. Update _sortedDiffsOfUri only for this URI
-			const diffsInUri: Diff[] = [];
-
-			// Collect all diffs from DiffZones in this URI
-			for (const diffAreaId of this.diffAreasOfURI[uri.fsPath] || []) {
-				const diffArea = this.diffAreaOfId[diffAreaId];
-				if (diffArea?.type === 'DiffZone') {
-					diffsInUri.push(...Object.values(diffArea._diffOfId));
-				}
-			}
-
-			// Update or remove the entry for this URI
-			if (diffsInUri.length > 0) {
-				this._sortedDiffsOfFspath[uri.fsPath] = diffsInUri.sort((a, b) => a.startLine - b.startLine);
-			} else {
-				delete this._sortedDiffsOfFspath[uri.fsPath];
-			}
-		}));
 
 	}
 
@@ -494,40 +430,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 	}
 
-	private _addAcceptRejectAllUI(uri: URI) {
-
-		// find all diffzones that aren't streaming
-		const diffZones: DiffZone[] = []
-		for (let diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
-			const diffArea = this.diffAreaOfId[diffareaid]
-			if (diffArea.type !== 'DiffZone') continue
-			if (diffArea._streamState.isStreaming) continue
-			diffZones.push(diffArea)
-		}
-		if (diffZones.length === 0) return
-
-		const consistentItemId = this._consistentItemService.addConsistentItemToURI({
-			uri,
-			fn: (editor) => {
-				const buttonsWidget = new AcceptAllRejectAllWidget({
-					editor,
-					onAcceptAll: () => {
-						this.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false, _addToHistory: true })
-						this._metricsService.capture('Accept All', {})
-					},
-					onRejectAll: () => {
-						this.acceptOrRejectAllDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false, _addToHistory: true })
-						this._metricsService.capture('Reject All', {})
-					},
-					instantiationService: this._instantiationService,
-				})
-				return () => { buttonsWidget.dispose() }
-			}
-		})
-
-
-		return () => { this._consistentItemService.removeConsistentItemFromURI(consistentItemId) }
-	}
 
 
 	mostRecentTextOfCtrlKZoneId: Record<string, string | undefined> = {}
@@ -564,9 +466,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			})
 
 			// mount react
-			let disposablesRef: IDisposable[] | undefined = undefined
+			let disposeFn: (() => void) | undefined = undefined
 			this._instantiationService.invokeFunction(accessor => {
-				disposablesRef = mountCtrlK(domNode, accessor, {
+				disposeFn = mountCtrlK(domNode, accessor, {
 
 					diffareaid: ctrlKZone.diffareaid,
 
@@ -591,14 +493,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = text;
 					},
 					initText: this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] ?? null,
-				} satisfies QuickEditPropsType)
-
+				} satisfies QuickEditPropsType)?.dispose
 			})
 
 			// cleanup
 			return () => {
 				editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) })
-				disposablesRef?.forEach(d => d.dispose())
+				disposeFn?.()
 			}
 		})
 
@@ -624,7 +525,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			if (diffArea.type !== 'CtrlKZone') continue
 			if (!diffArea._mountInfo) {
 				diffArea._mountInfo = this._addCtrlKZoneInput(diffArea)
-				// console.log('MOUNTED', diffArea.diffareaid)
+				console.log('MOUNTED CTRLK', diffArea.diffareaid)
 			}
 			else {
 				diffArea._mountInfo.refresh()
@@ -748,15 +649,15 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					}
 					else { throw new Error('Void 1') }
 
-					const buttonsWidget = new AcceptRejectWidget({
+					const buttonsWidget = new AcceptRejectInlineWidget({
 						editor,
 						onAccept: () => {
 							this.acceptDiff({ diffid })
-							this._metricsService.capture('Accept Diff', {})
+							this._metricsService.capture('Accept Diff', { diffid })
 						},
 						onReject: () => {
 							this.rejectDiff({ diffid })
-							this._metricsService.capture('Reject Diff', {})
+							this._metricsService.capture('Reject Diff', { diffid })
 						},
 						diffid: diffid.toString(),
 						startLine,
@@ -927,10 +828,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		if (diffArea.type !== 'DiffZone') return
 		delete diffArea._diffOfId[diff.diffid]
 		delete this.diffOfId[diff.diffid]
-
-		if (!diffArea._streamState.isStreaming) {
-			this._onDidFinishAddOrDeleteDiffInDiffZone.fire({ uri: diffArea._URI })
-		}
 	}
 
 	private _deleteDiffs(diffZone: DiffZone) {
@@ -1023,10 +920,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this.diffOfId[diffid] = newDiff
 		diffZone._diffOfId[diffid] = newDiff
 
-		if (!diffZone._streamState.isStreaming) {
-			this._onDidFinishAddOrDeleteDiffInDiffZone.fire({ uri })
-		}
-
 		return newDiff
 	}
 
@@ -1094,6 +987,19 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
+
+	private _fireChangeDiffsIfNotStreaming(uri: URI) {
+		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (diffArea?.type !== 'DiffZone') continue
+			// fire changed diffs (this is the only place Diffs are added)
+			if (!diffArea._streamState.isStreaming) {
+				this._onDidChangeDiffsInDiffZone.fire({ uri, diffareaid: diffArea.diffareaid })
+			}
+		}
+	}
+
+
 	private _refreshStylesAndDiffsInURI(uri: URI) {
 
 		// 1. clear DiffArea styles and Diffs
@@ -1107,6 +1013,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		// 4. refresh ctrlK zones
 		this._refreshCtrlKInputs(uri)
+
+		// 5. this is the only place where diffs are changed, so can fire here only
+		this._fireChangeDiffsIfNotStreaming(uri)
 	}
 
 
@@ -1301,34 +1210,48 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	private _startStreamingDiffZone({
 		uri,
-		startRange,
 		startBehavior,
 		streamRequestIdRef,
 		onUndo,
+		linkedCtrlKZone,
 	}: {
 		uri: URI,
-		startRange: 'fullFile' | [number, number],
 		startBehavior: 'accept-conflicts' | 'reject-conflicts' | 'keep-conflicts',
 		streamRequestIdRef: { current: string | null },
+		linkedCtrlKZone: CtrlKZone | null,
 		onUndo: () => void,
 	}) {
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
 
-		const startLine = startRange === 'fullFile' ? 1 : startRange[0]
-		const endLine = startRange === 'fullFile' ? model.getLineCount() : startRange[1]
-		let originalCode = startRange === 'fullFile' ? model.getValue(EndOfLinePreference.LF) : model.getValue(EndOfLinePreference.LF).split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
+		// treat like full file, unless linkedCtrlKZone was provided in which case use its diff's range
+
+
+
+		const startLine = linkedCtrlKZone ? linkedCtrlKZone.startLine : 1
+		const endLine = linkedCtrlKZone ? linkedCtrlKZone.endLine : model.getLineCount()
+		const range = { startLineNumber: startLine, startColumn: 1, endLineNumber: endLine, endColumn: Number.MAX_SAFE_INTEGER }
+
+		const originalFileStr = model.getValue(EndOfLinePreference.LF)
+		let originalCode = model.getValueInRange(range, EndOfLinePreference.LF)
 
 		// add to history as a checkpoint, before we start modifying
 		const { onFinishEdit } = this._addToHistory(uri, { onUndo })
 
 		// clear diffZones so no conflict
 		if (startBehavior === 'keep-conflicts') {
-			// delete them then re-apply their change
-			this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
-			const originalCodeReplacement = model.getValue(EndOfLinePreference.LF) // use this as original code
-			this._writeURIText(uri, originalCode, 'wholeFileRange', { shouldRealignDiffAreas: false }) // un-revert
-			originalCode = originalCodeReplacement
+			if (linkedCtrlKZone) {
+				// ctrlkzone should never have any conflicts
+			}
+			else {
+				// keep conflict on whole file - to keep conflict, revert the change and use those contents as original, then un-revert the change
+				const currentFileStr = originalFileStr
+				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
+				const oldFileStr = model.getValue(EndOfLinePreference.LF) // use this as original code
+				this._writeURIText(uri, currentFileStr, 'wholeFileRange', { shouldRealignDiffAreas: false }) // un-revert
+				originalCode = oldFileStr
+			}
+
 		}
 		else if (startBehavior === 'accept-conflicts' || startBehavior === 'reject-conflicts') {
 			const behavior = startBehavior === 'accept-conflicts' ? 'accept' : 'reject'
@@ -1351,11 +1274,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 		const diffZone = this._addDiffArea(adding)
-		this._onDidChangeDiffZoneStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+		this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
+		// a few items related to the ctrlKZone that started streaming this diffZone
+		if (linkedCtrlKZone) {
+			const ctrlKZone = linkedCtrlKZone
+			ctrlKZone._linkedStreamingDiffZone = diffZone.diffareaid
+			this._onDidChangeStreamingInCtrlKZone.fire({ uri, diffareaid: ctrlKZone.diffareaid })
+		}
 
-		console.log('DONE _STREAMING', diffZone)
+
+		console.log('DONE WITH _STARTSTREAMING', diffZone)
 		return { diffZone, onFinishEdit }
 	}
 
@@ -1372,6 +1302,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let uri: URI
 		let startRange: 'fullFile' | [number, number]
 
+		let ctrlKZoneIfQuickEdit: CtrlKZone | null = null
+
 		if (from === 'ClickApply') {
 			const uri_ = this._getActiveEditorURI()
 			if (!uri_) return
@@ -1381,7 +1313,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		else if (from === 'QuickEdit') {
 			const { diffareaid } = opts
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
+			if (ctrlKZone?.type !== 'CtrlKZone') return
+			ctrlKZoneIfQuickEdit = ctrlKZone
 			const { startLine: startLine_, endLine: endLine_, _URI } = ctrlKZone
 			uri = _URI
 			startRange = [startLine_, endLine_]
@@ -1390,10 +1323,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			throw new Error(`Void: diff.type not recognized on: ${from}`)
 		}
 
+		console.log('q1', this.diffAreaOfId)
 		await this._voidModelService.initializeModel(uri)
+		console.log('q2', this.diffAreaOfId)
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
 
+		console.log('q3', this.diffAreaOfId)
 
 		// promise that resolves when the apply is done
 		let resApplyPromise: () => void
@@ -1401,16 +1337,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const applyPromise = new Promise<void>((res_, rej_) => { resApplyPromise = res_; rejApplyPromise = rej_ })
 		let streamRequestIdRef: { current: string | null } = { current: null } // can use this as a proxy to set the diffArea's stream state requestId
 
-		// start diffzone
-		const res = this._startStreamingDiffZone({
-			uri,
-			streamRequestIdRef,
-			startRange,
-			startBehavior: opts.startBehavior,
-			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) },
-		})
-		if (!res) return
-		const { diffZone, onFinishEdit } = res
 
 		// build messages
 		const quickEditFIMTags = defaultQuickEditFimTags // TODO can eventually let users customize modelFimTags
@@ -1426,11 +1352,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			]
 		}
 		else if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
-			const { _mountInfo } = ctrlKZone
+			console.log('aaa')
+			if (!ctrlKZoneIfQuickEdit) return
+			console.log('bbb', ctrlKZoneIfQuickEdit)
+			const { _mountInfo } = ctrlKZoneIfQuickEdit
+			console.log('ccc', _mountInfo)
 			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
+			console.log('ddd', instructions)
 
 			const startLine = startRange === 'fullFile' ? 1 : startRange[0]
 			const endLine = startRange === 'fullFile' ? model.getLineCount() : startRange[1]
@@ -1445,27 +1373,30 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		else { throw new Error(`featureName ${from} is invalid`) }
 
 
-		// a few items related to writeover streams and quickEdits
-		if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone.type !== 'CtrlKZone') return
+		// start diffzone
+		const res = this._startStreamingDiffZone({
+			uri,
+			streamRequestIdRef,
+			startBehavior: opts.startBehavior,
+			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) },
+			linkedCtrlKZone: ctrlKZoneIfQuickEdit,
+		})
+		if (!res) return
+		const { diffZone, onFinishEdit } = res
 
-			ctrlKZone._linkedStreamingDiffZone = diffZone.diffareaid
-			this._onDidChangeCtrlKZoneStreaming.fire({ uri, diffareaid: ctrlKZone.diffareaid })
-		}
+
 
 		// helpers
 		const onDone = () => {
 			console.log('called onDone')
 			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeDiffZoneStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 
-			if (from === 'QuickEdit') {
-				const ctrlKZone = this.diffAreaOfId[opts.diffareaid] as CtrlKZone
+			if (ctrlKZoneIfQuickEdit) {
+				const ctrlKZone = ctrlKZoneIfQuickEdit
 
 				ctrlKZone._linkedStreamingDiffZone = null
-				this._onDidChangeCtrlKZoneStreaming.fire({ uri, diffareaid: ctrlKZone.diffareaid })
+				this._onDidChangeStreamingInCtrlKZone.fire({ uri, diffareaid: ctrlKZone.diffareaid })
 				this._deleteCtrlKZone(ctrlKZone)
 			}
 			this._refreshStylesAndDiffsInURI(uri)
@@ -1593,16 +1524,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const applyDonePromise = new Promise<void>((res_, rej_) => { resApplyDonePromise = res_; rejApplyDonePromise = rej_ })
 		let streamRequestIdRef: { current: string | null } = { current: null } // can use this as a proxy to set the diffArea's stream state requestId
 
-		// start diffzone
-		const res = this._startStreamingDiffZone({
-			uri,
-			streamRequestIdRef,
-			startRange: 'fullFile',
-			startBehavior: opts.startBehavior,
-			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyDonePromise(new Error('Edit was interrupted by user pressing undo.')) },
-		})
-		if (!res) return
-		const { diffZone, onFinishEdit } = res
 
 		// build messages - ask LLM to generate search/replace block text
 		const originalFileCode = model.getValue(EndOfLinePreference.LF)
@@ -1611,6 +1532,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			{ role: 'system', content: searchReplace_systemMessage },
 			{ role: 'user', content: userMessageContent },
 		]
+
+		// start diffzone
+		const res = this._startStreamingDiffZone({
+			uri,
+			streamRequestIdRef,
+			startBehavior: opts.startBehavior,
+			linkedCtrlKZone: null,
+			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyDonePromise(new Error('Edit was interrupted by user pressing undo.')) },
+		})
+		if (!res) return
+		const { diffZone, onFinishEdit } = res
+
 
 		// helpers
 		type SearchReplaceDiffAreaMetadata = {
@@ -1656,7 +1589,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const onDone = () => {
 			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeDiffZoneStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 			this._refreshStylesAndDiffsInURI(uri)
 
 			// delete the tracking zones
@@ -1929,7 +1862,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._llmMessageService.abort(streamRequestId)
 
 		diffZone._streamState = { isStreaming: false, }
-		this._onDidChangeDiffZoneStreaming.fire({ uri, diffareaid: diffZone.diffareaid })
+		this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 	}
 
 	_undoHistory(uri: URI) {
@@ -1972,24 +1905,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
-	private _getDiffZonesOnURI(uri: URI) {
-		const diffZones = [...this.diffAreasOfURI[uri.fsPath]?.values() ?? []]
-			.map(diffareaid => this.diffAreaOfId[diffareaid])
-			.filter(diffArea => !!diffArea && diffArea.type === 'DiffZone')
-
-		return diffZones
-	}
-
-	getURIStreamState = ({ uri }: { uri: URI | null }) => {
-		if (uri === null) return 'idle'
-		const diffZones = this._getDiffZonesOnURI(uri)
-
-		const isStreaming = diffZones.find(diffZone => !!diffZone._streamState.isStreaming)
-
-		const state: URIStreamState = isStreaming ? 'streaming' : (diffZones.length === 0 ? 'idle' : 'acceptRejectAll')
-		return state
-	}
-
 	interruptURIStreaming({ uri }: { uri: URI }) {
 		// brute force for now is OK
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
@@ -2013,14 +1928,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	// 	onFinishEdit()
 	// }
 
-	private _revertAndDeleteDiffZone(diffZone: DiffZone) {
+	private _revertDiffZone(diffZone: DiffZone) {
 		const uri = diffZone._URI
 
 		const writeText = diffZone.originalCode
 		const toRange: IRange = { startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }
 		this._writeURIText(uri, writeText, toRange, { shouldRealignDiffAreas: true })
-
-		this._deleteDiffZone(diffZone)
 	}
 
 
@@ -2037,7 +1950,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			if (!diffArea) continue
 
 			if (diffArea.type === 'DiffZone') {
-				if (behavior === 'reject') this._revertAndDeleteDiffZone(diffArea)
+				if (behavior === 'reject') {
+					this._revertDiffZone(diffArea)
+					this._deleteDiffZone(diffArea)
+				}
 				else if (behavior === 'accept') this._deleteDiffZone(diffArea)
 			}
 			else if (diffArea.type === 'CtrlKZone' && removeCtrlKs) {
@@ -2209,62 +2125,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	}
 
-
-
-
-	// 	testDiffs(): DiffZone | undefined {
-	// 		const uri = this._getActiveEditorURI()
-	// 		if (!uri) return
-
-	// 		const startLine = 1
-	// 		const endLine = 4
-
-	// 		const currentFileStr = this._readURI(uri)
-	// 		if (currentFileStr === null) return
-	// 		const originalCode = currentFileStr.split('\n').slice((startLine - 1), (endLine - 1) + 1).join('\n')
-
-	// 		const { onFinishEdit } = this._addToHistory(uri)
-	// 		const adding: Omit<DiffZone, 'diffareaid'> = {
-	// 			type: 'DiffZone',
-	// 			originalCode,
-	// 			startLine,
-	// 			endLine,
-	// 			_URI: uri,
-	// 			_streamState: { isStreaming: false, },
-	// 			_diffOfId: {}, // added later
-	// 			_removeStylesFns: new Set(),
-	// 		}
-	// 		const diffZone = this._addDiffArea(adding)
-	// 		const endResult = `\
-	// const x = 1;
-	// if (x > 0) {
-	// 	console.log('hi!')
-	// }`
-	// 		this._writeText(uri, endResult,
-	// 			{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-	// 			{ shouldRealignDiffAreas: true }
-	// 		)
-	// 		diffZone._streamState = { isStreaming: false, }
-	// 		this._refreshStylesAndDiffsInURI(uri)
-	// 		onFinishEdit()
-
-	// 		return diffZone
-	// 	}
-
 }
 
 registerSingleton(IEditCodeService, EditCodeService, InstantiationType.Eager);
 
-const acceptBg = '#1a7431'
-const acceptAllBg = '#1e8538'
-const acceptBorder = '1px solid #145626'
-const rejectBg = '#b42331'
-const rejectAllBg = '#cf2838'
-const rejectBorder = '1px solid #8e1c27'
-const buttonFontSize = '11px'
-const buttonTextColor = 'white'
 
-class AcceptRejectWidget extends Widget implements IOverlayWidget {
+
+
+
+
+
+
+class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 
 	public getId() { return this.ID }
 	public getDomNode() { return this._domNode; }
@@ -2377,100 +2249,6 @@ class AcceptRejectWidget extends Widget implements IOverlayWidget {
 }
 
 
-
-
-
-
-class AcceptAllRejectAllWidget extends Widget implements IOverlayWidget {
-	private readonly _domNode: HTMLElement;
-	private readonly editor: ICodeEditor;
-	private readonly ID: string;
-	private readonly _instantiationService: IInstantiationService;
-
-	constructor({ editor, onAcceptAll, onRejectAll, instantiationService }: {
-		editor: ICodeEditor,
-		onAcceptAll: () => void,
-		onRejectAll: () => void,
-		instantiationService: IInstantiationService
-	}) {
-		super();
-
-		this.ID = editor.getModel()?.uri.fsPath + '';
-		this.editor = editor;
-		this._instantiationService = instantiationService;
-
-		// Create container div with buttons
-		const { voidCommandBar, acceptButton, rejectButton, buttons } = dom.h('div@buttons', [
-			dom.h('div@voidCommandBar', []),
-			dom.h('button@acceptButton', []),
-			dom.h('button@rejectButton', [])
-		]);
-
-		// Style the container
-		buttons.style.zIndex = '2';
-		buttons.style.padding = '4px';
-		buttons.style.display = 'flex';
-		buttons.style.gap = '4px';
-		buttons.style.alignItems = 'center';
-
-		// Mount command bar using mountVoidCommandBar
-		this._instantiationService.invokeFunction(accessor => {
-			console.log(voidCommandBar)
-			if (voidCommandBar) { // remove this
-				Math.random()
-			}
-			// mountVoidCommandBar(voidCommandBar, accessor, {})
-		});
-
-		// Style accept button
-		acceptButton.addEventListener('click', onAcceptAll)
-		acceptButton.textContent = 'Accept All';
-		acceptButton.style.backgroundColor = acceptAllBg;
-		acceptButton.style.border = acceptBorder;
-		acceptButton.style.color = buttonTextColor;
-		acceptButton.style.fontSize = buttonFontSize;
-		acceptButton.style.padding = '4px 8px';
-		acceptButton.style.borderRadius = '6px';
-		acceptButton.style.cursor = 'pointer';
-
-		// Style reject button
-		rejectButton.addEventListener('click', onRejectAll)
-		rejectButton.textContent = 'Reject All';
-		rejectButton.style.backgroundColor = rejectAllBg;
-		rejectButton.style.border = rejectBorder;
-		rejectButton.style.color = buttonTextColor;
-		rejectButton.style.fontSize = buttonFontSize;
-		rejectButton.style.color = 'white';
-		rejectButton.style.padding = '4px 8px';
-		rejectButton.style.borderRadius = '6px';
-		rejectButton.style.cursor = 'pointer';
-
-		this._domNode = buttons;
-
-		// Mount the widget
-		editor.addOverlayWidget(this);
-	}
-
-
-	public getId(): string {
-		return this.ID;
-	}
-
-	public getDomNode(): HTMLElement {
-		return this._domNode;
-	}
-
-	public getPosition() {
-		return {
-			preference: OverlayWidgetPositionPreference.BOTTOM_RIGHT_CORNER,
-		}
-	}
-
-	public override dispose(): void {
-		this.editor.removeOverlayWidget(this);
-		super.dispose();
-	}
-}
 
 
 

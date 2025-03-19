@@ -1,0 +1,8 @@
+export const acceptBg = '#1a7431'
+export const acceptAllBg = '#1e8538'
+export const acceptBorder = '1px solid #145626'
+export const rejectBg = '#b42331'
+export const rejectAllBg = '#cf2838'
+export const rejectBorder = '1px solid #8e1c27'
+export const buttonFontSize = '11px'
+export const buttonTextColor = 'white'

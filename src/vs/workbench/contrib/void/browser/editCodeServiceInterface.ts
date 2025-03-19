@@ -32,7 +32,7 @@ export type AddCtrlKOpts = {
 	editor: ICodeEditor,
 }
 
-export type URIStreamState = 'idle' | 'acceptRejectAll' | 'streaming'
+export type URIAcceptRejectState = 'idle' | 'acceptRejectAll' | 'streaming'
 
 
 export const IEditCodeService = createDecorator<IEditCodeService>('editCodeService');
@@ -40,32 +40,28 @@ export const IEditCodeService = createDecorator<IEditCodeService>('editCodeServi
 export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
 
-	// main entrypoints (initialize things for the functions below to be called):
 	startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null>;
-	_sortedUrisWithDiffs: URI[];
-	_sortedDiffsOfFspath: { [fsPath: string]: Diff[] | undefined };
+	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
+	removeCtrlKZone(opts: { diffareaid: number }): void;
 
 	diffAreaOfId: Record<string, DiffArea>;
+	diffAreasOfURI: Record<string, Set<string> | undefined>;
 	diffOfId: Record<string, Diff>;
 
-
-	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
-
-	removeCtrlKZone(opts: { diffareaid: number }): void;
 	acceptOrRejectAllDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept', _addToHistory?: boolean }): void;
 
+	// events
 	onDidAddOrDeleteDiffZones: Event<{ uri: URI }>;
-	onDidAddOrDeleteDiffInDiffZone: Event<{ uri: URI }>;
+	onDidChangeDiffsInDiffZone: Event<{ uri: URI; diffareaid: number }>; // only fires when not streaming!!! streaming would be too much
+	onDidChangeStreamingInDiffZone: Event<{ uri: URI; diffareaid: number }>;
+	onDidChangeStreamingInCtrlKZone: Event<{ uri: URI; diffareaid: number }>;
 
 	// CtrlKZone streaming state
 	isCtrlKZoneStreaming(opts: { diffareaid: number }): boolean;
 	interruptCtrlKStreaming(opts: { diffareaid: number }): void;
-	onDidChangeCtrlKZoneStreaming: Event<{ uri: URI; diffareaid: number }>;
 
 	// // DiffZone codeBoxId streaming state
-	getURIStreamState(opts: { uri: URI | null }): URIStreamState;
 	interruptURIStreaming(opts: { uri: URI }): void;
-	onDidChangeURIStreamState: Event<{ uri: URI; state: URIStreamState }>;
 
 	// testDiffs(): void;
 }

@@ -4,186 +4,241 @@
  *--------------------------------------------------------------------------------------*/
 
 
-import { useAccessor, useIsDark, useUriState } from '../util/services.js';
+import { useAccessor, useCommandBarState, useIsDark } from '../util/services.js';
 
 import '../styles.css'
-import { DiffZone } from '../../../editCodeService.js';
 import { useCallback, useEffect, useState } from 'react';
+import { URI } from '../../../../../../../base/common/uri.js';
+import { ICodeEditor } from '../../../../../../../editor/browser/editorBrowser.js';
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
-import { getBasename } from '../sidebar-tsx/SidebarChat.js';
+import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBorder } from '../../../../common/helpers/colors.js';
 
-export const VoidCommandBarMain = ({ className }: { className: string }) => {
+export type VoidCommandBarProps = {
+	uri: URI | null;
+	editor: ICodeEditor;
+}
+
+export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
 
+	console.log('VoidCommandBarMain', uri?.fsPath)
 	return <div
 		className={`@@void-scope ${isDark ? 'dark' : ''}`}
 	>
-		<VoidCommandBar />
+		<VoidCommandBar uri={uri} editor={editor} />
 	</div>
 }
 
 
 
-const VoidCommandBar = () => {
+
+const stepIdx = (currIdx: number | null, len: number, step: -1 | 1) => {
+	if (len === 0) return null
+	if (len === 1 && step === -1) return null // don't step backwards if just 1 element
+	return ((currIdx ?? 0) + step) % len
+}
+
+
+
+const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor }) => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const editorService = accessor.get('ICodeEditorService')
+	const metricsService = accessor.get('IMetricsService')
 	const commandService = accessor.get('ICommandService')
+	const commandBarService = accessor.get('IVoidCommandBarService')
+	const voidModelService = accessor.get('IVoidModelService')
+	const { state: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
 
-	const [_, rerender] = useState(0)
-	// Add a state variable to track focus
-	const [isFocused, setIsFocused] = useState(false)
-	console.log('rerender count: ', _)
 
-	// state for what the user is currently focused on (both URI and diff)
-	const [diffIdxOfFspath, setDiffIdxOfFspath] = useState<Record<string, number | undefined>>({})
-	// const [currentUriIdx, setCurrentUriIdx] = useState(-1) // we are doing O(n) search for this
-
-	const { currentUri } = useUriState()
-
-	// trigger rerender when diffzone is created (TODO need to also update when diff is accepted/rejected)
+	// changes if the user clicks left/right or if the user goes on a uri with changes
+	const [currUriIdx, setUriIdx] = useState<number | null>(null)
+	const [currUriHasChanges, setCurrUriHasChanges] = useState(false)
 	useEffect(() => {
-		const disposable = editCodeService.onDidAddOrDeleteDiffInDiffZone(() => {
-			rerender(c => c + 1) // rerender
-		})
-		return () => disposable.dispose()
-	}, [editCodeService, rerender])
-
-	const getNextDiff = useCallback(({ step }: { step: 1 | -1 }) => {
-		if (!currentUri) {
-			return;
+		const i = sortedCommandBarURIs.findIndex(e => e.fsPath === uri?.fsPath)
+		if (i !== -1) {
+			setUriIdx(i)
+			setCurrUriHasChanges(true)
 		}
-
-		const sortedDiffs = editCodeService._sortedDiffsOfFspath[currentUri.fsPath]
-
-		if (!sortedDiffs || sortedDiffs.length === 0) {
-			return;
+		else {
+			setCurrUriHasChanges(false)
 		}
+	}, [sortedCommandBarURIs, uri])
 
-		const currentDiffIdx = diffIdxOfFspath[currentUri.fsPath] || 0
-		const nextDiffIdx = (currentDiffIdx + step) % sortedDiffs.length
+	// just for style
+	const [isFocused, setIsFocused] = useState(false)
 
-		const nextDiff = sortedDiffs[nextDiffIdx]
-
-		return { nextDiff, nextDiffIdx }
-
-	}, [currentUri, editCodeService._sortedDiffsOfFspath, diffIdxOfFspath])
-
-	const getNextUri = useCallback(({ step }: { step: 1 | -1 }) => {
-
-		const sortedUris = editCodeService._sortedUrisWithDiffs
-		if (sortedUris.length === 0) {
-			return;
+	const getNextDiffIdx = (step: 1 | -1) => {
+		// check undefined
+		if (!uri) return null
+		const s = commandBarState[uri.fsPath]
+		if (!s) return null
+		const { diffIdx, sortedDiffIds } = s
+		// get next idx
+		const nextDiffIdx = stepIdx(diffIdx, sortedDiffIds.length, step)
+		return nextDiffIdx
+	}
+	const goToDiffIdx = (idx: number | null) => {
+		// check undefined
+		if (!uri) return
+		const s = commandBarState[uri.fsPath]
+		if (!s) return
+		const { sortedDiffIds } = s
+		// reveal
+		if (idx) {
+			const diffid = sortedDiffIds[idx]
+			const diff = editCodeService.diffOfId[diffid]
+			const range = { startLineNumber: diff.startLine, endLineNumber: diff.startLine, startColumn: 1, endColumn: 1 };
+			editor.revealRange(range, ScrollType.Immediate)
 		}
-
-		const defaultUriIdx = step === 1 ? -1 : 0 // defaults: if next, currentIdx = -1; if prev, currentIdx = 0
-		let currentUriIdx = -1
-		if (currentUri) {
-			currentUriIdx = sortedUris.findIndex(u => u.fsPath === currentUri.fsPath)
-		}
-
-		if (currentUriIdx === -1) { // not found
-			currentUriIdx = defaultUriIdx // set to default
-		}
-
-		const nextUriIdx = (currentUriIdx + step) % sortedUris.length
-		const nextUri = sortedUris[nextUriIdx]
-
-		return { nextUri, nextUriIdx }
-
-	}, [currentUri, editCodeService._sortedUrisWithDiffs])
-
-	const gotoNextDiff = ({ step }: { step: 1 | -1 }) => {
-
-		// get the next diff
-		const res = getNextDiff({ step })
-		if (!res) return;
-
-		// scroll to the next diff
-		const { nextDiff, nextDiffIdx } = res;
-		const editor = editorService.getActiveCodeEditor()
-		if (!editor) return;
-
-		const range = { startLineNumber: nextDiff.startLine, endLineNumber: nextDiff.startLine, startColumn: 1, endColumn: 1 };
-		editor.revealRange(range, ScrollType.Immediate)
-
-		// update state
-		const diffArea = editCodeService.diffAreaOfId[nextDiff.diffareaid]
-		setDiffIdxOfFspath(v => ({ ...v, [diffArea._URI.fsPath]: nextDiffIdx }))
-
 	}
 
-	const gotoNextUri = ({ step }: { step: 1 | -1 }) => {
 
-		// get the next uri
-		const res = getNextUri({ step })
-		if (!res) return;
-
-		const { nextUri, nextUriIdx } = res;
-
-		// open the uri and scroll to diff
-		const sortedDiffs = editCodeService._sortedDiffsOfFspath[nextUri.fsPath]
-		if (!sortedDiffs) return;
-
-		const diffIdx = diffIdxOfFspath[nextUri.fsPath] || 0
-		const diff = sortedDiffs[diffIdx]
-
-		const range = { startLineNumber: diff.startLine, endLineNumber: diff.startLine, startColumn: 1, endColumn: 1 };
-
-		commandService.executeCommand('vscode.open', nextUri).then(() => {
-
-			// select the text
-			setTimeout(() => {
-
-				const editor = editorService.getActiveCodeEditor()
-				if (!editor) return;
-
-				editor.revealRange(range, ScrollType.Immediate)
-
-			}, 50)
-
-		})
+	const getNextUriIdx = (step: 1 | -1) => {
+		return stepIdx(currUriIdx, sortedCommandBarURIs.length, step)
+	}
+	const goToURIIdx = async (idx: number | null) => {
+		if (idx === null) return
+		const nextURI = sortedCommandBarURIs[idx]
+		editCodeService.diffAreasOfURI
+		const { model } = await voidModelService.getModelSafe(nextURI)
+		if (model) { editor.setModel(model) } // switch to the URI
 	}
 
-	return <div
-		className={`flex items-center gap-2 p-2 ${isFocused ? 'ring-1 ring-[var(--vscode-focusBorder)]' : ''}`}
-		onFocusCapture={() => setIsFocused(true)}
-		onBlurCapture={() => setIsFocused(false)}
+
+
+	// when change URI, scroll to the proper spot
+	useEffect(() => {
+		setTimeout(() => {
+			// check undefined
+			if (!uri) return
+			const s = commandBarState[uri.fsPath]
+			if (!s) return
+			const { diffIdx } = s
+			goToDiffIdx(diffIdx)
+		}, 50)
+
+	}, [uri])
+
+
+	const currDiffIdx = uri ? commandBarState[uri.fsPath]?.diffIdx ?? null : null
+	const sortedDiffIds = uri ? commandBarState[uri.fsPath]?.sortedDiffIds ?? null : null
+
+	const nextDiffIdx = getNextDiffIdx(1)
+	const prevDiffIdx = getNextDiffIdx(-1)
+	const nextURIIdx = getNextUriIdx(1)
+	const prevURIIdx = getNextUriIdx(-1)
+
+
+
+	if (sortedCommandBarURIs.length === 0) return null // if there are absolutely no changes
+
+	const navPanel = <div
+		className={`pointer-events-auto flex items-center gap-2 p-2 ${isFocused ? 'ring-1 ring-[var(--vscode-focusBorder)]' : ''}`}
+		onFocus={() => setIsFocused(true)}
+		onBlur={() => setIsFocused(false)}
 	>
 		<div className="flex gap-1">
 			<button
-				className={`px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)] ${!getNextDiff({ step: -1 }) ? 'opacity-50' : ''}`}
-				disabled={!getNextDiff({ step: -1 })}
-				onClick={() => gotoNextDiff({ step: -1 })}
+				className={`
+					px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)]
+					${prevDiffIdx === null ? 'opacity-50' : ''}
+					`}
+				disabled={prevDiffIdx === null}
+				onClick={() => { goToDiffIdx(prevDiffIdx) }}
 				title="Previous diff"
 			>↑</button>
 
 			<button
-				className={`px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)] ${!getNextDiff({ step: 1 }) ? 'opacity-50' : ''}`}
-				disabled={!getNextDiff({ step: 1 })}
-				onClick={() => gotoNextDiff({ step: 1 })}
+				className={`
+					px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)]
+					${nextDiffIdx === null ? 'opacity-50' : ''}
+					`}
+				disabled={nextDiffIdx === null}
+				onClick={() => { goToDiffIdx(nextDiffIdx) }}
 				title="Next diff"
 			>↓</button>
 
 			<button
-				className={`px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)] ${!getNextUri({ step: -1 }) ? 'opacity-50' : ''}`}
-				disabled={!getNextUri({ step: -1 })}
-				onClick={() => gotoNextUri({ step: -1 })}
+				className={`
+					px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)]
+					${prevURIIdx === null ? 'opacity-50' : ''}
+					`}
+				disabled={prevURIIdx === null}
+				onClick={() => goToURIIdx(prevURIIdx)}
 				title="Previous file"
 			>←</button>
 
 			<button
-				className={`px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)] ${!getNextUri({ step: 1 }) ? 'opacity-50' : ''}`}
-				disabled={!getNextUri({ step: 1 })}
-				onClick={() => gotoNextUri({ step: 1 })}
+				className={`
+					px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)]
+					${nextURIIdx === null ? 'opacity-50' : ''}
+					`}
+				disabled={nextURIIdx === null}
+				onClick={() => goToURIIdx(nextURIIdx)}
 				title="Next file"
 			>→</button>
 		</div>
 
 		<div className="text-[var(--vscode-editor-foreground)] text-xs flex gap-4">
-			<div>File {(editCodeService._sortedUrisWithDiffs.findIndex(u => u.fsPath === currentUri?.fsPath) ?? 0) + 1} of {editCodeService._sortedUrisWithDiffs.length}</div>
-			<div>Diff {(diffIdxOfFspath[currentUri?.fsPath ?? ''] ?? 0) + 1} of {editCodeService._sortedDiffsOfFspath[currentUri?.fsPath ?? '']?.length ?? 0}</div>
+			<div>
+				File {(currUriIdx ?? 0) + 1} of {sortedCommandBarURIs.length}
+			</div>
+			<div>
+				Diff {(currDiffIdx ?? 0) + 1} of {sortedDiffIds?.length ?? 0}
+			</div>
 		</div>
 	</div>
 
+
+
+	const onAcceptAll = () => {
+		if (!uri) return
+		editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false, _addToHistory: true })
+		metricsService.capture('Accept All', {})
+	}
+	const onRejectAll = () => {
+		if (!uri) return
+		editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false, _addToHistory: true })
+		metricsService.capture('Reject All', {})
+	}
+
+	const acceptRejectButtons = currUriHasChanges && <div className="flex gap-2">
+		<button
+			className='pointer-events-auto'
+			onClick={onAcceptAll}
+			style={{
+				backgroundColor: acceptAllBg,
+				border: acceptBorder,
+				color: buttonTextColor,
+				fontSize: buttonFontSize,
+				padding: '4px 8px',
+				borderRadius: '6px',
+				cursor: 'pointer'
+			}}
+		>
+			Accept All
+		</button>
+		<button
+			className='pointer-events-auto'
+			onClick={onRejectAll}
+			style={{
+				backgroundColor: rejectAllBg,
+				border: rejectBorder,
+				color: 'white',
+				fontSize: buttonFontSize,
+				padding: '4px 8px',
+				borderRadius: '6px',
+				cursor: 'pointer'
+			}}
+		>
+			Reject All
+		</button>
+	</div>
+
+
+	return <>
+		{navPanel}
+		{acceptRejectButtons}
+	</>
 }

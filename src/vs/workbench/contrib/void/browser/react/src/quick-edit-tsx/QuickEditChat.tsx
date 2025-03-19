@@ -66,6 +66,7 @@ export const QuickEditChat = ({
 		editCodeService.startApplying({
 			from: 'QuickEdit',
 			diffareaid,
+			startBehavior: 'keep-conflicts',
 		})
 	}, [isStreamingRef, isDisabled, editCodeService, diffareaid])
 

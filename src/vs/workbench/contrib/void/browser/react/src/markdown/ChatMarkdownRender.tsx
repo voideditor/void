@@ -28,7 +28,7 @@ export const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocati
 }
 
 function isValidUri(s: string): boolean {
-	return s.length > 5 && isAbsolute(s) && !s.startsWith('//') // common case that is a false positive is comments like //
+	return s.length > 5 && isAbsolute(s) && !s.includes('//') && !s.includes('/*') // common case that is a false positive is comments like //
 }
 
 const Codespan = ({ text, className, onClick }: { text: string, className?: string, onClick?: () => void }) => {

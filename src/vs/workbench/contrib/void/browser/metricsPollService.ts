@@ -33,12 +33,11 @@ class MetricsPollService extends Disposable implements IMetricsPollService {
 
 		// initial state
 		const { window } = dom.getActiveWindow()
-		let i = 1
+		let i = 0
 
 		this.intervalID = window.setInterval(() => {
-			this.metricsService.capture('Alive', { i })
+			this.metricsService.capture('Alive', { iv1: i })
 			i += 1
-			console.log('ping', i)
 		}, PING_EVERY_MS)
 
 

@@ -10,7 +10,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useUriState, useSettingsState } from '../util/services.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI } from '../util/services.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
@@ -208,7 +208,7 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 
 
 const nameOfChatMode = {
-	'normal': 'Normal',
+	'normal': 'Chat',
 	'gather': 'Gather',
 	'agent': 'Agent',
 }
@@ -488,18 +488,18 @@ export const SelectedFiles = (
 	const modelReferenceService = accessor.get('IVoidModelService')
 
 	// state for tracking prospective files
-	const { currentUri } = useUriState()
+	const { uri: currentURI } = useActiveURI()
 	const [recentUris, setRecentUris] = useState<URI[]>([])
 	const maxRecentUris = 10
 	const maxProspectiveFiles = 3
 	useEffect(() => { // handle recent files
-		if (!currentUri) return
+		if (!currentURI) return
 		setRecentUris(prev => {
-			const withoutCurrent = prev.filter(uri => uri.fsPath !== currentUri.fsPath) // remove duplicates
-			const withCurrent = [currentUri, ...withoutCurrent]
+			const withoutCurrent = prev.filter(uri => uri.fsPath !== currentURI.fsPath) // remove duplicates
+			const withCurrent = [currentURI, ...withoutCurrent]
 			return withCurrent.slice(0, maxRecentUris)
 		})
-	}, [currentUri])
+	}, [currentURI])
 	const [prospectiveSelections, setProspectiveSelections] = useState<StagingSelectionItem[]>([])
 
 

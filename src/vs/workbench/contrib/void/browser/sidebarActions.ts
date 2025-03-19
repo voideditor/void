@@ -15,19 +15,15 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ITextModel } from '../../../../editor/common/model.js';
-import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarPane.js';
+import { VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { VOID_TOGGLE_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { VOID_CTRL_L_ACTION_ID } from './actionIDs.js';
-import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { localize2 } from '../../../../nls.js';
-import { IViewsService } from '../../../services/views/common/viewsService.js';
-import { IVoidUriStateService } from './voidUriStateService.js';
 import { StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
 import { IChatThreadService } from './chatThreadService.js';
 
@@ -286,43 +282,3 @@ export class TabSwitchListener extends Disposable {
 		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
 	}
 }
-
-
-class TabSwitchContribution extends Disposable implements IWorkbenchContribution {
-	static readonly ID = 'workbench.contrib.void.tabswitch'
-
-	constructor(
-		@IInstantiationService private readonly instantiationService: IInstantiationService,
-		@IViewsService private readonly viewsService: IViewsService,
-		@IVoidUriStateService private readonly uriStateService: IVoidUriStateService,
-		@ICodeEditorService private readonly codeEditorService: ICodeEditorService,
-		// @ICommandService private readonly commandService: ICommandService,
-	) {
-		super()
-
-		// sidebarIsVisible state
-		let sidebarIsVisible = this.viewsService.isViewContainerVisible(VOID_VIEW_CONTAINER_ID)
-		this._register(this.viewsService.onDidChangeViewVisibility(e => {
-			sidebarIsVisible = e.visible
-		}))
-
-		const onSwitchTab = () => { // update state
-			if (sidebarIsVisible) {
-				const currentUri = this.codeEditorService.getActiveCodeEditor()?.getModel()?.uri
-				if (!currentUri) return;
-				this.uriStateService.setState({ currentUri })
-				// this.commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
-			}
-		}
-
-		// when sidebar becomes visible, add current file
-		this._register(this.viewsService.onDidChangeViewVisibility(e => { sidebarIsVisible = e.visible }))
-
-		// run on current tab if it exists, and listen for tab switches and visibility changes
-		onSwitchTab()
-		this._register(this.viewsService.onDidChangeViewVisibility(() => { onSwitchTab() }))
-		this._register(this.instantiationService.createInstance(TabSwitchListener, () => { onSwitchTab() }))
-	}
-}
-
-registerWorkbenchContribution2(TabSwitchContribution.ID, TabSwitchContribution, WorkbenchPhase.BlockRestore);

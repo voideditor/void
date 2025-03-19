@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAccessor, useURIStreamState, useSettingsState } from '../util/services.js'
+import { useAccessor, useCommandBarState, useCommandBarURIListener, useSettingsState } from '../util/services.js'
 import { usePromise, useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
@@ -128,28 +128,37 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
+	const voidCommandBarService = accessor.get('IVoidCommandBarService')
 	const metricsService = accessor.get('IMetricsService')
 
 	const [_, rerender] = useState(0)
 
-	const getUriBeingApplied = useCallback(() => applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null, [applyBoxId])
-	const getStreamState = useCallback(() => editCodeService.getURIStreamState({ uri: getUriBeingApplied() }), [editCodeService, getUriBeingApplied])
+	const getUriBeingApplied = useCallback(() => {
+		return applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null
+	}, [applyBoxId])
+
+	const getStreamState = useCallback(() => {
+		const uri = getUriBeingApplied()
+		if (!uri) return 'idle-no-changes'
+		return voidCommandBarService.getStreamState(uri)
+	}, [voidCommandBarService, getUriBeingApplied])
 
 	// listen for stream updates on this box
-	useURIStreamState(
-		useCallback((uri_, newStreamState) => {
-			const shouldUpdate = (
-				getUriBeingApplied()?.fsPath === uri_.fsPath
-				|| (uri === 'current' ? false : uri.fsPath === uri_.fsPath)
-			)
-			if (!shouldUpdate) return
-			rerender(c => c + 1)
-		}, [applyBoxId, editCodeService, getUriBeingApplied, uri])
+
+
+	useCommandBarURIListener(useCallback((uri_) => {
+		const shouldUpdate = (
+			getUriBeingApplied()?.fsPath === uri_.fsPath
+			|| (uri !== 'current' && uri.fsPath === uri_.fsPath)
+		)
+		if (!shouldUpdate) return
+		rerender(c => c + 1)
+	}, [applyBoxId, editCodeService, getUriBeingApplied, uri])
 	)
 
 	const onClickSubmit = useCallback(async () => {
 		if (isDisabled) return
-		if (getStreamState() === 'streaming') return
+		if (getStreamState()) return
 		const [newApplyingUri, _] = await editCodeService.startApplying({
 			from: 'ClickApply',
 			applyStr: codeStr,
@@ -167,7 +176,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 
 
 	const onInterrupt = useCallback(() => {
-		if (getStreamState() !== 'streaming') return
+		if (!getStreamState()) return
 		const uri = getUriBeingApplied()
 		if (!uri) return
 
@@ -250,7 +259,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		</>
 	}
 
-	if (currStreamState === 'idle') {
+	if (currStreamState === 'idle-no-changes') {
 		buttonsHTML = <>
 			<JumpToFileButton uri={uri} />
 			{copyButton}
@@ -258,7 +267,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		</>
 	}
 
-	if (currStreamState === 'acceptRejectAll') {
+	if (currStreamState === 'idle-has-changes') {
 		buttonsHTML = <>
 			<JumpToFileButton uri={uri} />
 			{reapplyButton}
@@ -270,9 +279,9 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 	const statusIndicatorHTML = <div className='flex flex-row items-center size-4'>
 		<div
 			className={` size-1.5 rounded-full border
-				 ${currStreamState === 'idle' ? 'bg-void-bg-3 border-void-border-1' :
+				 ${currStreamState === 'idle-no-changes' ? 'bg-void-bg-3 border-void-border-1' :
 					currStreamState === 'streaming' ? 'bg-orange-500 border-orange-500 shadow-[0_0_4px_0px_rgba(234,88,12,0.6)]' :
-						currStreamState === 'acceptRejectAll' ? 'bg-green-500 border-green-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
+						currStreamState === 'idle-has-changes' ? 'bg-green-500 border-green-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
 							'bg-void-border-1 border-void-border-1'
 				}`
 			}

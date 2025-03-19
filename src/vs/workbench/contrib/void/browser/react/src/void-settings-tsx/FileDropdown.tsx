@@ -8,6 +8,7 @@ import { _VoidSelectBox, VoidCustomMentionDropdownBox } from '../util/inputs.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { useAccessor } from '../util/services.js'
 import { IFileDisplayInfo } from '../../../../common/fileSearchService.js'
+import { clear } from 'console'
 
 // const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
 // 	if (m1.length !== m2.length) return false
@@ -31,6 +32,7 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 	const repoFilesService = accessor.get('IRepoFilesService');
 	const chatThreadsService = accessor.get('IChatThreadService');
 	const [workspaceFiles, setWorkspaceFiles] = useState<IFileDisplayInfo[]>([]);
+	const [numberOfFiles, setNumberOfFiles] = useState(0);
 	const [loading, setLoading] = useState(false);
 
 	// Add this effect to load and log files when component mounts
@@ -40,10 +42,13 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 				setLoading(true);
 				// Clean up state
 				setWorkspaceFiles([]);
-
-				const files = await repoFilesService.getFilesByName(searchText);
-
+				// Load files
+				await repoFilesService.setFiles(searchText);
+				// Get data from service
+				const files = repoFilesService.getFirstPage();
 				setWorkspaceFiles(files)
+				const numberOfFiles = repoFilesService.getNumberOfFiles();
+				setNumberOfFiles(numberOfFiles);
 			} catch (error) {
 				console.error('Error loading workspace files:', error);
 			} finally {
@@ -53,18 +58,28 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 		loadFiles()
 	}, [repoFilesService, searchText]);
 
+	const handleClose = useCallback(() => {
+		console.log("Closing file dropdown")
+		// Clear all state
+		setWorkspaceFiles([]);
+		setNumberOfFiles(0);
+		repoFilesService.clearData();
+		onClose()
+	}
+		, []);
+
 	// Close dropdown when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			const target = event.target as HTMLElement;
 			if (!target.closest('.mentions-dropdown')) {
-				onClose();
+				handleClose()
 			}
 		};
 
 		document.addEventListener('click', handleClickOutside);
 		return () => document.removeEventListener('click', handleClickOutside);
-	}, [onClose]);
+	}, [handleClose]);
 
 	const addFileToStaging = (file: IFileDisplayInfo) => {
 		console.log("Adding file to staging: ", file.fileName)
@@ -90,6 +105,14 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 		}
 	}
 
+	const onNextPage = useCallback(async () => {
+		console.log("Loading next page")
+		const lastFile = workspaceFiles[workspaceFiles.length - 1];
+		const nextPage = repoFilesService.getNextPage(lastFile);
+		setWorkspaceFiles([...workspaceFiles, ...nextPage]);
+	}, [repoFilesService, workspaceFiles]);
+
+
 	const onSelectFile = useCallback((file: IFileDisplayInfo) => {
 		addFileToStaging(file);
 		onClickOption(file);
@@ -101,7 +124,11 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 
 	return <VoidCustomMentionDropdownBox
 		options={workspaceFiles}
+		totalOptionsNumber={numberOfFiles}
 		onClickOption={onSelectFile}
+		onNextPage={onNextPage}
+		onClose={handleClose}
+		getOptionDropdownKey={(option) => option.uri.fsPath}
 		getOptionDropdownName={(option) => option.fileName}
 		getOptionDropdownDetail={(option) => option.shortPath || ""}
 		className='text-xs text-void-fg-3'

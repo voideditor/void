@@ -17,7 +17,6 @@ import { asCssVariable } from '../../../../../../../platform/theme/common/colorU
 import { inputBackground, inputForeground } from '../../../../../../../platform/theme/common/colorRegistry.js';
 import { useFloating, autoUpdate, offset, flip, shift, size, autoPlacement } from '@floating-ui/react';
 
-
 // type guard
 const isConstructor = (f: any)
 	: f is { new(...params: any[]): any } => {
@@ -682,21 +681,29 @@ export const VoidCustomDropdownBox = <T extends any>({
 
 export const VoidCustomMentionDropdownBox = <T extends any>({
     options,
+	totalOptionsNumber,
     onClickOption,
+	onNextPage,
+	onClose,
     getOptionDropdownName,
     getOptionDropdownDetail,
+	getOptionDropdownKey,
 	isTextAreaAtBottom,
     className,
-    matchInputWidth = false,
+    // matchInputWidth = false,
     position = { top: 0, left: 0, height: 0 },
-    width,
+    // width,
     gap = 0,
 	isLoading = false,
 	noOptionsText = 'No options available',
 }: {
     options: T[];
+	totalOptionsNumber: number;
     onClickOption: (clickedValue: T) => void;
+	onNextPage: () => void;
+	onClose: () => void;
     getOptionDropdownName: (option: T) => string;
+	getOptionDropdownKey: (option: T) => string;
     getOptionDropdownDetail?: (option: T) => string;
 	isTextAreaAtBottom: boolean;
     className?: string;
@@ -707,7 +714,7 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 	isLoading?: boolean;
 	noOptionsText?: string;
 }) => {
-    const measureRef = useRef<HTMLDivElement>(null);
+    // const measureRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -740,27 +747,6 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 
     return (
         <div className={`inline-block absolute ${className}`}>
-            <div
-                ref={measureRef}
-                className="opacity-0 pointer-events-none absolute -left-[999999px] -top-[999999px] flex flex-col"
-                aria-hidden="true"
-            >
-                {options.map((option) => {
-                    const optionName = getOptionDropdownName(option);
-                    const optionDetail = getOptionDropdownDetail?.(option) || '';
-
-                    return (
-                        <div key={optionName + optionDetail} className="flex items-center whitespace-nowrap">
-                            <div className="w-4" />
-                            <span className="flex justify-between w-full">
-                                <span>{optionName}</span>
-                                <span>{optionDetail}</span>
-                                <span>______</span>
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
 
             <div
                 ref={dropdownRef}
@@ -771,7 +757,6 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
                     left: position.left,
                     width: 400,
 					height: 300,
-					overflowY: 'auto',
 					overflowX: 'hidden',
 					transform: isTextAreaAtBottom ? topLeft : bottomLeft,
                 }}
@@ -785,28 +770,143 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 					<div className="flex justify-center items-center h-full">
 						<span>{noOptionsText}</span>
 					</div>
-				) : (options.map((option) => {
-                    const optionName = getOptionDropdownName(option);
-                    const optionDetail = getOptionDropdownDetail?.(option) || '';
+				) : (
+					<VoidInfiniteScrollComponent
+					items={options}
+					dataLength={totalOptionsNumber}
+					next={onNextPage}
+					loadMore={true}
+					className="border rounded"
+					>
+						<div>
+							{options.map((option) => {
+								const optionKey = getOptionDropdownKey(option);
+								const optionName = getOptionDropdownName(option);
+								const optionDetail = getOptionDropdownDetail?.(option) || '';
 
-                    return (
-                        <div
-                            key={optionName}
-                            className="flex items-center px-2 py-1 cursor-pointer whitespace-nowrap transition-all duration-100 bg-void-bg-1 hover:bg-void-bg-2"
-                            onClick={() => handleFileClick(option)}
-                        >
-                            <span className="flex justify-between w-full">
-                                <span>{optionName}</span>
-                                <span className='text-void-fg-4 opacity-60'>{optionDetail}</span>
-                            </span>
-                        </div>
-                    );
-                }))}
+								return (
+									<div
+										key={optionKey}
+										className="flex items-center px-2 py-1 cursor-pointer whitespace-nowrap transition-all duration-100 bg-void-bg-1 hover:bg-void-bg-2"
+										onClick={() => handleFileClick(option)}
+									>
+										<span className="flex justify-between w-full">
+											<span>{optionName}</span>
+											<span className='text-void-fg-4 opacity-60'>{optionDetail}</span>
+										</span>
+									</div>
+								);
+										}
+									)}
+						</div>
+					</VoidInfiniteScrollComponent>
+					)
+				}
             </div>
         </div>
     );
 };
 
+interface VoidInfiniteScrollProps {
+	items: any[]; // The current list of items
+	dataLength: number; // Total number of items (could be more than items.length)
+	next: () => void; // Function to load more items
+	loadMore?: boolean; // Whether there are more items to load
+	loader?: React.ReactNode; // Optional loader component
+	inverse?: boolean; // Whether to use inverse scrolling (for chat interfaces)
+	className?: string; // Additional CSS classes
+	style?: React.CSSProperties; // Additional inline styles
+	children: React.ReactNode; // Slot for custom rendering
+}
+
+export const VoidInfiniteScrollComponent = ({
+	items,
+	dataLength,
+	next,
+	loadMore = true,
+	loader = <div className="text-center py-2">Loading...</div>,
+	inverse = false,
+	className = '',
+	style = {},
+	children,
+  }: VoidInfiniteScrollProps) => {
+	const divRef = useRef<HTMLDivElement | null>(null);
+
+	// Computed properties
+	const hasMore = items.length < dataLength;
+	const shouldLoadMore = loadMore && hasMore;
+
+
+	// Handle scroll events to trigger loading more items
+	useEffect(() => {
+		const div = divRef.current;
+		if (!div) return;
+		console.log("REGISTERING SCROLL EVENT")
+		const handleScroll = () => {
+			// Only trigger next() if we have more items to load
+			if (!loadMore) return;
+
+			if (inverse) {
+				// For inverse scrolling (chat-like interfaces) - load more when scrolled to top
+				if (div.scrollTop === 0) {
+					next();
+				}
+			} else {
+				// Normal scrolling - load more when scrolled near bottom
+				if (div.scrollTop + div.clientHeight >= div.scrollHeight - 30) {
+					// Check if we need to load more content when initial render doesn't fill the container
+					if (shouldLoadMore) {
+						next();
+					}
+				}
+			}
+		};
+
+		div.addEventListener('scroll', handleScroll);
+		return () => div.removeEventListener('scroll', handleScroll);
+	}, [next, loadMore, inverse]);
+
+	// Check if we need to load more content when initial render doesn't fill the container
+	useEffect(() => {
+		const div = divRef.current;
+		if (!div ) return;
+
+		// If container isn't filled and we have more data to load
+		// or if items.length is less than dataLength, trigger next
+		if (div.scrollHeight <= div.clientHeight && shouldLoadMore) {
+			next();
+		}
+	}, [items.length, dataLength, loadMore, next]);
+
+	// Auto-load more if items length is less than dataLength
+	// useEffect(() => {
+	// 	if (loadMore && items.length < dataLength) {
+	// 		next();
+	// 	}
+	// }, [items.length, dataLength, loadMore, next]);
+
+	const containerStyle: React.CSSProperties = {
+		border: 'none',
+		overflowY: 'auto',
+		overflowX: 'hidden',
+		height: '100%',
+		...style,
+		display: 'flex',
+		flexDirection: inverse ? 'column-reverse' : 'column',
+	};
+
+	return (
+		<div
+			ref={divRef}
+			className={`scroll-container ${className}`}
+			style={containerStyle}
+		>
+			{inverse && shouldLoadMore && loader}
+			{children}
+			{!inverse && shouldLoadMore && loader}
+		</div>
+	);
+};
 
 
 export const _VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options, className }: {

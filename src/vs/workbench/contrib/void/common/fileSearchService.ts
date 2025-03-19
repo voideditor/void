@@ -15,8 +15,11 @@ import { shorten } from '../../../../base/common/labels.js';
 
 export interface IRepoFilesService {
 	readonly _serviceBrand: undefined;
-	// searchFilesByName(searchText?: string): Promise<URI[]>;
-	getFilesByName(searchText?: string): Promise<IFileDisplayInfo[]>;
+	setFiles(searchText?: string): Promise<void>;
+	getFirstPage(): IFileDisplayInfo[];
+	getNextPage(previousLastFile: IFileDisplayInfo): IFileDisplayInfo[];
+	getNumberOfFiles(): number;
+	clearData(): void;
 }
 
 export interface IFileDisplayInfo {
@@ -51,6 +54,7 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		'**/.env/**'
 	];
 	private _timeoutId: NodeJS.Timeout | null = null
+	private _pageFetchSize = 50;
 
 	constructor(
 		// @IFileService private readonly fileService: IFileService,
@@ -143,7 +147,6 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 					if (path) {
 						// Remove the root folder name from the path
 						const modifiedPath = path.replace(/^\/[^/]+\//, '');
-						console.log("Modified path:", modifiedPath);
 						return modifiedPath;
 					} else {
 						return ""
@@ -190,19 +193,44 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		return debouncedFunction as T & { cancel: () => void };
 	}
 
-	public async getFilesByName(searchText?: string): Promise<IFileDisplayInfo[]> {
+	public async setFiles(searchText?: string): Promise<void> {
 
 		// Clear the file cache
 		this._fileCache = [];
 
 		// Create debounced version of refreshFileList
-		const debouncedRefreshFileList = this._debounceify(this._refreshFileList.bind(this), 300);
+		const DEBOUNCE_DELAY_MS = 300
+		const debouncedRefreshFileList = this._debounceify(this._refreshFileList.bind(this), DEBOUNCE_DELAY_MS);
 
 		// Update the file cache with the latest files
 		await debouncedRefreshFileList(searchText);
 
-		// The order of fileInfos remains the same as the original _fileCache order.
-		return this._fileCache.slice(0, 50);
+		return;
+	}
+
+	public getFirstPage(): IFileDisplayInfo[] {
+		return this._fileCache.slice(0, this._pageFetchSize);
+	}
+
+	public getNextPage(previousLastFile: IFileDisplayInfo): IFileDisplayInfo[] {
+		const index = this._fileCache.indexOf(previousLastFile);
+		if (index === -1) {
+			return [];
+		}
+		return this._fileCache.slice(index + 1, index + this._pageFetchSize + 1);
+	}
+
+	public getNumberOfFiles(): number {
+		return this._fileCache.length;
+	}
+
+	public clearData(): void {
+		this._fileCache = [];
+
+		if (this._timeoutId) {
+			clearTimeout(this._timeoutId);
+			this._timeoutId = null;
+		}
 	}
 
 }

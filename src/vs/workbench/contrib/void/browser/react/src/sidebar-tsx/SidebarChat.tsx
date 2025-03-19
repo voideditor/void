@@ -1422,113 +1422,113 @@ interface MentionsDropdownProps {
 	searchText?: string;
 }
 
-const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onClose, onFileAdded, searchText }) => {
+// const MentionsDropdown: React.FC<MentionsDropdownProps> = ({ onClose, onFileAdded, searchText }) => {
 
-	// Mention dropdown state
-	const accessor = useAccessor();
-	const repoFilesService = accessor.get('IRepoFilesService');
-	const chatThreadsService = accessor.get('IChatThreadService');
-	const [workspaceFiles, setWorkspaceFiles] = useState<IFileDisplayInfo[]>([]);
-	const [loading, setLoading] = useState(false);
+// 	// Mention dropdown state
+// 	const accessor = useAccessor();
+// 	const repoFilesService = accessor.get('IRepoFilesService');
+// 	const chatThreadsService = accessor.get('IChatThreadService');
+// 	const [workspaceFiles, setWorkspaceFiles] = useState<IFileDisplayInfo[]>([]);
+// 	const [loading, setLoading] = useState(false);
 
-	const onSelectFile = (file: IFileDisplayInfo) => {
-		console.log("Adding file to staging: ", file.fileName)
-		// Add file to staging
-		try {
-			const currentThread = chatThreadsService.getCurrentThreadStagingSelections();
-			if (currentThread && !currentThread.some((s) => s.fileURI.fsPath === file.uri.fsPath)) {
-				chatThreadsService.setCurrentThreadStagingSelections([{
-					type: 'File',
-					fileURI: file.uri,
-					selectionStr: null,
-					range: null,
-				}, ...currentThread])
-			}
-			onFileAdded(file);
-		} catch (error) {
-			console.error('Error adding file to staging:', error);
-		}
-	}
+// 	const onSelectFile = (file: IFileDisplayInfo) => {
+// 		console.log("Adding file to staging: ", file.fileName)
+// 		// Add file to staging
+// 		try {
+// 			const currentThread = chatThreadsService.getCurrentThreadStagingSelections();
+// 			if (currentThread && !currentThread.some((s) => s.fileURI.fsPath === file.uri.fsPath)) {
+// 				chatThreadsService.setCurrentThreadStagingSelections([{
+// 					type: 'File',
+// 					fileURI: file.uri,
+// 					selectionStr: null,
+// 					range: null,
+// 				}, ...currentThread])
+// 			}
+// 			onFileAdded(file);
+// 		} catch (error) {
+// 			console.error('Error adding file to staging:', error);
+// 		}
+// 	}
 
-	// Add this effect to load and log files when component mounts
-	useEffect(() => {
-		const loadFiles = async () => {
-			try {
-				setLoading(true);
-				// Clean up state
-				setWorkspaceFiles([]);
+// 	// Add this effect to load and log files when component mounts
+// 	useEffect(() => {
+// 		const loadFiles = async () => {
+// 			try {
+// 				setLoading(true);
+// 				// Clean up state
+// 				setWorkspaceFiles([]);
 
-				const files = await repoFilesService.getFilesByName(searchText);
+// 				const files = await repoFilesService.getFilesByName(searchText);
 
-				setWorkspaceFiles(files)
-			} catch (error) {
-				console.error('Error loading workspace files:', error);
-			} finally {
-				setLoading(false);
-			}
-		};
-		loadFiles()
-	}, [repoFilesService, searchText]);
+// 				setWorkspaceFiles(files)
+// 			} catch (error) {
+// 				console.error('Error loading workspace files:', error);
+// 			} finally {
+// 				setLoading(false);
+// 			}
+// 		};
+// 		loadFiles()
+// 	}, [repoFilesService, searchText]);
 
-	// Close dropdown when clicking outside
-	useEffect(() => {
-		const handleClickOutside = (event: MouseEvent) => {
-			const target = event.target as HTMLElement;
-			if (!target.closest('.mentions-dropdown')) {
-				onClose();
-			}
-		};
+// 	// Close dropdown when clicking outside
+// 	useEffect(() => {
+// 		const handleClickOutside = (event: MouseEvent) => {
+// 			const target = event.target as HTMLElement;
+// 			if (!target.closest('.mentions-dropdown')) {
+// 				onClose();
+// 			}
+// 		};
 
-		document.addEventListener('click', handleClickOutside);
-		return () => document.removeEventListener('click', handleClickOutside);
-	}, [onClose]);
+// 		document.addEventListener('click', handleClickOutside);
+// 		return () => document.removeEventListener('click', handleClickOutside);
+// 	}, [onClose]);
 
-	return (
-		<div
-			className="
-				mt-1
-				mb-8
-				bg-vscode-input-bg
-				border border-void-border-1
-				rounded-md
-				shadow-md
-				z-50
-				h-64
-				overflow-y-scroll
-			"
-		>
-			{loading ? (
-				<div className="flex justify-center items-center h-full">
-					<div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 animate-spin"></div>
-				</div>
-			) : (
-				<ul className="mt-2 border-gray-700 rounded-lg divide-y divide-gray-500">
-					<div className="flex flex-col px-3 py-1 mb-2">
-						<span className="text-white-700 font-semibold">Type to search:</span>
-					</div>
-					{workspaceFiles.length === 0 ? (
-						<div className="flex flex-col px-3 py-2">
-							<span className="text-void-fg-3">No files found</span>
-						</div>
-					) : (
-						workspaceFiles.map((file, index) => (
-							<div
-								className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer"
-								onClick={() => onSelectFile(file)}
-								key={index}
-							>
-								<span className="text-void-fg-1">{file.fileName}</span>
-								{file.hasDuplicate && file.shortPath && (
-									<span className="text-void-fg-3 text-xs">{file.shortPath}</span>
-								)}
-							</div>
-						))
-					)}
-				</ul>
-			)}
-		</div>
-	);
-};
+// 	return (
+// 		<div
+// 			className="
+// 				mt-1
+// 				mb-8
+// 				bg-vscode-input-bg
+// 				border border-void-border-1
+// 				rounded-md
+// 				shadow-md
+// 				z-50
+// 				h-64
+// 				overflow-y-scroll
+// 			"
+// 		>
+// 			{loading ? (
+// 				<div className="flex justify-center items-center h-full">
+// 					<div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 animate-spin"></div>
+// 				</div>
+// 			) : (
+// 				<ul className="mt-2 border-gray-700 rounded-lg divide-y divide-gray-500">
+// 					<div className="flex flex-col px-3 py-1 mb-2">
+// 						<span className="text-white-700 font-semibold">Type to search:</span>
+// 					</div>
+// 					{workspaceFiles.length === 0 ? (
+// 						<div className="flex flex-col px-3 py-2">
+// 							<span className="text-void-fg-3">No files found</span>
+// 						</div>
+// 					) : (
+// 						workspaceFiles.map((file, index) => (
+// 							<div
+// 								className="flex flex-col px-3 py-2 hover:bg-void-bg-3 cursor-pointer"
+// 								onClick={() => onSelectFile(file)}
+// 								key={index}
+// 							>
+// 								<span className="text-void-fg-1">{file.fileName}</span>
+// 								{file.hasDuplicate && file.shortPath && (
+// 									<span className="text-void-fg-3 text-xs">{file.shortPath}</span>
+// 								)}
+// 							</div>
+// 						))
+// 					)}
+// 				</ul>
+// 			)}
+// 		</div>
+// 	);
+// };
 
 
 
@@ -1808,7 +1808,6 @@ export const SidebarChat = () => {
                     fnsRef={textAreaFnsRef}
                     multiline={true}
                 />
-                {/* {showDropdown && <MentionsDropdown onClose={handleMentionClose} onFileAdded={handleOnFileAdded} searchText={searchText} />} */}
             </div>
 			{showDropdown && <FileSelectBox
 				searchText={searchText}

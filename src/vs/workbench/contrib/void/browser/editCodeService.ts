@@ -1855,6 +1855,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						// IMPORTANT - sort by lineNum
 						addedTrackingZoneOfBlockNum.sort((a, b) => a.metadata.originalBounds[0] - b.metadata.originalBounds[0])
 
+						const { model } = this._voidModelService.getModel(uri)
+						console.log('CURRENT\n', model?.getValue())
+						console.log('ADDED', addedTrackingZoneOfBlockNum)
+						console.log('BLOX', blocks)
+
 						for (let blockNum = addedTrackingZoneOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
 							const { originalBounds } = addedTrackingZoneOfBlockNum[blockNum].metadata
 							const finalCode = blocks[blockNum].final

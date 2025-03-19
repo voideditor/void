@@ -42,6 +42,7 @@ ${(mode === 'agent') && runningTerminalIds.length !== 0 ? `\
 ${mode === 'agent' || mode === 'gather' /* tool use */ ? `\
 You will be given tools you can call.
 - Only use tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.
+- ALWAYS use tools to take actions. For example, if you would like to edit a file, you MUST use a tool.
 - If you think you should use tools, you do not need to ask for permission. Feel free to call tools whenever you'd like. You can use them to understand the codebase, ${mode === 'agent' ? 'run terminal commands, edit files, ' : 'gather relevant files and information, '}etc.
 - NEVER refer to a tool by name when speaking with the user (NEVER say something like "I'm going to use \`tool_name\`"). Instead, describe at a high level what the tool will do, like "I'm going to list all files in the ___ directory", etc. Also do not refer to "pages" of results, just say you're getting more results.
 - Some tools only work if the user has a workspace open.${mode === 'agent' ? `

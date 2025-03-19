@@ -1775,6 +1775,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 										this._llmMessageService.abort(streamRequestIdRef.current)
 										weAreAborting = false
 									}
+									diffZone._streamState.line = 1
 									resMessageDonePromise()
 									this._refreshStylesAndDiffsInURI(uri)
 									return
@@ -1850,6 +1851,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						}
 						// writeover the whole file
 						let newCode = originalFileCode
+
+						// IMPORTANT - sort by lineNum
+						addedTrackingZoneOfBlockNum.sort((a, b) => a.metadata.originalBounds[0] - b.metadata.originalBounds[0])
+
 						for (let blockNum = addedTrackingZoneOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
 							const { originalBounds } = addedTrackingZoneOfBlockNum[blockNum].metadata
 							const finalCode = blocks[blockNum].final

@@ -1,9 +1,9 @@
 {
   "nameShort": "Void",
   "nameLong": "Void",
-  "voidVersion": "1.0.0",
-  "commit": "18d2d9f5ee4cb290bd392035680b9c6ea60eeb6b",
-  "date": "2025-03-17",
+  "voidVersion": "1.0.1",
+  "commit": "6ecc5cdbad6801a9556193c9ef50449dc1834d9b",
+  "date": "2025-03-19",
   "applicationName": "void",
   "dataFolderName": ".void-editor",
   "win32MutexName": "voideditor",

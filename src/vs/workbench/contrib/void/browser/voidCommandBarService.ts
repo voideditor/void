@@ -131,9 +131,10 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 		// state updaters
 		this._register(this._editCodeService.onDidAddOrDeleteDiffZones(e => {
 			for (const uri of this._hooks) {
-				if (e.uri.fsPath !== uri.fsPath) return
+				if (e.uri.fsPath !== uri.fsPath) continue
 				// --- sortedURIs: delete if empty, add if not in state yet
 				const diffZones = this._getDiffZonesOnURI(uri)
+				console.log('addordelete diffzone', uri.fsPath, diffZones)
 				if (diffZones.length === 0) {
 					this._deleteURIEntryFromState(uri)
 					this._onDidChangeState.fire({ uri })
@@ -323,7 +324,7 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 		if (i === -1) return
 		this.sortedURIs = [
 			...this.sortedURIs.slice(0, i),
-			...this.sortedURIs.slice(i, Infinity),
+			...this.sortedURIs.slice(i + 1, Infinity),
 		]
 		// delete from state
 		delete this.stateOfURI[uri.fsPath]

@@ -158,7 +158,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 
 	const onClickSubmit = useCallback(async () => {
 		if (isDisabled) return
-		if (getStreamState()) return
+		if (getStreamState() === 'streaming') return
 		const [newApplyingUri, _] = await editCodeService.startApplying({
 			from: 'ClickApply',
 			applyStr: codeStr,
@@ -176,7 +176,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 
 
 	const onInterrupt = useCallback(() => {
-		if (!getStreamState()) return
+		if (getStreamState() !== 'streaming') return
 		const uri = getUriBeingApplied()
 		if (!uri) return
 

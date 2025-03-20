@@ -1111,15 +1111,15 @@ const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneRe
 
 const folderFileStr = (isFolder: boolean) => isFolder ? 'folder' : 'file'
 const toolNameToTitle = {
-	'read_file': { past: 'Read file', proposed: 'Read file' },
-	'list_dir': { past: 'Inspected folder', proposed: 'Inspect folder' },
-	'pathname_search': { past: 'Searched by file name', proposed: 'Search by file name' },
-	'text_search': { past: 'Searched', proposed: 'Search text' },
-	'create_uri': { past: (isFolder: boolean) => `Created ${folderFileStr(isFolder)}`, proposed: (isFolder: boolean) => `Create ${folderFileStr(isFolder)}` },
-	'delete_uri': { past: (isFolder: boolean) => `Deleted ${folderFileStr(isFolder)}`, proposed: (isFolder: boolean) => `Delete ${folderFileStr(isFolder)}` },
-	'edit': { past: 'Edited file', proposed: 'Edit file' },
-	'terminal_command': { past: 'Ran terminal command', proposed: 'Run terminal command' }
-} as const satisfies Record<ToolName, { past: any, proposed: any }>
+	'read_file': { done: 'Read file', proposed: 'Read file' },
+	'list_dir': { done: 'Inspected folder', proposed: 'Inspect folder' },
+	'pathname_search': { done: 'Searched by file name', proposed: 'Search by file name' },
+	'text_search': { done: 'Searched', proposed: 'Search text' },
+	'create_uri': { done: (isFolder: boolean) => `Created ${folderFileStr(isFolder)}`, proposed: (isFolder: boolean) => `Create ${folderFileStr(isFolder)}` },
+	'delete_uri': { done: (isFolder: boolean) => `Deleted ${folderFileStr(isFolder)}`, proposed: (isFolder: boolean) => `Delete ${folderFileStr(isFolder)}` },
+	'edit': { done: 'Edited file', proposed: 'Edit file' },
+	'terminal_command': { done: 'Ran terminal command', proposed: 'Run terminal command' }
+} as const satisfies Record<ToolName, { done: any, proposed: any }>
 
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined): string => {
 
@@ -1286,7 +1286,7 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name].past
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
 			const { uri } = toolMessage.result.params ?? {}
 			const desc1 = uri ? getBasename(uri.fsPath) : '';
 			const icon = null
@@ -1316,7 +1316,7 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const explorerService = accessor.get('IExplorerService')
-			const title = toolNameToTitle[toolMessage.name].past
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1359,13 +1359,13 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name].past
+			const isError = toolMessage.result.type === 'error'
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
 			if (toolMessage.result.type === 'rejected') return null // will never happen, not rejectable
 
-			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
 			if (toolMessage.result.type === 'success') {
@@ -1399,13 +1399,13 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name].past
+			const isError = toolMessage.result.type === 'error'
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
 			if (toolMessage.result.type === 'rejected') return null // will never happen, not rejectable
 
-			const isError = toolMessage.result.type === 'error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
 			if (toolMessage.result.type === 'success') {
@@ -1441,11 +1441,11 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const explorerService = accessor.get('IExplorerService')
+			const isError = false
 			const title = toolNameToTitle[toolRequest.name].proposed(toolRequest.params.isFolder)
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
-			const isError = false
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			return <ToolHeaderWrapper  {...componentParams} />
@@ -1453,13 +1453,13 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolNameToTitle[toolMessage.name].past(toolMessage.result.params?.isFolder ?? false)
+			const isError = toolMessage.result.type === 'error'
+			const isRejected = toolMessage.result.type === 'rejected'
+			const isFolder = toolMessage.result.params?.isFolder ?? false
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done(isFolder) : toolNameToTitle[toolMessage.name].proposed(isFolder)
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-
-			const isError = toolMessage.result.type === 'error'
-			const isRejected = toolMessage.result.type === 'rejected'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected }
 
 			if (toolMessage.result.type === 'success') {
@@ -1483,11 +1483,11 @@ const toolNameToComponent: { [T in ToolName]: {
 		requestWrapper: ({ toolRequest, }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
+			const isError = false
 			const title = toolNameToTitle[toolRequest.name].proposed(toolRequest.params.isFolder)
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
-			const isError = false
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			const { params } = toolRequest
@@ -1499,12 +1499,12 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const isFolder = toolMessage.result.params?.isFolder ?? false
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].past(isFolder) : toolNameToTitle[toolMessage.name].proposed(isFolder)
+			const isError = toolMessage.result.type === 'error'
+			const isRejected = toolMessage.result.type === 'rejected'
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done(isFolder) : toolNameToTitle[toolMessage.name].proposed(isFolder)
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			const isError = toolMessage.result.type === 'error'
-			const isRejected = toolMessage.result.type === 'rejected'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected }
 
 			if (toolMessage.result.type === 'success') {
@@ -1528,11 +1528,11 @@ const toolNameToComponent: { [T in ToolName]: {
 		requestWrapper: ({ toolRequest, }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
+			const isError = false
 			const title = toolNameToTitle[toolRequest.name].proposed
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
-			const isError = false
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			const { params } = toolRequest
@@ -1548,12 +1548,12 @@ const toolNameToComponent: { [T in ToolName]: {
 		resultWrapper: ({ toolMessage, messageIdx }) => {
 			const accessor = useAccessor()
 			const chatThreadsService = accessor.get('IChatThreadService')
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].past : toolNameToTitle[toolMessage.name].proposed
+			const isError = toolMessage.result.type === 'error'
+			const isRejected = toolMessage.result.type === 'rejected'
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			const isError = toolMessage.result.type === 'error'
-			const isRejected = toolMessage.result.type === 'rejected'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected }
 
 			if (toolMessage.result.type === 'success' || toolMessage.result.type === 'rejected') {
@@ -1590,11 +1590,11 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
+			const isError = false
 			const title = toolNameToTitle[toolRequest.name].proposed
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
-			const isError = false
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, }
 
 			const { proposedTerminalId, waitForCompletion } = toolRequest.params
@@ -1609,11 +1609,11 @@ const toolNameToComponent: { [T in ToolName]: {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].past : toolNameToTitle[toolMessage.name].proposed
+			const isError = toolMessage.result.type === 'error'
+			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
-			const isError = toolMessage.result.type === 'error'
 			const isRejected = toolMessage.result.type === 'rejected'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected }
 

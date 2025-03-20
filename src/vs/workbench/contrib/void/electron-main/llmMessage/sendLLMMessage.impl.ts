@@ -206,7 +206,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 					if (!toolCallOfIndex[index]) toolCallOfIndex[index] = { name: '', paramsStr: '', id: '' }
 					toolCallOfIndex[index].name += tool.function?.name ?? ''
 					toolCallOfIndex[index].paramsStr += tool.function?.arguments ?? '';
-					toolCallOfIndex[index].id = tool.id ?? ''
+					toolCallOfIndex[index].id += tool.id ?? ''
 				}
 				// message
 				const newText = chunk.choices[0]?.delta?.content ?? ''

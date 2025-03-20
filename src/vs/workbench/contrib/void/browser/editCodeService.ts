@@ -1244,11 +1244,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				// ctrlkzone should never have any conflicts
 			}
 			else {
-				// keep conflict on whole file - to keep conflict, revert the change and use those contents as original, then un-revert the change
+				// keep conflict on whole file - to keep conflict, revert the change and use those contents as original, then un-revert the file
 				const currentFileStr = originalFileStr
 				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
 				const oldFileStr = model.getValue(EndOfLinePreference.LF) // use this as original code
-				this._writeURIText(uri, currentFileStr, 'wholeFileRange', { shouldRealignDiffAreas: false }) // un-revert
+				this._writeURIText(uri, currentFileStr, 'wholeFileRange', { shouldRealignDiffAreas: true }) // un-revert
 				originalCode = oldFileStr
 			}
 

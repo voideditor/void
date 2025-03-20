@@ -761,7 +761,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const handleToolCall = async (
 			tool: ToolCallType,
 			opts?: { preapproved: true, toolParams: ToolCallParams[ToolName] },
-		): Promise<{ awaitingUserApproval: boolean, canceled: boolean }> => {
+		): Promise<{ awaitingUserApproval?: boolean, canceled?: boolean }> => {
 			const toolName: ToolName = tool.name
 			const toolParamsStr = tool.paramsStr
 			const toolId = tool.id
@@ -779,14 +779,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				} catch (error) {
 					const errorMessage = getErrorMessage(error)
 					this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: undefined, value: errorMessage }, })
-					return { awaitingUserApproval: false, canceled: false }
+					return {}
 				}
 
 				// 2. if tool requires approval, break from the loop, awaiting approval
 				const requiresApproval = !this._settingsService.state.globalSettings.autoApprove
 				if (requiresApproval && toolNamesThatRequireApproval.has(toolName)) {
 					this._addMessageToThread(threadId, { role: 'tool_request', name: toolName, paramsStr: toolParamsStr, params: toolParams, id: toolId })
-					return { awaitingUserApproval: true, canceled: false }
+					return { awaitingUserApproval: true }
 				}
 			}
 			else {
@@ -805,10 +805,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				toolResult = await Promise.race([result, resolveIfCancel]) // this await is needed, typescript is bad...
 			}
 			catch (error) {
-				if (canceled) return { awaitingUserApproval: false, canceled: true }
+				if (canceled) return { canceled: true }
 				const errorMessage = getErrorMessage(error)
 				this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
-				return { awaitingUserApproval: true, canceled: false }
+				return {}
 			}
 
 			// 4. stringify the result to give to the LLM
@@ -817,12 +817,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			} catch (error) {
 				const errorMessage = this.errMsgs.errWhenStringifying(error)
 				this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
-				return { awaitingUserApproval: false, canceled: false }
+				return {}
 			}
 
 			// 5. add to history and keep going
 			this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
-			return { awaitingUserApproval: false, canceled: false }
+			return {}
 		};
 
 		// above just defines helpers, below starts the actual function

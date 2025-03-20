@@ -224,6 +224,7 @@ const ChatModeDropdown = ({ className }: { className: string }) => {
 	const accessor = useAccessor()
 
 	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const settingsState = useSettingsState()
 
 	const options: ChatMode[] = useMemo(() => ['normal', 'gather', 'agent'], [])
 
@@ -234,7 +235,7 @@ const ChatModeDropdown = ({ className }: { className: string }) => {
 	return <VoidCustomDropdownBox
 		className={className}
 		options={options}
-		selectedOption={voidSettingsService.state.globalSettings.chatMode}
+		selectedOption={settingsState.globalSettings.chatMode}
 		onChangeOption={onChangeOption}
 		getOptionDisplayName={(val) => nameOfChatMode[val]}
 		getOptionDropdownName={(val) => nameOfChatMode[val]}
@@ -674,7 +675,7 @@ export const SelectedFiles = (
 
 type ToolHeaderParams = {
 	icon?: React.ReactNode;
-	title: string;
+	title: React.ReactNode;
 	desc1: React.ReactNode;
 	desc2?: React.ReactNode;
 	isError?: boolean;
@@ -1109,24 +1110,30 @@ const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneRe
 
 // should either be past or "-ing" tense, not present tense. Eg. when the LLM searches for something, the user expects it to say "I searched for X" or "I am searching for X". Not "I search X".
 
+const loadingTitleWrapper = (item: React.ReactNode) => {
+	return <span className='flex items-center flex-nowrap'>
+		{item}
+		<IconLoading className='w-4'/>
+	</span>
+}
 const folderFileStr = (isFolder: boolean) => isFolder ? 'folder' : 'file'
 const toolNameToTitle = {
-	'read_file': { done: 'Read file', proposed: 'Read file', running: 'Reading file...' },
-	'list_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: 'Inspecting folder...' },
-	'pathname_search': { done: 'Searched by file name', proposed: 'Search by file name', running: 'Searching by file name...' },
-	'text_search': { done: 'Searched', proposed: 'Search text', running: 'Searching...' },
+	'read_file': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
+	'list_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
+	'pathname_search': { done: 'Searched by file name', proposed: 'Search by file name', running: loadingTitleWrapper('Searching by file name') },
+	'text_search': { done: 'Searched', proposed: 'Search text', running: loadingTitleWrapper('Searching') },
 	'create_uri': {
 		done: (isFolder: boolean) => `Created ${folderFileStr(isFolder)}`,
 		proposed: (isFolder: boolean) => `Create ${folderFileStr(isFolder)}`,
-		running: (isFolder: boolean) => `Creating ${folderFileStr(isFolder)}...`
+		running: (isFolder: boolean) => loadingTitleWrapper(`Creating ${folderFileStr(isFolder)}`)
 	},
 	'delete_uri': {
 		done: (isFolder: boolean) => `Deleted ${folderFileStr(isFolder)}`,
 		proposed: (isFolder: boolean) => `Delete ${folderFileStr(isFolder)}`,
-		running: (isFolder: boolean) => `Deleting ${folderFileStr(isFolder)}...`
+		running: (isFolder: boolean) => loadingTitleWrapper(`Deleting ${folderFileStr(isFolder)}`)
 	},
-	'edit': { done: 'Edited file', proposed: 'Edit file', running: 'Editing file...' },
-	'terminal_command': { done: 'Ran terminal command', proposed: 'Run terminal command', running: 'Running terminal command...' }
+	'edit': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
+	'terminal_command': { done: `Ran terminal command`, proposed: 'Run terminal command', running: loadingTitleWrapper('Running terminal command') }
 } as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
 
 
@@ -1778,7 +1785,9 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 	}
 	else if (role === 'tool') {
 		const ToolResultWrapper = toolNameToComponent[chatMessage.name].resultWrapper as ResultWrapper<ToolName>
-		return <ToolResultWrapper toolMessage={chatMessage} messageIdx={messageIdx} threadId={threadId} />
+		if (ToolResultWrapper)
+			return <ToolResultWrapper toolMessage={chatMessage} messageIdx={messageIdx} threadId={threadId} />
+		return null
 	}
 
 }

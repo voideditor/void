@@ -78,7 +78,7 @@ const directoryResultToString = (params: ToolCallParams['list_dir'], result: Too
 	const entries = result.children;
 
 	if (!result.hasPrevPage) { // is first page
-		output += `${params.rootURI}\n`;
+		output += `${params.rootURI.fsPath}\n`;
 	}
 
 	for (let i = 0; i < entries.length; i++) {

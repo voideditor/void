@@ -21,7 +21,6 @@ export type VoidCommandBarProps = {
 export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
 
-	console.log('VoidCommandBarMain', uri?.fsPath)
 	return <div
 		className={`@@void-scope ${isDark ? 'dark' : ''}`}
 	>

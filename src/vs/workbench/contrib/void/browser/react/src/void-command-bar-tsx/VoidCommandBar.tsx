@@ -64,9 +64,6 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 		}
 	}, [sortedCommandBarURIs, uri])
 
-	// just for style
-	const [isFocused, setIsFocused] = useState(false)
-
 	const getNextDiffIdx = (step: 1 | -1) => {
 		// check undefined
 		if (!uri) return null
@@ -136,63 +133,88 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 
 	// if there are *any* changes at all
 	const navPanel = anyUriHasChanges && <div
-		className={`pointer-events-auto flex items-center gap-2 p-2 ${isFocused ? 'ring-1 ring-[var(--vscode-focusBorder)]' : ''}`}
-		onFocus={() => setIsFocused(true)}
-		onBlur={() => setIsFocused(false)}
+		className="flex items-center gap-1"
 	>
-		<div className="flex gap-1">
-			<button
-				className={`
-					px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)]
-					${prevDiffIdx === null ? 'opacity-50' : ''}
-					`}
-				disabled={prevDiffIdx === null}
-				onClick={() => { goToDiffIdx(prevDiffIdx) }}
-				title="Previous diff"
-			>↑</button>
+		<button
+			className={`
+				size-4 rounded hover:bg-void-bg-1-alt cursor-pointer
+				focus:ring-1 focus:ring-[var(--vscode-focusBorder)] focus:bg-void-bg-1-alt
+				${prevDiffIdx === null ? 'opacity-50' : ''}
+			`}
+			disabled={prevDiffIdx === null}
+			onClick={() => { goToDiffIdx(prevDiffIdx) }}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					goToDiffIdx(prevDiffIdx);
+				}
+			}}
+			title="Previous diff"
+		>↑</button>
 
-			<button
-				className={`
-					px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)]
-					${nextDiffIdx === null ? 'opacity-50' : ''}
-					`}
-				disabled={nextDiffIdx === null}
-				onClick={() => { goToDiffIdx(nextDiffIdx) }}
-				title="Next diff"
-			>↓</button>
+		<button
+			className={`
+				size-4 rounded hover:bg-void-bg-1-alt cursor-pointer
+				focus:ring-1 focus:ring-[var(--vscode-focusBorder)] focus:bg-void-bg-1-alt
+				${nextDiffIdx === null ? 'opacity-50' : ''}
+			`}
+			disabled={nextDiffIdx === null}
+			onClick={() => { goToDiffIdx(nextDiffIdx) }}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					goToDiffIdx(nextDiffIdx);
+				}
+			}}
+			title="Next diff"
+		>↓</button>
 
-			<button
-				className={`
-					px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)]
-					${prevURIIdx === null ? 'opacity-50' : ''}
-					`}
-				disabled={prevURIIdx === null}
-				onClick={() => goToURIIdx(prevURIIdx)}
-				title="Previous file"
-			>←</button>
+		<button
+			className={`
+				size-4 rounded hover:bg-void-bg-1-alt cursor-pointer
+				focus:ring-1 focus:ring-[var(--vscode-focusBorder)] focus:bg-void-bg-1-alt
+				${prevURIIdx === null ? 'opacity-50' : ''}
+				`}
+			disabled={prevURIIdx === null}
+			onClick={() => goToURIIdx(prevURIIdx)}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					goToURIIdx(prevURIIdx);
+				}
+			}}
+			title="Previous file"
+		>←</button>
 
-			<button
-				className={`
-					px-2 py-1 rounded hover:bg-[var(--vscode-button-hoverBackground)]
-					${nextURIIdx === null ? 'opacity-50' : ''}
-					`}
-				disabled={nextURIIdx === null}
-				onClick={() => goToURIIdx(nextURIIdx)}
-				title="Next file"
-			>→</button>
-		</div>
+		<button
+			className={`
+				size-4 rounded hover:bg-void-bg-1-alt cursor-pointer
+				focus:ring-1 focus:ring-[var(--vscode-focusBorder)] focus:bg-void-bg-1-alt
+				${nextURIIdx === null ? 'opacity-50' : ''}
+				`}
+			disabled={nextURIIdx === null}
+			onClick={() => goToURIIdx(nextURIIdx)}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					goToURIIdx(nextURIIdx);
+				}
+			}}
+			title="Next file"
+		>→</button>
 
 		<div className="text-[var(--vscode-editor-foreground)] text-xs flex gap-4">
-			<div>
-				{`File ${(currUriIdx ?? 0) + 1} of ${sortedCommandBarURIs.length}`}
-			</div>
-			<div>
-				{sortedDiffIds?.length ?? 0 === 0 ?
-					'(No changes)'
-					: `Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds?.length ?? 0}`}
-			</div>
+			{currUriIdx !== null && sortedCommandBarURIs.length ?
+				<div>
+					File {currUriIdx + 1} of {sortedCommandBarURIs.length}
+				</div>
+				: '(No changes)'
+			}
+			{currDiffIdx !== null && sortedDiffIds?.length && <div>
+				Diff {currDiffIdx + 1} of {sortedDiffIds?.length ?? 0}
+			</div>}
 		</div>
-	</div>
+	</div >
 
 
 	// accept/reject if current URI has changes
@@ -207,42 +229,48 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 		metricsService.capture('Reject All', {})
 	}
 
-	const acceptRejectButtons = currUriHasChanges && <div className="flex gap-2">
-		<button
-			className='pointer-events-auto'
-			onClick={onAcceptAll}
-			style={{
-				backgroundColor: acceptAllBg,
-				border: acceptBorder,
-				color: buttonTextColor,
-				fontSize: buttonFontSize,
-				padding: '4px 8px',
-				borderRadius: '6px',
-				cursor: 'pointer'
-			}}
-		>
-			Accept All
-		</button>
-		<button
-			className='pointer-events-auto'
-			onClick={onRejectAll}
-			style={{
-				backgroundColor: rejectAllBg,
-				border: rejectBorder,
-				color: 'white',
-				fontSize: buttonFontSize,
-				padding: '4px 8px',
-				borderRadius: '6px',
-				cursor: 'pointer'
-			}}
-		>
-			Reject All
-		</button>
-	</div>
+
+	const acceptAllButton = <button
+		className='pointer-events-auto'
+		onClick={onAcceptAll}
+		style={{
+			backgroundColor: acceptAllBg,
+			border: acceptBorder,
+			color: buttonTextColor,
+			fontSize: buttonFontSize,
+			padding: '2px 4px',
+			borderRadius: '6px',
+			cursor: 'pointer'
+		}}
+	>
+		Accept All
+	</button>
 
 
-	return <div className='p-2'>
+	const rejectAllButton = <button
+		className='pointer-events-auto'
+		onClick={onRejectAll}
+		style={{
+			backgroundColor: rejectAllBg,
+			border: rejectBorder,
+			color: 'white',
+			fontSize: buttonFontSize,
+			padding: '2px 4px',
+			borderRadius: '6px',
+			cursor: 'pointer'
+		}}
+	>
+		Reject All
+	</button>
+
+
+	return <div className='px-2 pt-1.5 pb-1 gap-1 pointer-events-auto flex flex-col items-start bg-void-bg-1 rounded shadow-md border border-void-border-1'>
+		{currUriHasChanges && <>
+			<div className="flex gap-2">
+				{acceptAllButton}
+				{rejectAllButton}
+			</div>
+		</>}
 		{navPanel}
-		{acceptRejectButtons}
 	</div>
 }

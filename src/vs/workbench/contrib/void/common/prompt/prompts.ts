@@ -66,10 +66,10 @@ If you think it's appropriate to suggest an edit to a file, then you must descri
 Misc:
 - Do not make things up.
 - Do not be lazy.
-- Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}. ${mode === 'agent' || mode === 'gather' ? `
-- If you are writing a code explanation for the user (NOT calling a tool), and you know the full path of the file that the code should go in, then you should also output the FULL global path in the first line of the triple ticks. For example, ${tripleTick[0]}typescript\n/Users/username/Desktop/my_project/app.ts\n...\n${tripleTick[1]}.\
-This is only for display purposes to the user, and it's not required. Do NOT do this if you are calling a tool or have any ambiguity about the full path.` : ''}\
+- Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.\
 `
+// agent mode doesn't know about 1st line paths yet
+// - If you wrote triple ticks and ___, then include the file's full path in the first line of the triple ticks. This is only for display purposes to the user, and it's preferred but optional. Never do this in a tool parameter, or if there's ambiguity about the full path.
 
 
 type FileSelnLocal = { fileURI: URI, language: string, content: string }

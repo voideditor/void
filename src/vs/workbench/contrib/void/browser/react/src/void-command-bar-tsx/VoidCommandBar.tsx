@@ -21,6 +21,8 @@ export type VoidCommandBarProps = {
 export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
 
+	if (uri?.scheme !== 'file') return null // don't show in editors that we made, they must be files
+
 	return <div
 		className={`@@void-scope ${isDark ? 'dark' : ''}`}
 	>

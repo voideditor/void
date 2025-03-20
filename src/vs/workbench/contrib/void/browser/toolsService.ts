@@ -103,24 +103,30 @@ const directoryResultToString = (params: ToolCallParams['list_dir'], result: Too
 const validateJSON = (s: string): { [s: string]: unknown } => {
 	try {
 		const o = JSON.parse(s)
+		if (typeof o !== 'object') throw new Error()
+
+		if ('result' in o) { // openrouter sometimes wraps the result with { 'result': ... }
+			return o.result
+		}
+
 		return o
 	}
 	catch (e) {
-		throw new Error(`Tool parameter was not a string of a valid JSON: "${s}".`)
+		throw new Error(`Invalid LLM output format: Tool parameter was not a string of a valid JSON: "${s}".`)
 	}
 }
 
 
 
 const validateStr = (argName: string, value: unknown) => {
-	if (typeof value !== 'string') throw new Error(`Error: ${argName} must be a string.`)
+	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string.`)
 	return value
 }
 
 
 // We are NOT checking to make sure in workspace
 const validateURI = (uriStr: unknown) => {
-	if (typeof uriStr !== 'string') throw new Error('Provided uri must be a string.')
+	if (typeof uriStr !== 'string') throw new Error('Invalid LLM output format: Provided uri must be a string.')
 
 	const uri = URI.file(uriStr)
 	return uri
@@ -130,12 +136,12 @@ const validatePageNum = (pageNumberUnknown: unknown) => {
 	if (!pageNumberUnknown) return 1
 	const parsedInt = Number.parseInt(pageNumberUnknown + '')
 	if (!Number.isInteger(parsedInt)) throw new Error(`Page number was not an integer: "${pageNumberUnknown}".`)
-	if (parsedInt < 1) throw new Error(`Specified page number must be 1 or greater: "${pageNumberUnknown}".`)
+	if (parsedInt < 1) throw new Error(`Invalid LLM output format: Specified page number must be 1 or greater: "${pageNumberUnknown}".`)
 	return parsedInt
 }
 
 const validateRecursiveParamStr = (paramsUnknown: unknown) => {
-	if (typeof paramsUnknown !== 'string') throw new Error('Error calling tool: provided params must be a string.')
+	if (typeof paramsUnknown !== 'string') throw new Error('Invalid LLM output format: Error calling tool: provided params must be a string.')
 	const params = paramsUnknown
 	const isRecursive = params.includes('r')
 	return isRecursive

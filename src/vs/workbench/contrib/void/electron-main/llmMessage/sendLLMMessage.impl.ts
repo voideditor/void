@@ -36,17 +36,19 @@ const invalidApiKeyMessage = (providerName: ProviderName) => `Invalid ${displayI
 
 // ------------ OPENAI-COMPATIBLE (HELPERS) ------------
 const toOpenAICompatibleTool = (toolInfo: InternalToolInfo) => {
-	const { name, description, params, required } = toolInfo
+	const { name, description, params } = toolInfo
 	return {
 		type: 'function',
 		function: {
 			name: name,
+			strict: true, // strict mode - https://platform.openai.com/docs/guides/function-calling?api-mode=chat
 			description: description,
 			parameters: {
 				type: 'object',
 				properties: params,
-				required: required,
-			}
+				required: Object.keys(params), // in strict mode, all params are required and additionalProperties is false
+				additionalProperties: false,
+			},
 		}
 	} satisfies OpenAI.Chat.Completions.ChatCompletionTool
 }
@@ -283,15 +285,15 @@ const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_,
 
 // ------------ ANTHROPIC ------------
 const toAnthropicTool = (toolInfo: InternalToolInfo) => {
-	const { name, description, params, required } = toolInfo
+	const { name, description, params } = toolInfo
 	return {
 		name: name,
 		description: description,
 		input_schema: {
 			type: 'object',
 			properties: params,
-			required: required,
-		}
+			required: Object.keys(params),
+		},
 	} satisfies Anthropic.Messages.Tool
 }
 

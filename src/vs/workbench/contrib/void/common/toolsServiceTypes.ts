@@ -10,7 +10,6 @@ export type InternalToolInfo = {
 	params: {
 		[paramName: string]: { type: string, description: string | undefined } // name -> type
 	},
-	required: string[], // required paramNames
 }
 
 
@@ -33,7 +32,7 @@ export type ResolveReason = { type: 'toofull' | 'timeout' | 'bgtask' } | { type:
 
 const paginationHelper = {
 	desc: `Very large results may be paginated (indicated in the result). Pagination fails gracefully if out of bounds or invalid page number.`,
-	param: { pageNumber: { type: 'number', description: 'The page number (optional, default is 1).' }, }
+	param: { pageNumber: { type: 'number', description: 'The page number (default is the first page = 1).' }, }
 } as const
 
 export const voidTools = {
@@ -46,7 +45,6 @@ export const voidTools = {
 			uri: { type: 'string', description: undefined },
 			...paginationHelper.param,
 		},
-		required: ['uri'],
 	},
 
 	list_dir: {
@@ -56,7 +54,6 @@ export const voidTools = {
 			uri: { type: 'string', description: undefined },
 			...paginationHelper.param,
 		},
-		required: ['uri'],
 	},
 
 	pathname_search: {
@@ -66,7 +63,6 @@ export const voidTools = {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,
 		},
-		required: ['query'],
 	},
 
 	text_search: {
@@ -76,7 +72,6 @@ export const voidTools = {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,
 		},
-		required: ['query'],
 	},
 
 	// --- editing (create/delete) ---
@@ -87,7 +82,6 @@ export const voidTools = {
 		params: {
 			uri: { type: 'string', description: undefined },
 		},
-		required: ['uri'],
 	},
 
 	delete_uri: {
@@ -97,7 +91,6 @@ export const voidTools = {
 			uri: { type: 'string', description: undefined },
 			params: { type: 'string', description: 'Return -r here to delete this URI and all descendants (if applicable). Default is the empty string.' }
 		},
-		required: ['uri', 'params'],
 	},
 
 	edit: { // APPLY TOOL
@@ -107,7 +100,6 @@ export const voidTools = {
 			uri: { type: 'string', description: undefined },
 			changeDescription: { type: 'string', description: editToolDesc_toolDescription } // long description here
 		},
-		required: ['uri', 'changeDescription'],
 	},
 
 	terminal_command: {
@@ -116,9 +108,8 @@ export const voidTools = {
 		params: {
 			command: { type: 'string', description: 'The terminal command to execute.' },
 			waitForCompletion: { type: 'string', description: `Whether or not to await the command to complete and get the final result. Default is true. Make this value false when you want a command to run indefinitely without waiting for it.` },
-			terminalId: { type: 'string', description: 'Optional (if provided, value must be an integer >= 1). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
+			terminalId: { type: 'string', description: 'Optional (value must be an integer >= 1, or empty which will go with the default). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
 		},
-		required: ['command'],
 	},
 
 

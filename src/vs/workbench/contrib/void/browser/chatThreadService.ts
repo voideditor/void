@@ -236,7 +236,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	private _addCurrentFileAsStagingSelectionDuringFileChange() {
 
 
-		// add the current file to the thread/message being edited
+		// add the current file to the thread being edited
 		const model = this._codeEditorService.getActiveCodeEditor()?.getModel() ?? null
 		if (!model) { return; }
 
@@ -268,6 +268,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 		} else { // user is editing a message
+
+			// do nothing. I don't think it feels good to auto-add the current file when you're editing a message.
 
 			// const oldStagingSelections = this.getCurrentMessageState(focusedMessageIdx).stagingSelections || [];
 

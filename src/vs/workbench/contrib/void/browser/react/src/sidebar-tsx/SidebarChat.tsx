@@ -619,14 +619,11 @@ export const SelectedFiles = (
 							+ (isThisSelectionAFile ? '' : ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})`)
 						}
 
-						{/* {isThisSelectionAFile && currentURI?.toString() === selection.fileURI.toString() &&
-							<span className={`text-[8px] ml-0.5 ${isThisSelectionAddedAsCurrentFile ? 'void-opacity-60  text-void-fg-4 ' : ''}`}>
+						{isThisSelectionAddedAsCurrentFile && currentURI?.toString() === selection.fileURI.toString() &&
+							<span className={`text-[8px] ml-0.5 'void-opacity-60  text-void-fg-4`}>
 								{`(Current File)`}
 							</span>
-						} */}
-						{isThisSelectionAddedAsCurrentFile && <span className={`text-[8px] ml-0.5 'void-opacity-60  text-void-fg-4`}>
-							{`(Current File)`}
-						</span>}
+						}
 
 						{type === 'staging' && !isThisSelectionProspective ? // X button
 							<IconX

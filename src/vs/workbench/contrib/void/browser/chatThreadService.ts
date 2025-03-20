@@ -27,6 +27,8 @@ import { ITerminalToolService } from './terminalToolService.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { shorten } from '../../../../base/common/labels.js';
 import { IVoidModelService } from '../common/voidModelService.js';
+import { IEditorService } from '../../../services/editor/common/editorService.js';
+import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 
 const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
 	for (let i = arr.length - 1; i >= 0; i--) {
@@ -208,6 +210,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@ILanguageFeaturesService private readonly _languageFeaturesService: ILanguageFeaturesService,
 		@ITerminalToolService private readonly _terminalToolService: ITerminalToolService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
+		@IEditorService private readonly _editorService: IEditorService,
+		@ICodeEditorService private readonly _codeEditorService: ICodeEditorService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -222,7 +226,65 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// always be in a thread
 		this.openNewThread()
+
+		// when the user changes files, automatically add the new file as a stagingSelection
+		this._register(this._editorService.onDidActiveEditorChange(() => this._addCurrentFileAsStagingSelectionDuringFileChange()));
+
 	}
+
+
+	private _addCurrentFileAsStagingSelectionDuringFileChange() {
+
+
+		// add the current file to the thread/message being edited
+		const model = this._codeEditorService.getActiveCodeEditor()?.getModel() ?? null
+		if (!model) { return; }
+
+		const newSelection: StagingSelectionItem = {
+			type: 'File',
+			fileURI: model.uri,
+			language: model.getLanguageId(),
+			selectionStr: null,
+			range: null,
+			state: { isOpened: false, wasAddedAsCurrentFile: true }
+		}
+
+		const focusedMessageIdx = this.getCurrentFocusedMessageIdx();
+
+		// add the selection
+		if (focusedMessageIdx === undefined) { // user is in the default thread
+
+			const oldStagingSelections = this.getCurrentThreadState().stagingSelections || [];
+
+			// if the file already exists, do nothing
+			const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.toString() === newSelection.fileURI.toString())
+			if (alreadyHasFile) { return; }
+
+			// add the file
+			const filteredStagingSelections = oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile); // remove all old selectons that were added during a file change
+			const newSelections = [...filteredStagingSelections, newSelection];
+
+			this.setCurrentThreadState({ stagingSelections: newSelections });
+
+
+		} else { // user is editing a message
+
+			// const oldStagingSelections = this.getCurrentMessageState(focusedMessageIdx).stagingSelections || [];
+
+			// // if the file already exists, do nothing
+			// const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.toString() === newSelection.fileURI.toString())
+			// if (alreadyHasFile) { return; }
+
+			// const filteredStagingSelections = oldStagingSelections.filter(s => !s.state?.wasAddedDuringFileChange); // remove all old selectons that were added during a file change
+			// const newSelections = [...filteredStagingSelections, newSelection];
+			// this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: newSelections });
+
+
+		}
+
+
+	}
+
 
 	// !!! this is important for properly restoring URIs from storage
 	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough

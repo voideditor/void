@@ -122,14 +122,14 @@ registerAction2(class extends Action2 {
 			language: model.getLanguageId(),
 			selectionStr: null,
 			range: null,
-			state: { isOpened: false, }
+			state: { isOpened: false, wasAddedAsCurrentFile: false }
 		} : {
 			type: 'Selection',
 			fileURI: model.uri,
 			language: model.getLanguageId(),
 			selectionStr: selectionStr,
 			range: selectionRange,
-			state: { isOpened: true, }
+			state: { isOpened: true, wasAddedAsCurrentFile: false }
 		}
 
 		// update the staging selections

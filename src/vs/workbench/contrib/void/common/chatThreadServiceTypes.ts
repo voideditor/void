@@ -55,6 +55,7 @@ export type CodeSelection = {
 	range: IRange;
 	state: {
 		isOpened: boolean;
+		wasAddedAsCurrentFile: boolean;
 	};
 }
 
@@ -66,6 +67,7 @@ export type FileSelection = {
 	range: null;
 	state: {
 		isOpened: boolean;
+		wasAddedAsCurrentFile: boolean;
 	};
 }
 

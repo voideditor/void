@@ -518,7 +518,7 @@ export const SelectedFiles = (
 					language: (await modelReferenceService.getModelSafe(uri)).model?.getLanguageId() || 'plaintext',
 					selectionStr: null,
 					range: null,
-					state: { isOpened: false },
+					state: { isOpened: false, wasAddedAsCurrentFile: false },
 				})
 			}
 			return answer
@@ -548,6 +548,7 @@ export const SelectedFiles = (
 				const isThisSelectionOpened = (!!selection.selectionStr && selection.state.isOpened && type === 'staging')
 				const isThisSelectionAFile = selection.selectionStr === null
 				const isThisSelectionProspective = i > selections.length - 1
+				const isThisSelectionAddedAsCurrentFile = selection.state.wasAddedAsCurrentFile
 
 				const thisKey = `${isThisSelectionProspective}-${i}-${selections.length}`
 
@@ -582,14 +583,21 @@ export const SelectedFiles = (
 							if (isThisSelectionProspective) { // add prospective selection to selections
 								setSelections([...selections, selection])
 							} else if (isThisSelectionAFile) { // open files
+
 								commandService.executeCommand('vscode.open', selection.fileURI, {
 									preview: true,
 									// preserveFocus: false,
 								});
+
+								if (isThisSelectionAddedAsCurrentFile) {
+									// make it so the file is added permanently, not just as the current file
+									const newSelection: StagingSelectionItem = { ...selection, state: { ...selection.state, wasAddedAsCurrentFile: false } }
+									setSelections([...selections.slice(0, i), newSelection, ...selections.slice(i + 1)])
+								}
 							} else { // show text
 
 								const selection = selections[i]
-								const newSelection = { ...selection, state: { isOpened: !selection.state.isOpened } }
+								const newSelection = { ...selection, state: { ...selection.state, isOpened: !selection.state.isOpened } }
 								const newSelections = [
 									...selections.slice(0, i),
 									newSelection,
@@ -610,6 +618,15 @@ export const SelectedFiles = (
 							getBasename(selection.fileURI.fsPath)
 							+ (isThisSelectionAFile ? '' : ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})`)
 						}
+
+						{/* {isThisSelectionAFile && currentURI?.toString() === selection.fileURI.toString() &&
+							<span className={`text-[8px] ml-0.5 ${isThisSelectionAddedAsCurrentFile ? 'void-opacity-60  text-void-fg-4 ' : ''}`}>
+								{`(Current File)`}
+							</span>
+						} */}
+						{isThisSelectionAddedAsCurrentFile && <span className={`text-[8px] ml-0.5 'void-opacity-60  text-void-fg-4`}>
+							{`(Current File)`}
+						</span>}
 
 						{type === 'staging' && !isThisSelectionProspective ? // X button
 							<IconX

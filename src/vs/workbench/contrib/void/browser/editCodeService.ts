@@ -1285,7 +1285,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
-		console.log('DONE WITH _STARTSTREAMING', diffZone)
 		return { diffZone, onFinishEdit }
 	}
 
@@ -1773,7 +1772,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					onFinalMessage: async (params) => {
 						const { fullText } = params
 
-						console.log('DONE!', fullText)
+						console.log('DONE - editCode!', fullText)
 
 						// 1. wait 500ms and fix lint errors - call lint error workflow
 						// (update react state to say "Fixing errors")

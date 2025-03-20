@@ -102,7 +102,7 @@ export const voidTools = {
 
 	edit: { // APPLY TOOL
 		name: 'edit',
-		description: `Edits the contents of a file at the given URI. Fails gracefully if the file does not exist.`,
+		description: `Edits the contents of a file, given the file's URI and a description. Fails gracefully if the file does not exist.`,
 		params: {
 			uri: { type: 'string', description: undefined },
 			changeDescription: { type: 'string', description: editToolDesc_toolDescription } // long description here

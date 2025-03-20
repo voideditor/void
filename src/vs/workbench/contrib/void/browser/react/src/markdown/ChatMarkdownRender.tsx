@@ -301,18 +301,13 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		</>
 
 		if (inPTag) return <span className='block'>{contents}</span>
-
-		return <p>
-			{contents}
-		</p>
+		return <p>{contents}</p>
 	}
 
 	if (t.type === "html") {
-		return (
-			<p>
-				{t.raw}
-			</p>
-		)
+		const contents = t.raw
+		if (inPTag) return <span className='block'>{contents}</span>
+		return <p>{contents}</p>
 	}
 
 	if (t.type === "text" || t.type === "escape") {

@@ -16,10 +16,10 @@ import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 export const tripleTick = ['```', '```']
 
 export const editToolDesc_toolDescription = `\
-A high level description of the change you'd like to make in the file. \
-Your output should be of the form:\n${tripleTick[0]}\n// ... existing code ...\n{{change 1}}\n// ... existing code ...\n{{change2}}\n// ... existing code ...\n{{change 3}}\n...\n${tripleTick[1]}. \
-(wrap your output in triple backticks). Do NOT output the whole file here, and write as little as possible. If a change seems big, break it up into smaller edits. \
-Your description will be handed to a dumber, faster model that will quickly apply the change, so try to be brief, but also make sure to include enough information to accurately describe the change.`
+Your description should be of the form:\n${tripleTick[0]}\n// ... existing code ...\n{{change 1}}\n// ... existing code ...\n{{change2}}\n// ... existing code ...\n{{change 3}}\n...\n${tripleTick[1]}. \
+Do NOT re-write the whole file, and instead use comments like // ... existing code ... . Write as little as possible. \
+Your description will be handed to a dumber, faster model that will quickly apply the change, so try to be brief, but also make sure to include enough information to accurately describe the change. \
+Include the triple ticks in your output.`
 
 
 

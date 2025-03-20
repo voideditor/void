@@ -204,12 +204,9 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 		>→</button>
 
 		<div className="text-[var(--vscode-editor-foreground)] text-xs flex gap-4">
-			{currUriIdx !== null && sortedCommandBarURIs.length ?
-				<div>
-					File {currUriIdx + 1} of {sortedCommandBarURIs.length}
-				</div>
-				: '(No changes)'
-			}
+			{currUriIdx !== null && sortedCommandBarURIs.length && <div>
+				File {currUriIdx + 1} of {sortedCommandBarURIs.length}
+			</div>}
 			{currDiffIdx !== null && sortedDiffIds?.length && <div>
 				Diff {currDiffIdx + 1} of {sortedDiffIds?.length ?? 0}
 			</div>}

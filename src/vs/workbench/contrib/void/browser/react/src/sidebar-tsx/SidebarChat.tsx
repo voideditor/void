@@ -24,13 +24,11 @@ import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { getModelSelectionState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
+import { getModelCapabilities, getIsResoningEnabledState } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
-import { ResolveReason, ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
+import { ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { JumpToFileButton, useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
-import { DiffZone } from '../../../editCodeService.js';
-import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 
 
@@ -160,11 +158,12 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 	if (!modelSelection) return null
 
 	const { modelName, providerName } = modelSelection
-	const { canToggleReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName).supportsReasoning || {}
+	const { reasoningCapabilities } = getModelCapabilities(providerName, modelName)
+	const { canTurnOffReasoning, reasoningBudgetSlider } = reasoningCapabilities || {}
 
-	const { isReasoningEnabled } = getModelSelectionState(providerName, modelName, voidSettingsState.optionsOfModelSelection[providerName]?.[modelName])
-
-	if (canToggleReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider (no models right now)
+	const modelSelectionOptions = voidSettingsState.optionsOfModelSelection[providerName]?.[modelName]
+	const isReasoningEnabled = getIsResoningEnabledState(providerName, modelName, modelSelectionOptions)
+	if (canTurnOffReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider (no models right now)
 		return null // unused right now
 		// return <div className='flex items-center gap-x-2'>
 		// 	<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isReasoningEnabled ? 'Thinking' : 'Thinking'}</span>
@@ -183,7 +182,7 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 
 		const nSteps = 8 // only used in calculating stepSize, stepSize is what actually matters
 		const stepSize = Math.round((max - min_) / nSteps)
-		const min = canToggleReasoning ? min_ - stepSize : min_
+		const min = canTurnOffReasoning ? min_ - stepSize : min_
 
 		return <div className='flex items-center gap-x-2'>
 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
@@ -195,7 +194,7 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 				step={stepSize}
 				value={value}
 				onChange={(newVal) => {
-					const disabled = newVal === min && canToggleReasoning
+					const disabled = newVal === min && canTurnOffReasoning
 					voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
 				}}
 			/>

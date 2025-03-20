@@ -1113,7 +1113,7 @@ const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneRe
 const loadingTitleWrapper = (item: React.ReactNode) => {
 	return <span className='flex items-center flex-nowrap'>
 		{item}
-		<IconLoading className='w-4'/>
+		<IconLoading className='w-3 text-sm' />
 	</span>
 }
 const folderFileStr = (isFolder: boolean) => isFolder ? 'folder' : 'file'
@@ -1652,6 +1652,11 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 							/>
 						</ToolChildrenWrapper>
 					}
+					else {
+						componentParams.children = <ErrorChildren>
+							{value}
+						</ErrorChildren>
+					}
 				}
 			}
 
@@ -1769,7 +1774,7 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 		/>
 	}
 	else if (role === 'tool_request') {
-		const ToolRequestWrapper = toolNameToComponent[chatMessage.name].requestWrapper as RequestWrapper<ToolName>
+		const ToolRequestWrapper = toolNameToComponent[chatMessage.name]?.requestWrapper as RequestWrapper<ToolName>
 		const toolRequestType = (
 			chatIsRunning === 'awaiting_user' ? 'awaiting_user'
 				: chatIsRunning === 'tool' ? 'running'
@@ -1784,7 +1789,7 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 		return null
 	}
 	else if (role === 'tool') {
-		const ToolResultWrapper = toolNameToComponent[chatMessage.name].resultWrapper as ResultWrapper<ToolName>
+		const ToolResultWrapper = toolNameToComponent[chatMessage.name]?.resultWrapper as ResultWrapper<ToolName>
 		if (ToolResultWrapper)
 			return <ToolResultWrapper toolMessage={chatMessage} messageIdx={messageIdx} threadId={threadId} />
 		return null

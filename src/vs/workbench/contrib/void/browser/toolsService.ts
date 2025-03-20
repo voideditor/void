@@ -120,7 +120,7 @@ const validateStr = (argName: string, value: unknown) => {
 
 // We are NOT checking to make sure in workspace
 const validateURI = (uriStr: unknown) => {
-	if (typeof uriStr !== 'string') throw new Error('Error: provided uri must be a string.')
+	if (typeof uriStr !== 'string') throw new Error('Provided uri must be a string.')
 
 	const uri = URI.file(uriStr)
 	return uri

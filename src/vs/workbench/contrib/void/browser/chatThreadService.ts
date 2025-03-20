@@ -783,10 +783,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				}
 
 				// 2. if tool requires approval, break from the loop, awaiting approval
-				const requiresApproval = !this._settingsService.state.globalSettings.autoApprove
-				if (requiresApproval && toolNamesThatRequireApproval.has(toolName)) {
+				const requiresApproval = toolNamesThatRequireApproval.has(toolName)
+				if (requiresApproval) {
+					const autoApprove = this._settingsService.state.globalSettings.autoApprove
+					// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)
 					this._addMessageToThread(threadId, { role: 'tool_request', name: toolName, paramsStr: toolParamsStr, params: toolParams, id: toolId })
-					return { awaitingUserApproval: true }
+					if (!autoApprove) {
+						return { awaitingUserApproval: true }
+					}
 				}
 			}
 			else {

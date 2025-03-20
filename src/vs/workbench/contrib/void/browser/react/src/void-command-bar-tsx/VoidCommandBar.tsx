@@ -208,7 +208,10 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 				File {currUriIdx + 1} of {sortedCommandBarURIs.length}
 			</div>}
 			{currDiffIdx !== null && sortedDiffIds?.length && <div>
-				Diff {currDiffIdx + 1} of {sortedDiffIds?.length ?? 0}
+				{(sortedDiffIds?.length ?? 0) === 0 ?
+					<>Diff {currDiffIdx + 1} of {sortedDiffIds?.length ?? 0}</>
+					: <>(No changes)</>}
+
 			</div>}
 		</div>
 	</div >

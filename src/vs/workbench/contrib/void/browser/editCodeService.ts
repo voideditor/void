@@ -1244,12 +1244,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				// ctrlkzone should never have any conflicts
 			}
 			else {
+				console.log('KEEPING CONFLICTS!!!!!!!!')
 				// keep conflict on whole file - to keep conflict, revert the change and use those contents as original, then un-revert the file
-				const currentFileStr = originalFileStr
+				console.log('originalFile', originalFileStr)
+				console.log('diffareas A', JSON.stringify(this.diffAreasOfURI, null, 2))
 				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
+				console.log('diffareas B', JSON.stringify(this.diffAreasOfURI, null, 2))
 				const oldFileStr = model.getValue(EndOfLinePreference.LF) // use this as original code
-				this._writeURIText(uri, currentFileStr, 'wholeFileRange', { shouldRealignDiffAreas: true }) // un-revert
+				console.log('oldFileStr', { oldFileStr })
+				this._writeURIText(uri, originalFileStr, 'wholeFileRange', { shouldRealignDiffAreas: true }) // un-revert
 				originalCode = oldFileStr
+				console.log('originalCode', { originalCode })
+				console.log('NEW STR', { newStr: model.getValue(EndOfLinePreference.LF) })
 			}
 
 		}
@@ -1772,7 +1778,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					onFinalMessage: async (params) => {
 						const { fullText } = params
 
-						console.log('DONE - editCode!', fullText)
+						console.log('DONE - editCode!', { fullText })
 
 						// 1. wait 500ms and fix lint errors - call lint error workflow
 						// (update react state to say "Fixing errors")
@@ -1788,7 +1794,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						addedTrackingZoneOfBlockNum.sort((a, b) => a.metadata.originalBounds[0] - b.metadata.originalBounds[0])
 
 						const { model } = this._voidModelService.getModel(uri)
-						console.log('CURRENT\n', model?.getValue())
+						console.log('CURRENT!!!', { current: model?.getValue() })
 						console.log('ADDED', addedTrackingZoneOfBlockNum)
 						console.log('BLOX', blocks)
 

@@ -34,8 +34,7 @@ export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 
 const stepIdx = (currIdx: number | null, len: number, step: -1 | 1) => {
 	if (len === 0) return null
-	if (len === 1 && step === -1) return null // don't step backwards if just 1 element
-	return ((currIdx ?? 0) + step) % len
+	return ((currIdx ?? 0) + step + len) % len // for some reason, small negatives are kept negative. just add len to offset
 }
 
 
@@ -54,6 +53,7 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 	// changes if the user clicks left/right or if the user goes on a uri with changes
 	const [currUriIdx, setUriIdx] = useState<number | null>(null)
 	const [currUriHasChanges, setCurrUriHasChanges] = useState(false)
+	const anyUriHasChanges = sortedCommandBarURIs.length !== 0
 	useEffect(() => {
 		console.log('uri', uri?.fsPath, sortedCommandBarURIs)
 		const i = sortedCommandBarURIs.findIndex(e => e.fsPath === uri?.fsPath)
@@ -91,6 +91,7 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 			const diff = editCodeService.diffOfId[diffid]
 			const range = { startLineNumber: diff.startLine, endLineNumber: diff.startLine, startColumn: 1, endColumn: 1 };
 			editor.revealRange(range, ScrollType.Immediate)
+			commandBarService.setDiffIdx(uri, idx)
 		}
 	}
 
@@ -133,7 +134,7 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 
 
 	// if there are *any* changes at all
-	const navPanel = sortedCommandBarURIs.length !== 0 && <div
+	const navPanel = anyUriHasChanges && <div
 		className={`pointer-events-auto flex items-center gap-2 p-2 ${isFocused ? 'ring-1 ring-[var(--vscode-focusBorder)]' : ''}`}
 		onFocus={() => setIsFocused(true)}
 		onBlur={() => setIsFocused(false)}

@@ -53,6 +53,7 @@ You're allowed to ask for more context. For example, if the user only gives you 
 \
 `}
 ${mode === 'agent' /* code blocks */ ? `\
+Behavior:
 - Prioritize editing files and running commands over simply making suggestions.
 - Prioritize taking as many steps as you need to complete your request over stopping early.\
 `: `\
@@ -65,7 +66,9 @@ If you think it's appropriate to suggest an edit to a file, then you must descri
 Misc:
 - Do not make things up.
 - Do not be lazy.
-- Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.\
+- Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}. ${mode === 'agent' || mode === 'gather' ? `
+- If you are writing a code explanation for the user (NOT calling a tool), and you know the full path of the file that the code should go in, then you should also output the path in the first line of the triple ticks. For example, ${tripleTick[0]}typescript\n/Users/username/Desktop/my_project/app.ts\n...\n${tripleTick[1]}.\
+This is only for display purposes to the user, and it's not required. Do NOT do this if you are calling a tool or have any ambiguity about the path.` : ''}\
 `
 
 

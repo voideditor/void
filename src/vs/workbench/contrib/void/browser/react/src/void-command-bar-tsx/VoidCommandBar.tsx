@@ -85,7 +85,7 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 		if (!s) return
 		const { sortedDiffIds } = s
 		// reveal
-		if (idx) {
+		if (idx !== null) {
 			const diffid = sortedDiffIds[idx]
 			const diff = editCodeService.diffOfId[diffid]
 			const range = { startLineNumber: diff.startLine, endLineNumber: diff.startLine, startColumn: 1, endColumn: 1 };
@@ -103,7 +103,10 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 		const nextURI = sortedCommandBarURIs[idx]
 		editCodeService.diffAreasOfURI
 		const { model } = await voidModelService.getModelSafe(nextURI)
-		if (model) { editor.setModel(model) } // switch to the URI
+		if (model) {
+			// switch to the URI
+			editorService.openCodeEditor({ resource: nextURI, options: { revealIfVisible: true } }, editor)
+		}
 	}
 
 

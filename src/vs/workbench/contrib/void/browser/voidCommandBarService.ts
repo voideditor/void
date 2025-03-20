@@ -242,7 +242,7 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 		return sortedDiffIds;
 	}
 
-	_getDiffZoneChanges(currentDiffZones: Iterable<string>, oldDiffZones: Iterable<string>) {
+	_getDiffZoneChanges(oldDiffZones: Iterable<string>, currentDiffZones: Iterable<string>) {
 		// Find the added or deleted diffZones by comparing diffareaids
 		const addedDiffZoneIds = new Set<string>();
 		const deletedDiffZoneIds = new Set<string>();
@@ -375,18 +375,19 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 		// Mount command bar using mountVoidCommandBar
 		this.instantiationService.invokeFunction(accessor => {
 
+			type Props = { uri: URI | null, editor: ICodeEditor }
 			const uri = editor.getModel()?.uri || null
-			const res = mountVoidCommandBar(root, accessor, { uri, editor })
+			const res = mountVoidCommandBar(root, accessor, { uri, editor } satisfies Props)
 			if (!res) return
 
 			const dispose = res.dispose
-			const rerender: (o: { uri: URI | null }) => void = res.rerender
+			const rerender: (o: Props) => void = res.rerender
 
 			this._register(toDisposable(() => dispose?.()))
 
 			this._register(editor.onDidChangeModel((model) => {
 				const uri = model.newModelUrl
-				rerender({ uri })
+				rerender({ uri, editor })
 			}))
 
 		});

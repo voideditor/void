@@ -132,9 +132,8 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 
 
 
-	if (sortedCommandBarURIs.length === 0) return null // if there are absolutely no changes
-
-	const navPanel = <div
+	// if there are *any* changes at all
+	const navPanel = sortedCommandBarURIs.length !== 0 && <div
 		className={`pointer-events-auto flex items-center gap-2 p-2 ${isFocused ? 'ring-1 ring-[var(--vscode-focusBorder)]' : ''}`}
 		onFocus={() => setIsFocused(true)}
 		onBlur={() => setIsFocused(false)}
@@ -192,7 +191,7 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 	</div>
 
 
-
+	// accept/reject if current URI has changes
 	const onAcceptAll = () => {
 		if (!uri) return
 		editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false, _addToHistory: true })
@@ -238,8 +237,8 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 	</div>
 
 
-	return <>
+	return <div className='p-2'>
 		{navPanel}
 		{acceptRejectButtons}
-	</>
+	</div>
 }

@@ -1252,6 +1252,14 @@ export const ToolChildrenWrapper = ({ children, className }: { children: React.R
 		</div>
 	</div>
 }
+export const ErrorChildren = ({ children }: { children: React.ReactNode }) => {
+	return <div className='bg-void-bg-3 p-1 rounded-sm font-mono overflow-auto text-sm'>
+		<div className='!select-text cursor-auto'>
+			{children}
+		</div>
+	</div>
+}
+
 export const ListableToolItem = ({ name, onClick, isSmall, className, showDot }: { name: React.ReactNode, onClick?: () => void, isSmall?: boolean, className?: string, showDot?: boolean }) => {
 	return <div
 		className={`
@@ -1318,7 +1326,11 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			else {
 				const { value, params } = toolMessage.result
 				if (params) componentParams.desc2 = <JumpToFileButton uri={params.uri} />
-				componentParams.children = <ToolChildrenWrapper>{value}</ToolChildrenWrapper>
+				componentParams.children = <ToolChildrenWrapper>
+					<ErrorChildren>
+						{value}
+					</ErrorChildren>
+				</ToolChildrenWrapper>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1361,7 +1373,11 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			}
 			else {
 				const { value, params } = toolMessage.result
-				componentParams.children = <ToolChildrenWrapper>{value}</ToolChildrenWrapper>
+				componentParams.children = <ToolChildrenWrapper>
+					<ErrorChildren>
+						{value}
+					</ErrorChildren>
+				</ToolChildrenWrapper>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1400,7 +1416,11 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			}
 			else {
 				const { value, params } = toolMessage.result
-				componentParams.children = <ToolChildrenWrapper>{value}</ToolChildrenWrapper>
+				componentParams.children = <ToolChildrenWrapper>
+					<ErrorChildren>
+						{value}
+					</ErrorChildren>
+				</ToolChildrenWrapper>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1439,7 +1459,11 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			}
 			else {
 				const { value, params } = toolMessage.result
-				componentParams.children = <ToolChildrenWrapper>{value}</ToolChildrenWrapper>
+				componentParams.children = <ToolChildrenWrapper>
+					<ErrorChildren>
+						{value}
+					</ErrorChildren>
+				</ToolChildrenWrapper>
 			}
 			return <ToolHeaderWrapper {...componentParams} />
 		}
@@ -1485,7 +1509,11 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			else if (toolMessage.result.type === 'error') {
 				const { params, value } = toolMessage.result
 				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
-				componentParams.children = <ToolChildrenWrapper>{value}</ToolChildrenWrapper>
+				componentParams.children = componentParams.children = <ToolChildrenWrapper>
+					<ErrorChildren>
+						{value}
+					</ErrorChildren>
+				</ToolChildrenWrapper>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1531,7 +1559,11 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			else if (toolMessage.result.type === 'error') {
 				const { params, value } = toolMessage.result
 				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
-				componentParams.children = <ToolChildrenWrapper>{value}</ToolChildrenWrapper>
+				componentParams.children = componentParams.children = <ToolChildrenWrapper>
+					<ErrorChildren>
+						{value}
+					</ErrorChildren>
+				</ToolChildrenWrapper>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1601,7 +1633,12 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 					const { params, value } = toolMessage.result
 					if (params) {
 						componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
-							{value}
+							{/* error */}
+							<ErrorChildren>
+								{value}
+							</ErrorChildren>
+
+							{/* content */}
 							<EditToolChildren
 								uri={params.uri}
 								changeDescription={params.changeDescription}

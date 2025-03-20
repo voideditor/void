@@ -20,7 +20,7 @@ import { basename } from '../../../../base/common/path.js'
 
 
 type ValidateParams = { [T in ToolName]: (p: string) => Promise<ToolCallParams[T]> }
-type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<ToolResultType[T]> }
+type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], cancel?: () => void }> }
 type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: ToolResultType[T]) => string }
 
 
@@ -179,7 +179,6 @@ export class ToolsService implements IToolsService {
 	public callTool: CallTool;
 	public stringOfResult: ToolResultToString;
 
-
 	constructor(
 		@IFileService fileService: IFileService,
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
@@ -283,12 +282,12 @@ export class ToolsService implements IToolsService {
 				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) // paginate
 				const hasNextPage = (readFileContents.length - 1) - toIdx >= 1
 
-				return { fileContents, hasNextPage }
+				return { result: { fileContents, hasNextPage } }
 			},
 
 			list_dir: async ({ rootURI, pageNumber }) => {
 				const dirResult = await computeDirectoryResult(fileService, rootURI, pageNumber)
-				return dirResult
+				return { result: dirResult }
 			},
 
 			pathname_search: async ({ queryStr, pageNumber }) => {
@@ -304,7 +303,7 @@ export class ToolsService implements IToolsService {
 					.map(({ resource, results }) => resource)
 
 				const hasNextPage = (data.results.length - 1) - toIdx >= 1
-				return { uris, hasNextPage }
+				return { result: { uris, hasNextPage } }
 			},
 
 			text_search: async ({ queryStr, pageNumber }) => {
@@ -322,7 +321,7 @@ export class ToolsService implements IToolsService {
 					.map(({ resource, results }) => resource)
 
 				const hasNextPage = (data.results.length - 1) - toIdx >= 1
-				return { queryStr, uris, hasNextPage }
+				return { result: { queryStr, uris, hasNextPage } }
 			},
 
 			// ---
@@ -333,12 +332,12 @@ export class ToolsService implements IToolsService {
 				else {
 					await fileService.createFile(uri)
 				}
-				return {}
+				return { result: {} }
 			},
 
 			delete_uri: async ({ uri, isRecursive }) => {
 				await fileService.del(uri, { recursive: isRecursive })
-				return {}
+				return { result: {} }
 			},
 
 			edit: async ({ uri, changeDescription }) => {
@@ -350,13 +349,15 @@ export class ToolsService implements IToolsService {
 					startBehavior: 'keep-conflicts',
 				})
 				if (!res) throw new Error(`The Apply model did not start running on ${basename(uri.fsPath)}. Please try again.`)
-				const [_, applyDonePromise] = res
-				await applyDonePromise
-				return {}
+				const [diffZoneURI, applyDonePromise] = res
+
+				const cancel = () => editCodeService.interruptURIStreaming({ uri: diffZoneURI })
+
+				return { result: applyDonePromise, cancel }
 			},
 			terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
 				const { terminalId, didCreateTerminal, result, resolveReason } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
-				return { terminalId, didCreateTerminal, result, resolveReason }
+				return { result: { terminalId, didCreateTerminal, result, resolveReason } }
 			},
 		}
 

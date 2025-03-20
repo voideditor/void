@@ -55,7 +55,6 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 	const [currUriHasChanges, setCurrUriHasChanges] = useState(false)
 	const anyUriHasChanges = sortedCommandBarURIs.length !== 0
 	useEffect(() => {
-		console.log('uri', uri?.fsPath, sortedCommandBarURIs)
 		const i = sortedCommandBarURIs.findIndex(e => e.fsPath === uri?.fsPath)
 		if (i !== -1) {
 			setUriIdx(i)

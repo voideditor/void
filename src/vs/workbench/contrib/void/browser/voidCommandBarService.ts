@@ -134,7 +134,6 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 				if (e.uri.fsPath !== uri.fsPath) continue
 				// --- sortedURIs: delete if empty, add if not in state yet
 				const diffZones = this._getDiffZonesOnURI(uri)
-				console.log('addordelete diffzone', uri.fsPath, diffZones)
 				if (diffZones.length === 0) {
 					this._deleteURIEntryFromState(uri)
 					this._onDidChangeState.fire({ uri })

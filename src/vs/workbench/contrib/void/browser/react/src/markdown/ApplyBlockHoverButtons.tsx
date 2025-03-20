@@ -5,7 +5,7 @@ import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { FileSymlink, LucideIcon, RotateCw } from 'lucide-react'
 import { Check, X, Square, Copy, Play, } from 'lucide-react'
-import { getBasename, ListableToolItem, ToolContentsWrapper } from '../sidebar-tsx/SidebarChat.js'
+import { getBasename, ListableToolItem, ToolChildrenWrapper } from '../sidebar-tsx/SidebarChat.js'
 import { ChatMarkdownRender } from './ChatMarkdownRender.js'
 
 enum CopyButtonText {
@@ -344,9 +344,9 @@ export const BlockCodeApplyWrapper = ({
 		</div>
 
 		{/* contents */}
-		<ToolContentsWrapper>
+		<ToolChildrenWrapper>
 			{children}
-		</ToolContentsWrapper>
+		</ToolChildrenWrapper>
 	</div>
 
 }

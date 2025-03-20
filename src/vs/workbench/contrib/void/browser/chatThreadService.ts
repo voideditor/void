@@ -106,10 +106,11 @@ export type ThreadsState = {
 	currentThreadId: string; // intended for internal use only
 }
 
+export type IsRunningType = undefined | 'message' | 'tool' | 'awaiting_user'
 export type ThreadStreamState = {
 	[threadId: string]: undefined | {
 		// state related
-		isRunning?: undefined | 'message' | 'tool';  // whether or not actually running the agent loop (can be running and not streaming, like if it's calling a tool and awaiting user response)
+		isRunning?: IsRunningType;  // whether or not actually running the agent loop (can be running and not streaming, like if it's calling a tool and awaiting user response)
 		error?: { message: string, fullError: Error | null, };
 
 		// streaming related
@@ -650,6 +651,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
+		this._cancelToolOfThreadId[threadId]?.()
+
 		const lastMessage = thread.messages[thread.messages.length - 1]
 		if (lastMessage.role !== 'tool_request') return // should never happen
 		const { name, params, paramsStr, id } = lastMessage
@@ -665,6 +668,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
 		const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
 
+		// abort the stream first so it doesn't change any state
+		const llmCancelToken = this.streamState[threadId]?.streamingToken
+		if (llmCancelToken !== undefined) { this._llmMessageService.abort(llmCancelToken) }
+
+		// add the correct message to the state
 		const lastMessage = thread.messages[thread.messages.length - 1]
 		if (lastMessage.role === 'tool_request') {
 			// interrupt tool request
@@ -674,9 +682,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// interrupt assistant message
 			this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
 		}
-
-		const llmCancelToken = this.streamState[threadId]?.streamingToken
-		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
 
 		this._setStreamState(threadId, {}, 'set')
 	}
@@ -700,6 +705,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		errWhenStringifying: (error: any) => `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
 	}
 
+
+	private readonly _cancelToolOfThreadId: { [threadId: string]: (() => void) | undefined } = {}
 
 	private async _chatAgentLoop({
 		threadId,
@@ -754,7 +761,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const handleToolCall = async (
 			tool: ToolCallType,
 			opts?: { preapproved: true, toolParams: ToolCallParams[ToolName] },
-		): Promise<boolean> => {
+		): Promise<{ awaitingUserApproval: boolean, canceled: boolean }> => {
 			const toolName: ToolName = tool.name
 			const toolParamsStr = tool.paramsStr
 			const toolId = tool.id
@@ -772,14 +779,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				} catch (error) {
 					const errorMessage = getErrorMessage(error)
 					this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: undefined, value: errorMessage }, })
-					return false
+					return { awaitingUserApproval: false, canceled: false }
 				}
 
 				// 2. if tool requires approval, break from the loop, awaiting approval
 				const requiresApproval = !this._settingsService.state.globalSettings.autoApprove
 				if (requiresApproval && toolNamesThatRequireApproval.has(toolName)) {
 					this._addMessageToThread(threadId, { role: 'tool_request', name: toolName, paramsStr: toolParamsStr, params: toolParams, id: toolId })
-					return true
+					return { awaitingUserApproval: true, canceled: false }
 				}
 			}
 			else {
@@ -788,12 +795,20 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			// 3. call the tool
 			this._setStreamState(threadId, { isRunning: 'tool' }, 'merge')
+			let canceled = false
 			try {
-				toolResult = await this._toolsService.callTool[toolName](toolParams as any) // ts is bad...
-			} catch (error) {
+				const { result, cancel } = await this._toolsService.callTool[toolName](toolParams as any) // ts is bad...
+				this._cancelToolOfThreadId[threadId] = cancel
+				let cancelRes: () => void = () => { }
+				const resolveIfCancel = new Promise<never>((res, rej) => { cancelRes = rej })
+				this._cancelToolOfThreadId[threadId] = () => { cancel?.(); canceled = true; delete this._cancelToolOfThreadId[threadId]; cancelRes() }
+				toolResult = await Promise.race([result, resolveIfCancel]) // this await is needed, typescript is bad...
+			}
+			catch (error) {
+				if (canceled) return { awaitingUserApproval: false, canceled: true }
 				const errorMessage = getErrorMessage(error)
 				this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
-				return false
+				return { awaitingUserApproval: true, canceled: false }
 			}
 
 			// 4. stringify the result to give to the LLM
@@ -802,12 +817,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			} catch (error) {
 				const errorMessage = this.errMsgs.errWhenStringifying(error)
 				this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
-				return false
+				return { awaitingUserApproval: false, canceled: false }
 			}
 
 			// 5. add to history and keep going
 			this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
-			return false
+			return { awaitingUserApproval: false, canceled: false }
 		};
 
 		// above just defines helpers, below starts the actual function
@@ -819,13 +834,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		let nMessagesSent = 0
 		let shouldSendAnotherMessage = true
-		let exitReason: 'end' | 'awaitingToolApproval' = 'end' as 'end' | 'awaitingToolApproval'
+		let isRunningWhenEnd: IsRunningType = undefined
 		let aborted = false
 
 		// before enter loop, call tool
 		if (callThisToolFirst) {
 			this._setStreamState(threadId, { isRunning: 'tool' }, 'merge')
-			await handleToolCall(callThisToolFirst, { preapproved: true, toolParams: callThisToolFirst.params })
+			const { canceled } = await handleToolCall(callThisToolFirst, { preapproved: true, toolParams: callThisToolFirst.params })
+			if (canceled) return
 		}
 
 		// tool use loop
@@ -834,7 +850,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			// false by default each iteration
 			shouldSendAnotherMessage = false
-			exitReason = 'end'
+			isRunningWhenEnd = undefined
 
 			nMessagesSent += 1
 
@@ -860,9 +876,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					// call tool if there is one
 					const tool: ToolCallType | undefined = toolCalls?.[0]
 					if (tool) {
-						const awaitingUserApproval = await handleToolCall(tool)
+						const { awaitingUserApproval } = await handleToolCall(tool) // things happen correctly if canceled is true here, because canceled calls onAbort
 						if (awaitingUserApproval) {
-							exitReason = 'awaitingToolApproval'
+							isRunningWhenEnd = 'awaiting_user'
 						} else {
 							shouldSendAnotherMessage = true
 						}
@@ -900,9 +916,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			if (aborted) { return }
 		} // end while
 
+
 		// if awaiting user approval, keep isRunning true, else end isRunning
-		if (exitReason === 'end')
-			this._setStreamState(threadId, { isRunning: undefined }, 'merge')
+		this._setStreamState(threadId, { isRunning: isRunningWhenEnd }, 'merge')
 
 		// capture number of messages sent
 		this._metricsService.capture('Agent Loop Done', { nMessagesSent, chatMode })
@@ -1012,7 +1028,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 
 			// else search codebase for `target`
-			const { uris } = await this._toolsService.callTool['pathname_search']({ queryStr: target, pageNumber: 0 })
+			let uris: URI[] = []
+			try {
+				const { result } = await this._toolsService.callTool['pathname_search']({ queryStr: target, pageNumber: 0 })
+				uris = result.uris
+			} catch (e) {
+				return null
+			}
 
 			for (const [idx, uri] of uris.entries()) {
 				if (doesUriMatchTarget(uri)) {

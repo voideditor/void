@@ -722,7 +722,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	private _addToHistory(uri: URI, opts?: { onUndo?: () => void }) {
+	private _addToHistory(uri: URI, opts?: { onWillUndo?: () => void }) {
 
 		const getCurrentSnapshot = (): HistorySnapshot => {
 
@@ -807,7 +807,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			resource: uri,
 			label: 'Void Changes',
 			code: 'undoredo.editCode',
-			undo: () => { restoreDiffAreas(beforeSnapshot); opts?.onUndo?.() },
+			undo: () => { opts?.onWillUndo?.(); restoreDiffAreas(beforeSnapshot); },
 			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }
 		}
 		this._undoRedoService.pushElement(elt)
@@ -1163,7 +1163,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	// the applyDonePromise this returns can throw an error (reject)
+	// the applyDonePromise this returns can reject, and should be caught with .catch
 	public async startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null> {
 		let res: [DiffZone, Promise<void>] | undefined = undefined
 
@@ -1212,14 +1212,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		uri,
 		startBehavior,
 		streamRequestIdRef,
-		onUndo,
 		linkedCtrlKZone,
+		onWillUndo,
 	}: {
 		uri: URI,
 		startBehavior: 'accept-conflicts' | 'reject-conflicts' | 'keep-conflicts',
 		streamRequestIdRef: { current: string | null },
 		linkedCtrlKZone: CtrlKZone | null,
-		onUndo: () => void,
+		onWillUndo: () => void,
 	}) {
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
@@ -1235,8 +1235,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const originalFileStr = model.getValue(EndOfLinePreference.LF)
 		let originalCode = model.getValueInRange(range, EndOfLinePreference.LF)
 
+
 		// add to history as a checkpoint, before we start modifying
-		const { onFinishEdit } = this._addToHistory(uri, { onUndo })
+		const { onFinishEdit } = this._addToHistory(uri, { onWillUndo })
 
 		// clear diffZones so no conflict
 		if (startBehavior === 'keep-conflicts') {
@@ -1328,20 +1329,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			throw new Error(`Void: diff.type not recognized on: ${from}`)
 		}
 
-		console.log('q1', this.diffAreaOfId)
 		await this._voidModelService.initializeModel(uri)
-		console.log('q2', this.diffAreaOfId)
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
 
-		console.log('q3', this.diffAreaOfId)
-
-		// promise that resolves when the apply is done
-		let resApplyPromise: () => void
-		let rejApplyPromise: (e: any) => void
-		const applyPromise = new Promise<void>((res_, rej_) => { resApplyPromise = res_; rejApplyPromise = rej_ })
 		let streamRequestIdRef: { current: string | null } = { current: null } // can use this as a proxy to set the diffArea's stream state requestId
-
 
 		// build messages
 		const quickEditFIMTags = defaultQuickEditFimTags // TODO can eventually let users customize modelFimTags
@@ -1357,13 +1349,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			]
 		}
 		else if (from === 'QuickEdit') {
-			console.log('aaa')
 			if (!ctrlKZoneIfQuickEdit) return
-			console.log('bbb', ctrlKZoneIfQuickEdit)
 			const { _mountInfo } = ctrlKZoneIfQuickEdit
-			console.log('ccc', _mountInfo)
 			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
-			console.log('ddd', instructions)
 
 			const startLine = startRange === 'fullFile' ? 1 : startRange[0]
 			const endLine = startRange === 'fullFile' ? model.getLineCount() : startRange[1]
@@ -1378,17 +1366,22 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		else { throw new Error(`featureName ${from} is invalid`) }
 
 
+
 		// start diffzone
 		const res = this._startStreamingDiffZone({
 			uri,
 			streamRequestIdRef,
 			startBehavior: opts.startBehavior,
-			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyPromise(new Error('Edit was interrupted by pressing undo.')) },
 			linkedCtrlKZone: ctrlKZoneIfQuickEdit,
+			onWillUndo: () => {
+				if (streamRequestIdRef.current) {
+					this._llmMessageService.abort(streamRequestIdRef.current)
+				}
+			},
+
 		})
 		if (!res) return
-		const { diffZone, onFinishEdit } = res
-
+		const { diffZone, onFinishEdit, } = res
 
 
 		// helpers
@@ -1408,6 +1401,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			onFinishEdit()
 		}
 
+		// throws
+		const onError = (e: { message: string; fullError: Error | null; }) => {
+			this._notifyError(e)
+			onDone()
+			this._undoHistory(uri)
+			throw e.fullError
+		}
+
 		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
 			if (from === 'QuickEdit') {
 				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: quickEditFIMTags.midTag })
@@ -1418,7 +1419,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			throw new Error('Void 1')
 		}
 
-
 		// refresh now in case onText takes a while to get 1st message
 		this._refreshStylesAndDiffsInURI(uri)
 
@@ -1428,7 +1428,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
-		const writeover = async () => {
+		// allowed to throw errors - this is called inside a promise that handles everything
+		const runWriteover = async () => {
 			let shouldSendAnotherMessage = true
 			while (shouldSendAnotherMessage) {
 				shouldSendAnotherMessage = false
@@ -1440,6 +1441,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				let fullTextSoFar = '' // so far (INCLUDING ignored suffix)
 				let prevIgnoredSuffix = ''
 				let aborted = false
+				let weAreAborting = false
+
 
 				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
@@ -1476,31 +1479,27 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						resMessageDonePromise()
 					},
 					onError: (e) => {
-						this._notifyError(e)
-						onDone()
-						this._undoHistory(uri)
-						resMessageDonePromise()
+						onError(e)
 					},
 					onAbort: () => {
+						if (weAreAborting) return
 						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
-						resMessageDonePromise()
 						aborted = true
+						resMessageDonePromise()
 					},
 				})
 				// should never happen, just for safety
 				if (streamRequestIdRef.current === null) { return }
 
 				await messageDonePromise
-				if (aborted) { return }
+				if (aborted) {
+					throw new Error(`Edit was interrupted by the user.`)
+				}
 			} // end while
 		} // end writeover
 
-		writeover().then(() => {
-			resApplyPromise()
-			// this._noLongerNeedModelReference(uri)
-		}).catch((e) => rejApplyPromise(e))
-
-		return [diffZone, applyPromise]
+		const applyDonePromise = runWriteover()
+		return [diffZone, applyDonePromise]
 	}
 
 
@@ -1523,10 +1522,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
 
-		// promise that resolves when the apply is done
-		let resApplyDonePromise: () => void
-		let rejApplyDonePromise: (e: any) => void
-		const applyDonePromise = new Promise<void>((res_, rej_) => { resApplyDonePromise = res_; rejApplyDonePromise = rej_ })
 		let streamRequestIdRef: { current: string | null } = { current: null } // can use this as a proxy to set the diffArea's stream state requestId
 
 
@@ -1544,7 +1539,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			streamRequestIdRef,
 			startBehavior: opts.startBehavior,
 			linkedCtrlKZone: null,
-			onUndo: () => { if (diffZone._streamState.isStreaming) rejApplyDonePromise(new Error('Edit was interrupted by user pressing undo.')) },
+			onWillUndo: () => {
+				if (streamRequestIdRef.current) {
+					this._llmMessageService.abort(streamRequestIdRef.current) // triggers onAbort()
+				}
+			},
 		})
 		if (!res) return
 		const { diffZone, onFinishEdit } = res
@@ -1573,7 +1572,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
-		const errMsgOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>, blockOrig: string, blockNum: number, blocks: ExtractedSearchReplaceBlock[]) => {
+		const errContentOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>, blockOrig: string, blockNum: number, blocks: ExtractedSearchReplaceBlock[]) => {
 
 			const descStr = str === `Not found` ?
 				`The most recent ORIGINAL code could not be found in the file, so you were interrupted. The text in ORIGINAL must EXACTLY match lines of code. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
@@ -1604,6 +1603,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			onFinishEdit()
 		}
 
+		const onError = (e: { message: string; fullError: Error | null; }) => {
+			this._notifyError(e)
+			onDone()
+			this._undoHistory(uri)
+			throw e.fullError // throw error h
+		}
+
 		// refresh now in case onText takes a while to get 1st message
 		this._refreshStylesAndDiffsInURI(uri)
 
@@ -1614,12 +1620,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const addedTrackingZoneOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
 		diffZone._streamState.line = 1
 
-
 		const featureName: FeatureName = 'Apply'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
-		const retryLoop = async () => {
+		const N_RETRIES = 5
+
+		// allowed to throw errors - this is called inside a promise that handles everything
+		const runSearchReplace = async () => {
 			// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
 			let shouldSendAnotherMessage = true
 			let nMessagesSent = 0
@@ -1629,10 +1637,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			while (shouldSendAnotherMessage) {
 				shouldSendAnotherMessage = false
 				nMessagesSent += 1
-				if (nMessagesSent >= 5) {
-					this._notifyError({ message: 'Tried to Fast Apply 5 times but failed. Please try again with a smarter model or disable Fast Apply.', fullError: null })
-					onDone()
-					this._undoHistory(uri)
+				if (nMessagesSent >= N_RETRIES) {
+					const e = {
+						message: `Tried to Fast Apply ${N_RETRIES} times but failed. This may be related to model intelligence, or it may an edit that's too complex. Please retry or disable Fast Apply.`,
+						fullError: null
+					}
+					onError(e)
 					break
 				}
 
@@ -1693,7 +1703,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									console.log('fullText', { fullText })
 									console.log('error:', originalBounds)
 									console.log('block.orig:', block.orig)
-									const content = errMsgOfInvalidStr(originalBounds, block.orig, blockNum, blocks)
+									const content = errContentOfInvalidStr(originalBounds, block.orig, blockNum, blocks)
 									messages.push(
 										{ role: 'assistant', content: fullText, anthropicReasoning: null }, // latest output
 										{ role: 'user', content: content } // user explanation of what's wrong
@@ -1769,8 +1779,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							// diffZone._streamState.line = currentEndLine
 							diffZone._streamState.line = latestStreamLocationMutable.line
 
-
-
 						} // end for
 
 						this._refreshStylesAndDiffsInURI(uri)
@@ -1822,40 +1830,44 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						resMessageDonePromise()
 					},
 					onError: (e) => {
-						this._notifyError(e)
-						onDone()
-						this._undoHistory(uri)
-						resMessageDonePromise()
+						onError(e)
 					},
 					onAbort: () => {
 						if (weAreAborting) return
 						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
-						resMessageDonePromise()
 						aborted = true
+						resMessageDonePromise()
 					},
 				})
 
 				// should never happen, just for safety
 				if (streamRequestIdRef.current === null) { break }
 
-				console.log('awaiting...')
 				await messageDonePromise
-				console.log('done awaiting, aborted=', aborted)
-				if (aborted) { return }
-
+				if (aborted) {
+					throw new Error(`Edit was interrupted by the user.`)
+				}
 			} // end while
 
 		} // end retryLoop
 
-		retryLoop().then(() => {
-			console.log('resolving Apply Done')
-			resApplyDonePromise()
-			// this._noLongerNeedModelReference(uri)
-		}).catch((e) => rejApplyDonePromise(e))
-
+		const applyDonePromise = runSearchReplace()
 		return [diffZone, applyDonePromise]
 	}
 
+
+	_undoHistory(uri: URI) {
+		this._undoRedoService.undo(uri)
+	}
+
+
+
+	isCtrlKZoneStreaming({ diffareaid }: { diffareaid: number }) {
+		const ctrlKZone = this.diffAreaOfId[diffareaid]
+		if (!ctrlKZone) return false
+		if (ctrlKZone.type !== 'CtrlKZone') return false
+		return !!ctrlKZone._linkedStreamingDiffZone
+	}
 
 
 	private _stopIfStreaming(diffZone: DiffZone) {
@@ -1870,31 +1882,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 	}
 
-	_undoHistory(uri: URI) {
-		this._undoRedoService.undo(uri)
-	}
-
-
-
-
-
-	_interruptSingleDiffZoneStreaming({ diffareaid }: { diffareaid: number }) {
-		const diffZone = this.diffAreaOfId[diffareaid]
-		if (diffZone?.type !== 'DiffZone') return
-		if (!diffZone._streamState.isStreaming) return
-
-		this._stopIfStreaming(diffZone)
-		this._undoHistory(diffZone._URI)
-	}
-
-
-	isCtrlKZoneStreaming({ diffareaid }: { diffareaid: number }) {
-		const ctrlKZone = this.diffAreaOfId[diffareaid]
-		if (!ctrlKZone) return false
-		if (ctrlKZone.type !== 'CtrlKZone') return false
-		return !!ctrlKZone._linkedStreamingDiffZone
-	}
-
 
 	// diffareaid of the ctrlKZone (even though the stream state is dictated by the linked diffZone)
 	interruptCtrlKStreaming({ diffareaid }: { diffareaid: number }) {
@@ -1906,7 +1893,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		if (!linkedStreamingDiffZone) return
 		if (linkedStreamingDiffZone.type !== 'DiffZone') return
 
-		this._interruptSingleDiffZoneStreaming({ diffareaid: linkedStreamingDiffZone.diffareaid })
+		this._stopIfStreaming(linkedStreamingDiffZone)
+		this._undoHistory(linkedStreamingDiffZone._URI)
 	}
 
 

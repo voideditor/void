@@ -63,7 +63,7 @@ export const QuickEditChat = ({
 		if (isStreamingRef.current) return
 		textAreaFnsRef.current?.disable()
 
-		editCodeService.startApplying({
+		const res = editCodeService.startApplying({
 			from: 'QuickEdit',
 			diffareaid,
 			startBehavior: 'keep-conflicts',

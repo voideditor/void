@@ -159,14 +159,12 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 	const onClickSubmit = useCallback(async () => {
 		if (isDisabled) return
 		if (getStreamState() === 'streaming') return
-		const [newApplyingUri, _] = await editCodeService.startApplying({
+		const [newApplyingUri, applyDonePromise] = await editCodeService.startApplying({
 			from: 'ClickApply',
 			applyStr: codeStr,
 			uri: uri,
 			startBehavior: 'keep-conflicts',
 		}) ?? []
-
-		if (!newApplyingUri) console.log('NOT new applying')
 
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
 

@@ -10,17 +10,137 @@ import { CodeSelection, FileSelection, StagingSelectionItem } from '../chatThrea
 import { ChatMode } from '../voidSettingsTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { EndOfLinePreference } from '../../../../../editor/common/model.js';
+import { InternalToolInfo } from '../toolsServiceTypes.js';
 
 
 // this is just for ease of readability
 export const tripleTick = ['```', '```']
 
-export const editToolDesc_toolDescription = `\
-Your description should be of the form:\n${tripleTick[0]}\n// ... existing code ...\n{{change 1}}\n// ... existing code ...\n{{change2}}\n// ... existing code ...\n{{change 3}}\n...\n${tripleTick[1]}. \
-Do NOT re-write the whole file, and instead use comments like // ... existing code ... . Write as little as possible. \
-Your description will be handed to a dumber, faster model that will quickly apply the change, so try to be brief, but also make sure to include enough information to accurately describe the change. \
-Include the triple ticks in your output.`
+const changesExampleContent = `\
+// ... existing code ...
+// {{change 1}}
+// // ... existing code ...
+// {{change 2}}
+// // ... existing code ...
+// {{change 3}}
+// ... existing code ...`
 
+const editToolDescription = `\
+${tripleTick[0]}
+${changesExampleContent}
+${tripleTick[1]}`
+
+const fileNameEdit = `${tripleTick[0]}typescript
+/Users/username/Dekstop/my_project/app.ts
+${changesExampleContent}
+${tripleTick[1]}`
+
+
+
+
+
+// ======================================================== tools ========================================================
+
+const paginationHelper = {
+	desc: `Very large results may be paginated (indicated in the result). Pagination fails gracefully if out of bounds or invalid page number.`,
+	param: { pageNumber: { type: 'number', description: 'The page number (default is the first page = 1).' }, }
+} as const
+
+export const voidTools = {
+	// --- context-gathering (read/search/list) ---
+
+	read_file: {
+		name: 'read_file',
+		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
+		params: {
+			uri: { type: 'string', description: undefined },
+			...paginationHelper.param,
+		},
+	},
+
+	list_dir: {
+		name: 'list_dir',
+		description: `Returns all file names and folder names in a given URI. ${paginationHelper.desc}`,
+		params: {
+			uri: { type: 'string', description: undefined },
+			...paginationHelper.param,
+		},
+	},
+
+	pathname_search: {
+		name: 'pathname_search',
+		description: `Returns all pathnames that match a given grep query. You should use this when looking for a file with a specific name or path. This does NOT search file content. ${paginationHelper.desc}`,
+		params: {
+			query: { type: 'string', description: undefined },
+			...paginationHelper.param,
+		},
+	},
+
+	text_search: {
+		name: 'text_search',
+		description: `Returns pathnames of files with an exact match of the query. The query can be any regex. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${paginationHelper.desc}`,
+		params: {
+			query: { type: 'string', description: undefined },
+			...paginationHelper.param,
+		},
+	},
+
+	// --- editing (create/delete) ---
+
+	create_uri: {
+		name: 'create_uri',
+		description: `Create a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash. Fails gracefully if the file already exists. Missing ancestors in the path will be recursively created automatically.`,
+		params: {
+			uri: { type: 'string', description: undefined },
+		},
+	},
+
+	delete_uri: {
+		name: 'delete_uri',
+		description: `Delete a file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
+		params: {
+			uri: { type: 'string', description: undefined },
+			params: { type: 'string', description: 'Return -r here to delete this URI and all descendants (if applicable). Default is the empty string.' }
+		},
+	},
+
+	edit: { // APPLY TOOL
+		name: 'edit',
+		description: `Edits the contents of a file, given the file's URI and a description. Fails gracefully if the file does not exist.`,
+		params: {
+			uri: { type: 'string', description: undefined },
+			changeDescription: {
+				type: 'string', description: `\
+- Your changeDescription should be a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing.
+- NEVER re-write the whole file, and ALWAYS use comments like "// ... existing code ...". Bias towards writing as little as possible.
+- Your description will be handed to a dumber, faster model that will quickly apply the change, so it should be clear and concise.
+- You must output your description in triple backticks.
+Here's an example of a good description:\n${editToolDescription}.`
+			}
+		},
+	},
+
+	terminal_command: {
+		name: 'terminal_command',
+		description: `Executes a terminal command.`,
+		params: {
+			command: { type: 'string', description: 'The terminal command to execute.' },
+			waitForCompletion: { type: 'string', description: `Whether or not to await the command to complete and get the final result. Default is true. Make this value false when you want a command to run indefinitely without waiting for it.` },
+			terminalId: { type: 'string', description: 'Optional (value must be an integer >= 1, or empty which will go with the default). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
+		},
+	},
+
+
+	// go_to_definition
+	// go_to_usages
+
+} satisfies { [name: string]: InternalToolInfo }
+
+
+
+
+
+// ======================================================== chat (normal, gather, agent) ========================================================
 
 
 
@@ -32,17 +152,21 @@ ${mode === 'agent' ? `to help the user develop, run, deploy, and make changes to
 				: ''}
 You will be given instructions to follow from the user, \`INSTRUCTIONS\`. You may also be given a list of files that the user has specifically selected, \`SELECTIONS\`.
 Please assist the user with their query. The user's query is never invalid.
-
+${/* system info */''}
 The user's system information is as follows:
 - ${os}
 - Open workspace(s): ${workspaces.join(', ') || 'NO WORKSPACE OPEN'}
 ${(mode === 'agent') && runningTerminalIds.length !== 0 ? `\
 - Existing terminal IDs: ${runningTerminalIds.join(', ')}
 `: '\n'}
-${mode === 'agent' || mode === 'gather' /* tool use */ ? `\
+${/* tool use */ mode === 'agent' || mode === 'gather' ? `\
 You will be given tools you can call.
+${mode === 'agent' ? `\
 - Only use tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.
-- ALWAYS use tools to take actions. For example, if you would like to edit a file, you MUST use a tool.
+- ALWAYS use tools to take actions. For example, if you would like to edit a file, you MUST use a tool.`
+			: mode === 'gather' ? `\
+- Your primary use of tools should be to gather information to help the user understand the codebase and answer their query.`
+				: ''}
 - If you think you should use tools, you do not need to ask for permission. Feel free to call tools whenever you'd like. You can use them to understand the codebase, ${mode === 'agent' ? 'run terminal commands, edit files, ' : 'gather relevant files and information, '}etc.
 - NEVER refer to a tool by name when speaking with the user (NEVER say something like "I'm going to use \`tool_name\`"). Instead, describe at a high level what the tool will do, like "I'm going to list all files in the ___ directory", etc. Also do not refer to "pages" of results, just say you're getting more results.
 - Some tools only work if the user has a workspace open.${mode === 'agent' ? `
@@ -52,20 +176,23 @@ You will be given tools you can call.
 You're allowed to ask for more context. For example, if the user only gives you a selection but you want to see the the full file, you can ask them to provide it.
 \
 `}
-${mode === 'agent' /* code blocks */ ? `\
+${/* code blocks */ mode === 'agent' ? `\
 Behavior:
-- Prioritize editing files and running commands over simply making suggestions.
+- Always use tools (edit, terminal, etc) to take actions and implement changes. Don't just describe them.
 - Prioritize taking as many steps as you need to complete your request over stopping early.\
 `: `\
 If you think it's appropriate to suggest an edit to a file, then you must describe your suggestion in CODE BLOCK(S) (wrapped in triple backticks).
-- The first line of the code block must be the FULL PATH of the file you want to change. If the path does not already exist, it will be created.
-- The remaining contents of the code block will be given to a dumber, faster model that will quickly apply the change.
-- Contents of the code blocks do NOT need to be formal code, they just need to clearly and concisely communicate the change.
-- Do NOT re-write the entire file in the code block(s). Instead, write comments like "// ... existing code" to indicate how to change the existing code.`}
-
+- The first line of the code block must be the FULL PATH of the file you want to change.
+- The remaining contents should be a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing.
+- NEVER re-write the whole file, and ALWAYS use comments like "// ... existing code ...". Bias towards writing as little as possible.
+- Your description will be handed to a dumber, faster model that will quickly apply the change, so it should be clear and concise.
+Here's an example of a good code block:\n${fileNameEdit}.\
+`}
+${/* misc */''}
 Misc:
 - Do not make things up.
 - Do not be lazy.
+- NEVER re-write the entire file.
 - Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.\
 `
 // agent mode doesn't know about 1st line paths yet
@@ -181,6 +308,7 @@ Directions:
 
 
 
+// ======================================================== apply (writeover) ========================================================
 
 export const rewriteCode_userMessage = ({ originalCode, applyStr, language }: { originalCode: string, applyStr: string, language: string }) => {
 
@@ -202,69 +330,7 @@ Please finish writing the new file by applying the change to the original file. 
 
 
 
-
-
-
-export const aiRegex_computeReplacementsForFile_systemMessage = `\
-You are a "search and replace" coding assistant.
-
-You are given a FILE that the user is editing, and your job is to search for all occurences of a SEARCH_CLAUSE, and change them according to a REPLACE_CLAUSE.
-
-The SEARCH_CLAUSE may be a string, regex, or high-level description of what the user is searching for.
-
-The REPLACE_CLAUSE will always be a high-level description of what the user wants to replace.
-
-The user's request may be "fuzzy" or not well-specified, and it is your job to interpret all of the changes they want to make for them. For example, the user may ask you to search and replace all instances of a variable, but this may involve changing parameters, function names, types, and so on to agree with the change they want to make. Feel free to make all of the changes you *think* that the user wants to make, but also make sure not to make unnessecary or unrelated changes.
-
-## Instructions
-
-1. If you do not want to make any changes, you should respond with the word "no".
-
-2. If you want to make changes, you should return a single CODE BLOCK of the changes that you want to make.
-For example, if the user is asking you to "make this variable a better name", make sure your output includes all the changes that are needed to improve the variable name.
-- Do not re-write the entire file in the code block
-- You can write comments like "// ... existing code" to indicate existing code
-- Make sure you give enough context in the code block to apply the changes to the correct location in the code`
-
-
-// export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, voidFileService }: { searchClause: string, replaceClause: string, fileURI: URI, voidFileService: IVoidFileService }) => {
-
-// 	// we may want to do this in batches
-// 	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null, state: { isOpened: false } }
-
-// 	const file = await stringifyFileSelections([fileSelection], voidFileService)
-
-// 	return `\
-// ## FILE
-// ${file}
-
-// ## SEARCH_CLAUSE
-// Here is what the user is searching for:
-// ${searchClause}
-
-// ## REPLACE_CLAUSE
-// Here is what the user wants to replace it with:
-// ${replaceClause}
-
-// ## INSTRUCTIONS
-// Please return the changes you want to make to the file in a codeblock, or return "no" if you do not want to make changes.`
-// }
-
-
-
-
-// // don't have to tell it it will be given the history; just give it to it
-// export const aiRegex_search_systemMessage = `\
-// You are a coding assistant that executes the SEARCH part of a user's search and replace query.
-
-// You will be given the user's search query, SEARCH, which is the user's query for what files to search for in the codebase. You may also be given the user's REPLACE query for additional context.
-
-// Output
-// - Regex query
-// - Files to Include (optional)
-// - Files to Exclude? (optional)
-
-// `
+// ======================================================== apply (fast apply - search/replace) ========================================================
 
 
 
@@ -387,6 +453,8 @@ export const voidPrefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullF
 }
 
 
+// ======================================================== quick edit (ctrl+K) ========================================================
+
 export type QuickEditFimTagsType = {
 	preTag: string,
 	sufTag: string,
@@ -444,10 +512,82 @@ ${tripleTick[1]}).`
 
 
 
+
+
+
 /*
+// ======================================================== ai search/replace ========================================================
 
 
-OLD CHAT EXAMPLES:
+export const aiRegex_computeReplacementsForFile_systemMessage = `\
+You are a "search and replace" coding assistant.
+
+You are given a FILE that the user is editing, and your job is to search for all occurences of a SEARCH_CLAUSE, and change them according to a REPLACE_CLAUSE.
+
+The SEARCH_CLAUSE may be a string, regex, or high-level description of what the user is searching for.
+
+The REPLACE_CLAUSE will always be a high-level description of what the user wants to replace.
+
+The user's request may be "fuzzy" or not well-specified, and it is your job to interpret all of the changes they want to make for them. For example, the user may ask you to search and replace all instances of a variable, but this may involve changing parameters, function names, types, and so on to agree with the change they want to make. Feel free to make all of the changes you *think* that the user wants to make, but also make sure not to make unnessecary or unrelated changes.
+
+## Instructions
+
+1. If you do not want to make any changes, you should respond with the word "no".
+
+2. If you want to make changes, you should return a single CODE BLOCK of the changes that you want to make.
+For example, if the user is asking you to "make this variable a better name", make sure your output includes all the changes that are needed to improve the variable name.
+- Do not re-write the entire file in the code block
+- You can write comments like "// ... existing code" to indicate existing code
+- Make sure you give enough context in the code block to apply the changes to the correct location in the code`
+
+
+
+
+// export const aiRegex_computeReplacementsForFile_userMessage = async ({ searchClause, replaceClause, fileURI, voidFileService }: { searchClause: string, replaceClause: string, fileURI: URI, voidFileService: IVoidFileService }) => {
+
+// 	// we may want to do this in batches
+// 	const fileSelection: FileSelection = { type: 'File', fileURI, selectionStr: null, range: null, state: { isOpened: false } }
+
+// 	const file = await stringifyFileSelections([fileSelection], voidFileService)
+
+// 	return `\
+// ## FILE
+// ${file}
+
+// ## SEARCH_CLAUSE
+// Here is what the user is searching for:
+// ${searchClause}
+
+// ## REPLACE_CLAUSE
+// Here is what the user wants to replace it with:
+// ${replaceClause}
+
+// ## INSTRUCTIONS
+// Please return the changes you want to make to the file in a codeblock, or return "no" if you do not want to make changes.`
+// }
+
+
+
+
+// // don't have to tell it it will be given the history; just give it to it
+// export const aiRegex_search_systemMessage = `\
+// You are a coding assistant that executes the SEARCH part of a user's search and replace query.
+
+// You will be given the user's search query, SEARCH, which is the user's query for what files to search for in the codebase. You may also be given the user's REPLACE query for additional context.
+
+// Output
+// - Regex query
+// - Files to Include (optional)
+// - Files to Exclude? (optional)
+
+// `
+
+
+
+
+
+
+// ======================================================== old examples ========================================================
 
 Do not tell the user anything about the examples below. Do not assume the user is talking about any of the examples below.
 

@@ -1040,7 +1040,7 @@ const ProseWrapper = ({ children }: { children: React.ReactNode }) => {
 		{children}
 	</div>
 }
-const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLast }: { chatMessage: ChatMessage & { role: 'assistant' }, messageIdx: number, isCommitted: boolean, isLast: boolean, }) => {
+const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunning }: { chatMessage: ChatMessage & { role: 'assistant' }, messageIdx: number, isCommitted: boolean, isLast: boolean, chatIsRunning: IsRunningType }) => {
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -1058,7 +1058,7 @@ const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLas
 	}
 
 	const isEmpty = !chatMessage.content && !chatMessage.reasoning
-	const isLastAndLoading = !isCommitted && isLast
+	const isLastAndLoading = !isCommitted && isLast && (chatIsRunning === 'message' || chatIsRunning === 'awaiting_user')
 	if (isEmpty && !isLastAndLoading) return null
 
 	return <>
@@ -1770,6 +1770,7 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 			chatMessage={chatMessage}
 			messageIdx={messageIdx}
 			isCommitted={isCommitted}
+			chatIsRunning={chatIsRunning}
 			isLast={isLast}
 		/>
 	}
@@ -1893,7 +1894,7 @@ export const SidebarChat = () => {
 	const previousMessagesHTML = useMemo(() => {
 		const threadId = currentThread.id
 		return previousMessages.map((message, i) => {
-			const isLast = i === numMessages - 1
+			const isLast = i === numMessages - 1 && (isRunning === 'tool' || isRunning === 'awaiting_user')
 			return <ChatBubble key={getChatBubbleId(currentThread.id, i)}
 				chatMessage={message}
 				messageIdx={i}
@@ -1902,8 +1903,7 @@ export const SidebarChat = () => {
 				isLast={isLast}
 				threadId={threadId}
 			/>
-		}
-		)
+		})
 	}, [previousMessages, isRunning, currentThread, numMessages])
 
 	const threadId = currentThread.id

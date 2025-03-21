@@ -48,16 +48,9 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 	// changes if the user clicks left/right or if the user goes on a uri with changes
 	const [currUriIdx, setUriIdx] = useState<number | null>(null)
-	const [currUriHasChanges, setCurrUriHasChanges] = useState(false)
 	useEffect(() => {
 		const i = sortedCommandBarURIs.findIndex(e => e.fsPath === uri?.fsPath)
-		if (i !== -1) {
-			setUriIdx(i)
-			setCurrUriHasChanges(true)
-		}
-		else {
-			setCurrUriHasChanges(false)
-		}
+		if (i !== -1) { setUriIdx(i) }
 	}, [sortedCommandBarURIs, uri])
 
 	const getNextDiffIdx = (step: 1 | -1) => {
@@ -130,6 +123,9 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const isAChangeInThisFile = sortedDiffIds.length !== 0
 	const isADiffZoneInThisFile = sortedDiffZoneIds.length !== 0
 	const isADiffZoneInAnyFile = sortedCommandBarURIs.length !== 0
+
+	const streamState = uri ? commandBarService.getStreamState(uri) : null
+	const showAcceptRejectAll = streamState === 'idle-has-changes'
 
 
 	if (!isADiffZoneInAnyFile) { // no changes for the user to accept
@@ -303,7 +299,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 	// dummy container due to annoyances with VS Code mounting the widget
 	return <div className='px-2 pt-1 pb-1 gap-1 pointer-events-auto flex flex-col items-start bg-void-bg-1 rounded shadow-md border border-void-border-1'>
-		{currUriHasChanges && <>
+		{showAcceptRejectAll && <>
 			<div className="flex gap-2">
 				{acceptAllButton}
 				{rejectAllButton}

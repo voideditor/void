@@ -9,7 +9,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
 import { ITerminalService, ITerminalInstance } from '../../../../workbench/contrib/terminal/browser/terminal.js';
-import { ResolveReason } from '../common/toolsServiceTypes.js';
+import { TerminalResolveReason } from '../common/toolsServiceTypes.js';
 import { MAX_TERMINAL_CHARS_PAGE, TERMINAL_BG_WAIT_TIME, TERMINAL_TIMEOUT_TIME } from './toolsService.js';
 
 
@@ -18,7 +18,7 @@ export interface ITerminalToolService {
 	readonly _serviceBrand: undefined;
 
 	listTerminalIds(): string[];
-	runCommand(command: string, proposedTerminalId: string, waitForCompletion: boolean): Promise<{ terminalId: string, didCreateTerminal: boolean, result: string, resolveReason: ResolveReason }>;
+	runCommand(command: string, proposedTerminalId: string, waitForCompletion: boolean): Promise<{ terminalId: string, didCreateTerminal: boolean, result: string, resolveReason: TerminalResolveReason }>;
 	openTerminal(terminalId: string): Promise<void>
 	terminalExists(terminalId: string): boolean
 }
@@ -162,7 +162,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		await this.terminalService.focusActiveInstance()
 
 		let result: string = ''
-		let resolveReason: ResolveReason | undefined = undefined
+		let resolveReason: TerminalResolveReason | undefined = undefined
 
 		const disposables: IDisposable[] = []
 

@@ -20,7 +20,7 @@ import { basename } from '../../../../base/common/path.js'
 
 
 type ValidateParams = { [T in ToolName]: (p: string) => Promise<ToolCallParams[T]> }
-type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], cancel?: () => void }> }
+type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], interruptTool?: () => void }> }
 type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: ToolResultType[T]) => string }
 
 
@@ -357,9 +357,10 @@ export class ToolsService implements IToolsService {
 				if (!res) throw new Error(`The Apply model did not start running on ${basename(uri.fsPath)}. Please try again.`)
 				const [diffZoneURI, applyDonePromise] = res
 
-				const cancel = () => editCodeService.interruptURIStreaming({ uri: diffZoneURI })
-
-				return { result: applyDonePromise, cancel }
+				const interruptTool = () => { // must reject the applyPromiseDone promise
+					editCodeService.interruptURIStreaming({ uri: diffZoneURI })
+				}
+				return { result: applyDonePromise, interruptTool }
 			},
 			terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
 				const { terminalId, didCreateTerminal, result, resolveReason } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
@@ -393,6 +394,7 @@ export class ToolsService implements IToolsService {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
 			edit: (params, result) => {
+				console.log('STR OF RESULT', params)
 				return `Change successfully made to ${params.uri.fsPath}.`
 			},
 			terminal_command: (params, result) => {

@@ -286,7 +286,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const gridLayout = <div className="flex flex-col gap-1">
 		{/* First row */}
 		{filesDescription &&
-			<div className={`flex items-center ${leftRightDisabled ? 'text-opacity-50' : ''}`}>
+			<div className={`flex items-center ${leftRightDisabled ? 'opacity-50' : ''}`}>
 				{leftButton}
 				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
 				{rightButton}
@@ -297,7 +297,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 		{/* Second row */}
 		{changesDescription &&
-			<div className={`flex items-center ${upDownDisabled ? 'text-opacity-50' : ''}`}>
+			<div className={`flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
 				{upButton}
 				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
 				{downButton}

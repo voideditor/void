@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 
 
@@ -16,4 +16,13 @@ export const useRefState = <T,>(initVal: T): ReturnType<T> => {
 		ref.current = newVal
 	}, [])
 	return [ref, setState]
+}
+
+
+export const usePromise = <T,>(promise: Promise<T>): T | undefined => {
+	const [val, setVal] = useState<T | undefined>(undefined)
+	useEffect(() => {
+		promise.then((v) => setVal(v))
+	}, [promise])
+	return val
 }

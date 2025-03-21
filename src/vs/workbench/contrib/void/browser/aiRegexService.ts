@@ -34,7 +34,7 @@
 // 	// 			const result = await new Promise((res, rej) => {
 // 	// 				sendLLMMessage({
 // 	// 					messages,
-// 	// 					tools: ['search'],
+// 	// 					tools: ['text_search'],
 // 	// 					onFinalMessage: ({ result: r, }) => {
 // 	// 						res(r)
 // 	// 					},
@@ -73,7 +73,7 @@
 // 	// 	const result = new Promise((res, rej) => {
 // 	// 		sendLLMMessage({
 // 	// 			messages,
-// 	// 			tools: ['search'],
+// 	// 			tools: ['text_search'],
 // 	// 			onResult: (r) => {
 // 	// 				res(r)
 // 	// 			}

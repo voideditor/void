@@ -7,8 +7,6 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-// import { ILLMMessageService } from '../common/llmMessageService.js';
-// import { ServiceSendLLMMessageParams } from '../common/llmMessageTypes.js';
 
 
 
@@ -17,7 +15,7 @@ export interface ISearchReplaceService {
 }
 
 export const ISearchReplaceService = createDecorator<ISearchReplaceService>('SearchReplaceCacheService');
-class SearchReplaceService extends Disposable implements ISearchReplaceService {
+export class SearchReplaceService extends Disposable implements ISearchReplaceService {
 	_serviceBrand: undefined;
 
 	private readonly _onDidChangeState = new Emitter<void>();

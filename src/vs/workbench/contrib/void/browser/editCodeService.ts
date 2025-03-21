@@ -1245,18 +1245,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				// ctrlkzone should never have any conflicts
 			}
 			else {
-				console.log('KEEPING CONFLICTS!!!!!!!!')
+				// console.log('KEEPING CONFLICTS!!!!!!!!')
 				// keep conflict on whole file - to keep conflict, revert the change and use those contents as original, then un-revert the file
-				console.log('originalFile', originalFileStr)
-				console.log('diffareas A', JSON.stringify(this.diffAreasOfURI, null, 2))
+				// console.log('originalFile', originalFileStr)
+				// console.log('diffareas A', JSON.stringify(this.diffAreasOfURI, null, 2))
 				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
-				console.log('diffareas B', JSON.stringify(this.diffAreasOfURI, null, 2))
+				// console.log('diffareas B', JSON.stringify(this.diffAreasOfURI, null, 2))
 				const oldFileStr = model.getValue(EndOfLinePreference.LF) // use this as original code
-				console.log('oldFileStr', { oldFileStr })
+				// console.log('oldFileStr', { oldFileStr })
 				this._writeURIText(uri, originalFileStr, 'wholeFileRange', { shouldRealignDiffAreas: true }) // un-revert
 				originalCode = oldFileStr
-				console.log('originalCode', { originalCode })
-				console.log('NEW STR', { newStr: model.getValue(EndOfLinePreference.LF) })
+				// console.log('originalCode', { originalCode })
+				// console.log('NEW STR', { newStr: model.getValue(EndOfLinePreference.LF) })
 			}
 
 		}

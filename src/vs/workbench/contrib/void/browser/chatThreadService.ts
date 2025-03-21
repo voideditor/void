@@ -753,6 +753,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				{ role: 'user', content: userMessageFullContent },
 				...messages_.slice(lastUserMsgIdx + 1, Infinity),
 			]
+			// console.log('MESSAGES!!!', messages)
 			return messages
 		}
 

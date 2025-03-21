@@ -282,13 +282,8 @@ export const chat_selectionsString = async (
 	const filesStr = await stringifyFileSelections(fileSelections, voidModelService)
 	const selnsStr = stringifyCodeSelections(codeSelections)
 
-
-	if (filesStr || selnsStr) return `\
-ALL FILE CONTENTS
-${filesStr}
-${selnsStr}`
-
-	return null
+	const fileContents = [filesStr, selnsStr].filter(Boolean).join('\n')
+	return fileContents || null
 }
 
 export const chat_lastUserMessageWithFilesAdded = (userMessage: string, selectionsString: string | null) => {

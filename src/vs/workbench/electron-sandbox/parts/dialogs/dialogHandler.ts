@@ -71,7 +71,7 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 
 	async about(): Promise<void> {
 		let version = this.productService.version;
-		let voidVersion = this.productService.voidVersion;
+		let voidVersion = this.productService.voidVersion; // Void added this
 		if (this.productService.target) {
 			version = `${version} (${this.productService.target} setup)`;
 		} else if (this.productService.darwinUniversalAssetId) {

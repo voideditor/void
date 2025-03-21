@@ -29,11 +29,11 @@ export const SidebarThreadSelector = () => {
 
 	// sorted by most recent to least recent
 	const sortedThreadIds = Object.keys(allThreads ?? {})
-		.sort((threadId1, threadId2) => allThreads![threadId1].lastModified > allThreads![threadId2].lastModified ? -1 : 1)
-		.filter(threadId => allThreads![threadId].messages.length !== 0)
+		.sort((threadId1, threadId2) => (allThreads[threadId1]?.lastModified ?? 0) > (allThreads[threadId2]?.lastModified ?? 0) ? -1 : 1)
+		.filter(threadId => (allThreads![threadId]?.messages.length ?? 0) !== 0)
 
 	return (
-		<div className="flex p-2 flex-col gap-y-1 max-h-[400px] overflow-y-auto">
+		<div className="flex p-2 flex-col gap-y-1 max-h-[200px] overflow-y-auto">
 
 			<div className="w-full relative flex justify-center items-center">
 				{/* title */}
@@ -63,12 +63,16 @@ export const SidebarThreadSelector = () => {
 							if (!allThreads) {
 								return <li key="error" className="text-void-warning">{`Error accessing chat history.`}</li>;
 							}
-
 							const pastThread = allThreads[threadId];
+							if (!pastThread) {
+								return <li key="error" className="text-void-warning">{`Error accessing chat history.`}</li>;
+							}
+
+
 							let firstMsg = null;
 							// let secondMsg = null;
 
-							const firstUserMsgIdx = pastThread.messages.findIndex((msg) =>  msg.role !== 'tool' && msg.role !== 'tool_request');
+							const firstUserMsgIdx = pastThread.messages.findIndex((msg) => msg.role !== 'tool' && msg.role !== 'tool_request');
 
 							if (firstUserMsgIdx !== -1) {
 								// firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');
@@ -102,7 +106,7 @@ export const SidebarThreadSelector = () => {
 									`}
 										onClick={() => chatThreadsService.switchToThread(pastThread.id)}
 										onDoubleClick={() => sidebarStateService.setState({ isHistoryOpen: false })}
-										title={new Date(pastThread.createdAt).toLocaleString()}
+										title={new Date(pastThread.lastModified).toLocaleString()}
 									>
 										<div className='truncate'>{`${firstMsg}`}</div>
 										<div>{`\u00A0(${numMessages})`}</div>

@@ -43,9 +43,6 @@ export const defaultProviderSettings = {
 	xAI: {
 		apiKey: ''
 	},
-	mistral: {
-		apiKey: ''
-	},
 } as const
 
 
@@ -147,11 +144,6 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 			title: 'Grok (xAI)',
 		}
 	}
-	else if (providerName === 'mistral') {
-		return {
-			title: 'Mistral.ai API',
-		}
-	}
 
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
@@ -178,8 +170,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 								providerName === 'groq' ? 'gsk_key...' :
 									providerName === 'openAICompatible' ? 'sk-key...' :
 										providerName === 'xAI' ? 'xai-key...' :
-											providerName === 'mistral' ? 'key...' :
-												'',
+											'',
 
 			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
 				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
@@ -188,9 +179,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 							providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 								providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
 									providerName === 'xAI' ? 'Get your [API Key here](https://console.x.ai).' :
-										providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys).' :
-											providerName === 'openAICompatible' ? undefined :
-												'',
+										providerName === 'openAICompatible' ? undefined :
+											'',
 			isPasswordField: true,
 		}
 	}
@@ -298,12 +288,6 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible),
 		_didFillInProviderSettings: undefined,
 	},
-	mistral: { // aggregator
-		...defaultCustomSettings,
-		...defaultProviderSettings.mistral,
-		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
-		_didFillInProviderSettings: undefined,
-	},
 	ollama: { // aggregator
 		...defaultCustomSettings,
 		...defaultProviderSettings.ollama,
@@ -340,7 +324,7 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 	else if (featureName === 'Chat')
 		return 'Chat'
 	else if (featureName === 'Apply')
-		return 'Fast Apply'
+		return 'Apply'
 	else
 		throw new Error(`Feature Name ${featureName} not allowed`)
 }
@@ -394,21 +378,27 @@ export const isFeatureNameDisabled = (featureName: FeatureName, settingsState: V
 
 
 
-export type ChatMode = 'agent' | 'gather' | 'chat'
+export type ChatMode = 'agent' | 'gather' | 'normal'
 
 
 export type GlobalSettings = {
 	autoRefreshModels: boolean;
 	aiInstructions: string;
 	enableAutocomplete: boolean;
+	syncApplyToChat: boolean;
+	enableFastApply: boolean;
 	chatMode: ChatMode;
+	autoApprove: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
 	aiInstructions: '',
 	enableAutocomplete: false,
+	syncApplyToChat: true,
+	enableFastApply: true,
 	chatMode: 'agent',
+	autoApprove: false,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

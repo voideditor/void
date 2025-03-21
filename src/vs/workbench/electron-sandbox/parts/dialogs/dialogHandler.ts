@@ -71,7 +71,7 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 
 	async about(): Promise<void> {
 		let version = this.productService.version;
-		let voidVersion = this.productService.voidVersion || 'Unknown';
+		let voidVersion = this.productService.voidVersion; // Void added this
 		if (this.productService.target) {
 			version = `${version} (${this.productService.target} setup)`;
 		} else if (this.productService.darwinUniversalAssetId) {
@@ -82,8 +82,8 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 
 		const detailString = (useAgo: boolean): string => {
 			return localize({ key: 'aboutDetail', comment: ['Electron, Chromium, Node.js and V8 are product names that need no translation'] },
-				"Void : {0}\nVSCode Version: {1}\nCommit: {2}\nDate: {3}\nElectron: {4}\nElectronBuildId: {5}\nChromium: {6}\nNode.js: {7}\nV8: {8}\nOS: {9}",
-				voidVersion,
+				"Void Version: {0}\nVSCode Version: {1}\nCommit: {2}\nDate: {3}\nElectron: {4}\nElectronBuildId: {5}\nChromium: {6}\nNode.js: {7}\nV8: {8}\nOS: {9}",
+				voidVersion || 'Unknown',
 				version,
 				this.productService.commit || 'Unknown',
 				this.productService.date ? `${this.productService.date}${useAgo ? ' (' + fromNow(new Date(this.productService.date), true) + ')' : ''}` : 'Unknown',

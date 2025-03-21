@@ -25,7 +25,7 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 
 import { mountVoidSettings } from './react/out/void-settings-tsx/index.js'
 import { Codicon } from '../../../../base/common/codicons.js';
-import { IDisposable } from '../../../../base/common/lifecycle.js';
+import { toDisposable } from '../../../../base/common/lifecycle.js';
 
 
 // refer to preferences.contribution.ts keybindings editor
@@ -90,12 +90,12 @@ class VoidSettingsPane extends EditorPane {
 
 		// Mount React into the scrollable content
 		this.instantiationService.invokeFunction(accessor => {
-			const disposables: IDisposable[] | undefined = mountVoidSettings(settingsElt, accessor);
+			const disposeFn = mountVoidSettings(settingsElt, accessor)?.dispose;
+			this._register(toDisposable(() => disposeFn?.()))
 
 			// setTimeout(() => { // this is a complete hack and I don't really understand how scrollbar works here
 			// 	this._scrollbar?.scanDomNode();
 			// }, 1000)
-			disposables?.forEach(d => this._register(d));
 		});
 	}
 

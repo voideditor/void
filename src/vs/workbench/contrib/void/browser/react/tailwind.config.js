@@ -9,7 +9,7 @@ module.exports = {
 	content: ['./src2/**/*.{jsx,tsx}'], // uses these files to decide how to transform the css file
 	theme: {
 		extend: {
-			typography: {
+			typography: theme => ({
 				DEFAULT: {
 					css: {
 						'--tw-prose-body': 'var(--void-fg-1)',
@@ -30,8 +30,7 @@ module.exports = {
 						'--tw-prose-td-borders': 'var(--void-border-4)',
 					},
 				},
-
-			},
+			}),
 			fontSize: {
 				xs: '10px',
 				sm: '11px',

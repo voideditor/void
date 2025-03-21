@@ -316,18 +316,18 @@ export const VoidSlider = ({
 					{/* Track */}
 					<div
 						className={`relative ${size === 'xxs' ? 'h-0.5' :
-								size === 'xs' ? 'h-1' :
-									size === 'sm' ? 'h-1.5' :
-										size === 'sm+' ? 'h-2' : 'h-2.5'
+							size === 'xs' ? 'h-1' :
+								size === 'sm' ? 'h-1.5' :
+									size === 'sm+' ? 'h-2' : 'h-2.5'
 							} bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer`}
 						onClick={handleTrackClick}
 					>
 						{/* Filled part of track */}
 						<div
 							className={`absolute left-0 ${size === 'xxs' ? 'h-0.5' :
-									size === 'xs' ? 'h-1' :
-										size === 'sm' ? 'h-1.5' :
-											size === 'sm+' ? 'h-2' : 'h-2.5'
+								size === 'xs' ? 'h-1' :
+									size === 'sm' ? 'h-1.5' :
+										size === 'sm+' ? 'h-2' : 'h-2.5'
 								} bg-gray-900 dark:bg-white rounded-full`}
 							style={{ width: `${percentage}%` }}
 						/>
@@ -460,7 +460,7 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 
 
 
-export const VoidCustomDropdownBox = <T extends any>({
+export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 	options,
 	selectedOption,
 	onChangeOption,
@@ -471,7 +471,8 @@ export const VoidCustomDropdownBox = <T extends any>({
 	className,
 	arrowTouchesText = true,
 	matchInputWidth = false,
-	gap = 0,
+	gapPx = 0,
+	offsetPx = -6,
 }: {
 	options: T[];
 	selectedOption: T | undefined;
@@ -483,7 +484,8 @@ export const VoidCustomDropdownBox = <T extends any>({
 	className?: string;
 	arrowTouchesText?: boolean;
 	matchInputWidth?: boolean;
-	gap?: number;
+	gapPx?: number;
+	offsetPx?: number;
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const measureRef = useRef<HTMLDivElement>(null);
@@ -502,7 +504,7 @@ export const VoidCustomDropdownBox = <T extends any>({
 		placement: 'bottom-start',
 
 		middleware: [
-			offset(gap),
+			offset({ mainAxis: gapPx, crossAxis: offsetPx }),
 			flip({
 				boundary: document.body,
 				padding: 8
@@ -537,7 +539,7 @@ export const VoidCustomDropdownBox = <T extends any>({
 	// if the selected option is null, set the selection to the 0th option
 	useEffect(() => {
 		if (options.length === 0) return
-		if (selectedOption) return
+		if (selectedOption !== undefined) return
 		onChangeOption(options[0])
 	}, [selectedOption, onChangeOption, options])
 
@@ -566,7 +568,7 @@ export const VoidCustomDropdownBox = <T extends any>({
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, [isOpen, refs.floating, refs.reference]);
 
-	if (!selectedOption)
+	if (selectedOption === undefined)
 		return null
 
 	return (
@@ -785,8 +787,8 @@ const normalizeIndentation = (code: string): string => {
 
 
 const modelOfEditorId: { [id: string]: ITextModel | undefined } = {}
-export type VoidCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
-export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars }: VoidCodeEditorProps) => {
+export type BlockCodeProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
+export const BlockCode = ({ initValue, language, maxHeight, showScrollbars }: BlockCodeProps) => {
 
 	initValue = normalizeIndentation(initValue)
 
@@ -800,7 +802,6 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 	const instantiationService = accessor.get('IInstantiationService')
 	// const languageDetectionService = accessor.get('ILanguageDetectionService')
 	const modelService = accessor.get('IModelService')
-
 
 	const id = useId()
 
@@ -882,9 +883,11 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 			}, [instantiationService])}
 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
+				const languageId = languageRef.current ? languageRef.current : 'plaintext'
+
 				const model = modelOfEditorId[id] ?? modelService.createModel(
-					initValueRef.current + '\n', {
-					languageId: languageRef.current ? languageRef.current : 'typescript',
+					initValueRef.current, {
+					languageId: languageId,
 					onDidChange: (e) => { return { dispose: () => { } } } // no idea why they'd require this
 				})
 				modelRef.current = model
@@ -921,7 +924,7 @@ export const VoidCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 
 export const VoidButton = ({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) => {
 	return <button disabled={disabled}
-		className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
+		className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden whitespace-nowrap'
 		onClick={onClick}
 	>{children}</button>
 }

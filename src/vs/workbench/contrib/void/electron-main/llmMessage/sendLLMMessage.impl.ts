@@ -6,13 +6,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
+
 import { Model as OpenAIModel } from 'openai/resources/models.js';
-
-// Mistral FIM
-import { MistralCore } from "@mistralai/mistralai/core.js";
-import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
-//
-
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
@@ -117,16 +112,12 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
-	else if (providerName === 'mistral') {
-		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
-	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
 }
 
 
-const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions, }: SendFIMParams_Internal) => {
+const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -148,7 +139,6 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 			max_tokens: messages.maxTokens,
 		})
 		.then(async response => {
-
 			const fullText = response.choices[0]?.text
 			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
 		})
@@ -158,7 +148,10 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 		})
 }
 
-const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions, tools: tools_ }: SendChatParams_Internal) => {
+
+
+
+const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, tools: tools_ }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		supportsReasoning,
@@ -471,56 +464,6 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 		})
 }
 
-//////// MISTRAL ////////
-const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendChatParams_Internal) => {
-	_sendOpenAICompatibleChat({
-		messages: messages_,
-		onText,
-		onFinalMessage,
-		onError,
-		settingsOfProvider,
-		modelName: modelName_,
-		_setAborter,
-		providerName,
-		aiInstructions,
-		modelSelectionOptions
-	});
-}
-
-const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
-	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
-	if (!supportsFIM) {
-		if (modelName === modelName_)
-			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
-		else
-			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
-		return
-	}
-
-	prepareFIMMessage({ messages: messages_, aiInstructions })
-
-	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
-
-	fimComplete(
-		mistral, {
-		model: modelName,
-		prompt: messages_.prefix,
-		suffix: messages_.suffix,
-		stream: false,
-		topP: 1,
-		stop: messages_.stopTokens
-	},
-	)
-		.then(async response => {
-			let content = response?.ok ? response.value.choices?.[0]?.message?.content : '';
-			const fullText = typeof content === 'string' ? content :
-				Array.isArray(content) ? content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('') : '';
-			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
-		})
-		.catch(error => {
-			onError({ message: error + '', fullError: error });
-		})
-}
 
 
 type CallFnOfProvider = {
@@ -552,6 +495,11 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
+	// mistral: {
+	// 	sendChat: , // TODO
+	// 	sendFIM: , // TODO // https://docs.mistral.ai/api/#tag/fim
+	// 	list: null,
+	// },
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: sendOllamaFIM,
@@ -582,9 +530,30 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
-	mistral: {
-		sendChat: (params) => _sendMistralChat(params),
-		sendFIM: (params) => _sendMistralFIM(params),
-		list: null,
-	},
 } satisfies CallFnOfProvider
+
+
+
+
+/*
+FIM info (this may be useful in the future with vLLM, but in most cases the only way to use FIM is if the provider explicitly supports it):
+
+qwen2.5-coder https://ollama.com/library/qwen2.5-coder/blobs/e94a8ecb9327
+<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
+
+codestral https://ollama.com/library/codestral/blobs/51707752a87c
+[SUFFIX]{{ .Suffix }}[PREFIX] {{ .Prompt }}
+
+deepseek-coder-v2 https://ollama.com/library/deepseek-coder-v2/blobs/22091531faf0
+<｜fim▁begin｜>{{ .Prompt }}<｜fim▁hole｜>{{ .Suffix }}<｜fim▁end｜>
+
+starcoder2 https://ollama.com/library/starcoder2/blobs/3b190e68fefe
+<file_sep>
+<fim_prefix>
+{{ .Prompt }}<fim_suffix>{{ .Suffix }}<fim_middle>
+<|end_of_text|>
+
+codegemma https://ollama.com/library/codegemma:2b/blobs/48d9a8140749
+<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
+
+*/

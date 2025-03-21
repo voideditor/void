@@ -68,18 +68,15 @@
     "extensions-ci": "node ./node_modules/gulp/bin/gulp.js extensions-ci",
     "extensions-ci-pr": "node ./node_modules/gulp/bin/gulp.js extensions-ci-pr",
     "perf": "node scripts/code-perf.js",
-    "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json",
-    "void-version-patch": "node scripts/update-version.js patch && git add product.json && git commit -m \"Bump: voidVersion\" && git tag v$(node -e \"console.log(require('./product.json').voidVersion)\") && git push && git push --tags",
-    "void-version-minor": "node scripts/update-version.js minor && git add product.json && git commit -m \"Bump: voidVersion minor\" && git tag v$(node -e \"console.log(require('./product.json').voidVersion)\") && git push && git push --tags",
-    "void-version-major": "node scripts/update-version.js major && git add product.json && git commit -m \"Bump: voidVersion major\" && git tag v$(node -e \"console.log(require('./product.json').voidVersion)\") && git push && git push --tags"
-  },
+    "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json"
+    },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@floating-ui/react": "^0.27.5",
     "@google/generative-ai": "^0.22.0",
     "@microsoft/1ds-core-js": "^3.2.13",
     "@microsoft/1ds-post-js": "^3.2.13",
-    "@mistralai/mistralai": "^1.5.1",
+    "@mistralai/mistralai": "^1.5.0",
     "@parcel/watcher": "2.5.1",
     "@types/semver": "^7.5.8",
     "@vscode/deviceid": "^0.1.1",

@@ -130,7 +130,7 @@ const modelOptionsDefaults: ModelOptions = {
 
 const mistralModelOptions = {
 	'codestral-latest': {
-		contextWindow: 256_000,
+		contextWindow: 128_000,
 		maxOutputTokens: 16_384,
 		cost: { input: 0.000015, output: 0.000090 },
 		supportsFIM: true,

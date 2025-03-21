@@ -352,7 +352,6 @@ registerSingleton(IVoidCommandBarService, VoidCommandBarService, InstantiationTy
 export type VoidCommandBarProps = {
 	uri: URI | null;
 	editor: ICodeEditor;
-	onChangeHeight: (height: number) => void;
 }
 
 
@@ -376,33 +375,17 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 		const { root } = dom.h('div@root');
 
 		// Style the container
+		// root.style.backgroundColor = 'rgb(248 113 113)';
+		root.style.height = '16rem'; // make a fixed size, and all contents go on the bottom right. this fixes annoying VS Code mounting issues
+		root.style.width = '16rem';
+		root.style.flexDirection = 'column';
+		root.style.justifyContent = 'flex-end';
+		root.style.alignItems = 'flex-end';
 		root.style.zIndex = '2';
 		root.style.padding = '4px';
-		root.style.alignItems = 'center';
 		root.style.pointerEvents = 'none';
-		// Mount command bar using mountVoidCommandBar
-		// this.editor.getDomNode()?.appendChild(root)
-
-		const onChangeHeight = (height: number) => {
-			if (height === 0) return;
-
-			this._height = height
-			// editor.layoutOverlayWidget(this)
-			// stupid hack because layoutOverlayWidget doesn't work
-			editor.removeOverlayWidget(this)
-			editor.addOverlayWidget(this)
-		}
-
-		// alternative to mount VoidCommandBar without the stupid widget
-		// editor.getLayoutInfo()
-		// this._register(
-		// 	editor.onDidLayoutChange(e => {
-		// 		// e.height
-		// 		// e.width
-		// 	})
-		// )
-
-
+		root.style.display = 'flex';
+		root.style.overflow = 'hidden';
 
 
 		this._domNode = root;
@@ -412,14 +395,14 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 
 			const uri = editor.getModel()?.uri || null
 
-			const res = mountVoidCommandBar(root, accessor, { uri, editor, onChangeHeight } satisfies VoidCommandBarProps)
+			const res = mountVoidCommandBar(root, accessor, { uri, editor } satisfies VoidCommandBarProps)
 			if (!res) return
 
 			this._register(toDisposable(() => res.dispose?.()))
 
 			this._register(editor.onDidChangeModel((model) => {
 				const uri = model.newModelUrl
-				res.rerender({ uri, editor, onChangeHeight })
+				res.rerender({ uri, editor })
 			}))
 
 		});

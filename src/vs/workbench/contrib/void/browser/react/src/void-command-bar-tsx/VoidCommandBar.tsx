@@ -12,7 +12,7 @@ import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { VoidCommandBarProps } from '../../../voidCommandBarService.js';
 
-export const VoidCommandBarMain = ({ uri, editor, onChangeHeight }: VoidCommandBarProps) => {
+export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
 
 	if (uri?.scheme !== 'file') return null // don't show in editors that we made, they must be files
@@ -20,7 +20,7 @@ export const VoidCommandBarMain = ({ uri, editor, onChangeHeight }: VoidCommandB
 	return <div
 		className={`@@void-scope ${isDark ? 'dark' : ''}`}
 	>
-		<VoidCommandBar uri={uri} editor={editor} onChangeHeight={onChangeHeight} />
+		<VoidCommandBar uri={uri} editor={editor} />
 	</div>
 }
 
@@ -32,11 +32,9 @@ const stepIdx = (currIdx: number | null, len: number, step: -1 | 1) => {
 	return ((currIdx ?? 0) + step + len) % len // for some reason, small negatives are kept negative. just add len to offset
 }
 
-const DummyContainer = ()=>{
 
-}
 
-const VoidCommandBar = ({ uri, editor, onChangeHeight }: VoidCommandBarProps) => {
+const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const editorService = accessor.get('ICodeEditorService')
@@ -46,28 +44,11 @@ const VoidCommandBar = ({ uri, editor, onChangeHeight }: VoidCommandBarProps) =>
 	const voidModelService = accessor.get('IVoidModelService')
 	const { state: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
 
-	// Add a reference to the container for resize observer
-	const sizerRef = useRef<HTMLDivElement | null>(null)
-
-	// Add the resize observer effect
-	useEffect(() => {
-		const inputContainer = sizerRef.current
-		if (!inputContainer) return;
-		// only observing 1 element
-		let resizeObserver: ResizeObserver | undefined
-		resizeObserver = new ResizeObserver((entries) => {
-			const height = entries[0].borderBoxSize[0].blockSize
-			onChangeHeight(height)
-		})
-		resizeObserver.observe(inputContainer);
-		return () => { resizeObserver?.disconnect(); };
-	}, [onChangeHeight]);
 
 
 	// changes if the user clicks left/right or if the user goes on a uri with changes
 	const [currUriIdx, setUriIdx] = useState<number | null>(null)
 	const [currUriHasChanges, setCurrUriHasChanges] = useState(false)
-	const anyUriHasChanges = sortedCommandBarURIs.length !== 0
 	useEffect(() => {
 		const i = sortedCommandBarURIs.findIndex(e => e.fsPath === uri?.fsPath)
 		if (i !== -1) {
@@ -137,19 +118,26 @@ const VoidCommandBar = ({ uri, editor, onChangeHeight }: VoidCommandBarProps) =>
 
 
 	const currDiffIdx = uri ? commandBarState[uri.fsPath]?.diffIdx ?? null : null
-	const sortedDiffIds = uri ? commandBarState[uri.fsPath]?.sortedDiffIds ?? null : null
+	const sortedDiffIds = uri ? commandBarState[uri.fsPath]?.sortedDiffIds ?? [] : []
+	const sortedDiffZoneIds = uri ? commandBarState[uri.fsPath]?.sortedDiffZoneIds ?? [] : []
+
 
 	const nextDiffIdx = getNextDiffIdx(1)
 	const prevDiffIdx = getNextDiffIdx(-1)
 	const nextURIIdx = getNextUriIdx(1)
 	const prevURIIdx = getNextUriIdx(-1)
 
+	const isAChangeInThisFile = sortedDiffIds.length !== 0
+	const isADiffZoneInThisFile = sortedDiffZoneIds.length !== 0
+	const isADiffZoneInAnyFile = sortedCommandBarURIs.length !== 0
 
 
-	// if there are *any* changes at all
-	const navPanel = anyUriHasChanges && <div
-		className="flex items-center gap-1"
-	>
+	if (!isADiffZoneInAnyFile) { // no changes for the user to accept
+		return null
+	}
+
+
+	const buttonsHTML = <>
 		<button
 			className={`
 				size-4 rounded hover:bg-void-bg-1-alt cursor-pointer
@@ -217,16 +205,26 @@ const VoidCommandBar = ({ uri, editor, onChangeHeight }: VoidCommandBarProps) =>
 			}}
 			title="Next file"
 		>→</button>
+	</>
 
-		<div className="text-[var(--vscode-editor-foreground)] text-xs flex gap-4">
+
+	const descriptionHTML = isADiffZoneInThisFile ?
+		<>
 			{currUriIdx !== null && sortedCommandBarURIs.length && <div>
-				File {currUriIdx + 1} of {sortedCommandBarURIs.length}
+				{`File ${currUriIdx + 1} of ${sortedCommandBarURIs.length}`}
 			</div>}
-			{currDiffIdx !== null && sortedDiffIds?.length && <div>
-				Diff {currDiffIdx + 1} of {sortedDiffIds?.length ?? 0}
-			</div>}
-		</div>
-	</div >
+			{/* <div>
+				{!isAChangeInThisFile ?
+					`(No changes)`
+					: `Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
+				}
+			</div> */}
+		</>
+		: <>
+			{`${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'}`}
+		</>
+
+
 
 
 	// accept/reject if current URI has changes
@@ -276,13 +274,48 @@ const VoidCommandBar = ({ uri, editor, onChangeHeight }: VoidCommandBarProps) =>
 	</button>
 
 
-	return <div ref={sizerRef} className='px-2 pt-1.5 pb-1 gap-1 pointer-events-auto flex flex-col items-start bg-void-bg-1 rounded shadow-md border border-void-border-1'>
+	// const closeCommandBar = useCallback(() => {
+	// 	commandService.executeCommand('void.hideCommandBar');
+	// }, [commandService]);
+
+	// const hideButton = <button
+	// 	className='ml-auto pointer-events-auto'
+	// 	onClick={closeCommandBar}
+	// 	style={{
+	// 		color: buttonTextColor,
+	// 		fontSize: buttonFontSize,
+	// 		padding: '2px 4px',
+	// 		borderRadius: '6px',
+	// 		cursor: 'pointer'
+	// 	}}
+	// 	title="Close command bar"
+	// >x
+	// </button>
+
+	// const actionButtons = currUriHasChanges && (
+	// 	<div className="flex gap-2 items-center w-full">
+	// 		{acceptAllButton}
+	// 		{rejectAllButton}
+	// 		{hideButton}
+	// 	</div>
+	// );
+
+
+	// dummy container due to annoyances with VS Code mounting the widget
+	return <div className='px-2 pt-1 pb-1 gap-1 pointer-events-auto flex flex-col items-start bg-void-bg-1 rounded shadow-md border border-void-border-1'>
 		{currUriHasChanges && <>
 			<div className="flex gap-2">
 				{acceptAllButton}
 				{rejectAllButton}
 			</div>
 		</>}
-		{navPanel}
+		<div className="flex gap-1">
+			<div className="flex gap-1">
+				{buttonsHTML}
+			</div>
+			<div className="text-xs flex flex-col">
+				{descriptionHTML}
+			</div>
+		</div>
 	</div>
 }

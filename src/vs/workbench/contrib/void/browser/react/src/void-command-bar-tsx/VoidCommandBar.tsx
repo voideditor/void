@@ -7,18 +7,12 @@
 import { useAccessor, useCommandBarState, useIsDark } from '../util/services.js';
 
 import '../styles.css'
-import { useCallback, useEffect, useState } from 'react';
-import { URI } from '../../../../../../../base/common/uri.js';
-import { ICodeEditor } from '../../../../../../../editor/browser/editorBrowser.js';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBorder } from '../../../../common/helpers/colors.js';
+import { VoidCommandBarProps } from '../../../voidCommandBarService.js';
 
-export type VoidCommandBarProps = {
-	uri: URI | null;
-	editor: ICodeEditor;
-}
-
-export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
+export const VoidCommandBarMain = ({ uri, editor, onChangeHeight }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
 
 	if (uri?.scheme !== 'file') return null // don't show in editors that we made, they must be files
@@ -26,7 +20,7 @@ export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	return <div
 		className={`@@void-scope ${isDark ? 'dark' : ''}`}
 	>
-		<VoidCommandBar uri={uri} editor={editor} />
+		<VoidCommandBar uri={uri} editor={editor} onChangeHeight={onChangeHeight} />
 	</div>
 }
 
@@ -38,9 +32,11 @@ const stepIdx = (currIdx: number | null, len: number, step: -1 | 1) => {
 	return ((currIdx ?? 0) + step + len) % len // for some reason, small negatives are kept negative. just add len to offset
 }
 
+const DummyContainer = ()=>{
 
+}
 
-const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor }) => {
+const VoidCommandBar = ({ uri, editor, onChangeHeight }: VoidCommandBarProps) => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const editorService = accessor.get('ICodeEditorService')
@@ -49,6 +45,23 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 	const commandBarService = accessor.get('IVoidCommandBarService')
 	const voidModelService = accessor.get('IVoidModelService')
 	const { state: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
+
+	// Add a reference to the container for resize observer
+	const sizerRef = useRef<HTMLDivElement | null>(null)
+
+	// Add the resize observer effect
+	useEffect(() => {
+		const inputContainer = sizerRef.current
+		if (!inputContainer) return;
+		// only observing 1 element
+		let resizeObserver: ResizeObserver | undefined
+		resizeObserver = new ResizeObserver((entries) => {
+			const height = entries[0].borderBoxSize[0].blockSize
+			onChangeHeight(height)
+		})
+		resizeObserver.observe(inputContainer);
+		return () => { resizeObserver?.disconnect(); };
+	}, [onChangeHeight]);
 
 
 	// changes if the user clicks left/right or if the user goes on a uri with changes
@@ -263,7 +276,7 @@ const VoidCommandBar = ({ uri, editor }: { uri: URI | null, editor: ICodeEditor 
 	</button>
 
 
-	return <div className='px-2 pt-1.5 pb-1 gap-1 pointer-events-auto flex flex-col items-start bg-void-bg-1 rounded shadow-md border border-void-border-1'>
+	return <div ref={sizerRef} className='px-2 pt-1.5 pb-1 gap-1 pointer-events-auto flex flex-col items-start bg-void-bg-1 rounded shadow-md border border-void-border-1'>
 		{currUriHasChanges && <>
 			<div className="flex gap-2">
 				{acceptAllButton}

@@ -17,6 +17,7 @@ import { InstantiationType, registerSingleton } from '../../../../platform/insta
 import { IEditCodeService } from './editCodeServiceInterface.js';
 import { ITextModel } from '../../../../editor/common/model.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
+import { generateUuid } from '../../../../base/common/uuid.js';
 
 
 
@@ -112,6 +113,8 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 		const onCodeEditorAdd = (editor: ICodeEditor) => {
 			const id = editor.getId();
 			disposablesOfEditorId[id] = [];
+
+			// mount the command bar
 			const d1 = this._instantiationService.createInstance(AcceptRejectAllFloatingWidget, { editor });
 			disposablesOfEditorId[id].push(d1);
 			const d2 = editor.onDidChangeModel((e) => { if (e?.newModelUrl?.scheme === 'file') updateActiveURI() })
@@ -346,6 +349,12 @@ registerSingleton(IVoidCommandBarService, VoidCommandBarService, InstantiationTy
 // registerWorkbenchContribution2(VoidCommandBarService.ID, VoidCommandBarService, WorkbenchPhase.BlockRestore);
 
 
+export type VoidCommandBarProps = {
+	uri: URI | null;
+	editor: ICodeEditor;
+	onChangeHeight: (height: number) => void;
+}
+
 
 
 
@@ -354,14 +363,15 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 	private readonly editor: ICodeEditor;
 	private readonly ID: string;
 
+	_height = 0
+
 	constructor({ editor }: { editor: ICodeEditor, },
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) {
 		super();
 
-		this.ID = editor.getId() + '-voidfloatingwidget';
+		this.ID = generateUuid();
 		this.editor = editor;
-
 		// Create container div
 		const { root } = dom.h('div@root');
 
@@ -370,30 +380,50 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 		root.style.padding = '4px';
 		root.style.alignItems = 'center';
 		root.style.pointerEvents = 'none';
-
 		// Mount command bar using mountVoidCommandBar
+		// this.editor.getDomNode()?.appendChild(root)
+
+		const onChangeHeight = (height: number) => {
+			if (height === 0) return;
+
+			this._height = height
+			// editor.layoutOverlayWidget(this)
+			// stupid hack because layoutOverlayWidget doesn't work
+			editor.removeOverlayWidget(this)
+			editor.addOverlayWidget(this)
+		}
+
+		// alternative to mount VoidCommandBar without the stupid widget
+		// editor.getLayoutInfo()
+		// this._register(
+		// 	editor.onDidLayoutChange(e => {
+		// 		// e.height
+		// 		// e.width
+		// 	})
+		// )
+
+
+
+
+		this._domNode = root;
+		editor.addOverlayWidget(this);
+
 		this.instantiationService.invokeFunction(accessor => {
 
-			type Props = { uri: URI | null, editor: ICodeEditor }
 			const uri = editor.getModel()?.uri || null
-			const res = mountVoidCommandBar(root, accessor, { uri, editor } satisfies Props)
+
+			const res = mountVoidCommandBar(root, accessor, { uri, editor, onChangeHeight } satisfies VoidCommandBarProps)
 			if (!res) return
 
-			const dispose = res.dispose
-			const rerender: (o: Props) => void = res.rerender
-
-			this._register(toDisposable(() => dispose?.()))
+			this._register(toDisposable(() => res.dispose?.()))
 
 			this._register(editor.onDidChangeModel((model) => {
 				const uri = model.newModelUrl
-				rerender({ uri, editor })
+				res.rerender({ uri, editor, onChangeHeight })
 			}))
 
 		});
-		this._domNode = root;
 
-		// Mount the widget
-		editor.addOverlayWidget(this);
 	}
 
 
@@ -407,7 +437,7 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 
 	public getPosition() {
 		return {
-			preference: OverlayWidgetPositionPreference.BOTTOM_RIGHT_CORNER,
+			preference: OverlayWidgetPositionPreference.BOTTOM_RIGHT_CORNER
 		}
 	}
 

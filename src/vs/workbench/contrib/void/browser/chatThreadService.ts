@@ -117,6 +117,8 @@ export type ThreadStreamState = {
 		streamingToken?: string;
 		messageSoFar?: string;
 		reasoningSoFar?: string;
+		toolNameSoFar?: string;
+		toolParamsSoFar?: string;
 	}
 }
 
@@ -874,11 +876,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				modelSelection,
 				modelSelectionOptions,
 				logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },
-				onText: ({ fullText, fullReasoning }) => { this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning }, 'merge') },
+				onText: ({ fullText, fullReasoning, fullToolName, fullToolParams }) => {
+					this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning, toolNameSoFar: fullToolName, toolParamsSoFar: fullToolParams }, 'merge')
+				},
 				onFinalMessage: async ({ fullText, toolCalls, fullReasoning, anthropicReasoning }) => {
 					this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning, anthropicReasoning })
 					// added to history and no longer streaming this, so clear messages so far and streamingToken (but do not stop isRunning)
-					this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, }, 'merge')
+					this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolNameSoFar: undefined, toolParamsSoFar: undefined }, 'merge')
 					// resolve with tool calls
 					resMessageIsDonePromise(toolCalls)
 				},

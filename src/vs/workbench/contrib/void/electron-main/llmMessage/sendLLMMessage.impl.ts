@@ -195,6 +195,10 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 
 	let fullReasoningSoFar = ''
 	let fullTextSoFar = ''
+
+	let fullToolName = ''
+	let fullToolParams = ''
+
 	const toolCallOfIndex: ToolCallOfIndex = {}
 	openai.chat.completions
 		.create(options)
@@ -209,6 +213,9 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 					toolCallOfIndex[index].name += tool.function?.name ?? ''
 					toolCallOfIndex[index].paramsStr += tool.function?.arguments ?? '';
 					toolCallOfIndex[index].id += tool.id ?? ''
+
+					fullToolName += tool.function?.name ?? ''
+					fullToolParams += tool.function?.arguments ?? ''
 				}
 				// message
 				const newText = chunk.choices[0]?.delta?.content ?? ''
@@ -222,7 +229,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 					fullReasoningSoFar += newReasoning
 				}
 
-				onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
+				onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, fullToolName, fullToolParams })
 			}
 			// on final
 			const toolCalls = toolCallsFrom_OpenAICompat(toolCallOfIndex)
@@ -351,6 +358,9 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	let fullText = ''
 	let fullReasoning = ''
 
+	let fullToolName = ''
+	let fullToolParams = ''
+
 	// there are no events for tool_use, it comes in at the end
 	stream.on('streamEvent', e => {
 		// start block
@@ -358,18 +368,22 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 			if (e.content_block.type === 'text') {
 				if (fullText) fullText += '\n\n' // starting a 2nd text block
 				fullText += e.content_block.text
-				onText({ fullText, fullReasoning })
+				onText({ fullText, fullReasoning, fullToolName, fullToolParams })
 			}
 			else if (e.content_block.type === 'thinking') {
 				if (fullReasoning) fullReasoning += '\n\n' // starting a 2nd reasoning block
 				fullReasoning += e.content_block.thinking
-				onText({ fullText, fullReasoning })
+				onText({ fullText, fullReasoning, fullToolName, fullToolParams })
 			}
 			else if (e.content_block.type === 'redacted_thinking') {
 				console.log('delta', e.content_block.type)
 				if (fullReasoning) fullReasoning += '\n\n' // starting a 2nd reasoning block
 				fullReasoning += '[redacted_thinking]'
-				onText({ fullText, fullReasoning })
+				onText({ fullText, fullReasoning, fullToolName, fullToolParams })
+			}
+			else if (e.content_block.type === 'tool_use') {
+				fullToolName += e.content_block.name ?? '' // anthropic gives us the tool name in the start block
+				onText({ fullText, fullReasoning, fullToolName, fullToolParams })
 			}
 		}
 
@@ -377,11 +391,15 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 		else if (e.type === 'content_block_delta') {
 			if (e.delta.type === 'text_delta') {
 				fullText += e.delta.text
-				onText({ fullText, fullReasoning })
+				onText({ fullText, fullReasoning, fullToolName, fullToolParams })
 			}
 			else if (e.delta.type === 'thinking_delta') {
 				fullReasoning += e.delta.thinking
-				onText({ fullText, fullReasoning })
+				onText({ fullText, fullReasoning, fullToolName, fullToolParams })
+			}
+			else if (e.delta.type === 'input_json_delta') { // tool use
+				fullToolParams += e.delta.partial_json ?? '' // anthropic gives us the partial delta (string) here - https://docs.anthropic.com/en/api/messages-streaming
+				onText({ fullText, fullReasoning, fullToolName, fullToolParams })
 			}
 		}
 	})

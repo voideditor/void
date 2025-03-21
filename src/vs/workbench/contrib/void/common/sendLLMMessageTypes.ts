@@ -54,7 +54,7 @@ export type ToolCallType = {
 
 export type AnthropicReasoning = ({ type: 'thinking'; thinking: any; signature: string; } | { type: 'redacted_thinking', data: any })
 
-export type OnText = (p: { fullText: string; fullReasoning: string }) => void
+export type OnText = (p: { fullText: string; fullReasoning: string; fullToolName: string; fullToolParams: string; }) => void
 export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCalls?: ToolCallType[]; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
 export type OnError = (p: { message: string; fullError: Error | null }) => void
 export type OnAbort = () => void

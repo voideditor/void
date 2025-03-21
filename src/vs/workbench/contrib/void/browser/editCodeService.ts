@@ -1695,14 +1695,17 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 							// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming in it
 							if (!(blockNum in addedTrackingZoneOfBlockNum)) {
+
+
 								const originalBounds = findTextInCode(block.orig, originalFileCode)
 								// if error
 								if (typeof originalBounds === 'string') {
-									console.log('Error finding text in code:')
+									console.log('--------------Error finding text in code:')
 									console.log('originalFileCode', { originalFileCode })
 									console.log('fullText', { fullText })
 									console.log('error:', originalBounds)
 									console.log('block.orig:', block.orig)
+									console.log('---------')
 									const content = errContentOfInvalidStr(originalBounds, block.orig, blockNum, blocks)
 									messages.push(
 										{ role: 'assistant', content: fullText, anthropicReasoning: null }, // latest output
@@ -1710,10 +1713,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									)
 
 									// REVERT ALL BLOCKS
+									currStreamingBlockNum = 0
 									latestStreamLocationMutable = null
 									shouldUpdateOrigStreamStyle = true
 									oldBlocks = []
+									for (const trackingZone of addedTrackingZoneOfBlockNum)
+										this._deleteTrackingZone(trackingZone)
 									addedTrackingZoneOfBlockNum.splice(0, Infinity)
+
 									this._writeURIText(uri, originalFileCode, 'wholeFileRange', { shouldRealignDiffAreas: true })
 
 									// abort and resolve
@@ -1729,7 +1736,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									return
 								}
 
+								console.log('---------adding-------')
+								console.log('CURRENT TEXT!!!', { current: model?.getValue() })
+								console.log('block', deepClone(block))
+								console.log('origBounds', originalBounds)
+
+
 								const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
+								console.log('start end', startLine, endLine)
 
 								// otherwise if no error, add the position as a diffarea
 								const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
@@ -1802,9 +1816,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						addedTrackingZoneOfBlockNum.sort((a, b) => a.metadata.originalBounds[0] - b.metadata.originalBounds[0])
 
 						const { model } = this._voidModelService.getModel(uri)
-						console.log('CURRENT!!!', { current: model?.getValue() })
-						console.log('ADDED', addedTrackingZoneOfBlockNum)
-						console.log('BLOX', blocks)
+						console.log('CURRENT TEXT!!!', { current: model?.getValue() })
+						console.log('addedTrackingZoneOfBlockNum', addedTrackingZoneOfBlockNum)
+						console.log('blocks', deepClone(blocks))
 
 						for (let blockNum = addedTrackingZoneOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
 							const { originalBounds } = addedTrackingZoneOfBlockNum[blockNum].metadata

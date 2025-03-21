@@ -27,7 +27,7 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsResoningEnabledState } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
-import { ToolCallParams, ToolName, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
+import { ToolCallParams, ToolName, toolNames, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { JumpToFileButton, useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 
@@ -1040,7 +1040,7 @@ const ProseWrapper = ({ children }: { children: React.ReactNode }) => {
 		{children}
 	</div>
 }
-const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunning }: { chatMessage: ChatMessage & { role: 'assistant' }, messageIdx: number, isCommitted: boolean, isLast: boolean, chatIsRunning: IsRunningType }) => {
+const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunning, isToolBeingWritten }: { chatMessage: ChatMessage & { role: 'assistant' }, messageIdx: number, isCommitted: boolean, isLast: boolean, chatIsRunning: IsRunningType, isToolBeingWritten: boolean }) => {
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -1058,7 +1058,8 @@ const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLas
 	}
 
 	const isEmpty = !chatMessage.content && !chatMessage.reasoning
-	const isLastAndLoading = !isCommitted && isLast && (chatIsRunning === 'message' || chatIsRunning === 'awaiting_user')
+	const isLoading = !isCommitted && !isToolBeingWritten && (chatIsRunning === 'message' || chatIsRunning === 'awaiting_user')
+	const isLastAndLoading = isLast && isLoading
 	if (isEmpty && !isLastAndLoading) return null
 
 	return <>
@@ -1083,7 +1084,7 @@ const AssistantMessageComponent = ({ chatMessage, isCommitted, messageIdx, isLas
 				isLinkDetectionEnabled={true}
 			/>
 			{/* loading indicator */}
-			{!isCommitted && <IconLoading className='opacity-50 text-sm' />}
+			{isLoading && <IconLoading className='opacity-50 text-sm' />}
 		</ProseWrapper>
 	</>
 
@@ -1117,19 +1118,19 @@ const loadingTitleWrapper = (item: React.ReactNode) => {
 	</span>
 }
 const folderFileStr = (isFolder: boolean) => isFolder ? 'folder' : 'file'
-const toolNameToTitle = {
+const titleOfToolName = {
 	'read_file': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
 	'list_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
 	'pathname_search': { done: 'Searched by file name', proposed: 'Search by file name', running: loadingTitleWrapper('Searching by file name') },
 	'text_search': { done: 'Searched', proposed: 'Search text', running: loadingTitleWrapper('Searching') },
 	'create_uri': {
 		done: (isFolder: boolean) => `Created ${folderFileStr(isFolder)}`,
-		proposed: (isFolder: boolean) => `Create ${folderFileStr(isFolder)}`,
+		proposed: (isFolder: boolean | null) => isFolder === null ? 'Create URI' : `Create ${folderFileStr(isFolder)}`,
 		running: (isFolder: boolean) => loadingTitleWrapper(`Creating ${folderFileStr(isFolder)}`)
 	},
 	'delete_uri': {
 		done: (isFolder: boolean) => `Deleted ${folderFileStr(isFolder)}`,
-		proposed: (isFolder: boolean) => `Delete ${folderFileStr(isFolder)}`,
+		proposed: (isFolder: boolean | null) => isFolder === null ? 'Delete URI' : `Delete ${folderFileStr(isFolder)}`,
 		running: (isFolder: boolean) => loadingTitleWrapper(`Deleting ${folderFileStr(isFolder)}`)
 	},
 	'edit': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
@@ -1259,7 +1260,7 @@ export const ToolChildrenWrapper = ({ children, className }: { children: React.R
 		</div>
 	</div>
 }
-export const ErrorChildren = ({ children }: { children: React.ReactNode }) => {
+export const CodeChildren = ({ children }: { children: React.ReactNode }) => {
 	return <div className='bg-void-bg-3 p-1 rounded-sm font-mono overflow-auto text-sm'>
 		<div className='!select-text cursor-auto'>
 			{children}
@@ -1315,7 +1316,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
+			const title = toolMessage.result.type === 'success' ? titleOfToolName[toolMessage.name].done : titleOfToolName[toolMessage.name].proposed
 			const { uri } = toolMessage.result.params ?? {}
 			const desc1 = uri ? getBasename(uri.fsPath) : '';
 			const icon = null
@@ -1334,9 +1335,9 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 				const { value, params } = toolMessage.result
 				if (params) componentParams.desc2 = <JumpToFileButton uri={params.uri} />
 				componentParams.children = <ToolChildrenWrapper>
-					<ErrorChildren>
+					<CodeChildren>
 						{value}
-					</ErrorChildren>
+					</CodeChildren>
 				</ToolChildrenWrapper>
 			}
 
@@ -1349,7 +1350,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const explorerService = accessor.get('IExplorerService')
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
+			const title = toolMessage.result.type === 'success' ? titleOfToolName[toolMessage.name].done : titleOfToolName[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1381,9 +1382,9 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			else {
 				const { value, params } = toolMessage.result
 				componentParams.children = <ToolChildrenWrapper>
-					<ErrorChildren>
+					<CodeChildren>
 						{value}
-					</ErrorChildren>
+					</CodeChildren>
 				</ToolChildrenWrapper>
 			}
 
@@ -1396,7 +1397,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const isError = toolMessage.result.type === 'error'
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
+			const title = toolMessage.result.type === 'success' ? titleOfToolName[toolMessage.name].done : titleOfToolName[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1424,9 +1425,9 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			else {
 				const { value, params } = toolMessage.result
 				componentParams.children = <ToolChildrenWrapper>
-					<ErrorChildren>
+					<CodeChildren>
 						{value}
-					</ErrorChildren>
+					</CodeChildren>
 				</ToolChildrenWrapper>
 			}
 
@@ -1439,7 +1440,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const isError = toolMessage.result.type === 'error'
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
+			const title = toolMessage.result.type === 'success' ? titleOfToolName[toolMessage.name].done : titleOfToolName[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1467,9 +1468,9 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			else {
 				const { value, params } = toolMessage.result
 				componentParams.children = <ToolChildrenWrapper>
-					<ErrorChildren>
+					<CodeChildren>
 						{value}
-					</ErrorChildren>
+					</CodeChildren>
 				</ToolChildrenWrapper>
 			}
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1485,7 +1486,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const explorerService = accessor.get('IExplorerService')
 			const isError = false
 			const isFolder = toolRequest.params.isFolder
-			const title = toolRequestState === 'awaiting_user' ? toolNameToTitle[toolRequest.name].proposed(isFolder) : toolNameToTitle[toolRequest.name].running(isFolder)
+			const title = toolRequestState === 'awaiting_user' ? titleOfToolName[toolRequest.name].proposed(isFolder) : titleOfToolName[toolRequest.name].running(isFolder)
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
@@ -1499,7 +1500,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const isError = toolMessage.result.type === 'error'
 			const isRejected = toolMessage.result.type === 'rejected'
 			const isFolder = toolMessage.result.params?.isFolder ?? false
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done(isFolder) : toolNameToTitle[toolMessage.name].proposed(isFolder)
+			const title = toolMessage.result.type === 'success' ? titleOfToolName[toolMessage.name].done(isFolder) : titleOfToolName[toolMessage.name].proposed(isFolder)
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1517,9 +1518,9 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 				const { params, value } = toolMessage.result
 				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
 				componentParams.children = componentParams.children = <ToolChildrenWrapper>
-					<ErrorChildren>
+					<CodeChildren>
 						{value}
-					</ErrorChildren>
+					</CodeChildren>
 				</ToolChildrenWrapper>
 			}
 
@@ -1532,7 +1533,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const commandService = accessor.get('ICommandService')
 			const isError = false
 			const isFolder = toolRequest.params.isFolder
-			const title = toolRequestState === 'awaiting_user' ? toolNameToTitle[toolRequest.name].proposed(isFolder) : toolNameToTitle[toolRequest.name].running(isFolder)
+			const title = toolRequestState === 'awaiting_user' ? titleOfToolName[toolRequest.name].proposed(isFolder) : titleOfToolName[toolRequest.name].running(isFolder)
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
@@ -1549,7 +1550,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const isFolder = toolMessage.result.params?.isFolder ?? false
 			const isError = toolMessage.result.type === 'error'
 			const isRejected = toolMessage.result.type === 'rejected'
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done(isFolder) : toolNameToTitle[toolMessage.name].proposed(isFolder)
+			const title = toolMessage.result.type === 'success' ? titleOfToolName[toolMessage.name].done(isFolder) : titleOfToolName[toolMessage.name].proposed(isFolder)
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1567,9 +1568,9 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 				const { params, value } = toolMessage.result
 				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
 				componentParams.children = componentParams.children = <ToolChildrenWrapper>
-					<ErrorChildren>
+					<CodeChildren>
 						{value}
-					</ErrorChildren>
+					</CodeChildren>
 				</ToolChildrenWrapper>
 			}
 
@@ -1580,7 +1581,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 		requestWrapper: ({ toolRequest, messageIdx, toolRequestState, threadId }) => {
 			const accessor = useAccessor()
 			const isError = false
-			const title = toolRequestState === 'awaiting_user' ? toolNameToTitle[toolRequest.name].proposed : toolNameToTitle[toolRequest.name].running
+			const title = toolRequestState === 'awaiting_user' ? titleOfToolName[toolRequest.name].proposed : titleOfToolName[toolRequest.name].running
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
@@ -1602,7 +1603,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const accessor = useAccessor()
 			const isError = toolMessage.result.type === 'error'
 			const isRejected = toolMessage.result.type === 'rejected'
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
+			const title = toolMessage.result.type === 'success' ? titleOfToolName[toolMessage.name].done : titleOfToolName[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1641,9 +1642,9 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 					if (params) {
 						componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
 							{/* error */}
-							<ErrorChildren>
+							<CodeChildren>
 								{value}
-							</ErrorChildren>
+							</CodeChildren>
 
 							{/* content */}
 							<EditToolChildren
@@ -1653,9 +1654,9 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 						</ToolChildrenWrapper>
 					}
 					else {
-						componentParams.children = <ErrorChildren>
+						componentParams.children = <CodeChildren>
 							{value}
-						</ErrorChildren>
+						</CodeChildren>
 					}
 				}
 			}
@@ -1669,7 +1670,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
 			const isError = false
-			const title = toolRequestState === 'awaiting_user' ? toolNameToTitle[toolRequest.name].proposed : toolNameToTitle[toolRequest.name].running
+			const title = toolRequestState === 'awaiting_user' ? titleOfToolName[toolRequest.name].proposed : titleOfToolName[toolRequest.name].running
 			const desc1 = toolNameToDesc(toolRequest.name, toolRequest.params)
 			const icon = null
 
@@ -1688,7 +1689,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
 			const isError = toolMessage.result.type === 'error'
-			const title = toolMessage.result.type === 'success' ? toolNameToTitle[toolMessage.name].done : toolNameToTitle[toolMessage.name].proposed
+			const title = toolMessage.result.type === 'success' ? titleOfToolName[toolMessage.name].done : titleOfToolName[toolMessage.name].proposed
 			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
 			const icon = null
 
@@ -1753,9 +1754,10 @@ type ChatBubbleProps = {
 	isLast: boolean, // includes the streaming message (if streaming, isLast is false except for the streaming message)
 	chatIsRunning: IsRunningType,
 	threadId: string,
+	isToolBeingWritten: boolean,
 }
 
-const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunning, threadId }: ChatBubbleProps) => {
+const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunning, threadId, isToolBeingWritten }: ChatBubbleProps) => {
 	const role = chatMessage.role
 
 	if (role === 'user') {
@@ -1772,6 +1774,7 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 			isCommitted={isCommitted}
 			chatIsRunning={chatIsRunning}
 			isLast={isLast}
+			isToolBeingWritten={isToolBeingWritten}
 		/>
 	}
 	else if (role === 'tool_request') {
@@ -1838,6 +1841,10 @@ export const SidebarChat = () => {
 	const messageSoFar = currThreadStreamState?.messageSoFar
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
 
+	const toolNameSoFar = currThreadStreamState?.toolNameSoFar
+	const toolParamsSoFar = currThreadStreamState?.toolParamsSoFar
+	const toolIsLoading = !!toolNameSoFar && toolNameSoFar === 'edit' // show loading for slow tools (right now just edit)
+
 	// ----- SIDEBAR CHAT state (local) -----
 
 	// state of current message
@@ -1902,6 +1909,7 @@ export const SidebarChat = () => {
 				chatIsRunning={isRunning}
 				isLast={isLast}
 				threadId={threadId}
+				isToolBeingWritten={toolIsLoading}
 			/>
 		})
 	}, [previousMessages, isRunning, currentThread, numMessages])
@@ -1921,9 +1929,17 @@ export const SidebarChat = () => {
 			chatIsRunning={isRunning}
 			isLast={true}
 			threadId={threadId}
+			isToolBeingWritten={toolIsLoading}
 		/> : null
 
-	const allMessagesHTML = [...previousMessagesHTML, currStreamingMessageHTML]
+
+	const proposed = toolNameSoFar && toolNames.includes(toolNameSoFar as ToolName) ? titleOfToolName[toolNameSoFar as ToolName]?.proposed : toolNameSoFar
+	const toolTitle = typeof proposed === 'function' ? proposed(null) : proposed
+	const currStreamingToolHTML = toolIsLoading ?
+		<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)} title={toolTitle} desc1={<IconLoading />} />
+		: null
+
+	const allMessagesHTML = [...previousMessagesHTML, currStreamingMessageHTML, currStreamingToolHTML]
 
 	const threadSelector = <div
 		className={`w-full ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}

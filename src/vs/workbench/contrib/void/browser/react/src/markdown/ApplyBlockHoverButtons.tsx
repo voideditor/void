@@ -165,6 +165,8 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 			uri: uri,
 			startBehavior: 'keep-conflicts',
 		}) ?? []
+		// catch any errors by interrupting the stream
+		applyDonePromise?.catch(e => { if (newApplyingUri) editCodeService.interruptURIStreaming({ uri: newApplyingUri }) })
 
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
 

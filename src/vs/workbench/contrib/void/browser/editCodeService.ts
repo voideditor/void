@@ -1245,18 +1245,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				// ctrlkzone should never have any conflicts
 			}
 			else {
-				// console.log('KEEPING CONFLICTS!!!!!!!!')
 				// keep conflict on whole file - to keep conflict, revert the change and use those contents as original, then un-revert the file
-				// console.log('originalFile', originalFileStr)
-				// console.log('diffareas A', JSON.stringify(this.diffAreasOfURI, null, 2))
 				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
-				// console.log('diffareas B', JSON.stringify(this.diffAreasOfURI, null, 2))
 				const oldFileStr = model.getValue(EndOfLinePreference.LF) // use this as original code
-				// console.log('oldFileStr', { oldFileStr })
 				this._writeURIText(uri, originalFileStr, 'wholeFileRange', { shouldRealignDiffAreas: true }) // un-revert
 				originalCode = oldFileStr
-				// console.log('originalCode', { originalCode })
-				// console.log('NEW STR', { newStr: model.getValue(EndOfLinePreference.LF) })
 			}
 
 		}
@@ -1498,7 +1491,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			} // end while
 		} // end writeover
 
-		const applyDonePromise = runWriteover()
+		const applyDonePromise = new Promise<void>((res, rej) => { runWriteover().then(res).catch(rej) })
 		return [diffZone, applyDonePromise]
 	}
 
@@ -1865,7 +1858,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		} // end retryLoop
 
-		const applyDonePromise = runSearchReplace()
+		const applyDonePromise = new Promise<void>((res, rej) => { runSearchReplace().then(res).catch(rej) })
 		return [diffZone, applyDonePromise]
 	}
 

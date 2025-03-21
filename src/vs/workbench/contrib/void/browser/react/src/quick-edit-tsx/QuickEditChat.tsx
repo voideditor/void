@@ -58,16 +58,20 @@ export const QuickEditChat = ({
 		className="@@codicon @@codicon-loading @@codicon-modifier-spin @@codicon-no-default-spin text-void-fg-3"
 	/>
 
-	const onSubmit = useCallback(() => {
+	const onSubmit = useCallback(async () => {
 		if (isDisabled) return
 		if (isStreamingRef.current) return
 		textAreaFnsRef.current?.disable()
 
-		const res = editCodeService.startApplying({
+		const [newApplyingUri, applyDonePromise] = await editCodeService.startApplying({
 			from: 'QuickEdit',
 			diffareaid,
 			startBehavior: 'keep-conflicts',
-		})
+		}) ?? []
+		// catch any errors by interrupting the stream
+		applyDonePromise?.catch(e => { if (newApplyingUri) editCodeService.interruptCtrlKStreaming({ diffareaid }) })
+
+
 	}, [isStreamingRef, isDisabled, editCodeService, diffareaid])
 
 	const onInterrupt = useCallback(() => {

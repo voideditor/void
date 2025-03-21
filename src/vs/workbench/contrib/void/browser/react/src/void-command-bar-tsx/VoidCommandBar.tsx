@@ -133,95 +133,90 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	}
 
 
-	const buttonsHTML = <>
-		<button
-			className={`
-				size-4 rounded hover:bg-void-bg-1-alt cursor-pointer
-				focus:ring-1 focus:ring-[var(--vscode-focusBorder)] focus:bg-void-bg-1-alt
-				${prevDiffIdx === null ? 'opacity-50' : ''}
-			`}
-			disabled={prevDiffIdx === null}
-			onClick={() => { goToDiffIdx(prevDiffIdx) }}
-			onKeyDown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					goToDiffIdx(prevDiffIdx);
-				}
-			}}
-			title="Previous diff"
-		>↑</button>
+	const upDownDisabled = prevDiffIdx === null || nextDiffIdx === null
+	const leftRightDisabled = prevURIIdx === null  || currUriIdx === null
 
-		<button
-			className={`
-				size-4 rounded hover:bg-void-bg-1-alt cursor-pointer
-				focus:ring-1 focus:ring-[var(--vscode-focusBorder)] focus:bg-void-bg-1-alt
-				${nextDiffIdx === null ? 'opacity-50' : ''}
-			`}
-			disabled={nextDiffIdx === null}
-			onClick={() => { goToDiffIdx(nextDiffIdx) }}
-			onKeyDown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					goToDiffIdx(nextDiffIdx);
-				}
-			}}
-			title="Next diff"
-		>↓</button>
+	const upButton = <button
+		className={`
+			size-6 rounded cursor-pointer
+			hover:bg-void-bg-1-alt
+			--border border-void-border-3 focus:border-void-border-1
+		`}
+		disabled={upDownDisabled}
+		onClick={() => { goToDiffIdx(prevDiffIdx) }}
+		onKeyDown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				goToDiffIdx(prevDiffIdx);
+			}
+		}}
+		title="Previous diff"
+	>↑</button>
 
-		<button
-			className={`
-				size-4 rounded hover:bg-void-bg-1-alt cursor-pointer
-				focus:ring-1 focus:ring-[var(--vscode-focusBorder)] focus:bg-void-bg-1-alt
-				${prevURIIdx === null ? 'opacity-50' : ''}
-				`}
-			disabled={prevURIIdx === null}
-			onClick={() => goToURIIdx(prevURIIdx)}
-			onKeyDown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					goToURIIdx(prevURIIdx);
-				}
-			}}
-			title="Previous file"
-		>←</button>
+	const downButton = <button
+		className={`
+			size-6 rounded cursor-pointer
+			hover:bg-void-bg-1-alt
+			--border border-void-border-3 focus:border-void-border-1
+		`}
+		disabled={upDownDisabled}
+		onClick={() => { goToDiffIdx(nextDiffIdx) }}
+		onKeyDown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				goToDiffIdx(nextDiffIdx);
+			}
+		}}
+		title="Next diff"
+	>↓</button>
 
-		<button
-			className={`
-				size-4 rounded hover:bg-void-bg-1-alt cursor-pointer
-				focus:ring-1 focus:ring-[var(--vscode-focusBorder)] focus:bg-void-bg-1-alt
-				${nextURIIdx === null ? 'opacity-50' : ''}
-				`}
-			disabled={nextURIIdx === null}
-			onClick={() => goToURIIdx(nextURIIdx)}
-			onKeyDown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					goToURIIdx(nextURIIdx);
-				}
-			}}
-			title="Next file"
-		>→</button>
-	</>
+	const leftButton = <button
+		className={`
+			size-6 rounded cursor-pointer
+			hover:bg-void-bg-1-alt
+			--border border-void-border-3 focus:border-void-border-1
+		`}
+		disabled={leftRightDisabled}
+		onClick={() => goToURIIdx(prevURIIdx)}
+		onKeyDown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				goToURIIdx(prevURIIdx);
+			}
+		}}
+		title="Previous file"
+	>←</button>
 
-
-	const descriptionHTML = isADiffZoneInThisFile ?
-		<>
-			{currUriIdx !== null && sortedCommandBarURIs.length && <div>
-				{`File ${currUriIdx + 1} of ${sortedCommandBarURIs.length}`}
-			</div>}
-			{/* <div>
-				{!isAChangeInThisFile ?
-					`(No changes)`
-					: `Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
-				}
-			</div> */}
-		</>
-		: <>
-			{`${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'}`}
-		</>
+	const rightButton = <button
+		className={`
+			size-6 rounded cursor-pointer
+			hover:bg-void-bg-1-alt
+			--border border-void-border-3 focus:border-void-border-1
+		`}
+		disabled={leftRightDisabled}
+		onClick={() => goToURIIdx(nextURIIdx)}
+		onKeyDown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				goToURIIdx(nextURIIdx);
+			}
+		}}
+		title="Next file"
+	>→</button>
 
 
+	const filesDescription = (isADiffZoneInThisFile ?
+		currUriIdx !== null && sortedCommandBarURIs.length !== 0 &&
+		`File ${currUriIdx + 1} of ${sortedCommandBarURIs.length}`
+		: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'} changed`
+	);
 
+	const changesDescription = (isADiffZoneInThisFile ?
+		isAChangeInThisFile ?
+			`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
+			: `No changes`
+		: ''
+	);
 
 	// accept/reject if current URI has changes
 	const onAcceptAll = () => {
@@ -237,7 +232,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 
 	const acceptAllButton = <button
-		className='pointer-events-auto'
+		className='pointer-events-auto text-nowrap'
 		onClick={onAcceptAll}
 		style={{
 			backgroundColor: acceptAllBg,
@@ -249,12 +244,12 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 			cursor: 'pointer'
 		}}
 	>
-		Accept All
+		Accept File
 	</button>
 
 
 	const rejectAllButton = <button
-		className='pointer-events-auto'
+		className='pointer-events-auto text-nowrap'
 		onClick={onRejectAll}
 		style={{
 			backgroundColor: rejectAllBg,
@@ -266,7 +261,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 			cursor: 'pointer'
 		}}
 	>
-		Reject All
+		Reject File
 	</button>
 
 
@@ -288,30 +283,41 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	// >x
 	// </button>
 
-	// const actionButtons = currUriHasChanges && (
-	// 	<div className="flex gap-2 items-center w-full">
-	// 		{acceptAllButton}
-	// 		{rejectAllButton}
-	// 		{hideButton}
-	// 	</div>
-	// );
+	const gridLayout = <div className="flex flex-col gap-1">
+		{/* First row */}
+		{filesDescription &&
+			<div className={`flex items-center ${leftRightDisabled ? 'text-opacity-50' : ''}`}>
+				{leftButton}
+				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
+				{rightButton}
+				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
+				<div className="text-xs mx-2">{filesDescription}</div>
+			</div>
+		}
 
+		{/* Second row */}
+		{changesDescription &&
+			<div className={`flex items-center ${upDownDisabled ? 'text-opacity-50' : ''}`}>
+				{upButton}
+				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
+				{downButton}
+				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
+				<div className="text-xs mx-2">{changesDescription}</div>
+			</div>
+		}
+	</div>
 
-	// dummy container due to annoyances with VS Code mounting the widget
-	return <div className='px-2 pt-1 pb-1 gap-1 pointer-events-auto flex flex-col items-start bg-void-bg-1 rounded shadow-md border border-void-border-1'>
-		{showAcceptRejectAll && <>
-			<div className="flex gap-2">
+	return <div className='pointer-events-auto flex flex-col gap-2 mx-2'>
+		{showAcceptRejectAll &&
+			<div className="flex gap-1 text-sm">
 				{acceptAllButton}
 				{rejectAllButton}
 			</div>
-		</>}
-		<div className="flex gap-1">
-			<div className="flex gap-1">
-				{buttonsHTML}
-			</div>
-			<div className="text-xs flex flex-col">
-				{descriptionHTML}
-			</div>
+		}
+		<div className='px-2 pt-1 pb-1 gap-1 flex flex-col items-start bg-void-bg-1 rounded shadow-md border border-void-border-1'>
+			{gridLayout}
+			{/* {oldLayout} */}
 		</div>
+
 	</div>
 }

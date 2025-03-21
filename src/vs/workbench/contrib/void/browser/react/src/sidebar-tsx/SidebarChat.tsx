@@ -479,9 +479,9 @@ export const getBasename = (pathStr: string) => {
 }
 
 export const SelectedFiles = (
-	{ type, selections, setSelections, showProspectiveSelections }:
-		| { type: 'past', selections: StagingSelectionItem[]; setSelections?: undefined, showProspectiveSelections?: undefined }
-		| { type: 'staging', selections: StagingSelectionItem[]; setSelections: ((newSelections: StagingSelectionItem[]) => void), showProspectiveSelections?: boolean }
+	{ type, selections, setSelections, showProspectiveSelections, messageIdx, }:
+		| { type: 'past', selections: StagingSelectionItem[]; setSelections?: undefined, showProspectiveSelections?: undefined, messageIdx: number, }
+		| { type: 'staging', selections: StagingSelectionItem[]; setSelections: ((newSelections: StagingSelectionItem[]) => void), showProspectiveSelections?: boolean, messageIdx?: number }
 ) => {
 
 	const accessor = useAccessor()
@@ -593,7 +593,11 @@ export const SelectedFiles = (
 								if (isThisSelectionAddedAsCurrentFile) {
 									// make it so the file is added permanently, not just as the current file
 									const newSelection: StagingSelectionItem = { ...selection, state: { ...selection.state, wasAddedAsCurrentFile: false } }
-									setSelections([...selections.slice(0, i), newSelection, ...selections.slice(i + 1)])
+									setSelections([
+										...selections.slice(0, i),
+										newSelection,
+										...selections.slice(i + 1)
+									])
 								}
 							} else { // show text
 
@@ -620,8 +624,8 @@ export const SelectedFiles = (
 							+ (isThisSelectionAFile ? '' : ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})`)
 						}
 
-						{isThisSelectionAddedAsCurrentFile && currentURI?.toString() === selection.fileURI.toString() &&
-							<span className={`text-[8px] ml-0.5 'void-opacity-60  text-void-fg-4`}>
+						{isThisSelectionAddedAsCurrentFile && messageIdx === undefined && currentURI?.toString() === selection.fileURI.toString() &&
+							<span className={`text-[8px] ml-0.5 'void-opacity-60 text-void-fg-4`}>
 								{`(Current File)`}
 							</span>
 						}
@@ -792,7 +796,13 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 		const canInitialize = mode === 'edit' && textAreaRefState
 		const shouldInitialize = _justEnabledEdit.current || _mustInitialize.current
 		if (canInitialize && shouldInitialize) {
-			setStagingSelections(chatMessage.selections || [])
+			setStagingSelections((chatMessage.selections || [])
+				.map(s => { // quick hack so we dont have to do anything more
+					const sNew = s
+					sNew.state.wasAddedAsCurrentFile = false // wipe all "current file" info when the user first edits a message
+					return sNew
+				})
+			)
 			if (textAreaFnsRef.current)
 				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
 
@@ -823,7 +833,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 	let chatbubbleContents: React.ReactNode
 	if (mode === 'display') {
 		chatbubbleContents = <>
-			<SelectedFiles type='past' selections={chatMessage.selections || []} />
+			<SelectedFiles type='past' messageIdx={messageIdx} selections={chatMessage.selections || []} />
 			<span className='px-0.5'>{chatMessage.displayContent}</span>
 		</>
 	}

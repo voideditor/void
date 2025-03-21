@@ -535,7 +535,7 @@ export const FeaturesTab = () => {
 				{/* Tools Section */}
 				<div className='w-full'>
 					<h4 className={`text-base`}>Tools</h4>
-					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Tools are functions that LLMs can call. Tools that can modify files require approval.`}</div>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
 
 					<div className='my-2'>
 						{/* Auto Accept Switch */}

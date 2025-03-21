@@ -95,9 +95,9 @@ export const sendLLMMessage = ({
 	abortRef_.current = onAbort
 
 	if (messagesType === 'chatMessages')
-		captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messages_[messages_.length - 1]?.content.length })
+		captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messages_?.[messages_.length - 1]?.content.length })
 	else if (messagesType === 'FIMMessage')
-		captureLLMEvent(`${loggingName} - Sending FIM`, {}) // TODO!!! add more metrics
+		captureLLMEvent(`${loggingName} - Sending FIM`, { prefixLen: messages_?.prefix?.length, suffixLen: messages_?.suffix?.length }) // TODO!!! add more metrics for FIM
 
 
 	try {

@@ -739,7 +739,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				) as DiffAreaSnapshot
 			}
 
-			const entireFileCode = model ? model.getValue(EndOfLinePreference.LF) : '' // TODO!!! make sure this isn't '' usually
+			const entireFileCode = model ? model.getValue(EndOfLinePreference.LF) : ''
 
 			// this._noLongerNeedModelReference(uri)
 			return {

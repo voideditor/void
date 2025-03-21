@@ -89,12 +89,6 @@ const prepareMessages_systemMessage = ({
 	const newMessages: (InternalLLMChatMessage | { role: 'developer', content: string })[] = messages.filter(msg => msg.role !== 'system')
 
 
-	// if (!supportsTools) {
-	// 	if (!systemMessageStr) systemMessageStr = ''
-	// 	systemMessageStr += '' // TODO!!! add tool use system message here
-	// }
-
-
 	// if it has a system message (if doesn't, we obviously don't care about whether it supports system message or not...)
 	if (systemMessageStr) {
 		// if supports system message

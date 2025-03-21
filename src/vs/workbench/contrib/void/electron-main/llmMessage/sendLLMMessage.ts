@@ -17,7 +17,7 @@ export const sendLLMMessage = ({
 	onFinalMessage: onFinalMessage_,
 	onError: onError_,
 	abortRef: abortRef_,
-	logging: { loggingName },
+	logging: { loggingName, loggingExtras },
 	settingsOfProvider,
 	modelSelection,
 	modelSelectionOptions,
@@ -48,6 +48,7 @@ export const sendLLMMessage = ({
 				suffixLength: messages_.suffix.length,
 			} : {},
 
+			...loggingExtras,
 			...extras,
 		})
 	}
@@ -84,6 +85,7 @@ export const sendLLMMessage = ({
 		onError_({ message: errorMessage, fullError })
 	}
 
+	// we should NEVER call onAbort internally, only from the outside
 	const onAbort = () => {
 		captureLLMEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
 		try { _aborter?.() } // aborter sometimes automatically throws an error
@@ -93,9 +95,9 @@ export const sendLLMMessage = ({
 	abortRef_.current = onAbort
 
 	if (messagesType === 'chatMessages')
-		captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messages_[messages_.length - 1]?.content.length })
+		captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messages_?.[messages_.length - 1]?.content.length })
 	else if (messagesType === 'FIMMessage')
-		captureLLMEvent(`${loggingName} - Sending FIM`, {}) // TODO!!! add more metrics
+		captureLLMEvent(`${loggingName} - Sending FIM`, { prefixLen: messages_?.prefix?.length, suffixLen: messages_?.suffix?.length }) // TODO!!! add more metrics for FIM
 
 
 	try {

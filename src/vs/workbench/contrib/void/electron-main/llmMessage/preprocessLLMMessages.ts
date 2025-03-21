@@ -89,12 +89,6 @@ const prepareMessages_systemMessage = ({
 	const newMessages: (InternalLLMChatMessage | { role: 'developer', content: string })[] = messages.filter(msg => msg.role !== 'system')
 
 
-	// if (!supportsTools) {
-	// 	if (!systemMessageStr) systemMessageStr = ''
-	// 	systemMessageStr += '' // TODO!!! add tool use system message here
-	// }
-
-
 	// if it has a system message (if doesn't, we obviously don't care about whether it supports system message or not...)
 	if (systemMessageStr) {
 		// if supports system message
@@ -285,7 +279,6 @@ const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMCh
 			role: 'user',
 			content: [
 				...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content || EMPTY_TOOL_CONTENT }] as const,
-				...currMsg.content ? [{ type: 'text', text: currMsg.content }] as const : [],
 			]
 		}
 	}
@@ -368,6 +361,7 @@ const prepareMessages_noEmptyMessage = ({ messages }: { messages: PrepareMessage
 				else if (c.type === 'tool_use') { }
 				else if (c.type === 'tool_result') { }
 			}
+			if (currMsg.content.length === 0) currMsg.content = [{ type: 'text', text: EMPTY_MESSAGE }]
 		}
 
 	}
@@ -396,6 +390,7 @@ export const prepareMessages = ({
 	const { messages: messages3, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages2, aiInstructions, supportsSystemMessage })
 	const { messages: messages4 } = prepareMessages_tools({ messages: messages3, supportsTools })
 	const { messages: messages5 } = prepareMessages_noEmptyMessage({ messages: messages4 })
+
 	return {
 		messages: messages5 as any,
 		separateSystemMessageStr

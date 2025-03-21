@@ -96,7 +96,7 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 		// very important to await whenReady!
 		await this._appStorage.whenReady
 
-		const { commit, version, quality } = this._productService
+		const { commit, version, voidVersion, quality } = this._productService
 
 		const isDevMode = !this._envMainService.isBuilt // found in abstractUpdateService.ts
 
@@ -104,6 +104,7 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 		this._initProperties = {
 			commit,
 			vscodeVersion: version,
+			voidVersion,
 			os,
 			quality,
 			distinctId: this.distinctId,

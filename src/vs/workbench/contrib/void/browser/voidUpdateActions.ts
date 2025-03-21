@@ -17,11 +17,41 @@ import * as dom from '../../../../base/browser/dom.js';
 
 
 
-const notifyYesUpdate = (notifService: INotificationService, msg?: string) => {
-	const message = msg || 'This is a very old version of void, please download the latest version! [Void Editor](https://voideditor.com/download-beta)!'
-	notifService.notify({
+const notifyYesUpdate = (notifService: INotificationService, res: { message?: string } = {}) => {
+	const message = res?.message || 'This is a very old version of Void, please download the latest version! [Void Editor](https://voideditor.com/download-beta)!'
+	const notifController = notifService.notify({
 		severity: Severity.Info,
 		message: message,
+		sticky: true,
+		progress: { worked: 0, total: 100 },
+		actions: {
+			primary: [{
+				id: 'void.updater.update',
+				enabled: true,
+				label: `Reinstall`,
+				tooltip: '',
+				class: undefined,
+				run: () => {
+					const { window } = dom.getActiveWindow()
+					window.open('https://voideditor.com/download-beta')
+				}
+			},
+			{
+				id: 'void.updater.site',
+				enabled: true,
+				label: `Void Site`,
+				tooltip: '',
+				class: undefined,
+				run: () => {
+					const { window } = dom.getActiveWindow()
+					window.open('https://voideditor.com/')
+				}
+			}]
+		},
+	})
+	const d = notifController.onDidClose(() => {
+		notifyYesUpdate(notifService, res)
+		d.dispose()
 	})
 }
 const notifyNoUpdate = (notifService: INotificationService) => {
@@ -35,6 +65,7 @@ const notifyErrChecking = (notifService: INotificationService) => {
 	notifService.notify({
 		severity: Severity.Info,
 		message: message,
+		sticky: true,
 	})
 }
 
@@ -57,7 +88,7 @@ registerAction2(class extends Action2 {
 		metricsService.capture('Void Update Manual: Checking...', {})
 		const res = await voidUpdateService.check()
 		if (!res) { notifyErrChecking(notifService); metricsService.capture('Void Update Manual: Error', { res }) }
-		else if (res.hasUpdate) { notifyYesUpdate(notifService, res.message); metricsService.capture('Void Update Manual: Yes', { res }) }
+		else if (res.hasUpdate) { notifyYesUpdate(notifService, res); metricsService.capture('Void Update Manual: Yes', { res }) }
 		else if (!res.hasUpdate) { notifyNoUpdate(notifService); metricsService.capture('Void Update Manual: No', { res }) }
 	}
 })
@@ -75,19 +106,19 @@ class VoidUpdateWorkbenchContribution extends Disposable implements IWorkbenchCo
 			this.metricsService.capture('Void Update Startup: Checking...', {})
 			const res = await this.voidUpdateService.check()
 			if (!res) { notifyErrChecking(this.notifService); this.metricsService.capture('Void Update Startup: Error', { res }) }
-			else if (res.hasUpdate) { notifyYesUpdate(this.notifService, res.message); this.metricsService.capture('Void Update Startup: Yes', { res }) }
+			else if (res.hasUpdate) { notifyYesUpdate(this.notifService, res); this.metricsService.capture('Void Update Startup: Yes', { res }) }
 			else if (!res.hasUpdate) { this.metricsService.capture('Void Update Startup: No', { res }) } // display nothing if up to date
 		}
 
 		// check once 5 seconds after mount
-
-		const initId = setTimeout(() => autoCheck(), 5 * 1000)
-		this._register({ dispose: () => clearTimeout(initId) })
-
 		// check every 3 hours
 		const { window } = dom.getActiveWindow()
 
-		const intervalId = window.setInterval(() => autoCheck(), 3 * 60 * 60 * 1000)
+		const initId = window.setTimeout(() => autoCheck(), 5 * 1000)
+		this._register({ dispose: () => window.clearTimeout(initId) })
+
+
+		const intervalId = window.setInterval(() => autoCheck(), 3 * 60 * 60 * 1000) // every 3 hrs
 		this._register({ dispose: () => window.clearInterval(intervalId) })
 
 	}

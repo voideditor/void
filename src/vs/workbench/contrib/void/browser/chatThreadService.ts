@@ -122,22 +122,14 @@ export type ThreadStreamState = {
 	}
 }
 
-const defaultThreadAttributes = () => {
+const newThreadObject = () => {
 	const now = new Date().toISOString()
 	return {
+		id: generateUuid(),
 		createdAt: now,
 		lastModified: now,
 		messages: [],
 		state: defaultThreadState,
-	}
-}
-
-const newThreadObject = () => {
-
-	return {
-		id: generateUuid(),
-		...defaultThreadAttributes()
-
 	} satisfies ChatThreads[string]
 }
 
@@ -1253,11 +1245,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const { allThreads: currentThreads } = this.state
 		for (const threadId in currentThreads) {
 			if (currentThreads[threadId]!.messages.length === 0) {
-				// clear the thread
-				currentThreads[threadId]! = { id: currentThreads[threadId]!.id, ...defaultThreadAttributes() }
+
 				// switch to the thread
 				this.switchToThread(threadId)
-				return
+
+				// add the current file as a staging selection
+				const model = this._codeEditorService.getActiveCodeEditor()?.getModel()
+				if (model) {
+					this._setCurrentThreadState({ ...defaultThreadState, stagingSelections: [{ type: 'File', fileURI: model.uri, language: model.getLanguageId(), selectionStr: null, range: null, state: { isOpened: false, wasAddedAsCurrentFile: true } }] })
+				}
+				return;
 			}
 		}
 		// otherwise, start a new thread

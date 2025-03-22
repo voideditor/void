@@ -32,9 +32,6 @@ export type AddCtrlKOpts = {
 	editor: ICodeEditor,
 }
 
-export type URIAcceptRejectState = 'idle' | 'acceptRejectAll' | 'streaming'
-
-
 export const IEditCodeService = createDecorator<IEditCodeService>('editCodeService');
 
 export interface IEditCodeService {

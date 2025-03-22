@@ -269,7 +269,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const newStagingSelections: StagingSelectionItem[] = oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile);
 
 			// add the new file if it doesn't exist
-			const fileIsAdded = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.toString() === newStagingSelection.fileURI.toString())
+			const fileIsAdded = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.fsPath === newStagingSelection.fileURI.fsPath)
 			if (!fileIsAdded) {
 				newStagingSelections.push(newStagingSelection)
 			}
@@ -288,7 +288,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: newSelections });
 
 			// // if the file already exists, do nothing
-			// const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.toString() === newSelection.fileURI.toString())
+			// const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.fsPath === newSelection.fileURI.fsPath)
 			// if (alreadyHasFile) { return; }
 
 			// const filteredStagingSelections = oldStagingSelections.filter(s => !s.state?.wasAddedDuringFileChange); // remove all old selectons that were added during a file change
@@ -1023,7 +1023,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// get history of all AI and user added files in conversation + store in reverse order (MRU)
 		const prevUris = this._getAllSelections(threadId)
 			.map(s => s.fileURI)
-			.filter((uri, index, array) => array.findIndex(u => u.toString() === uri.toString()) === index) // O(n^2) but this is small
+			.filter((uri, index, array) => array.findIndex(u => u.fsPath === uri.fsPath) === index) // O(n^2) but this is small
 			.reverse()
 
 
@@ -1039,7 +1039,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					// shorten it
 
 					// TODO make this logic more general
-					const prevUriStrs = prevUris.map(uri => uri.toString())
+					const prevUriStrs = prevUris.map(uri => uri.fsPath)
 					const shortenedUriStrs = shorten(prevUriStrs)
 					let displayText = shortenedUriStrs[idx]
 					const ellipsisIdx = displayText.lastIndexOf('…/');
@@ -1064,7 +1064,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				if (doesUriMatchTarget(uri)) {
 
 					// TODO make this logic more general
-					const prevUriStrs = prevUris.map(uri => uri.toString())
+					const prevUriStrs = prevUris.map(uri => uri.fsPath)
 					const shortenedUriStrs = shorten(prevUriStrs)
 					let displayText = shortenedUriStrs[idx]
 					const ellipsisIdx = displayText.lastIndexOf('…/');

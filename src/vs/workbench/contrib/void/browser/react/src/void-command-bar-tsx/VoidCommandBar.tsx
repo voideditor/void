@@ -150,7 +150,6 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToDiffIdx(prevDiffIdx);
 			}
 		}}
-		title="Previous diff"
 	>↑</button>
 
 	const downButton = <button
@@ -167,7 +166,6 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToDiffIdx(nextDiffIdx);
 			}
 		}}
-		title="Next diff"
 	>↓</button>
 
 	const leftButton = <button
@@ -184,7 +182,6 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToURIIdx(prevURIIdx);
 			}
 		}}
-		title="Previous file"
 	>←</button>
 
 	const rightButton = <button
@@ -201,7 +198,6 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToURIIdx(nextURIIdx);
 			}
 		}}
-		title="Next file"
 	>→</button>
 
 

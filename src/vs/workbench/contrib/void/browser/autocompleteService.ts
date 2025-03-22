@@ -642,7 +642,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		const testMode = false
 
-		const docUriStr = model.uri.toString();
+		const docUriStr = model.uri.fsPath;
 
 		const prefixAndSuffix = getPrefixAndSuffixInfo(model, position)
 		const { prefix, suffix } = prefixAndSuffix
@@ -916,7 +916,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				if (!resource) return;
 				const model = this._modelService.getModel(resource)
 				if (!model) return;
-				const docUriStr = resource.toString();
+				const docUriStr = resource.fsPath;
 				if (!this._autocompletionsOfDocument[docUriStr]) return;
 
 				const { prefix, } = getPrefixAndSuffixInfo(model, position)

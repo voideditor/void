@@ -624,7 +624,7 @@ export const SelectedFiles = (
 							+ (isThisSelectionAFile ? '' : ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})`)
 						}
 
-						{isThisSelectionAddedAsCurrentFile && messageIdx === undefined && currentURI?.toString() === selection.fileURI.toString() &&
+						{isThisSelectionAddedAsCurrentFile && messageIdx === undefined && currentURI?.fsPath === selection.fileURI.fsPath &&
 							<span className={`text-[8px] ml-0.5 'void-opacity-60 text-void-fg-4`}>
 								{`(Current File)`}
 							</span>

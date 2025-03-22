@@ -2020,7 +2020,7 @@ export const SidebarChat = () => {
 	const proposed = toolNameSoFar && toolNames.includes(toolNameSoFar as ToolName) ? titleOfToolName[toolNameSoFar as ToolName]?.proposed : toolNameSoFar
 	const toolTitle = typeof proposed === 'function' ? proposed(null) : proposed
 	const currStreamingToolHTML = toolIsLoading ?
-		<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)} title={toolTitle} desc1={<span className='flex items-center'>writing<IconLoading /></span>} />
+		<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)} title={toolTitle} desc1={<span className='flex items-center'>Getting parameters<IconLoading /></span>} />
 		: null
 
 	const allMessagesHTML = [...previousMessagesHTML, currStreamingMessageHTML, currStreamingToolHTML]

@@ -122,15 +122,21 @@ export type ThreadStreamState = {
 	}
 }
 
-
-const newThreadObject = () => {
+const defaultThreadAttributes = () => {
 	const now = new Date().toISOString()
 	return {
-		id: generateUuid(),
 		createdAt: now,
 		lastModified: now,
 		messages: [],
 		state: defaultThreadState,
+	}
+}
+
+const newThreadObject = () => {
+
+	return {
+		id: generateUuid(),
+		...defaultThreadAttributes()
 
 	} satisfies ChatThreads[string]
 }
@@ -240,13 +246,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 		// add the current file to the thread being edited
-		const model = this._codeEditorService.getActiveCodeEditor()?.getModel() ?? null
-		if (!model) { return; }
+		const newModel = this._codeEditorService.getActiveCodeEditor()?.getModel() ?? null
+		if (!newModel) { return; }
 
-		const newSelection: StagingSelectionItem = {
+		const newStagingSelection: StagingSelectionItem = {
 			type: 'File',
-			fileURI: model.uri,
-			language: model.getLanguageId(),
+			fileURI: newModel.uri,
+			language: newModel.getLanguageId(),
 			selectionStr: null,
 			range: null,
 			state: { isOpened: false, wasAddedAsCurrentFile: true }
@@ -259,15 +265,18 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			const oldStagingSelections = this.getCurrentThreadState().stagingSelections || [];
 
-			// if the file already exists, do nothing
-			const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.toString() === newSelection.fileURI.toString())
-			if (alreadyHasFile) { return; }
+			// remove all old selectons that are marked as `wasAddedAsCurrentFile`
+			const newStagingSelections: StagingSelectionItem[] = oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile);
 
-			// add the file
-			const filteredStagingSelections = oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile); // remove all old selectons that were added during a file change
-			const newSelections = [...filteredStagingSelections, newSelection];
+			// add the new file if it doesn't exist
+			const fileIsAdded = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.toString() === newStagingSelection.fileURI.toString())
+			if (!fileIsAdded) {
+				newStagingSelections.push(newStagingSelection)
+			}
 
-			this.setCurrentThreadState({ stagingSelections: newSelections });
+			// update thread state with new selections
+			this.setCurrentThreadState({ stagingSelections: newStagingSelections });
+
 
 
 		} else { // user is editing a message
@@ -275,14 +284,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// do nothing. I don't think it feels good to auto-add the current file when you're editing a message.
 
 			// const oldStagingSelections = this.getCurrentMessageState(focusedMessageIdx).stagingSelections || [];
+			// const newStagingSelections = [...filteredStagingSelections, newSelection];
+			// this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: newSelections });
 
 			// // if the file already exists, do nothing
 			// const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.toString() === newSelection.fileURI.toString())
 			// if (alreadyHasFile) { return; }
 
 			// const filteredStagingSelections = oldStagingSelections.filter(s => !s.state?.wasAddedDuringFileChange); // remove all old selectons that were added during a file change
-			// const newSelections = [...filteredStagingSelections, newSelection];
-			// this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: newSelections });
 
 
 		}
@@ -1244,6 +1253,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const { allThreads: currentThreads } = this.state
 		for (const threadId in currentThreads) {
 			if (currentThreads[threadId]!.messages.length === 0) {
+				// clear the thread
+				currentThreads[threadId]! = { id: currentThreads[threadId]!.id, ...defaultThreadAttributes() }
+				// switch to the thread
 				this.switchToThread(threadId)
 				return
 			}

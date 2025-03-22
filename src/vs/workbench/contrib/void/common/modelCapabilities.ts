@@ -51,6 +51,7 @@ export const defaultModelsOfProvider = {
 		'llama-3.1-8b-instant',
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)
 	],
+
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
 		'open-codestral-mamba',
@@ -166,6 +167,12 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsTools: false,
 		supportsReasoning: false,
 	},
+	'codestral': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		supportsReasoning: false,
+	},
 	// llama
 	'llama3': {
 		supportsFIM: false,
@@ -217,8 +224,10 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsTools: false,
 		supportsReasoning: false,
 	},
-	...mistralModelOptions,
 } as const satisfies { [s: string]: Partial<ModelOptions> }
+
+
+
 
 const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelName) => {
 	const toFallback = (opts: Omit<ModelOptions, 'cost'>): ModelOptions & { modelName: string } => {
@@ -237,11 +246,15 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('mistral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['mistral-large-latest'] })
-	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['codestral-latest'] })
+	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
 	return toFallback(modelOptionsDefaults)
 }
+
+
+
+
+
 
 // ---------------- ANTHROPIC ----------------
 const anthropicModelOptions = {
@@ -372,13 +385,6 @@ const openAISettings: ProviderSettings = {
 		return null
 	}
 }
-
-
-
-
-
-
-
 
 // ---------------- XAI ----------------
 const xAIModelOptions = {
@@ -581,20 +587,13 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		supportsReasoning: false,
 	},
 	'mistralai/codestral-2501': {
-		...openSourceModelOptions_assumingOAICompat['codestral-latest'],
+		...openSourceModelOptions_assumingOAICompat.codestral,
 		contextWindow: 256_000,
 		maxOutputTokens: null,
 		cost: { input: 0.3, output: 0.9 },
 		supportsTools: 'openai-style',
 		supportsReasoning: false,
 	},
-	'mistralai/mistral-large-latest': {
-		...openSourceModelOptions_assumingOAICompat['mistral-large-latest'],
-		contextWindow: 256_000,
-		maxOutputTokens: null,
-		cost: { input: 0.3, output: 0.9 },
-	},
-
 	'qwen/qwen-2.5-coder-32b-instruct': {
 		...openSourceModelOptions_assumingOAICompat['qwen2.5coder'],
 		contextWindow: 33_000,
@@ -623,6 +622,8 @@ const openRouterSettings: ProviderSettings = {
 }
 
 
+
+
 // ---------------- model settings of everything above ----------------
 
 const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSettings } = {
@@ -630,6 +631,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	anthropic: anthropicSettings,
 	xAI: xAISettings,
 	gemini: geminiSettings,
+
 	// open source models
 	deepseek: deepseekSettings,
 	groq: groqSettings,
@@ -639,7 +641,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	vLLM: vLLMSettings,
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
-	mistral: mistralSettings,
+
 	// googleVertex: {},
 	// microsoftAzure: {},
 } as const

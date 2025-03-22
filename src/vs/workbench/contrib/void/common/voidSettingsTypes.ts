@@ -43,9 +43,6 @@ export const defaultProviderSettings = {
 	xAI: {
 		apiKey: ''
 	},
-	mistral: {
-		apiKey: ''
-	},
 } as const
 
 
@@ -147,11 +144,6 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 			title: 'Grok (xAI)',
 		}
 	}
-	else if (providerName === 'mistral') {
-		return {
-			title: 'Mistral.ai API',
-		}
-	}
 
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
@@ -178,8 +170,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 								providerName === 'groq' ? 'gsk_key...' :
 									providerName === 'openAICompatible' ? 'sk-key...' :
 										providerName === 'xAI' ? 'xai-key...' :
-											providerName === 'mistral' ? 'key...' :
-												'',
+											'',
 
 			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
 				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
@@ -188,9 +179,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 							providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 								providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
 									providerName === 'xAI' ? 'Get your [API Key here](https://console.x.ai).' :
-										providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys).' :
-											providerName === 'openAICompatible' ? undefined :
-												'',
+										providerName === 'openAICompatible' ? undefined :
+											'',
 			isPasswordField: true,
 		}
 	}
@@ -296,12 +286,6 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAICompatible,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible),
-		_didFillInProviderSettings: undefined,
-	},
-	mistral: { // aggregator
-		...defaultCustomSettings,
-		...defaultProviderSettings.mistral,
-		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
 		_didFillInProviderSettings: undefined,
 	},
 	ollama: { // aggregator

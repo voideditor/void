@@ -40,7 +40,11 @@ import './terminalToolService.js'
 // register Thread History
 import './chatThreadService.js'
 
+// ping
+import './metricsPollService.js'
 
+// helper services
+import './helperServices/consistentItemService.js'
 
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
 
@@ -59,3 +63,5 @@ import '../common/metricsService.js'
 // updates
 import '../common/voidUpdateService.js'
 
+// model service
+import '../common/voidModelService.js'

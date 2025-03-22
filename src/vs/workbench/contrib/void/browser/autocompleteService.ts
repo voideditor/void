@@ -637,9 +637,12 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		token: CancellationToken,
 	): Promise<InlineCompletion[]> {
 
+		const isEnabled = this._settingsService.state.globalSettings.enableAutocomplete
+		if (!isEnabled) return []
+
 		const testMode = false
 
-		const docUriStr = model.uri.toString();
+		const docUriStr = model.uri.fsPath;
 
 		const prefixAndSuffix = getPrefixAndSuffixInfo(model, position)
 		const { prefix, suffix } = prefixAndSuffix
@@ -792,10 +795,9 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
-		const isEnabled = this._settingsService.state.globalSettings.enableAutocomplete
 
 		// set parameters of `newAutocompletion` appropriately
-		newAutocompletion.llmPromise = isEnabled ? new Promise((resolve, reject) => reject('Autocomplete is disabled')) : new Promise((resolve, reject) => {
+		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
 				messagesType: 'FIMMessage',
@@ -850,6 +852,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(message)
 				},
+				onAbort: () => { },
 			})
 			newAutocompletion.requestId = requestId
 
@@ -913,7 +916,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				if (!resource) return;
 				const model = this._modelService.getModel(resource)
 				if (!model) return;
-				const docUriStr = resource.toString();
+				const docUriStr = resource.fsPath;
 				if (!this._autocompletionsOfDocument[docUriStr]) return;
 
 				const { prefix, } = getPrefixAndSuffixInfo(model, position)
@@ -940,6 +943,5 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 }
 
 registerWorkbenchContribution2(AutocompleteService.ID, AutocompleteService, WorkbenchPhase.BlockRestore);
-
 
 

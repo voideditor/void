@@ -3,15 +3,17 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { JSX, useState } from 'react'
+import React, { JSX, useMemo, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
-import { BlockCode } from './BlockCode.js'
-import { nameToVscodeLanguage } from '../../../../common/helpers/detectLanguage.js'
-import { ApplyBlockHoverButtons } from './ApplyBlockHoverButtons.js'
-import { useAccessor, useChatThreadsState } from '../util/services.js'
-import { Range } from '../../../../../../services/search/common/searchExtTypes.js'
-import { IRange } from '../../../../../../../base/common/range.js'
+
+import { convertToVscodeLang, detectLanguage } from '../../../../common/helpers/languageHelpers.js'
+import { BlockCodeApplyWrapper } from './ApplyBlockHoverButtons.js'
+import { useAccessor } from '../util/services.js'
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js'
+import { URI } from '../../../../../../../base/common/uri.js'
+import { isAbsolute } from '../../../../../../../base/common/path.js'
+import { separateOutFirstLine } from '../../../../common/helpers/util.js'
+import { BlockCode } from '../util/inputs.js'
 
 
 export type ChatMessageLocation = {
@@ -21,12 +23,17 @@ export type ChatMessageLocation = {
 
 type ApplyBoxLocation = ChatMessageLocation & { tokenIdx: string }
 
-const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
+export const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocation) => {
 	return `${threadId}-${messageIdx}-${tokenIdx}`
 }
 
+function isValidUri(s: string): boolean {
+	return s.length > 5 && isAbsolute(s) && !s.includes('//') && !s.includes('/*') // common case that is a false positive is comments like //
+}
 
 const Codespan = ({ text, className, onClick }: { text: string, className?: string, onClick?: () => void }) => {
+
+	// TODO compute this once for efficiency. we should use `labels.ts/shorten` to display duplicates properly
 
 	return <code
 		className={`font-mono font-medium rounded-sm bg-void-bg-1 px-1 ${className}`}
@@ -42,7 +49,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 	const accessor = useAccessor()
 
 	const chatThreadService = accessor.get('IChatThreadService')
-	const commandSerivce = accessor.get('ICommandService')
+	const commandService = accessor.get('ICommandService')
 	const editorService = accessor.get('ICodeEditorService')
 
 	const { messageIdx, threadId } = chatMessageLocation
@@ -56,8 +63,8 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 		link = chatThreadService.getCodespanLink({ codespanStr: text, messageIdx, threadId })
 
 		if (link === undefined) {
-			// generate link and add to cache
-			(chatThreadService.generateCodespanLink(text)
+			// if no link, generate link and add to cache
+			(chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
 				.then(link => {
 					chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
 					setDidComputeCodespanLink(true) // rerender
@@ -74,7 +81,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 		const selection = link.selection
 
 		// open the file
-		commandSerivce.executeCommand('vscode.open', link.uri).then(() => {
+		commandService.executeCommand('vscode.open', link.uri).then(() => {
 
 			// select the text
 			setTimeout(() => {
@@ -93,19 +100,24 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 	}
 
 	return <Codespan
-		text={text}
+		// text={link?.displayText || text}
+		text={link?.displayText || text}
 		onClick={onClick}
 		className={link ? 'underline hover:brightness-90 transition-all duration-200 cursor-pointer' : ''}
 	/>
 }
 
-const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx }: { token: Token | string, nested?: boolean, chatMessageLocation?: ChatMessageLocation, tokenIdx: string }): JSX.Element => {
+
+export type RenderTokenOptions = { isApplyEnabled?: boolean, isLinkDetectionEnabled?: boolean }
+const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ...options }: { token: Token | string, inPTag?: boolean, codeURI?: URI, chatMessageLocation?: ChatMessageLocation, tokenIdx: string, } & RenderTokenOptions): React.ReactNode => {
+	const accessor = useAccessor()
+	const languageService = accessor.get('ILanguageService')
 
 	// deal with built-in tokens first (assume marked token)
 	const t = token as MarkedToken
 
 	if (t.raw.trim() === '') {
-		return <></>;
+		return null;
 	}
 
 	if (t.type === "space") {
@@ -113,29 +125,67 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx }: { token: 
 	}
 
 	if (t.type === "code") {
+		const [firstLine, remainingContents] = separateOutFirstLine(t.text)
+		const firstLineIsURI = isValidUri(firstLine) && !codeURI
+		const contents = firstLineIsURI ? (remainingContents?.trimStart() || '') : t.text // exclude first-line URI from contents
 
-		const applyBoxId = chatMessageLocation ? getApplyBoxId({
-			threadId: chatMessageLocation.threadId,
-			messageIdx: chatMessageLocation.messageIdx,
-			tokenIdx: tokenIdx,
-		}) : null
+		if (!contents) return null
 
-		// TODO user should only be able to apply this when the code has been closed (t.raw ends with "```")
+		// figure out langauge and URI
+		let uri: URI | null
+		let language: string
+		if (codeURI) {
+			uri = codeURI
+		}
+		else if (firstLineIsURI) { // get lang from the uri in the first line of the markdown
+			uri = URI.file(firstLine)
+		}
+		else {
+			uri = null
+		}
 
-		return <div>
-			<BlockCode
-				initValue={t.text}
-				language={t.lang === undefined ? undefined : nameToVscodeLanguage[t.lang]}
-				buttonsOnHover={applyBoxId && <ApplyBlockHoverButtons applyBoxId={applyBoxId} codeStr={t.text} />}
-			/>
-		</div>
+		if (t.lang) { // a language was provided. empty string is common so check truthy, not just undefined
+			language = convertToVscodeLang(languageService, t.lang) // convert markdown language to language that vscode recognizes (eg markdown doesn't know bash but it does know shell)
+		}
+		else { // no language provided - fallback - get lang from the uri and contents
+			language = detectLanguage(languageService, { uri, fileContents: contents })
+		}
+
+		if (options.isApplyEnabled && chatMessageLocation) {
+			const isCodeblockClosed = t.raw.trimEnd().endsWith('```') // user should only be able to Apply when the code has been closed (t.raw ends with "```")
+
+			const applyBoxId = getApplyBoxId({
+				threadId: chatMessageLocation.threadId,
+				messageIdx: chatMessageLocation.messageIdx,
+				tokenIdx: tokenIdx,
+			})
+			return <BlockCodeApplyWrapper
+				canApply={isCodeblockClosed}
+				applyBoxId={applyBoxId}
+				initValue={contents}
+				language={language}
+				uri={uri || 'current'}
+			>
+				<BlockCode
+					initValue={contents}
+					language={language}
+				/>
+			</BlockCodeApplyWrapper>
+		}
+
+		return <BlockCode
+			initValue={contents}
+			language={language}
+		/>
 	}
 
 	if (t.type === "heading") {
 
 		const HeadingTag = `h${t.depth}` as keyof JSX.IntrinsicElements
 
-		return <HeadingTag>{t.text}</HeadingTag>
+		return <HeadingTag>
+			<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} inPTag={true} codeURI={codeURI} {...options} />
+		</HeadingTag>
 	}
 
 	if (t.type === "table") {
@@ -213,7 +263,7 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx }: { token: 
 		return <li>
 			<input type="checkbox" checked={t.checked} readOnly />
 			<span>
-				<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} nested={true} />
+				<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} inPTag={true} codeURI={codeURI} {...options} />
 			</span>
 		</li>
 	}
@@ -229,7 +279,7 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx }: { token: 
 							<input type="checkbox" checked={item.checked} readOnly />
 						)}
 						<span>
-							<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} nested={true} />
+							<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} inPTag={true} {...options} />
 						</span>
 					</li>
 				))}
@@ -242,25 +292,22 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx }: { token: 
 			{t.tokens.map((token, index) => (
 				<RenderToken key={index}
 					token={token}
-					tokenIdx={`${tokenIdx ? `${tokenIdx}-` : ''}${index}`} // assign a unique tokenId to nested components
+					tokenIdx={`${tokenIdx ? `${tokenIdx}-` : ''}${index}`} // assign a unique tokenId to inPTag components
 					chatMessageLocation={chatMessageLocation}
+					inPTag={true}
+					{...options}
 				/>
 			))}
 		</>
 
-		if (nested) return contents
-
-		return <p>
-			{contents}
-		</p>
+		if (inPTag) return <span className='block'>{contents}</span>
+		return <p>{contents}</p>
 	}
 
 	if (t.type === "html") {
-		return (
-			<p>
-				{t.raw}
-			</p>
-		)
+		const contents = t.raw
+		if (inPTag) return <span className='block'>{contents}</span>
+		return <p>{contents}</p>
 	}
 
 	if (t.type === "text" || t.type === "escape") {
@@ -304,12 +351,13 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx }: { token: 
 	// inline code
 	if (t.type === "codespan") {
 
-		if (chatMessageLocation) {
+		if (options.isLinkDetectionEnabled && chatMessageLocation) {
 			return <CodespanWithLink
 				text={t.text}
 				rawText={t.raw}
 				chatMessageLocation={chatMessageLocation}
 			/>
+
 		}
 
 		return <Codespan text={t.text} />
@@ -331,12 +379,13 @@ const RenderToken = ({ token, nested, chatMessageLocation, tokenIdx }: { token: 
 	)
 }
 
-export const ChatMarkdownRender = ({ string, nested = false, chatMessageLocation }: { string: string, nested?: boolean, chatMessageLocation: ChatMessageLocation | undefined }) => {
+
+export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, codeURI?: URI, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
-				<RenderToken key={index} token={token} nested={nested} chatMessageLocation={chatMessageLocation} tokenIdx={index + ''} />
+				<RenderToken key={index} token={token} inPTag={inPTag} chatMessageLocation={chatMessageLocation} tokenIdx={index + ''} {...options} />
 			))}
 		</>
 	)

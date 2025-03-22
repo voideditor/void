@@ -810,6 +810,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
+	const sidebarStateService = accessor.get('ISidebarStateService')
 
 	// global state
 	let isBeingEdited = false
@@ -905,6 +906,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 			} catch (e) {
 				console.error('Error while editing message:', e)
 			}
+			sidebarStateService.fireFocusChat()
 		}
 
 		const onAbort = () => {

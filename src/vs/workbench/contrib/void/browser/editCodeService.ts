@@ -1172,7 +1172,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		else if (opts.from === 'ClickApply') {
 			if (this._settingsService.state.globalSettings.enableFastApply) {
-				res = await this._initializeSearchAndReplaceStream(opts) // fast apply
+				const numCharsInFile = this._fileLengthOfGivenURI(opts.uri)
+				if (numCharsInFile === null) return null
+				if (numCharsInFile < 1000) { // slow apply for short files (especially important for empty files)
+					res = await this._initializeWriteoverStream(opts)
+				}
+				else {
+					res = await this._initializeSearchAndReplaceStream(opts) // fast apply
+				}
 			}
 			else {
 				res = await this._initializeWriteoverStream(opts) // rewrite
@@ -1311,7 +1318,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let ctrlKZoneIfQuickEdit: CtrlKZone | null = null
 
 		if (from === 'ClickApply') {
-			const uri_ = this._getActiveEditorURI()
+			const uri_ = this._uriOfGivenURI(opts.uri)
 			if (!uri_) return
 			uri = uri_
 			startRange = 'fullFile'
@@ -1505,19 +1512,29 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-
-	private async _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): Promise<[DiffZone, Promise<void>] | undefined> {
-		const { from, applyStr, uri: givenURI, } = opts
-		let uri: URI
-
+	_uriOfGivenURI(givenURI: URI | 'current') {
 		if (givenURI === 'current') {
 			const uri_ = this._getActiveEditorURI()
 			if (!uri_) return
-			uri = uri_
+			return uri_
 		}
-		else {
-			uri = givenURI
-		}
+		return givenURI
+	}
+	_fileLengthOfGivenURI(givenURI: URI | 'current') {
+		const uri = this._uriOfGivenURI(givenURI)
+		if (!uri) return null
+		const { model } = this._voidModelService.getModel(uri)
+		if (!model) return null
+		const numCharsInFile = model.getValueLength(EndOfLinePreference.LF)
+		return numCharsInFile
+	}
+
+
+	private async _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): Promise<[DiffZone, Promise<void>] | undefined> {
+		const { from, applyStr, uri: givenURI, } = opts
+
+		const uri = this._uriOfGivenURI(givenURI)
+		if (!uri) return
 
 		await this._voidModelService.initializeModel(uri)
 		const { model } = this._voidModelService.getModel(uri)

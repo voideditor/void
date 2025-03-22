@@ -805,7 +805,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const elt: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
 			resource: uri,
-			label: 'Void Changes',
+			label: 'Void Agent',
 			code: 'undoredo.editCode',
 			undo: () => { opts?.onWillUndo?.(); restoreDiffAreas(beforeSnapshot); },
 			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }

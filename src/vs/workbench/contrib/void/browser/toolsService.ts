@@ -7,9 +7,12 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
-import { IVoidFileService } from '../common/voidFileService.js'
 import { ITerminalToolService } from './terminalToolService.js'
 import { ToolCallParams, ToolDirectoryItem, ToolName, ToolResultType } from '../common/toolsServiceTypes.js'
+import { IVoidModelService } from '../common/voidModelService.js'
+import { EndOfLinePreference } from '../../../../editor/common/model.js'
+import { basename } from '../../../../base/common/path.js'
+import { IVoidCommandBarService } from './voidCommandBarService.js'
 
 
 // tool use for AI
@@ -18,7 +21,7 @@ import { ToolCallParams, ToolDirectoryItem, ToolName, ToolResultType } from '../
 
 
 type ValidateParams = { [T in ToolName]: (p: string) => Promise<ToolCallParams[T]> }
-type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<ToolResultType[T]> }
+type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], interruptTool?: () => void }> }
 type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: ToolResultType[T]) => string }
 
 
@@ -27,6 +30,9 @@ type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Tool
 // pagination info
 const MAX_FILE_CHARS_PAGE = 50_000
 const MAX_CHILDREN_URIs_PAGE = 500
+export const MAX_TERMINAL_CHARS_PAGE = 20_000
+export const TERMINAL_TIMEOUT_TIME = 15
+export const TERMINAL_BG_WAIT_TIME = 1
 
 
 
@@ -72,8 +78,8 @@ const directoryResultToString = (params: ToolCallParams['list_dir'], result: Too
 	let output = '';
 	const entries = result.children;
 
-	if (!result.hasPrevPage) {
-		output += `${params.rootURI}\n`;
+	if (!result.hasPrevPage) { // is first page
+		output += `${params.rootURI.fsPath}\n`;
 	}
 
 	for (let i = 0; i < entries.length; i++) {
@@ -98,24 +104,30 @@ const directoryResultToString = (params: ToolCallParams['list_dir'], result: Too
 const validateJSON = (s: string): { [s: string]: unknown } => {
 	try {
 		const o = JSON.parse(s)
+		if (typeof o !== 'object') throw new Error()
+
+		if ('result' in o) { // openrouter sometimes wraps the result with { 'result': ... }
+			return o.result
+		}
+
 		return o
 	}
 	catch (e) {
-		throw new Error(`Tool parameter was not a string of a valid JSON: "${s}".`)
+		throw new Error(`Invalid LLM output format: Tool parameter was not a string of a valid JSON: "${s}".`)
 	}
 }
 
 
 
 const validateStr = (argName: string, value: unknown) => {
-	if (typeof value !== 'string') throw new Error(`Error: ${argName} must be a string.`)
+	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string.`)
 	return value
 }
 
 
-// TODO!!!! check to make sure in workspace
+// We are NOT checking to make sure in workspace
 const validateURI = (uriStr: unknown) => {
-	if (typeof uriStr !== 'string') throw new Error('Error: provided uri must be a string.')
+	if (typeof uriStr !== 'string') throw new Error('Invalid LLM output format: Provided uri must be a string.')
 
 	const uri = URI.file(uriStr)
 	return uri
@@ -125,12 +137,12 @@ const validatePageNum = (pageNumberUnknown: unknown) => {
 	if (!pageNumberUnknown) return 1
 	const parsedInt = Number.parseInt(pageNumberUnknown + '')
 	if (!Number.isInteger(parsedInt)) throw new Error(`Page number was not an integer: "${pageNumberUnknown}".`)
-	if (parsedInt < 1) throw new Error(`Specified page number must be 1 or greater: "${pageNumberUnknown}".`)
+	if (parsedInt < 1) throw new Error(`Invalid LLM output format: Specified page number must be 1 or greater: "${pageNumberUnknown}".`)
 	return parsedInt
 }
 
 const validateRecursiveParamStr = (paramsUnknown: unknown) => {
-	if (typeof paramsUnknown !== 'string') throw new Error('Error calling tool: provided params must be a string.')
+	if (typeof paramsUnknown !== 'string') throw new Error('Invalid LLM output format: Error calling tool: provided params must be a string.')
 	const params = paramsUnknown
 	const isRecursive = params.includes('r')
 	return isRecursive
@@ -149,6 +161,14 @@ const validateWaitForCompletion = (b: unknown) => {
 	}
 	return true // default is true
 }
+
+
+const checkIfIsFolder = (uriStr: string) => {
+	uriStr = uriStr.trim()
+	if (uriStr.endsWith('/') || uriStr.endsWith('\\')) return true
+	return false
+}
+
 export interface IToolsService {
 	readonly _serviceBrand: undefined;
 	validateParams: ValidateParams;
@@ -166,15 +186,15 @@ export class ToolsService implements IToolsService {
 	public callTool: CallTool;
 	public stringOfResult: ToolResultToString;
 
-
 	constructor(
 		@IFileService fileService: IFileService,
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 		@ISearchService searchService: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@IVoidFileService voidFileService: IVoidFileService,
+		@IVoidModelService voidModelService: IVoidModelService,
 		@IEditCodeService editCodeService: IEditCodeService,
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
+		@IVoidCommandBarService private readonly commandBarService: IVoidCommandBarService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -207,7 +227,7 @@ export class ToolsService implements IToolsService {
 				return { queryStr, pageNumber }
 
 			},
-			search: async (params: string) => {
+			text_search: async (params: string) => {
 				const o = validateJSON(params)
 				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
 
@@ -221,17 +241,21 @@ export class ToolsService implements IToolsService {
 
 			create_uri: async (params: string) => {
 				const o = validateJSON(params)
-				const { uri: uriStr } = o
-				const uri = validateURI(uriStr)
-				return { uri }
+				const { uri: uriUnknown } = o
+				const uri = validateURI(uriUnknown)
+				const uriStr = validateStr('uri', uriUnknown)
+				const isFolder = checkIfIsFolder(uriStr)
+				return { uri, isFolder }
 			},
 
 			delete_uri: async (params: string) => {
 				const o = validateJSON(params)
-				const { uri: uriStr, params: paramsStr } = o
-				const uri = validateURI(uriStr)
+				const { uri: uriUnknown, params: paramsStr } = o
+				const uri = validateURI(uriUnknown)
 				const isRecursive = validateRecursiveParamStr(paramsStr)
-				return { uri, isRecursive }
+				const uriStr = validateStr('uri', uriUnknown)
+				const isFolder = checkIfIsFolder(uriStr)
+				return { uri, isRecursive, isFolder }
 			},
 
 			edit: async (params: string) => {
@@ -239,7 +263,6 @@ export class ToolsService implements IToolsService {
 				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = o
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
-
 				return { uri, changeDescription }
 			},
 
@@ -257,22 +280,28 @@ export class ToolsService implements IToolsService {
 
 		this.callTool = {
 			read_file: async ({ uri, pageNumber }) => {
-				const readFileContents = await voidFileService.readFile(uri)
+				await voidModelService.initializeModel(uri)
+				const { model } = await voidModelService.getModelSafe(uri)
+				if (model === null) { throw new Error(`Contents were empty. There may have been an error, or the file may not exist.`) }
+				const readFileContents = model.getValue(EndOfLinePreference.LF)
 
 				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
 				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) // paginate
 				const hasNextPage = (readFileContents.length - 1) - toIdx >= 1
-				return { fileContents, hasNextPage }
+
+				return { result: { fileContents, hasNextPage } }
 			},
 
 			list_dir: async ({ rootURI, pageNumber }) => {
 				const dirResult = await computeDirectoryResult(fileService, rootURI, pageNumber)
-				return dirResult
+				return { result: dirResult }
 			},
 
 			pathname_search: async ({ queryStr, pageNumber }) => {
-				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), { filePattern: queryStr, })
+				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), {
+					filePattern: queryStr,
+				})
 				const data = await searchService.fileSearch(query, CancellationToken.None)
 
 				const fromIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1)
@@ -282,11 +311,15 @@ export class ToolsService implements IToolsService {
 					.map(({ resource, results }) => resource)
 
 				const hasNextPage = (data.results.length - 1) - toIdx >= 1
-				return { uris, hasNextPage }
+				return { result: { uris, hasNextPage } }
 			},
 
-			search: async ({ queryStr, pageNumber }) => {
-				const query = queryBuilder.text({ pattern: queryStr, }, workspaceContextService.getWorkspace().folders.map(f => f.uri))
+			text_search: async ({ queryStr, pageNumber }) => {
+				const query = queryBuilder.text({
+					pattern: queryStr,
+					isRegExp: true,
+				}, workspaceContextService.getWorkspace().folders.map(f => f.uri))
+
 				const data = await searchService.textSearch(query, CancellationToken.None)
 
 				const fromIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1)
@@ -296,34 +329,47 @@ export class ToolsService implements IToolsService {
 					.map(({ resource, results }) => resource)
 
 				const hasNextPage = (data.results.length - 1) - toIdx >= 1
-				return { queryStr, uris, hasNextPage }
+				return { result: { queryStr, uris, hasNextPage } }
 			},
 
 			// ---
 
-			create_uri: async ({ uri }) => {
-				await fileService.createFile(uri)
-				return {}
+			create_uri: async ({ uri, isFolder }) => {
+				if (isFolder)
+					await fileService.createFolder(uri)
+				else {
+					await fileService.createFile(uri)
+				}
+				return { result: {} }
 			},
 
 			delete_uri: async ({ uri, isRecursive }) => {
 				await fileService.del(uri, { recursive: isRecursive })
-				return {}
+				return { result: {} }
 			},
 
 			edit: async ({ uri, changeDescription }) => {
-				const [_, applyDonePromise] = editCodeService.startApplying({
+				await voidModelService.initializeModel(uri)
+				if (this.commandBarService.getStreamState(uri) === 'streaming') {
+					throw new Error(`The Apply model was already running. This can happen if two agents try editing the same file at the same time. Please try again in a moment.`)
+				}
+				const res = await editCodeService.startApplying({
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',
-					type: 'searchReplace',
-				}) ?? []
-				await applyDonePromise
-				return {}
+					startBehavior: 'keep-conflicts',
+				})
+				if (!res) throw new Error(`The Apply model did not start running on ${basename(uri.fsPath)}. Please try again.`)
+				const [diffZoneURI, applyDonePromise] = res
+
+				const interruptTool = () => { // must reject the applyPromiseDone promise
+					editCodeService.interruptURIStreaming({ uri: diffZoneURI })
+				}
+				return { result: applyDonePromise, interruptTool }
 			},
 			terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
-				const { terminalId, didCreateTerminal } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
-				return { terminalId, didCreateTerminal }
+				const { terminalId, didCreateTerminal, result, resolveReason } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
+				return { result: { terminalId, didCreateTerminal, result, resolveReason } }
 			},
 		}
 
@@ -337,12 +383,12 @@ export class ToolsService implements IToolsService {
 			},
 			list_dir: (params, result) => {
 				const dirTreeStr = directoryResultToString(params, result)
-				return dirTreeStr + nextPageStr(result.hasNextPage)
+				return dirTreeStr // + nextPageStr(result.hasNextPage) // already handles num results remaining
 			},
 			pathname_search: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
-			search: (params, result) => {
+			text_search: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
 			// ---
@@ -353,10 +399,33 @@ export class ToolsService implements IToolsService {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
 			edit: (params, result) => {
-				return `Change successfully made ${params.uri.fsPath} successfully deleted.`
+				console.log('STR OF RESULT', params)
+				return `Change successfully made to ${params.uri.fsPath}.`
 			},
 			terminal_command: (params, result) => {
-				return `Terminal command "${params.command}" successfully executed in terminal ${result.terminalId}${result.didCreateTerminal ? `(a newly-created terminal)` : ''}.`
+
+				const {
+					terminalId,
+					didCreateTerminal,
+					resolveReason,
+					result: result_,
+				} = result
+
+				const terminalDesc = `terminal ${terminalId}${didCreateTerminal ? ` (a newly-created terminal)` : ''}`
+
+				if (resolveReason.type === 'timeout') {
+					return `Terminal command ran in ${terminalDesc}, but timed out after ${TERMINAL_TIMEOUT_TIME} seconds. Result:\n${result_}`
+				}
+				else if (resolveReason.type === 'bgtask') {
+					return `Terminal command is running in the background in ${terminalDesc}. Here were the outputs after ${TERMINAL_BG_WAIT_TIME} seconds:\n${result_}`
+				}
+				else if (resolveReason.type === 'toofull') {
+					return `Terminal command executed in terminal ${terminalDesc}. Command was interrupted because output was too long. Result:\n${result_}`
+				}
+				else if (resolveReason.type === 'done') {
+					return `Terminal command executed in terminal ${terminalDesc}. Result (exit code ${resolveReason.exitCode}):\n${result_}`
+				}
+				throw new Error(`Unexpected internal error: Terminal command did not resolve with a valid reason.`)
 			},
 
 		}

@@ -21,7 +21,7 @@ const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
 	return true
 }
 
-const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], featureName: FeatureName }) => {
+const ModelSelectBox = ({ options, featureName, className }: { options: ModelOption[], featureName: FeatureName, className: string }) => {
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 
@@ -40,7 +40,7 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 		getOptionDropdownName={(option) => option.selection.modelName}
 		getOptionDropdownDetail={(option) => option.selection.providerName}
 		getOptionsEqual={(a, b) => optionsEqual([a], [b])}
-		className='text-xs text-void-fg-3'
+		className={className}
 		matchInputWidth={false}
 	/>
 }
@@ -77,7 +77,7 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 
 
 
-const MemoizedModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
+const MemoizedModelDropdown = ({ featureName, className }: { featureName: FeatureName, className: string }) => {
 	const settingsState = useSettingsState()
 	const oldOptionsRef = useRef<ModelOption[]>([])
 	const [memoizedOptions, setMemoizedOptions] = useState(oldOptionsRef.current)
@@ -86,7 +86,7 @@ const MemoizedModelDropdown = ({ featureName }: { featureName: FeatureName }) =>
 
 	useEffect(() => {
 		const oldOptions = oldOptionsRef.current
-		const newOptions = settingsState._modelOptions.filter((o) => filter(o.selection))
+		const newOptions = settingsState._modelOptions.filter((o) => filter(o.selection, { chatMode: settingsState.globalSettings.chatMode }))
 
 		if (!optionsEqual(oldOptions, newOptions)) {
 			setMemoizedOptions(newOptions)
@@ -95,14 +95,14 @@ const MemoizedModelDropdown = ({ featureName }: { featureName: FeatureName }) =>
 	}, [settingsState._modelOptions, filter])
 
 	if (memoizedOptions.length === 0) { // Pretty sure this will never be reached unless filter is enabled
-		return <WarningBox text={emptyMessage || 'No models available'} />
+		return <WarningBox text={emptyMessage?.message || 'No models available'} />
 	}
 
-	return <ModelSelectBox featureName={featureName} options={memoizedOptions} />
+	return <ModelSelectBox featureName={featureName} options={memoizedOptions} className={className} />
 
 }
 
-export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
+export const ModelDropdown = ({ featureName, className }: { featureName: FeatureName, className: string }) => {
 	const settingsState = useSettingsState()
 
 	const accessor = useAccessor()
@@ -116,12 +116,12 @@ export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => 
 	const isDisabled = isFeatureNameDisabled(featureName, settingsState)
 	if (isDisabled)
 		return <WarningBox onClick={openSettings} text={
-			emptyMessage ? emptyMessage :
+			emptyMessage && emptyMessage.priority === 'always' ? emptyMessage.message :
 				isDisabled === 'needToEnableModel' ? 'Enable a model'
 					: isDisabled === 'addModel' ? 'Add a model'
 						: (isDisabled === 'addProvider' || isDisabled === 'notFilledIn' || isDisabled === 'providerNotAutoDetected') ? 'Provider required'
 							: 'Provider required'
 		} />
 
-	return <MemoizedModelDropdown featureName={featureName} />
+	return <MemoizedModelDropdown featureName={featureName} className={className} />
 }

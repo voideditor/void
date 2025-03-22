@@ -23,7 +23,7 @@ const notifyYesUpdate = (notifService: INotificationService, res: { message?: st
 		severity: Severity.Info,
 		message: message,
 		sticky: true,
-		source: 'Void Team',
+		progress: { worked: 0, total: 100 },
 		actions: {
 			primary: [{
 				id: 'void.updater.update',
@@ -39,7 +39,7 @@ const notifyYesUpdate = (notifService: INotificationService, res: { message?: st
 			{
 				id: 'void.updater.site',
 				enabled: true,
-				label: `Visit Site`,
+				label: `Void Site`,
 				tooltip: '',
 				class: undefined,
 				run: () => {

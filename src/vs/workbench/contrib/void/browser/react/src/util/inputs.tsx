@@ -760,9 +760,10 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 		if (!dropdownKeyboardEvent) return;
 		const handleKeyDown = (event: DropdownKeyboardEvent["key"]) => {
 			if (event === 'ArrowDown') {
-				setHighlightedIndex((highlightedIndex + 1) % totalOptionsNumber);
+				setHighlightedIndex((highlightedIndex + 1) % options.length);
 			} else if (event === 'ArrowUp') {
-				setHighlightedIndex((highlightedIndex - 1 + totalOptionsNumber) % totalOptionsNumber);
+				if (highlightedIndex === 0) return;
+				setHighlightedIndex((highlightedIndex - 1 + options.length) % options.length);
 			} else if (event === 'Enter') {
 				if (options[highlightedIndex]) {
 					console.log("CLICKING OPTION")
@@ -782,6 +783,11 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 		  });
 		}
 	  }, [highlightedIndex]);
+
+	// Reset highlighted index when options change
+	useEffect(() => {
+		setHighlightedIndex(0);
+	}, [options]);
 
 	// Dropdown placement relative to the cursor
 	const cursorHeight = '25px';

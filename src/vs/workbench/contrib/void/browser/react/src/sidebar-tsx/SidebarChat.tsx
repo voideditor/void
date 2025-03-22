@@ -1765,14 +1765,14 @@ export const SidebarChat = () => {
 		const updatedText = `@${file.fileName} `
 		const currentText = `@${searchText}`;
 		if (!textAreaRef.current) return;
-		// Replace the current text with the updated text based on cursor position and text length but maintain the cursor position
+
+		// Clear the mention and search text
 		const cursorPosition = textAreaRef.current.selectionStart;
 		const textBeforeCursor = textAreaRef.current.value.substring(0, cursorPosition - currentText.length);
-		const textAfterCursor = textAreaRef.current.value.substring(cursorPosition);
-		const newText = `${textBeforeCursor}${updatedText}${textAfterCursor}`;
+		const newText = `${textBeforeCursor}`;
 		textAreaRef.current.value = newText;
 		textAreaRef.current.focus();
-		textAreaRef.current.setSelectionRange(cursorPosition, cursorPosition + updatedText.length);
+
 		// Clear mentions state
 		clearMentions();
     };

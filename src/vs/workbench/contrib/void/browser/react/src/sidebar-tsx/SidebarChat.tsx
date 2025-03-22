@@ -303,9 +303,9 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			className={`
 				gap-x-1
                 flex flex-col p-2 relative input text-left shrink-0
-                transition-all duration-200
                 rounded-md
-                bg-vscode-input-bg
+                bg-void-bg-1
+				transition-all duration-200
 				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 				max-h-[80vh] overflow-y-auto
                 ${className}
@@ -929,7 +929,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 			className={`
 				text-left rounded-lg max-w-full
 				${mode === 'edit' ? ''
-					: mode === 'display' ? 'p-2 flex flex-col gap-1 bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
+					: mode === 'display' ? 'p-2 flex flex-col bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
 				}
 			`}
 			onClick={() => { if (mode === 'display') { onOpenEdit() } }}

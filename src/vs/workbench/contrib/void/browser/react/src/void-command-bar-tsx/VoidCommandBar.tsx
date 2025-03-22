@@ -271,8 +271,8 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		<div className="flex flex-col gap-1">
 			{/* Changes in file */}
 			<div className={`${!isADiffZoneInThisFile ? 'hidden' : ''} flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
-				{downButton}
 				{upButton}
+				{downButton}
 				<span className="min-w-16 px-2 text-xs">
 					{isADiffInThisFile ?
 						`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`

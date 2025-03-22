@@ -725,7 +725,6 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 	const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
 	const [mouseHoveredIndex, setMouseHoveredIndex] = useState<number | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-	// const [isHovering, setIsHovering] = useState<number | null>(null);
 	const optionRefs = useRef<HTMLDivElement[]>([]);
 	const activeIndex = mouseHoveredIndex ?? highlightedIndex;
 
@@ -780,6 +779,9 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 
 	// Scroll to highlighted index
 	useEffect(() => {
+		// Don't scroll back to the top if next page is loaded
+		if (highlightedIndex === 0) return;
+
 		if (highlightedIndex !== null && optionRefs.current[highlightedIndex]) {
 		  optionRefs.current[highlightedIndex].scrollIntoView({
 			behavior: 'smooth',

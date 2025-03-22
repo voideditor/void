@@ -1762,7 +1762,6 @@ export const SidebarChat = () => {
 	}, [setShowDropdown, textAreaRef])
 
 	const handleOnFileAdded = (file: IFileDisplayInfo) => {
-		const updatedText = `@${file.fileName} `
 		const currentText = `@${searchText}`;
 		if (!textAreaRef.current) return;
 

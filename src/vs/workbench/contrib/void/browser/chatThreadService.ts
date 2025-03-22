@@ -732,11 +732,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}) {
 
 		// define helper functions so we can tell what's going on
+		// for now, do not recompute selections as we run (it seems to confuse tool-use models)
+		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidModelService) // all the file CONTENTS or "selections" de-duped
+		const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
 		const getLatestMessages = async () => {
-			// recompute files in last message
-			const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidModelService) // all the file CONTENTS or "selections" de-duped
-			const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
-
 			// replace last userMessage with userMessageFullContent (which contains all the files too)
 			const thread = this.state.allThreads[threadId]
 			const latestMessages = thread?.messages ?? []

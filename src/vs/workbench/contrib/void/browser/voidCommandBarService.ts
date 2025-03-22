@@ -420,7 +420,7 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 
 			this._register(editor.onDidChangeModel((model) => {
 				const uri = model.newModelUrl
-				res.rerender({ uri, editor })
+				res.rerender({ uri, editor } satisfies VoidCommandBarProps)
 			}))
 
 		});

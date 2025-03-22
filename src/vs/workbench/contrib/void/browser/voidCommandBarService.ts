@@ -103,12 +103,6 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 
 
 
-		const updateActiveURI = () => {
-			const currentUri = this._codeEditorService.getActiveCodeEditor()?.getModel()?.uri ?? null
-			this.activeURI = currentUri
-			if (!currentUri) return;
-			this._onDidChangeActiveURI.fire({ uri: currentUri })
-		}
 
 
 		// for every new editor, add the floating widget and update active URI
@@ -120,7 +114,11 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 			// mount the command bar
 			const d1 = this._instantiationService.createInstance(AcceptRejectAllFloatingWidget, { editor });
 			disposablesOfEditorId[id].push(d1);
-			const d2 = editor.onWillChangeModel((e) => { if (e?.newModelUrl?.scheme === 'file') updateActiveURI() })
+			const d2 = editor.onDidChangeModel((e) => {
+				if (e.newModelUrl?.scheme !== 'file') return
+				this.activeURI = e.newModelUrl;
+				this._onDidChangeActiveURI.fire({ uri: e.newModelUrl })
+			})
 			disposablesOfEditorId[id].push(d2);
 		}
 		const onCodeEditorRemove = (editor: ICodeEditor) => {
@@ -410,21 +408,15 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 		editor.addOverlayWidget(this);
 
 		this.instantiationService.invokeFunction(accessor => {
-
 			const uri = editor.getModel()?.uri || null
-
 			const res = mountVoidCommandBar(root, accessor, { uri, editor } satisfies VoidCommandBarProps)
 			if (!res) return
-
 			this._register(toDisposable(() => res.dispose?.()))
-
-			this._register(editor.onDidChangeModel((model) => {
+			this._register(editor.onWillChangeModel((model) => {
 				const uri = model.newModelUrl
 				res.rerender({ uri, editor } satisfies VoidCommandBarProps)
 			}))
-
-		});
-
+		})
 	}
 
 

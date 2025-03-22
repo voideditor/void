@@ -143,8 +143,8 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 	openTerminal: ITerminalToolService['openTerminal'] = async (terminalId) => {
 		if (!terminalId) return
-
 		const terminal = this.terminalInstanceOfId[terminalId]
+		if (!terminal) return // should never happen
 		this.terminalService.setActiveInstance(terminal)
 		await this.terminalService.focusActiveInstance()
 	}

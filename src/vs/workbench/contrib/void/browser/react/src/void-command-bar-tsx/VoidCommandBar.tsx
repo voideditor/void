@@ -121,7 +121,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const sortedDiffZoneIds = uri ? commandBarState[uri.fsPath]?.sortedDiffZoneIds ?? [] : []
 
 
-	const isAChangeInThisFile = sortedDiffIds.length !== 0
+	const isADiffInThisFile = sortedDiffIds.length !== 0
 	const isADiffZoneInThisFile = sortedDiffZoneIds.length !== 0
 	const isADiffZoneInAnyFile = sortedCommandBarURIs.length !== 0
 
@@ -134,11 +134,11 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const prevURIIdx = getNextUriIdx(-1)
 
 	const upDownDisabled = prevDiffIdx === null || nextDiffIdx === null
-	const leftRightDisabled = prevURIIdx === null || nextURIIdx === null
+	const leftRightDisabled = prevURIIdx === null || nextURIIdx === null // || (sortedCommandBarURIs.length === 1 && isADiffZoneInThisFile)
 
 	const upButton = <button
 		className={`
-			size-6 rounded cursor-pointer
+			size-6 rounded cursor-default
 			hover:bg-void-bg-1-alt
 			--border border-void-border-3 focus:border-void-border-1
 		`}
@@ -154,7 +154,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 	const downButton = <button
 		className={`
-			size-6 rounded cursor-pointer
+			size-6 rounded cursor-default
 			hover:bg-void-bg-1-alt
 			--border border-void-border-3 focus:border-void-border-1
 		`}
@@ -170,7 +170,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 	const leftButton = <button
 		className={`
-			size-6 rounded cursor-pointer
+			size-6 rounded cursor-default
 			hover:bg-void-bg-1-alt
 			--border border-void-border-3 focus:border-void-border-1
 		`}
@@ -186,7 +186,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 	const rightButton = <button
 		className={`
-			size-6 rounded cursor-pointer
+			size-6 rounded cursor-default
 			hover:bg-void-bg-1-alt
 			--border border-void-border-3 focus:border-void-border-1
 		`}
@@ -273,35 +273,35 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	// >x
 	// </button>
 
-	const leftRightUpDownButtons = <div className='p-1 gap-1 flex flex-col items-start bg-void-bg-2 rounded shadow-md border border-void-border-2'>
+	const leftRightUpDownButtons = <div className='p-1 gap-1 flex flex-col items-center bg-void-bg-2 rounded shadow-md border border-void-border-2'>
 		<div className="flex flex-col gap-1">
 			{/* Changes in file */}
-			{isADiffZoneInThisFile &&
-				<div className={`flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
+			{
+				<div className={`${!isADiffZoneInThisFile ? 'hidden' : ''} flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
 					{downButton}
 					{upButton}
-					<div className="text-xs mx-1 w-fit">
-						{isAChangeInThisFile ?
+					<span className="text-xs px-2 w-fit">
+						{isADiffInThisFile ?
 							`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
 							: `No changes`
 						}
-					</div>
+					</span>
 				</div>
 			}
 
 			{/* Files */}
-			{isADiffZoneInAnyFile &&
-				<div className={`flex items-center ${leftRightDisabled ? 'opacity-50' : ''}`}>
+			{
+				<div className={`${!isADiffZoneInAnyFile ? 'hidden' : ''} flex items-center ${leftRightDisabled ? 'opacity-50' : ''}`}>
 					{leftButton}
 					{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
 					{rightButton}
 					{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
-					<div className="text-xs mx-1 w-fit">
+					<span className="text-xs px-2 w-fit">
 						{currFileIdx !== null ?
 							`File ${currFileIdx + 1} of ${sortedCommandBarURIs.length}`
 							: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'} changed`
 						}
-					</div>
+					</span>
 				</div>
 			}
 		</div>

@@ -128,7 +128,7 @@ const modelOptionsDefaults: ModelOptions = {
 	supportsSystemMessage: false,
 	supportsTools: false,
 	supportsFIM: false,
-	supportsReasoning: false,
+	reasoningCapabilities: false,
 }
 
 const mistralModelOptions = {
@@ -139,7 +139,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'mistral-large-latest': {
 		contextWindow: 131_000,
@@ -148,7 +148,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'mistral-small-latest': {
 		contextWindow: 131_000,
@@ -157,7 +157,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'pixtral-large-latest': {
 		contextWindow: 128_000,
@@ -166,7 +166,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'mistral-saba-latest': {
 		contextWindow: 32_000,
@@ -175,7 +175,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'ministral-3b-latest': {
 		contextWindow: 131_000,
@@ -184,7 +184,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'ministral-8b-latest': {
 		contextWindow: 32_000,
@@ -193,7 +193,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'mistral-ocr-latest': {
 		contextWindow: 64_000,
@@ -202,7 +202,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'mistral-embed': {
 		contextWindow: 8_192,
@@ -211,7 +211,7 @@ const mistralModelOptions = {
 		supportsFIM: false,
 		supportsSystemMessage: false,
 		supportsTools: false,
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'pixtral-12b-2409': {
 		contextWindow: 128_000,
@@ -220,7 +220,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: 'openai-style',
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'open-mistral-nemo': {
 		contextWindow: 32_768,
@@ -229,7 +229,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: false,
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	},
 	'open-codestral-mamba': {
 		contextWindow: 16_384,
@@ -238,7 +238,7 @@ const mistralModelOptions = {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		supportsTools: false,
-		supportsReasoning: false,
+		reasoningCapabilities: false,
 	}
 
 } as const satisfies { [s: string]: ModelOptions }
@@ -783,7 +783,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	vLLM: vLLMSettings,
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
-
+	mistral: mistralSettings,
 	// googleVertex: {},
 	// microsoftAzure: {},
 } as const

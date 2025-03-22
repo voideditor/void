@@ -41,7 +41,6 @@ export const FileSelectBox = ({ onClickOption, onClose, dropdownKeyboardEvent, p
 
 	// Add this effect to load and log files when component mounts
 	useEffect(() => {
-		console.log("FIRING LOAD FILES")
 		const loadFiles = async () => {
 			try {
 				setLoading(true);
@@ -50,7 +49,6 @@ export const FileSelectBox = ({ onClickOption, onClose, dropdownKeyboardEvent, p
 				repoFilesService.removeSearchState();
 				// Set search state
 				if (searchText) {
-					console.log("SETTING SEARCH STATE")
 					await repoFilesService.setSearchState(searchText);
 				}
 				// Get data from service

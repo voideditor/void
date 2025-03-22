@@ -1784,6 +1784,7 @@ export const SidebarChat = () => {
 	const clearMentions = () => {
 		setSearchText('');
 		setShowDropdown(false);
+		setDropdownKeyboardEvent(null);
 	}
 
 
@@ -1798,6 +1799,7 @@ export const SidebarChat = () => {
 			if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
 				// Navigate dropdown
 				e.preventDefault();
+				console.log('Dropdown event:', e.key);
 				setDropdownKeyboardEvent({
 					key: e.key,
 					timestamp: Date.now(),

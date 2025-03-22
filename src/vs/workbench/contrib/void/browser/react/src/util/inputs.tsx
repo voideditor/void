@@ -765,6 +765,7 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 				setHighlightedIndex((highlightedIndex - 1 + totalOptionsNumber) % totalOptionsNumber);
 			} else if (event === 'Enter') {
 				if (options[highlightedIndex]) {
+					console.log("CLICKING OPTION")
 					handleFileClick(options[highlightedIndex]);
 				}
 			}

@@ -17,15 +17,13 @@ enum CopyButtonText {
 
 type IconButtonProps = {
 	onClick: () => void;
-	title: string
 	Icon: LucideIcon
 	disabled?: boolean
 	className?: string
 }
 
-export const IconShell1 = ({ onClick, title, Icon, disabled, className }: IconButtonProps) => (
+export const IconShell1 = ({ onClick, Icon, disabled, className }: IconButtonProps) => (
 	<button
-		title={title}
 		disabled={disabled}
 		onClick={(e) => {
 			e.preventDefault();
@@ -92,7 +90,6 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 	return <IconShell1
 		Icon={copyButtonText === CopyButtonText.Copied ? Check : copyButtonText === CopyButtonText.Error ? X : Copy}
 		onClick={onCopy}
-		title={copyButtonText}
 	/>
 }
 
@@ -114,7 +111,6 @@ export const JumpToFileButton = ({ uri }: { uri: URI | 'current' }) => {
 			onClick={() => {
 				commandService.executeCommand('vscode.open', uri, { preview: true })
 			}}
-			title="Reject changes"
 		/>
 	)
 
@@ -209,7 +205,6 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		<IconShell1
 			Icon={Play}
 			onClick={onClickSubmit}
-			title="Apply changes"
 		/>
 	)
 
@@ -217,7 +212,6 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		<IconShell1
 			Icon={Square}
 			onClick={onInterrupt}
-			title="Stop applying"
 		/>
 	)
 
@@ -225,7 +219,6 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		<IconShell1
 			Icon={RotateCw}
 			onClick={onReapply}
-			title="Reapply changes"
 		/>
 	)
 
@@ -233,7 +226,6 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		<IconShell1
 			Icon={Check}
 			onClick={onAccept}
-			title="Accept changes"
 			className="text-green-600"
 		/>
 	)
@@ -242,7 +234,6 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		<IconShell1
 			Icon={X}
 			onClick={onReject}
-			title="Reject changes"
 			className="text-red-600"
 		/>
 	)

@@ -10,7 +10,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI } from '../util/services.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState } from '../util/services.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
@@ -303,9 +303,9 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			className={`
 				gap-x-1
                 flex flex-col p-2 relative input text-left shrink-0
-                transition-all duration-200
                 rounded-md
-                bg-vscode-input-bg
+                bg-void-bg-1
+				transition-all duration-200
 				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
 				max-h-[80vh] overflow-y-auto
                 ${className}
@@ -624,7 +624,7 @@ export const SelectedFiles = (
 							+ (isThisSelectionAFile ? '' : ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})`)
 						}
 
-						{isThisSelectionAddedAsCurrentFile && messageIdx === undefined && currentURI?.toString() === selection.fileURI.toString() &&
+						{isThisSelectionAddedAsCurrentFile && messageIdx === undefined && currentURI?.fsPath === selection.fileURI.fsPath &&
 							<span className={`text-[8px] ml-0.5 'void-opacity-60 text-void-fg-4`}>
 								{`(Current File)`}
 							</span>
@@ -762,10 +762,55 @@ const ToolHeaderWrapper = ({
 };
 
 
+
+
+const SimplifiedToolHeader = ({
+	title,
+	children,
+}: {
+	title: string;
+	children?: React.ReactNode;
+}) => {
+	const [isOpen, setIsOpen] = useState(false);
+	const isDropdown = children !== undefined;
+	return (
+		<div>
+			<div className="w-full">
+				{/* header */}
+				<div
+					className={`select-none flex items-center min-h-[24px] ${isDropdown ? 'cursor-pointer' : ''}`}
+					onClick={() => {
+						if (isDropdown) { setIsOpen(v => !v); }
+					}}
+				>
+					{isDropdown && (
+						<ChevronRight
+							className={`text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isOpen ? 'rotate-90' : ''}`}
+						/>
+					)}
+					<div className="flex items-center w-full overflow-hidden">
+						<span className="text-void-fg-3">{title}</span>
+					</div>
+				</div>
+				{/* children */}
+				{<div
+					className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100' : 'max-h-0 opacity-0'} text-void-fg-4`}
+				>
+					{children}
+				</div>}
+			</div>
+		</div>
+	);
+};
+
+
+
+
 const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMessage: ChatMessage & { role: 'user' }, messageIdx: number, isCommitted: boolean, }) => {
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
+	const sidebarStateService = accessor.get('ISidebarStateService')
 
 	// global state
 	let isBeingEdited = false
@@ -861,6 +906,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 			} catch (e) {
 				console.error('Error while editing message:', e)
 			}
+			sidebarStateService.fireFocusChat()
 		}
 
 		const onAbort = () => {
@@ -929,7 +975,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 			className={`
 				text-left rounded-lg max-w-full
 				${mode === 'edit' ? ''
-					: mode === 'display' ? 'p-2 flex flex-col gap-1 bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
+					: mode === 'display' ? 'p-2 flex flex-col bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
 				}
 			`}
 			onClick={() => { if (mode === 'display') { onOpenEdit() } }}
@@ -1812,6 +1858,34 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 }
 
 
+
+
+const CommandBarInChat = () => {
+	const { state: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
+	const [isExpanded, setIsExpanded] = useState(false)
+
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
+
+	if (!sortedCommandBarURIs || sortedCommandBarURIs.length === 0) {
+		return null
+	}
+
+	return (
+		<SimplifiedToolHeader title={'Changes'}>
+			{sortedCommandBarURIs.map((uri, i) => (
+				<ListableToolItem
+					key={i}
+					name={getBasename(uri.fsPath)}
+					onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+				/>
+			))}
+		</SimplifiedToolHeader>
+
+	)
+}
+
+
 export const SidebarChat = () => {
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
@@ -1946,7 +2020,7 @@ export const SidebarChat = () => {
 	const proposed = toolNameSoFar && toolNames.includes(toolNameSoFar as ToolName) ? titleOfToolName[toolNameSoFar as ToolName]?.proposed : toolNameSoFar
 	const toolTitle = typeof proposed === 'function' ? proposed(null) : proposed
 	const currStreamingToolHTML = toolIsLoading ?
-		<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)} title={toolTitle} desc1={<span className='flex items-center'>writing<IconLoading /></span>} />
+		<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)} title={toolTitle} desc1={<span className='flex items-center'>Getting parameters<IconLoading /></span>} />
 		: null
 
 	const allMessagesHTML = [...previousMessagesHTML, currStreamingMessageHTML, currStreamingToolHTML]

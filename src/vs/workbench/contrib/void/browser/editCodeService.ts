@@ -805,7 +805,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const elt: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
 			resource: uri,
-			label: 'Void Changes',
+			label: 'Void Agent',
 			code: 'undoredo.editCode',
 			undo: () => { opts?.onWillUndo?.(); restoreDiffAreas(beforeSnapshot); },
 			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }
@@ -1172,7 +1172,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		else if (opts.from === 'ClickApply') {
 			if (this._settingsService.state.globalSettings.enableFastApply) {
-				res = await this._initializeSearchAndReplaceStream(opts) // fast apply
+				const numCharsInFile = this._fileLengthOfGivenURI(opts.uri)
+				if (numCharsInFile === null) return null
+				if (numCharsInFile < 1000) { // slow apply for short files (especially important for empty files)
+					res = await this._initializeWriteoverStream(opts)
+				}
+				else {
+					res = await this._initializeSearchAndReplaceStream(opts) // fast apply
+				}
 			}
 			else {
 				res = await this._initializeWriteoverStream(opts) // rewrite
@@ -1225,8 +1232,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		if (!model) return
 
 		// treat like full file, unless linkedCtrlKZone was provided in which case use its diff's range
-
-
 
 		const startLine = linkedCtrlKZone ? linkedCtrlKZone.startLine : 1
 		const endLine = linkedCtrlKZone ? linkedCtrlKZone.endLine : model.getLineCount()
@@ -1291,7 +1296,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-
+	private _uriIsStreaming(uri: URI) {
+		const diffAreas = this.diffAreasOfURI[uri.fsPath]
+		if (!diffAreas) return false
+		for (const diffareaid of diffAreas) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (diffArea?.type !== 'DiffZone') continue
+			if (diffArea._streamState.isStreaming) return true
+		}
+		return false
+	}
 
 
 	private async _initializeWriteoverStream(opts: StartApplyingOpts): Promise<[DiffZone, Promise<void>] | undefined> {
@@ -1304,7 +1318,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		let ctrlKZoneIfQuickEdit: CtrlKZone | null = null
 
 		if (from === 'ClickApply') {
-			const uri_ = this._getActiveEditorURI()
+			const uri_ = this._uriOfGivenURI(opts.uri)
 			if (!uri_) return
 			uri = uri_
 			startRange = 'fullFile'
@@ -1358,7 +1372,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		else { throw new Error(`featureName ${from} is invalid`) }
 
-
+		// if URI is already streaming, return (should never happen, caller is responsible for checking)
+		if (this._uriIsStreaming(uri)) return
 
 		// start diffzone
 		const res = this._startStreamingDiffZone({
@@ -1497,19 +1512,29 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-
-	private async _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): Promise<[DiffZone, Promise<void>] | undefined> {
-		const { from, applyStr, uri: givenURI, } = opts
-		let uri: URI
-
+	_uriOfGivenURI(givenURI: URI | 'current') {
 		if (givenURI === 'current') {
 			const uri_ = this._getActiveEditorURI()
 			if (!uri_) return
-			uri = uri_
+			return uri_
 		}
-		else {
-			uri = givenURI
-		}
+		return givenURI
+	}
+	_fileLengthOfGivenURI(givenURI: URI | 'current') {
+		const uri = this._uriOfGivenURI(givenURI)
+		if (!uri) return null
+		const { model } = this._voidModelService.getModel(uri)
+		if (!model) return null
+		const numCharsInFile = model.getValueLength(EndOfLinePreference.LF)
+		return numCharsInFile
+	}
+
+
+	private async _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): Promise<[DiffZone, Promise<void>] | undefined> {
+		const { from, applyStr, uri: givenURI, } = opts
+
+		const uri = this._uriOfGivenURI(givenURI)
+		if (!uri) return
 
 		await this._voidModelService.initializeModel(uri)
 		const { model } = this._voidModelService.getModel(uri)
@@ -1525,6 +1550,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			{ role: 'system', content: searchReplace_systemMessage },
 			{ role: 'user', content: userMessageContent },
 		]
+
+		// if URI is already streaming, return (should never happen, caller is responsible for checking)
+		if (this._uriIsStreaming(uri)) return
 
 		// start diffzone
 		const res = this._startStreamingDiffZone({

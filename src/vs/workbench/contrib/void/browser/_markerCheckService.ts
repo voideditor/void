@@ -39,7 +39,7 @@ class MarkerCheckService extends Disposable implements IMarkerCheckService {
 
 					console.log(`----------------------------------------------`);
 
-					console.log(`${error.resource.toString()}: ${error.startLineNumber} ${error.message} ${error.severity}`); // ! all errors in the file
+					console.log(`${error.resource.fsPath}: ${error.startLineNumber} ${error.message} ${error.severity}`); // ! all errors in the file
 
 					try {
 						// Get the text model for the file
@@ -122,11 +122,11 @@ class MarkerCheckService extends Disposable implements IMarkerCheckService {
 	// 		const markers = this._markerService.read({ resource });
 
 	// 		if (markers.length === 0) {
-	// 			console.log(`${resource.toString()}: No diagnostics`);
+	// 			console.log(`${resource.fsPath}: No diagnostics`);
 	// 			continue;
 	// 		}
 
-	// 		console.log(`Diagnostics for ${resource.toString()}:`);
+	// 		console.log(`Diagnostics for ${resource.fsPath}:`);
 	// 		markers.forEach(marker => this._logMarker(marker));
 	// 	}
 	// };

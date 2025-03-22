@@ -33,7 +33,7 @@ class MetricsPollService extends Disposable implements IMetricsPollService {
 
 		// initial state
 		const { window } = dom.getActiveWindow()
-		let i = 0
+		let i = 1
 
 		this.intervalID = window.setInterval(() => {
 			this.metricsService.capture('Alive', { iv1: i })

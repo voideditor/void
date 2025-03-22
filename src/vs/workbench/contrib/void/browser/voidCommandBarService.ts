@@ -31,7 +31,11 @@ export interface IVoidCommandBarService {
 	onDidChangeActiveURI: Event<{ uri: URI | null }>;
 
 	getStreamState: (uri: URI) => 'streaming' | 'idle-has-changes' | 'idle-no-changes';
-	setDiffIdx(uri: URI, newIdx: number | null): void
+	setDiffIdx(uri: URI, newIdx: number | null): void;
+
+	acceptOrRejectAllFiles(opts: { behavior: 'reject' | 'accept' }): void;
+	anyFileIsStreaming(): boolean;
+
 }
 
 
@@ -64,7 +68,7 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 	// depends on uri -> diffZone -> {streaming, diffs}
 	public stateOfURI: { [uri: string]: CommandBarStateType } = {}
 	public sortedURIs: URI[] = [] // keys of state (depends on diffZones in the uri)
-	private readonly _hooks = new Set<URI>() // uriFsPaths
+	private readonly _listenToTheseURIs = new Set<URI>() // uriFsPaths
 
 	// Emits when a URI's stream state changes between idle, streaming, and acceptRejectAll
 	private readonly _onDidChangeState = new Emitter<{ uri: URI }>();
@@ -75,7 +79,6 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 	activeURI: URI | null = null;
 	private readonly _onDidChangeActiveURI = new Emitter<{ uri: URI | null }>();
 	readonly onDidChangeActiveURI = this._onDidChangeActiveURI.event;
-
 
 	constructor(
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
@@ -91,7 +94,7 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 			// do not add listeners to the same model twice - important, or will see duplicates
 			if (registeredModelURIs.has(model.uri.fsPath)) return
 			registeredModelURIs.add(model.uri.fsPath)
-			this._hooks.add(model.uri)
+			this._listenToTheseURIs.add(model.uri)
 		}
 		// initialize all existing models + initialize when a new model mounts
 		this._modelService.getModels().forEach(model => { initializeModel(model) })
@@ -100,12 +103,6 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 
 
 
-		const updateActiveURI = () => {
-			const currentUri = this._codeEditorService.getActiveCodeEditor()?.getModel()?.uri ?? null
-			this.activeURI = currentUri
-			if (!currentUri) return;
-			this._onDidChangeActiveURI.fire({ uri: currentUri })
-		}
 
 
 		// for every new editor, add the floating widget and update active URI
@@ -117,7 +114,11 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 			// mount the command bar
 			const d1 = this._instantiationService.createInstance(AcceptRejectAllFloatingWidget, { editor });
 			disposablesOfEditorId[id].push(d1);
-			const d2 = editor.onDidChangeModel((e) => { if (e?.newModelUrl?.scheme === 'file') updateActiveURI() })
+			const d2 = editor.onDidChangeModel((e) => {
+				if (e.newModelUrl?.scheme !== 'file') return
+				this.activeURI = e.newModelUrl;
+				this._onDidChangeActiveURI.fire({ uri: e.newModelUrl })
+			})
 			disposablesOfEditorId[id].push(d2);
 		}
 		const onCodeEditorRemove = (editor: ICodeEditor) => {
@@ -133,7 +134,7 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 
 		// state updaters
 		this._register(this._editCodeService.onDidAddOrDeleteDiffZones(e => {
-			for (const uri of this._hooks) {
+			for (const uri of this._listenToTheseURIs) {
 				if (e.uri.fsPath !== uri.fsPath) continue
 				// --- sortedURIs: delete if empty, add if not in state yet
 				const diffZones = this._getDiffZonesOnURI(uri)
@@ -173,7 +174,7 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 
 		}))
 		this._register(this._editCodeService.onDidChangeDiffsInDiffZone(e => {
-			for (const uri of this._hooks) {
+			for (const uri of this._listenToTheseURIs) {
 				if (e.uri.fsPath !== uri.fsPath) continue
 				// --- sortedURIs: no change
 				// --- state:
@@ -191,7 +192,7 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 			}
 		}))
 		this._register(this._editCodeService.onDidChangeStreamingInDiffZone(e => {
-			for (const uri of this._hooks) {
+			for (const uri of this._listenToTheseURIs) {
 				if (e.uri.fsPath !== uri.fsPath) continue
 				// --- sortedURIs: no change
 				// --- state:
@@ -342,6 +343,21 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 	}
 
 
+	anyFileIsStreaming() {
+		return this.sortedURIs.some(uri => this.getStreamState(uri) === 'streaming')
+	}
+
+	acceptOrRejectAllFiles(opts: { behavior: 'reject' | 'accept' }) {
+		const { behavior } = opts
+		// if anything is streaming, do nothing
+		const anyIsStreaming = this.anyFileIsStreaming()
+		if (anyIsStreaming) return
+		for (const uri of this.sortedURIs) {
+			this._editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior, removeCtrlKs: false })
+		}
+	}
+
+
 }
 
 registerSingleton(IVoidCommandBarService, VoidCommandBarService, InstantiationType.Delayed); // delayed is needed here :(
@@ -392,21 +408,15 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 		editor.addOverlayWidget(this);
 
 		this.instantiationService.invokeFunction(accessor => {
-
 			const uri = editor.getModel()?.uri || null
-
 			const res = mountVoidCommandBar(root, accessor, { uri, editor } satisfies VoidCommandBarProps)
 			if (!res) return
-
 			this._register(toDisposable(() => res.dispose?.()))
-
-			this._register(editor.onDidChangeModel((model) => {
+			this._register(editor.onWillChangeModel((model) => {
 				const uri = model.newModelUrl
-				res.rerender({ uri, editor })
+				res.rerender({ uri, editor } satisfies VoidCommandBarProps)
 			}))
-
-		});
-
+		})
 	}
 
 

@@ -15,15 +15,12 @@ import { VoidCommandBarProps } from '../../../voidCommandBarService.js';
 export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
 
-	if (uri?.scheme !== 'file') return null // don't show in editors that we made, they must be files
-
 	return <div
 		className={`@@void-scope ${isDark ? 'dark' : ''}`}
 	>
 		<VoidCommandBar uri={uri} editor={editor} />
 	</div>
 }
-
 
 
 
@@ -45,13 +42,38 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const { state: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
 
 
+	// useEffect(() => {
+	// 	console.log('MOUNTING!!!')
+	// }, [])
 
-	// changes if the user clicks left/right or if the user goes on a uri with changes
-	const [currUriIdx, setUriIdx] = useState<number | null>(null)
+	// latestUriIdx is used to remember place in leftRight
+	const _latestValidUriIdxRef = useRef<number | null>(null)
+
+	// i is the current index of the URI in sortedCommandBarURIs
+	const i_ = sortedCommandBarURIs.findIndex(e => e.fsPath === uri?.fsPath)
+	const currFileIdx = i_ === -1 ? null : i_
 	useEffect(() => {
-		const i = sortedCommandBarURIs.findIndex(e => e.fsPath === uri?.fsPath)
-		if (i !== -1) { setUriIdx(i) }
-	}, [sortedCommandBarURIs, uri])
+		if (currFileIdx !== null) _latestValidUriIdxRef.current = currFileIdx
+	}, [currFileIdx])
+
+	const uriIdxInStepper = currFileIdx !== null ? currFileIdx // use currFileIdx if it exists, else use latestNotNullUriIdxRef
+		: _latestValidUriIdxRef.current === null ? null
+			: _latestValidUriIdxRef.current < sortedCommandBarURIs.length ? _latestValidUriIdxRef.current
+				: null
+
+	// when change URI, scroll to the proper spot
+	useEffect(() => {
+		setTimeout(() => {
+			// check undefined
+			if (!uri) return
+			const s = commandBarService.stateOfURI[uri.fsPath]
+			if (!s) return
+			const { diffIdx } = s
+			goToDiffIdx(diffIdx ?? 0)
+		}, 50)
+	}, [uri, commandBarService])
+
+	if (uri?.scheme !== 'file') return null // don't show in editors that we made, they must be files
 
 	const getNextDiffIdx = (step: 1 | -1) => {
 		// check undefined
@@ -64,24 +86,22 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		return nextDiffIdx
 	}
 	const goToDiffIdx = (idx: number | null) => {
+		if (idx === null) return
 		// check undefined
 		if (!uri) return
 		const s = commandBarState[uri.fsPath]
 		if (!s) return
 		const { sortedDiffIds } = s
 		// reveal
-		if (idx !== null) {
-			const diffid = sortedDiffIds[idx]
-			const diff = editCodeService.diffOfId[diffid]
-			const range = { startLineNumber: diff.startLine, endLineNumber: diff.startLine, startColumn: 1, endColumn: 1 };
-			editor.revealRange(range, ScrollType.Immediate)
-			commandBarService.setDiffIdx(uri, idx)
-		}
+		const diffid = sortedDiffIds[idx]
+		if (diffid === undefined) return
+		const diff = editCodeService.diffOfId[diffid]
+		if (!diff) return
+		editor.revealLineNearTop(diff.startLine, ScrollType.Immediate)
+		commandBarService.setDiffIdx(uri, idx)
 	}
-
-
 	const getNextUriIdx = (step: 1 | -1) => {
-		return stepIdx(currUriIdx, sortedCommandBarURIs.length, step)
+		return stepIdx(uriIdxInStepper, sortedCommandBarURIs.length, step)
 	}
 	const goToURIIdx = async (idx: number | null) => {
 		if (idx === null) return
@@ -94,54 +114,31 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		}
 	}
 
-
-
-	// when change URI, scroll to the proper spot
-	useEffect(() => {
-		setTimeout(() => {
-			// check undefined
-			if (!uri) return
-			const s = commandBarState[uri.fsPath]
-			if (!s) return
-			const { diffIdx } = s
-			goToDiffIdx(diffIdx)
-		}, 50)
-
-	}, [uri])
-
-
 	const currDiffIdx = uri ? commandBarState[uri.fsPath]?.diffIdx ?? null : null
 	const sortedDiffIds = uri ? commandBarState[uri.fsPath]?.sortedDiffIds ?? [] : []
 	const sortedDiffZoneIds = uri ? commandBarState[uri.fsPath]?.sortedDiffZoneIds ?? [] : []
 
 
-	const nextDiffIdx = getNextDiffIdx(1)
-	const prevDiffIdx = getNextDiffIdx(-1)
-	const nextURIIdx = getNextUriIdx(1)
-	const prevURIIdx = getNextUriIdx(-1)
-
-	const isAChangeInThisFile = sortedDiffIds.length !== 0
+	const isADiffInThisFile = sortedDiffIds.length !== 0
 	const isADiffZoneInThisFile = sortedDiffZoneIds.length !== 0
 	const isADiffZoneInAnyFile = sortedCommandBarURIs.length !== 0
 
 	const streamState = uri ? commandBarService.getStreamState(uri) : null
 	const showAcceptRejectAll = streamState === 'idle-has-changes'
 
-
-	if (!isADiffZoneInAnyFile) { // no changes for the user to accept
-		return null
-	}
-
+	const nextDiffIdx = getNextDiffIdx(1)
+	const prevDiffIdx = getNextDiffIdx(-1)
+	const nextURIIdx = getNextUriIdx(1)
+	const prevURIIdx = getNextUriIdx(-1)
 
 	const upDownDisabled = prevDiffIdx === null || nextDiffIdx === null
-	const leftRightDisabled = prevURIIdx === null  || currUriIdx === null
+	const leftRightDisabled = prevURIIdx === null || nextURIIdx === null // || (sortedCommandBarURIs.length === 1 && isADiffZoneInThisFile)
 
 	const upButton = <button
 		className={`
-			size-6 rounded cursor-pointer
+			size-6 rounded cursor-default
 			hover:bg-void-bg-1-alt
-			--border border-void-border-3 focus:border-void-border-1
-		`}
+		`}// --border border-void-border-3 focus:border-void-border-1
 		disabled={upDownDisabled}
 		onClick={() => { goToDiffIdx(prevDiffIdx) }}
 		onKeyDown={(e) => {
@@ -150,14 +147,12 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToDiffIdx(prevDiffIdx);
 			}
 		}}
-		title="Previous diff"
 	>↑</button>
 
 	const downButton = <button
 		className={`
-			size-6 rounded cursor-pointer
+			size-6 rounded cursor-default
 			hover:bg-void-bg-1-alt
-			--border border-void-border-3 focus:border-void-border-1
 		`}
 		disabled={upDownDisabled}
 		onClick={() => { goToDiffIdx(nextDiffIdx) }}
@@ -167,14 +162,12 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToDiffIdx(nextDiffIdx);
 			}
 		}}
-		title="Next diff"
 	>↓</button>
 
 	const leftButton = <button
 		className={`
-			size-6 rounded cursor-pointer
+			size-6 rounded cursor-default
 			hover:bg-void-bg-1-alt
-			--border border-void-border-3 focus:border-void-border-1
 		`}
 		disabled={leftRightDisabled}
 		onClick={() => goToURIIdx(prevURIIdx)}
@@ -184,14 +177,12 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToURIIdx(prevURIIdx);
 			}
 		}}
-		title="Previous file"
 	>←</button>
 
 	const rightButton = <button
 		className={`
-			size-6 rounded cursor-pointer
+			size-6 rounded cursor-default
 			hover:bg-void-bg-1-alt
-			--border border-void-border-3 focus:border-void-border-1
 		`}
 		disabled={leftRightDisabled}
 		onClick={() => goToURIIdx(nextURIIdx)}
@@ -201,22 +192,9 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToURIIdx(nextURIIdx);
 			}
 		}}
-		title="Next file"
 	>→</button>
 
 
-	const filesDescription = (isADiffZoneInThisFile ?
-		currUriIdx !== null && sortedCommandBarURIs.length !== 0 &&
-		`File ${currUriIdx + 1} of ${sortedCommandBarURIs.length}`
-		: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'} changed`
-	);
-
-	const changesDescription = (isADiffZoneInThisFile ?
-		isAChangeInThisFile ?
-			`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
-			: `No changes`
-		: ''
-	);
 
 	// accept/reject if current URI has changes
 	const onAcceptAll = () => {
@@ -231,8 +209,10 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	}
 
 
+	if (!isADiffZoneInAnyFile) return null
+
 	const acceptAllButton = <button
-		className='pointer-events-auto text-nowrap'
+		className='text-nowrap'
 		onClick={onAcceptAll}
 		style={{
 			backgroundColor: acceptAllBg,
@@ -249,7 +229,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 
 	const rejectAllButton = <button
-		className='pointer-events-auto text-nowrap'
+		className='text-nowrap'
 		onClick={onRejectAll}
 		style={{
 			backgroundColor: rejectAllBg,
@@ -264,6 +244,10 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		Reject File
 	</button>
 
+	const acceptRejectAllButtons = <div className="flex items-center gap-1 text-sm">
+		{acceptAllButton}
+		{rejectAllButton}
+	</div>
 
 	// const closeCommandBar = useCallback(() => {
 	// 	commandService.executeCommand('void.hideCommandBar');
@@ -283,41 +267,41 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	// >x
 	// </button>
 
-	const gridLayout = <div className="flex flex-col gap-1">
-		{/* First row */}
-		{filesDescription &&
-			<div className={`flex items-center ${leftRightDisabled ? 'opacity-50' : ''}`}>
-				{leftButton}
-				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
-				{rightButton}
-				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
-				<div className="text-xs mx-2">{filesDescription}</div>
-			</div>
-		}
-
-		{/* Second row */}
-		{changesDescription &&
-			<div className={`flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
+	const leftRightUpDownButtons = <div className='p-1 gap-1 flex flex-col items-center bg-void-bg-2 rounded shadow-md border border-void-border-2 w-full'>
+		<div className="flex flex-col gap-1">
+			{/* Changes in file */}
+			<div className={`${!isADiffZoneInThisFile ? 'hidden' : ''} flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
 				{upButton}
-				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
 				{downButton}
-				<div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> {/* Divider */}
-				<div className="text-xs mx-2">{changesDescription}</div>
+				<span className="min-w-16 px-2 text-xs">
+					{isADiffInThisFile ?
+						`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
+						: streamState === 'streaming' ?
+							'No changes yet'
+							: `No changes`
+					}
+				</span>
 			</div>
-		}
+
+			{/* Files */}
+			<div className={`${!isADiffZoneInAnyFile ? 'hidden' : ''} flex items-center ${leftRightDisabled ? 'opacity-50' : ''}`}>
+				{leftButton}
+				{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
+				{rightButton}
+				{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
+				<span className="min-w-16 px-2 text-xs">
+					{currFileIdx !== null ?
+						`File ${currFileIdx + 1} of ${sortedCommandBarURIs.length}`
+						: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'} changed`
+					}
+				</span>
+			</div>
+		</div>
 	</div>
 
-	return <div className='pointer-events-auto flex flex-col gap-2 mx-2'>
-		{showAcceptRejectAll &&
-			<div className="flex gap-1 text-sm">
-				{acceptAllButton}
-				{rejectAllButton}
-			</div>
-		}
-		<div className='px-2 pt-1 pb-1 gap-1 flex flex-col items-start bg-void-bg-1 rounded shadow-md border border-void-border-1'>
-			{gridLayout}
-			{/* {oldLayout} */}
-		</div>
+	return <div className={`flex flex-col items-center gap-y-2 mx-2 pointer-events-auto`}>
+		{showAcceptRejectAll && acceptRejectAllButtons}
+		{leftRightUpDownButtons}
 
 	</div>
 }

@@ -122,7 +122,6 @@ export type ThreadStreamState = {
 	}
 }
 
-
 const newThreadObject = () => {
 	const now = new Date().toISOString()
 	return {
@@ -131,7 +130,6 @@ const newThreadObject = () => {
 		lastModified: now,
 		messages: [],
 		state: defaultThreadState,
-
 	} satisfies ChatThreads[string]
 }
 
@@ -240,13 +238,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 		// add the current file to the thread being edited
-		const model = this._codeEditorService.getActiveCodeEditor()?.getModel() ?? null
-		if (!model) { return; }
+		const newModel = this._codeEditorService.getActiveCodeEditor()?.getModel() ?? null
+		if (!newModel) { return; }
 
-		const newSelection: StagingSelectionItem = {
+		const newStagingSelection: StagingSelectionItem = {
 			type: 'File',
-			fileURI: model.uri,
-			language: model.getLanguageId(),
+			fileURI: newModel.uri,
+			language: newModel.getLanguageId(),
 			selectionStr: null,
 			range: null,
 			state: { isOpened: false, wasAddedAsCurrentFile: true }
@@ -259,15 +257,18 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			const oldStagingSelections = this.getCurrentThreadState().stagingSelections || [];
 
-			// if the file already exists, do nothing
-			const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.toString() === newSelection.fileURI.toString())
-			if (alreadyHasFile) { return; }
+			// remove all old selectons that are marked as `wasAddedAsCurrentFile`
+			const newStagingSelections: StagingSelectionItem[] = oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile);
 
-			// add the file
-			const filteredStagingSelections = oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile); // remove all old selectons that were added during a file change
-			const newSelections = [...filteredStagingSelections, newSelection];
+			// add the new file if it doesn't exist
+			const fileIsAdded = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.fsPath === newStagingSelection.fileURI.fsPath)
+			if (!fileIsAdded) {
+				newStagingSelections.push(newStagingSelection)
+			}
 
-			this.setCurrentThreadState({ stagingSelections: newSelections });
+			// update thread state with new selections
+			this.setCurrentThreadState({ stagingSelections: newStagingSelections });
+
 
 
 		} else { // user is editing a message
@@ -275,14 +276,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// do nothing. I don't think it feels good to auto-add the current file when you're editing a message.
 
 			// const oldStagingSelections = this.getCurrentMessageState(focusedMessageIdx).stagingSelections || [];
+			// const newStagingSelections = [...filteredStagingSelections, newSelection];
+			// this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: newSelections });
 
 			// // if the file already exists, do nothing
-			// const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.toString() === newSelection.fileURI.toString())
+			// const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.fsPath === newSelection.fileURI.fsPath)
 			// if (alreadyHasFile) { return; }
 
 			// const filteredStagingSelections = oldStagingSelections.filter(s => !s.state?.wasAddedDuringFileChange); // remove all old selectons that were added during a file change
-			// const newSelections = [...filteredStagingSelections, newSelection];
-			// this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: newSelections });
 
 
 		}
@@ -731,11 +732,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}) {
 
 		// define helper functions so we can tell what's going on
+		// for now, do not recompute selections as we run (it seems to confuse tool-use models)
+		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidModelService) // all the file CONTENTS or "selections" de-duped
+		const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
 		const getLatestMessages = async () => {
-			// recompute files in last message
-			const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidModelService) // all the file CONTENTS or "selections" de-duped
-			const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
-
 			// replace last userMessage with userMessageFullContent (which contains all the files too)
 			const thread = this.state.allThreads[threadId]
 			const latestMessages = thread?.messages ?? []
@@ -1014,7 +1014,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// get history of all AI and user added files in conversation + store in reverse order (MRU)
 		const prevUris = this._getAllSelections(threadId)
 			.map(s => s.fileURI)
-			.filter((uri, index, array) => array.findIndex(u => u.toString() === uri.toString()) === index) // O(n^2) but this is small
+			.filter((uri, index, array) => array.findIndex(u => u.fsPath === uri.fsPath) === index) // O(n^2) but this is small
 			.reverse()
 
 
@@ -1030,7 +1030,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					// shorten it
 
 					// TODO make this logic more general
-					const prevUriStrs = prevUris.map(uri => uri.toString())
+					const prevUriStrs = prevUris.map(uri => uri.fsPath)
 					const shortenedUriStrs = shorten(prevUriStrs)
 					let displayText = shortenedUriStrs[idx]
 					const ellipsisIdx = displayText.lastIndexOf('…/');
@@ -1055,7 +1055,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				if (doesUriMatchTarget(uri)) {
 
 					// TODO make this logic more general
-					const prevUriStrs = prevUris.map(uri => uri.toString())
+					const prevUriStrs = prevUris.map(uri => uri.fsPath)
 					const shortenedUriStrs = shorten(prevUriStrs)
 					let displayText = shortenedUriStrs[idx]
 					const ellipsisIdx = displayText.lastIndexOf('…/');
@@ -1244,8 +1244,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const { allThreads: currentThreads } = this.state
 		for (const threadId in currentThreads) {
 			if (currentThreads[threadId]!.messages.length === 0) {
+
+				// switch to the thread
 				this.switchToThread(threadId)
-				return
+
+				// add the current file as a staging selection
+				const model = this._codeEditorService.getActiveCodeEditor()?.getModel()
+				if (model) {
+					this._setCurrentThreadState({ ...defaultThreadState, stagingSelections: [{ type: 'File', fileURI: model.uri, language: model.getLanguageId(), selectionStr: null, range: null, state: { isOpened: false, wasAddedAsCurrentFile: true } }] })
+				}
+				return;
 			}
 		}
 		// otherwise, start a new thread

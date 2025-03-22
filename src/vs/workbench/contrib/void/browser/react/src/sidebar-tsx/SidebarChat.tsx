@@ -10,7 +10,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI } from '../util/services.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState } from '../util/services.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
@@ -760,6 +760,50 @@ const ToolHeaderWrapper = ({
 		</div>
 	</div>);
 };
+
+
+
+
+const SimplifiedToolHeader = ({
+	title,
+	children,
+}: {
+	title: string;
+	children?: React.ReactNode;
+}) => {
+	const [isOpen, setIsOpen] = useState(false);
+	const isDropdown = children !== undefined;
+	return (
+		<div>
+			<div className="w-full">
+				{/* header */}
+				<div
+					className={`select-none flex items-center min-h-[24px] ${isDropdown ? 'cursor-pointer' : ''}`}
+					onClick={() => {
+						if (isDropdown) { setIsOpen(v => !v); }
+					}}
+				>
+					{isDropdown && (
+						<ChevronRight
+							className={`text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isOpen ? 'rotate-90' : ''}`}
+						/>
+					)}
+					<div className="flex items-center w-full overflow-hidden">
+						<span className="text-void-fg-3">{title}</span>
+					</div>
+				</div>
+				{/* children */}
+				{<div
+					className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100' : 'max-h-0 opacity-0'} text-void-fg-4`}
+				>
+					{children}
+				</div>}
+			</div>
+		</div>
+	);
+};
+
+
 
 
 const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMessage: ChatMessage & { role: 'user' }, messageIdx: number, isCommitted: boolean, }) => {
@@ -1809,6 +1853,34 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 		return null
 	}
 
+}
+
+
+
+
+const CommandBarInChat = () => {
+	const { state: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
+	const [isExpanded, setIsExpanded] = useState(false)
+
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
+
+	if (!sortedCommandBarURIs || sortedCommandBarURIs.length === 0) {
+		return null
+	}
+
+	return (
+		<SimplifiedToolHeader title={'Changes'}>
+			{sortedCommandBarURIs.map((uri, i) => (
+				<ListableToolItem
+					key={i}
+					name={getBasename(uri.fsPath)}
+					onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+				/>
+			))}
+		</SimplifiedToolHeader>
+
+	)
 }
 
 

@@ -12,6 +12,7 @@ import { ToolCallParams, ToolDirectoryItem, ToolName, ToolResultType } from '../
 import { IVoidModelService } from '../common/voidModelService.js'
 import { EndOfLinePreference } from '../../../../editor/common/model.js'
 import { basename } from '../../../../base/common/path.js'
+import { IVoidCommandBarService } from './voidCommandBarService.js'
 
 
 // tool use for AI
@@ -193,6 +194,7 @@ export class ToolsService implements IToolsService {
 		@IVoidModelService voidModelService: IVoidModelService,
 		@IEditCodeService editCodeService: IEditCodeService,
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
+		@IVoidCommandBarService private readonly commandBarService: IVoidCommandBarService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -348,6 +350,9 @@ export class ToolsService implements IToolsService {
 
 			edit: async ({ uri, changeDescription }) => {
 				await voidModelService.initializeModel(uri)
+				if (this.commandBarService.getStreamState(uri) === 'streaming') {
+					throw new Error(`The Apply model was already running. This can happen if two agents try editing the same file at the same time. Please try again in a moment.`)
+				}
 				const res = await editCodeService.startApplying({
 					uri,
 					applyStr: changeDescription,

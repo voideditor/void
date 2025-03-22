@@ -1226,8 +1226,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		// treat like full file, unless linkedCtrlKZone was provided in which case use its diff's range
 
-
-
 		const startLine = linkedCtrlKZone ? linkedCtrlKZone.startLine : 1
 		const endLine = linkedCtrlKZone ? linkedCtrlKZone.endLine : model.getLineCount()
 		const range = { startLineNumber: startLine, startColumn: 1, endLineNumber: endLine, endColumn: Number.MAX_SAFE_INTEGER }
@@ -1291,7 +1289,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-
+	private _uriIsStreaming(uri: URI) {
+		const diffAreas = this.diffAreasOfURI[uri.fsPath]
+		if (!diffAreas) return false
+		for (const diffareaid of diffAreas) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (diffArea?.type !== 'DiffZone') continue
+			if (diffArea._streamState.isStreaming) return true
+		}
+		return false
+	}
 
 
 	private async _initializeWriteoverStream(opts: StartApplyingOpts): Promise<[DiffZone, Promise<void>] | undefined> {
@@ -1358,7 +1365,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		else { throw new Error(`featureName ${from} is invalid`) }
 
-
+		// if URI is already streaming, return (should never happen, caller is responsible for checking)
+		if (this._uriIsStreaming(uri)) return
 
 		// start diffzone
 		const res = this._startStreamingDiffZone({
@@ -1525,6 +1533,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			{ role: 'system', content: searchReplace_systemMessage },
 			{ role: 'user', content: userMessageContent },
 		]
+
+		// if URI is already streaming, return (should never happen, caller is responsible for checking)
+		if (this._uriIsStreaming(uri)) return
 
 		// start diffzone
 		const res = this._startStreamingDiffZone({

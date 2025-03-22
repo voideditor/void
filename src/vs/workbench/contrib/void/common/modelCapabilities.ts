@@ -341,7 +341,7 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('codestral')) return toFallback({ ...mistralModelOptions['codestral-latest'], contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
 	return toFallback(modelOptionsDefaults)
 }

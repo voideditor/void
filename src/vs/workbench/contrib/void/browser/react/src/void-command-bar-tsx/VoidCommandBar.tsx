@@ -82,7 +82,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		if (idx !== null) {
 			const diffid = sortedDiffIds[idx]
 			const diff = editCodeService.diffOfId[diffid]
-			const range = { startLineNumber: diff.startLine, endLineNumber: diff.startLine, startColumn: 1, endColumn: 1 };
+			const range = { startLineNumber: diff.startLine - 1, endLineNumber: diff.startLine - 1, startColumn: 1, endColumn: 1 };
 			editor.revealRangeInCenter(range, ScrollType.Immediate)
 			commandBarService.setDiffIdx(uri, idx)
 		}
@@ -276,19 +276,20 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const leftRightUpDownButtons = <div className='p-1 gap-1 flex flex-col items-center bg-void-bg-2 rounded shadow-md border border-void-border-2'>
 		<div className="flex flex-col gap-1">
 			{/* Changes in file */}
-			{
-				<div className={`${!isADiffZoneInThisFile ? 'hidden' : ''} flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
-					{downButton}
+			{isADiffZoneInThisFile &&
+				<div className={`flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
 					{upButton}
-					<span className="text-xs px-2 w-fit">
+					{downButton}
+					<div className="text-xs px-2 w-fit">
 						{isADiffInThisFile ?
 							`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
-							: `No changes`
+							: streamState === 'streaming' ?
+								'No changes yet'
+								: `No changes`
 						}
-					</span>
+					</div>
 				</div>
 			}
-
 			{/* Files */}
 			{
 				<div className={`${!isADiffZoneInAnyFile ? 'hidden' : ''} flex items-center ${leftRightDisabled ? 'opacity-50' : ''}`}>

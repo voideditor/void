@@ -34,6 +34,7 @@ import { ToolCallParams, ToolName } from '../../../../common/toolsServiceTypes.j
 import { text } from 'stream/consumers';
 import { clear } from 'console';
 import getCaretCoordinates from 'textarea-caret';
+import { DropdownKeyboardEvent } from '../util/inputs.js';
 
 // Test dropdown for files
 import { FileSelectBox } from '../void-settings-tsx/FileDropdown.js';
@@ -1592,6 +1593,11 @@ export const SidebarChat = () => {
 
 	// state for caret position
 	const [caretPosition, setCaretPosition] = useState({top: 0, left: 0, height: 0});
+	const [voidPanelIsRightSide, setVoidPanelIsRightSide] = useState(false);
+
+	// state for dropdown events
+	const [dropdownKeyboardEvent, setDropdownKeyboardEvent] = useState<DropdownKeyboardEvent | null>(null);
+
 
 	useScrollbarStyles(sidebarRef)
 
@@ -1700,7 +1706,7 @@ export const SidebarChat = () => {
 	const detectMentions = useCallback((text: string) => {
 		console.log('Detecting mentions (@) in:', text);
 		if (textAreaRef.current) {
-			// Remove previous search text
+			// Remove previous search text and dropdown
 			setSearchText('')
 
 			const cursorPosition = textAreaRef.current.selectionStart;
@@ -1715,6 +1721,15 @@ export const SidebarChat = () => {
 			if ((charBeforeCursor === '@' && charBeforeCursor2 === ' ') || (charBeforeCursor === '@' && cursorPosition === 1)) {
 				console.log('[Mentions] @ detected!');
 				// Show the dropdown
+				const isRightSided = () => {
+					if (!textAreaRef.current) return false;
+					const rect = textAreaRef.current.getBoundingClientRect();
+					// If the textbox is in the right half of the window
+					return rect.left > window.innerWidth / 2;
+				};
+				// Set the position of the dropdown
+				setVoidPanelIsRightSide(isRightSided());
+
 				const {top, left, height} = getCaretCoordinates(textAreaRef.current, cursorPosition);
 				const textAreaRect = textAreaRef.current.getBoundingClientRect();
 				setCaretPosition({
@@ -1778,10 +1793,22 @@ export const SidebarChat = () => {
 		setInstructionsAreEmpty(!newStr)
 	}, [setInstructionsAreEmpty, detectMentions])
 	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
-		if (e.key === 'Enter' && !e.shiftKey) {
-			onSubmit()
-		} else if (e.key === 'Escape' && isStreaming) {
-			onAbort()
+		if (showDropdown) {
+			// Handle dropdown events
+			if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+				// Navigate dropdown
+				e.preventDefault();
+				setDropdownKeyboardEvent({
+					key: e.key,
+					timestamp: Date.now(),
+				 });
+			}
+		} else {
+			if (e.key === 'Enter' && !e.shiftKey) {
+				onSubmit()
+			} else if (e.key === 'Escape' && isStreaming) {
+				onAbort()
+			}
 		}
 	}, [onSubmit, onAbort, isStreaming])
 	const inputForm = <div className={`right-0 left-0 m-2 z-[999] overflow-hidden ${previousMessages.length > 0 ? 'absolute bottom-0' : ''}`}>
@@ -1813,8 +1840,10 @@ export const SidebarChat = () => {
 				searchText={searchText}
 				onClickOption={handleOnFileAdded}
 				onClose={handleMentionClose}
+				dropdownKeyboardEvent={dropdownKeyboardEvent}
 				position={caretPosition}
 				isTextAreaAtBottom={previousMessages.length > 0}
+				voidPanelIsRightSide={voidPanelIsRightSide}
 			/>}
 		</VoidChatArea>
 	</div>

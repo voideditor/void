@@ -9,16 +9,19 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ISearchService, IFileQuery, QueryType } from '../../../../workbench/services/search/common/search.js';
 import { IExpression } from '../../../../base/common/glob.js';
+import { FileChangesEvent, IFileService } from '../../../../platform/files/common/files.js';
 
 // Minimal least path import
 import { shorten } from '../../../../base/common/labels.js';
 
 export interface IRepoFilesService {
 	readonly _serviceBrand: undefined;
-	setFiles(searchText?: string): Promise<void>;
-	getFirstPage(): IFileDisplayInfo[];
-	getNextPage(previousLastFile: IFileDisplayInfo): IFileDisplayInfo[];
-	getNumberOfFiles(): number;
+	readonly _isInitialized: boolean;
+	getFirstPage(searchText?: string): IFileDisplayInfo[];
+	getNextPage(previousLastFile: IFileDisplayInfo, getNextPage?: string): IFileDisplayInfo[];
+	setSearchState(searchText?: string): Promise<void>;
+	removeSearchState(): Promise<void>;
+	getNumberOfFiles(searchText?: string): number;
 	clearData(): void;
 }
 
@@ -34,41 +37,47 @@ export const IRepoFilesService = createDecorator<IRepoFilesService>('repoFilesSe
 
 class RepoFilesService extends Disposable implements IRepoFilesService {
 	_serviceBrand: undefined;
-
+	_isInitialized: boolean = false;
 	private _fileCache: IFileDisplayInfo[] = [];
+	private _searchFilesCache: IFileDisplayInfo[] = [];
 	// Limit for the number of files to scan.
 	// Note that this affects showing duplicates and filepaths because
 	// it only shows the duplicates of the loaded files.
-	// private _maxFiles = 50;
 	private _workspaceFolders: URI[] = [];
 	private _excludePatterns: string[] = [
-		'out/**',
-		'build/**',
-		'.git/**',
-		'node_modules/**',
+		'**/out/**',
+		'**/build/**',
+		'**/.git/**',
+		'**/node_modules/**',
 		'**/__pycache__/**',
 		'**/*.egg-info/**',
 		'**/env/**',
 		'**/venv/**',
 		'**/.venv/**',
-		'**/.env/**'
+		'**/.env/**',
+		'**/src[0-9]*/**'
 	];
 	private _timeoutId: NodeJS.Timeout | null = null
 	private _pageFetchSize = 50;
+	private _debounceDelayMillis = 300;
 
 	constructor(
 		// @IFileService private readonly fileService: IFileService,
 		@ISearchService private readonly searchService: ISearchService,
+		@IFileService private readonly fileService: IFileService,
 		@IWorkspaceContextService private readonly workspaceService: IWorkspaceContextService,
 		@IConfigurationService private readonly configurationService: IConfigurationService
 	) {
 		super();
 		this._initialize();
+		// Set up file change listener
+		this._register(this.fileService.onDidFilesChange(e => this._onDidFilesChange(e)));
 	}
 
 	private async _initialize(): Promise<void> {
 		// Load exclude patterns from settings
 		const config = this.configurationService.getValue<{ exclude: { [key: string]: boolean } }>('files');
+		console.log("INITIALIZING REPO FILES SERVICE");
 		if (config?.exclude) {
 			this._excludePatterns = [
 				...this._excludePatterns,
@@ -76,11 +85,16 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 			];
 		}
 
-		// Get workspace folders
+		// Get workspace folders. THIS MUST BE CALLED BEFORE _setFiles
 		this._workspaceFolders = this.workspaceService.getWorkspace().folders.map(folder => folder.uri);
+
+		// Load all files to cache once
+		await this._setFiles();
+
+		this._isInitialized = true;
 	}
 
-	private _getExcludePatternObject(): IExpression {
+	private _convertsExcludePatternsToExpression(): IExpression {
 		const excludePatternObject: IExpression = {};
 		this._excludePatterns.forEach(pattern => {
 			excludePatternObject[pattern] = true;
@@ -100,6 +114,70 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		}
 	}
 
+	// NOTE: rawAdded and rawDeleted are deprecated but
+	// don't have a viable alternative yet
+	private async _onDidFilesChange(e: FileChangesEvent): Promise<void> {
+		if (e.gotAdded()) {
+			// Add new files to cache
+			const newFiles = e.rawAdded;
+			const fileNamesMap = new Map<string, Array<URI>>();
+
+			// Group files by name
+			for (const uri of newFiles) {
+				const fileName = uri.path.split('/').pop() || '';
+				if (!fileNamesMap.has(fileName)) {
+					fileNamesMap.set(fileName, []);
+				}
+				fileNamesMap.get(fileName)!.push(uri);
+			}
+
+			// Process each group of files
+			for (const [fileName, uris] of fileNamesMap) {
+				const filesWithSameName = this._fileCache.filter(file => file.fileName === fileName);
+				const hasDuplicate = filesWithSameName.length > 0;
+				const fileURIs = filesWithSameName.map(file => file.uri).concat(uris);
+
+				// Get the shortened paths
+				const updatedFiles = await this._formatFiles(fileURIs);
+
+				// Update the cache
+				updatedFiles.forEach(updatedFile => {
+					const index = this._fileCache.findIndex(file => file.uri.fsPath === updatedFile.uri.fsPath);
+					if (index !== -1) {
+						this._fileCache[index] = updatedFile;
+					} else {
+						this._fileCache.push(updatedFile);
+					}
+				});
+
+				// Log added files
+				uris.forEach(uri => {
+					const newFile = updatedFiles.find(file => file.uri === uri);
+					const fileInfo: IFileDisplayInfo = {
+						fileName,
+						uri,
+						hasDuplicate,
+						shortPath: newFile?.shortPath
+					};
+					console.log("File added:", fileInfo.fileName);
+				});
+			}
+		}
+
+		if (e.gotDeleted()) {
+			// Remove deleted files from cache
+			const deletedFiles = e.rawDeleted
+			for (const uri of deletedFiles) {
+				// Remove these files from the cache
+				const index = this._fileCache.findIndex(file => file.uri.fsPath === uri.fsPath);
+				if (index !== -1) {
+					const deletedFile = this._fileCache.splice(index, 1)[0];
+					console.log("File deleted:", deletedFile.fileName);
+				}
+			}
+		}
+	}
+
 	private async _getFiles(
 		searchText: string,
 	): Promise<URI[]> {
@@ -109,8 +187,7 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 			type: QueryType.File,
 			folderQueries,
 			filePattern: globPattern,
-			excludePattern: this._getExcludePatternObject(),
-			// maxResults: this._maxFiles,
+			excludePattern: this._convertsExcludePatternsToExpression(),
 			shouldGlobMatchFilePattern: true, // Use glob pattern for file search
 		};
 
@@ -119,48 +196,55 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 	};
 
 	private async _formatFiles(fileUris: URI[]): Promise<IFileDisplayInfo[]> {
+		// One-pass approach to identify duplicates
+		const filenameCount = new Map<string, number>();
 
-		// Create fileInfo objects in the original order.
-		const fileInfos: IFileDisplayInfo[] = fileUris.map(uri => ({
-			fileName: uri.path.split('/').pop() || '',
-			uri,
-			hasDuplicate: false,
-			shortPath: undefined
-		}));
-
-		// Group fileInfos by fileName.
-		const duplicatesMap = new Map<string, IFileDisplayInfo[]>();
-		for (const info of fileInfos) {
-			if (!duplicatesMap.has(info.fileName)) {
-				duplicatesMap.set(info.fileName, []);
-			}
-			duplicatesMap.get(info.fileName)!.push(info);
+		// First count occurrences of each filename
+		for (const uri of fileUris) {
+			const fileName = uri.path.split('/').pop() || '';
+			filenameCount.set(fileName, (filenameCount.get(fileName) || 0) + 1);
 		}
 
-		// Update the original fileInfos based on the grouping.
-		duplicatesMap.forEach(group => {
-			if (group.length > 1) {
-				group.forEach(info => info.hasDuplicate = true);
-				const fullPaths = group.map(info => info.uri.fsPath);
-				const shortenedPaths = shorten(fullPaths); // Get short file path to be rendered for duplicates fileNames
-				const modifiedShortenedPaths = shortenedPaths.map((path) => {
-					if (path) {
-						// Remove the root folder name from the path
-						const modifiedPath = path.replace(/^\/[^/]+\//, '');
-						return modifiedPath;
-					} else {
-						return ""
-					}
-
-				})
-				// console.log("Further shortened paths:", modifiedShortenedPaths);
-				group.forEach((info, index) => {
-					info.shortPath = modifiedShortenedPaths[index];
-				});
-			}
+		// Create fileInfos with duplicate flag already set
+		const fileInfos: IFileDisplayInfo[] = fileUris.map(uri => {
+			const fileName = uri.path.split('/').pop() || '';
+			return {
+				fileName,
+				uri,
+				hasDuplicate: (filenameCount.get(fileName) || 0) > 1,
+				shortPath: undefined
+			};
 		});
 
-		// The order of fileInfos remains the same as the original _fileCache order.
+		// Only process paths for files with duplicates
+		if (fileInfos.some(info => info.hasDuplicate)) {
+			// Group duplicates for path processing
+			const duplicateGroups = new Map<string, IFileDisplayInfo[]>();
+
+			// Only collect duplicates
+			for (const info of fileInfos) {
+				if (info.hasDuplicate) {
+					if (!duplicateGroups.has(info.fileName)) {
+						duplicateGroups.set(info.fileName, []);
+					}
+					duplicateGroups.get(info.fileName)!.push(info);
+				}
+			}
+
+			// Process paths only for duplicates
+			duplicateGroups.forEach(group => {
+				const fullPaths = group.map(info => info.uri.fsPath);
+				const shortenedPaths = shorten(fullPaths);
+
+				// Simplify path modification
+				group.forEach((info, index) => {
+					if (shortenedPaths[index]) {
+						info.shortPath = shortenedPaths[index].replace(/^\/[^/]+\//, '');
+					}
+				});
+			});
+		}
+
 		return fileInfos;
 	}
 
@@ -193,7 +277,7 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		return debouncedFunction as T & { cancel: () => void };
 	}
 
-	public async setFiles(searchText?: string): Promise<void> {
+	private async _setFiles(searchText?: string): Promise<void> {
 
 		// Clear the file cache
 		this._fileCache = [];
@@ -208,24 +292,79 @@ class RepoFilesService extends Disposable implements IRepoFilesService {
 		return;
 	}
 
-	public getFirstPage(): IFileDisplayInfo[] {
-		return this._fileCache.slice(0, this._pageFetchSize);
+	private async _setSearchFilesFromFileCache(searchText: string): Promise<void> {
+		// Clear the search file cache
+		this._searchFilesCache = [];
+
+		// Filter files that contain the search text
+		this._searchFilesCache = this._fileCache.filter(file => file.fileName.toLowerCase().includes(searchText.toLowerCase()));
+
+		return;
 	}
 
-	public getNextPage(previousLastFile: IFileDisplayInfo): IFileDisplayInfo[] {
-		const index = this._fileCache.indexOf(previousLastFile);
-		if (index === -1) {
-			return [];
+	public async setSearchState(searchText?: string): Promise<void> {
+
+		if (!searchText) return;
+
+		// Clear the search file cache
+		this._searchFilesCache = [];
+
+		// Create debounced version of setSearchFilesFromFileCache
+		const debouncedSetSearchFilesFromFileCache = this._debounceify(this._setSearchFilesFromFileCache.bind(this), this._debounceDelayMillis);
+
+		// Update the search file cache with the latest files
+		await debouncedSetSearchFilesFromFileCache(searchText);
+
+		return;
+	}
+
+	public async removeSearchState(): Promise<void> {
+		this._searchFilesCache = [];
+
+		// Check for debounce timeout and cancel it
+		if (this._timeoutId) {
+			clearTimeout(this._timeoutId);
+			this._timeoutId = null;
 		}
-		return this._fileCache.slice(index + 1, index + this._pageFetchSize + 1);
+
+		return;
 	}
 
-	public getNumberOfFiles(): number {
-		return this._fileCache.length;
+	public getFirstPage(searchText?: string): IFileDisplayInfo[] {
+		if (searchText) {
+			console.log("Returning search files cache")
+			return this._searchFilesCache.slice(0, this._pageFetchSize);
+		} else {
+			console.log("Returning file cache")
+			return this._fileCache.slice(0, this._pageFetchSize);
+		}
+	}
+
+	public getNextPage(previousLastFile: IFileDisplayInfo, searchText?: string): IFileDisplayInfo[] {
+		if (searchText) {
+			const index = this._searchFilesCache.indexOf(previousLastFile);
+			if (index === -1) {
+				return [];
+			}
+			return this._searchFilesCache.slice(index + 1, index + this._pageFetchSize + 1);
+		} else {
+			const index = this._fileCache.indexOf(previousLastFile);
+			if (index === -1) {
+				return [];
+			}
+			return this._fileCache.slice(index + 1, index + this._pageFetchSize + 1);
+		}
+	}
+
+	public getNumberOfFiles(searchText?: string): number {
+		if (searchText) {
+			return this._searchFilesCache.length;
+		} else {
+			return this._fileCache.length;
+		}
 	}
 
 	public clearData(): void {
-		this._fileCache = [];
 
 		if (this._timeoutId) {
 			clearTimeout(this._timeoutId);

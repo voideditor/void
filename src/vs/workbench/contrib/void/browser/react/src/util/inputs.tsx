@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { forwardRef, MutableRefObject, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, KeyboardEvent, MutableRefObject, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, ForwardedRef, use } from 'react';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
@@ -679,9 +679,15 @@ export const VoidCustomDropdownBox = <T extends any>({
 	);
 };
 
+export interface DropdownKeyboardEvent {
+	timestamp: number;  // The timestamp when the key was pressed (from Date.now())
+	key: 'ArrowDown' | 'ArrowUp' | 'Enter';  // The key that was pressed (in this case, "ArrowDown")
+}
+
 export const VoidCustomMentionDropdownBox = <T extends any>({
     options,
 	totalOptionsNumber,
+	dropdownKeyboardEvent,
     onClickOption,
 	onNextPage,
 	onClose,
@@ -689,16 +695,16 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
     getOptionDropdownDetail,
 	getOptionDropdownKey,
 	isTextAreaAtBottom,
+	isRightSide,
     className,
-    // matchInputWidth = false,
     position = { top: 0, left: 0, height: 0 },
-    // width,
     gap = 0,
 	isLoading = false,
 	noOptionsText = 'No options available',
 }: {
     options: T[];
 	totalOptionsNumber: number;
+	dropdownKeyboardEvent: DropdownKeyboardEvent | null;
     onClickOption: (clickedValue: T) => void;
 	onNextPage: () => void;
 	onClose: () => void;
@@ -706,6 +712,7 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 	getOptionDropdownKey: (option: T) => string;
     getOptionDropdownDetail?: (option: T) => string;
 	isTextAreaAtBottom: boolean;
+	isRightSide: boolean;
     className?: string;
     matchInputWidth?: boolean;
     position?: { top: number; left: number; height: number };
@@ -715,7 +722,19 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 	noOptionsText?: string;
 }) => {
     // const measureRef = useRef<HTMLDivElement>(null);
+	const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
+	const [isHovering, setIsHovering] = useState<number | null>(null);
+	const optionRefs = useRef<HTMLDivElement[]>([]);
+
+	const handleMouseEnter = (index: number) => {
+		setIsHovering(index);
+		setHighlightedIndex(index);
+	};
+
+	const handleMouseLeave = () => {
+		setIsHovering(null);
+	};
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -733,17 +752,42 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
     }, [dropdownRef]);
 
     const handleFileClick = (option: T) => {
-		console.log("OPTION CLICKED: ", option)
         onClickOption(option);
     };
 
-    // Calculate final width based on provided width or measured content
-    // const finalWidth = width || (measureRef.current?.offsetWidth || 200);
+	// Handle keyboard events
+	useEffect(() => {
+		if (!dropdownKeyboardEvent) return;
+		const handleKeyDown = (event: DropdownKeyboardEvent["key"]) => {
+			if (event === 'ArrowDown') {
+				setHighlightedIndex((highlightedIndex + 1) % totalOptionsNumber);
+			} else if (event === 'ArrowUp') {
+				setHighlightedIndex((highlightedIndex - 1 + totalOptionsNumber) % totalOptionsNumber);
+			} else if (event === 'Enter') {
+				if (options[highlightedIndex]) {
+					handleFileClick(options[highlightedIndex]);
+				}
+			}
+		};
+		handleKeyDown(dropdownKeyboardEvent.key);
+	}, [dropdownKeyboardEvent, options.length]);
+
+	// Scroll to highlighted index
+	useEffect(() => {
+		if (highlightedIndex !== null && optionRefs.current[highlightedIndex]) {
+		  optionRefs.current[highlightedIndex].scrollIntoView({
+			behavior: 'smooth',
+			block: 'nearest',
+		  });
+		}
+	  }, [highlightedIndex]);
 
 	// Dropdown placement relative to the cursor
-	const bottomLeft = 'translateX(-100%)';
 	const cursorHeight = '25px';
+	const bottomLeft = 'translateX(-100%)';
 	const topLeft = `translate(-100%, calc(-100% - ${cursorHeight}))`;
+	const bottomRight = 'translateX(0)';
+	const topRight = `translate(0, calc(-100% - ${cursorHeight}))`;
 
     return (
         <div className={`inline-block absolute ${className}`}>
@@ -756,9 +800,9 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
                     top: position.top + position.height + gap,
                     left: position.left,
                     width: 400,
-					height: 300,
+					height: 250,
 					overflowX: 'hidden',
-					transform: isTextAreaAtBottom ? topLeft : bottomLeft,
+					transform: isRightSide ? (isTextAreaAtBottom ? topLeft : bottomLeft) : (isTextAreaAtBottom ? topRight : bottomRight),
                 }}
             >
                 {isLoading ? (
@@ -779,7 +823,7 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 					className="border rounded"
 					>
 						<div>
-							{options.map((option) => {
+							{options.map((option, index) => {
 								const optionKey = getOptionDropdownKey(option);
 								const optionName = getOptionDropdownName(option);
 								const optionDetail = getOptionDropdownDetail?.(option) || '';
@@ -787,8 +831,15 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 								return (
 									<div
 										key={optionKey}
-										className="flex items-center px-2 py-1 cursor-pointer whitespace-nowrap transition-all duration-100 bg-void-bg-1 hover:bg-void-bg-2"
+										ref={el => {
+											if (el) {
+												optionRefs.current[index] = el;
+											}
+										}}
+										className={`flex items-center px-2 py-1 cursor-pointer whitespace-nowrap transition-all duration-100 bg-void-bg-1 hover:bg-void-bg-2 ${index === highlightedIndex && !isHovering ? 'bg-void-bg-2' : ''}`}
 										onClick={() => handleFileClick(option)}
+										onMouseEnter={() => handleMouseEnter(index)}
+										onMouseLeave={handleMouseLeave}
 									>
 										<span className="flex justify-between w-full">
 											<span>{optionName}</span>

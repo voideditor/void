@@ -3,12 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { use, useCallback, useEffect, useMemo, useRef, useState, KeyboardEvent } from 'react'
 import { _VoidSelectBox, VoidCustomMentionDropdownBox } from '../util/inputs.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { useAccessor } from '../util/services.js'
 import { IFileDisplayInfo } from '../../../../common/fileSearchService.js'
-import { clear } from 'console'
+import { DropdownKeyboardEvent } from '../util/inputs.js'
 
 // const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
 // 	if (m1.length !== m2.length) return false
@@ -19,13 +19,16 @@ import { clear } from 'console'
 // }
 
 
-export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBottom, searchText }: { onClickOption: (option: IFileDisplayInfo) => void,
+export const FileSelectBox = ({ onClickOption, onClose, dropdownKeyboardEvent, position, isTextAreaAtBottom, voidPanelIsRightSide, searchText }: { onClickOption: (option: IFileDisplayInfo) => void,
 	onClose: () => void,
+	dropdownKeyboardEvent: DropdownKeyboardEvent | null,
 	position: {
 	top: number,
 	left: number,
 	height: number,
-}, isTextAreaAtBottom: boolean, searchText?: string }) => {
+}, isTextAreaAtBottom: boolean,
+	voidPanelIsRightSide: boolean,
+	searchText?: string }) => {
 
 	// Mention dropdown state
 	const accessor = useAccessor();
@@ -34,20 +37,26 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 	const [workspaceFiles, setWorkspaceFiles] = useState<IFileDisplayInfo[]>([]);
 	const [numberOfFiles, setNumberOfFiles] = useState(0);
 	const [loading, setLoading] = useState(false);
+	const [isReady, setIsReady] = useState(repoFilesService._isInitialized);
 
 	// Add this effect to load and log files when component mounts
 	useEffect(() => {
+		console.log("FIRING LOAD FILES")
 		const loadFiles = async () => {
 			try {
 				setLoading(true);
 				// Clean up state
-				setWorkspaceFiles([]);
-				// Load files
-				await repoFilesService.setFiles(searchText);
+				clearState();
+				repoFilesService.removeSearchState();
+				// Set search state
+				if (searchText) {
+					console.log("SETTING SEARCH STATE")
+					await repoFilesService.setSearchState(searchText);
+				}
 				// Get data from service
-				const files = repoFilesService.getFirstPage();
+				const files = repoFilesService.getFirstPage(searchText);
 				setWorkspaceFiles(files)
-				const numberOfFiles = repoFilesService.getNumberOfFiles();
+				const numberOfFiles = repoFilesService.getNumberOfFiles(searchText);
 				setNumberOfFiles(numberOfFiles);
 			} catch (error) {
 				console.error('Error loading workspace files:', error);
@@ -63,7 +72,7 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 		// Clear all state
 		setWorkspaceFiles([]);
 		setNumberOfFiles(0);
-		repoFilesService.clearData();
+		repoFilesService.removeSearchState();
 		onClose()
 	}
 		, []);
@@ -94,7 +103,7 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 						selectionStr: null,
 						range: null,
 						state: {
-							// How do I check if a file is opened or not?
+							// Note: FOR NOW we'll just keep it as false but check if we need to change this
 							isOpened: false,
 						}
 					}, ...currentThread]
@@ -108,7 +117,7 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 	const onNextPage = useCallback(async () => {
 		console.log("Loading next page")
 		const lastFile = workspaceFiles[workspaceFiles.length - 1];
-		const nextPage = repoFilesService.getNextPage(lastFile);
+		const nextPage = repoFilesService.getNextPage(lastFile, searchText);
 		setWorkspaceFiles([...workspaceFiles, ...nextPage]);
 	}, [repoFilesService, workspaceFiles]);
 
@@ -122,9 +131,17 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
     //     onClickOption(newOption)
     // }, [onClickOption])
 
+	const clearState = useCallback(() => {
+		console.log("Clearing state")
+		setWorkspaceFiles([]);
+		setNumberOfFiles(0);
+	}
+		, []);
+
 	return <VoidCustomMentionDropdownBox
 		options={workspaceFiles}
 		totalOptionsNumber={numberOfFiles}
+		dropdownKeyboardEvent={dropdownKeyboardEvent}
 		onClickOption={onSelectFile}
 		onNextPage={onNextPage}
 		onClose={handleClose}
@@ -135,7 +152,8 @@ export const FileSelectBox = ({ onClickOption, onClose, position, isTextAreaAtBo
 		matchInputWidth={false}
 		position={position}
 		isTextAreaAtBottom={isTextAreaAtBottom}
+		isRightSide={voidPanelIsRightSide}
 		isLoading={loading}
-		noOptionsText='No files found'
+		noOptionsText={isReady ? "No files found" : "Loading workspace files..."}
 	/>
 }

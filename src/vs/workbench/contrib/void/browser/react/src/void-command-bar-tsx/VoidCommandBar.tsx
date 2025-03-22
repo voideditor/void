@@ -274,12 +274,12 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				{downButton}
 				{upButton}
 				<span className="min-w-16 px-2 text-xs">
-				{isADiffInThisFile ?
-							`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
-							: streamState === 'streaming' ?
-								'No changes yet'
-								: `No changes`
-						}
+					{isADiffInThisFile ?
+						`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
+						: streamState === 'streaming' ?
+							'No changes yet'
+							: `No changes`
+					}
 				</span>
 			</div>
 

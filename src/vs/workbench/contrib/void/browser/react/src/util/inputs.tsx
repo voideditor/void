@@ -723,17 +723,19 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 }) => {
     // const measureRef = useRef<HTMLDivElement>(null);
 	const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
+	const [mouseHoveredIndex, setMouseHoveredIndex] = useState<number | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-	const [isHovering, setIsHovering] = useState<number | null>(null);
+	// const [isHovering, setIsHovering] = useState<number | null>(null);
 	const optionRefs = useRef<HTMLDivElement[]>([]);
+	const activeIndex = mouseHoveredIndex ?? highlightedIndex;
 
 	const handleMouseEnter = (index: number) => {
-		setIsHovering(index);
 		setHighlightedIndex(index);
+		setMouseHoveredIndex(index);
 	};
 
 	const handleMouseLeave = () => {
-		setIsHovering(null);
+		setMouseHoveredIndex(null);
 	};
 
     useEffect(() => {
@@ -758,6 +760,8 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 	// Handle keyboard events
 	useEffect(() => {
 		if (!dropdownKeyboardEvent) return;
+		// Remove mouse hover when keyboard is used
+		setMouseHoveredIndex(null);
 		const handleKeyDown = (event: DropdownKeyboardEvent["key"]) => {
 			if (event === 'ArrowDown') {
 				setHighlightedIndex((highlightedIndex + 1) % options.length);
@@ -843,9 +847,10 @@ export const VoidCustomMentionDropdownBox = <T extends any>({
 												optionRefs.current[index] = el;
 											}
 										}}
-										className={`flex items-center px-2 py-1 cursor-pointer whitespace-nowrap transition-all duration-100 bg-void-bg-1 hover:bg-void-bg-2 ${index === highlightedIndex && !isHovering ? 'bg-void-bg-2' : ''}`}
+										className={`flex items-center px-2 py-1 cursor-pointer whitespace-nowrap transition-all duration-100 bg-void-bg-1 ${index === activeIndex ? 'bg-void-bg-2' : ''}`}
 										onClick={() => handleFileClick(option)}
-										onMouseEnter={() => handleMouseEnter(index)}
+										// onMouseEnter={() => handleMouseEnter(index)}
+										onMouseMove={() => handleMouseEnter(index)}
 										onMouseLeave={handleMouseLeave}
 									>
 										<span className="flex justify-between w-full">

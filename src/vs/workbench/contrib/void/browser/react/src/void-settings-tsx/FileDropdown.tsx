@@ -66,7 +66,6 @@ export const FileSelectBox = ({ onClickOption, onClose, dropdownKeyboardEvent, p
 	}, [repoFilesService, searchText]);
 
 	const handleClose = useCallback(() => {
-		console.log("Closing file dropdown")
 		// Clear all state
 		setWorkspaceFiles([]);
 		setNumberOfFiles(0);
@@ -113,7 +112,6 @@ export const FileSelectBox = ({ onClickOption, onClose, dropdownKeyboardEvent, p
 	}
 
 	const onNextPage = useCallback(async () => {
-		console.log("Loading next page")
 		const lastFile = workspaceFiles[workspaceFiles.length - 1];
 		const nextPage = repoFilesService.getNextPage(lastFile, searchText);
 		setWorkspaceFiles([...workspaceFiles, ...nextPage]);
@@ -130,7 +128,6 @@ export const FileSelectBox = ({ onClickOption, onClose, dropdownKeyboardEvent, p
     // }, [onClickOption])
 
 	const clearState = useCallback(() => {
-		console.log("Clearing state")
 		setWorkspaceFiles([]);
 		setNumberOfFiles(0);
 	}

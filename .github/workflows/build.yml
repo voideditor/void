@@ -1,0 +1,82 @@
+name: Build Void
+
+on:
+  push:
+    # REMOVE branch when ready
+    branches: [ 'feat_ci_cd' ]
+    tags: [ 'v*' ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    # Ajout des permissions nécessaires
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Set GitHub token for npm
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+          echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compile React components
+        run: |
+          cd src/vs/workbench/contrib/void/browser/react
+
+          # Installer les dépendances si nécessaire
+          if [ -f "package.json" ]; then
+            npm install
+          fi
+
+          # Compiler les composants React
+          node build.js
+        continue-on-error: false
+
+      - name: Build Void
+        run: npm run gulp vscode-darwin-arm64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Locate Void build
+        id: locate_build
+        run: |
+          echo "Searching for VSCode-darwin-arm64 directory..."
+
+          # Rechercher dans les répertoires courants et parents
+          FOUND_PATH=$(find /Users/runner/work -type d -name "VSCode-darwin-arm64" | head -n 1)
+
+          if [ -n "$FOUND_PATH" ]; then
+            echo "✅ Found build at: $FOUND_PATH"
+            echo "build_path=$FOUND_PATH" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Build directory not found"
+            echo "Listing possible build locations:"
+            find /Users/runner/work -type d -name "VSCode*" | sort
+            echo "build_path=" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Upload artifacts
+        if: steps.locate_build.outputs.build_path != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: Void-darwin-arm64
+          path: ${{ steps.locate_build.outputs.build_path }}

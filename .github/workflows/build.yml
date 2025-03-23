@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    timeout-minutes: 2160  # 36 heures, limite maximale autorisée
 
     # Ajout des permissions nécessaires
     permissions:

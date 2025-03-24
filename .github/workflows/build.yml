@@ -19,12 +19,12 @@ on:
         type: boolean
 
 jobs:
-  build:
+  # Build jobs for x64 architecture - always run
+  build-x64:
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Default x64 builds that always run
           - os: ubuntu-latest
             arch: x64
             platform: linux
@@ -34,22 +34,7 @@ jobs:
           - os: macos-latest
             arch: x64
             platform: darwin
-          # Conditional ARM64 builds
-          - os: ubuntu-latest
-            arch: arm64
-            platform: linux
-            runs-on-arm64: true
-          - os: windows-latest
-            arch: arm64
-            platform: win32
-            runs-on-arm64: true
-          - os: macos-latest
-            arch: arm64
-            platform: darwin
-            runs-on-arm64: true
-
-    # ARM64 runs only when explicitly requested
-    if: ${{ !matrix.runs-on-arm64 || contains(github.event.inputs.architectures, 'arm64') }}
+            
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -187,9 +172,163 @@ jobs:
           path: .build/${{ matrix.platform }}-${{ matrix.arch }}
           retention-days: 7
 
+  # Build jobs for ARM64 architecture - only run when requested
+  build-arm64:
+    if: ${{ contains(github.event.inputs.architectures, 'arm64') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: arm64
+            platform: linux
+          - os: windows-latest
+            arch: arm64
+            platform: win32
+          - os: macos-latest
+            arch: arm64
+            platform: darwin
+            
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # Cache node_modules
+      - name: Cache node modules
+        uses: actions/cache@v3
+        id: cache-node-modules
+        with:
+          path: node_modules
+          key: ${{ matrix.os }}-${{ matrix.arch }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+          
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          # Skip binaries not needed for the build
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+          
+      # Windows-specific build steps
+      - name: Windows Build
+        if: matrix.os == 'windows-latest'
+        run: |
+          # Set up Windows-specific environment
+          npm run compile
+          npm run compile-build
+          npm run compile-extensions-build
+          npm run minify-vscode
+        env:
+          VSCODE_ARCH: ${{ matrix.arch }}
+          
+      # macOS-specific build steps
+      - name: macOS Build
+        if: matrix.os == 'macos-latest'
+        run: |
+          # Set up macOS-specific environment
+          npm run compile
+          npm run gulp vscode-darwin-${{ matrix.arch }}-min-ci
+        env:
+          VSCODE_ARCH: ${{ matrix.arch }}
+          
+      # Linux-specific build steps
+      - name: Linux Build
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          # Set up Linux-specific environment
+          npm run compile
+          npm run gulp vscode-linux-${{ matrix.arch }}-min-ci
+        env:
+          VSCODE_ARCH: ${{ matrix.arch }}
+          
+      # Setup macOS code signing
+      - name: Import macOS Code-Signing Certificates
+        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
+        uses: apple-actions/import-codesign-certs@v1
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          keychain: build.keychain
+          keychain-password: ${{ github.run_id }}
+
+      # macOS code signing
+      - name: macOS Code Signing
+        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
+        run: |
+          # Set up code signing identity
+          CODESIGN_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep -oE "([0-9A-F]{40})" | head -n 1)
+
+          # Compile and run the signing script
+          tsc -p build/darwin/tsconfig.json
+          node build/darwin/sign.js $(pwd)
+        env:
+          CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
+          AGENT_TEMPDIRECTORY: /tmp
+          VSCODE_ARCH: ${{ matrix.arch }}
+
+      # Package application
+      - name: Package application
+        run: |
+          # Create distribution packages
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            npm run gulp vscode-win32-${{ matrix.arch }}-archive
+          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+            npm run gulp vscode-darwin-${{ matrix.arch }}-archive
+          elif [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            npm run gulp vscode-linux-${{ matrix.arch }}-archive
+          fi
+        shell: bash
+        env:
+          VSCODE_ARCH: ${{ matrix.arch }}
+          PLATFORM: ${{ matrix.platform }}
+
+      # macOS notarization (optional, only if code signed)
+      - name: macOS Notarization
+        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
+        run: |
+          # Find the path to the built app
+          APP_PATH=$(find "$(pwd)/VSCode-darwin-${{ matrix.arch }}" -name "*.app" -depth 1)
+
+          # Zip the app for notarization
+          ditto -c -k --keepParent "$APP_PATH" "$(pwd)/app.zip"
+
+          # Notarize the app
+          xcrun notarytool submit "$(pwd)/app.zip" --wait \
+            --apple-id ${{ secrets.APPLE_ID }} \
+            --password ${{ secrets.APPLE_APP_PASSWORD }} \
+            --team-id ${{ secrets.APPLE_TEAM_ID }}
+
+          # Staple the notarization ticket
+          xcrun stapler staple "$APP_PATH"
+        env:
+          VSCODE_ARCH: ${{ matrix.arch }}
+
+      # Upload build artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: vscode-${{ matrix.platform }}-${{ matrix.arch }}
+          path: .build/${{ matrix.platform }}-${{ matrix.arch }}
+          retention-days: 7
+
   # Run tests matrix
   test:
-    needs: build
+    needs: build-x64
     strategy:
       fail-fast: false
       matrix:
@@ -249,7 +388,7 @@ jobs:
 
   # Create release if specified
   release:
-    needs: [build, test]
+    needs: [build-x64, test]
     if: github.event.inputs.release == 'true'
     runs-on: ubuntu-latest
 

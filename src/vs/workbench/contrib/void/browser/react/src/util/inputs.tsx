@@ -350,7 +350,7 @@ export const VoidSlider = ({
 							size === 'xs' ? 'h-1' :
 								size === 'sm' ? 'h-1.5' :
 									size === 'sm+' ? 'h-2' : 'h-2.5'
-							} bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer`}
+							} bg-zinc-200 dark:bg-zinc-600 rounded-full cursor-pointer`}
 						onClick={handleTrackClick}
 					>
 						{/* Filled part of track */}
@@ -359,7 +359,7 @@ export const VoidSlider = ({
 								size === 'xs' ? 'h-1' :
 									size === 'sm' ? 'h-1.5' :
 										size === 'sm+' ? 'h-2' : 'h-2.5'
-								} bg-gray-900 dark:bg-white rounded-full`}
+								} bg-zinc-900 dark:bg-white rounded-full`}
 							style={{ width: `${percentage}%` }}
 						/>
 					</div>
@@ -372,7 +372,7 @@ export const VoidSlider = ({
 									size === 'sm' ? 'h-3 w-3' :
 										size === 'sm+' ? 'h-3.5 w-3.5' : 'h-4 w-4'
 							}
-							bg-white dark:bg-gray-900 rounded-full shadow-md ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
+							bg-white dark:bg-zinc-900 rounded-full shadow-md ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
 						style={{ left: `${percentage}%`, zIndex: 2 }}  // Ensure thumb is above the invisible clickable area
 						onMouseDown={(e) => {
 							if (disabled) return;
@@ -424,7 +424,7 @@ export const VoidSwitch = ({
 				className={`
 			cursor-pointer
 			relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out
-			${value ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'}
+			${value ? 'bg-zinc-900 dark:bg-white' : 'bg-zinc-200 dark:bg-zinc-600'}
 			${disabled ? 'opacity-25' : ''}
 			${size === 'xxs' ? 'h-3 w-5' : ''}
 			${size === 'xs' ? 'h-4 w-7' : ''}
@@ -435,7 +435,7 @@ export const VoidSwitch = ({
 			>
 				<span
 					className={`
-			  inline-block transform rounded-full bg-white dark:bg-gray-900 shadow transition-transform duration-200 ease-in-out
+			  inline-block transform rounded-full bg-white dark:bg-zinc-900 shadow transition-transform duration-200 ease-in-out
 			  ${size === 'xxs' ? 'h-2 w-2' : ''}
 			  ${size === 'xs' ? 'h-2.5 w-2.5' : ''}
 			  ${size === 'sm' ? 'h-3 w-3' : ''}
@@ -955,7 +955,7 @@ export const BlockCode = ({ initValue, language, maxHeight, showScrollbars }: Bl
 
 export const VoidButton = ({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) => {
 	return <button disabled={disabled}
-		className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden whitespace-nowrap'
+		className='px-3 py-1 bg-black/10 dark:bg-zinc-200/10 rounded-sm overflow-hidden whitespace-nowrap'
 		onClick={onClick}
 	>{children}</button>
 }

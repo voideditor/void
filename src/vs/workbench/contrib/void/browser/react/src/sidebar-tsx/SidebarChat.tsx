@@ -750,8 +750,8 @@ const ToolHeaderWrapper = ({
 			</div>
 			{/* children */}
 			{<div
-				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100' : 'max-h-0 opacity-0'}
-					text-void-fg-4 rounded-sm overflow-x-auto bg-void-bg-2
+				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}
+					text-void-fg-4 rounded-sm overflow-x-auto
 				  `}
 			//    bg-black bg-opacity-10 border border-void-border-4 border-opacity-50
 			>
@@ -1018,6 +1018,9 @@ const SmallProseWrapper = ({ children }: { children: React.ReactNode }) => {
 	leading-snug
 	text-[13px]
 
+	[&>:first-child]:!mt-0
+	[&>:last-child]:!mb-0
+
 	prose-h1:text-[14px]
 	prose-h1:my-4
 
@@ -1154,7 +1157,7 @@ const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneRe
 		if (!isWriting) setIsOpen(false) // if just finished reasoning, close
 	}, [isWriting])
 	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen} onClick={() => setIsOpen(v => !v)}>
-		<ToolChildrenWrapper className='bg-void-bg-3'>
+		<ToolChildrenWrapper>
 			<div className='!select-text cursor-auto'>
 				{children}
 			</div>
@@ -1763,7 +1766,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 							resolveReason.type === 'toofull' ? `\n(truncated)`
 								: null
 
-				componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3 font-mono whitespace-pre text-nowrap overflow-auto text-sm'>
+				componentParams.children = <ToolChildrenWrapper className='font-mono whitespace-pre text-nowrap overflow-auto text-sm'>
 
 					<div className='!select-text cursor-auto'>
 						<div>

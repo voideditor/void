@@ -34,7 +34,7 @@ jobs:
           - os: macos-latest
             arch: x64
             platform: darwin
-            
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -64,7 +64,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm ci
+        run: "# npm ci"
         env:
           npm_config_arch: ${{ matrix.arch }}
           # Skip binaries not needed for the build
@@ -142,9 +142,9 @@ jobs:
           - os: macos-latest
             arch: arm64
             platform: darwin
-            
+
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -156,7 +156,7 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -169,15 +169,15 @@ jobs:
         with:
           path: node_modules
           key: ${{ matrix.os }}-${{ matrix.arch }}-node-modules-${{ hashFiles('**/package-lock.json') }}
-          
+
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm ci
+        run: "# npm ci"
         env:
           npm_config_arch: ${{ matrix.arch }}
           # Skip binaries not needed for the build
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
-          
+
       # Windows-specific build steps
       - name: Windows Build
         if: matrix.os == 'windows-latest'
@@ -189,7 +189,7 @@ jobs:
           npm run minify-vscode
         env:
           VSCODE_ARCH: ${{ matrix.arch }}
-          
+
       # macOS-specific build steps
       - name: macOS Build
         if: matrix.os == 'macos-latest'
@@ -199,7 +199,7 @@ jobs:
           npm run gulp vscode-darwin-${{ matrix.arch }}-min-ci
         env:
           VSCODE_ARCH: ${{ matrix.arch }}
-          
+
       # Linux-specific build steps
       - name: Linux Build
         if: matrix.os == 'ubuntu-latest'

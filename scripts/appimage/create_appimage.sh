@@ -66,6 +66,7 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     libdrm2 \
     libgbm1 \
+    binutils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -134,17 +135,17 @@ echo "Icon=void" >> VoidApp.AppDir/void.desktop && \
 chmod +x VoidApp.AppDir/void.desktop && \
 cp VoidApp.AppDir/void.desktop VoidApp.AppDir/usr/share/applications/ && \
 echo "[Desktop Entry]" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "Name=Void - URL Handler" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "Comment=Open source AI code editor." > VoidApp.AppDir/void-url-handler.desktop && \
-echo "GenericName=Text Editor" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "Exec=void --open-url %U" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "Icon=void" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "Type=Application" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "NoDisplay=true" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "StartupNotify=true" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "Categories=Utility;TextEditor;Development;IDE;" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "MimeType=x-scheme-handler/void;" > VoidApp.AppDir/void-url-handler.desktop && \
-echo "Keywords=void;" > VoidApp.AppDir/void-url-handler.desktop && \
+echo "Name=Void - URL Handler" >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "Comment=Open source AI code editor." >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "GenericName=Text Editor" >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "Exec=void --open-url %U" >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "Icon=void" >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "Type=Application" >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "NoDisplay=true" >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "StartupNotify=true" >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "Categories=Utility;TextEditor;Development;IDE;" >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "MimeType=x-scheme-handler/void;" >> VoidApp.AppDir/void-url-handler.desktop && \
+echo "Keywords=void;" >> VoidApp.AppDir/void-url-handler.desktop && \
 chmod +x VoidApp.AppDir/void-url-handler.desktop && \
 cp VoidApp.AppDir/void-url-handler.desktop VoidApp.AppDir/usr/share/applications/ && \
 echo "#!/bin/bash" > VoidApp.AppDir/AppRun && \
@@ -156,7 +157,11 @@ chmod +x VoidApp.AppDir/AppRun && \
 chmod -R 755 VoidApp.AppDir && \
 
 # Strip unneeded symbols from the binary to reduce size
-strip --strip-unneeded VoidApp.AppDir/usr/bin/void
+if [ -f VoidApp.AppDir/usr/bin/void ]; then
+    strip --strip-unneeded VoidApp.AppDir/usr/bin/void
+else
+    echo "WARNING: void binary not found in usr/bin. Skipping strip."
+fi
 
 ls -la VoidApp.AppDir/ && \
 ARCH=x86_64 ./appimagetool -n VoidApp.AppDir Void-x86_64.AppImage

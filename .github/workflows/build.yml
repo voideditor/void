@@ -1,455 +1,261 @@
-name: Build Void
+name: Cross-Platform Build
 
 on:
   push:
-    branches: [ main, release/*, github-workflow ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      architectures:
+        description: 'Target architectures (comma separated)'
+        required: false
+        default: 'x64'
+        type: string
+      release:
+        description: 'Create a release'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
-
-      - name: Build
-        run: |
-          npm run buildreact
-          npm run gulp vscode-linux-x64-min
-
-      - name: Package
-        run: |
-          mkdir -p .build/linux/client
-          ARCHIVE_PATH=".build/linux/client/void-linux-x64.tar.gz"
-          tar -czf $ARCHIVE_PATH -C .. VSCode-linux-x64
-
-      - name: Generate checksum
-        run: |
-          cd .build/linux/client
-          sha256sum void-linux-x64.tar.gz > void-linux-x64.tar.gz.sha256
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-linux-x64
-          path: |
-            .build/linux/client/void-linux-x64.tar.gz
-            .build/linux/client/void-linux-x64.tar.gz.sha256
-
-  build-linux-arm64:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
-
-      - name: Build
-        run: |
-          npm run buildreact
-          npm run gulp vscode-linux-arm64-min
-
-      - name: Package
-        run: |
-          mkdir -p .build/linux/client
-          ARCHIVE_PATH=".build/linux/client/void-linux-arm64.tar.gz"
-          tar -czf $ARCHIVE_PATH -C .. VSCode-linux-arm64
-
-      - name: Generate checksum
-        run: |
-          cd .build/linux/client
-          sha256sum void-linux-arm64.tar.gz > void-linux-arm64.tar.gz.sha256
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-linux-arm64
-          path: |
-            .build/linux/client/void-linux-arm64.tar.gz
-            .build/linux/client/void-linux-arm64.tar.gz.sha256
-
-  build-windows:
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
-
-      - name: Build
-        run: |
-          npm run buildreact
-          npm run gulp vscode-win32-x64-min
-
-      - name: Package
-        run: |
-          mkdir -p .build/win32-x64
-          Compress-Archive -Path ..\VSCode-win32-x64\* -DestinationPath .build\win32-x64\void-win32-x64.zip
-        shell: pwsh
-
-      - name: Generate checksum
-        run: |
-          cd .build/win32-x64
-          $hash = Get-FileHash -Algorithm SHA256 void-win32-x64.zip
-          $hash.Hash | Out-File -Encoding ascii void-win32-x64.zip.sha256
-        shell: pwsh
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-win32-x64
-          path: |
-            .build/win32-x64/void-win32-x64.zip
-            .build/win32-x64/void-win32-x64.zip.sha256
-
-  build-windows-arm64:
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
-
-      - name: Build
-        run: |
-          npm run buildreact
-          npm run gulp vscode-win32-arm64-min
-
-      - name: Package
-        run: |
-          mkdir -p .build/win32-arm64
-          Compress-Archive -Path ..\VSCode-win32-arm64\* -DestinationPath .build\win32-arm64\void-win32-arm64.zip
-        shell: pwsh
-
-      - name: Generate checksum
-        run: |
-          cd .build/win32-arm64
-          $hash = Get-FileHash -Algorithm SHA256 void-win32-arm64.zip
-          $hash.Hash | Out-File -Encoding ascii void-win32-arm64.zip.sha256
-        shell: pwsh
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-win32-arm64
-          path: |
-            .build/win32-arm64/void-win32-arm64.zip
-            .build/win32-arm64/void-win32-arm64.zip.sha256
-
-  build-macos:
-    runs-on: macos-latest
+  build:
     strategy:
+      fail-fast: false
       matrix:
-        arch: [arm64, x64]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x64]
+        include:
+          # Add ARM64 builds conditionally
+          - os: ubuntu-latest
+            arch: arm64
+            platform: linux
+            condition: ${{ contains(github.event.inputs.architectures, 'arm64') }}
+          - os: windows-latest
+            arch: arm64
+            platform: win32
+            condition: ${{ contains(github.event.inputs.architectures, 'arm64') }}
+          - os: macos-latest
+            arch: arm64
+            platform: darwin
+            condition: ${{ contains(github.event.inputs.architectures, 'arm64') }}
+          # Default mappings
+          - os: ubuntu-latest
+            arch: x64
+            platform: linux
+          - os: windows-latest
+            arch: x64
+            platform: win32
+          - os: macos-latest
+            arch: x64
+            platform: darwin
+
+    # Skip ARM64 jobs if not requested in manual workflow
+    if: ${{ !matrix.condition || matrix.condition }}
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version-file: '.nvmrc'
+          node-version: '18'
           cache: 'npm'
 
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # Cache node_modules
+      - name: Cache node modules
+        uses: actions/cache@v3
+        id: cache-node-modules
+        with:
+          path: node_modules
+          key: ${{ matrix.os }}-${{ matrix.arch }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install dependencies
-        run: |
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
-          npm install -g create-dmg
-
-      - name: Build
-        run: |
-          npm run buildreact
-          npm run gulp vscode-darwin-${{ matrix.arch }}-min
-
-      - name: Create temporary working directory
-        run: |
-          WORKING_DIR="${{ runner.temp }}/VoidSign-${{ matrix.arch }}"
-          KEYCHAIN_DIR="${WORKING_DIR}/1_Keychain"
-          SIGN_DIR="${WORKING_DIR}/2_Signed"
-          mkdir -p "${WORKING_DIR}" "${KEYCHAIN_DIR}" "${SIGN_DIR}"
-          cp -Rp "$(pwd)/../VSCode-darwin-${{ matrix.arch }}" "${SIGN_DIR}"
-          echo "WORKING_DIR=${WORKING_DIR}" >> $GITHUB_ENV
-          echo "KEYCHAIN_DIR=${KEYCHAIN_DIR}" >> $GITHUB_ENV
-          echo "SIGN_DIR=${SIGN_DIR}" >> $GITHUB_ENV
-          echo "SIGNED_DOTAPP_DIR=${SIGN_DIR}/VSCode-darwin-${{ matrix.arch }}" >> $GITHUB_ENV
-          echo "SIGNED_DOTAPP=${SIGN_DIR}/VSCode-darwin-${{ matrix.arch }}/Void.app" >> $GITHUB_ENV
-
-      - name: Import certificate
-        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
         env:
-          P12_BASE64: ${{ secrets.MACOS_CERTIFICATE }}
-          P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          KEYCHAIN_PASSWORD: "temporary-password"
+          npm_config_arch: ${{ matrix.arch }}
+          # Skip binaries not needed for the build
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
+      # Windows-specific build steps
+      - name: Windows Build
+        if: matrix.os == 'windows-latest'
         run: |
-          KEYCHAIN="${KEYCHAIN_DIR}/buildagent.keychain"
-          echo "KEYCHAIN=${KEYCHAIN}" >> $GITHUB_ENV
-
-          # Create a new keychain
-          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
-          security set-keychain-settings -lut 21600 "${KEYCHAIN}"
-          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
-
-          # Import certificate
-          echo "${P12_BASE64}" | base64 --decode > "${KEYCHAIN_DIR}/certificate.p12"
-          security import "${KEYCHAIN_DIR}/certificate.p12" -k "${KEYCHAIN}" -P "${P12_PASSWORD}" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}" > /dev/null
-
-          # Add to keychain list
-          security list-keychains -d user -s "${KEYCHAIN}" $(security list-keychains -d user | sed s/\"//g)
-
-      - name: Sign Application
-        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+          # Set up Windows-specific environment
+          npm run compile
+          npm run compile-build
+          npm run compile-extensions-build
+          npm run minify-vscode
         env:
-          CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
           VSCODE_ARCH: ${{ matrix.arch }}
+
+      # macOS-specific build steps
+      - name: macOS Build
+        if: matrix.os == 'macos-latest'
         run: |
-          export AGENT_TEMPDIRECTORY="${KEYCHAIN_DIR}"
-          cd $(pwd)/build/darwin
-          node sign.js "${SIGN_DIR}"
-          codesign --verify --verbose=4 "${SIGNED_DOTAPP}"
-
-      - name: Create Unsigned App (for PR builds)
-        if: ${{ github.event_name == 'pull_request' || github.repository != 'voideditor/void' }}
-        run: |
-          cp -Rp "$(pwd)/../VSCode-darwin-${{ matrix.arch }}" "${SIGN_DIR}"
-          echo "SIGNED_DOTAPP_DIR=$(pwd)/../VSCode-darwin-${{ matrix.arch }}" >> $GITHUB_ENV
-          echo "SIGNED_DOTAPP=$(pwd)/../VSCode-darwin-${{ matrix.arch }}/Void.app" >> $GITHUB_ENV
-
-      - name: Create DMG
-        run: |
-          cd "${SIGNED_DOTAPP_DIR}"
-          npx create-dmg --volname "Void Installer" "${SIGNED_DOTAPP}" . || true
-          GENERATED_DMG=$(ls *.dmg)
-          mv "${GENERATED_DMG}" "Void-Installer-darwin-${{ matrix.arch }}.dmg"
-
-          if [[ "${{ github.event_name }}" != "pull_request" && "${{ github.repository }}" == "voideditor/void" ]]; then
-            codesign --verify --verbose=4 "Void-Installer-darwin-${{ matrix.arch }}.dmg"
-          fi
-
-          echo "SIGNED_DMG=${SIGNED_DOTAPP_DIR}/Void-Installer-darwin-${{ matrix.arch }}.dmg" >> $GITHUB_ENV
-
-      - name: Notarize
-        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+          # Set up macOS-specific environment
+          npm run compile
+          npm run gulp vscode-darwin-${{ matrix.arch }}-min-ci
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APP_PASSWORD: ${{ secrets.APPLE_APP_PWD }}
-          KEYCHAIN_PASSWORD: "temporary-password"
-        run: |
-          # Store credentials for notarization
-          xcrun notarytool store-credentials "Void" \
-            --apple-id "${APPLE_ID}" \
-            --team-id "${TEAM_ID}" \
-            --password "${APP_PASSWORD}" \
-            --keychain "${KEYCHAIN}"
+          VSCODE_ARCH: ${{ matrix.arch }}
 
-          # Submit for notarization with a timeout
-          xcrun notarytool submit "${SIGNED_DMG}" \
-            --keychain-profile "Void" \
-            --keychain "${KEYCHAIN}" \
-            --wait --timeout 2h
+      # Linux-specific build steps
+      - name: Linux Build
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          # Set up Linux-specific environment
+          npm run compile
+          npm run gulp vscode-linux-${{ matrix.arch }}-min-ci
+        env:
+          VSCODE_ARCH: ${{ matrix.arch }}
+
+      # Setup macOS code signing
+      - name: Import macOS Code-Signing Certificates
+        if: matrix.os == 'macos-latest'
+        uses: apple-actions/import-codesign-certs@v1
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          keychain: build.keychain
+          keychain-password: ${{ github.run_id }}
+
+      # macOS code signing
+      - name: macOS Code Signing
+        if: matrix.os == 'macos-latest'
+        run: |
+          # Set up code signing identity
+          CODESIGN_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep -oE "([0-9A-F]{40})" | head -n 1)
+
+          # Compile and run the signing script
+          tsc -p build/darwin/tsconfig.json
+          node build/darwin/sign.js $(pwd)
+        env:
+          CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
+          AGENT_TEMPDIRECTORY: /tmp
+          VSCODE_ARCH: ${{ matrix.arch }}
+
+      # Package application
+      - name: Package application
+        run: |
+          # Create distribution packages
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            npm run gulp vscode-win32-${{ matrix.arch }}-archive
+          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+            npm run gulp vscode-darwin-${{ matrix.arch }}-archive
+          elif [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            npm run gulp vscode-linux-${{ matrix.arch }}-archive
+          fi
+        shell: bash
+        env:
+          VSCODE_ARCH: ${{ matrix.arch }}
+          PLATFORM: ${{ matrix.platform }}
+
+      # macOS notarization (optional, only if code signed)
+      - name: macOS Notarization
+        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
+        run: |
+          # Find the path to the built app
+          APP_PATH=$(find "$(pwd)/VSCode-darwin-${{ matrix.arch }}" -name "*.app" -depth 1)
+
+          # Zip the app for notarization
+          ditto -c -k --keepParent "$APP_PATH" "$(pwd)/app.zip"
+
+          # Notarize the app
+          xcrun notarytool submit "$(pwd)/app.zip" --wait \
+            --apple-id ${{ secrets.APPLE_ID }} \
+            --password ${{ secrets.APPLE_APP_PASSWORD }} \
+            --team-id ${{ secrets.APPLE_TEAM_ID }}
 
           # Staple the notarization ticket
-          xcrun stapler staple "${SIGNED_DMG}"
+          xcrun stapler staple "$APP_PATH"
+        env:
+          VSCODE_ARCH: ${{ matrix.arch }}
 
-      - name: Create Raw App Archive
-        run: |
-          cd "${SIGNED_DOTAPP_DIR}"
-          VOIDAPP=$(basename "${SIGNED_DOTAPP}")
-          ditto -c -k --sequesterRsrc --keepParent "${VOIDAPP}" "Void-RawApp-darwin-${{ matrix.arch }}.zip"
-
-      - name: Generate Hash File
-        run: |
-          cd "${SIGNED_DOTAPP_DIR}"
-          SHA1=$(shasum -a 1 "Void-RawApp-darwin-${{ matrix.arch }}.zip" | cut -d' ' -f1)
-          SHA256=$(shasum -a 256 "Void-RawApp-darwin-${{ matrix.arch }}.zip" | cut -d' ' -f1)
-          TIMESTAMP=$(date +%s)
-
-          cat > "Void-UpdJSON-darwin-${{ matrix.arch }}.json" << EOF
-          {
-              "sha256hash": "${SHA256}",
-              "hash": "${SHA1}",
-              "timestamp": ${TIMESTAMP}
-          }
-          EOF
-
-      - name: Generate checksum for DMG
-        run: |
-          cd "${SIGNED_DOTAPP_DIR}"
-          shasum -a 256 "Void-Installer-darwin-${{ matrix.arch }}.dmg" > "Void-Installer-darwin-${{ matrix.arch }}.dmg.sha256"
-
-      - name: Upload DMG
-        uses: actions/upload-artifact@v4
+      # Upload build artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
         with:
-          name: void-darwin-${{ matrix.arch }}-dmg
-          path: |
-            ${{ env.SIGNED_DMG }}
-            ${{ env.SIGNED_DOTAPP_DIR }}/Void-Installer-darwin-${{ matrix.arch }}.dmg.sha256
+          name: vscode-${{ matrix.platform }}-${{ matrix.arch }}
+          path: .build/${{ matrix.platform }}-${{ matrix.arch }}
+          retention-days: 7
 
-      - name: Upload Raw App
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-darwin-${{ matrix.arch }}-rawapp
-          path: ${{ env.SIGNED_DOTAPP_DIR }}/Void-RawApp-darwin-${{ matrix.arch }}.zip
+  # Run tests matrix
+  test:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x64]
+        test-type: [unit, integration]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: win32
+          - os: macos-latest
+            platform: darwin
 
-      - name: Upload Hash File
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-darwin-${{ matrix.arch }}-hash
-          path: ${{ env.SIGNED_DOTAPP_DIR }}/Void-UpdJSON-darwin-${{ matrix.arch }}.json
+    runs-on: ${{ matrix.os }}
 
-  create-universal-macos:
-    needs: build-macos
-    runs-on: macos-latest
-    if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Download x64 DMG
-        uses: actions/download-artifact@v3
-        with:
-          name: void-darwin-x64-dmg
-          path: .build/darwin-x64
-
-      - name: Download arm64 DMG
-        uses: actions/download-artifact@v3
-        with:
-          name: void-darwin-arm64-dmg
-          path: .build/darwin-arm64
-
-      - name: Download x64 App
-        uses: actions/download-artifact@v3
-        with:
-          name: void-darwin-x64-rawapp
-          path: .build/darwin-x64-app
-
-      - name: Download arm64 App
-        uses: actions/download-artifact@v3
-        with:
-          name: void-darwin-arm64-rawapp
-          path: .build/darwin-arm64-app
-
-      - name: Create Universal App working dir
-        run: |
-          mkdir -p .build/darwin-universal/{x64,arm64,universal}
-
-      - name: Extract Apps
-        run: |
-          unzip -o .build/darwin-x64-app/Void-RawApp-darwin-x64.zip -d .build/darwin-universal/x64
-          unzip -o .build/darwin-arm64-app/Void-RawApp-darwin-arm64.zip -d .build/darwin-universal/arm64
-
-      - name: Create Universal App
-        run: |
-          # Script to create universal binary
-          cd build/darwin
-          node create-universal-app.js \
-            "$(pwd)/../../.build/darwin-universal/arm64/Void.app" \
-            "$(pwd)/../../.build/darwin-universal/x64/Void.app" \
-            "$(pwd)/../../.build/darwin-universal/universal/Void.app"
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version-file: '.nvmrc'
+          node-version: '18'
 
-      - name: Install create-dmg
-        run: npm install -g create-dmg
-
-      - name: Create Universal DMG
-        run: |
-          cd .build/darwin-universal/universal
-          create-dmg --volname "Void Installer" Void.app . || true
-          GENERATED_DMG=$(ls *.dmg)
-          mv "${GENERATED_DMG}" "../../Void-Installer-darwin-universal.dmg"
-          cd ../..
-          shasum -a 256 Void-Installer-darwin-universal.dmg > Void-Installer-darwin-universal.dmg.sha256
-
-      - name: Upload Universal DMG
-        uses: actions/upload-artifact@v4
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
         with:
-          name: void-darwin-universal
-          path: |
-            .build/Void-Installer-darwin-universal.dmg
-            .build/Void-Installer-darwin-universal.dmg.sha256
+          name: vscode-${{ matrix.platform }}-${{ matrix.arch }}
+          path: .build/${{ matrix.platform }}-${{ matrix.arch }}
 
-  create-release:
-    needs: [build-linux, build-linux-arm64, build-windows, build-windows-arm64, build-macos, create-universal-macos]
+      - name: Run ${{ matrix.test-type }} tests
+        run: |
+          if [ "${{ matrix.test-type }}" == "unit" ]; then
+            npm run test-${{ matrix.platform }}
+          else
+            npm run integration-test-${{ matrix.platform }}
+          fi
+        shell: bash
+        env:
+          VSCODE_ARCH: ${{ matrix.arch }}
+
+  # Create release if specified
+  release:
+    needs: [build, test]
+    if: github.event.inputs.release == 'true'
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Download all artifacts
         uses: actions/download-artifact@v3
         with:
-          path: release-artifacts
+          path: dist
 
-      - name: Create GitHub Release
+      - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: |
-            release-artifacts/void-linux-x64/void-linux-x64.tar.gz
-            release-artifacts/void-linux-x64/void-linux-x64.tar.gz.sha256
-            release-artifacts/void-linux-arm64/void-linux-arm64.tar.gz
-            release-artifacts/void-linux-arm64/void-linux-arm64.tar.gz.sha256
-            release-artifacts/void-win32-x64/void-win32-x64.zip
-            release-artifacts/void-win32-x64/void-win32-x64.zip.sha256
-            release-artifacts/void-win32-arm64/void-win32-arm64.zip
-            release-artifacts/void-win32-arm64/void-win32-arm64.zip.sha256
-            release-artifacts/void-darwin-x64-dmg/Void-Installer-darwin-x64.dmg
-            release-artifacts/void-darwin-x64-dmg/Void-Installer-darwin-x64.dmg.sha256
-            release-artifacts/void-darwin-arm64-dmg/Void-Installer-darwin-arm64.dmg
-            release-artifacts/void-darwin-arm64-dmg/Void-Installer-darwin-arm64.dmg.sha256
-            release-artifacts/void-darwin-universal/Void-Installer-darwin-universal.dmg
-            release-artifacts/void-darwin-universal/Void-Installer-darwin-universal.dmg.sha256
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
           draft: true
-          generate_release_notes: true
+          files: dist/**/*

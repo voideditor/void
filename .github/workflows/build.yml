@@ -185,7 +185,7 @@ jobs:
             .build/win32-arm64/void-win32-arm64.zip.sha256
 
   build-macos:
-    runs-on: macos-latest-xlarge
+    runs-on: macos-latest-large
     strategy:
       matrix:
         arch: [arm64, x64]

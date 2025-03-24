@@ -34,7 +34,7 @@ jobs:
           tar -czf $ARCHIVE_PATH -C .. VSCode-linux-x64
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: void-linux-x64
           path: .build/linux/client/void-linux-x64.tar.gz
@@ -63,7 +63,7 @@ jobs:
         shell: pwsh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: void-win32-x64
           path: .build/win32-x64/void-win32-x64.zip
@@ -191,19 +191,19 @@ jobs:
           EOF
 
       - name: Upload DMG
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: void-darwin-${{ matrix.arch }}-dmg
           path: ${{ env.SIGNED_DMG }}
 
       - name: Upload Raw App
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: void-darwin-${{ matrix.arch }}-rawapp
           path: ${{ env.SIGNED_DOTAPP_DIR }}/Void-RawApp-darwin-${{ matrix.arch }}.zip
 
       - name: Upload Hash File
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: void-darwin-${{ matrix.arch }}-hash
           path: ${{ env.SIGNED_DOTAPP_DIR }}/Void-UpdJSON-darwin-${{ matrix.arch }}.json

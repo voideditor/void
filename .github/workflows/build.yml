@@ -27,6 +27,14 @@ jobs:
           # Set npm config to use GitHub token for authentication to avoid rate limits
           npm config set //github.com/:_authToken=${{ github.token }}
           npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
@@ -74,6 +82,14 @@ jobs:
           # Set npm config to use GitHub token for authentication to avoid rate limits
           npm config set //github.com/:_authToken=${{ github.token }}
           npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
@@ -119,6 +135,14 @@ jobs:
           # Set npm config to use GitHub token for authentication to avoid rate limits
           npm config set //github.com/:_authToken=${{ github.token }}
           npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
@@ -166,6 +190,14 @@ jobs:
           # Set npm config to use GitHub token for authentication to avoid rate limits
           npm config set //github.com/:_authToken=${{ github.token }}
           npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
@@ -216,6 +248,14 @@ jobs:
           # Set npm config to use GitHub token for authentication to avoid rate limits
           npm config set //github.com/:_authToken=${{ github.token }}
           npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli

@@ -23,23 +23,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        arch: [x64]
         include:
-          # Add ARM64 builds conditionally
-          - os: ubuntu-latest
-            arch: arm64
-            platform: linux
-            condition: ${{ contains(github.event.inputs.architectures, 'arm64') }}
-          - os: windows-latest
-            arch: arm64
-            platform: win32
-            condition: ${{ contains(github.event.inputs.architectures, 'arm64') }}
-          - os: macos-latest
-            arch: arm64
-            platform: darwin
-            condition: ${{ contains(github.event.inputs.architectures, 'arm64') }}
-          # Default mappings
+          # Default x64 builds that always run
           - os: ubuntu-latest
             arch: x64
             platform: linux
@@ -49,9 +34,22 @@ jobs:
           - os: macos-latest
             arch: x64
             platform: darwin
+          # Conditional ARM64 builds
+          - os: ubuntu-latest
+            arch: arm64
+            platform: linux
+            runs-on-arm64: true
+          - os: windows-latest
+            arch: arm64
+            platform: win32
+            runs-on-arm64: true
+          - os: macos-latest
+            arch: arm64
+            platform: darwin
+            runs-on-arm64: true
 
-    # Skip ARM64 jobs if not requested in manual workflow
-    if: ${{ !matrix.condition || matrix.condition }}
+    # ARM64 runs only when explicitly requested
+    if: ${{ !matrix.runs-on-arm64 || contains(github.event.inputs.architectures, 'arm64') }}
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -121,7 +119,7 @@ jobs:
 
       # Setup macOS code signing
       - name: Import macOS Code-Signing Certificates
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
         uses: apple-actions/import-codesign-certs@v1
         with:
           p12-file-base64: ${{ secrets.MACOS_CERTIFICATE }}
@@ -131,7 +129,7 @@ jobs:
 
       # macOS code signing
       - name: macOS Code Signing
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
         run: |
           # Set up code signing identity
           CODESIGN_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep -oE "([0-9A-F]{40})" | head -n 1)
@@ -195,16 +193,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        arch: [x64]
-        test-type: [unit, integration]
         include:
           - os: ubuntu-latest
+            arch: x64
             platform: linux
+            test-type: unit
+          - os: ubuntu-latest
+            arch: x64
+            platform: linux
+            test-type: integration
           - os: windows-latest
+            arch: x64
             platform: win32
+            test-type: unit
+          - os: windows-latest
+            arch: x64
+            platform: win32
+            test-type: integration
           - os: macos-latest
+            arch: x64
             platform: darwin
+            test-type: unit
+          - os: macos-latest
+            arch: x64
+            platform: darwin
+            test-type: integration
 
     runs-on: ${{ matrix.os }}
 
@@ -226,9 +239,9 @@ jobs:
       - name: Run ${{ matrix.test-type }} tests
         run: |
           if [ "${{ matrix.test-type }}" == "unit" ]; then
-            npm run test-${{ matrix.platform }}
+            npm run test-node  # Assuming this is your unit test command
           else
-            npm run integration-test-${{ matrix.platform }}
+            npm run test-browser  # Assuming this is your integration test command
           fi
         shell: bash
         env:

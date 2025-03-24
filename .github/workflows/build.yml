@@ -9,9 +9,9 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    timeout-minutes: 2160  # 36 heures, limite maximale autorisée
+    timeout-minutes: 2160  # 36 hours, maximum allowed limit
 
-    # Ajout des permissions nécessaires
+    # Add necessary permissions
     permissions:
       contents: write
       packages: read
@@ -51,10 +51,121 @@ jobs:
           node build.js
         continue-on-error: false
 
-      - name: Build Void
-        run: npm run gulp vscode-darwin-arm64
+      - name: Build structure diagnostics
+        run: |
+          echo "=== Directory Structure ==="
+
+          # Check VSCode build directory content
+          if [ -d ".build/VSCode-darwin-arm64" ]; then
+            echo "📁 Content of .build/VSCode-darwin-arm64:"
+            ls -la .build/VSCode-darwin-arm64
+
+            echo "📁 Content of .build/VSCode-darwin-arm64/Contents:"
+            ls -la .build/VSCode-darwin-arm64/Contents || echo "❌ No Contents folder"
+
+            echo "📁 Content of .build/VSCode-darwin-arm64/Contents/Resources/app:"
+            ls -la .build/VSCode-darwin-arm64/Contents/Resources/app || echo "❌ No app folder"
+          else
+            echo "❌ Directory .build/VSCode-darwin-arm64 not found"
+          fi
+
+          # Check permissions
+          echo "=== Permissions ==="
+          find .build/VSCode-darwin-arm64 -type f -exec ls -l {} \; | head -n 10
+
+          # Check critical file sizes
+          echo "=== Critical File Sizes ==="
+          find .build/VSCode-darwin-arm64 -type f -size +1M -exec ls -lh {} \;
+
+          # Check symbolic links
+          echo "=== Symbolic Links ==="
+          find .build/VSCode-darwin-arm64 -type l -ls
+
+      - name: Secure file copy
+        run: |
+          # Create destination directory if it doesn't exist
+          mkdir -p .build/electron
+
+          # Copy with attribute preservation
+          cp -Rp .build/VSCode-darwin-arm64/* .build/electron/ || {
+            echo "❌ Copy error"
+            echo "Source exists: $(test -d .build/VSCode-darwin-arm64 && echo 'yes' || echo 'no')"
+            echo "Destination exists: $(test -d .build/electron && echo 'yes' || echo 'no')"
+            exit 1
+          }
+
+          # Verify copy integrity
+          echo "=== Integrity Check ==="
+          diff -r .build/VSCode-darwin-arm64 .build/electron || echo "⚠️ Differences detected"
+
+      - name: Essential files verification
+        run: |
+          REQUIRED_FILES=(
+            "Contents/MacOS/Electron"
+            "Contents/Resources/app/out/main.js"
+            "Contents/Resources/app/out/vs/workbench/workbench.desktop.main.js"
+            "Contents/Resources/app/package.json"
+          )
+
+          MISSING_FILES=0
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f ".build/VSCode-darwin-arm64/$file" ]; then
+              echo "❌ Missing file: $file"
+              MISSING_FILES=$((MISSING_FILES + 1))
+            else
+              echo "✅ File present: $file"
+              echo "   Size: $(ls -lh ".build/VSCode-darwin-arm64/$file")"
+            fi
+          done
+
+          if [ $MISSING_FILES -gt 0 ]; then
+            echo "⚠️ $MISSING_FILES essential files missing"
+            exit 1
+          fi
+
+      - name: Build VSCode
+        run: |
+          # Clean previous builds
+          rm -rf .build/VSCode-darwin-arm64
+
+          # Compile with extended logging
+          npm run gulp vscode-darwin-arm64 --max_old_space_size=8192 --verbose
+
+          # Check compilation status
+          if [ $? -ne 0 ]; then
+            echo "❌ Compilation failed"
+            exit 1
+          fi
+
+          # Check expected minimum size
+          BUILD_SIZE=$(du -sm .build/VSCode-darwin-arm64 | cut -f1)
+          if [ "$BUILD_SIZE" -lt 100 ]; then  # Adjust according to expected size
+            echo "❌ Build too small ($BUILD_SIZE MB)"
+            exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: "--max_old_space_size=8192"
+
+      - name: Dependencies check
+        run: |
+          echo "=== Dependencies Check ==="
+
+          # Check node_modules
+          if [ ! -d "node_modules" ]; then
+            echo "❌ node_modules missing"
+            exit 1
+          fi
+
+          # Check native dependencies
+          echo "=== Native Dependencies ==="
+          find node_modules -name "*.node" -ls
+
+          # Check critical dependency versions
+          echo "=== Dependency Versions ==="
+          npm list electron
+          npm list vscode-ripgrep
+          npm list @vscode/sqlite3
 
       - name: Locate Void build
         id: locate_build

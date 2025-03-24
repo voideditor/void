@@ -392,7 +392,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 				{
 					role: 'tool',
-					name: 'semantic_search',
+					name: 'grep_search',
 					id: 'tool-4',
 					paramsStr: '{"query": "function main"}',
 					content: 'Found matches in 3 files',
@@ -408,15 +408,15 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							hasNextPage: false
 						}
 					},
-				} satisfies ToolMessage<'semantic_search'>,
+				} satisfies ToolMessage<'grep_search'>,
 
 				// {
 				// 	role: 'tool_request',
-				// 	name: 'semantic_search',
+				// 	name: 'grep_search',
 				// 	params: { queryStr: 'function main', pageNumber: 0 },
 				// 	paramsStr: '{"query": "function main"}',
 				// 	id: 'request-4',
-				// } satisfies ToolRequestApproval<'semantic_search'>,
+				// } satisfies ToolRequestApproval<'grep_search'>,
 
 				// ---
 

@@ -69,16 +69,16 @@ export const voidTools = {
 
 	pathname_search: {
 		name: 'pathname_search',
-		description: `Returns all pathnames that match a given grep query. You should use this when looking for a file with a specific name or path. This does NOT search file content. ${paginationHelper.desc}`,
+		description: `Returns all pathnames that match a given \`find\`-style query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,
 		},
 	},
 
-	semantic_search: {
-		name: 'semantic_search',
-		description: `Returns pathnames of files with an exact match of the query. The query can be any regex. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${paginationHelper.desc}`,
+	grep_search: {
+		name: 'grep_search',
+		description: `Returns all pathnames that match a given \`grep\`-style query (searches ONLY file contents). The query can be any regex. This is often followed by the \`read_file\` tool to view the full file contents of results. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,

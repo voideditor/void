@@ -1178,7 +1178,7 @@ const titleOfToolName = {
 	'read_file': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
 	'list_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
 	'pathname_search': { done: 'Searched by file name', proposed: 'Search by file name', running: loadingTitleWrapper('Searching by file name') },
-	'semantic_search': { done: 'Semantic searched', proposed: 'Semantic search', running: loadingTitleWrapper('Searching') },
+	'grep_search': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
 	'create_uri': {
 		done: (isFolder: boolean) => `Created ${folderFileStr(isFolder)}`,
 		proposed: (isFolder: boolean | null) => isFolder === null ? 'Create URI' : `Create ${folderFileStr(isFolder)}`,
@@ -1210,8 +1210,8 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 	} else if (toolName === 'pathname_search') {
 		const toolParams = _toolParams as ToolCallParams['pathname_search']
 		return `"${toolParams.queryStr}"`;
-	} else if (toolName === 'semantic_search') {
-		const toolParams = _toolParams as ToolCallParams['semantic_search']
+	} else if (toolName === 'grep_search') {
+		const toolParams = _toolParams as ToolCallParams['grep_search']
 		return `"${toolParams.queryStr}"`;
 	} else if (toolName === 'create_uri') {
 		const toolParams = _toolParams as ToolCallParams['create_uri']
@@ -1490,7 +1490,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'semantic_search': {
+	'grep_search': {
 		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()

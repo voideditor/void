@@ -153,19 +153,17 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 })
 
 
-export const VoidSimpleInputBox = ({ value, onChangeValue, placeholder, className, disabled, ...inputProps }: {
+export const VoidSimpleInputBox = ({ value, onChangeValue, placeholder, className, disabled, passwordBlur, ...inputProps }: {
 	value: string;
 	onChangeValue: (value: string) => void;
 	placeholder: string;
 	className?: string;
 	disabled?: boolean;
+	passwordBlur?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>) => {
-	const inputRef = useRef<HTMLInputElement>(null);
 
 	return (
 		<input
-			ref={inputRef}
-			type="text"
 			value={value}
 			onChange={(e) => onChangeValue(e.target.value)}
 			placeholder={placeholder}
@@ -174,10 +172,12 @@ export const VoidSimpleInputBox = ({ value, onChangeValue, placeholder, classNam
 				${disabled ? 'opacity-50 cursor-not-allowed' : ''}
 				${className}`}
 			style={{
+				...passwordBlur && { WebkitTextSecurity: 'disc' },
 				background: asCssVariable(inputBackground),
 				color: asCssVariable(inputForeground)
 			}}
 			{...inputProps}
+			type={undefined} // VS Code is doing some annoyingness that breaks paste if this is defined
 		/>
 	);
 };

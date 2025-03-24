@@ -51,6 +51,7 @@ jobs:
           path: |
             .build/linux/client/void-linux-x64.tar.gz
             .build/linux/client/void-linux-x64.tar.gz.sha256
+
   build-linux-arm64:
     runs-on: ubuntu-latest
     steps:
@@ -203,50 +204,12 @@ jobs:
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
+          npm install -g create-dmg
 
       - name: Build
         run: |
           npm run buildreact
           npm run gulp vscode-darwin-${{ matrix.arch }}-min
-
-      - name: Create Raw App Archive
-        run: |
-          mkdir -p "$(pwd)/.build/darwin-${{ matrix.arch }}"
-          cd "$(pwd)/../VSCode-darwin-${{ matrix.arch }}"
-          ditto -c -k --sequesterRsrc --keepParent "Void.app" "$(pwd)/../void/.build/darwin-${{ matrix.arch }}/Void-RawApp-darwin-${{ matrix.arch }}.zip"
-
-      - name: Upload Raw App
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-darwin-${{ matrix.arch }}-unsigned
-          path: |
-            .build/darwin-${{ matrix.arch }}/Void-RawApp-darwin-${{ matrix.arch }}.zip
-
-  sign-notarize-macos:
-    needs: build-macos
-    runs-on: macos-latest
-    if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
-    strategy:
-      matrix:
-        arch: [arm64, x64]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install create-dmg
-        run: npm install -g create-dmg
-
-      - name: Download unsigned app
-        uses: actions/download-artifact@v3
-        with:
-          name: void-darwin-${{ matrix.arch }}-unsigned
-          path: .build/darwin-${{ matrix.arch }}-unsigned
 
       - name: Create temporary working directory
         run: |
@@ -254,11 +217,7 @@ jobs:
           KEYCHAIN_DIR="${WORKING_DIR}/1_Keychain"
           SIGN_DIR="${WORKING_DIR}/2_Signed"
           mkdir -p "${WORKING_DIR}" "${KEYCHAIN_DIR}" "${SIGN_DIR}"
-          mkdir -p "${SIGN_DIR}/VSCode-darwin-${{ matrix.arch }}"
-          
-          # Extract the app
-          unzip -o ".build/darwin-${{ matrix.arch }}-unsigned/Void-RawApp-darwin-${{ matrix.arch }}.zip" -d "${SIGN_DIR}/VSCode-darwin-${{ matrix.arch }}"
-          
+          cp -Rp "$(pwd)/../VSCode-darwin-${{ matrix.arch }}" "${SIGN_DIR}"
           echo "WORKING_DIR=${WORKING_DIR}" >> $GITHUB_ENV
           echo "KEYCHAIN_DIR=${KEYCHAIN_DIR}" >> $GITHUB_ENV
           echo "SIGN_DIR=${SIGN_DIR}" >> $GITHUB_ENV
@@ -266,6 +225,7 @@ jobs:
           echo "SIGNED_DOTAPP=${SIGN_DIR}/VSCode-darwin-${{ matrix.arch }}/Void.app" >> $GITHUB_ENV
 
       - name: Import certificate
+        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
         env:
           P12_BASE64: ${{ secrets.MACOS_CERTIFICATE }}
           P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -288,6 +248,7 @@ jobs:
           security list-keychains -d user -s "${KEYCHAIN}" $(security list-keychains -d user | sed s/\"//g)
 
       - name: Sign Application
+        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
         env:
           CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
           VSCODE_ARCH: ${{ matrix.arch }}
@@ -297,16 +258,28 @@ jobs:
           node sign.js "${SIGN_DIR}"
           codesign --verify --verbose=4 "${SIGNED_DOTAPP}"
 
+      - name: Create Unsigned App (for PR builds)
+        if: ${{ github.event_name == 'pull_request' || github.repository != 'voideditor/void' }}
+        run: |
+          cp -Rp "$(pwd)/../VSCode-darwin-${{ matrix.arch }}" "${SIGN_DIR}"
+          echo "SIGNED_DOTAPP_DIR=$(pwd)/../VSCode-darwin-${{ matrix.arch }}" >> $GITHUB_ENV
+          echo "SIGNED_DOTAPP=$(pwd)/../VSCode-darwin-${{ matrix.arch }}/Void.app" >> $GITHUB_ENV
+
       - name: Create DMG
         run: |
           cd "${SIGNED_DOTAPP_DIR}"
           npx create-dmg --volname "Void Installer" "${SIGNED_DOTAPP}" . || true
           GENERATED_DMG=$(ls *.dmg)
           mv "${GENERATED_DMG}" "Void-Installer-darwin-${{ matrix.arch }}.dmg"
-          codesign --verify --verbose=4 "Void-Installer-darwin-${{ matrix.arch }}.dmg"
+
+          if [[ "${{ github.event_name }}" != "pull_request" && "${{ github.repository }}" == "voideditor/void" ]]; then
+            codesign --verify --verbose=4 "Void-Installer-darwin-${{ matrix.arch }}.dmg"
+          fi
+
           echo "SIGNED_DMG=${SIGNED_DOTAPP_DIR}/Void-Installer-darwin-${{ matrix.arch }}.dmg" >> $GITHUB_ENV
 
       - name: Notarize
+        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -376,7 +349,7 @@ jobs:
           path: ${{ env.SIGNED_DOTAPP_DIR }}/Void-UpdJSON-darwin-${{ matrix.arch }}.json
 
   create-universal-macos:
-    needs: sign-notarize-macos
+    needs: build-macos
     runs-on: macos-latest
     if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
     steps:

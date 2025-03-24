@@ -1,455 +1,307 @@
-name: Build Void
+name: Build VSCode
 
 on:
   push:
-    branches: [ main, release/*, github-workflow ]
+    branches: [ main, github-workflow ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 1.99.0)'
+        required: true
+        default: ''
+      quality:
+        description: 'Quality level (stable, insider)'
+        required: true
+        default: 'insider'
+        type: choice
+        options:
+          - stable
+          - insider
+
+env:
+  VSCODE_ARCH_WINDOWS: "x64"
+  VSCODE_ARCH_MACOS: "x64,arm64"
+  VSCODE_ARCH_LINUX: "x64,armhf,arm64"
+  VSCODE_QUALITY: ${{ github.event.inputs.quality || 'insider' }}
+  VSCODE_BUILD_VERSION: ${{ github.event.inputs.version || '1.99.0' }}
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
-
-      - name: Build
-        run: |
-          npm run buildreact
-          npm run gulp vscode-linux-x64-min
-
-      - name: Package
-        run: |
-          mkdir -p .build/linux/client
-          ARCHIVE_PATH=".build/linux/client/void-linux-x64.tar.gz"
-          tar -czf $ARCHIVE_PATH -C .. VSCode-linux-x64
-
-      - name: Generate checksum
-        run: |
-          cd .build/linux/client
-          sha256sum void-linux-x64.tar.gz > void-linux-x64.tar.gz.sha256
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-linux-x64
-          path: |
-            .build/linux/client/void-linux-x64.tar.gz
-            .build/linux/client/void-linux-x64.tar.gz.sha256
-
-  build-linux-arm64:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
-
-      - name: Build
-        run: |
-          npm run buildreact
-          npm run gulp vscode-linux-arm64-min
-
-      - name: Package
-        run: |
-          mkdir -p .build/linux/client
-          ARCHIVE_PATH=".build/linux/client/void-linux-arm64.tar.gz"
-          tar -czf $ARCHIVE_PATH -C .. VSCode-linux-arm64
-
-      - name: Generate checksum
-        run: |
-          cd .build/linux/client
-          sha256sum void-linux-arm64.tar.gz > void-linux-arm64.tar.gz.sha256
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-linux-arm64
-          path: |
-            .build/linux/client/void-linux-arm64.tar.gz
-            .build/linux/client/void-linux-arm64.tar.gz.sha256
-
   build-windows:
+    name: Windows (${{ matrix.arch }})
     runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Install dependencies
         run: |
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
+          npm ci
+        env:
+          npm_config_arch: ${{ matrix.arch }}
 
-      - name: Build
+      - name: Build VSCode
         run: |
-          npm run buildreact
-          npm run gulp vscode-win32-x64-min
+          npm run gulp -- "vscode-win32-${{ matrix.arch }}-min"
+          npm run gulp -- "vscode-win32-${{ matrix.arch }}-inno-updater"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Package
+      - name: Sign binaries (if credentials available)
+        if: false # TODO!!! fill this in - Replace with your condition for when signing is available
         run: |
-          mkdir -p .build/win32-x64
-          Compress-Archive -Path ..\VSCode-win32-x64\* -DestinationPath .build\win32-x64\void-win32-x64.zip
-        shell: pwsh
+          # Implementation would depend on your signing mechanism
+          # For example, using signtool.exe or an external signing service
+          # This is where you would sign the .exe, .dll, and .node files
 
-      - name: Generate checksum
+      - name: Create packages
         run: |
-          cd .build/win32-x64
-          $hash = Get-FileHash -Algorithm SHA256 void-win32-x64.zip
-          $hash.Hash | Out-File -Encoding ascii void-win32-x64.zip.sha256
+          $Version = "${{ env.VSCODE_BUILD_VERSION }}"
+          $ArchivePath = ".build\win32-${{ matrix.arch }}\VSCode-win32-${{ matrix.arch }}-$Version.zip"
+          New-Item -ItemType Directory -Path .build\win32-${{ matrix.arch }} -Force
+          7z.exe a -tzip $ArchivePath -x!CodeSignSummary*.md ..\VSCode-win32-${{ matrix.arch }}\* -r
+
+          # Build installers
+          npm run gulp -- "vscode-win32-${{ matrix.arch }}-system-setup"
+          npm run gulp -- "vscode-win32-${{ matrix.arch }}-user-setup"
+
+          # Rename setup files
+          mv .build\win32-${{ matrix.arch }}\system-setup\VSCodeSetup.exe .build\win32-${{ matrix.arch }}\VSCodeSetup-${{ matrix.arch }}-$Version.exe
+          mv .build\win32-${{ matrix.arch }}\user-setup\VSCodeSetup.exe .build\win32-${{ matrix.arch }}\VSCodeUserSetup-${{ matrix.arch }}-$Version.exe
         shell: pwsh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: void-win32-x64
+          name: vscode-win32-${{ matrix.arch }}
           path: |
-            .build/win32-x64/void-win32-x64.zip
-            .build/win32-x64/void-win32-x64.zip.sha256
-
-  build-windows-arm64:
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
-
-      - name: Build
-        run: |
-          npm run buildreact
-          npm run gulp vscode-win32-arm64-min
-
-      - name: Package
-        run: |
-          mkdir -p .build/win32-arm64
-          Compress-Archive -Path ..\VSCode-win32-arm64\* -DestinationPath .build\win32-arm64\void-win32-arm64.zip
-        shell: pwsh
-
-      - name: Generate checksum
-        run: |
-          cd .build/win32-arm64
-          $hash = Get-FileHash -Algorithm SHA256 void-win32-arm64.zip
-          $hash.Hash | Out-File -Encoding ascii void-win32-arm64.zip.sha256
-        shell: pwsh
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-win32-arm64
-          path: |
-            .build/win32-arm64/void-win32-arm64.zip
-            .build/win32-arm64/void-win32-arm64.zip.sha256
+            .build/win32-${{ matrix.arch }}/*.zip
+            .build/win32-${{ matrix.arch }}/*.exe
+          retention-days: 7
 
   build-macos:
+    name: macOS (${{ matrix.arch }})
     runs-on: macos-latest
     strategy:
       matrix:
-        arch: [arm64, x64]
+        arch: [x64, arm64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm install
-          npm install -g node-gyp
-          npm install -g gulp-cli
-          npm install -g create-dmg
+        run: npm ci
 
-      - name: Build
+      - name: Build VSCode
         run: |
-          npm run buildreact
-          npm run gulp vscode-darwin-${{ matrix.arch }}-min
-
-      - name: Create temporary working directory
-        run: |
-          WORKING_DIR="${{ runner.temp }}/VoidSign-${{ matrix.arch }}"
-          KEYCHAIN_DIR="${WORKING_DIR}/1_Keychain"
-          SIGN_DIR="${WORKING_DIR}/2_Signed"
-          mkdir -p "${WORKING_DIR}" "${KEYCHAIN_DIR}" "${SIGN_DIR}"
-          cp -Rp "$(pwd)/../VSCode-darwin-${{ matrix.arch }}" "${SIGN_DIR}"
-          echo "WORKING_DIR=${WORKING_DIR}" >> $GITHUB_ENV
-          echo "KEYCHAIN_DIR=${KEYCHAIN_DIR}" >> $GITHUB_ENV
-          echo "SIGN_DIR=${SIGN_DIR}" >> $GITHUB_ENV
-          echo "SIGNED_DOTAPP_DIR=${SIGN_DIR}/VSCode-darwin-${{ matrix.arch }}" >> $GITHUB_ENV
-          echo "SIGNED_DOTAPP=${SIGN_DIR}/VSCode-darwin-${{ matrix.arch }}/Void.app" >> $GITHUB_ENV
-
-      - name: Import certificate
-        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+          npm run gulp -- "vscode-darwin-${{ matrix.arch }}-min"
         env:
-          P12_BASE64: ${{ secrets.MACOS_CERTIFICATE }}
-          P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          KEYCHAIN_PASSWORD: "temporary-password"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package app
         run: |
-          KEYCHAIN="${KEYCHAIN_DIR}/buildagent.keychain"
-          echo "KEYCHAIN=${KEYCHAIN}" >> $GITHUB_ENV
+          VERSION="${{ env.VSCODE_BUILD_VERSION }}"
+          ARTIFACT_NAME="VSCode-darwin-${{ matrix.arch }}"
 
-          # Create a new keychain
-          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
-          security set-keychain-settings -lut 21600 "${KEYCHAIN}"
-          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
+          # Create .zip archive
+          PACKAGE_PATH=".build/darwin-${{ matrix.arch }}/${ARTIFACT_NAME}-${VERSION}.zip"
+          mkdir -p .build/darwin-${{ matrix.arch }}
+          (cd .. && zip -r -X -y "${GITHUB_WORKSPACE}/${PACKAGE_PATH}" "${ARTIFACT_NAME}.app")
 
-          # Import certificate
-          echo "${P12_BASE64}" | base64 --decode > "${KEYCHAIN_DIR}/certificate.p12"
-          security import "${KEYCHAIN_DIR}/certificate.p12" -k "${KEYCHAIN}" -P "${P12_PASSWORD}" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}" > /dev/null
-
-          # Add to keychain list
-          security list-keychains -d user -s "${KEYCHAIN}" $(security list-keychains -d user | sed s/\"//g)
-
-      - name: Sign Application
-        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
-        env:
-          CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-          VSCODE_ARCH: ${{ matrix.arch }}
+      - name: Sign app (if credentials available)
+        if: false # TODO!!! - add signing here - Replace with your condition for when signing is available
         run: |
-          export AGENT_TEMPDIRECTORY="${KEYCHAIN_DIR}"
-          cd $(pwd)/build/darwin
-          node sign.js "${SIGN_DIR}"
-          codesign --verify --verbose=4 "${SIGNED_DOTAPP}"
+          # Implementation would depend on your signing certificates
+          # For example:
+          # ./build/darwin/sign.sh
 
-      - name: Create Unsigned App (for PR builds)
-        if: ${{ github.event_name == 'pull_request' || github.repository != 'voideditor/void' }}
-        run: |
-          cp -Rp "$(pwd)/../VSCode-darwin-${{ matrix.arch }}" "${SIGN_DIR}"
-          echo "SIGNED_DOTAPP_DIR=$(pwd)/../VSCode-darwin-${{ matrix.arch }}" >> $GITHUB_ENV
-          echo "SIGNED_DOTAPP=$(pwd)/../VSCode-darwin-${{ matrix.arch }}/Void.app" >> $GITHUB_ENV
-
-      - name: Create DMG
-        run: |
-          cd "${SIGNED_DOTAPP_DIR}"
-          npx create-dmg --volname "Void Installer" "${SIGNED_DOTAPP}" . || true
-          GENERATED_DMG=$(ls *.dmg)
-          mv "${GENERATED_DMG}" "Void-Installer-darwin-${{ matrix.arch }}.dmg"
-
-          if [[ "${{ github.event_name }}" != "pull_request" && "${{ github.repository }}" == "voideditor/void" ]]; then
-            codesign --verify --verbose=4 "Void-Installer-darwin-${{ matrix.arch }}.dmg"
-          fi
-
-          echo "SIGNED_DMG=${SIGNED_DOTAPP_DIR}/Void-Installer-darwin-${{ matrix.arch }}.dmg" >> $GITHUB_ENV
-
-      - name: Notarize
-        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APP_PASSWORD: ${{ secrets.APPLE_APP_PWD }}
-          KEYCHAIN_PASSWORD: "temporary-password"
-        run: |
-          # Store credentials for notarization
-          xcrun notarytool store-credentials "Void" \
-            --apple-id "${APPLE_ID}" \
-            --team-id "${TEAM_ID}" \
-            --password "${APP_PASSWORD}" \
-            --keychain "${KEYCHAIN}"
-
-          # Submit for notarization with a timeout
-          xcrun notarytool submit "${SIGNED_DMG}" \
-            --keychain-profile "Void" \
-            --keychain "${KEYCHAIN}" \
-            --wait --timeout 2h
-
-          # Staple the notarization ticket
-          xcrun stapler staple "${SIGNED_DMG}"
-
-      - name: Create Raw App Archive
-        run: |
-          cd "${SIGNED_DOTAPP_DIR}"
-          VOIDAPP=$(basename "${SIGNED_DOTAPP}")
-          ditto -c -k --sequesterRsrc --keepParent "${VOIDAPP}" "Void-RawApp-darwin-${{ matrix.arch }}.zip"
-
-      - name: Generate Hash File
-        run: |
-          cd "${SIGNED_DOTAPP_DIR}"
-          SHA1=$(shasum -a 1 "Void-RawApp-darwin-${{ matrix.arch }}.zip" | cut -d' ' -f1)
-          SHA256=$(shasum -a 256 "Void-RawApp-darwin-${{ matrix.arch }}.zip" | cut -d' ' -f1)
-          TIMESTAMP=$(date +%s)
-
-          cat > "Void-UpdJSON-darwin-${{ matrix.arch }}.json" << EOF
-          {
-              "sha256hash": "${SHA256}",
-              "hash": "${SHA1}",
-              "timestamp": ${TIMESTAMP}
-          }
-          EOF
-
-      - name: Generate checksum for DMG
-        run: |
-          cd "${SIGNED_DOTAPP_DIR}"
-          shasum -a 256 "Void-Installer-darwin-${{ matrix.arch }}.dmg" > "Void-Installer-darwin-${{ matrix.arch }}.dmg.sha256"
-
-      - name: Upload DMG
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: void-darwin-${{ matrix.arch }}-dmg
-          path: |
-            ${{ env.SIGNED_DMG }}
-            ${{ env.SIGNED_DOTAPP_DIR }}/Void-Installer-darwin-${{ matrix.arch }}.dmg.sha256
+          name: vscode-darwin-${{ matrix.arch }}
+          path: .build/darwin-${{ matrix.arch }}/*.zip
+          retention-days: 7
 
-      - name: Upload Raw App
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-darwin-${{ matrix.arch }}-rawapp
-          path: ${{ env.SIGNED_DOTAPP_DIR }}/Void-RawApp-darwin-${{ matrix.arch }}.zip
-
-      - name: Upload Hash File
-        uses: actions/upload-artifact@v4
-        with:
-          name: void-darwin-${{ matrix.arch }}-hash
-          path: ${{ env.SIGNED_DOTAPP_DIR }}/Void-UpdJSON-darwin-${{ matrix.arch }}.json
-
-  create-universal-macos:
-    needs: build-macos
+  build-universal-macos:
+    name: macOS (Universal)
+    needs: [build-macos]
     runs-on: macos-latest
-    if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+    if: ${{ contains(env.VSCODE_ARCH_MACOS, 'x64') && contains(env.VSCODE_ARCH_MACOS, 'arm64') }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Download x64 DMG
-        uses: actions/download-artifact@v3
+        uses: actions/checkout@v4
         with:
-          name: void-darwin-x64-dmg
-          path: .build/darwin-x64
-
-      - name: Download arm64 DMG
-        uses: actions/download-artifact@v3
-        with:
-          name: void-darwin-arm64-dmg
-          path: .build/darwin-arm64
-
-      - name: Download x64 App
-        uses: actions/download-artifact@v3
-        with:
-          name: void-darwin-x64-rawapp
-          path: .build/darwin-x64-app
-
-      - name: Download arm64 App
-        uses: actions/download-artifact@v3
-        with:
-          name: void-darwin-arm64-rawapp
-          path: .build/darwin-arm64-app
-
-      - name: Create Universal App working dir
-        run: |
-          mkdir -p .build/darwin-universal/{x64,arm64,universal}
-
-      - name: Extract Apps
-        run: |
-          unzip -o .build/darwin-x64-app/Void-RawApp-darwin-x64.zip -d .build/darwin-universal/x64
-          unzip -o .build/darwin-arm64-app/Void-RawApp-darwin-arm64.zip -d .build/darwin-universal/arm64
-
-      - name: Create Universal App
-        run: |
-          # Script to create universal binary
-          cd build/darwin
-          node create-universal-app.js \
-            "$(pwd)/../../.build/darwin-universal/arm64/Void.app" \
-            "$(pwd)/../../.build/darwin-universal/x64/Void.app" \
-            "$(pwd)/../../.build/darwin-universal/universal/Void.app"
+          fetch-depth: 1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
+          cache: 'npm'
 
-      - name: Install create-dmg
-        run: npm install -g create-dmg
+      - name: Download x64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: vscode-darwin-x64
+          path: .build/darwin-x64
 
-      - name: Create Universal DMG
+      - name: Download arm64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: vscode-darwin-arm64
+          path: .build/darwin-arm64
+
+      - name: Create Universal build
         run: |
-          cd .build/darwin-universal/universal
-          create-dmg --volname "Void Installer" Void.app . || true
-          GENERATED_DMG=$(ls *.dmg)
-          mv "${GENERATED_DMG}" "../../Void-Installer-darwin-universal.dmg"
-          cd ../..
-          shasum -a 256 Void-Installer-darwin-universal.dmg > Void-Installer-darwin-universal.dmg.sha256
+          VERSION="${{ env.VSCODE_BUILD_VERSION }}"
 
-      - name: Upload Universal DMG
+          # Extract both architectures
+          mkdir -p .build/darwin-universal
+          unzip -q .build/darwin-x64/VSCode-darwin-x64-${VERSION}.zip -d .build/darwin-x64
+          unzip -q .build/darwin-arm64/VSCode-darwin-arm64-${VERSION}.zip -d .build/darwin-arm64
+
+          # Create universal app
+          node build/darwin/create-universal-app.js \
+            .build/darwin-x64/VSCode-darwin-x64.app \
+            .build/darwin-arm64/VSCode-darwin-arm64.app \
+            .build/darwin-universal/VSCode-darwin-universal.app
+
+          # Package universal app
+          (cd .build/darwin-universal && zip -r -X -y VSCode-darwin-universal-${VERSION}.zip VSCode-darwin-universal.app)
+
+      - name: Upload Universal Build
         uses: actions/upload-artifact@v4
         with:
-          name: void-darwin-universal
+          name: vscode-darwin-universal
+          path: .build/darwin-universal/*.zip
+          retention-days: 7
+
+  build-linux:
+    name: Linux (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x64, armhf, arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies and tools
+        run: |
+          npm ci
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg rpm
+
+      - name: Build VSCode
+        run: |
+          npm run gulp -- "vscode-linux-${{ matrix.arch }}-min"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create packages (tarball)
+        run: |
+          VERSION="${{ env.VSCODE_BUILD_VERSION }}"
+          PACKAGE_PATH=".build/linux-${{ matrix.arch }}/archive"
+          TARBALL_NAME="code-${{ env.VSCODE_QUALITY }}-${{ matrix.arch }}-$VERSION.tar.gz"
+
+          mkdir -p "$PACKAGE_PATH"
+          tar -czf "$PACKAGE_PATH/$TARBALL_NAME" -C .. VSCode-linux-${{ matrix.arch }}
+
+      - name: Create DEB package
+        run: |
+          npm run gulp -- "vscode-linux-${{ matrix.arch }}-prepare-deb"
+          npm run gulp -- "vscode-linux-${{ matrix.arch }}-build-deb"
+
+      - name: Create RPM package
+        run: |
+          npm run gulp -- "vscode-linux-${{ matrix.arch }}-prepare-rpm"
+          npm run gulp -- "vscode-linux-${{ matrix.arch }}-build-rpm"
+
+      - name: Create Snap package
+        if: matrix.arch == 'x64' || matrix.arch == 'arm64'
+        run: |
+          sudo snap install snapcraft --classic
+          npm run gulp -- "vscode-linux-${{ matrix.arch }}-prepare-snap"
+          cd .build/linux/snap/${{ matrix.arch }}/*/
+          snapcraft
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-linux-${{ matrix.arch }}
           path: |
-            .build/Void-Installer-darwin-universal.dmg
-            .build/Void-Installer-darwin-universal.dmg.sha256
+            .build/linux-${{ matrix.arch }}/archive/*.tar.gz
+            .build/linux/deb/*/deb/*.deb
+            .build/linux/rpm/*/RPMS/*/*.rpm
+            .build/linux/snap/${{ matrix.arch }}/*/*.snap
+          retention-days: 7
 
   create-release:
-    needs: [build-linux, build-linux-arm64, build-windows, build-windows-arm64, build-macos, create-universal-macos]
+    name: Create Release
+    needs: [build-windows, build-macos, build-universal-macos, build-linux]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          path: release-artifacts
+          path: artifacts
 
-      - name: Create GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            release-artifacts/void-linux-x64/void-linux-x64.tar.gz
-            release-artifacts/void-linux-x64/void-linux-x64.tar.gz.sha256
-            release-artifacts/void-linux-arm64/void-linux-arm64.tar.gz
-            release-artifacts/void-linux-arm64/void-linux-arm64.tar.gz.sha256
-            release-artifacts/void-win32-x64/void-win32-x64.zip
-            release-artifacts/void-win32-x64/void-win32-x64.zip.sha256
-            release-artifacts/void-win32-arm64/void-win32-arm64.zip
-            release-artifacts/void-win32-arm64/void-win32-arm64.zip.sha256
-            release-artifacts/void-darwin-x64-dmg/Void-Installer-darwin-x64.dmg
-            release-artifacts/void-darwin-x64-dmg/Void-Installer-darwin-x64.dmg.sha256
-            release-artifacts/void-darwin-arm64-dmg/Void-Installer-darwin-arm64.dmg
-            release-artifacts/void-darwin-arm64-dmg/Void-Installer-darwin-arm64.dmg.sha256
-            release-artifacts/void-darwin-universal/Void-Installer-darwin-universal.dmg
-            release-artifacts/void-darwin-universal/Void-Installer-darwin-universal.dmg.sha256
+          name: VSCode ${{ env.VSCODE_BUILD_VERSION }}
           draft: true
-          generate_release_notes: true
+          prerelease: ${{ env.VSCODE_QUALITY == 'insider' }}
+          files: |
+            artifacts/vscode-win32-x64/*.zip
+            artifacts/vscode-win32-x64/*.exe
+            artifacts/vscode-win32-arm64/*.zip
+            artifacts/vscode-win32-arm64/*.exe
+            artifacts/vscode-darwin-x64/*.zip
+            artifacts/vscode-darwin-arm64/*.zip
+            artifacts/vscode-darwin-universal/*.zip
+            artifacts/vscode-linux-x64/*.tar.gz
+            artifacts/vscode-linux-x64/*.deb
+            artifacts/vscode-linux-x64/*.rpm
+            artifacts/vscode-linux-x64/*.snap
+            artifacts/vscode-linux-arm64/*.tar.gz
+            artifacts/vscode-linux-arm64/*.deb
+            artifacts/vscode-linux-arm64/*.rpm
+            artifacts/vscode-linux-arm64/*.snap
+            artifacts/vscode-linux-armhf/*.tar.gz
+            artifacts/vscode-linux-armhf/*.deb
+            artifacts/vscode-linux-armhf/*.rpm

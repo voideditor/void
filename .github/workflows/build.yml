@@ -357,25 +357,25 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download x64 DMG
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: void-darwin-x64-dmg
           path: .build/darwin-x64
 
       - name: Download arm64 DMG
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: void-darwin-arm64-dmg
           path: .build/darwin-arm64
 
       - name: Download x64 App
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: void-darwin-x64-rawapp
           path: .build/darwin-x64-app
 
       - name: Download arm64 App
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: void-darwin-arm64-rawapp
           path: .build/darwin-arm64-app
@@ -429,7 +429,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: release-artifacts
 

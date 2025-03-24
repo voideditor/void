@@ -227,14 +227,13 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Install dependencies and tools
+      - name: Install dependencies
         run: |
-          # npm ci
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
-          sudo apt-get update
-          sudo apt-get install -y fakeroot dpkg rpm
 
       - name: Build VSCode
         run: |

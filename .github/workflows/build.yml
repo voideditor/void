@@ -2,7 +2,8 @@ name: Build VSCode
 
 on:
   push:
-    branches: [ main, github-workflow ]
+    branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -147,7 +148,7 @@ jobs:
           path: .build/darwin-${{ matrix.arch }}/*.zip
           retention-days: 7
 
-create-release:
+  build-universal-macos:
     name: Create Universal macOS Build
     needs: [build-macos]
     runs-on: macos-latest
@@ -304,3 +305,4 @@ create-release:
             artifacts/vscode-linux-armhf/*.tar.gz
             artifacts/vscode-linux-armhf/*.deb
             artifacts/vscode-linux-armhf/*.rpm
+            artifacts/vscode-linux-armhf/*.snap

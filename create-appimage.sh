@@ -53,6 +53,15 @@ for lib in $(ldd ./void | grep "=> /" | awk '{print $3}'); do
         echo "Warning: Library $lib not found"
     fi
 done
+# Copy libffmpeg.so manually (required by Electron)
+echo "Checking for libffmpeg.so..."
+FFMPEG_PATH="./node_modules/electron/dist/libffmpeg.so"
+if [ -f "$FFMPEG_PATH" ]; then
+    cp -v "$FFMPEG_PATH" "$APP_DIR/usr/lib/"
+    echo "libffmpeg.so copied to AppImage."
+else
+    echo "⚠️ Warning: libffmpeg.so not found at $FFMPEG_PATH. The AppImage may not support audio/video."
+fi
 
 # Create desktop file with error checking
 echo "Creating desktop file..."

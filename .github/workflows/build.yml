@@ -54,7 +54,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
+          # npm ci
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
         env:
           npm_config_arch: ${{ matrix.arch }}
 
@@ -116,7 +119,12 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          # npm ci
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
+
 
       - name: Build VSCode
         run: |
@@ -221,7 +229,10 @@ jobs:
 
       - name: Install dependencies and tools
         run: |
-          npm ci
+          # npm ci
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
           sudo apt-get update
           sudo apt-get install -y fakeroot dpkg rpm
 

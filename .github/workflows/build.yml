@@ -2,7 +2,7 @@ name: Cross-Platform Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, github-workflow ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:

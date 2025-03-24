@@ -44,7 +44,7 @@ export type ToolCallParams = {
 	'read_file': { uri: URI, pageNumber: number },
 	'list_dir': { rootURI: URI, pageNumber: number },
 	'pathname_search': { queryStr: string, pageNumber: number },
-	'text_search': { queryStr: string, pageNumber: number },
+	'semantic_search': { queryStr: string, pageNumber: number },
 	// ---
 	'edit': { uri: URI, changeDescription: string },
 	'create_uri': { uri: URI, isFolder: boolean },
@@ -57,7 +57,7 @@ export type ToolResultType = {
 	'read_file': { fileContents: string, hasNextPage: boolean },
 	'list_dir': { children: ToolDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
 	'pathname_search': { uris: URI[], hasNextPage: boolean },
-	'text_search': { uris: URI[], hasNextPage: boolean },
+	'semantic_search': { uris: URI[], hasNextPage: boolean },
 	// ---
 	'edit': Promise<void>,
 	'create_uri': {},

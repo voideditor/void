@@ -63,6 +63,7 @@ jobs:
 
       - name: Build VSCode
         run: |
+          npm run buildreact
           npm run gulp -- "vscode-win32-${{ matrix.arch }}-min"
           npm run gulp -- "vscode-win32-${{ matrix.arch }}-inno-updater"
         env:
@@ -124,10 +125,12 @@ jobs:
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
+          npm install -g create-dmg
 
 
       - name: Build VSCode
         run: |
+          npm run buildreact
           npm run gulp -- "vscode-darwin-${{ matrix.arch }}-min"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -237,6 +240,7 @@ jobs:
 
       - name: Build VSCode
         run: |
+          npm run buildreact
           npm run gulp -- "vscode-linux-${{ matrix.arch }}-min"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

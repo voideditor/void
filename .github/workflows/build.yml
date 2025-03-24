@@ -2,7 +2,7 @@ name: Build VSCode
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, github-workflow ]
     tags: [ 'v*' ]
   pull_request:
     branches: [ main ]

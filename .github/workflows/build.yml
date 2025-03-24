@@ -2,7 +2,7 @@ name: Build Void
 
 on:
   push:
-    branches: [ main, release/* ]
+    branches: [ main, release/*, github-workflow ]
   workflow_dispatch:
 
 jobs:

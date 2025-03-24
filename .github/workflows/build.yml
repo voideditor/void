@@ -147,11 +147,10 @@ jobs:
           path: .build/darwin-${{ matrix.arch }}/*.zip
           retention-days: 7
 
-  build-universal-macos:
-    name: macOS (Universal)
+create-release:
+    name: Create Universal macOS Build
     needs: [build-macos]
     runs-on: macos-latest
-    if: ${{ contains(env.VSCODE_ARCH_MACOS, 'x64') && contains(env.VSCODE_ARCH_MACOS, 'arm64') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

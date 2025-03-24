@@ -152,6 +152,37 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 })
 
+
+export const VoidSimpleInputBox = ({ value, onChangeValue, placeholder, className, disabled, ...inputProps }: {
+	value: string;
+	onChangeValue: (value: string) => void;
+	placeholder: string;
+	className?: string;
+	disabled?: boolean;
+} & React.InputHTMLAttributes<HTMLInputElement>) => {
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	return (
+		<input
+			ref={inputRef}
+			type="text"
+			value={value}
+			onChange={(e) => onChangeValue(e.target.value)}
+			placeholder={placeholder}
+			disabled={disabled}
+			className={`w-full resize-none text-void-fg-1 placeholder:text-void-fg-3 px-2 py-1 rounded-sm
+				${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+				${className}`}
+			style={{
+				background: asCssVariable(inputBackground),
+				color: asCssVariable(inputForeground)
+			}}
+			{...inputProps}
+		/>
+	);
+};
+
+
 export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, isPasswordField, multiline }: {
 	onChangeText: (value: string) => void;
 	styles?: Partial<IInputBoxStyles>,

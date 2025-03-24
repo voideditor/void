@@ -24,6 +24,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
@@ -68,6 +71,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
@@ -110,6 +116,9 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
@@ -154,6 +163,9 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli
@@ -201,6 +213,9 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
           npm install
           npm install -g node-gyp
           npm install -g gulp-cli

@@ -21,10 +21,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
-          # npm ci # disabled for now
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
 
       - name: Build
         run: |
+          npm run buildreact
           npm run gulp vscode-linux-x64-min
 
       - name: Package
@@ -52,10 +55,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # npm ci # disabled for now
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
 
       - name: Build
-        run: npm run gulp vscode-win32-x64-min
+        run: |
+          npm run buildreact
+          npm run gulp vscode-win32-x64-min
 
       - name: Package
         run: |
@@ -85,7 +92,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # npm ci # disabled for now
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
           npm install -g create-dmg
 
       - name: Build

@@ -39,24 +39,24 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
       # Cache node_modules
       - name: Cache node modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache-node-modules
         with:
           path: node_modules
@@ -102,31 +102,6 @@ jobs:
         env:
           VSCODE_ARCH: ${{ matrix.arch }}
 
-      # Setup macOS code signing
-      - name: Import macOS Code-Signing Certificates
-        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
-        uses: apple-actions/import-codesign-certs@v1
-        with:
-          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE }}
-          p12-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          keychain: build.keychain
-          keychain-password: ${{ github.run_id }}
-
-      # macOS code signing
-      - name: macOS Code Signing
-        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
-        run: |
-          # Set up code signing identity
-          CODESIGN_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep -oE "([0-9A-F]{40})" | head -n 1)
-
-          # Compile and run the signing script
-          tsc -p build/darwin/tsconfig.json
-          node build/darwin/sign.js $(pwd)
-        env:
-          CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
-          AGENT_TEMPDIRECTORY: /tmp
-          VSCODE_ARCH: ${{ matrix.arch }}
-
       # Package application
       - name: Package application
         run: |
@@ -143,30 +118,9 @@ jobs:
           VSCODE_ARCH: ${{ matrix.arch }}
           PLATFORM: ${{ matrix.platform }}
 
-      # macOS notarization (optional, only if code signed)
-      - name: macOS Notarization
-        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
-        run: |
-          # Find the path to the built app
-          APP_PATH=$(find "$(pwd)/VSCode-darwin-${{ matrix.arch }}" -name "*.app" -depth 1)
-
-          # Zip the app for notarization
-          ditto -c -k --keepParent "$APP_PATH" "$(pwd)/app.zip"
-
-          # Notarize the app
-          xcrun notarytool submit "$(pwd)/app.zip" --wait \
-            --apple-id ${{ secrets.APPLE_ID }} \
-            --password ${{ secrets.APPLE_APP_PASSWORD }} \
-            --team-id ${{ secrets.APPLE_TEAM_ID }}
-
-          # Staple the notarization ticket
-          xcrun stapler staple "$APP_PATH"
-        env:
-          VSCODE_ARCH: ${{ matrix.arch }}
-
       # Upload build artifacts
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vscode-${{ matrix.platform }}-${{ matrix.arch }}
           path: .build/${{ matrix.platform }}-${{ matrix.arch }}
@@ -193,24 +147,24 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
           
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
       # Cache node_modules
       - name: Cache node modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache-node-modules
         with:
           path: node_modules
@@ -255,31 +209,6 @@ jobs:
           npm run gulp vscode-linux-${{ matrix.arch }}-min-ci
         env:
           VSCODE_ARCH: ${{ matrix.arch }}
-          
-      # Setup macOS code signing
-      - name: Import macOS Code-Signing Certificates
-        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
-        uses: apple-actions/import-codesign-certs@v1
-        with:
-          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE }}
-          p12-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          keychain: build.keychain
-          keychain-password: ${{ github.run_id }}
-
-      # macOS code signing
-      - name: macOS Code Signing
-        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
-        run: |
-          # Set up code signing identity
-          CODESIGN_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep -oE "([0-9A-F]{40})" | head -n 1)
-
-          # Compile and run the signing script
-          tsc -p build/darwin/tsconfig.json
-          node build/darwin/sign.js $(pwd)
-        env:
-          CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
-          AGENT_TEMPDIRECTORY: /tmp
-          VSCODE_ARCH: ${{ matrix.arch }}
 
       # Package application
       - name: Package application
@@ -297,30 +226,9 @@ jobs:
           VSCODE_ARCH: ${{ matrix.arch }}
           PLATFORM: ${{ matrix.platform }}
 
-      # macOS notarization (optional, only if code signed)
-      - name: macOS Notarization
-        if: matrix.os == 'macos-latest' && github.event.inputs.release == 'true'
-        run: |
-          # Find the path to the built app
-          APP_PATH=$(find "$(pwd)/VSCode-darwin-${{ matrix.arch }}" -name "*.app" -depth 1)
-
-          # Zip the app for notarization
-          ditto -c -k --keepParent "$APP_PATH" "$(pwd)/app.zip"
-
-          # Notarize the app
-          xcrun notarytool submit "$(pwd)/app.zip" --wait \
-            --apple-id ${{ secrets.APPLE_ID }} \
-            --password ${{ secrets.APPLE_APP_PASSWORD }} \
-            --team-id ${{ secrets.APPLE_TEAM_ID }}
-
-          # Staple the notarization ticket
-          xcrun stapler staple "$APP_PATH"
-        env:
-          VSCODE_ARCH: ${{ matrix.arch }}
-
       # Upload build artifacts
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vscode-${{ matrix.platform }}-${{ matrix.arch }}
           path: .build/${{ matrix.platform }}-${{ matrix.arch }}
@@ -362,15 +270,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: vscode-${{ matrix.platform }}-${{ matrix.arch }}
           path: .build/${{ matrix.platform }}-${{ matrix.arch }}
@@ -394,10 +302,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: dist
 

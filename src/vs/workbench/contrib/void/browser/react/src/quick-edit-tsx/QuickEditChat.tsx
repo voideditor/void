@@ -3,12 +3,11 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor, useCtrlKZoneStreamingState } from '../util/services.js';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSettingsState, useAccessor, useCtrlKZoneStreamingState } from '../util/services.js';
 import { TextAreaFns, VoidInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX, VoidChatArea } from '../sidebar-tsx/SidebarChat.js';
-import { ModelDropdown } from '../void-settings-tsx/ModelDropdown.js';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 import { useRefState } from '../util/helpers.js';
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
@@ -55,17 +54,24 @@ export const QuickEditChat = ({
 		setIsStreamingRef(isStreaming)
 	}, [diffareaid, setIsStreamingRef]))
 
+	const loadingIcon = <div
+		className="@@codicon @@codicon-loading @@codicon-modifier-spin @@codicon-no-default-spin text-void-fg-3"
+	/>
 
-	const onSubmit = useCallback(() => {
+	const onSubmit = useCallback(async () => {
 		if (isDisabled) return
 		if (isStreamingRef.current) return
 		textAreaFnsRef.current?.disable()
 
-		editCodeService.startApplying({
+		const [newApplyingUri, applyDonePromise] = await editCodeService.startApplying({
 			from: 'QuickEdit',
-			type: 'rewrite',
 			diffareaid,
-		})
+			startBehavior: 'keep-conflicts',
+		}) ?? []
+		// catch any errors by interrupting the stream
+		applyDonePromise?.catch(e => { if (newApplyingUri) editCodeService.interruptCtrlKStreaming({ diffareaid }) })
+
+
 	}, [isStreamingRef, isDisabled, editCodeService, diffareaid])
 
 	const onInterrupt = useCallback(() => {
@@ -87,14 +93,14 @@ export const QuickEditChat = ({
 	const chatAreaRef = useRef<HTMLDivElement | null>(null)
 	return <div ref={sizerRef} style={{ maxWidth: 450 }} className={`py-2 w-full`}>
 		<VoidChatArea
+			featureName='Ctrl+K'
 			divRef={chatAreaRef}
 			onSubmit={onSubmit}
 			onAbort={onInterrupt}
 			onClose={onX}
 			isStreaming={isStreamingRef.current}
+			loadingIcon={loadingIcon}
 			isDisabled={isDisabled}
-			featureName="Ctrl+K"
-			className="py-2 w-full"
 			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 		>
 			<VoidInputBox2

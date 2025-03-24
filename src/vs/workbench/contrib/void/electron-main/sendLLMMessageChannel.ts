@@ -106,6 +106,17 @@ export class LLMMessageChannel implements IServerChannel {
 		sendLLMMessage(mainThreadParams, this.metricsService);
 	}
 
+	private _callAbort(params: MainLLMMessageAbortParams) {
+		const { requestId } = params;
+		if (!(requestId in this.abortRefOfRequestId)) return
+		this.abortRefOfRequestId[requestId].current?.()
+		delete this.abortRefOfRequestId[requestId]
+	}
+
+
+
+
+
 	_callOllamaList = (params: MainModelListParams<OllamaModelResponse>) => {
 		const { requestId } = params
 		const emitters = this.listEmitters.ollama
@@ -131,12 +142,5 @@ export class LLMMessageChannel implements IServerChannel {
 
 
 
-
-	private _callAbort(params: MainLLMMessageAbortParams) {
-		const { requestId } = params;
-		if (!(requestId in this.abortRefOfRequestId)) return
-		this.abortRefOfRequestId[requestId].current?.()
-		delete this.abortRefOfRequestId[requestId]
-	}
 
 }

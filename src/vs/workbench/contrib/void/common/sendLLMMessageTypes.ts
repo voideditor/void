@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import type { InternalToolInfo, ToolName } from '../browser/toolsService.js'
+import { ToolName, InternalToolInfo } from './toolsServiceTypes.js'
 import { ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
@@ -54,9 +54,10 @@ export type ToolCallType = {
 
 export type AnthropicReasoning = ({ type: 'thinking'; thinking: any; signature: string; } | { type: 'redacted_thinking', data: any })
 
-export type OnText = (p: { fullText: string; fullReasoning: string }) => void
+export type OnText = (p: { fullText: string; fullReasoning: string; fullToolName: string; fullToolParams: string; }) => void
 export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCalls?: ToolCallType[]; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
 export type OnError = (p: { message: string; fullError: Error | null }) => void
+export type OnAbort = () => void
 export type AbortRef = { current: (() => void) | null }
 
 
@@ -81,9 +82,10 @@ export type ServiceSendLLMMessageParams = {
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
-	logging: { loggingName: string, };
+	logging: { loggingName: string, loggingExtras?: { [k: string]: any } };
 	modelSelection: ModelSelection | null;
 	modelSelectionOptions: ModelSelectionOptions | undefined;
+	onAbort: OnAbort;
 } & SendLLMType;
 
 // params to the true sendLLMMessage function
@@ -91,7 +93,7 @@ export type SendLLMMessageParams = {
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
-	logging: { loggingName: string, };
+	logging: { loggingName: string, loggingExtras?: { [k: string]: any } };
 	abortRef: AbortRef;
 
 	aiInstructions: string;
@@ -113,7 +115,6 @@ export type MainLLMMessageAbortParams = { requestId: string }
 export type EventLLMMessageOnTextParams = Parameters<OnText>[0] & { requestId: string }
 export type EventLLMMessageOnFinalMessageParams = Parameters<OnFinalMessage>[0] & { requestId: string }
 export type EventLLMMessageOnErrorParams = Parameters<OnError>[0] & { requestId: string }
-
 
 // service -> main -> internal -> event (back to main)
 // (browser)

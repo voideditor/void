@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { OnText } from '../../common/sendLLMMessageTypes.js'
+import { OnText } from '../sendLLMMessageTypes.js'
 import { DIVIDER, FINAL, ORIGINAL } from '../prompt/prompts.js'
 
 class SurroundingsRemover {
@@ -264,7 +264,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 		onText_(params)
 	}
 
-	const newOnText: OnText = ({ fullText: fullText_ }) => {
+	const newOnText: OnText = ({ fullText: fullText_, ...p }) => {
 		// until found the first think tag, keep adding to fullText
 		if (!foundTag1) {
 			const endsWithTag1 = endsWithAnyPrefixOf(fullText_, thinkTags[0])
@@ -282,7 +282,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 				fullTextSoFar += fullText_.substring(0, tag1Index)
 				// Update latestAddIdx to after the first tag
 				latestAddIdx = tag1Index + thinkTags[0].length
-				onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
+				onText({ ...p, fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 				return
 			}
 
@@ -290,7 +290,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 			// add the text to fullText
 			fullTextSoFar = fullText_
 			latestAddIdx = fullText_.length
-			onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
+			onText({ ...p, fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 			return
 		}
 
@@ -314,7 +314,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 				fullReasoningSoFar += fullText_.substring(latestAddIdx, tag2Index)
 				// Update latestAddIdx to after the second tag
 				latestAddIdx = tag2Index + thinkTags[1].length
-				onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
+				onText({ ...p, fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 				return
 			}
 
@@ -327,7 +327,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 				latestAddIdx = fullText_.length
 			}
 
-			onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
+			onText({ ...p, fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 			return
 		}
 
@@ -340,7 +340,7 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 			latestAddIdx = fullText_.length
 		}
 
-		onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
+		onText({ ...p, fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 	}
 
 	return newOnText

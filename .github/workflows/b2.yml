@@ -1,6 +1,11 @@
 name: VS Code Build
 
 on:
+  push:
+    branches: [ main, release/*, github-workflow ]
+  pull_request:
+    branches: [ main ]
+
   workflow_dispatch:
     inputs:
       build_macos:

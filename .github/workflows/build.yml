@@ -1,0 +1,527 @@
+name: Build Void
+
+on:
+  push:
+    branches: [ main, release/*, github-workflow ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
+
+      - name: Build
+        run: |
+          npm run buildreact
+          npm run gulp vscode-linux-x64-min
+
+      - name: Package
+        run: |
+          mkdir -p .build/linux/client
+          ARCHIVE_PATH=".build/linux/client/void-linux-x64.tar.gz"
+          tar -czf $ARCHIVE_PATH -C .. VSCode-linux-x64
+
+      - name: Generate checksum
+        run: |
+          cd .build/linux/client
+          sha256sum void-linux-x64.tar.gz > void-linux-x64.tar.gz.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-linux-x64
+          path: |
+            .build/linux/client/void-linux-x64.tar.gz
+            .build/linux/client/void-linux-x64.tar.gz.sha256
+
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
+
+      - name: Build
+        run: |
+          npm run buildreact
+          npm run gulp vscode-linux-arm64-min
+
+      - name: Package
+        run: |
+          mkdir -p .build/linux/client
+          ARCHIVE_PATH=".build/linux/client/void-linux-arm64.tar.gz"
+          tar -czf $ARCHIVE_PATH -C .. VSCode-linux-arm64
+
+      - name: Generate checksum
+        run: |
+          cd .build/linux/client
+          sha256sum void-linux-arm64.tar.gz > void-linux-arm64.tar.gz.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-linux-arm64
+          path: |
+            .build/linux/client/void-linux-arm64.tar.gz
+            .build/linux/client/void-linux-arm64.tar.gz.sha256
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
+
+      - name: Build
+        run: |
+          npm run buildreact
+          npm run gulp vscode-win32-x64-min
+
+      - name: Package
+        run: |
+          mkdir -p .build/win32-x64
+          Compress-Archive -Path ..\VSCode-win32-x64\* -DestinationPath .build\win32-x64\void-win32-x64.zip
+        shell: pwsh
+
+      - name: Generate checksum
+        run: |
+          cd .build/win32-x64
+          $hash = Get-FileHash -Algorithm SHA256 void-win32-x64.zip
+          $hash.Hash | Out-File -Encoding ascii void-win32-x64.zip.sha256
+        shell: pwsh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-win32-x64
+          path: |
+            .build/win32-x64/void-win32-x64.zip
+            .build/win32-x64/void-win32-x64.zip.sha256
+
+  build-windows-arm64:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
+
+      - name: Build
+        run: |
+          npm run buildreact
+          npm run gulp vscode-win32-arm64-min
+
+      - name: Package
+        run: |
+          mkdir -p .build/win32-arm64
+          Compress-Archive -Path ..\VSCode-win32-arm64\* -DestinationPath .build\win32-arm64\void-win32-arm64.zip
+        shell: pwsh
+
+      - name: Generate checksum
+        run: |
+          cd .build/win32-arm64
+          $hash = Get-FileHash -Algorithm SHA256 void-win32-arm64.zip
+          $hash.Hash | Out-File -Encoding ascii void-win32-arm64.zip.sha256
+        shell: pwsh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-win32-arm64
+          path: |
+            .build/win32-arm64/void-win32-arm64.zip
+            .build/win32-arm64/void-win32-arm64.zip.sha256
+
+  build-macos:
+    runs-on: macos-latest-large
+    strategy:
+      matrix:
+        arch: [arm64, x64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm install
+          npm install -g node-gyp
+          npm install -g gulp-cli
+          npm install -g create-dmg
+
+      - name: Build
+        run: |
+          npm run buildreact
+          npm run gulp vscode-darwin-${{ matrix.arch }}-min
+
+      - name: Create temporary working directory
+        run: |
+          WORKING_DIR="${{ runner.temp }}/VoidSign-${{ matrix.arch }}"
+          KEYCHAIN_DIR="${WORKING_DIR}/1_Keychain"
+          SIGN_DIR="${WORKING_DIR}/2_Signed"
+          mkdir -p "${WORKING_DIR}" "${KEYCHAIN_DIR}" "${SIGN_DIR}"
+          cp -Rp "$(pwd)/../VSCode-darwin-${{ matrix.arch }}" "${SIGN_DIR}"
+          echo "WORKING_DIR=${WORKING_DIR}" >> $GITHUB_ENV
+          echo "KEYCHAIN_DIR=${KEYCHAIN_DIR}" >> $GITHUB_ENV
+          echo "SIGN_DIR=${SIGN_DIR}" >> $GITHUB_ENV
+          echo "SIGNED_DOTAPP_DIR=${SIGN_DIR}/VSCode-darwin-${{ matrix.arch }}" >> $GITHUB_ENV
+          echo "SIGNED_DOTAPP=${SIGN_DIR}/VSCode-darwin-${{ matrix.arch }}/Void.app" >> $GITHUB_ENV
+
+      - name: Import certificate
+        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+        env:
+          P12_BASE64: ${{ secrets.MACOS_CERTIFICATE }}
+          P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: "temporary-password"
+        run: |
+          KEYCHAIN="${KEYCHAIN_DIR}/buildagent.keychain"
+          echo "KEYCHAIN=${KEYCHAIN}" >> $GITHUB_ENV
+
+          # Create a new keychain
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
+
+          # Import certificate
+          echo "${P12_BASE64}" | base64 --decode > "${KEYCHAIN_DIR}/certificate.p12"
+          security import "${KEYCHAIN_DIR}/certificate.p12" -k "${KEYCHAIN}" -P "${P12_PASSWORD}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}" > /dev/null
+
+          # Add to keychain list
+          security list-keychains -d user -s "${KEYCHAIN}" $(security list-keychains -d user | sed s/\"//g)
+
+      - name: Sign Application
+        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+        env:
+          CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          VSCODE_ARCH: ${{ matrix.arch }}
+        run: |
+          export AGENT_TEMPDIRECTORY="${KEYCHAIN_DIR}"
+          cd $(pwd)/build/darwin
+          node sign.js "${SIGN_DIR}"
+          codesign --verify --verbose=4 "${SIGNED_DOTAPP}"
+
+      - name: Create Unsigned App (for PR builds)
+        if: ${{ github.event_name == 'pull_request' || github.repository != 'voideditor/void' }}
+        run: |
+          cp -Rp "$(pwd)/../VSCode-darwin-${{ matrix.arch }}" "${SIGN_DIR}"
+          echo "SIGNED_DOTAPP_DIR=$(pwd)/../VSCode-darwin-${{ matrix.arch }}" >> $GITHUB_ENV
+          echo "SIGNED_DOTAPP=$(pwd)/../VSCode-darwin-${{ matrix.arch }}/Void.app" >> $GITHUB_ENV
+
+      - name: Create DMG
+        run: |
+          cd "${SIGNED_DOTAPP_DIR}"
+          npx create-dmg --volname "Void Installer" "${SIGNED_DOTAPP}" . || true
+          GENERATED_DMG=$(ls *.dmg)
+          mv "${GENERATED_DMG}" "Void-Installer-darwin-${{ matrix.arch }}.dmg"
+
+          if [[ "${{ github.event_name }}" != "pull_request" && "${{ github.repository }}" == "voideditor/void" ]]; then
+            codesign --verify --verbose=4 "Void-Installer-darwin-${{ matrix.arch }}.dmg"
+          fi
+
+          echo "SIGNED_DMG=${SIGNED_DOTAPP_DIR}/Void-Installer-darwin-${{ matrix.arch }}.dmg" >> $GITHUB_ENV
+
+      - name: Notarize
+        if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_PASSWORD: ${{ secrets.APPLE_APP_PWD }}
+          KEYCHAIN_PASSWORD: "temporary-password"
+        run: |
+          # Store credentials for notarization
+          xcrun notarytool store-credentials "Void" \
+            --apple-id "${APPLE_ID}" \
+            --team-id "${TEAM_ID}" \
+            --password "${APP_PASSWORD}" \
+            --keychain "${KEYCHAIN}"
+
+          # Submit for notarization with a timeout
+          xcrun notarytool submit "${SIGNED_DMG}" \
+            --keychain-profile "Void" \
+            --keychain "${KEYCHAIN}" \
+            --wait --timeout 2h
+
+          # Staple the notarization ticket
+          xcrun stapler staple "${SIGNED_DMG}"
+
+      - name: Create Raw App Archive
+        run: |
+          cd "${SIGNED_DOTAPP_DIR}"
+          VOIDAPP=$(basename "${SIGNED_DOTAPP}")
+          ditto -c -k --sequesterRsrc --keepParent "${VOIDAPP}" "Void-RawApp-darwin-${{ matrix.arch }}.zip"
+
+      - name: Generate Hash File
+        run: |
+          cd "${SIGNED_DOTAPP_DIR}"
+          SHA1=$(shasum -a 1 "Void-RawApp-darwin-${{ matrix.arch }}.zip" | cut -d' ' -f1)
+          SHA256=$(shasum -a 256 "Void-RawApp-darwin-${{ matrix.arch }}.zip" | cut -d' ' -f1)
+          TIMESTAMP=$(date +%s)
+
+          cat > "Void-UpdJSON-darwin-${{ matrix.arch }}.json" << EOF
+          {
+              "sha256hash": "${SHA256}",
+              "hash": "${SHA1}",
+              "timestamp": ${TIMESTAMP}
+          }
+          EOF
+
+      - name: Generate checksum for DMG
+        run: |
+          cd "${SIGNED_DOTAPP_DIR}"
+          shasum -a 256 "Void-Installer-darwin-${{ matrix.arch }}.dmg" > "Void-Installer-darwin-${{ matrix.arch }}.dmg.sha256"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-darwin-${{ matrix.arch }}-dmg
+          path: |
+            ${{ env.SIGNED_DMG }}
+            ${{ env.SIGNED_DOTAPP_DIR }}/Void-Installer-darwin-${{ matrix.arch }}.dmg.sha256
+
+      - name: Upload Raw App
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-darwin-${{ matrix.arch }}-rawapp
+          path: ${{ env.SIGNED_DOTAPP_DIR }}/Void-RawApp-darwin-${{ matrix.arch }}.zip
+
+      - name: Upload Hash File
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-darwin-${{ matrix.arch }}-hash
+          path: ${{ env.SIGNED_DOTAPP_DIR }}/Void-UpdJSON-darwin-${{ matrix.arch }}.json
+
+  create-universal-macos:
+    needs: build-macos
+    runs-on: macos-latest-large
+    if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download x64 DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: void-darwin-x64-dmg
+          path: .build/darwin-x64
+
+      - name: Download arm64 DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: void-darwin-arm64-dmg
+          path: .build/darwin-arm64
+
+      - name: Download x64 App
+        uses: actions/download-artifact@v4
+        with:
+          name: void-darwin-x64-rawapp
+          path: .build/darwin-x64-app
+
+      - name: Download arm64 App
+        uses: actions/download-artifact@v4
+        with:
+          name: void-darwin-arm64-rawapp
+          path: .build/darwin-arm64-app
+
+      - name: Create Universal App working dir
+        run: |
+          mkdir -p .build/darwin-universal/{x64,arm64,universal}
+
+      - name: Extract Apps
+        run: |
+          unzip -o .build/darwin-x64-app/Void-RawApp-darwin-x64.zip -d .build/darwin-universal/x64
+          unzip -o .build/darwin-arm64-app/Void-RawApp-darwin-arm64.zip -d .build/darwin-universal/arm64
+
+      - name: Install dependencies for universal app
+        run: |
+          cd build/
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+
+          npm install
+          npm install -g create-dmg
+          npm run compile
+
+
+      - name: Create Universal App
+        run: |
+          # Script to create universal binary
+          cd build/darwin
+          node create-universal-app.js \
+            "$(pwd)/../../.build/darwin-universal/arm64/Void.app" \
+            "$(pwd)/../../.build/darwin-universal/x64/Void.app" \
+            "$(pwd)/../../.build/darwin-universal/universal/Void.app"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Create Universal DMG
+        run: |
+          cd .build/darwin-universal/universal
+          create-dmg --volname "Void Installer" Void.app . || true
+          GENERATED_DMG=$(ls *.dmg)
+          mv "${GENERATED_DMG}" "../../Void-Installer-darwin-universal.dmg"
+          cd ../..
+          shasum -a 256 Void-Installer-darwin-universal.dmg > Void-Installer-darwin-universal.dmg.sha256
+
+      - name: Upload Universal DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-darwin-universal
+          path: |
+            .build/Void-Installer-darwin-universal.dmg
+            .build/Void-Installer-darwin-universal.dmg.sha256
+
+  create-release:
+    needs: [build-linux, build-linux-arm64, build-windows, build-windows-arm64, build-macos, create-universal-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release-artifacts/void-linux-x64/void-linux-x64.tar.gz
+            release-artifacts/void-linux-x64/void-linux-x64.tar.gz.sha256
+            release-artifacts/void-linux-arm64/void-linux-arm64.tar.gz
+            release-artifacts/void-linux-arm64/void-linux-arm64.tar.gz.sha256
+            release-artifacts/void-win32-x64/void-win32-x64.zip
+            release-artifacts/void-win32-x64/void-win32-x64.zip.sha256
+            release-artifacts/void-win32-arm64/void-win32-arm64.zip
+            release-artifacts/void-win32-arm64/void-win32-arm64.zip.sha256
+            release-artifacts/void-darwin-x64-dmg/Void-Installer-darwin-x64.dmg
+            release-artifacts/void-darwin-x64-dmg/Void-Installer-darwin-x64.dmg.sha256
+            release-artifacts/void-darwin-arm64-dmg/Void-Installer-darwin-arm64.dmg
+            release-artifacts/void-darwin-arm64-dmg/Void-Installer-darwin-arm64.dmg.sha256
+            release-artifacts/void-darwin-universal/Void-Installer-darwin-universal.dmg
+            release-artifacts/void-darwin-universal/Void-Installer-darwin-universal.dmg.sha256
+          draft: true
+          generate_release_notes: true

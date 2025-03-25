@@ -273,7 +273,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 			<div className={`${!isADiffZoneInThisFile ? 'hidden' : ''} flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
 				{upButton}
 				{downButton}
-				<span className="min-w-16 px-2 text-xs">
+				<span className="min-w-16 px-2 text-xs leading-[1]">
 					{isADiffInThisFile ?
 						`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
 						: streamState === 'streaming' ?
@@ -289,7 +289,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
 				{rightButton}
 				{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
-				<span className="min-w-16 px-2 text-xs">
+				<span className="min-w-16 px-2 text-xs leading-[1]">
 					{currFileIdx !== null ?
 						`File ${currFileIdx + 1} of ${sortedCommandBarURIs.length}`
 						: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'} changed`

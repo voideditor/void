@@ -1,0 +1,131 @@
+name: Create Universal MacOS
+
+on:
+  push:
+    branches: [ main, release/*, github-workflow ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  create-universal-macos:
+    runs-on: macos-latest-large
+    if: ${{ github.event_name != 'pull_request' && github.repository == 'voideditor/void' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download x64 DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: void-darwin-x64-dmg
+          path: .build/darwin-x64
+
+      - name: Download arm64 DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: void-darwin-arm64-dmg
+          path: .build/darwin-arm64
+
+      - name: Download x64 App
+        uses: actions/download-artifact@v4
+        with:
+          name: void-darwin-x64-rawapp
+          path: .build/darwin-x64-app
+
+      - name: Download arm64 App
+        uses: actions/download-artifact@v4
+        with:
+          name: void-darwin-arm64-rawapp
+          path: .build/darwin-arm64-app
+
+      - name: Create Universal App working dir
+        run: |
+          mkdir -p .build/darwin-universal/{x64,arm64,universal}
+
+      - name: Extract Apps
+        run: |
+          unzip -o .build/darwin-x64-app/Void-RawApp-darwin-x64.zip -d .build/darwin-universal/x64
+          unzip -o .build/darwin-arm64-app/Void-RawApp-darwin-arm64.zip -d .build/darwin-universal/arm64
+
+      - name: Install dependencies for universal app
+        run: |
+          cd build/
+          # Set npm config to use GitHub token for authentication to avoid rate limits
+          npm config set //github.com/:_authToken=${{ github.token }}
+          npm config set //api.github.com/:_authToken=${{ github.token }}
+          npm config set //npm.pkg.github.com/:_authToken=${{ github.token }}
+          # Configure npm to use the GitHub token for all requests to github.com domains
+          npm config set @microsoft:registry https://npm.pkg.github.com
+          npm config set @vscode:registry https://npm.pkg.github.com
+          # Increase network timeout to handle slow connections
+          npm config set fetch-timeout 300000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+
+          npm install
+          npm install -g create-dmg
+          npm run compile
+
+
+      - name: Create Universal App
+        run: |
+          # Script to create universal binary
+          cd build/darwin
+          node create-universal-app.js \
+            "$(pwd)/../../.build/darwin-universal/arm64/Void.app" \
+            "$(pwd)/../../.build/darwin-universal/x64/Void.app" \
+            "$(pwd)/../../.build/darwin-universal/universal/Void.app"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Create Universal DMG
+        run: |
+          cd .build/darwin-universal/universal
+          create-dmg --volname "Void Installer" Void.app . || true
+          GENERATED_DMG=$(ls *.dmg)
+          mv "${GENERATED_DMG}" "../../Void-Installer-darwin-universal.dmg"
+          cd ../..
+          shasum -a 256 Void-Installer-darwin-universal.dmg > Void-Installer-darwin-universal.dmg.sha256
+
+      - name: Upload Universal DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-darwin-universal
+          path: |
+            .build/Void-Installer-darwin-universal.dmg
+            .build/Void-Installer-darwin-universal.dmg.sha256
+
+  create-release:
+    needs: [create-universal-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release-artifacts/void-linux-x64/void-linux-x64.tar.gz
+            release-artifacts/void-linux-x64/void-linux-x64.tar.gz.sha256
+            release-artifacts/void-linux-arm64/void-linux-arm64.tar.gz
+            release-artifacts/void-linux-arm64/void-linux-arm64.tar.gz.sha256
+            release-artifacts/void-win32-x64/void-win32-x64.zip
+            release-artifacts/void-win32-x64/void-win32-x64.zip.sha256
+            release-artifacts/void-win32-arm64/void-win32-arm64.zip
+            release-artifacts/void-win32-arm64/void-win32-arm64.zip.sha256
+            release-artifacts/void-darwin-x64-dmg/Void-Installer-darwin-x64.dmg
+            release-artifacts/void-darwin-x64-dmg/Void-Installer-darwin-x64.dmg.sha256
+            release-artifacts/void-darwin-arm64-dmg/Void-Installer-darwin-arm64.dmg
+            release-artifacts/void-darwin-arm64-dmg/Void-Installer-darwin-arm64.dmg.sha256
+            release-artifacts/void-darwin-universal/Void-Installer-darwin-universal.dmg
+            release-artifacts/void-darwin-universal/Void-Installer-darwin-universal.dmg.sha256
+          draft: true
+          generate_release_notes: true

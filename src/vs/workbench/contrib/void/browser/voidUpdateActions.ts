@@ -23,7 +23,7 @@ const notifyYesUpdate = (notifService: INotificationService, res: { message?: st
 		severity: Severity.Info,
 		message: message,
 		sticky: true,
-		progress: { worked: 0, total: 100 },
+		// progress: { worked: 0, total: 100 },
 		actions: {
 			primary: [{
 				id: 'void.updater.update',
@@ -46,20 +46,7 @@ const notifyYesUpdate = (notifService: INotificationService, res: { message?: st
 					const { window } = dom.getActiveWindow()
 					window.open('https://voideditor.com/')
 				}
-			}],
-			secondary: [{
-				id: 'void.updater.close',
-				enabled: true,
-				label: `Close`,
-				tooltip: 'Dismiss this notification',
-				class: 'codicon codicon-close',
-				run: () => {
-					// The notification will close automatically
-					// and won't reopen since we remove the event listener
-					notifController.close();
-					return Promise.resolve();
-				}
-			}],
+			}]
 		},
 	})
 	const d = notifController.onDidClose(() => {

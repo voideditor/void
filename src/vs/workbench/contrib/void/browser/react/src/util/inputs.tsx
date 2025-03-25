@@ -152,6 +152,37 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 })
 
+
+export const VoidSimpleInputBox = ({ value, onChangeValue, placeholder, className, disabled, passwordBlur, ...inputProps }: {
+	value: string;
+	onChangeValue: (value: string) => void;
+	placeholder: string;
+	className?: string;
+	disabled?: boolean;
+	passwordBlur?: boolean;
+} & React.InputHTMLAttributes<HTMLInputElement>) => {
+
+	return (
+		<input
+			value={value}
+			onChange={(e) => onChangeValue(e.target.value)}
+			placeholder={placeholder}
+			disabled={disabled}
+			className={`w-full resize-none text-void-fg-1 placeholder:text-void-fg-3 px-2 py-1 rounded-sm
+				${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+				${className}`}
+			style={{
+				...passwordBlur && { WebkitTextSecurity: 'disc' },
+				background: asCssVariable(inputBackground),
+				color: asCssVariable(inputForeground)
+			}}
+			{...inputProps}
+			type={undefined} // VS Code is doing some annoyingness that breaks paste if this is defined
+		/>
+	);
+};
+
+
 export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, isPasswordField, multiline }: {
 	onChangeText: (value: string) => void;
 	styles?: Partial<IInputBoxStyles>,
@@ -319,7 +350,7 @@ export const VoidSlider = ({
 							size === 'xs' ? 'h-1' :
 								size === 'sm' ? 'h-1.5' :
 									size === 'sm+' ? 'h-2' : 'h-2.5'
-							} bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer`}
+							} bg-void-bg-2 rounded-full cursor-pointer`}
 						onClick={handleTrackClick}
 					>
 						{/* Filled part of track */}
@@ -328,12 +359,12 @@ export const VoidSlider = ({
 								size === 'xs' ? 'h-1' :
 									size === 'sm' ? 'h-1.5' :
 										size === 'sm+' ? 'h-2' : 'h-2.5'
-								} bg-gray-900 dark:bg-white rounded-full`}
+								} bg-void-fg-1 rounded-full`}
 							style={{ width: `${percentage}%` }}
 						/>
 					</div>
 
-					{/* Thumb with sizes matching VoidSwitch */}
+					{/* Thumb */}
 					<div
 						className={`absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2
 							${size === 'xxs' ? 'h-2 w-2' :
@@ -341,7 +372,8 @@ export const VoidSlider = ({
 									size === 'sm' ? 'h-3 w-3' :
 										size === 'sm+' ? 'h-3.5 w-3.5' : 'h-4 w-4'
 							}
-							bg-white dark:bg-gray-900 rounded-full shadow-md ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
+							bg-void-fg-1 rounded-full shadow-md ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}
+							border border-void-fg-1`}
 						style={{ left: `${percentage}%`, zIndex: 2 }}  // Ensure thumb is above the invisible clickable area
 						onMouseDown={(e) => {
 							if (disabled) return;
@@ -393,7 +425,7 @@ export const VoidSwitch = ({
 				className={`
 			cursor-pointer
 			relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out
-			${value ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'}
+			${value ? 'bg-zinc-900 dark:bg-white' : 'bg-white dark:bg-zinc-600'}
 			${disabled ? 'opacity-25' : ''}
 			${size === 'xxs' ? 'h-3 w-5' : ''}
 			${size === 'xs' ? 'h-4 w-7' : ''}
@@ -404,7 +436,7 @@ export const VoidSwitch = ({
 			>
 				<span
 					className={`
-			  inline-block transform rounded-full bg-white dark:bg-gray-900 shadow transition-transform duration-200 ease-in-out
+			  inline-block transform rounded-full bg-white dark:bg-zinc-900 shadow transition-transform duration-200 ease-in-out
 			  ${size === 'xxs' ? 'h-2 w-2' : ''}
 			  ${size === 'xs' ? 'h-2.5 w-2.5' : ''}
 			  ${size === 'sm' ? 'h-3 w-3' : ''}
@@ -924,7 +956,7 @@ export const BlockCode = ({ initValue, language, maxHeight, showScrollbars }: Bl
 
 export const VoidButton = ({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) => {
 	return <button disabled={disabled}
-		className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden whitespace-nowrap'
+		className='px-3 py-1 bg-black/10 dark:bg-white/10 rounded-sm overflow-hidden whitespace-nowrap'
 		onClick={onClick}
 	>{children}</button>
 }

@@ -730,7 +730,7 @@ const ToolHeaderWrapper = ({
 					{/* left */}
 					<div className={`flex items-center gap-x-2 min-w-0 overflow-hidden ${isClickable ? 'hover:brightness-125 transition-all duration-150' : ''}`}>
 						<span className="text-void-fg-3 flex-shrink-0">{title}</span>
-						<span className="text-void-fg-4 text-xs italic truncate">{desc1}</span>
+						<span className="text-void-fg-4 text-xs italic truncate leading-[1]">{desc1}</span>
 					</div>
 
 					{/* right */}

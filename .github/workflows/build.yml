@@ -446,7 +446,9 @@ jobs:
 
       - name: Install dependencies for universal app
         run: |
+          cd build/
           npm install
+          npm run compile
 
       - name: Create Universal App
         run: |

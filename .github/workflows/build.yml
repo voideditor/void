@@ -444,6 +444,10 @@ jobs:
           unzip -o .build/darwin-x64-app/Void-RawApp-darwin-x64.zip -d .build/darwin-universal/x64
           unzip -o .build/darwin-arm64-app/Void-RawApp-darwin-arm64.zip -d .build/darwin-universal/arm64
 
+      - name: Install dependencies for universal app
+        run: |
+          npm install
+
       - name: Create Universal App
         run: |
           # Script to create universal binary

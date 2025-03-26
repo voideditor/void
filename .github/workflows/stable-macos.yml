@@ -15,7 +15,7 @@ on:
   repository_dispatch:
     types: [stable]
   push:
-    branches: [ master ]
+    branches: [ master, github-workflow ]
     paths-ignore:
     - '**/*.md'
     - 'upstream/*.json'

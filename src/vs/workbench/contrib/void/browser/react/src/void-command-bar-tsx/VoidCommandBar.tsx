@@ -9,8 +9,9 @@ import { useAccessor, useCommandBarState, useIsDark } from '../util/services.js'
 import '../styles.css'
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
-import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBorder } from '../../../../common/helpers/colors.js';
+import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { VoidCommandBarProps } from '../../../voidCommandBarService.js';
+import { AcceptAllButtonWrapper, RejectAllButtonWrapper } from '../sidebar-tsx/SidebarChat.js';
 
 export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
@@ -39,7 +40,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const commandService = accessor.get('ICommandService')
 	const commandBarService = accessor.get('IVoidCommandBarService')
 	const voidModelService = accessor.get('IVoidModelService')
-	const { state: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
+	const { stateOfURI: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
 
 
 	// useEffect(() => {
@@ -211,38 +212,47 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 	if (!isADiffZoneInAnyFile) return null
 
-	const acceptAllButton = <button
-		className='text-nowrap'
+	// const acceptAllButton = <button
+	// 	className='text-nowrap'
+	// 	onClick={onAcceptAll}
+	// 	style={{
+	// 		backgroundColor: acceptAllBg,
+	// 		border: acceptBorder,
+	// 		color: buttonTextColor,
+	// 		fontSize: buttonFontSize,
+	// 		padding: '2px 4px',
+	// 		borderRadius: '6px',
+	// 		cursor: 'pointer'
+	// 	}}
+	// >
+	// 	Accept File
+	// </button>
+
+	// const rejectAllButton = <button
+	// 	className='text-nowrap'
+	// 	onClick={onRejectAll}
+	// 	style={{
+	// 		backgroundColor: rejectBg,
+	// 		border: rejectBorder,
+	// 		color: 'white',
+	// 		fontSize: buttonFontSize,
+	// 		padding: '2px 4px',
+	// 		borderRadius: '6px',
+	// 		cursor: 'pointer'
+	// 	}}
+	// >
+	// 	Reject File
+	// </button>
+
+	const acceptAllButton = <AcceptAllButtonWrapper
+		text={'Accept File'}
 		onClick={onAcceptAll}
-		style={{
-			backgroundColor: acceptAllBg,
-			border: acceptBorder,
-			color: buttonTextColor,
-			fontSize: buttonFontSize,
-			padding: '2px 4px',
-			borderRadius: '6px',
-			cursor: 'pointer'
-		}}
-	>
-		Accept File
-	</button>
+	/>
 
-
-	const rejectAllButton = <button
-		className='text-nowrap'
+	const rejectAllButton = <RejectAllButtonWrapper
+		text={'Reject File'}
 		onClick={onRejectAll}
-		style={{
-			backgroundColor: rejectAllBg,
-			border: rejectBorder,
-			color: 'white',
-			fontSize: buttonFontSize,
-			padding: '2px 4px',
-			borderRadius: '6px',
-			cursor: 'pointer'
-		}}
-	>
-		Reject File
-	</button>
+	/>
 
 	const acceptRejectAllButtons = <div className="flex items-center gap-1 text-sm">
 		{acceptAllButton}

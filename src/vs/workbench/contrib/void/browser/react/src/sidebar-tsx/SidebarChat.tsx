@@ -25,11 +25,12 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsResoningEnabledState } from '../../../../common/modelCapabilities.js';
-import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, X } from 'lucide-react';
+import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
 import { ToolCallParams, ToolName, toolNames, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
-import { JumpToFileButton, useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
+import { JumpToFileButton, StatusIndicator, useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
+import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 
 
 
@@ -714,23 +715,26 @@ const ToolHeaderWrapper = ({
 	return (<div className=''>
 		<div className="w-full border border-void-border-3 rounded px-2 py-1 bg-void-bg-3 overflow-hidden ">
 			{/* header */}
-			<div
-				className={`select-none flex items-center min-h-[24px] ${isClickable ? 'cursor-pointer' : ''} ${!isDropdown ? 'mx-1' : ''}`}
-				onClick={() => {
-					if (isDropdown) { setIsOpen(v => !v); }
-					if (onClick) { onClick(); }
-				}}
-			>
-				{isDropdown && (
-					<ChevronRight
-						className={`text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded ? 'rotate-90' : ''}`}
-					/>
-				)}
+			<div className={`select-none flex items-center min-h-[24px] ${!isDropdown ? 'mx-1' : ''}`}>
 				<div className={`flex items-center w-full gap-x-2 overflow-hidden justify-between ${isRejected ? 'line-through' : ''}`}>
 					{/* left */}
-					<div className={`flex items-center gap-x-2 min-w-0 overflow-hidden ${isClickable ? 'hover:brightness-125 transition-all duration-150' : ''}`}>
+					<div className={`
+							flex items-center min-w-0 overflow-hidden grow
+							${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''}
+						`}
+						onClick={() => {
+							if (isDropdown) { setIsOpen(v => !v); }
+							if (onClick) { onClick(); }
+						}}
+					>
+						{isDropdown && (<ChevronRight
+							className={`
+								text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)]
+								${isExpanded ? 'rotate-90' : ''}
+							`}
+						/>)}
 						<span className="text-void-fg-3 flex-shrink-0">{title}</span>
-						<span className="text-void-fg-4 text-xs italic truncate">{desc1}</span>
+						<span className="text-void-fg-4 text-xs italic truncate ml-2">{desc1}</span>
 					</div>
 
 					{/* right */}
@@ -1865,28 +1869,266 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 
 
 
+export const AcceptAllButtonWrapper = ({ text, onClick, className }: { text: string, onClick: () => void, className?: string }) => (
+	<button
+		className={`
+			px-1 py-0.5
+			flex items-center gap-1
+			text-white text-[11px] text-nowrap
+			rounded-md
+			cursor-pointer
+			${className}
+		`}
+		style={{
+			backgroundColor: acceptAllBg,
+			border: acceptBorder,
+		}}
+		type='button'
+		onClick={onClick}
+	>
+		{text ? <span>{text}</span> : <Check size={16} />}
+	</button>
+)
+
+export const RejectAllButtonWrapper = ({ text, onClick, className }: { text: string, onClick: () => void, className?: string }) => (
+	<button
+		className={`
+			px-1 py-0.5
+			flex items-center gap-1
+			text-white text-[11px] text-nowrap
+			rounded-md
+			cursor-pointer
+			${className}
+		`}
+		style={{
+			backgroundColor: rejectAllBg,
+			border: rejectBorder,
+		}}
+		type='button'
+		onClick={onClick}
+	>
+		{text ? <span>{text}</span> : <X size={16} />}
+	</button>
+)
+
+
+
 const CommandBarInChat = () => {
-	const { state: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
-	const [isExpanded, setIsExpanded] = useState(false)
+	const { stateOfURI: commandBarStateOfURI, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
+	const numFilesChanged = sortedCommandBarURIs.length
 
 	const accessor = useAccessor()
+	const editCodeService = accessor.get('IEditCodeService')
 	const commandService = accessor.get('ICommandService')
+	const chatThreadsState = useChatThreadsState()
+	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
 
-	if (!sortedCommandBarURIs || sortedCommandBarURIs.length === 0) {
-		return null
-	}
+	const [isFileDetailsOpened, setFileDetailsOpened] = useState(false);
+
+	// close the file details if there are no files
+	useEffect(() => {
+		if (isFileDetailsOpened && numFilesChanged === 0) {
+			setFileDetailsOpened(false)
+		}
+	}, [isFileDetailsOpened, numFilesChanged, setFileDetailsOpened])
+
+
+	const isFinishedMakingThreadChanges = chatThreadsStreamState && !chatThreadsStreamState.isRunning && numFilesChanged !== 0
+
+	// ======== status of agent ========
+	// This icon answers the question "is the LLM doing work on this thread?"
+	// assume it is single threaded for now
+	// green = Running
+	// orange = Requires action
+	// dark = Done
+
+	const threadStatus = (
+		chatThreadsStreamState?.isRunning === 'awaiting_user' ? { title: 'Needs Approval', color: 'orange', } as const
+			: chatThreadsStreamState?.isRunning ? { title: 'Running', color: 'green', } as const
+				: { title: 'Done', color: 'dark', } as const
+	)
+
+
+	const threadStatusHTML = <StatusIndicator color={threadStatus.color} title={threadStatus.title} />
+
+
+	// ======== info about changes ========
+	// num files changed
+	// acceptall + rejectall
+	// popup info about each change (each with num changes + acceptall + rejectall of their own)
+
+	const numFilesChangedStr = numFilesChanged === 0 ? 'No files with changes'
+		: `${sortedCommandBarURIs.length} file${numFilesChanged === 1 ? '' : 's'} changed`
+
+	const acceptAllButton = (
+		<AcceptAllButtonWrapper
+			text="Accept All"
+			className="text-xs"
+			onClick={() => {
+				sortedCommandBarURIs.forEach(uri => {
+					editCodeService.acceptOrRejectAllDiffAreas({
+						uri,
+						removeCtrlKs: true,
+						behavior: "accept",
+						_addToHistory: true,
+					})
+				})
+			}}
+		/>
+	)
+
+	const rejectAllButton = (
+		<RejectAllButtonWrapper
+			text="Reject All"
+			className="text-xs"
+			onClick={() => {
+				sortedCommandBarURIs.forEach(uri => {
+					editCodeService.acceptOrRejectAllDiffAreas({
+						uri,
+						removeCtrlKs: true,
+						behavior: "reject",
+						_addToHistory: true,
+					})
+				})
+			}}
+		/>
+	)
+
+
+	const acceptRejectAllButtons = isFinishedMakingThreadChanges && <div className='flex items-center gap-1'>
+		{acceptAllButton}
+		{rejectAllButton}
+	</div>
+
+
+	// !select-text cursor-auto
+	const fileDetailsContent = <div className="space-y-2 px-2 w-full">
+		{sortedCommandBarURIs.map((uri, i) => {
+			const basename = getBasename(uri.fsPath)
+
+			const { sortedDiffIds, isStreaming } = commandBarStateOfURI[uri.fsPath] ?? {}
+			const isFinishedMakingFileChanges = !isStreaming
+
+			const numDiffs = sortedDiffIds?.length || 0
+
+			const fileStatus = (isFinishedMakingFileChanges
+				? { title: 'Done', color: 'dark', } as const
+				: { title: 'Running', color: 'green', } as const
+			)
+
+			const acceptButton = <AcceptAllButtonWrapper
+				text="Accept"
+				className="text-xs"
+				onClick={() => { editCodeService.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: "accept", _addToHistory: true, }) }}
+			/>
+
+			const rejectButton = <RejectAllButtonWrapper
+				text="Reject"
+				className="text-xs"
+				onClick={() => { editCodeService.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: "reject", _addToHistory: true, }) }}
+			/>
+
+			const fileNameHTML = <div
+				className="flex items-center gap-1.5 hover:brightness-125 transition-all duration-200 cursor-pointer"
+				onClick={() => commandService.executeCommand('vscode.open', uri, { preview: true })}
+			>
+				<FileIcon size={14} className="text-void-fg-3" />
+				<span className="text-void-fg-2">{basename}</span>
+			</div>
+
+			const detailsContent = <>
+				<span className="text-void-fg-3">{numDiffs} change{numDiffs !== 1 ? 's' : ''}</span>
+			</>
+
+			const acceptRejectButtons = isFinishedMakingFileChanges && <div className='flex gap-1'>
+				{acceptButton}
+				{rejectButton}
+			</div>
+
+			const fileStatusHTML = <StatusIndicator color={fileStatus.color} title={fileStatus.title} />
+
+			return (
+				// name, details
+				<div key={i} className="flex justify-between items-center gap-2">
+					<div className="flex items-center gap-2">
+						{fileNameHTML}
+						{detailsContent}
+					</div>
+					<div className="flex items-center gap-2">
+						{acceptRejectButtons}
+						{fileStatusHTML}
+					</div>
+				</div>
+			)
+		})}
+	</div>
+
+	const fileDetailsButton = (
+		<button
+			className={`flex items-center gap-1 rounded ${numFilesChanged === 0 ? 'cursor-pointer' : 'cursor-pointer hover:brightness-125 transition-all duration-200'}`}
+			onClick={() => setFileDetailsOpened(!isFileDetailsOpened)}
+			type='button'
+			disabled={numFilesChanged === 0}
+		>
+			<svg
+				className="transition-transform duration-200 size-3.5"
+				style={{
+					transform: isFileDetailsOpened ? 'rotate(180deg)' : 'rotate(0deg)',
+					transition: 'transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)'
+				}}
+				xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline>
+			</svg>
+			{numFilesChangedStr}
+		</button>
+	)
+
+
+	const changesContent = <>
+		{/* <div>
+			<div>{'chatThreadsStreamState' + chatThreadsStreamState}</div>
+			<div>{'isRunning' + chatThreadsStreamState?.isRunning}</div>
+			<div>{'isFinishedWithChanges' + isFinishedMakingThreadChanges}</div>
+		</div> */}
+		{fileDetailsButton}
+	</>
 
 	return (
-		<SimplifiedToolHeader title={'Changes'}>
-			{sortedCommandBarURIs.map((uri, i) => (
-				<ListableToolItem
-					key={i}
-					name={getBasename(uri.fsPath)}
-					onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
-				/>
-			))}
-		</SimplifiedToolHeader>
+		<>
+			{/* file details */}
+			<div className='px-2'>
+				<div
+					className={`
+						select-none
+						flex w-full rounded-t-lg bg-void-bg-3
+						text-void-fg-3 text-xs text-nowrap
 
+						overflow-hidden transition-all duration-200 ease-in-out origin-top
+						${isFileDetailsOpened ? 'max-h-32' : 'max-h-0'}
+					`}
+				>
+					{fileDetailsContent}
+				</div>
+			</div>
+			{/* main content */}
+			<div
+				className={`
+					select-none
+					flex w-full rounded-t-lg bg-void-bg-3
+					text-void-fg-4 text-xs text-nowrap
+
+					px-2 py-1
+					justify-between
+				`}
+			>
+				<div className="flex gap-1 items-center">
+					{changesContent}
+				</div>
+				<div className="flex gap-1 items-center">
+					{acceptRejectAllButtons}
+					{threadStatusHTML}
+				</div>
+			</div>
+		</>
 	)
 }
 
@@ -2079,33 +2321,40 @@ export const SidebarChat = () => {
 		}
 	}, [onSubmit, onAbort, isRunning])
 
-	const inputForm = <div
-		key={'input' + chatThreadsState.currentThreadId}
-		className='px-2 pb-2'>
-		<VoidChatArea
-			featureName='Chat'
-			onSubmit={onSubmit}
-			onAbort={onAbort}
-			isStreaming={!!isRunning}
-			isDisabled={isDisabled}
-			showSelections={true}
-			showProspectiveSelections={previousMessagesHTML.length === 0}
-			selections={selections}
-			setSelections={setSelections}
-			onClickAnywhere={() => { textAreaRef.current?.focus() }}
+	const inputForm = <div key={'input' + chatThreadsState.currentThreadId}>
+		<div className='px-4'>
+			{previousMessages.length > 0 &&
+				<CommandBarInChat />
+			}
+		</div>
+		<div
+			className='px-2 pb-2'
 		>
-			<VoidInputBox2
-				className={`min-h-[81px] px-0.5 py-0.5`}
-				placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
-				onChangeText={onChangeText}
-				onKeyDown={onKeyDown}
-				onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}
-				ref={textAreaRef}
-				fnsRef={textAreaFnsRef}
-				multiline={true}
-			/>
+			<VoidChatArea
+				featureName='Chat'
+				onSubmit={onSubmit}
+				onAbort={onAbort}
+				isStreaming={!!isRunning}
+				isDisabled={isDisabled}
+				showSelections={true}
+				showProspectiveSelections={previousMessagesHTML.length === 0}
+				selections={selections}
+				setSelections={setSelections}
+				onClickAnywhere={() => { textAreaRef.current?.focus() }}
+			>
+				<VoidInputBox2
+					className={`min-h-[81px] px-0.5 py-0.5`}
+					placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
+					onChangeText={onChangeText}
+					onKeyDown={onKeyDown}
+					onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}
+					ref={textAreaRef}
+					fnsRef={textAreaFnsRef}
+					multiline={true}
+				/>
 
-		</VoidChatArea>
+			</VoidChatArea>
+		</div>
 	</div>
 
 	return (

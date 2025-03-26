@@ -267,17 +267,14 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		</>
 	}
 
-	const statusIndicatorHTML = <div className='flex flex-row items-center min-h-4 max-h-4 min-w-4 max-w-4'>
-		<div
-			className={` size-1.5 rounded-full border
-				 ${currStreamState === 'idle-no-changes' ? 'bg-void-bg-3 border-void-border-1' :
-					currStreamState === 'streaming' ? 'bg-orange-500 border-orange-500 shadow-[0_0_4px_0px_rgba(234,88,12,0.6)]' :
-						currStreamState === 'idle-has-changes' ? 'bg-green-500 border-green-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
-							'bg-void-border-1 border-void-border-1'
-				}`
-			}
-		/>
-	</div>
+	const color = (
+		currStreamState === 'idle-no-changes' ? 'dark' :
+			currStreamState === 'streaming' ? 'orange' :
+				currStreamState === 'idle-has-changes' ? 'green' :
+					null
+	)
+
+	const statusIndicatorHTML = <StatusIndicator color={color} />
 
 	return {
 		statusIndicatorHTML,
@@ -286,9 +283,22 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 
 }
 
-
-
-
+export const StatusIndicator = ({ color, title, className }: { color: 'green' | 'orange' | 'dark' | null, title?: React.ReactNode, className?: string }) => {
+	return (
+		<div className={`flex flex-row text-void-fg-3 text-xs items-center gap-1 ${className}`}>
+			{title && <span>{title}</span>}
+			<div
+				className={` size-1.5 rounded-full border
+					${color === 'dark' ? 'bg-void-bg-3 border-void-border-1' :
+						color === 'orange' ? 'bg-orange-500 border-orange-500 shadow-[0_0_4px_0px_rgba(234,88,12,0.6)]' :
+							color === 'green' ? 'bg-green-500 border-green-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
+								'bg-void-border-1 border-void-border-1'
+					}
+				`}
+			/>
+		</div>
+	);
+};
 
 export const BlockCodeApplyWrapper = ({
 	children,

@@ -8,15 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-    check-for-artifacts:
+  build-linux:
     runs-on: ubuntu-latest
-    outputs:
-      linux-x64-exists: ${{ steps.check-artifacts.outputs.linux-x64-exists }}
-      linux-arm64-exists: ${{ steps.check-artifacts.outputs.linux-arm64-exists }}
-      win32-x64-exists: ${{ steps.check-artifacts.outputs.win32-x64-exists }}
-      win32-arm64-exists: ${{ steps.check-artifacts.outputs.win32-arm64-exists }}
-      darwin-x64-exists: ${{ steps.check-artifacts.outputs.darwin-x64-exists }}
-      darwin-arm64-exists: ${{ steps.check-artifacts.outputs.darwin-arm64-exists }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3

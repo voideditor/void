@@ -2082,16 +2082,6 @@ const CommandBarInChat = () => {
 		</button>
 	)
 
-
-	const changesContent = <>
-		{/* <div>
-			<div>{'chatThreadsStreamState' + chatThreadsStreamState}</div>
-			<div>{'isRunning' + chatThreadsStreamState?.isRunning}</div>
-			<div>{'isFinishedWithChanges' + isFinishedMakingThreadChanges}</div>
-		</div> */}
-		{fileDetailsButton}
-	</>
-
 	return (
 		<>
 			{/* file details */}
@@ -2120,10 +2110,10 @@ const CommandBarInChat = () => {
 					justify-between
 				`}
 			>
-				<div className="flex gap-1 items-center">
-					{changesContent}
+				<div className="flex gap-2 items-center">
+					{fileDetailsButton}
 				</div>
-				<div className="flex gap-1 items-center">
+				<div className="flex gap-2 items-center">
 					{acceptRejectAllButtons}
 					{threadStatusHTML}
 				</div>

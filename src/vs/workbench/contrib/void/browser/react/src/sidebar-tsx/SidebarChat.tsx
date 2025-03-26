@@ -2002,7 +2002,7 @@ const CommandBarInChat = () => {
 
 
 	// !select-text cursor-auto
-	const fileDetailsContent = <div className="space-y-2 px-2 w-full">
+	const fileDetailsContent = <div className="px-2 gap-1 w-full">
 		{sortedCommandBarURIs.map((uri, i) => {
 			const basename = getBasename(uri.fsPath)
 

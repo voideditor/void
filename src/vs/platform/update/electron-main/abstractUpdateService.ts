@@ -13,13 +13,15 @@ import { ILifecycleMainService, LifecycleMainPhase } from '../../lifecycle/elect
 import { ILogService } from '../../log/common/log.js';
 import { IProductService } from '../../product/common/productService.js';
 import { IRequestService } from '../../request/common/request.js';
-import { AvailableForDownload, DisablementReason, IUpdateService, State, StateType, UpdateType } from '../common/update.js';
+import { Architecture, AvailableForDownload, DisablementReason, IUpdateService, Platform, State, StateType, Target, UpdateType } from '../common/update.js';
 
-export function createUpdateURL(platform: string, quality: string, productService: IProductService): string {
-	// return `https://voideditor.dev/api/update/${platform}/stable`;
-	// return `${productService.updateUrl}/api/update/${platform}/${quality}/${productService.commit}`;
-	// https://github.com/VSCodium/update-api
-	return `https://updates.voideditor.dev/api/update/${platform}/${quality}/${productService.commit}`;
+// Void - VSCodium's version-1-update.patch
+export function createUpdateURL(productService: IProductService, quality: string, platform: Platform, architecture: Architecture, target?: Target): string {	// return `https://voideditor.dev/api/update/${platform}/stable`;
+	if (target) {
+		return `${productService.updateUrl}/${quality}/${platform}/${architecture}/${target}/latest.json`;
+	} else {
+		return `${productService.updateUrl}/${quality}/${platform}/${architecture}/latest.json`;
+	}
 }
 
 export type UpdateErrorClassification = {

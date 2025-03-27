@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { VoidButton, VoidCheckBox, VoidCustomDropdownBox, VoidInputBox, VoidInputBox2, VoidSwitch } from '../util/inputs.js'
+import { VoidButton, VoidCheckBox, VoidCustomDropdownBox, VoidInputBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
 import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
@@ -255,45 +255,29 @@ export const ModelDump = () => {
 
 const ProviderSetting = ({ providerName, settingName }: { providerName: ProviderName, settingName: SettingName }) => {
 
-
-	// const { title: providerTitle, } = displayInfoOfProviderName(providerName)
-
 	const { title: settingTitle, placeholder, isPasswordField, subTextMd } = displayInfoOfSettingName(providerName, settingName)
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const settingsState = useSettingsState()
 
-	let weChangedTextRef = false
+	const settingValue = settingsState.settingsOfProvider[providerName][settingName] as string // this should always be a string in this component
+	console.log(`providerName:${providerName} settingName: ${settingName}, settingValue: ${settingValue}`)
+	if (typeof settingValue !== 'string') {
+		console.log('Error: Provider setting had a non-string value.')
+		return
+	}
 
 	return <ErrorBoundary>
 		<div className='my-1'>
-			<VoidInputBox
-				// placeholder={`${providerTitle} ${settingTitle} (${placeholder})`}
-				placeholder={`${settingTitle} (${placeholder})`}
-
-				onChangeText={useCallback((newVal) => {
-					if (weChangedTextRef) return
+			<VoidSimpleInputBox
+				value={settingValue}
+				onChangeValue={useCallback((newVal) => {
 					voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
 				}, [voidSettingsService, providerName, settingName])}
-
-				// we are responsible for setting the initial value. always sync the instance whenever there's a change to state.
-				onCreateInstance={useCallback((instance: InputBox) => {
-					const syncInstance = () => {
-						const settingsAtProvider = voidSettingsService.state.settingsOfProvider[providerName];
-						const stateVal = settingsAtProvider[settingName as SettingName]
-
-						// console.log('SYNCING TO', providerName, settingName, stateVal)
-						weChangedTextRef = true
-						instance.value = stateVal as string
-						weChangedTextRef = false
-					}
-
-					syncInstance()
-					const disposable = voidSettingsService.onDidChangeState(syncInstance)
-					return [disposable]
-				}, [voidSettingsService, providerName, settingName])}
-				multiline={false}
-				isPasswordField={isPasswordField}
+				// placeholder={`${providerTitle} ${settingTitle} (${placeholder})`}
+				placeholder={`${settingTitle} (${placeholder})`}
+				passwordBlur={isPasswordField}
 			/>
 			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-sm'>
 				<ChatMarkdownRender string={subTextMd} chatMessageLocation={undefined} />

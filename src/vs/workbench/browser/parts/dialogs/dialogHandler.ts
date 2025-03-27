@@ -21,6 +21,7 @@ import { MarkdownRenderer, openLinkFromMarkdown } from '../../../../editor/brows
 import { defaultButtonStyles, defaultCheckboxStyles, defaultDialogStyles, defaultInputBoxStyles } from '../../../../platform/theme/browser/defaultStyles.js';
 import { ResultKind } from '../../../../platform/keybinding/common/keybindingResolver.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
+import { getReleaseString } from '../../../../workbench/common/release.js';
 
 export class BrowserDialogHandler extends AbstractDialogHandler {
 
@@ -79,13 +80,14 @@ export class BrowserDialogHandler extends AbstractDialogHandler {
 
 	async about(): Promise<void> {
 		const detailString = (useAgo: boolean): string => {
+			const releaseString = getReleaseString();
 			return localize('aboutDetail',
 				"Version: {0}\nCommit: {1}\nDate: {2}\nBrowser: {3}",
 				this.productService.version || 'Unknown',
 				this.productService.commit || 'Unknown',
 				this.productService.date ? `${this.productService.date}${useAgo ? ' (' + fromNow(new Date(this.productService.date), true) + ')' : ''}` : 'Unknown',
 				navigator.userAgent
-			);
+			).replace('\n', `\n${releaseString} ${this.productService.release || 'Unknown'}\n`);
 		};
 
 		const detail = detailString(true);

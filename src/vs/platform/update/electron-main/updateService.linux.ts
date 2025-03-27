@@ -30,7 +30,7 @@ export class LinuxUpdateService extends AbstractUpdateService {
 
 	// Void: buildUpdateFeedUrl -> doBuildUpdateFeedUrl
 	protected doBuildUpdateFeedUrl(quality: string): string {
-		return createUpdateURL(`linux-${process.arch}`, quality, this.productService);
+		return createUpdateURL(this.productService, quality, process.platform, process.arch);
 	}
 
 	protected doCheckForUpdates(context: any): void {

@@ -69,16 +69,16 @@ export const voidTools = {
 
 	pathname_search: {
 		name: 'pathname_search',
-		description: `Returns all pathnames that match a given grep query. You should use this when looking for a file with a specific name or path. This does NOT search file content. ${paginationHelper.desc}`,
+		description: `Returns all pathnames that match a given \`find\`-style query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,
 		},
 	},
 
-	text_search: {
-		name: 'text_search',
-		description: `Returns pathnames of files with an exact match of the query. The query can be any regex. This does NOT search pathname. As a follow-up, you may want to use read_file to view the full file contents of the results. ${paginationHelper.desc}`,
+	grep_search: {
+		name: 'grep_search',
+		description: `Returns all pathnames that match a given \`grep\`-style query (searches ONLY file contents). The query can be any regex. This is often followed by the \`read_file\` tool to view the full file contents of results. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,
@@ -146,7 +146,7 @@ Here's an example of a good description:\n${editToolDescription}.`
 
 export const chat_systemMessage = (workspaces: string[], runningTerminalIds: string[], mode: ChatMode) => `\
 You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} that runs in the Void code editor. Your job is \
-${mode === 'agent' ? `to help the user develop, run, deploy, and make changes to their codebase. You should ALWAYS bring user's task to completion to the fullest extent possible, calling tools to make all necessary changes. Do not be lazy.`
+${mode === 'agent' ? `to help the user develop, run, deploy, and make changes to their codebase. You should ALWAYS bring user's task to completion to the fullest extent possible, calling tools to make all necessary changes.`
 		: mode === 'gather' ? `to search and understand the user's codebase. You MUST use tools to read files and help the user understand the codebase, even if you were initially given files.`
 			: mode === 'normal' ? `to assist the user with their coding tasks.`
 				: ''}
@@ -163,7 +163,9 @@ ${/* tool use */ mode === 'agent' || mode === 'gather' ? `\
 You will be given tools you can call.
 ${mode === 'agent' ? `\
 - Only use tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.
-- ALWAYS use tools to take actions. For example, if you would like to edit a file, you MUST use a tool.`
+- ALWAYS use tools to take actions. For example, if you would like to edit a file, you MUST use a tool.
+- You will OFTEN need to gather context before making a change. Do not immediately make a change unless you have ALL relevant context.
+- ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`
 			: mode === 'gather' ? `\
 - Your primary use of tools should be to gather information to help the user understand the codebase and answer their query.
 - You should extensively read files, types, etc and gather relevant context.`

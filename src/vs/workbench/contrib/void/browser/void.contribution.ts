@@ -46,6 +46,9 @@ import './metricsPollService.js'
 // helper services
 import './helperServices/consistentItemService.js'
 
+import './nuancedWorkbenchContrib.js'
+
+
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
 
 // llmMessage
@@ -65,3 +68,5 @@ import '../common/voidUpdateService.js'
 
 // model service
 import '../common/voidModelService.js'
+
+

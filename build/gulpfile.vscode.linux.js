@@ -25,7 +25,6 @@ const exec = util.promisify(cp.exec);
 const root = path.dirname(__dirname);
 const commit = getVersion(root);
 
-const linuxPackageRevision = Math.floor(new Date().getTime() / 1000);
 
 /**
  * @param {string} arch
@@ -87,7 +86,7 @@ function prepareDebPackage(arch) {
 				const dependencies = await dependenciesGenerator.getDependencies('deb', binaryDir, product.applicationName, debArch);
 				gulp.src('resources/linux/debian/control.template', { base: '.' })
 					.pipe(replace('@@NAME@@', product.applicationName))
-					.pipe(replace('@@VERSION@@', packageJson.version + '-' + linuxPackageRevision))
+					.pipe(replace('@@VERSION@@', `${packageJson.version}.${packageJson.release}`))
 					.pipe(replace('@@ARCHITECTURE@@', debArch))
 					.pipe(replace('@@DEPENDS@@', dependencies.join(', ')))
 					.pipe(replace('@@RECOMMENDS@@', debianRecommendedDependencies.join(', ')))
@@ -202,8 +201,7 @@ function prepareRpmPackage(arch) {
 					.pipe(replace('@@NAME@@', product.applicationName))
 					.pipe(replace('@@NAME_LONG@@', product.nameLong))
 					.pipe(replace('@@ICON@@', product.linuxIconName))
-					.pipe(replace('@@VERSION@@', packageJson.version))
-					.pipe(replace('@@RELEASE@@', linuxPackageRevision))
+					.pipe(replace('@@VERSION@@', `${packageJson.version}.${packageJson.release}`))
 					.pipe(replace('@@ARCHITECTURE@@', rpmArch))
 					.pipe(replace('@@LICENSE@@', product.licenseName))
 					.pipe(replace('@@QUALITY@@', product.quality || '@@QUALITY@@'))
@@ -279,7 +277,7 @@ function prepareSnapPackage(arch) {
 
 		const snapcraft = gulp.src('resources/linux/snap/snapcraft.yaml', { base: '.' })
 			.pipe(replace('@@NAME@@', product.applicationName))
-			.pipe(replace('@@VERSION@@', commit.substr(0, 8)))
+			.pipe(replace('@@VERSION@@', `${packageJson.version}.${packageJson.release}`))
 			// Possible run-on values https://snapcraft.io/docs/architectures
 			.pipe(replace('@@ARCHITECTURE@@', arch === 'x64' ? 'amd64' : arch))
 			.pipe(rename('snap/snapcraft.yaml'));

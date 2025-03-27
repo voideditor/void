@@ -69,7 +69,7 @@
     "extensions-ci-pr": "node ./node_modules/gulp/bin/gulp.js extensions-ci-pr",
     "perf": "node scripts/code-perf.js",
     "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json"
-	},
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@floating-ui/react": "^0.27.5",
@@ -240,7 +240,7 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "tsec": "0.2.7",
-    "tslib": "^2.6.3",
+    "tslib": "^2.8.1",
     "tsup": "^8.4.0",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.8.0",

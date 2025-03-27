@@ -1628,7 +1628,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			this._notifyError(e)
 			onDone()
 			this._undoHistory(uri)
-			throw e.fullError // throw error h
+			throw e.fullError || new Error(e.message) // throw error h
 		}
 
 		// refresh now in case onText takes a while to get 1st message

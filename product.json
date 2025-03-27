@@ -35,5 +35,9 @@
 		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
 		"itemUrl": "https://marketplace.visualstudio.com/items"
 	},
-	"builtInExtensions": []
+	"builtInExtensions": [],
+	"linkProtectionTrustedDomains": [
+		"https://voideditor.com",
+		"https://voideditor.dev"
+	]
 }

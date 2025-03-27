@@ -13,6 +13,7 @@ import { INativeHostService } from '../../../../platform/native/common/native.js
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { process } from '../../../../base/parts/sandbox/electron-sandbox/globals.js';
 import { getActiveWindow } from '../../../../base/browser/dom.js';
+import { getReleaseString } from '../../../../workbench/common/release.js';
 
 export class NativeDialogHandler extends AbstractDialogHandler {
 
@@ -79,6 +80,7 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 		}
 
 		const osProps = await this.nativeHostService.getOSProperties();
+		const releaseString = getReleaseString();
 
 		const detailString = (useAgo: boolean): string => {
 			return localize({ key: 'aboutDetail', comment: ['Electron, Chromium, Node.js and V8 are product names that need no translation'] },
@@ -93,7 +95,7 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 				process.versions['node'],
 				process.versions['v8'],
 				`${osProps.type} ${osProps.arch} ${osProps.release}${isLinuxSnap ? ' snap' : ''}`
-			);
+			).replace('\n', `\n${releaseString} ${this.productService.release || 'Unknown'}\n`);
 		};
 
 		const detail = detailString(true);

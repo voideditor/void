@@ -97,7 +97,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		if (diffid === undefined) return
 		const diff = editCodeService.diffOfId[diffid]
 		if (!diff) return
-		editor.revealLineNearTop(diff.startLine, ScrollType.Immediate)
+		editor.revealLineNearTop(diff.startLine - 1, ScrollType.Immediate)
 		commandBarService.setDiffIdx(uri, idx)
 	}
 	const getNextUriIdx = (step: 1 | -1) => {

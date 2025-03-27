@@ -227,7 +227,7 @@ export class ToolsService implements IToolsService {
 				return { queryStr, pageNumber }
 
 			},
-			text_search: async (params: string) => {
+			grep_search: async (params: string) => {
 				const o = validateJSON(params)
 				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
 
@@ -314,7 +314,7 @@ export class ToolsService implements IToolsService {
 				return { result: { uris, hasNextPage } }
 			},
 
-			text_search: async ({ queryStr, pageNumber }) => {
+			grep_search: async ({ queryStr, pageNumber }) => {
 				const query = queryBuilder.text({
 					pattern: queryStr,
 					isRegExp: true,
@@ -388,7 +388,7 @@ export class ToolsService implements IToolsService {
 			pathname_search: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
-			text_search: (params, result) => {
+			grep_search: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
 			// ---

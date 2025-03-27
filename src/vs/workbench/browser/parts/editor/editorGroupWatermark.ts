@@ -250,7 +250,9 @@ export class EditorGroupWatermark extends Disposable {
 							linkSpan.appendChild(dirSpan);
 
 							return linkSpan
-						}).filter(v => !!v)
+						})
+							.filter(v => !!v)
+							.slice(0, 5) // take 5 most recent
 					)
 				}
 

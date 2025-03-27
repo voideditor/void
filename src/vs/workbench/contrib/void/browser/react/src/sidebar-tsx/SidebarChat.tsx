@@ -730,7 +730,7 @@ const ToolHeaderWrapper = ({
 					{/* left */}
 					<div className={`flex items-center gap-x-2 min-w-0 overflow-hidden ${isClickable ? 'hover:brightness-125 transition-all duration-150' : ''}`}>
 						<span className="text-void-fg-3 flex-shrink-0">{title}</span>
-						<span className="text-void-fg-4 text-xs italic truncate">{desc1}</span>
+						<span className="text-void-fg-4 text-xs italic truncate leading-[1]">{desc1}</span>
 					</div>
 
 					{/* right */}
@@ -740,7 +740,7 @@ const ToolHeaderWrapper = ({
 						</span>}
 						{numResults !== undefined && (
 							<span className="text-void-fg-4 text-xs ml-auto mr-1">
-								{`(${numResults}${hasNextPage ? '+' : ''} result${numResults !== 1 ? 's' : ''})`}
+								{`${numResults}${hasNextPage ? '+' : ''} result${numResults !== 1 ? 's' : ''}`}
 							</span>
 						)}
 						{isError && <AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={14} />}
@@ -750,8 +750,8 @@ const ToolHeaderWrapper = ({
 			</div>
 			{/* children */}
 			{<div
-				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100' : 'max-h-0 opacity-0'}
-					text-void-fg-4 rounded-sm
+				className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'opacity-100 py-1' : 'max-h-0 opacity-0'}
+					text-void-fg-4 rounded-sm overflow-x-auto
 				  `}
 			//    bg-black bg-opacity-10 border border-void-border-4 border-opacity-50
 			>
@@ -1018,6 +1018,9 @@ const SmallProseWrapper = ({ children }: { children: React.ReactNode }) => {
 	leading-snug
 	text-[13px]
 
+	[&>:first-child]:!mt-0
+	[&>:last-child]:!mb-0
+
 	prose-h1:text-[14px]
 	prose-h1:my-4
 
@@ -1154,7 +1157,7 @@ const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneRe
 		if (!isWriting) setIsOpen(false) // if just finished reasoning, close
 	}, [isWriting])
 	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen} onClick={() => setIsOpen(v => !v)}>
-		<ToolChildrenWrapper className='bg-void-bg-3'>
+		<ToolChildrenWrapper>
 			<div className='!select-text cursor-auto'>
 				{children}
 			</div>
@@ -1178,7 +1181,7 @@ const titleOfToolName = {
 	'read_file': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
 	'list_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
 	'pathname_search': { done: 'Searched by file name', proposed: 'Search by file name', running: loadingTitleWrapper('Searching by file name') },
-	'text_search': { done: 'Searched', proposed: 'Search text', running: loadingTitleWrapper('Searching') },
+	'grep_search': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
 	'create_uri': {
 		done: (isFolder: boolean) => `Created ${folderFileStr(isFolder)}`,
 		proposed: (isFolder: boolean | null) => isFolder === null ? 'Create URI' : `Create ${folderFileStr(isFolder)}`,
@@ -1210,8 +1213,8 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 	} else if (toolName === 'pathname_search') {
 		const toolParams = _toolParams as ToolCallParams['pathname_search']
 		return `"${toolParams.queryStr}"`;
-	} else if (toolName === 'text_search') {
-		const toolParams = _toolParams as ToolCallParams['text_search']
+	} else if (toolName === 'grep_search') {
+		const toolParams = _toolParams as ToolCallParams['grep_search']
 		return `"${toolParams.queryStr}"`;
 	} else if (toolName === 'create_uri') {
 		const toolParams = _toolParams as ToolCallParams['create_uri']
@@ -1310,7 +1313,7 @@ const ToolRequestAcceptRejectButtons = () => {
 }
 
 export const ToolChildrenWrapper = ({ children, className }: { children: React.ReactNode, className?: string }) => {
-	return <div className={`${className ? className : ''} overflow-x-auto cursor-default select-none`}>
+	return <div className={`${className ? className : ''} cursor-default select-none`}>
 		<div className='px-2 min-w-full'>
 			{children}
 		</div>
@@ -1490,7 +1493,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'text_search': {
+	'grep_search': {
 		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1763,17 +1766,19 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 							resolveReason.type === 'toofull' ? `\n(truncated)`
 								: null
 
-				componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3 font-mono whitespace-pre text-nowrap overflow-auto text-sm'>
-					<ListableToolItem
-						showDot={false}
-						name={`$ ${command}`}
-						className='w-full overflow-auto py-1'
-						onClick={() => terminalToolsService.openTerminal(terminalId)}
-					/>
+				componentParams.children = <ToolChildrenWrapper className='font-mono whitespace-pre text-nowrap overflow-auto text-sm'>
+
 					<div className='!select-text cursor-auto'>
-						{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}
-						{result}
-						{resultStr}
+						<div>
+							<span>{`Ran command: `}</span>
+							<span className="text-void-fg-1">{command}</span>
+						</div>
+						<div>
+							<span>{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}</span>
+							<span>{`Result: `}</span>
+							<span className="text-void-fg-1">{result}</span>
+							<span className="text-void-fg-1">{resultStr}</span>
+						</div>
 					</div>
 				</ToolChildrenWrapper>
 

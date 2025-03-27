@@ -154,9 +154,20 @@ function getNodeChecksum(expectedName) {
 }
 
 function extractAlpinefromDocker(nodeVersion, platform, arch) {
-	const imageName = arch === 'arm64' ? 'arm64v8/node' : 'node';
+	let imageName = 'node';
+	let dockerPlatform = '';
+
+	if (arch === 'arm64') {
+		imageName = 'arm64v8/node';
+
+		const architecture = cp.execSync(`docker info --format '{{json .Architecture}}'`, { encoding: 'utf8' }).trim();
+		if (architecture !== '"aarch64"') {
+			dockerPlatform = '--platform=linux/arm64';
+		}
+	}
+
 	log(`Downloading node.js ${nodeVersion} ${platform} ${arch} from docker image ${imageName}`);
-	const contents = cp.execSync(`docker run --rm ${imageName}:${nodeVersion}-alpine /bin/sh -c 'cat \`which node\`'`, { maxBuffer: 100 * 1024 * 1024, encoding: 'buffer' });
+	const contents = cp.execSync(`docker run --rm ${dockerPlatform} ${imageName}:${nodeVersion}-alpine /bin/sh -c 'cat \`which node\`'`, { maxBuffer: 100 * 1024 * 1024, encoding: 'buffer' });
 	return es.readArray([new File({ path: 'node', contents, stat: { mode: parseInt('755', 8) } })]);
 }
 

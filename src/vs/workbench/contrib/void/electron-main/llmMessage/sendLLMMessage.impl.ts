@@ -7,6 +7,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 
+// Mistral FIM
+import { MistralCore } from "@mistralai/mistralai/core.js";
+import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
+//
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
@@ -112,6 +116,10 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 	else if (providerName === 'xAI') {
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+	else if (providerName === 'mistral') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
@@ -418,6 +426,60 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	_setAborter(() => stream.controller.abort())
 }
 
+//////// MISTRAL ////////
+const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendChatParams_Internal) => {
+	_sendOpenAICompatibleChat({
+		messages: messages_,
+		onText,
+		onFinalMessage,
+		onError,
+		settingsOfProvider,
+		modelName: modelName_,
+		_setAborter,
+		providerName,
+		aiInstructions,
+		modelSelectionOptions
+	});
+}
+
+const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
+	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
+	if (!supportsFIM) {
+		if (modelName === modelName_)
+			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
+		else
+			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
+		return
+	}
+
+	prepareFIMMessage({ messages: messages_, aiInstructions })
+
+	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
+
+	fimComplete(
+		mistral, {
+		model: modelName,
+		prompt: messages_.prefix,
+		suffix: messages_.suffix,
+		stream: false,
+		topP: 1,
+		stop: messages_.stopTokens
+	},
+	)
+		.then(async response => {
+			let content = response?.ok ? response.value.choices?.[0]?.message?.content : '';
+			const fullText = typeof content === 'string' ? content :
+				Array.isArray(content) ? content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('') : '';
+			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
+		})
+		.catch(error => {
+			onError({ message: error + '', fullError: error });
+		})
+}
+
+
+
+
 // //  in future, can do tool_use streaming in anthropic, but it's pretty fast even without streaming...
 // const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
 // stream.on('streamEvent', e => {
@@ -531,11 +593,11 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
-	// mistral: {
-	// 	sendChat: , // TODO
-	// 	sendFIM: , // TODO // https://docs.mistral.ai/api/#tag/fim
-	// 	list: null,
-	// },
+	mistral: {
+		sendChat: (params) => _sendMistralChat(params),
+		sendFIM: (params) => _sendMistralFIM(params),
+		list: null,
+	},
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: sendOllamaFIM,

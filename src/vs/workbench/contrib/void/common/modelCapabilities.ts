@@ -53,13 +53,20 @@ export const defaultModelsOfProvider = {
 		'llama-3.1-8b-instant',
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)
 	],
-	// not supporting mistral right now- it's last on Void usage, and a huge pain to set up since it's nonstandard (it supports codestral FIM but it's on v1/fim/completions, etc)
-	// mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
-	// 	'codestral-latest',
-	// 	'mistral-large-latest',
-	// 	'ministral-3b-latest',
-	// 	'ministral-8b-latest',
-	// ],
+	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
+		'codestral-latest',
+		'mistral-large-latest',
+		'pixtral-large-latest',
+		'mistral-saba-latest',
+		'ministral-3b-latest',
+		'ministral-8b-latest',
+		'mistral-ocr-latest',
+		'mistral-embed',
+		'mistral-small-latest',
+		'pixtral-12b-2409',
+		'open-mistral-nemo',
+		'open-codestral-mamba'
+	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>
 
@@ -124,6 +131,123 @@ const modelOptionsDefaults: ModelOptions = {
 	reasoningCapabilities: false,
 }
 
+const mistralModelOptions = {
+	'codestral-latest': {
+		contextWindow: 128_000,
+		maxOutputTokens: 16_384,
+		cost: { input: 0.000015, output: 0.000090 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'mistral-large-latest': {
+		contextWindow: 131_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.000015, output: 0.000060 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'mistral-small-latest': {
+		contextWindow: 131_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.000002, output: 0.000008 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'pixtral-large-latest': {
+		contextWindow: 128_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.000025, output: 0.000075 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'mistral-saba-latest': {
+		contextWindow: 32_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.000005, output: 0.000025 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'ministral-3b-latest': {
+		contextWindow: 131_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.000001, output: 0.000003 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'ministral-8b-latest': {
+		contextWindow: 32_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.000001, output: 0.000005 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'mistral-ocr-latest': {
+		contextWindow: 64_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.000010, output: 0.000020 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'mistral-embed': {
+		contextWindow: 8_192,
+		maxOutputTokens: 0,
+		cost: { input: 0.000001, output: 0.0 },
+		supportsFIM: false,
+		supportsSystemMessage: false,
+		supportsTools: false,
+		reasoningCapabilities: false,
+	},
+	'pixtral-12b-2409': {
+		contextWindow: 128_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.000020, output: 0.000060 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'open-mistral-nemo': {
+		contextWindow: 32_768,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.0, output: 0.0 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: false,
+		reasoningCapabilities: false,
+	},
+	'open-codestral-mamba': {
+		contextWindow: 16_384,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.0, output: 0.0 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: false,
+		reasoningCapabilities: false,
+	}
+
+} as const satisfies { [s: string]: ModelOptions }
+
+const mistralSettings: ProviderSettings = {
+	...mistralModelOptions,
+	modelOptions: {},
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
+}
 
 const openSourceModelOptions_assumingOAICompat = {
 	'deepseekR1': {
@@ -217,7 +341,7 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (modelName.includes('codestral')) return toFallback({ ...mistralModelOptions['codestral-latest'], contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
 	return toFallback(modelOptionsDefaults)
 }
@@ -659,7 +783,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	vLLM: vLLMSettings,
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
-
+	mistral: mistralSettings,
 	// googleVertex: {},
 	// microsoftAzure: {},
 } as const

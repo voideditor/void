@@ -44,8 +44,14 @@ export const defaultModelsOfProvider = {
 		'anthropic/claude-3.7-sonnet',
 		'anthropic/claude-3.5-sonnet',
 		'deepseek/deepseek-r1',
+		'deepseek/deepseek-r1-zero:free',
 		'mistralai/codestral-2501',
 		'qwen/qwen-2.5-coder-32b-instruct',
+		'mistralai/mistral-small-3.1-24b-instruct:free',
+        'google/gemini-2.0-flash-lite-preview-02-05:free',
+        'google/gemini-2.0-pro-exp-02-05:free',
+        'google/gemini-2.0-flash-exp:free',
+        'google/gemini-flash-1.5-8b-exp'
 	],
 	groq: [ // https://console.groq.com/docs/models
 		'qwen-qwq-32b',
@@ -554,6 +560,51 @@ const openaiCompatible: ProviderSettings = {
 
 // ---------------- OPENROUTER ----------------
 const openRouterModelOptions_assumingOpenAICompat = {
+    'mistralai/mistral-small-3.1-24b-instruct:free': {
+      contextWindow: 128_000,           //
+      maxOutputTokens: 128_000,         //
+      cost: { input: 0, output: 0 },  // free model so costs are zero
+      supportsFIM: false,
+      supportsTools: 'openai-style', // supports tools (agents)
+      supportsSystemMessage: 'system-role',
+      reasoningCapabilities: false,
+    },
+    'google/gemini-2.0-flash-lite-preview-02-05:free': {
+      contextWindow: 1_048_576,
+      maxOutputTokens: null,
+      cost: { input: 0, output: 0 },
+      supportsFIM: false,
+      supportsTools: 'openai-style',
+      supportsSystemMessage: 'system-role',
+      reasoningCapabilities: false,
+    },
+    'google/gemini-2.0-pro-exp-02-05:free': {
+      contextWindow: 1_048_576,
+      maxOutputTokens: null,
+      cost: { input: 0, output: 0 },
+      supportsFIM: false,
+      supportsTools: 'openai-style',
+      supportsSystemMessage: 'system-role',
+      reasoningCapabilities: false,
+    },
+    'google/gemini-2.0-flash-exp:free': {
+      contextWindow: 1_048_576,
+      maxOutputTokens: null,
+      cost: { input: 0, output: 0 },
+      supportsFIM: false,
+      supportsTools: 'openai-style',
+      supportsSystemMessage: 'system-role',
+      reasoningCapabilities: false,
+    },
+    'google/gemini-flash-1.5-8b-exp': {
+      contextWindow: 1_048_576,
+      maxOutputTokens: null,
+      cost: { input: 0, output: 0 },
+      supportsFIM: false,
+      supportsTools: 'openai-style',
+      supportsSystemMessage: 'system-role',
+      reasoningCapabilities: false,
+    },
 	'deepseek/deepseek-r1': {
 		...openSourceModelOptions_assumingOAICompat.deepseekR1,
 		contextWindow: 128_000,

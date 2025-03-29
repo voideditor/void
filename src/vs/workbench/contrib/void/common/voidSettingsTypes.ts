@@ -389,6 +389,7 @@ export type GlobalSettings = {
 	enableFastApply: boolean;
 	chatMode: ChatMode;
 	autoApprove: boolean;
+	showInlineSuggestions: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -399,6 +400,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	enableFastApply: true,
 	chatMode: 'agent',
 	autoApprove: false,
+	showInlineSuggestions: true,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

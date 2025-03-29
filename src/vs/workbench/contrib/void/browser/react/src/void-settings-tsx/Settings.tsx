@@ -534,8 +534,25 @@ export const FeaturesTab = () => {
 					</div>
 				</div>
 
+
+
 				<div className='w-full'>
+					<h4 className={`text-base`}>Editor</h4>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of suggestions and widgets in the code editor.`}</div>
+
+					<div className='my-2'>
+						{/* Auto Accept Switch */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<VoidSwitch
+								size='xs'
+								value={voidSettingsState.globalSettings.showInlineSuggestions}
+								onChange={(newVal) => voidSettingsService.setGlobalSetting('showInlineSuggestions', newVal)}
+							/>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.showInlineSuggestions ? 'Show suggestions on select' : 'Show suggestions on select'}</span>
+						</div>
+					</div>
 				</div>
+
 
 			</div>
 

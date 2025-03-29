@@ -274,7 +274,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 					null
 	)
 
-	const statusIndicatorHTML = <StatusIndicator color={color} />
+	const statusIndicatorHTML = <StatusIndicator className='mx-2' color={color} />
 
 	return {
 		statusIndicatorHTML,

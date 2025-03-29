@@ -144,7 +144,9 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 				}
 
 				const fetchedVersion = update.productVersion.replace(/(\d+\.\d+\.\d+)(?:\.(\d+))(\-\w+)?/, '$1$3+$2');
-				const currentVersion = `${this.productService.version}+${this.productService.release}`;
+				const currentVersion = `${this.productService.voidVersion}+${this.productService.release}`;
+				// Void compares voidVersion, not VSCode version
+				// const currentVersion = `${this.productService.version}+${this.productService.release}`;
 
 				if (semver.compareBuild(currentVersion, fetchedVersion) >= 0) {
 					this.setState(State.Idle(updateType));

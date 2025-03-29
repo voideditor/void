@@ -85,10 +85,7 @@ function getExtensionDownloadStream(extension) {
     if (extension.vsix) {
         input = ext.fromVsix(path_1.default.join(root, extension.vsix), extension);
     }
-    else if (productjson.extensionsGallery?.serviceUrl) {
-        input = ext.fromMarketplace(productjson.extensionsGallery.serviceUrl, extension);
-    }
-    else {
+    else { // Void - ext-from-gh.patch
         input = ext.fromGithub(extension);
     }
     return input.pipe((0, gulp_rename_1.default)(p => p.dirname = `${extension.name}/${p.dirname}`));

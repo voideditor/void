@@ -11,6 +11,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { IMetricsService } from '../common/metricsService.js';
 
 
+
 export interface IMetricsPollService {
 	readonly _serviceBrand: undefined;
 }

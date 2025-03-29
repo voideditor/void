@@ -56,7 +56,7 @@ export type ExtensionVirtualWorkspaceSupport = {
 
 export interface IProductConfiguration {
 	readonly version: string;
-	readonly voidVersion?: string; // Void added this
+	readonly voidVersion: string; // Void added this
 	readonly release: string; // VSCodium added this
 	readonly date?: string;
 	readonly quality?: string;

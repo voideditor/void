@@ -32,12 +32,13 @@ export async function getVSCodeServerConfig(): Promise<IServerConfig> {
 	const customServerBinaryName = vscode.workspace.getConfiguration('remote.SSH.experimental').get<string>('serverBinaryName', '');
 
 	return {
-		version: vscode.version.replace('-insider', ''),
 		commit: productJson.commit,
 		quality: productJson.quality,
 		release: productJson.release,
 		serverApplicationName: customServerBinaryName || productJson.serverApplicationName,
 		serverDataFolderName: productJson.serverDataFolderName,
-		serverDownloadUrlTemplate: productJson.serverDownloadUrlTemplate
+		serverDownloadUrlTemplate: productJson.serverDownloadUrlTemplate,
+		// Edited for Void
+		version: productJson.voidVersion || vscode.version.replace('-insider', ''), // Try void version first, fallback to vscode version
 	};
 }

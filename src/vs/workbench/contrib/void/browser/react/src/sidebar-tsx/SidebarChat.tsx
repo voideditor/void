@@ -735,6 +735,8 @@ const ToolHeaderWrapper = ({
 
 					{/* right */}
 					<div className="flex items-center gap-x-2 flex-shrink-0">
+						{isError && <AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={14} />}
+						{isRejected && <Ban className='text-void-fg-4 opacity-90 flex-shrink-0' size={14} />}
 						{desc2 && <span className="text-void-fg-4 text-xs">
 							{desc2}
 						</span>}
@@ -743,8 +745,6 @@ const ToolHeaderWrapper = ({
 								{`${numResults}${hasNextPage ? '+' : ''} result${numResults !== 1 ? 's' : ''}`}
 							</span>
 						)}
-						{isError && <AlertTriangle className='text-void-warning opacity-90 flex-shrink-0' size={14} />}
-						{isRejected && <Ban className='text-void-fg-4 opacity-90 flex-shrink-0' size={14} />}
 					</div>
 				</div>
 			</div>

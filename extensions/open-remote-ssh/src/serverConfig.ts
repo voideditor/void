@@ -39,7 +39,7 @@ export async function getVSCodeServerConfig(): Promise<IServerConfig> {
 		serverApplicationName: customServerBinaryName || productJson.serverApplicationName,
 		serverDataFolderName: productJson.serverDataFolderName,
 		serverDownloadUrlTemplate: productJson.serverDownloadUrlTemplate,
-		// Edited for Void
+		// Void changed this
 		version: productJson.voidVersion
 	};
 }

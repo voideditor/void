@@ -518,6 +518,15 @@ const xAISettings: ProviderSettings = {
 
 // ---------------- GEMINI ----------------
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
+	'gemini-2.5-pro-exp-03-25': {
+		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
+		cost: { input: 0.10, output: 0.40 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style', // we are assuming OpenAI SDK when calling gemini
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false },
+	},
 	'gemini-2.0-flash': {
 		contextWindow: 1_048_576,
 		maxOutputTokens: null, // 8_192,

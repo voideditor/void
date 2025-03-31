@@ -267,7 +267,7 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 		</>
 	}
 
-	const statusIndicatorHTML = <div className='flex flex-row items-center size-4'>
+	const statusIndicatorHTML = <div className='flex flex-row items-center min-h-4 max-h-4 min-w-4 max-w-4'>
 		<div
 			className={` size-1.5 rounded-full border
 				 ${currStreamState === 'idle-no-changes' ? 'bg-void-bg-3 border-void-border-1' :

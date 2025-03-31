@@ -6,6 +6,7 @@
 import * as path from 'path';
 import * as fs from 'original-fs';
 import * as os from 'os';
+import { createRequire } from 'node:module';
 import { performance } from 'perf_hooks';
 import { configurePortable } from './bootstrap-node.js';
 import { bootstrapESM } from './bootstrap-esm.js';
@@ -22,6 +23,7 @@ import { INLSConfiguration } from './vs/nls.js';
 import { NativeParsedArgs } from './vs/platform/environment/common/argv.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 
 perf.mark('code/didStartMain');
 
@@ -109,6 +111,17 @@ protocol.registerSchemesAsPrivileged([
 
 // Global app listeners
 registerListeners();
+
+function resolveUserProduct() {
+	const userProductPath = path.join(userDataPath, 'product.json');
+	try {
+		// Assign the product configuration to the global scope
+		const productJson = require(userProductPath);
+		// @ts-expect-error
+		globalThis._VSCODE_USER_PRODUCT_JSON = productJson;
+	} catch (ex) {
+	}
+}
 
 /**
  * We can resolve the NLS configuration early if it is defined
@@ -206,6 +219,7 @@ async function onReady() {
 async function startup(codeCachePath: string | undefined, nlsConfig: INLSConfiguration): Promise<void> {
 	process.env['VSCODE_NLS_CONFIG'] = JSON.stringify(nlsConfig);
 	process.env['VSCODE_CODE_CACHE_PATH'] = codeCachePath || '';
+	resolveUserProduct();
 
 	// Bootstrap ESM
 	await bootstrapESM();

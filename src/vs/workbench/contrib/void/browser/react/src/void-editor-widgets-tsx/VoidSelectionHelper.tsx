@@ -61,7 +61,6 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 			<div
 				className='
 					flex items-center px-2 py-1.5
-					hover:bg-void-bg-1
 					cursor-pointer
 				'
 				onClick={() => {
@@ -82,7 +81,6 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 			<div
 				className='
 					flex items-center px-2 py-1.5
-					hover:bg-void-bg-1
 					cursor-pointer
 				'
 				onClick={() => {
@@ -102,7 +100,6 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 		<div
 			className='
 				flex items-center px-0.5
-				hover:bg-void-bg-1
 				cursor-pointer
 			'
 			onClick={() => {
@@ -118,7 +115,6 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 		<div
 			className='
 				flex items-center px-2 py-1.5
-				hover:bg-void-bg-1
 				cursor-pointer
 			'
 			onClick={() => {

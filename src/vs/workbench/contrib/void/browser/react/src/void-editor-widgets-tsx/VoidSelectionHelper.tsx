@@ -53,7 +53,7 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 		return () => {
 			disposable.dispose();
 		};
-	}, [commandService]);
+	}, [commandService, setClickState]);
 
 
 	// rerender when the key changes

@@ -46,6 +46,7 @@ import { ILanguageService } from '../../../../../../../editor/common/languages/l
 import { IVoidModelService } from '../../../../common/voidModelService.js'
 import { IWorkspaceContextService } from '../../../../../../../platform/workspace/common/workspace.js'
 import { IVoidCommandBarService } from '../../../voidCommandBarService.js'
+import { INativeHostService } from '../../../../../../../platform/native/common/native.js';
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -213,6 +214,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IWorkspaceContextService: accessor.get(IWorkspaceContextService),
 
 		IVoidCommandBarService: accessor.get(IVoidCommandBarService),
+		INativeHostService: accessor.get(INativeHostService),
 
 	} as const
 	return reactAccessor

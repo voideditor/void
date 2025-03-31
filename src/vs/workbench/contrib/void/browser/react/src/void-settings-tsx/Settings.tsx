@@ -665,6 +665,8 @@ const OneClickSwitchButton = () => {
 const GeneralTab = () => {
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
+	const environmentService = accessor.get('IEnvironmentService')
+	const nativeHostService = accessor.get('INativeHostService')
 
 	return <>
 
@@ -694,6 +696,11 @@ const GeneralTab = () => {
 			<div className='my-4'>
 				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
 					Theme Settings
+				</VoidButton>
+			</div>
+			<div className='my-4'>
+				<VoidButton onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+					Open Logs
 				</VoidButton>
 			</div>
 		</div>

@@ -412,16 +412,19 @@ export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLBut
 }
 
 
+
+const scrollToBottom = (divRef: { current: HTMLElement | null }) => {
+	if (divRef.current) {
+		divRef.current.scrollTop = divRef.current.scrollHeight;
+	}
+};
+
+
+
 const ScrollToBottomContainer = ({ children, className, style, scrollContainerRef }: { children: React.ReactNode, className?: string, style?: React.CSSProperties, scrollContainerRef: React.MutableRefObject<HTMLDivElement | null> }) => {
 	const [isAtBottom, setIsAtBottom] = useState(true); // Start at bottom
 
 	const divRef = scrollContainerRef
-
-	const scrollToBottom = () => {
-		if (divRef.current) {
-			divRef.current.scrollTop = divRef.current.scrollHeight;
-		}
-	};
 
 	const onScroll = () => {
 		const div = divRef.current;
@@ -437,13 +440,13 @@ const ScrollToBottomContainer = ({ children, className, style, scrollContainerRe
 	// When children change (new messages added)
 	useEffect(() => {
 		if (isAtBottom) {
-			scrollToBottom();
+			scrollToBottom(divRef);
 		}
 	}, [children, isAtBottom]); // Dependency on children to detect new messages
 
 	// Initial scroll to bottom
 	useEffect(() => {
-		scrollToBottom();
+		scrollToBottom(divRef);
 	}, []);
 
 	return (
@@ -806,7 +809,7 @@ const SimplifiedToolHeader = ({
 
 
 
-const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMessage: ChatMessage & { role: 'user' }, messageIdx: number, isCommitted: boolean, }) => {
+const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted, _scrollToBottom }: { chatMessage: ChatMessage & { role: 'user' }, messageIdx: number, isCommitted: boolean, _scrollToBottom: (() => void) | null }) => {
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -907,6 +910,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted }: { chatMe
 				console.error('Error while editing message:', e)
 			}
 			sidebarStateService.fireFocusChat()
+			requestAnimationFrame(() => _scrollToBottom?.())
 		}
 
 		const onAbort = () => {
@@ -1816,9 +1820,10 @@ type ChatBubbleProps = {
 	chatIsRunning: IsRunningType,
 	threadId: string,
 	isToolBeingWritten: boolean,
+	_scrollToBottom: (() => void) | null,
 }
 
-const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunning, threadId, isToolBeingWritten }: ChatBubbleProps) => {
+const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunning, threadId, isToolBeingWritten, _scrollToBottom }: ChatBubbleProps) => {
 	const role = chatMessage.role
 
 	if (role === 'user') {
@@ -1826,6 +1831,7 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 			chatMessage={chatMessage}
 			messageIdx={messageIdx}
 			isCommitted={isCommitted}
+			_scrollToBottom={_scrollToBottom}
 		/>
 	}
 	else if (role === 'assistant') {
@@ -1999,6 +2005,7 @@ export const SidebarChat = () => {
 				isLast={isLast}
 				threadId={threadId}
 				isToolBeingWritten={toolIsLoading}
+				_scrollToBottom={() => scrollToBottom(scrollContainerRef)}
 			/>
 		})
 	}, [previousMessages, isRunning, currentThread, numMessages])
@@ -2019,6 +2026,7 @@ export const SidebarChat = () => {
 			isLast={true}
 			threadId={threadId}
 			isToolBeingWritten={toolIsLoading}
+			_scrollToBottom={null}
 		/> : null
 
 

@@ -635,7 +635,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 				className="flex items-center h-4 bg-transparent whitespace-nowrap hover:brightness-90 w-full"
 				onClick={() => setIsOpen(!isOpen)}
 			>
-				<span className={`max-w-[120px] truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
+				<span className={`truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
 					{getOptionDisplayName(selectedOption)}
 				</span>
 				<svg

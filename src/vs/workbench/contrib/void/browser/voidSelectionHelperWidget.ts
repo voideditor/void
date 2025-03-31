@@ -208,16 +208,14 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 		let boxPos = getBoxPosition(targetLine);
 
 		// if the position of the box is too far to the right, keep searching for a good position
-		let attempt = 0;
-		const maxAttempts = 3;
-		outerLoop: while (boxPos.left > maxLeftPx && attempt < maxAttempts) {
-			attempt++
+		const lineDeltasToTry = [-1, -2, -3, 1, 2, 3];
 
-			const linesToTry = [targetLine - attempt, targetLine + attempt]
-			for (const line of linesToTry) {
-				boxPos = getBoxPosition(line);
+		if (boxPos.left > maxLeftPx) {
+			for (const lineDelta of lineDeltasToTry) {
+
+				boxPos = getBoxPosition(targetLine + lineDelta);
 				if (boxPos.left <= maxLeftPx) {
-					break outerLoop;
+					break;
 				}
 			}
 		}

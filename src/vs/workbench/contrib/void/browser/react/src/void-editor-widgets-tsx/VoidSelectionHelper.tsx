@@ -43,6 +43,19 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 	const [reactRerenderCount, setReactRerenderKey] = useState(rerenderKey)
 	const [clickState, setClickState] = useState<'init' | 'clickedOption' | 'clickedMore'>('init')
 
+	useEffect(() => {
+		const disposable = commandService.onWillExecuteCommand(e => {
+			if (e.commandId === VOID_CTRL_L_ACTION_ID || e.commandId === VOID_CTRL_K_ACTION_ID) {
+				setClickState('clickedOption')
+			}
+		});
+
+		return () => {
+			disposable.dispose();
+		};
+	}, [commandService]);
+
+
 	// rerender when the key changes
 	if (reactRerenderCount !== rerenderKey) {
 		setReactRerenderKey(rerenderKey)

@@ -219,8 +219,8 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 				}
 			}
 		}
-		if (boxPos.left > maxLeftPx) { // if still not found, make it the line before
-			boxPos = getBoxPosition(targetLine - 1)
+		if (boxPos.left > maxLeftPx) { // if still not found, make it 2 lines before
+			boxPos = getBoxPosition(targetLine - 2)
 		}
 
 

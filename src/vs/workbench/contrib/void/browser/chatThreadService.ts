@@ -76,18 +76,19 @@ type ThreadType = {
 	createdAt: string; // ISO string
 	lastModified: string; // ISO string
 	messages: ChatMessage[];
+	currentHistoryIdx: number | null; // index in messages, ALWAYS points to a LLMHistoryEntry or UserHistoryEntry, or -1 if no changes. current code is inclusive of the current index's change
+
+	// this doesn't need to go in a state object, but feels right
 	state: {
 		stagingSelections: StagingSelectionItem[];
-		focusedMessageIdx: number | undefined; // index of the message that is being edited (undefined if none)
+		focusedMessageIdx: number | undefined; // index of the user message that is being edited (undefined if none)
 
 		linksOfMessageIdx: { // eg. link = linksOfMessageIdx[4]['RangeFunction']
 			[messageIdx: number]: {
 				[codespanName: string]: CodespanLocationLink
 			}
 		}
-
-		isCheckedOfSelectionId: { [selectionId: string]: boolean }; // TODO
-	}
+	};
 }
 
 type ChatThreads = {
@@ -97,7 +98,6 @@ type ChatThreads = {
 export const defaultThreadState: ThreadType['state'] = {
 	stagingSelections: [],
 	focusedMessageIdx: undefined,
-	isCheckedOfSelectionId: {},
 	linksOfMessageIdx: {},
 }
 
@@ -130,7 +130,8 @@ const newThreadObject = () => {
 		lastModified: now,
 		messages: [],
 		state: defaultThreadState,
-	} satisfies ChatThreads[string]
+		currentHistoryIdx: null,
+	} satisfies ThreadType
 }
 
 
@@ -943,6 +944,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
+	async callWhenJumpBackToIdx(toIdx: number) {
+		// TODO!!!
+	}
 
 
 
@@ -1251,7 +1255,20 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				// add the current file as a staging selection
 				const model = this._codeEditorService.getActiveCodeEditor()?.getModel()
 				if (model) {
-					this._setCurrentThreadState({ ...defaultThreadState, stagingSelections: [{ type: 'File', fileURI: model.uri, language: model.getLanguageId(), selectionStr: null, range: null, state: { isOpened: false, wasAddedAsCurrentFile: true } }] })
+					this._setCurrentThreadState({
+						...defaultThreadState,
+						stagingSelections: [{
+							type: 'File',
+							fileURI: model.uri,
+							language: model.getLanguageId(),
+							selectionStr: null,
+							range: null,
+							state: {
+								isOpened: false,
+								wasAddedAsCurrentFile: true
+							}
+						}]
+					})
 				}
 				return;
 			}

@@ -24,6 +24,18 @@ export type ToolRequestApproval<T extends ToolName> = {
 	id: string; // proposed tool's id
 }
 
+
+// checkpoints
+export type LLMHistoryEntry = { // ALWAYS comes right after a {role:'tool', name:'edit'} message
+	role: 'LLM_changes';
+	afterStrOfURI: { [fsPath: string]: string };
+}
+export type UserHistoryEntry = { // ALWAYS comes right before a {role:'user'} message, or if it's the last message (w/o a user message yet)
+	role: 'user_changes';
+	afterStrOfURI: { [fsPath: string]: string };
+}
+
+
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
 export type ChatMessage =
 	| {
@@ -44,6 +56,8 @@ export type ChatMessage =
 	}
 	| ToolMessage<ToolName>
 	| ToolRequestApproval<ToolName>
+	| LLMHistoryEntry // invisible
+	| UserHistoryEntry // invisible
 
 
 // one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
@@ -75,6 +89,7 @@ export type StagingSelectionItem = CodeSelection | FileSelection
 
 
 
+// a link to a symbol (an underlined link to a piece of code)
 export type CodespanLocationLink = {
 	uri: URI, // we handle serialization for this
 	displayText: string,

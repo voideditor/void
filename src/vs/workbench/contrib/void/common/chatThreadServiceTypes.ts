@@ -26,14 +26,16 @@ export type ToolRequestApproval<T extends ToolName> = {
 
 
 // checkpoints
-export type LLMHistoryEntry = { // ALWAYS comes right after a {role:'tool', name:'edit'} message
-	role: 'LLM_changes';
+export type CheckpointEntry = {
+	role: 'checkpoint';
+	type: 'after_user_edits' | 'after_tool_edits';
+	afterStrOfURI: { [fsPath: string]: string };
+} | { // modifications that only count when undoing/redoing
+	role: 'checkpoint_modification';
+	type: 'user_modifications';
 	afterStrOfURI: { [fsPath: string]: string };
 }
-export type UserHistoryEntry = { // ALWAYS comes right before a {role:'user'} message, or if it's the last message (w/o a user message yet)
-	role: 'user_changes';
-	afterStrOfURI: { [fsPath: string]: string };
-}
+
 
 
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.
@@ -56,8 +58,7 @@ export type ChatMessage =
 	}
 	| ToolMessage<ToolName>
 	| ToolRequestApproval<ToolName>
-	| LLMHistoryEntry // invisible
-	| UserHistoryEntry // invisible
+	| CheckpointEntry
 
 
 // one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)

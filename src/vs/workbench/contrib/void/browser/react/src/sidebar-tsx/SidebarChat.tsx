@@ -1248,7 +1248,7 @@ const ToolRequestAcceptRejectButtons = () => {
 	const onAccept = useCallback(() => {
 		try { // this doesn't need to be wrapped in try/catch anymore
 			const threadId = chatThreadsService.state.currentThreadId
-			chatThreadsService.approveTool(threadId)
+			chatThreadsService.approveLatestToolRequest(threadId)
 			metricsService.capture('Tool Request Accepted', {})
 		} catch (e) { console.error('Error while approving message in chat:', e) }
 	}, [chatThreadsService, metricsService])
@@ -1256,7 +1256,7 @@ const ToolRequestAcceptRejectButtons = () => {
 	const onReject = useCallback(() => {
 		try {
 			const threadId = chatThreadsService.state.currentThreadId
-			chatThreadsService.rejectTool(threadId)
+			chatThreadsService.rejectLatestToolRequest(threadId)
 		} catch (e) { console.error('Error while approving message in chat:', e) }
 		metricsService.capture('Tool Request Rejected', {})
 	}, [chatThreadsService, metricsService])

@@ -39,7 +39,7 @@ export class ServerInstallError extends Error {
 	}
 }
 
-const DEFAULT_DOWNLOAD_URL_TEMPLATE = 'https://github.com/codestoryai/binaries/releases/download/${version}.${release}/void-reh-${os}-${arch}-${version}.${release}.tar.gz';
+const DEFAULT_DOWNLOAD_URL_TEMPLATE = 'https://github.com/voideditor/binaries/releases/download/${version}.${release}/void-reh-${os}-${arch}-${version}.${release}.tar.gz';
 
 export async function installCodeServer(wslManager: WSLManager, distroName: string, serverDownloadUrlTemplate: string | undefined, extensionIds: string[], envVariables: string[], logger: Log): Promise<ServerInstallResult> {
 	const scriptId = crypto.randomBytes(12).toString('hex');

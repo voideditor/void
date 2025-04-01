@@ -399,7 +399,6 @@ export class ToolsService implements IToolsService {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
 			edit: (params, result) => {
-				console.log('STR OF RESULT', params)
 				return `Change successfully made to ${params.uri.fsPath}.`
 			},
 			terminal_command: (params, result) => {

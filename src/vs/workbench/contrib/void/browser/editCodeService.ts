@@ -1757,14 +1757,15 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									return
 								}
 
-								console.log('---------adding-------')
-								console.log('CURRENT TEXT!!!', { current: model?.getValue() })
-								console.log('block', deepClone(block))
-								console.log('origBounds', originalBounds)
 
 
 								const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
-								console.log('start end', startLine, endLine)
+
+								// console.log('---------adding-------')
+								// console.log('CURRENT TEXT!!!', { current: model?.getValue() })
+								// console.log('block', deepClone(block))
+								// console.log('origBounds', originalBounds)
+								// console.log('start end', startLine, endLine)
 
 								// otherwise if no error, add the position as a diffarea
 								const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
@@ -1821,7 +1822,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					onFinalMessage: async (params) => {
 						const { fullText } = params
 
-						console.log('DONE - editCode!', { fullText })
 
 						// 1. wait 500ms and fix lint errors - call lint error workflow
 						// (update react state to say "Fixing errors")
@@ -1836,10 +1836,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						// IMPORTANT - sort by lineNum
 						addedTrackingZoneOfBlockNum.sort((a, b) => a.metadata.originalBounds[0] - b.metadata.originalBounds[0])
 
-						const { model } = this._voidModelService.getModel(uri)
-						console.log('CURRENT TEXT!!!', { current: model?.getValue() })
-						console.log('addedTrackingZoneOfBlockNum', addedTrackingZoneOfBlockNum)
-						console.log('blocks', deepClone(blocks))
+						// const { model } = this._voidModelService.getModel(uri)
+						// console.log('DONE - editCode!', { fullText })
+						// console.log('CURRENT TEXT!!!', { current: model?.getValue() })
+						// console.log('addedTrackingZoneOfBlockNum', addedTrackingZoneOfBlockNum)
+						// console.log('blocks', deepClone(blocks))
 
 						for (let blockNum = addedTrackingZoneOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
 							const { originalBounds } = addedTrackingZoneOfBlockNum[blockNum].metadata

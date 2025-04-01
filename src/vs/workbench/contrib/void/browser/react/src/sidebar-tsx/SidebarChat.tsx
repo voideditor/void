@@ -1811,6 +1811,18 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 };
 
 
+const Checkpoint = ({ threadId, messageIdx }: { threadId: string; messageIdx: number }) => {
+	const accessor = useAccessor()
+	const chatThreadService = accessor.get('IChatThreadService')
+
+	return <button onClick={() => {
+		chatThreadService.jumpToCheckpointAfterMessageIdx({ threadId, messageIdx })
+	}}>
+		jump
+	</button>
+
+}
+
 type ChatBubbleMode = 'display' | 'edit'
 type ChatBubbleProps = {
 	chatMessage: ChatMessage,
@@ -1866,6 +1878,13 @@ const ChatBubble = ({ chatMessage, isCommitted, messageIdx, isLast, chatIsRunnin
 		return null
 	}
 
+	else if (role === 'checkpoint') {
+		return <Checkpoint threadId={threadId} messageIdx={messageIdx} />
+	}
+
+	else if (role === 'checkpoint_modification') {
+		return <Checkpoint threadId={threadId} messageIdx={messageIdx} />
+	}
 }
 
 

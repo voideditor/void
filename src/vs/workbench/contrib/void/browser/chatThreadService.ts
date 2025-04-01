@@ -70,8 +70,11 @@ const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
 			llmChatMessages.push({ role: c.role, content: c.content, anthropicReasoning: c.anthropicReasoning })
 		else if (c.role === 'tool')
 			llmChatMessages.push({ role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content })
-		else if (c.role === 'tool_request') {
-			// pass
+		else if (c.role === 'tool_request') { // pass
+		}
+		else if (c.role === 'checkpoint') { // pass
+		}
+		else if (c.role === 'checkpoint_modification') { // pass
 		}
 		else {
 			throw new Error(`Role ${(c as any).role} not recognized.`)
@@ -212,6 +215,9 @@ export interface IChatThreadService {
 	// approve/reject
 	approveLatestToolRequest(threadId: string): void;
 	rejectLatestToolRequest(threadId: string): void;
+
+	// jump to history
+	jumpToCheckpointAfterMessageIdx(opts: { threadId: string, messageIdx: number }): void;
 }
 
 export const IChatThreadService = createDecorator<IChatThreadService>('voidChatThreadService');
@@ -613,6 +619,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._setStreamState(threadId, { isRunning: 'tool' }, 'merge')
 			let interrupted = false
 			try {
+				// add the original file if it wasn't seen before in this thread
+				if (toolName === 'edit') { this._trackOriginalFileInURI({ threadId, uri: (toolParams as ToolCallParams['edit']).uri }) }
+
 				const { result, interruptTool } = await this._toolsService.callTool[toolName](toolParams as any)
 				this._currentlyRunningToolInterruptor[threadId] = () => {
 					interrupted = true;
@@ -620,6 +629,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					delete this._currentlyRunningToolInterruptor[threadId];
 				}
 				toolResult = await result // ts is bad... await is needed
+
+				if (toolName === 'edit') { this._addOrUpdateToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit']).uri }) }
 			}
 			catch (error) {
 				if (interrupted) {
@@ -751,9 +762,28 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
+	private _trackOriginalFileInURI({ threadId, uri }: { threadId: string, uri: URI }) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+		const { model } = this._voidModelService.getModel(uri)
+		if (!model) return
+		if (!(uri.fsPath in thread.firstStrOfURI)) {
+			thread.firstStrOfURI[uri.fsPath] = model.getValue()
+		}
+	}
+
+	private _addCheckpoint(threadId: string, checkpoint: CheckpointEntry) {
+		this._addMessageToThread(threadId, checkpoint)
+		// update latest checkpoint idx to the one we just added
+		const newThread = this.state.allThreads[threadId]
+		if (!newThread) return // should never happen
+		const latestCheckpointIdx = newThread.messages.length - 1
+		this._setThreadState(threadId, { latestCheckpointIdx })
+	}
+
 	// merge any LLM checkpoint before this one (and after a user checkpoint if one exists), and add the checkpoint
 	// call this right after LLM edits a file
-	addOrUpdateToolEditCheckpoint({ threadId, uri, }: { threadId: string, uri: URI }) {
+	private _addOrUpdateToolEditCheckpoint({ threadId, uri, }: { threadId: string, uri: URI }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return
 		const { model } = this._voidModelService.getModel(uri)
@@ -777,15 +807,15 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				[uri.fsPath]: afterStr,
 			},
 		}
-		console.log('NEW LLM CHECKPOINT', newLLMCheckpoint, JSON.stringify(this.state.allThreads[threadId], null, 2))
-		this._addMessageToThread(threadId, newLLMCheckpoint)
+		this._addCheckpoint(threadId, newLLMCheckpoint)
+
 	}
 
 
 	// user checkpoints are always computed JIT
 	// we assume there are no messages after the checkpoint we're adding here
 	// call this right before user sends message
-	addOrUpdateUserMessageCheckpoint({ threadId, }: { threadId: string, }) {
+	private _addOrUpdateUserMessageCheckpoint({ threadId, }: { threadId: string, }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return
 
@@ -798,9 +828,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// first get the last user checkpoint
 		const lastNonUserCheckpointIdx = findLastIdx(thread.messages, (m) => m.role === 'checkpoint' && m.type !== 'after_user_edits')
 
-		// merge all recent user checkpoints
+		// merge all recent user checkpoints and delete them
 		const latestAfterStrOfURI: { [fsPath: string]: string } = {} // helps merge user edits
-		for (let k = 0; k <= thread.messages.length; k += 1) {
+		for (let k = 0; k < thread.messages.length; k += 1) {
 			const message = thread.messages[k]
 			if (message.role !== 'checkpoint') continue
 			for (const uri in message.afterStrOfURI)
@@ -811,32 +841,23 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				this._removeMessageFromThread(threadId, k)
 		}
 
-		// compute afterStr of all files we detected, and if they're different, add them as a user edit
-		for (const fsPath in latestAfterStrOfURI) {
-			const uri = URI.file(fsPath)
-			const { model } = this._voidModelService.getModel(uri)
+
+		// add a change for all the files where we detect a user change
+		const allURIs = this._getAllChangedCheckpointURIs({ threadId, loIdx: 0, hiIdx: thread.messages.length - 1, })
+		for (const fsPath of allURIs ?? []) {
+			const { model } = this._voidModelService.getModelFromFsPath(fsPath)
 			if (!model) continue
-			const oldAfterStr = latestAfterStrOfURI[uri.fsPath]
+			const oldAfterStr = latestAfterStrOfURI[fsPath]
 			const currentAfterStr = model.getValue()
 			if (oldAfterStr === currentAfterStr) continue
 			// if there was a change, add it as a user edit
 			newUserCheckpoint.afterStrOfURI = {
 				...newUserCheckpoint.afterStrOfURI,
-				[uri.fsPath]: currentAfterStr
+				[fsPath]: currentAfterStr
 			}
 		}
 
-
-		this._addMessageToThread(threadId, newUserCheckpoint)
-
-		// update latest checkpoint idx to the one we just added
-		const newThread = this.state.allThreads[threadId]
-		if (!newThread) return // should never happen
-		const latestCheckpointIdx = newThread.messages.length - 1
-		this._setThreadState(threadId, { latestCheckpointIdx })
-
-
-		console.log('NEW USER CHECKPOINT', latestCheckpointIdx, newUserCheckpoint, JSON.stringify(this.state.allThreads[threadId], null, 2))
+		this._addCheckpoint(threadId, newUserCheckpoint)
 	}
 
 
@@ -852,11 +873,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		return undefined
 	}
 
-	private _getAllChangedCheckpointURIs({ threadId, fromIdx, toIdx }: { threadId: string, fromIdx: number, toIdx: number }) {
+	private _getAllChangedCheckpointURIs({ threadId, loIdx, hiIdx }: { threadId: string, loIdx: number, hiIdx: number }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return null // should never happen
 		const fsPaths: Set<string> = new Set()
-		for (let i = fromIdx; i <= toIdx; i += 1) {
+		for (let i = loIdx; i <= hiIdx; i += 1) {
 			const message = thread.messages[i]
 			if (message.role !== 'checkpoint') continue
 			for (const fsPath in message.afterStrOfURI) {
@@ -889,6 +910,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				text
 			}])
 		}
+		console.log(`going from ${fromIdx} to ${toIdx}`)
 
 		/*
 if undoing
@@ -912,7 +934,7 @@ We need to revert anything that happened between to+1 and from.
 We only need to do it for files that were edited since `to`, ie files between to+1...from.
 */
 		if (toIdx < fromIdx) {
-			const checkpointURIs = this._getAllChangedCheckpointURIs({ threadId, toIdx: toIdx + 1, fromIdx })
+			const checkpointURIs = this._getAllChangedCheckpointURIs({ threadId, loIdx: toIdx + 1, hiIdx: fromIdx })
 			for (const fsPath of checkpointURIs ?? []) {
 				let found = false
 
@@ -953,7 +975,7 @@ We need to apply latest change for anything that happened between from+1 and to.
 We only need to do it for files that were edited since `from`, ie files between from+1...to.
 */
 		if (toIdx > fromIdx) {
-			const checkpointURIs = this._getAllChangedCheckpointURIs({ threadId, fromIdx: fromIdx + 1, toIdx })
+			const checkpointURIs = this._getAllChangedCheckpointURIs({ threadId, loIdx: fromIdx + 1, hiIdx: toIdx })
 			for (const fsPath of checkpointURIs ?? []) {
 				// apply lowest down content for each uri
 				// (do not need to apply original since we're only applying to files that changed)
@@ -991,8 +1013,8 @@ We only need to do it for files that were edited since `from`, ie files between 
 		const userMessageContent = await chat_userMessageContent(instructions, currSelns) // user message + names of files (NOT content)
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)
+		this._addOrUpdateUserMessageCheckpoint({ threadId })
 
-		this.addOrUpdateUserMessageCheckpoint({ threadId })
 		this._runChatAgent({ prevSelns, currSelns, threadId, userMessageContent, ...this._currentModelSelectionProps(), })
 	}
 

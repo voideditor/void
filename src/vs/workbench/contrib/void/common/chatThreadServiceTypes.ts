@@ -14,7 +14,7 @@ export type ToolMessage<T extends ToolName> = {
 	result:
 	| { type: 'success'; params: ToolCallParams[T]; value: ToolResultType[T], }
 	| { type: 'error'; params: ToolCallParams[T] | undefined; value: string }
-	| { type: 'rejected'; params: ToolCallParams[T] }
+	| { type: 'rejected'; params: ToolCallParams[T] } // user rejected
 }
 export type ToolRequestApproval<T extends ToolName> = {
 	role: 'tool_request';

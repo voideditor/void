@@ -42,9 +42,13 @@ ${tripleTick[1]}`
 // ======================================================== tools ========================================================
 
 const paginationHelper = {
-	desc: `Very large results may be paginated (indicated in the result). Pagination fails gracefully if out of bounds or invalid page number.`,
+	desc: `Very large results may be paginated (a note will always be included if pagination took place). Pagination fails gracefully if out of bounds or invalid page number.`,
 	param: { pageNumber: { type: 'number', description: 'The page number (default is the first page = 1).' }, }
 } as const
+
+const uriParam = (object: string) => ({
+	uri: { type: 'string', description: `The FULL path to the ${object}.` }
+})
 
 export const voidTools = {
 	// --- context-gathering (read/search/list) ---
@@ -53,16 +57,16 @@ export const voidTools = {
 		name: 'read_file',
 		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
 		params: {
-			uri: { type: 'string', description: undefined },
+			...uriParam('file'),
 			...paginationHelper.param,
 		},
 	},
 
 	list_dir: {
 		name: 'list_dir',
-		description: `Returns all file names and folder names in a given URI. ${paginationHelper.desc}`,
+		description: `Returns all file names and folder names in a given folder. ${paginationHelper.desc}`,
 		params: {
-			uri: { type: 'string', description: undefined },
+			...uriParam('folder'),
 			...paginationHelper.param,
 		},
 	},
@@ -91,7 +95,7 @@ export const voidTools = {
 		name: 'create_uri',
 		description: `Create a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash. Fails gracefully if the file already exists. Missing ancestors in the path will be recursively created automatically.`,
 		params: {
-			uri: { type: 'string', description: undefined },
+			...uriParam('file or folder'),
 		},
 	},
 
@@ -99,7 +103,7 @@ export const voidTools = {
 		name: 'delete_uri',
 		description: `Delete a file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
 		params: {
-			uri: { type: 'string', description: undefined },
+			...uriParam('file or folder'),
 			params: { type: 'string', description: 'Return -r here to delete this URI and all descendants (if applicable). Default is the empty string.' }
 		},
 	},
@@ -108,7 +112,7 @@ export const voidTools = {
 		name: 'edit',
 		description: `Edits the contents of a file, given the file's URI and a description. Fails gracefully if the file does not exist.`,
 		params: {
-			uri: { type: 'string', description: undefined },
+			...uriParam('file'),
 			changeDescription: {
 				type: 'string', description: `\
 - Your changeDescription should be a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing.

@@ -28,7 +28,7 @@ import { getModelCapabilities, getIsResoningEnabledState } from '../../../../com
 import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
 import { ToolCallParams, ToolName, toolNames, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
-import { JumpToFileButton, useApplyButtonHTML } from '../markdown/ApplyBlockHoverButtons.js';
+import { ApplyButtonsHTML, CopyButton, JumpToFileButton, JumpToTerminalButton, StatusIndicatorHTML, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 
 
@@ -733,7 +733,7 @@ const ToolHeaderWrapper = ({
 					{/* left */}
 					<div className={`flex items-center gap-x-2 min-w-0 overflow-hidden ${isClickable ? 'hover:brightness-125 transition-all duration-150' : ''}`}>
 						<span className="text-void-fg-3 flex-shrink-0">{title}</span>
-						<span className="text-void-fg-4 text-xs italic truncate leading-[1]">{desc1}</span>
+						<span className="text-void-fg-4 text-xs italic truncate">{desc1}</span>
 					</div>
 
 					{/* right */}
@@ -1197,7 +1197,7 @@ const titleOfToolName = {
 		running: (isFolder: boolean) => loadingTitleWrapper(`Deleting ${folderFileStr(isFolder)}`)
 	},
 	'edit': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
-	'terminal_command': { done: `Ran terminal command`, proposed: 'Run terminal command', running: loadingTitleWrapper('Running terminal command') }
+	'terminal_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') }
 } as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
 
 
@@ -1345,13 +1345,6 @@ export const ListableToolItem = ({ name, onClick, isSmall, className, showDot }:
 	</div>
 }
 
-const EditToolApplyButton = ({ changeDescription, applyBoxId, uri }: { changeDescription: string, applyBoxId: string, uri: URI }) => {
-	const { statusIndicatorHTML, buttonsHTML } = useApplyButtonHTML({ codeStr: changeDescription, applyBoxId, uri })
-	return <div className='flex items-center gap-1'>
-		{statusIndicatorHTML}
-		{buttonsHTML}
-	</div>
-}
 
 
 const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescription: string }) => {
@@ -1362,6 +1355,15 @@ const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescript
 	</div>
 }
 
+const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr }: { applyBoxId: string, uri: URI, codeStr: string }) => {
+	const { currStreamState } = useApplyButtonState({ applyBoxId, uri })
+	return <div className='flex items-center gap-1'>
+		<StatusIndicatorHTML applyBoxId={applyBoxId} uri={uri} />
+		<JumpToFileButton uri={uri} />
+		{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} />}
+		<ApplyButtonsHTML applyBoxId={applyBoxId} uri={uri} codeStr={codeStr} />
+	</div>
+}
 
 type ToolRequestState = 'awaiting_user' | 'running'
 
@@ -1682,10 +1684,11 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 						messageIdx: messageIdx,
 						tokenIdx: 'N/A',
 					})
-					componentParams.desc2 = <EditToolApplyButton
-						changeDescription={params.changeDescription}
+
+					componentParams.desc2 = <EditToolHeaderButtons
 						applyBoxId={applyBoxId}
 						uri={params.uri}
+						codeStr={params.changeDescription}
 					/>
 				}
 
@@ -1763,6 +1766,10 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 				const { value, params } = toolMessage.result
 				const { command } = params
 				const { terminalId, resolveReason, result } = value
+
+				componentParams.desc2 = <JumpToTerminalButton
+					onClick={() => { terminalToolsService.openTerminal(terminalId) }}
+				/>
 
 				const resultStr = resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `\nError: exit code ${resolveReason.exitCode}` : null)
 					: resolveReason.type === 'bgtask' ? null :
@@ -2052,7 +2059,7 @@ export const SidebarChat = () => {
 	const proposed = toolNameSoFar && toolNames.includes(toolNameSoFar as ToolName) ? titleOfToolName[toolNameSoFar as ToolName]?.proposed : toolNameSoFar
 	const toolTitle = typeof proposed === 'function' ? proposed(null) : proposed
 	const currStreamingToolHTML = toolIsLoading ?
-		<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)} title={toolTitle} desc1={<span className='flex items-center'>Getting parameters<IconLoading /></span>} />
+		<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)} title={toolTitle} desc1={<span className='flex items-center'>Generating<IconLoading /></span>} />
 		: null
 
 	const allMessagesHTML = [...previousMessagesHTML, currStreamingMessageHTML, currStreamingToolHTML]

@@ -353,12 +353,15 @@ export class ToolsService implements IToolsService {
 				if (this.commandBarService.getStreamState(uri) === 'streaming') {
 					throw new Error(`The Apply model was already running. This can happen if two agents try editing the same file at the same time. Please try again in a moment.`)
 				}
-				const res = await editCodeService.startApplying({
+				const opts = {
 					uri,
 					applyStr: changeDescription,
 					from: 'ClickApply',
 					startBehavior: 'keep-conflicts',
-				})
+				} as const
+
+				await editCodeService.callBeforeStartApplying(opts)
+				const res = editCodeService.startApplying(opts)
 				if (!res) throw new Error(`The Apply model did not start running on ${basename(uri.fsPath)}. Please try again.`)
 				const [diffZoneURI, applyDonePromise] = res
 

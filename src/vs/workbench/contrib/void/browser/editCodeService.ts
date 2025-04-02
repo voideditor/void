@@ -40,7 +40,7 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
 import { LLMChatMessage, OnError, errorDetails } from '../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
-import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts } from './editCodeServiceInterface.js';
+import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts, CallBeforeStartApplyingOpts } from './editCodeServiceInterface.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';
 import { IVoidModelService } from '../common/voidModelService.js';
@@ -252,9 +252,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	onDidAddOrDeleteDiffZones = this._onDidAddOrDeleteDiffZones.event;
 
 	// diffZone: [uri], diffs, isStreaming  // listen on change diffs, change streaming (uri is const)
-	private readonly _onDidChangeDiffsInDiffZone = new Emitter<{ uri: URI, diffareaid: number }>();
+	private readonly _onDidChangeDiffsInDiffZoneNotStreaming = new Emitter<{ uri: URI, diffareaid: number }>();
 	private readonly _onDidChangeStreamingInDiffZone = new Emitter<{ uri: URI, diffareaid: number }>();
-	onDidChangeDiffsInDiffZone = this._onDidChangeDiffsInDiffZone.event;
+	onDidChangeDiffsInDiffZoneNotStreaming = this._onDidChangeDiffsInDiffZoneNotStreaming.event;
 	onDidChangeStreamingInDiffZone = this._onDidChangeStreamingInDiffZone.event;
 
 	// ctrlKZone: [uri], isStreaming  // listen on change streaming
@@ -994,7 +994,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			if (diffArea?.type !== 'DiffZone') continue
 			// fire changed diffs (this is the only place Diffs are added)
 			if (!diffArea._streamState.isStreaming) {
-				this._onDidChangeDiffsInDiffZone.fire({ uri, diffareaid: diffArea.diffareaid })
+				this._onDidChangeDiffsInDiffZoneNotStreaming.fire({ uri, diffareaid: diffArea.diffareaid })
 			}
 		}
 	}
@@ -1160,29 +1160,50 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
+	private _getURIBeforeStartApplying(opts: CallBeforeStartApplyingOpts) {
+		// SR
+		if (opts.from === 'ClickApply') {
+			const uri = this._uriOfGivenURI(opts.uri)
+			if (!uri) return
+			return uri
+		}
+		else if (opts.from === 'QuickEdit') {
+			const { diffareaid } = opts
+			const ctrlKZone = this.diffAreaOfId[diffareaid]
+			if (ctrlKZone?.type !== 'CtrlKZone') return
+			const { _URI: uri } = ctrlKZone
+			return uri
+		}
+		return
+	}
 
+	public async callBeforeStartApplying(opts: CallBeforeStartApplyingOpts) {
+		const uri = this._getURIBeforeStartApplying(opts)
+		if (!uri) return
+		await this._voidModelService.initializeModel(uri)
+	}
 
 
 	// the applyDonePromise this returns can reject, and should be caught with .catch
-	public async startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null> {
+	public startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null {
 		let res: [DiffZone, Promise<void>] | undefined = undefined
 
 		if (opts.from === 'QuickEdit') {
-			res = await this._initializeWriteoverStream(opts) // rewrite
+			res = this._initializeWriteoverStream(opts) // rewrite
 		}
 		else if (opts.from === 'ClickApply') {
 			if (this._settingsService.state.globalSettings.enableFastApply) {
 				const numCharsInFile = this._fileLengthOfGivenURI(opts.uri)
 				if (numCharsInFile === null) return null
 				if (numCharsInFile < 1000) { // slow apply for short files (especially important for empty files)
-					res = await this._initializeWriteoverStream(opts)
+					res = this._initializeWriteoverStream(opts)
 				}
 				else {
-					res = await this._initializeSearchAndReplaceStream(opts) // fast apply
+					res = this._initializeSearchAndReplaceStream(opts) // fast apply
 				}
 			}
 			else {
-				res = await this._initializeWriteoverStream(opts) // rewrite
+				res = this._initializeWriteoverStream(opts) // rewrite
 			}
 		}
 
@@ -1278,6 +1299,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			_removeStylesFns: new Set(),
 		}
 
+		console.log('FIRING START STREAMING IN DIFFZONE!!!')
 		const diffZone = this._addDiffArea(adding)
 		this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
@@ -1308,19 +1330,17 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
-	private async _initializeWriteoverStream(opts: StartApplyingOpts): Promise<[DiffZone, Promise<void>] | undefined> {
+	private _initializeWriteoverStream(opts: StartApplyingOpts): [DiffZone, Promise<void>] | undefined {
 
 		const { from, } = opts
 
-		let uri: URI
-		let startRange: 'fullFile' | [number, number]
+		const uri = this._getURIBeforeStartApplying(opts)
+		if (!uri) return
 
+		let startRange: 'fullFile' | [number, number]
 		let ctrlKZoneIfQuickEdit: CtrlKZone | null = null
 
 		if (from === 'ClickApply') {
-			const uri_ = this._uriOfGivenURI(opts.uri)
-			if (!uri_) return
-			uri = uri_
 			startRange = 'fullFile'
 		}
 		else if (from === 'QuickEdit') {
@@ -1328,15 +1348,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
 			if (ctrlKZone?.type !== 'CtrlKZone') return
 			ctrlKZoneIfQuickEdit = ctrlKZone
-			const { startLine: startLine_, endLine: endLine_, _URI } = ctrlKZone
-			uri = _URI
+			const { startLine: startLine_, endLine: endLine_ } = ctrlKZone
 			startRange = [startLine_, endLine_]
 		}
 		else {
 			throw new Error(`Void: diff.type not recognized on: ${from}`)
 		}
 
-		await this._voidModelService.initializeModel(uri)
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
 
@@ -1530,13 +1548,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
-	private async _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): Promise<[DiffZone, Promise<void>] | undefined> {
-		const { from, applyStr, uri: givenURI, } = opts
+	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): [DiffZone, Promise<void>] | undefined {
+		const { from, applyStr, } = opts
 
-		const uri = this._uriOfGivenURI(givenURI)
+		const uri = this._getURIBeforeStartApplying(opts)
 		if (!uri) return
 
-		await this._voidModelService.initializeModel(uri)
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
 

@@ -139,6 +139,7 @@ module.exports.indentationFilter = [
 	'!extensions/simple-browser/media/*.js',
 
 	'!extensions/open-remote-ssh/out/*.js', // Void added this
+	'!extensions/open-remote-wsl/out/*.js', // Void added this
 ];
 
 module.exports.copyrightFilter = [

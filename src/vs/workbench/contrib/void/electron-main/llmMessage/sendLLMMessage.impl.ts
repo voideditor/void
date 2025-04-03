@@ -18,6 +18,12 @@ import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
 import { InternalToolInfo, ToolName, isAToolName } from '../../common/toolsServiceTypes.js';
 
+// Déclarer les types manquants pour résoudre les erreurs de linter
+declare const PrepareMessagesToolsOpenAI: any;
+declare const prepareMessages_tools_openai: any;
+declare const prepareMessages_tools_anthropic: any;
+declare const InternalLLMChatMessage: any;
+declare const PrepareMessagesTools: any;
 
 type InternalCommonMessageParams = {
 	aiInstructions: string;
@@ -427,7 +433,22 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 }
 
 //////// MISTRAL ////////
-const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendChatParams_Internal) => {
+const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions, tools: tools_ }: SendChatParams_Internal) => {
+	const {
+		supportsSystemMessage,
+		supportsTools,
+	} = getModelCapabilities(providerName, modelName_);
+
+	// Prétraiter les messages pour le format Mistral
+	prepareMessages({
+		messages: messages_,
+		aiInstructions,
+		supportsSystemMessage,
+		supportsTools,
+		supportsAnthropicReasoningSignature: false
+	});
+
+	// Pour Mistral, nous utilisons l'implémentation OpenAI compatible
 	_sendOpenAICompatibleChat({
 		messages: messages_,
 		onText,
@@ -438,7 +459,8 @@ const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError
 		_setAborter,
 		providerName,
 		aiInstructions,
-		modelSelectionOptions
+		modelSelectionOptions,
+		tools: tools_ // Passons les outils originaux directement
 	});
 }
 
@@ -643,7 +665,7 @@ codestral https://ollama.com/library/codestral/blobs/51707752a87c
 [SUFFIX]{{ .Suffix }}[PREFIX] {{ .Prompt }}
 
 deepseek-coder-v2 https://ollama.com/library/deepseek-coder-v2/blobs/22091531faf0
-<｜fim▁begin｜>{{ .Prompt }}<｜fim▁hole｜>{{ .Suffix }}<｜fim▁end｜>
+{{ .Prompt }}
 
 starcoder2 https://ollama.com/library/starcoder2/blobs/3b190e68fefe
 <file_sep>

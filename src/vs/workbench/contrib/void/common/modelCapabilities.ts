@@ -85,7 +85,7 @@ type ModelOptions = {
 		cache_write?: number;
 	}
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated';
-	supportsTools: false | 'anthropic-style' | 'openai-style';
+	supportsTools: false | 'anthropic-style' | 'openai-style' | 'mistral-style';
 	supportsFIM: boolean;
 
 	reasoningCapabilities: false | {
@@ -138,7 +138,7 @@ const mistralModelOptions = {
 		cost: { input: 0.000015, output: 0.000090 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
+		supportsTools: 'mistral-style',
 		reasoningCapabilities: false,
 	},
 	'mistral-large-latest': {
@@ -147,7 +147,7 @@ const mistralModelOptions = {
 		cost: { input: 0.000015, output: 0.000060 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
+		supportsTools: 'mistral-style',
 		reasoningCapabilities: false,
 	},
 	'mistral-small-latest': {
@@ -156,7 +156,7 @@ const mistralModelOptions = {
 		cost: { input: 0.000002, output: 0.000008 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
+		supportsTools: 'mistral-style',
 		reasoningCapabilities: false,
 	},
 	'pixtral-large-latest': {
@@ -165,7 +165,7 @@ const mistralModelOptions = {
 		cost: { input: 0.000025, output: 0.000075 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
+		supportsTools: 'mistral-style',
 		reasoningCapabilities: false,
 	},
 	'mistral-saba-latest': {
@@ -183,7 +183,7 @@ const mistralModelOptions = {
 		cost: { input: 0.000001, output: 0.000003 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
+		supportsTools: 'mistral-style',
 		reasoningCapabilities: false,
 	},
 	'ministral-8b-latest': {
@@ -192,7 +192,7 @@ const mistralModelOptions = {
 		cost: { input: 0.000001, output: 0.000005 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
+		supportsTools: 'mistral-style',
 		reasoningCapabilities: false,
 	},
 	'mistral-ocr-latest': {
@@ -210,7 +210,7 @@ const mistralModelOptions = {
 		cost: { input: 0.000020, output: 0.000060 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
+		supportsTools: 'mistral-style',
 		reasoningCapabilities: false,
 	},
 	'open-mistral-nemo': {

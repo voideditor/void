@@ -288,14 +288,20 @@ const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMCh
 
 
 
-type PrepareMessagesTools = PrepareMessagesToolsAnthropic | PrepareMessagesToolsOpenAI
 
-const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'anthropic-style' | 'openai-style' }): { messages: PrepareMessagesTools } => {
+
+
+type PrepareMessagesTools = PrepareMessagesToolsAnthropic | PrepareMessagesToolsOpenAI | PrepareMessagesToolsMistral
+
+const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'anthropic-style' | 'openai-style' | 'mistral-style' }): { messages: PrepareMessagesTools } => {
 	if (!supportsTools) {
 		return { messages: messages }
 	}
 	else if (supportsTools === 'anthropic-style') {
 		return prepareMessages_tools_anthropic({ messages })
+	}
+	else if (supportsTools === 'mistral-style') {
+		return prepareMessages_tools_mistral({ messages })
 	}
 	else if (supportsTools === 'openai-style') {
 		return prepareMessages_tools_openai({ messages })
@@ -368,7 +374,12 @@ const prepareMessages_noEmptyMessage = ({ messages }: { messages: PrepareMessage
 	return { messages }
 }
 
+type PrepareMessagesToolsMistral = PrepareMessagesToolsOpenAI;
 
+// Implémentation pour Mistral qui réutilise celle d'OpenAI
+const prepareMessages_tools_mistral = ({ messages }: { messages: InternalLLMChatMessage[] }) => {
+	return prepareMessages_tools_openai({ messages });
+};
 
 // --- CHAT ---
 
@@ -382,7 +393,7 @@ export const prepareMessages = ({
 	messages: LLMChatMessage[],
 	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
-	supportsTools: false | 'anthropic-style' | 'openai-style',
+	supportsTools: false | 'anthropic-style' | 'openai-style' | 'mistral-style',
 	supportsAnthropicReasoningSignature: boolean,
 }) => {
 	const { messages: messages1 } = prepareMessages_normalize({ messages })

@@ -25,7 +25,7 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsResoningEnabledState } from '../../../../common/modelCapabilities.js';
-import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, X } from 'lucide-react';
+import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, Undo, Undo2, X } from 'lucide-react';
 import { ChatMessage, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../../../../common/chatThreadServiceTypes.js';
 import { ToolCallParams, ToolName, toolNames, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { ApplyButtonsHTML, CopyButton, JumpToFileButton, JumpToTerminalButton, StatusIndicatorHTML, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
@@ -988,7 +988,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted, _scrollToB
 		</div>
 
 
-		{<EditSymbol
+		<EditSymbol
 			size={18}
 			className={`
 				absolute -top-1 -right-1
@@ -1006,7 +1006,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted, _scrollToB
 					onCloseEdit()
 				}
 			}}
-		/>}
+		/>
 
 	</div>
 
@@ -1821,12 +1821,18 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 const Checkpoint = ({ threadId, messageIdx }: { threadId: string; messageIdx: number }) => {
 	const accessor = useAccessor()
 	const chatThreadService = accessor.get('IChatThreadService')
-
-	return <button onClick={() => {
-		chatThreadService.jumpToCheckpointAfterMessageIdx({ threadId, messageIdx })
-	}}>
-		jump
-	</button>
+	const commandBarService = accessor.get('IVoidCommandBarService')
+	return <div
+		className='pointer-events-auto cursor-pointer select-none hover:brightness-125 flex items-center justify-center'
+		onClick={() => {
+			// reject all current changes and then jump back
+			commandBarService.acceptOrRejectAllFiles({ behavior: 'reject' })
+			chatThreadService.jumpToCheckpointAfterMessageIdx({ threadId, messageIdx })
+		}}>
+		<div className='bg-void-border-1 h-[1px] flex-grow'></div>
+		<div className='px-2'>Checkpoint</div>
+		<div className='bg-void-border-1 h-[1px] flex-grow'></div>
+	</div>
 
 }
 
@@ -2021,18 +2027,22 @@ export const SidebarChat = () => {
 
 	const previousMessagesHTML = useMemo(() => {
 		const threadId = currentThread.id
+		const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? Infinity // if not exist, treat like checkpoint is last message (infinity)
+
 		return previousMessages.map((message, i) => {
 			const isLast = i === numMessages - 1 && (isRunning === 'tool' || isRunning === 'awaiting_user')
-			return <ChatBubble key={getChatBubbleId(currentThread.id, i)}
-				chatMessage={message}
-				messageIdx={i}
-				isCommitted={true}
-				chatIsRunning={isRunning}
-				isLast={isLast}
-				threadId={threadId}
-				isToolBeingWritten={toolIsLoading}
-				_scrollToBottom={() => scrollToBottom(scrollContainerRef)}
-			/>
+			return <div className={`${currCheckpointIdx < i ? 'opacity-50 pointer-events-none select-none' : ''}`}>
+				<ChatBubble key={getChatBubbleId(currentThread.id, i)}
+					chatMessage={message}
+					messageIdx={i}
+					isCommitted={true}
+					chatIsRunning={isRunning}
+					isLast={isLast}
+					threadId={threadId}
+					isToolBeingWritten={toolIsLoading}
+					_scrollToBottom={() => scrollToBottom(scrollContainerRef)}
+				/>
+			</div>
 		})
 	}, [previousMessages, isRunning, currentThread, numMessages])
 

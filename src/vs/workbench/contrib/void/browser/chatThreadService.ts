@@ -104,7 +104,7 @@ type ThreadType = {
 
 	// this doesn't need to go in a state object, but feels right
 	state: {
-		latestCheckpointIdx: number | null; // the latest checkpoint we're standing at or null
+		currCheckpointIdx: number | null; // the latest checkpoint we're standing at or null
 
 		stagingSelections: StagingSelectionItem[];
 		focusedMessageIdx: number | undefined; // index of the user message that is being edited (undefined if none)
@@ -122,7 +122,7 @@ type ChatThreads = {
 }
 
 export const defaultThreadState: ThreadType['state'] = {
-	latestCheckpointIdx: null,
+	currCheckpointIdx: null,
 	stagingSelections: [],
 	focusedMessageIdx: undefined,
 	linksOfMessageIdx: {},
@@ -629,8 +629,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					delete this._currentlyRunningToolInterruptor[threadId];
 				}
 				toolResult = await result // ts is bad... await is needed
-
-				if (toolName === 'edit') { this._addOrUpdateToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit']).uri }) }
 			}
 			catch (error) {
 				if (interrupted) {
@@ -654,6 +652,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			// 5. add to history and keep going
 			this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
+
+			// 6. add a checkpoint
+			if (toolName === 'edit') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit']).uri }) }
 			return {}
 		};
 
@@ -778,35 +779,41 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const newThread = this.state.allThreads[threadId]
 		if (!newThread) return // should never happen
 		const latestCheckpointIdx = newThread.messages.length - 1
-		this._setThreadState(threadId, { latestCheckpointIdx })
+		this._setThreadState(threadId, { currCheckpointIdx: latestCheckpointIdx })
 	}
 
 	// merge any LLM checkpoint before this one (and after a user checkpoint if one exists), and add the checkpoint
 	// call this right after LLM edits a file
-	private _addOrUpdateToolEditCheckpoint({ threadId, uri, }: { threadId: string, uri: URI }) {
+	private _addToolEditCheckpoint({ threadId, uri, }: { threadId: string, uri: URI }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return // should never happen
 
-		const lastUserCheckpointIdx = findLastIdx(thread.messages, (m) => m.role === 'checkpoint' && m.type === 'after_user_edits')
-		const prevLLMCheckpointIdx = thread.messages.findIndex((m, i) => i > lastUserCheckpointIdx && m.role === 'checkpoint' && m.type === 'after_tool_edits')
 
 		const afterStr = model.getValue() // afterStr = the value of the file right after the edit
 
-		let prevLLMCheckpoint: LLMCheckpoint | undefined = undefined
-		if (prevLLMCheckpointIdx !== -1) {
-			prevLLMCheckpoint = thread.messages[prevLLMCheckpointIdx] as ChatMessage & { role: 'checkpoint', type: 'after_tool_edits' }
-			this._removeMessageFromThread(threadId, prevLLMCheckpointIdx)
-		}
 		const newLLMCheckpoint: LLMCheckpoint = {
 			role: 'checkpoint',
 			type: 'after_tool_edits',
 			afterStrOfURI: {
-				...prevLLMCheckpoint?.afterStrOfURI,
 				[uri.fsPath]: afterStr,
 			},
 		}
+
+		// remove and merge
+		// const lastUserCheckpointIdx = findLastIdx(thread.messages, (m) => m.role === 'checkpoint' && m.type === 'after_user_edits')
+		// const prevLLMCheckpointIdx = thread.messages.findIndex((m, i) => i > lastUserCheckpointIdx && m.role === 'checkpoint' && m.type === 'after_tool_edits')
+		// let prevLLMCheckpoint: LLMCheckpoint | undefined = undefined
+		// if (prevLLMCheckpointIdx !== -1) {
+		// 	prevLLMCheckpoint = thread.messages[prevLLMCheckpointIdx] as ChatMessage & { role: 'checkpoint', type: 'after_tool_edits' }
+		// 	this._removeMessageFromThread(threadId, prevLLMCheckpointIdx)
+		// 	newLLMCheckpoint.afterStrOfURI = {
+		// 		...newLLMCheckpoint.afterStrOfURI,
+		// 		...prevLLMCheckpoint?.afterStrOfURI,
+		// 	}
+		// }
+
 		this._addCheckpoint(threadId, newLLMCheckpoint)
 
 	}
@@ -894,7 +901,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const c = this._getCheckpointAfter({ threadId, messageIdx })
 		if (c === undefined) return // should never happen
 
-		const fromIdx = thread.state.latestCheckpointIdx
+		const fromIdx = thread.state.currCheckpointIdx
 		if (fromIdx === null) return // should never happen
 
 		// TODO!!! change toIdx if there's a checkpointModification on the To, and add a checkpoint modification on the from
@@ -990,7 +997,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			}
 		}
 
-		this._setThreadState(threadId, { latestCheckpointIdx: toIdx })
+		this._setThreadState(threadId, { currCheckpointIdx: toIdx })
 		// TODO!!! add/merge a checkpoint modification if relevant
 	}
 

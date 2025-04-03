@@ -28,14 +28,13 @@ export type ToolRequestApproval<T extends ToolName> = {
 // checkpoints
 export type CheckpointEntry = {
 	role: 'checkpoint';
-	type: 'after_user_edits' | 'after_tool_edits';
-	afterStrOfURI: { [fsPath: string]: string };
-} | { // modifications that only count when undoing/redoing
-	role: 'checkpoint_modification';
-	type: 'user_modifications';
-	afterStrOfURI: { [fsPath: string]: string };
+	type: 'user_edit' | 'tool_edit';
+	beforeStrOfURI: { [fsPath: string]: string | undefined };
+	userModifications: {
+		beforeStrOfURI: { [fsPath: string]: string | undefined };
+	};
+	// diffAreas: null;
 }
-
 
 
 // WARNING: changing this format is a big deal!!!!!! need to migrate old format to new format on users' computers so people don't get errors.

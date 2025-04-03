@@ -1826,8 +1826,8 @@ const Checkpoint = ({ threadId, messageIdx }: { threadId: string; messageIdx: nu
 		className='pointer-events-auto cursor-pointer select-none hover:brightness-125 flex items-center justify-center'
 		onClick={() => {
 			// reject all current changes and then jump back
-			commandBarService.acceptOrRejectAllFiles({ behavior: 'reject' })
-			chatThreadService.jumpToCheckpointAfterMessageIdx({ threadId, messageIdx })
+			commandBarService.acceptOrRejectAllFiles({ behavior: 'accept' })
+			chatThreadService.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
 		}}>
 		<div className='bg-void-border-1 h-[1px] flex-grow'></div>
 		<div className='px-2'>Checkpoint</div>
@@ -2024,15 +2024,18 @@ export const SidebarChat = () => {
 	}, [isHistoryOpen, currentThread.id])
 
 	const numMessages = previousMessages.length
+	const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
 
 	const previousMessagesHTML = useMemo(() => {
 		const threadId = currentThread.id
 		const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? Infinity // if not exist, treat like checkpoint is last message (infinity)
 
 		return previousMessages.map((message, i) => {
-			const isLast = i === numMessages - 1 && (isRunning === 'tool' || isRunning === 'awaiting_user')
-			return <div className={`${currCheckpointIdx < i ? 'opacity-50 pointer-events-none select-none' : ''}`}>
-				<ChatBubble key={getChatBubbleId(currentThread.id, i)}
+			const isLast = i === lastMessageIdx && (isRunning === 'tool' || isRunning === 'awaiting_user')
+			return <div
+				key={getChatBubbleId(currentThread.id, i)}
+				className={`${currCheckpointIdx < i ? 'opacity-50 pointer-events-none select-none' : ''}`}>
+				<ChatBubble
 					chatMessage={message}
 					messageIdx={i}
 					isCommitted={true}

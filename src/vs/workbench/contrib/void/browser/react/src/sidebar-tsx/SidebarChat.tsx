@@ -1390,7 +1390,10 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			if (toolMessage.result.type === 'success') {
 				const { value, params } = toolMessage.result
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
-				if (value.hasNextPage) componentParams.desc2 = `(AI can scroll for more)`
+				if (value.hasNextPage && params.pageNumber === 1)  // first page
+					componentParams.desc2 = '(more content available)'
+				else if (params.pageNumber >= 1) // subsequent pages
+					componentParams.desc2 = `(part ${params.pageNumber})`
 			}
 			else {
 				const { value, params } = toolMessage.result

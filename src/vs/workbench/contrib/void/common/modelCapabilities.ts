@@ -25,11 +25,9 @@ export const defaultModelsOfProvider = {
 		'grok-3-latest',
 	],
 	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
+		'gemini-2.5-pro-exp-03-25',
 		'gemini-2.0-flash',
-		'gemini-1.5-flash',
-		'gemini-1.5-pro',
-		'gemini-1.5-flash-8b',
-		'gemini-2.0-flash-thinking-exp',
+		'gemini-2.0-flash-lite',
 	],
 	deepseek: [ // https://api-docs.deepseek.com/quick_start/pricing
 		'deepseek-chat',
@@ -144,6 +142,19 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
+	'openhands-lm-32b': { // https://www.all-hands.dev/blog/introducing-openhands-lm-32b----a-strong-open-coding-agent-model
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false, // built on qwen 2.5 32B instruct
+	},
+	'phi4': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: false,
+		reasoningCapabilities: false,
+	},
+
 	// llama
 	'llama3': {
 		supportsFIM: false,
@@ -201,6 +212,9 @@ const openSourceModelOptions_assumingOAICompat = {
 
 
 const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelName) => {
+
+	const lower = modelName.toLowerCase()
+
 	const toFallback = (opts: Omit<ModelOptions, 'cost'>): ModelOptions & { modelName: string } => {
 		return {
 			modelName,
@@ -209,15 +223,19 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 			cost: { input: 0, output: 0 },
 		}
 	}
-	if (modelName.includes('gpt-4o')) return toFallback(openAIModelOptions['gpt-4o'])
-	if (modelName.includes('claude-3-5') || modelName.includes('claude-3.5')) return toFallback(anthropicModelOptions['claude-3-5-sonnet-20241022'])
-	if (modelName.includes('claude')) return toFallback(anthropicModelOptions['claude-3-7-sonnet-20250219'])
-	if (modelName.includes('grok')) return toFallback(xAIModelOptions['grok-2'])
-	if (modelName.includes('deepseek-r1') || modelName.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekR1, contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('qwen') && modelName.includes('2.5') && modelName.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
-	if (modelName.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (lower.includes('gpt-4o')) return toFallback(openAIModelOptions['gpt-4o'])
+	if (lower.includes('claude-3-5') || lower.includes('claude-3.5')) return toFallback(anthropicModelOptions['claude-3-5-sonnet-20241022'])
+	if (lower.includes('claude')) return toFallback(anthropicModelOptions['claude-3-7-sonnet-20250219'])
+	if (lower.includes('grok')) return toFallback(xAIModelOptions['grok-2'])
+	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekR1, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (lower.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (lower.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (lower.includes('qwen') && lower.includes('2.5') && lower.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'], contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (lower.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral, contextWindow: 32_000, maxOutputTokens: 4_096, })
+	if (lower.includes('qwq')) { return toFallback({ ...openSourceModelOptions_assumingOAICompat.qwq, contextWindow: 128_000, maxOutputTokens: 8_192, }) }
+	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions['gemini-2.5-pro-exp-03-25'])
+	if (lower.includes('phi4')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.phi4, contextWindow: 16_000, maxOutputTokens: 4_096, })
+	if (lower.includes('openhands')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['openhands-lm-32b'], contextWindow: 128_000, maxOutputTokens: 4_096 }) // max output unclear
 	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
 	return toFallback(modelOptionsDefaults)
 }
@@ -294,12 +312,13 @@ const anthropicSettings: ProviderSettings = {
 	},
 	modelOptions: anthropicModelOptions,
 	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
 		let fallbackName: keyof typeof anthropicModelOptions | null = null
-		if (modelName.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
-		if (modelName.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
-		if (modelName.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
-		if (modelName.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
-		if (modelName.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
+		if (lower.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
+		if (lower.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
+		if (lower.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
+		if (lower.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
+		if (lower.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
 		if (fallbackName) return { modelName: fallbackName, ...anthropicModelOptions[fallbackName] }
 		return { modelName, ...modelOptionsDefaults, maxOutputTokens: 4_096 }
 	},
@@ -359,10 +378,11 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 const openAISettings: ProviderSettings = {
 	modelOptions: openAIModelOptions,
 	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
 		let fallbackName: keyof typeof openAIModelOptions | null = null
-		if (modelName.includes('o1')) { fallbackName = 'o1' }
-		if (modelName.includes('o3-mini')) { fallbackName = 'o3-mini' }
-		if (modelName.includes('gpt-4o')) { fallbackName = 'gpt-4o' }
+		if (lower.includes('o1')) { fallbackName = 'o1' }
+		if (lower.includes('o3-mini')) { fallbackName = 'o3-mini' }
+		if (lower.includes('gpt-4o')) { fallbackName = 'gpt-4o' }
 		if (fallbackName) return { modelName: fallbackName, ...openAIModelOptions[fallbackName] }
 		return null
 	}
@@ -384,8 +404,9 @@ const xAIModelOptions = {
 const xAISettings: ProviderSettings = {
 	modelOptions: xAIModelOptions,
 	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
 		let fallbackName: keyof typeof xAIModelOptions | null = null
-		if (modelName.includes('grok-2')) fallbackName = 'grok-2'
+		if (lower.includes('grok-2')) fallbackName = 'grok-2'
 		if (fallbackName) return { modelName: fallbackName, ...xAIModelOptions[fallbackName] }
 		return null
 	}
@@ -394,6 +415,15 @@ const xAISettings: ProviderSettings = {
 
 // ---------------- GEMINI ----------------
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
+	'gemini-2.5-pro-exp-03-25': {
+		contextWindow: 1_048_576,
+		maxOutputTokens: null, // 8_192,
+		cost: { input: 0, output: 0 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style', // we are assuming OpenAI SDK when calling gemini
+		reasoningCapabilities: false,
+	},
 	'gemini-2.0-flash': {
 		contextWindow: 1_048_576,
 		maxOutputTokens: null, // 8_192,
@@ -660,8 +690,10 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
 
+	// TODO!!!
 	// googleVertex: {},
 	// microsoftAzure: {},
+	// openHands: {},
 } as const
 
 
@@ -669,8 +701,16 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: ProviderSetting
 
 // returns the capabilities and the adjusted modelName if it was a fallback
 export const getModelCapabilities = (providerName: ProviderName, modelName: string): ModelOptions & { modelName: string; isUnrecognizedModel: boolean } => {
+	const lowercaseModelName = modelName.toLowerCase()
 	const { modelOptions, modelOptionsFallback } = modelSettingsOfProvider[providerName]
-	if (modelName in modelOptions) return { modelName, ...modelOptions[modelName], isUnrecognizedModel: false }
+
+	// search model options object directly first
+	for (const modelName_ in modelOptions) {
+		const lowercaseModelName_ = modelName_.toLowerCase()
+		if (lowercaseModelName === lowercaseModelName_)
+			return { modelName, ...modelOptions[modelName], isUnrecognizedModel: false }
+	}
+
 	const result = modelOptionsFallback(modelName)
 	if (result) return { ...result, isUnrecognizedModel: false }
 	return { modelName, ...modelOptionsDefaults, isUnrecognizedModel: true }

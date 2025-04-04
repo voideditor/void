@@ -3,7 +3,6 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-
 import { URI } from '../../../../../base/common/uri.js';
 import { os } from '../helpers/systemInfo.js';
 import { CodeSelection, FileSelection, StagingSelectionItem } from '../chatThreadServiceTypes.js';
@@ -11,7 +10,6 @@ import { ChatMode } from '../voidSettingsTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 import { InternalToolInfo } from '../toolsServiceTypes.js';
-
 
 // this is just for ease of readability
 export const tripleTick = ['```', '```']
@@ -148,7 +146,7 @@ Here's an example of a good description:\n${editToolDescription}.`
 
 
 
-export const chat_systemMessage = (workspaces: string[], runningTerminalIds: string[], mode: ChatMode) => `\
+export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, chatMode: mode }: { workspaceFolders: string[], openedURIs: string[], activeURI: string | undefined, runningTerminalIds: string[], chatMode: ChatMode }) => `\
 You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} that runs in the Void code editor. Your job is \
 ${mode === 'agent' ? `to help the user develop, run, deploy, and make changes to their codebase. You should ALWAYS bring user's task to completion to the fullest extent possible, calling tools to make all necessary changes.`
 		: mode === 'gather' ? `to search and understand the user's codebase. You MUST use tools to read files and help the user understand the codebase, even if you were initially given files.`
@@ -159,10 +157,12 @@ Please assist the user with their query. The user's query is never invalid.
 ${/* system info */''}
 The user's system information is as follows:
 - ${os}
-- Open workspace(s): ${workspaces.join(', ') || 'NO WORKSPACE OPEN'}
-${(mode === 'agent') && runningTerminalIds.length !== 0 ? `\
-- Existing terminal IDs: ${runningTerminalIds.join(', ')}
-`: '\n'}
+- Open workspace(s): ${workspaceFolders.join(', ') || 'NO WORKSPACE OPEN'}
+- Open tab(s): ${openedURIs.join(', ') || 'NO OPENED EDITORS'}
+- Active tab: ${activeURI}
+${(mode === 'agent') && runningTerminalIds.length !== 0 ? `
+- Existing terminal IDs: ${runningTerminalIds.join(', ')}` : ''}
+
 ${/* tool use */ mode === 'agent' || mode === 'gather' ? `\
 You will be given tools you can call.
 ${mode === 'agent' ? `\

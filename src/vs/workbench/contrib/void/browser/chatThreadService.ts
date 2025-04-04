@@ -29,9 +29,11 @@ import { shorten } from '../../../../base/common/labels.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { findLastIdx } from '../../../../base/common/arraysFind.js';
+import { findLast, findLastIdx } from '../../../../base/common/arraysFind.js';
 import { IEditCodeService } from './editCodeServiceInterface.js';
 import { VoidFileSnapshot } from '../common/editCodeServiceTypes.js';
+import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
+import { IModelService } from '../../../../editor/common/services/model.js';
 
 
 /*
@@ -241,7 +243,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IEditorService private readonly _editorService: IEditorService,
 		@ICodeEditorService private readonly _codeEditorService: ICodeEditorService,
 		@IEditCodeService private readonly _editCodeService: IEditCodeService,
-		// @IModelService private readonly _modelService: IModelService,
+		@INotificationService private readonly _notificationService: INotificationService,
+		@IModelService private readonly _modelService: IModelService,
 
 	) {
 		super()
@@ -475,7 +478,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		const callThisToolFirst: ToolRequestApproval<ToolName> = lastMessage
 
-		this._runChatAgent({ callThisToolFirst, prevSelns, currSelns, threadId, userMessageContent: instructions, ...this._currentModelSelectionProps() })
+		this._wrapRunAgentToNotify(
+			this._runChatAgent({ callThisToolFirst, prevSelns, currSelns, threadId, userMessageContent: instructions, ...this._currentModelSelectionProps() })
+			, threadId
+		)
 	}
 	rejectLatestToolRequest(threadId: string) {
 		const thread = this.state.allThreads[threadId]
@@ -572,8 +578,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			// system message
 			const workspaceFolders = this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
-			const terminalIds = this._terminalToolService.listTerminalIds()
-			const systemMessage = chat_systemMessage(workspaceFolders, terminalIds, chatMode)
+
+			const openedURIs = this._modelService.getModels().filter(m => m.isAttachedToEditor()).map(m => m.uri.fsPath) || [];
+			const activeURI = this._editorService.activeEditor?.resource?.fsPath;
+
+			const runningTerminalIds = this._terminalToolService.listTerminalIds()
+			const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, chatMode })
 
 			// all messages so far in the chat history (including tools)
 			const messages: LLMChatMessage[] = [
@@ -767,9 +777,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// if awaiting user approval, keep isRunning true, else end isRunning
 		this._setStreamState(threadId, { isRunning: isRunningWhenEnd }, 'merge')
 
+		// if successful, add checkpoint
+		this._addUserCheckpoint({ threadId })
+
 		// capture number of messages sent
 		this._metricsService.capture('Agent Loop Done', { nMessagesSent, chatMode })
-
 	}
 
 
@@ -1039,6 +1051,43 @@ We only need to do it for files that were edited since `from`, ie files between 
 	}
 
 
+	private _wrapRunAgentToNotify(p: Promise<void>, threadId: string) {
+		const notify = (error: string | null) => {
+			const thread = this.state.allThreads[threadId]
+			if (!thread) return
+			const userMsg = findLast(thread.messages, m => m.role === 'user')
+			if (!userMsg) return
+			if (userMsg.role !== 'user') return
+			const messageContent = userMsg.displayContent.substring(0, 50)
+
+			this._notificationService.notify({
+				severity: error ? Severity.Warning : Severity.Info,
+				message: error ? `Error: ${error} ` : `Task Complete!\n${messageContent}...`,
+				actions: {
+					secondary: [{
+						id: 'void.goToChat',
+						enabled: true,
+						label: `View`,
+						tooltip: '',
+						class: undefined,
+						run: () => {
+							this.switchToThread(threadId)
+							// TODO!!! scroll to bottom
+						}
+					}]
+				},
+			})
+		}
+
+		p.then(() => {
+			notify(null)
+
+		}).catch((e) => {
+			notify(getErrorMessage(e))
+			throw e
+		})
+	}
+
 	async addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: { prevSelns?: StagingSelectionItem[], currSelns?: StagingSelectionItem[], }, threadId: string }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
@@ -1058,10 +1107,10 @@ We only need to do it for files that were edited since `from`, ie files between 
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)
 
-		this._runChatAgent({ prevSelns, currSelns, threadId, userMessageContent, ...this._currentModelSelectionProps(), })
-			.then(() => {
-				this._addUserCheckpoint({ threadId })
-			})
+		this._wrapRunAgentToNotify(
+			this._runChatAgent({ prevSelns, currSelns, threadId, userMessageContent, ...this._currentModelSelectionProps(), }),
+			threadId,
+		)
 	}
 
 	dismissStreamError(threadId: string): void {

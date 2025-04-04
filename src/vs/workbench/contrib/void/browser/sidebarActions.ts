@@ -200,7 +200,11 @@ registerAction2(class extends Action2 {
 			id: 'void.newChatAction',
 			title: 'New Chat',
 			icon: { id: 'add' },
-			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
+			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }],
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyL,
+				weight: KeybindingWeight.VoidExtension,
+			},
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {

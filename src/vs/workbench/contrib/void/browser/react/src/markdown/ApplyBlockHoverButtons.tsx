@@ -1,3 +1,8 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
 import { useState, useEffect, useCallback } from 'react'
 import { useAccessor, useCommandBarState, useCommandBarURIListener, useSettingsState } from '../util/services.js'
 import { usePromise, useRefState } from '../util/helpers.js'
@@ -144,7 +149,6 @@ export const useApplyButtonState = ({ applyBoxId, uri }: { applyBoxId: string, u
 
 	const getStreamState = useCallback(() => {
 		const uri = getUriBeingApplied(applyBoxId)
-		console.log('uri',uri?.fsPath)
 		if (!uri) return 'idle-no-changes'
 		return voidCommandBarService.getStreamState(uri)
 	}, [voidCommandBarService, applyBoxId])
@@ -162,7 +166,6 @@ export const useApplyButtonState = ({ applyBoxId, uri }: { applyBoxId: string, u
 	}, [applyBoxId, applyBoxId, uri]))
 
 	const currStreamState = getStreamState()
-	console.log('curr stream state', currStreamState)
 
 	return {
 		getStreamState,

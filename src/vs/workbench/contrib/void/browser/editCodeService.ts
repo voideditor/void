@@ -11,7 +11,7 @@ import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/brows
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 // import { throttle } from '../../../../base/common/decorators.js';
-import { ComputedDiff, findDiffs } from './helpers/findDiffs.js';
+import { findDiffs } from './helpers/findDiffs.js';
 import { EndOfLinePreference, IModelDecorationOptions, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
@@ -40,13 +40,14 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
 import { LLMChatMessage, OnError, errorDetails } from '../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
-import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts, CallBeforeStartApplyingOpts } from './editCodeServiceInterface.js';
+import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts, CallBeforeStartApplyingOpts, } from './editCodeServiceInterface.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { ITextFileService } from '../../../services/textfile/common/textfiles.js';
 import { deepClone } from '../../../../base/common/objects.js';
 import { acceptBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../common/helpers/colors.js';
+import { DiffArea, Diff, CtrlKZone, VoidFileSnapshot, DiffAreaSnapshotEntry, diffAreaSnapshotKeys, DiffZone, TrackingZone, ComputedDiff } from '../common/editCodeServiceTypes.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -107,7 +108,6 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 };
 
 
-
 // finds block.orig in fileContents and return its range in file
 // startingAtLine is 1-indexed and inclusive
 const findTextInCode = (text: string, fileContents: string, startingAtLine?: number) => {
@@ -123,108 +123,6 @@ const findTextInCode = (text: string, fileContents: string, startingAtLine?: num
 	const numLines = numLinesOfStr(text)
 	const endLine = startLine + numLines - 1
 	return [startLine, endLine] as const
-}
-
-
-
-
-// // TODO diffArea should be removed if we just discovered it has no more diffs in it
-// for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
-// 	const diffArea = this.diffAreaOfId[diffareaid]
-// 	if (Object.keys(diffArea._diffOfId).length === 0 && !diffArea._sweepState.isStreaming) {
-// 		const { onFinishEdit } = this._addToHistory(uri)
-// 		this._deleteDiffArea(diffArea)
-// 		onFinishEdit()
-// 	}
-// }
-
-
-export type Diff = {
-	diffid: number;
-	diffareaid: number; // the diff area this diff belongs to, "computed"
-} & ComputedDiff
-
-
-
-// _ means anything we don't include if we clone it
-// DiffArea.originalStartLine is the line in originalCode (not the file)
-
-type CommonZoneProps = {
-	diffareaid: number;
-	startLine: number;
-	endLine: number;
-
-	_URI: URI; // typically we get the URI from model
-
-}
-
-type CtrlKZone = {
-	type: 'CtrlKZone';
-	originalCode?: undefined;
-
-	editorId: string; // the editor the input lives on
-
-	_mountInfo: null | {
-		textAreaRef: { current: HTMLTextAreaElement | null }
-		dispose: () => void;
-		refresh: () => void;
-	}
-
-	_linkedStreamingDiffZone: number | null; // diffareaid of the diffZone currently streaming here
-	_removeStylesFns: Set<Function> // these don't remove diffs or this diffArea, only their styles
-
-} & CommonZoneProps
-
-
-export type DiffZone = {
-	type: 'DiffZone',
-	originalCode: string;
-	_diffOfId: Record<string, Diff>; // diffid -> diff in this DiffArea
-	_streamState: {
-		isStreaming: true;
-		streamRequestIdRef: { current: string | null };
-		line: number;
-	} | {
-		isStreaming: false;
-		streamRequestIdRef?: undefined;
-		line?: undefined;
-	};
-	editorId?: undefined;
-	linkedStreamingDiffZone?: undefined;
-	_removeStylesFns: Set<Function> // these don't remove diffs or this diffArea, only their styles
-} & CommonZoneProps
-
-
-
-type TrackingZone<T> = {
-	type: 'TrackingZone';
-	metadata: T;
-	originalCode?: undefined;
-	editorId?: undefined;
-	_removeStylesFns?: undefined;
-} & CommonZoneProps
-
-
-// called DiffArea for historical purposes, we can rename to something like TextRegion if we want
-export type DiffArea = CtrlKZone | DiffZone | TrackingZone<any>
-
-const diffAreaSnapshotKeys = [
-	'type',
-	'diffareaid',
-	'originalCode',
-	'startLine',
-	'endLine',
-	'editorId',
-
-] as const satisfies (keyof DiffArea)[]
-
-type DiffAreaSnapshot<DiffAreaType extends DiffArea = DiffArea> = Pick<DiffAreaType, typeof diffAreaSnapshotKeys[number]>
-
-
-
-type HistorySnapshot = {
-	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>;
-	entireFileCode: string;
 }
 
 
@@ -259,7 +157,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	// ctrlKZone: [uri], isStreaming  // listen on change streaming
 	private readonly _onDidChangeStreamingInCtrlKZone = new Emitter<{ uri: URI; diffareaid: number }>();
-	onDidChangeStreamingInCtrlKZone = this._onDidChangeStreamingInCtrlKZone.event
+	onDidChangeStreamingInCtrlKZone = this._onDidChangeStreamingInCtrlKZone.event;
 
 
 	constructor(
@@ -722,103 +620,113 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
+
+
+
+	private _getCurrentVoidFileSnapshot = (uri: URI): VoidFileSnapshot => {
+		const { model } = this._voidModelService.getModel(uri)
+		const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshotEntry> = {}
+
+		for (const diffareaid in this.diffAreaOfId) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+
+			if (diffArea._URI.fsPath !== uri.fsPath) continue
+
+			snapshottedDiffAreaOfId[diffareaid] = deepClone(
+				Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
+			) as DiffAreaSnapshotEntry
+		}
+
+		const entireFileCode = model ? model.getValue(EndOfLinePreference.LF) : ''
+
+		// this._noLongerNeedModelReference(uri)
+		return {
+			snapshottedDiffAreaOfId,
+			entireFileCode, // the whole file's code
+		}
+	}
+
+
+	private _restoreVoidFileSnapshot = async (uri: URI, snapshot: VoidFileSnapshot) => {
+		// for each diffarea in this uri, stop streaming if currently streaming
+		for (const diffareaid in this.diffAreaOfId) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (diffArea.type === 'DiffZone')
+				this._stopIfStreaming(diffArea)
+		}
+
+		// delete all diffareas on this uri (clearing their styles)
+		this._deleteAllDiffAreas(uri)
+
+		const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = deepClone(snapshot) // don't want to destroy the snapshot
+
+		// restore diffAreaOfId and diffAreasOfModelId
+		for (const diffareaid in snapshottedDiffAreaOfId) {
+
+			const snapshottedDiffArea = snapshottedDiffAreaOfId[diffareaid]
+
+			if (snapshottedDiffArea.type === 'DiffZone') {
+				this.diffAreaOfId[diffareaid] = {
+					...snapshottedDiffArea as DiffAreaSnapshotEntry<DiffZone>,
+					type: 'DiffZone',
+					_diffOfId: {},
+					_URI: uri,
+					_streamState: { isStreaming: false }, // when restoring, we will never be streaming
+					_removeStylesFns: new Set(),
+				}
+			}
+			else if (snapshottedDiffArea.type === 'CtrlKZone') {
+				this.diffAreaOfId[diffareaid] = {
+					...snapshottedDiffArea as DiffAreaSnapshotEntry<CtrlKZone>,
+					_URI: uri,
+					_removeStylesFns: new Set<Function>(),
+					_mountInfo: null,
+					_linkedStreamingDiffZone: null, // when restoring, we will never be streaming
+				}
+			}
+			this._addOrInitializeDiffAreaAtURI(uri, diffareaid)
+		}
+		this._onDidAddOrDeleteDiffZones.fire({ uri })
+
+		// restore file content
+		this._writeURIText(uri, entireModelCode,
+			'wholeFileRange',
+			{ shouldRealignDiffAreas: false }
+		)
+		// this._noLongerNeedModelReference(uri)
+	}
+
 	private _addToHistory(uri: URI, opts?: { onWillUndo?: () => void }) {
-
-		const getCurrentSnapshot = (): HistorySnapshot => {
-
-			const { model } = this._voidModelService.getModel(uri)
-			const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
-
-			for (const diffareaid in this.diffAreaOfId) {
-				const diffArea = this.diffAreaOfId[diffareaid]
-
-				if (diffArea._URI.fsPath !== uri.fsPath) continue
-
-				snapshottedDiffAreaOfId[diffareaid] = deepClone(
-					Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
-				) as DiffAreaSnapshot
-			}
-
-			const entireFileCode = model ? model.getValue(EndOfLinePreference.LF) : ''
-
-			// this._noLongerNeedModelReference(uri)
-			return {
-				snapshottedDiffAreaOfId,
-				entireFileCode, // the whole file's code
-			}
-		}
-
-		const restoreDiffAreas = async (snapshot: HistorySnapshot) => {
-
-			// for each diffarea in this uri, stop streaming if currently streaming
-			for (const diffareaid in this.diffAreaOfId) {
-				const diffArea = this.diffAreaOfId[diffareaid]
-				if (diffArea.type === 'DiffZone')
-					this._stopIfStreaming(diffArea)
-			}
-
-			// delete all diffareas on this uri (clearing their styles)
-			this._deleteAllDiffAreas(uri)
-			this.diffAreasOfURI[uri.fsPath]?.clear()
-
-			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = deepClone(snapshot) // don't want to destroy the snapshot
-
-			// restore diffAreaOfId and diffAreasOfModelId
-			for (const diffareaid in snapshottedDiffAreaOfId) {
-
-				const snapshottedDiffArea = snapshottedDiffAreaOfId[diffareaid]
-
-				if (snapshottedDiffArea.type === 'DiffZone') {
-					this.diffAreaOfId[diffareaid] = {
-						...snapshottedDiffArea as DiffAreaSnapshot<DiffZone>,
-						type: 'DiffZone',
-						_diffOfId: {},
-						_URI: uri,
-						_streamState: { isStreaming: false }, // when restoring, we will never be streaming
-						_removeStylesFns: new Set(),
-					}
-				}
-				else if (snapshottedDiffArea.type === 'CtrlKZone') {
-					this.diffAreaOfId[diffareaid] = {
-						...snapshottedDiffArea as DiffAreaSnapshot<CtrlKZone>,
-						_URI: uri,
-						_removeStylesFns: new Set<Function>(),
-						_mountInfo: null,
-						_linkedStreamingDiffZone: null, // when restoring, we will never be streaming
-					}
-				}
-				this._addOrInitializeDiffAreaAtURI(uri, diffareaid)
-			}
-			this._onDidAddOrDeleteDiffZones.fire({ uri })
-
-			// restore file content
-			this._writeURIText(uri, entireModelCode,
-				'wholeFileRange',
-				{ shouldRealignDiffAreas: false }
-			)
-			// this._noLongerNeedModelReference(uri)
-		}
-
-		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
-		let afterSnapshot: HistorySnapshot | null = null
+		const beforeSnapshot: VoidFileSnapshot = this._getCurrentVoidFileSnapshot(uri)
+		let afterSnapshot: VoidFileSnapshot | null = null
 
 		const elt: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
 			resource: uri,
 			label: 'Void Agent',
 			code: 'undoredo.editCode',
-			undo: () => { opts?.onWillUndo?.(); restoreDiffAreas(beforeSnapshot); },
-			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }
+			undo: () => { opts?.onWillUndo?.(); this._restoreVoidFileSnapshot(uri, beforeSnapshot); },
+			redo: () => { if (afterSnapshot) this._restoreVoidFileSnapshot(uri, afterSnapshot) }
 		}
 		this._undoRedoService.pushElement(elt)
 
 		const onFinishEdit = async () => {
-			afterSnapshot = getCurrentSnapshot()
+			afterSnapshot = this._getCurrentVoidFileSnapshot(uri)
 			await this._textFileService.save(uri, { // we want [our change] -> [save] so it's all treated as one change.
 				skipSaveParticipants: true // avoid triggering extensions etc (if they reformat the page, it will add another item to the undo stack)
 			})
 		}
 		return { onFinishEdit }
+	}
+
+
+	public getVoidFileSnapshot(uri: URI) {
+		return this._getCurrentVoidFileSnapshot(uri)
+	}
+
+
+	public restoreVoidFileSnapshot(uri: URI, snapshot: VoidFileSnapshot): void {
+		this._restoreVoidFileSnapshot(uri, snapshot)
 	}
 
 
@@ -886,6 +794,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			else if (diffArea.type === 'CtrlKZone')
 				this._deleteCtrlKZone(diffArea)
 		})
+		this.diffAreasOfURI[uri.fsPath]?.clear()
 	}
 
 	private _addOrInitializeDiffAreaAtURI = (uri: URI, diffareaid: string | number) => {

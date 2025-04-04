@@ -30,6 +30,8 @@ import { IVoidModelService } from '../common/voidModelService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { findLastIdx } from '../../../../base/common/arraysFind.js';
+import { IEditCodeService } from './editCodeServiceInterface.js';
+import { VoidFileSnapshot } from '../common/editCodeServiceTypes.js';
 
 
 /*
@@ -238,6 +240,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IMetricsService private readonly _metricsService: IMetricsService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@ICodeEditorService private readonly _codeEditorService: ICodeEditorService,
+		@IEditCodeService private readonly _editCodeService: IEditCodeService,
 		// @IModelService private readonly _modelService: IModelService,
 
 	) {
@@ -787,13 +790,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return // should never happen
 
-		const currValue = model.getValue() // afterStr = the value of the file right after the edit
+		const diffAreasSnapshot = this._editCodeService.getVoidFileSnapshot(uri)
 
 		this._addCheckpoint(threadId, {
 			role: 'checkpoint',
 			type: 'tool_edit',
-			beforeStrOfURI: { [uri.fsPath]: currValue, },
-			userModifications: { beforeStrOfURI: {} },
+			voidFileSnapshotOfURI: { [uri.fsPath]: diffAreasSnapshot },
+			userModifications: { voidFileSnapshotOfURI: {} },
 		})
 
 	}
@@ -821,13 +824,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 
-	private _computeNeededCheckpointChanges({ threadId }: { threadId: string }) {
+	private _computeCheckpointInfo({ threadId }: { threadId: string }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return
 		const { currCheckpointIdx } = thread.state
 		if (currCheckpointIdx === null) return
 
-		const currStrOfFsPath: { [fsPath: string]: string | undefined } = {}
+		const voidFileSnapshotOfURI: { [fsPath: string]: VoidFileSnapshot | undefined } = {}
 
 		// add a change for all the URIs in the checkpoint history
 		const { lastIdxOfURI } = this._getCheckpointsBetween({ threadId, loIdx: 0, hiIdx: currCheckpointIdx, }) ?? {}
@@ -837,10 +840,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const checkpoint2 = thread.messages[lastIdxOfURI[fsPath]] || null
 			if (!checkpoint2) continue
 			if (checkpoint2.role !== 'checkpoint') continue
-			const oldStr = this._getBeforeStrAtCheckpoint(checkpoint2, fsPath, { includeUserModifiedChanges: false })
-			const currStr = model.getValue()
-			if (oldStr === currStr) continue
-			currStrOfFsPath[fsPath] = currStr
+			const res = this._getCheckpointInfo(checkpoint2, fsPath, { includeUserModifiedChanges: false })
+			if (!res) continue
+			const { voidFileSnapshot: oldVoidFileSnapshot } = res
+
+			// if there was any change to the str or diffAreaSnapshot, update. rough approximation of equality, oldDiffAreasSnapshot === diffAreasSnapshot is not perfect
+			const voidFileSnapshot = this._editCodeService.getVoidFileSnapshot(URI.file(fsPath))
+			if (oldVoidFileSnapshot === voidFileSnapshot) continue
+			voidFileSnapshotOfURI[fsPath] = voidFileSnapshot
 		}
 
 		// // add a change for all user-edited files (that aren't in the history)
@@ -851,27 +858,30 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// 	currStrOfFsPath[fsPath] = model.getValue()
 		// }
 
-		return currStrOfFsPath
+		return { voidFileSnapshotOfURI }
 	}
 
 	// call this right before user sends message or reverts
 	private _addUserCheckpoint({ threadId }: { threadId: string }) {
-		const changes = this._computeNeededCheckpointChanges({ threadId })
+		const { voidFileSnapshotOfURI } = this._computeCheckpointInfo({ threadId }) ?? {}
 		this._addCheckpoint(threadId, {
 			role: 'checkpoint',
 			type: 'user_edit',
-			beforeStrOfURI: changes ?? {},
-			userModifications: { beforeStrOfURI: {} },
+			voidFileSnapshotOfURI: voidFileSnapshotOfURI ?? {},
+			userModifications: {
+				voidFileSnapshotOfURI: {},
+			},
 		})
 	}
 	private _addUserModificationsToCurrCheckpoint({ threadId }: { threadId: string }) {
-		const changes = this._computeNeededCheckpointChanges({ threadId })
+		const { voidFileSnapshotOfURI } = this._computeCheckpointInfo({ threadId }) ?? {}
+
 		const res = this._getCurrentCheckpoint(threadId)
 		if (!res) return
 		const [checkpoint, checkpointIdx] = res
 		this._editMessageInThread(threadId, checkpointIdx, {
 			...checkpoint,
-			userModifications: { beforeStrOfURI: changes ?? {} },
+			userModifications: { voidFileSnapshotOfURI: voidFileSnapshotOfURI ?? {}, },
 		})
 
 	}
@@ -908,29 +918,30 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		for (let i = loIdx; i <= hiIdx; i += 1) {
 			const message = thread.messages[i]
 			if (message.role !== 'checkpoint') continue
-			for (const fsPath in message.beforeStrOfURI) { // do not include userModified.beforeStrOfURI here, jumping should not include those changes
+			for (const fsPath in message.voidFileSnapshotOfURI) { // do not include userModified.beforeStrOfURI here, jumping should not include those changes
 				lastIdxOfURI[fsPath] = i
 			}
 		}
 		return { lastIdxOfURI }
 	}
 
-	private _getBeforeStrAtCheckpoint = (checkpointMessage: ChatMessage & { role: 'checkpoint' }, fsPath: string, opts: { includeUserModifiedChanges: boolean }) => {
-		const beforeStr = fsPath in checkpointMessage.beforeStrOfURI ? checkpointMessage.beforeStrOfURI[fsPath] ?? null : null
-		if (!opts.includeUserModifiedChanges) return beforeStr
-		const userModifiedBeforeStr = fsPath in checkpointMessage.userModifications.beforeStrOfURI ? checkpointMessage.userModifications.beforeStrOfURI[fsPath] ?? null : null
-		return userModifiedBeforeStr ?? beforeStr
+	private _getCheckpointInfo = (checkpointMessage: ChatMessage & { role: 'checkpoint' }, fsPath: string, opts: { includeUserModifiedChanges: boolean }) => {
+		const voidFileSnapshot = checkpointMessage.voidFileSnapshotOfURI ? checkpointMessage.voidFileSnapshotOfURI[fsPath] ?? null : null
+		if (!opts.includeUserModifiedChanges) { return { voidFileSnapshot, } }
+
+		const userModifiedVoidFileSnapshot = fsPath in checkpointMessage.userModifications.voidFileSnapshotOfURI ? checkpointMessage.userModifications.voidFileSnapshotOfURI[fsPath] ?? null : null
+		return { voidFileSnapshot: userModifiedVoidFileSnapshot ?? voidFileSnapshot, }
 	}
 
 
-	private _writeFullFile = ({ fsPath, text }: { fsPath: string, text: string }) => {
-		const { model } = this._voidModelService.getModelFromFsPath(fsPath)
-		if (!model) return // should never happen
-		model.applyEdits([{
-			range: { startLineNumber: 1, startColumn: 1, endLineNumber: model.getLineCount(), endColumn: Number.MAX_SAFE_INTEGER }, // whole file
-			text
-		}])
-	}
+	// private _writeFullFile = ({ fsPath, text }: { fsPath: string, text: string }) => {
+	// 	const { model } = this._voidModelService.getModelFromFsPath(fsPath)
+	// 	if (!model) return // should never happen
+	// 	model.applyEdits([{
+	// 		range: { startLineNumber: 1, startColumn: 1, endLineNumber: model.getLineCount(), endColumn: Number.MAX_SAFE_INTEGER }, // whole file
+	// 		text
+	// 	}])
+	// }
 
 	jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified }: { threadId: string, messageIdx: number, jumpToUserModified: boolean }) {
 		const thread = this.state.allThreads[threadId]
@@ -978,11 +989,12 @@ We only need to do it for files that were edited since `to`, ie files between to
 				for (let k = toIdx; k >= 0; k -= 1) {
 					const message = thread.messages[k]
 					if (message.role !== 'checkpoint') continue
-					const beforeStr = this._getBeforeStrAtCheckpoint(message, fsPath, { includeUserModifiedChanges: jumpToUserModified })
-					if (beforeStr !== null) {
-						this._writeFullFile({ fsPath, text: beforeStr })
-						break
-					}
+					const res = this._getCheckpointInfo(message, fsPath, { includeUserModifiedChanges: jumpToUserModified })
+					if (!res) continue
+					const { voidFileSnapshot } = res
+					if (!voidFileSnapshot) continue
+					this._editCodeService.restoreVoidFileSnapshot(URI.file(fsPath), voidFileSnapshot)
+					break
 				}
 			}
 		}
@@ -1011,11 +1023,13 @@ We only need to do it for files that were edited since `from`, ie files between 
 				for (let k = toIdx; k >= fromIdx + 1; k -= 1) {
 					const message = thread.messages[k]
 					if (message.role !== 'checkpoint') continue
-					const beforeStr = this._getBeforeStrAtCheckpoint(message, fsPath, { includeUserModifiedChanges: jumpToUserModified })
-					if (beforeStr !== null) {
-						this._writeFullFile({ fsPath, text: beforeStr })
-						break
-					}
+					const res = this._getCheckpointInfo(message, fsPath, { includeUserModifiedChanges: jumpToUserModified })
+					if (!res) continue
+					const { voidFileSnapshot } = res
+					if (!voidFileSnapshot) continue
+
+					this._editCodeService.restoreVoidFileSnapshot(URI.file(fsPath), voidFileSnapshot)
+					break
 				}
 			}
 		}

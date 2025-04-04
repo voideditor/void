@@ -128,7 +128,7 @@ Here's an example of a good description:\n${editToolDescription}.`
 		name: 'terminal_command',
 		description: `Executes a terminal command.`,
 		params: {
-			command: { type: 'string', description: 'The terminal command to execute.' },
+			command: { type: 'string', description: 'The terminal command to execute. Typically you should pipe to cat to avoid pagination.' },
 			waitForCompletion: { type: 'string', description: `Whether or not to await the command to complete and get the final result. Default is true. Make this value false when you want a command to run indefinitely without waiting for it.` },
 			terminalId: { type: 'string', description: 'Optional (value must be an integer >= 1, or empty which will go with the default). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
 		},

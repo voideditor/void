@@ -1,5 +1,11 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
 import { URI } from '../../../../base/common/uri.js';
 import { IRange } from '../../../../editor/common/core/range.js';
+import { VoidFileSnapshot } from './editCodeServiceTypes.js';
 import { AnthropicReasoning } from './sendLLMMessageTypes.js';
 import { ToolName, ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
 
@@ -29,11 +35,11 @@ export type ToolRequestApproval<T extends ToolName> = {
 export type CheckpointEntry = {
 	role: 'checkpoint';
 	type: 'user_edit' | 'tool_edit';
-	beforeStrOfURI: { [fsPath: string]: string | undefined };
+	voidFileSnapshotOfURI: { [fsPath: string]: VoidFileSnapshot | undefined };
+
 	userModifications: {
-		beforeStrOfURI: { [fsPath: string]: string | undefined };
+		voidFileSnapshotOfURI: { [fsPath: string]: VoidFileSnapshot | undefined };
 	};
-	// diffAreas: null;
 }
 
 

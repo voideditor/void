@@ -1,7 +1,3 @@
-//!!!! merged
-
-
-
 /*--------------------------------------------------------------------------------------
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
@@ -1821,12 +1817,12 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 const Checkpoint = ({ threadId, messageIdx }: { threadId: string; messageIdx: number }) => {
 	const accessor = useAccessor()
 	const chatThreadService = accessor.get('IChatThreadService')
-	const commandBarService = accessor.get('IVoidCommandBarService')
+	// const commandBarService = accessor.get('IVoidCommandBarService')
 	return <div
 		className='pointer-events-auto cursor-pointer select-none hover:brightness-125 flex items-center justify-center'
 		onClick={() => {
 			// reject all current changes and then jump back
-			commandBarService.acceptOrRejectAllFiles({ behavior: 'accept' })
+			// commandBarService.acceptOrRejectAllFiles({ behavior: 'accept' })
 			chatThreadService.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
 		}}>
 		<div className='bg-void-border-1 h-[1px] flex-grow'></div>

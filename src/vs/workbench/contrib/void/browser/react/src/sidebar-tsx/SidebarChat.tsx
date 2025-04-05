@@ -541,7 +541,7 @@ export const SelectedFiles = (
 	}
 
 	return (
-		<div className='flex items-center flex-wrap text-left relative gap-x-0.5 gap-y-1'>
+		<div className='flex items-center flex-wrap text-left relative gap-x-0.5 gap-y-1 pb-0.5'>
 
 			{allSelections.map((selection, i) => {
 
@@ -1178,7 +1178,7 @@ const loadingTitleWrapper = (item: React.ReactNode) => {
 }
 const folderFileStr = (isFolder: boolean) => isFolder ? 'folder' : 'file'
 const titleOfToolName = {
-	'view_file_contents': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
+	'read_file': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
 	'ls_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
 	'get_dir_structure': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
 	'search_pathnames_only': { done: 'Searched by file name', proposed: 'Search by file name', running: loadingTitleWrapper('Searching by file name') },
@@ -1205,8 +1205,8 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 		return '';
 	}
 
-	if (toolName === 'view_file_contents') {
-		const toolParams = _toolParams as ToolCallParams['view_file_contents']
+	if (toolName === 'read_file') {
+		const toolParams = _toolParams as ToolCallParams['read_file']
 		return getBasename(toolParams.uri.fsPath);
 	} else if (toolName === 'ls_dir') {
 		const toolParams = _toolParams as ToolCallParams['ls_dir']
@@ -1373,7 +1373,7 @@ type ToolComponent<T extends ToolName,> = {
 }
 
 const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
-	'view_file_contents': {
+	'read_file': {
 		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()

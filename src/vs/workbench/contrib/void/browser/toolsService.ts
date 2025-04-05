@@ -55,7 +55,9 @@ const validateJSON = (s: string): { [s: string]: unknown } => {
 	}
 }
 
-
+const isFalsy = (u: unknown) => {
+	return !u || u === 'null' || u === 'undefined'
+}
 
 const validateStr = (argName: string, value: unknown) => {
 	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string.`)
@@ -64,12 +66,23 @@ const validateStr = (argName: string, value: unknown) => {
 
 
 // We are NOT checking to make sure in workspace
+// TODO!!!! check to make sure folder/file exists
 const validateURI = (uriStr: unknown) => {
 	if (typeof uriStr !== 'string') throw new Error('Invalid LLM output format: Provided uri must be a string.')
-
 	const uri = URI.file(uriStr)
 	return uri
 }
+
+const validateOptionalURI = (uriStr: unknown) => {
+	if (isFalsy(uriStr)) return null
+	return validateURI(uriStr)
+}
+
+const validateOptionalStr = (argName: string, str: unknown) => {
+	if (isFalsy(str)) return null
+	return validateStr(argName, str)
+}
+
 
 const validatePageNum = (pageNumberUnknown: unknown) => {
 	if (!pageNumberUnknown) return 1
@@ -77,6 +90,20 @@ const validatePageNum = (pageNumberUnknown: unknown) => {
 	if (!Number.isInteger(parsedInt)) throw new Error(`Page number was not an integer: "${pageNumberUnknown}".`)
 	if (parsedInt < 1) throw new Error(`Invalid LLM output format: Specified page number must be 1 or greater: "${pageNumberUnknown}".`)
 	return parsedInt
+}
+
+const validateNumber = (numStr: unknown, opts: { default: number | null }) => {
+	if (typeof numStr === 'number')
+		return numStr
+	if (isFalsy(numStr)) return opts.default
+
+	if (typeof numStr === 'string') {
+		const parsedInt = Number.parseInt(numStr + '')
+		if (!Number.isInteger(parsedInt)) return opts.default
+		return parsedInt
+	}
+
+	return opts.default
 }
 
 const validateRecursiveParamStr = (paramsUnknown: unknown) => {
@@ -92,12 +119,15 @@ const validateProposedTerminalId = (terminalIdUnknown: unknown) => {
 	return terminalId
 }
 
-const validateWaitForCompletion = (b: unknown) => {
+const validateBoolean = (b: unknown, opts: { default: boolean }) => {
 	if (typeof b === 'string') {
 		if (b === 'true') return true
 		if (b === 'false') return false
 	}
-	return true // default is true
+	if (typeof b === 'boolean') {
+		return b
+	}
+	return opts.default
 }
 
 
@@ -139,14 +169,17 @@ export class ToolsService implements IToolsService {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.validateParams = {
-			view_file_contents: async (params: string) => {
+			read_file: async (params: string) => {
 				const o = validateJSON(params)
-				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
+				const { uri: uriStr, startLine: startLineUnknown, endLine: endLineUnknown, pageNumber: pageNumberUnknown } = o
 
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
-				return { uri, pageNumber }
+				const startLine = validateNumber(startLineUnknown, { default: null })
+				const endLine = validateNumber(endLineUnknown, { default: null })
+
+				return { uri, startLine, endLine, pageNumber }
 			},
 			ls_dir: async (params: string) => {
 				const o = validateJSON(params)
@@ -164,22 +197,35 @@ export class ToolsService implements IToolsService {
 			},
 			search_pathnames_only: async (params: string) => {
 				const o = validateJSON(params)
-				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
+				const {
+					query: queryUnknown,
+					include: includeUnknown,
+					pageNumber: pageNumberUnknown
+				} = o
 
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
+				const include = validateOptionalStr('include', includeUnknown)
 
-				return { queryStr, pageNumber }
+				return { queryStr, include, pageNumber }
 
 			},
 			search_files: async (params: string) => {
 				const o = validateJSON(params)
-				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
+				const {
+					query: queryUnknown,
+					searchInFolder: searchInFolderUnknown,
+					isRegex: isRegexUnknown,
+					pageNumber: pageNumberUnknown
+				} = o
 
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
-				return { queryStr, pageNumber }
+				const searchInFolder = validateOptionalURI(searchInFolderUnknown)
+				const isRegex = validateBoolean(isRegexUnknown, { default: false })
+
+				return { queryStr, searchInFolder, isRegex, pageNumber }
 			},
 
 			// ---
@@ -216,7 +262,7 @@ export class ToolsService implements IToolsService {
 				const { command: commandUnknown, terminalId: terminalIdUnknown, waitForCompletion: waitForCompletionUnknown } = o
 				const command = validateStr('command', commandUnknown)
 				const proposedTerminalId = validateProposedTerminalId(terminalIdUnknown)
-				const waitForCompletion = validateWaitForCompletion(waitForCompletionUnknown)
+				const waitForCompletion = validateBoolean(waitForCompletionUnknown, { default: true })
 				return { command, proposedTerminalId, waitForCompletion }
 			},
 
@@ -224,16 +270,25 @@ export class ToolsService implements IToolsService {
 
 
 		this.callTool = {
-			view_file_contents: async ({ uri, pageNumber }) => {
+			read_file: async ({ uri, startLine, endLine, pageNumber }) => {
 				await voidModelService.initializeModel(uri)
 				const { model } = await voidModelService.getModelSafe(uri)
 				if (model === null) { throw new Error(`Contents were empty. There may have been an error, or the file may not exist.`) }
-				const readFileContents = model.getValue(EndOfLinePreference.LF)
+
+				let contents: string
+				if (startLine === null && endLine === null) {
+					contents = model.getValue(EndOfLinePreference.LF)
+				}
+				else {
+					const startLineNumber = startLine === null ? 1 : startLine
+					const endLineNumber = endLine === null ? model.getLineCount() : endLine
+					contents = model.getValueInRange({ startLineNumber, startColumn: 1, endLineNumber, endColumn: Number.MAX_SAFE_INTEGER }, EndOfLinePreference.LF)
+				}
 
 				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
-				const fileContents = readFileContents.slice(fromIdx, toIdx + 1) // paginate
-				const hasNextPage = (readFileContents.length - 1) - toIdx >= 1
+				const fileContents = contents.slice(fromIdx, toIdx + 1) // paginate
+				const hasNextPage = (contents.length - 1) - toIdx >= 1
 
 				return { result: { fileContents, hasNextPage } }
 			},
@@ -250,9 +305,11 @@ export class ToolsService implements IToolsService {
 				return { result: { str } }
 			},
 
-			search_pathnames_only: async ({ queryStr, pageNumber }) => {
+			search_pathnames_only: async ({ queryStr, include, pageNumber }) => {
+
 				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), {
 					filePattern: queryStr,
+					includePattern: include ?? undefined,
 				})
 				const data = await searchService.fileSearch(query, CancellationToken.None)
 
@@ -266,11 +323,15 @@ export class ToolsService implements IToolsService {
 				return { result: { uris, hasNextPage } }
 			},
 
-			search_files: async ({ queryStr, pageNumber }) => {
+			search_files: async ({ queryStr, isRegex, searchInFolder, pageNumber }) => {
+				const searchFolders = searchInFolder === null ?
+					workspaceContextService.getWorkspace().folders.map(f => f.uri)
+					: [searchInFolder]
+
 				const query = queryBuilder.text({
 					pattern: queryStr,
-					isRegExp: true,
-				}, workspaceContextService.getWorkspace().folders.map(f => f.uri))
+					isRegExp: isRegex,
+				}, searchFolders)
 
 				const data = await searchService.textSearch(query, CancellationToken.None)
 
@@ -333,7 +394,7 @@ export class ToolsService implements IToolsService {
 
 		// given to the LLM after the call
 		this.stringOfResult = {
-			view_file_contents: (params, result) => {
+			read_file: (params, result) => {
 				return result.fileContents + nextPageStr(result.hasNextPage)
 			},
 			ls_dir: (params, result) => {

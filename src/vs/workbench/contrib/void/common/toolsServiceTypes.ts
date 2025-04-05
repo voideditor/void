@@ -40,12 +40,13 @@ const toolNamesWithApproval = ['create_file_or_folder', 'delete_file_or_folder',
 export type ToolNameWithApproval = typeof toolNamesWithApproval[number]
 export const toolNamesThatRequireApproval = new Set<ToolName>(toolNamesWithApproval)
 
+// PARAMS OF TOOL CALL
 export type ToolCallParams = {
-	'view_file_contents': { uri: URI, pageNumber: number },
+	'read_file': { uri: URI, startLine: number | null, endLine: number | null, pageNumber: number },
 	'ls_dir': { rootURI: URI, pageNumber: number },
 	'get_dir_structure': { rootURI: URI },
-	'search_pathnames_only': { queryStr: string, pageNumber: number },
-	'search_files': { queryStr: string, pageNumber: number },
+	'search_pathnames_only': { queryStr: string, include: string | null, pageNumber: number },
+	'search_files': { queryStr: string, isRegex: boolean, searchInFolder: URI | null, pageNumber: number },
 	// ---
 	'edit_file': { uri: URI, changeDescription: string },
 	'create_file_or_folder': { uri: URI, isFolder: boolean },
@@ -54,8 +55,9 @@ export type ToolCallParams = {
 }
 
 
+// RESULT OF TOOL CALL
 export type ToolResultType = {
-	'view_file_contents': { fileContents: string, hasNextPage: boolean },
+	'read_file': { fileContents: string, hasNextPage: boolean },
 	'ls_dir': { children: ShallowDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
 	'get_dir_structure': { str: string, },
 	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },

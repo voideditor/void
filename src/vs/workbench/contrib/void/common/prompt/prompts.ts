@@ -48,14 +48,23 @@ const uriParam = (object: string) => ({
 	uri: { type: 'string', description: `The FULL path to the ${object}.` }
 })
 
+
+const searchParams = {
+	searchInFolder: { type: 'string', description: 'Only search files in this given folder. Leave as empty to search all available files.' },
+	isRegex: { type: 'string', description: 'Whether to treat the query as a regular expression. Default is "false".' },
+} as const
+
+
 export const voidTools = {
 	// --- context-gathering (read/search/list) ---
 
-	view_file_contents: {
-		name: 'view_file_contents',
+	read_file: {
+		name: 'read_file',
 		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
 		params: {
 			...uriParam('file'),
+			startLine: { type: 'string', description: 'Line to start reading from. Default is "null", treated as 1.' },
+			endLine: { type: 'string', description: 'Line to stop reading from (inclusive). Default is "null", treated as Infinity.' },
 			...paginationHelper.param,
 		},
 	},
@@ -71,7 +80,7 @@ export const voidTools = {
 
 	get_dir_structure: {
 		name: 'get_dir_structure',
-		description: `Returns a tree diagram of all the files and folders in the URI. If results are large, the given string will be truncated (this will be indicated). If truncated, you should use this tool on a more specific folder, or just use ls_dir which supports pagination but is not recursive.`,
+		description: `Returns a tree diagram of all the files and folders in the given folder URI. Call this to learn more about a folder. If results are large, the given string will be truncated (this will be indicated), in which case you might want to call this tool on a lower folder to get better results, or just use ls_dir which supports pagination.`,
 		params: {
 			...uriParam('folder')
 		}
@@ -79,18 +88,20 @@ export const voidTools = {
 
 	search_pathnames_only: {
 		name: 'search_pathnames_only',
-		description: `Returns all pathnames that match a given \`find\`-style query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
+		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
+			...searchParams,
 			...paginationHelper.param,
 		},
 	},
 
 	search_files: {
 		name: 'search_files',
-		description: `Returns all pathnames that match a given \`grep\`-style query (searches ONLY file contents). The query can be any regex. This is often followed by the \`view_file_contents\` tool to view the full file contents of results. ${paginationHelper.desc}`,
+		description: `Returns all pathnames that match a given \`grep\`-style query (searches ONLY file contents). The query can be any regex. This is often followed by the \`read_file\` tool to view the full file contents of results. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
+			...searchParams,
 			...paginationHelper.param,
 		},
 	},
@@ -110,7 +121,7 @@ export const voidTools = {
 		description: `Delete a file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
 		params: {
 			...uriParam('file or folder'),
-			params: { type: 'string', description: 'Return -r here to delete this URI and all descendants (if applicable). Default is the empty string.' }
+			params: { type: 'string', description: 'Return -r here to delete recursively (if applicable). Default is the empty string.' }
 		},
 	},
 

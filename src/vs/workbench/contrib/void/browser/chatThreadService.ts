@@ -1198,7 +1198,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			// else search codebase for `target`
 			let uris: URI[] = []
 			try {
-				const { result } = await this._toolsService.callTool['search_pathnames_only']({ queryStr: target, pageNumber: 0 })
+				const { result } = await this._toolsService.callTool['search_pathnames_only']({ queryStr: target, include: null, pageNumber: 0 })
 				uris = result.uris
 			} catch (e) {
 				return null

@@ -69,6 +69,14 @@ export const voidTools = {
 		},
 	},
 
+	list_dir_recursive: {
+		name: 'list_dir_recursive',
+		description: `Returns a tree diagram of all the files and folders in the URI. If results are large, the given string will be truncated (this will be indicated). If truncated, you should use this tool on a more specific folder, or just use list_dir which supports pagination but is not recursive.`,
+		params: {
+			...uriParam('folder')
+		}
+	},
+
 	pathname_search: {
 		name: 'pathname_search',
 		description: `Returns all pathnames that match a given \`find\`-style query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
@@ -146,7 +154,7 @@ Here's an example of a good description:\n${editToolDescription}.`
 
 
 
-export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, chatMode: mode }: { workspaceFolders: string[], openedURIs: string[], activeURI: string | undefined, runningTerminalIds: string[], chatMode: ChatMode }) => `\
+export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, directoryStr, chatMode: mode }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, runningTerminalIds: string[], chatMode: ChatMode }) => `\
 You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} that runs in the Void code editor. Your job is \
 ${mode === 'agent' ? `to help the user develop, run, deploy, and make changes to their codebase. You should ALWAYS bring user's task to completion to the fullest extent possible, calling tools to make all necessary changes.`
 		: mode === 'gather' ? `to search and understand the user's codebase. You MUST use tools to read files and help the user understand the codebase, even if you were initially given files.`
@@ -193,14 +201,21 @@ If you think it's appropriate to suggest an edit to a file, then you must descri
 - The remaining contents should be a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing.
 - NEVER re-write the whole file, and ALWAYS use comments like "// ... existing code ...". Bias towards writing as little as possible.
 - Your description will be handed to a dumber, faster model that will quickly apply the change, so it should be clear and concise.
-Here's an example of a good code block:\n${fileNameEdit}.\
+Here's an example of a good code block:\n${fileNameEdit}.
+
+If you write a code block that's related to a specific file, please use the same format as above:
+- The first line of the code block must be the FULL PATH of the related file if known.
+- The remaining contents of the file should proceed as usual.
+\
 `}
 ${/* misc */''}
 Misc:
 - Do not make things up.
 - Do not be lazy.
 - NEVER re-write the entire file.
-- Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.\
+- Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.
+The user's codebase is structured as follows:\n${directoryStr}
+\
 `
 // agent mode doesn't know about 1st line paths yet
 // - If you wrote triple ticks and ___, then include the file's full path in the first line of the triple ticks. This is only for display purposes to the user, and it's preferred but optional. Never do this in a tool parameter, or if there's ambiguity about the full path.

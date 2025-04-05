@@ -1180,6 +1180,7 @@ const folderFileStr = (isFolder: boolean) => isFolder ? 'folder' : 'file'
 const titleOfToolName = {
 	'read_file': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
 	'list_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
+	'list_dir_recursive': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
 	'pathname_search': { done: 'Searched by file name', proposed: 'Search by file name', running: loadingTitleWrapper('Searching by file name') },
 	'grep_search': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
 	'create_uri': {
@@ -1392,7 +1393,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
 				if (value.hasNextPage && params.pageNumber === 1)  // first page
 					componentParams.desc2 = '(more content available)'
-				else if (params.pageNumber >= 1) // subsequent pages
+				else if (params.pageNumber > 1) // subsequent pages
 					componentParams.desc2 = `(part ${params.pageNumber})`
 			}
 			else {
@@ -1407,6 +1408,47 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 
 			return <ToolHeaderWrapper {...componentParams} />
 		},
+	},
+	'list_dir_recursive': {
+		requestWrapper: null,
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+
+			const title = toolMessage.result.type === 'success' ? titleOfToolName[toolMessage.name].done : titleOfToolName[toolMessage.name].proposed
+			const desc1 = toolNameToDesc(toolMessage.name, toolMessage.result.params)
+			const icon = null
+
+			if (toolMessage.result.type === 'rejected') return null // will never happen, not rejectable
+
+			const isError = toolMessage.result.type === 'error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+			if (toolMessage.result.type === 'success') {
+				const { value, params } = toolMessage.result
+				componentParams.children = <ToolChildrenWrapper>
+					<SmallProseWrapper>
+						<ChatMarkdownRender
+							string={`\`\`\`\n${value.str}\n\`\`\``}
+							chatMessageLocation={undefined}
+							isApplyEnabled={false}
+							isLinkDetectionEnabled={true}
+						/>
+					</SmallProseWrapper>
+				</ToolChildrenWrapper>
+			}
+			else {
+				const { value, params } = toolMessage.result
+				componentParams.children = <ToolChildrenWrapper>
+					<CodeChildren>
+						{value}
+					</CodeChildren>
+				</ToolChildrenWrapper>
+			}
+
+			return <ToolHeaderWrapper {...componentParams} />
+
+		}
 	},
 	'list_dir': {
 		requestWrapper: null,

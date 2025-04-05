@@ -34,6 +34,8 @@ import { IEditCodeService } from './editCodeServiceInterface.js';
 import { VoidFileSnapshot } from '../common/editCodeServiceTypes.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
+import { IDirectoryStrService } from './directoryStrService.js';
+import { truncate } from '../../../../base/common/strings.js';
 
 
 /*
@@ -245,7 +247,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IEditCodeService private readonly _editCodeService: IEditCodeService,
 		@INotificationService private readonly _notificationService: INotificationService,
 		@IModelService private readonly _modelService: IModelService,
-
+		@IDirectoryStrService private readonly _directoryStrService: IDirectoryStrService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -582,8 +584,15 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const openedURIs = this._modelService.getModels().filter(m => m.isAttachedToEditor()).map(m => m.uri.fsPath) || [];
 			const activeURI = this._editorService.activeEditor?.resource?.fsPath;
 
+			const { wasCutOff, str: directoryStr_ } = await this._directoryStrService.getAllDirectoriesStr()
+
+			const directoryStr = wasCutOff ? (
+				chatMode === 'agent' || chatMode === 'gather' ? `${directoryStr_}\nString cut off, use tools to read more.`
+					: `${directoryStr_}\nString cut off, ask user for more if necessary.`
+			) : directoryStr_
+
 			const runningTerminalIds = this._terminalToolService.listTerminalIds()
-			const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, chatMode })
+			const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, runningTerminalIds, chatMode })
 
 			// all messages so far in the chat history (including tools)
 			const messages: LLMChatMessage[] = [
@@ -1052,22 +1061,23 @@ We only need to do it for files that were edited since `from`, ie files between 
 
 
 	private _wrapRunAgentToNotify(p: Promise<void>, threadId: string) {
-		const notify = (error: string | null) => {
+		const notify = ({ error }: { error: string | null }) => {
 			const thread = this.state.allThreads[threadId]
 			if (!thread) return
 			const userMsg = findLast(thread.messages, m => m.role === 'user')
 			if (!userMsg) return
 			if (userMsg.role !== 'user') return
-			const messageContent = userMsg.displayContent.substring(0, 50)
+			const messageContent = truncate(userMsg.displayContent, 50, '...')
 
 			this._notificationService.notify({
 				severity: error ? Severity.Warning : Severity.Info,
-				message: error ? `Error: ${error} ` : `Task Complete!\n${messageContent}...`,
+				message: error ? `Error: ${error} ` : `A new Chat result is ready.`,
+				source: messageContent,
 				actions: {
-					secondary: [{
+					primary: [{
 						id: 'void.goToChat',
 						enabled: true,
-						label: `View`,
+						label: `Jump to Chat`,
 						tooltip: '',
 						class: undefined,
 						run: () => {
@@ -1080,10 +1090,9 @@ We only need to do it for files that were edited since `from`, ie files between 
 		}
 
 		p.then(() => {
-			notify(null)
-
+			if (threadId !== this.state.currentThreadId) notify({ error: null })
 		}).catch((e) => {
-			notify(getErrorMessage(e))
+			if (threadId !== this.state.currentThreadId) notify({ error: getErrorMessage(e) })
 			throw e
 		})
 	}

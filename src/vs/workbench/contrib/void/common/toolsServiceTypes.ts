@@ -2,17 +2,17 @@ import { URI } from '../../../../base/common/uri.js'
 import { voidTools } from './prompt/prompts.js';
 
 
-export type ToolDirectoryItem = {
+
+
+export type TerminalResolveReason = { type: 'toofull' | 'timeout' | 'bgtask' } | { type: 'done', exitCode: number }
+
+// Partial of IFileStat
+export type ShallowDirectoryItem = {
 	uri: URI;
 	name: string;
 	isDirectory: boolean;
 	isSymbolicLink: boolean;
 }
-
-
-export type TerminalResolveReason = { type: 'toofull' | 'timeout' | 'bgtask' } | { type: 'done', exitCode: number }
-
-
 
 // we do this using Anthropic's style and convert to OpenAI style later
 export type InternalToolInfo = {
@@ -43,6 +43,7 @@ export const toolNamesThatRequireApproval = new Set<ToolName>(toolNamesWithAppro
 export type ToolCallParams = {
 	'read_file': { uri: URI, pageNumber: number },
 	'list_dir': { rootURI: URI, pageNumber: number },
+	'list_dir_recursive': { rootURI: URI },
 	'pathname_search': { queryStr: string, pageNumber: number },
 	'grep_search': { queryStr: string, pageNumber: number },
 	// ---
@@ -55,7 +56,8 @@ export type ToolCallParams = {
 
 export type ToolResultType = {
 	'read_file': { fileContents: string, hasNextPage: boolean },
-	'list_dir': { children: ToolDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
+	'list_dir': { children: ShallowDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
+	'list_dir_recursive': { str: string, },
 	'pathname_search': { uris: URI[], hasNextPage: boolean },
 	'grep_search': { uris: URI[], hasNextPage: boolean },
 	// ---

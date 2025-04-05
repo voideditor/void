@@ -8,11 +8,12 @@ import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
 import { ITerminalToolService } from './terminalToolService.js'
-import { ToolCallParams, ToolDirectoryItem, ToolName, ToolResultType } from '../common/toolsServiceTypes.js'
+import { ToolCallParams, ToolName, ToolResultType } from '../common/toolsServiceTypes.js'
 import { IVoidModelService } from '../common/voidModelService.js'
 import { EndOfLinePreference } from '../../../../editor/common/model.js'
 import { basename } from '../../../../base/common/path.js'
 import { IVoidCommandBarService } from './voidCommandBarService.js'
+import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree1Deep } from './directoryStrService.js'
 
 
 // tool use for AI
@@ -28,74 +29,11 @@ type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Tool
 
 
 // pagination info
-const MAX_FILE_CHARS_PAGE = 50_000
-const MAX_CHILDREN_URIs_PAGE = 500
+export const MAX_FILE_CHARS_PAGE = 50_000
+export const MAX_CHILDREN_URIs_PAGE = 500
 export const MAX_TERMINAL_CHARS_PAGE = 20_000
 export const TERMINAL_TIMEOUT_TIME = 15
 export const TERMINAL_BG_WAIT_TIME = 1
-
-
-
-const computeDirectoryResult = async (
-	fileService: IFileService,
-	rootURI: URI,
-	pageNumber: number = 1
-): Promise<ToolResultType['list_dir']> => {
-	const stat = await fileService.resolve(rootURI, { resolveMetadata: false });
-	if (!stat.isDirectory) {
-		return { children: null, hasNextPage: false, hasPrevPage: false, itemsRemaining: 0 };
-	}
-
-	const originalChildrenLength = stat.children?.length ?? 0;
-	const fromChildIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1);
-	const toChildIdx = MAX_CHILDREN_URIs_PAGE * pageNumber - 1; // INCLUSIVE
-	const listChildren = stat.children?.slice(fromChildIdx, toChildIdx + 1) ?? [];
-
-	const children: ToolDirectoryItem[] = listChildren.map(child => ({
-		name: child.name,
-		uri: child.resource,
-		isDirectory: child.isDirectory,
-		isSymbolicLink: child.isSymbolicLink
-	}));
-
-	const hasNextPage = (originalChildrenLength - 1) > toChildIdx;
-	const hasPrevPage = pageNumber > 1;
-	const itemsRemaining = Math.max(0, originalChildrenLength - (toChildIdx + 1));
-
-	return {
-		children,
-		hasNextPage,
-		hasPrevPage,
-		itemsRemaining
-	};
-};
-
-const directoryResultToString = (params: ToolCallParams['list_dir'], result: ToolResultType['list_dir']): string => {
-	if (!result.children) {
-		return `Error: ${params.rootURI} is not a directory`;
-	}
-
-	let output = '';
-	const entries = result.children;
-
-	if (!result.hasPrevPage) { // is first page
-		output += `${params.rootURI.fsPath}\n`;
-	}
-
-	for (let i = 0; i < entries.length; i++) {
-		const entry = entries[i];
-		const isLast = i === entries.length - 1 && !result.hasNextPage;
-		const prefix = isLast ? '└── ' : '├── ';
-
-		output += `${prefix}${entry.name}${entry.isDirectory ? '/' : ''}${entry.isSymbolicLink ? ' (symbolic link)' : ''}\n`;
-	}
-
-	if (result.hasNextPage) {
-		output += `└── (${result.itemsRemaining} results remaining...)\n`;
-	}
-
-	return output;
-};
 
 
 
@@ -195,6 +133,7 @@ export class ToolsService implements IToolsService {
 		@IEditCodeService editCodeService: IEditCodeService,
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 		@IVoidCommandBarService private readonly commandBarService: IVoidCommandBarService,
+		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -216,6 +155,12 @@ export class ToolsService implements IToolsService {
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 				return { rootURI: uri, pageNumber }
+			},
+			list_dir_recursive: async (params: string) => {
+				const o = validateJSON(params)
+				const { uri: uriStr, } = o
+				const uri = validateURI(uriStr)
+				return { rootURI: uri }
 			},
 			pathname_search: async (params: string) => {
 				const o = validateJSON(params)
@@ -294,8 +239,15 @@ export class ToolsService implements IToolsService {
 			},
 
 			list_dir: async ({ rootURI, pageNumber }) => {
-				const dirResult = await computeDirectoryResult(fileService, rootURI, pageNumber)
+				const dirResult = await computeDirectoryTree1Deep(fileService, rootURI, pageNumber)
 				return { result: dirResult }
+			},
+
+			list_dir_recursive: async ({ rootURI }) => {
+				const result = await this.directoryStrService.getDirectoryStrTool(rootURI)
+				let str = result.str
+				if (result.wasCutOff) str += '\n(Result was truncated)'
+				return { result: { str } }
 			},
 
 			pathname_search: async ({ queryStr, pageNumber }) => {
@@ -385,8 +337,11 @@ export class ToolsService implements IToolsService {
 				return result.fileContents + nextPageStr(result.hasNextPage)
 			},
 			list_dir: (params, result) => {
-				const dirTreeStr = directoryResultToString(params, result)
+				const dirTreeStr = stringifyDirectoryTree1Deep(params, result)
 				return dirTreeStr // + nextPageStr(result.hasNextPage) // already handles num results remaining
+			},
+			list_dir_recursive: (params, result) => {
+				return result.str
 			},
 			pathname_search: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)

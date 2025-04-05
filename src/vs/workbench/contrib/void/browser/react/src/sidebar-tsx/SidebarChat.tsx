@@ -1178,23 +1178,23 @@ const loadingTitleWrapper = (item: React.ReactNode) => {
 }
 const folderFileStr = (isFolder: boolean) => isFolder ? 'folder' : 'file'
 const titleOfToolName = {
-	'read_file': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
-	'list_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
-	'list_dir_recursive': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
-	'pathname_search': { done: 'Searched by file name', proposed: 'Search by file name', running: loadingTitleWrapper('Searching by file name') },
-	'grep_search': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
-	'create_uri': {
+	'view_file_contents': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
+	'ls_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
+	'get_dir_structure': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
+	'search_pathnames_only': { done: 'Searched by file name', proposed: 'Search by file name', running: loadingTitleWrapper('Searching by file name') },
+	'search_files': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
+	'create_file_or_folder': {
 		done: (isFolder: boolean) => `Created ${folderFileStr(isFolder)}`,
 		proposed: (isFolder: boolean | null) => isFolder === null ? 'Create URI' : `Create ${folderFileStr(isFolder)}`,
 		running: (isFolder: boolean) => loadingTitleWrapper(`Creating ${folderFileStr(isFolder)}`)
 	},
-	'delete_uri': {
+	'delete_file_or_folder': {
 		done: (isFolder: boolean) => `Deleted ${folderFileStr(isFolder)}`,
 		proposed: (isFolder: boolean | null) => isFolder === null ? 'Delete URI' : `Delete ${folderFileStr(isFolder)}`,
 		running: (isFolder: boolean) => loadingTitleWrapper(`Deleting ${folderFileStr(isFolder)}`)
 	},
-	'edit': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
-	'terminal_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') }
+	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
+	'run_terminal_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') }
 } as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
 
 
@@ -1205,29 +1205,29 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 		return '';
 	}
 
-	if (toolName === 'read_file') {
-		const toolParams = _toolParams as ToolCallParams['read_file']
+	if (toolName === 'view_file_contents') {
+		const toolParams = _toolParams as ToolCallParams['view_file_contents']
 		return getBasename(toolParams.uri.fsPath);
-	} else if (toolName === 'list_dir') {
-		const toolParams = _toolParams as ToolCallParams['list_dir']
+	} else if (toolName === 'ls_dir') {
+		const toolParams = _toolParams as ToolCallParams['ls_dir']
 		return `${getFolderName(toolParams.rootURI.fsPath)}`;
-	} else if (toolName === 'pathname_search') {
-		const toolParams = _toolParams as ToolCallParams['pathname_search']
+	} else if (toolName === 'search_pathnames_only') {
+		const toolParams = _toolParams as ToolCallParams['search_pathnames_only']
 		return `"${toolParams.queryStr}"`;
-	} else if (toolName === 'grep_search') {
-		const toolParams = _toolParams as ToolCallParams['grep_search']
+	} else if (toolName === 'search_files') {
+		const toolParams = _toolParams as ToolCallParams['search_files']
 		return `"${toolParams.queryStr}"`;
-	} else if (toolName === 'create_uri') {
-		const toolParams = _toolParams as ToolCallParams['create_uri']
+	} else if (toolName === 'create_file_or_folder') {
+		const toolParams = _toolParams as ToolCallParams['create_file_or_folder']
 		return toolParams.isFolder ? getFolderName(toolParams.uri.fsPath) : getBasename(toolParams.uri.fsPath);
-	} else if (toolName === 'delete_uri') {
-		const toolParams = _toolParams as ToolCallParams['delete_uri']
+	} else if (toolName === 'delete_file_or_folder') {
+		const toolParams = _toolParams as ToolCallParams['delete_file_or_folder']
 		return toolParams.isFolder ? getFolderName(toolParams.uri.fsPath) : getBasename(toolParams.uri.fsPath);
-	} else if (toolName === 'edit') {
-		const toolParams = _toolParams as ToolCallParams['edit']
+	} else if (toolName === 'edit_file') {
+		const toolParams = _toolParams as ToolCallParams['edit_file']
 		return getBasename(toolParams.uri.fsPath);
-	} else if (toolName === 'terminal_command') {
-		const toolParams = _toolParams as ToolCallParams['terminal_command']
+	} else if (toolName === 'run_terminal_command') {
+		const toolParams = _toolParams as ToolCallParams['run_terminal_command']
 		return `"${toolParams.command}"`;
 	} else {
 		return ''
@@ -1373,7 +1373,7 @@ type ToolComponent<T extends ToolName,> = {
 }
 
 const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
-	'read_file': {
+	'view_file_contents': {
 		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1409,7 +1409,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			return <ToolHeaderWrapper {...componentParams} />
 		},
 	},
-	'list_dir_recursive': {
+	'get_dir_structure': {
 		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1450,7 +1450,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 
 		}
 	},
-	'list_dir': {
+	'ls_dir': {
 		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1497,7 +1497,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'pathname_search': {
+	'search_pathnames_only': {
 		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1540,7 +1540,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'grep_search': {
+	'search_files': {
 		requestWrapper: null,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -1585,7 +1585,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 
 	// ---
 
-	'create_uri': {
+	'create_file_or_folder': {
 		requestWrapper: ({ toolRequest, toolRequestState }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
@@ -1633,7 +1633,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'delete_uri': {
+	'delete_file_or_folder': {
 		requestWrapper: ({ toolRequest, toolRequestState }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
@@ -1683,7 +1683,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'edit': {
+	'edit_file': {
 		requestWrapper: ({ toolRequest, messageIdx, toolRequestState, threadId }) => {
 			const accessor = useAccessor()
 			const isError = false
@@ -1771,7 +1771,7 @@ const toolNameToComponent: { [T in ToolName]: ToolComponent<T> } = {
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'terminal_command': {
+	'run_terminal_command': {
 		requestWrapper: ({ toolRequest, toolRequestState }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')

@@ -139,7 +139,7 @@ export class ToolsService implements IToolsService {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.validateParams = {
-			read_file: async (params: string) => {
+			view_file_contents: async (params: string) => {
 				const o = validateJSON(params)
 				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
 
@@ -148,7 +148,7 @@ export class ToolsService implements IToolsService {
 
 				return { uri, pageNumber }
 			},
-			list_dir: async (params: string) => {
+			ls_dir: async (params: string) => {
 				const o = validateJSON(params)
 				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
 
@@ -156,13 +156,13 @@ export class ToolsService implements IToolsService {
 				const pageNumber = validatePageNum(pageNumberUnknown)
 				return { rootURI: uri, pageNumber }
 			},
-			list_dir_recursive: async (params: string) => {
+			get_dir_structure: async (params: string) => {
 				const o = validateJSON(params)
 				const { uri: uriStr, } = o
 				const uri = validateURI(uriStr)
 				return { rootURI: uri }
 			},
-			pathname_search: async (params: string) => {
+			search_pathnames_only: async (params: string) => {
 				const o = validateJSON(params)
 				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
 
@@ -172,7 +172,7 @@ export class ToolsService implements IToolsService {
 				return { queryStr, pageNumber }
 
 			},
-			grep_search: async (params: string) => {
+			search_files: async (params: string) => {
 				const o = validateJSON(params)
 				const { query: queryUnknown, pageNumber: pageNumberUnknown } = o
 
@@ -184,7 +184,7 @@ export class ToolsService implements IToolsService {
 
 			// ---
 
-			create_uri: async (params: string) => {
+			create_file_or_folder: async (params: string) => {
 				const o = validateJSON(params)
 				const { uri: uriUnknown } = o
 				const uri = validateURI(uriUnknown)
@@ -193,7 +193,7 @@ export class ToolsService implements IToolsService {
 				return { uri, isFolder }
 			},
 
-			delete_uri: async (params: string) => {
+			delete_file_or_folder: async (params: string) => {
 				const o = validateJSON(params)
 				const { uri: uriUnknown, params: paramsStr } = o
 				const uri = validateURI(uriUnknown)
@@ -203,7 +203,7 @@ export class ToolsService implements IToolsService {
 				return { uri, isRecursive, isFolder }
 			},
 
-			edit: async (params: string) => {
+			edit_file: async (params: string) => {
 				const o = validateJSON(params)
 				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = o
 				const uri = validateURI(uriStr)
@@ -211,7 +211,7 @@ export class ToolsService implements IToolsService {
 				return { uri, changeDescription }
 			},
 
-			terminal_command: async (s: string) => {
+			run_terminal_command: async (s: string) => {
 				const o = validateJSON(s)
 				const { command: commandUnknown, terminalId: terminalIdUnknown, waitForCompletion: waitForCompletionUnknown } = o
 				const command = validateStr('command', commandUnknown)
@@ -224,7 +224,7 @@ export class ToolsService implements IToolsService {
 
 
 		this.callTool = {
-			read_file: async ({ uri, pageNumber }) => {
+			view_file_contents: async ({ uri, pageNumber }) => {
 				await voidModelService.initializeModel(uri)
 				const { model } = await voidModelService.getModelSafe(uri)
 				if (model === null) { throw new Error(`Contents were empty. There may have been an error, or the file may not exist.`) }
@@ -238,19 +238,19 @@ export class ToolsService implements IToolsService {
 				return { result: { fileContents, hasNextPage } }
 			},
 
-			list_dir: async ({ rootURI, pageNumber }) => {
+			ls_dir: async ({ rootURI, pageNumber }) => {
 				const dirResult = await computeDirectoryTree1Deep(fileService, rootURI, pageNumber)
 				return { result: dirResult }
 			},
 
-			list_dir_recursive: async ({ rootURI }) => {
+			get_dir_structure: async ({ rootURI }) => {
 				const result = await this.directoryStrService.getDirectoryStrTool(rootURI)
 				let str = result.str
 				if (result.wasCutOff) str += '\n(Result was truncated)'
 				return { result: { str } }
 			},
 
-			pathname_search: async ({ queryStr, pageNumber }) => {
+			search_pathnames_only: async ({ queryStr, pageNumber }) => {
 				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), {
 					filePattern: queryStr,
 				})
@@ -266,7 +266,7 @@ export class ToolsService implements IToolsService {
 				return { result: { uris, hasNextPage } }
 			},
 
-			grep_search: async ({ queryStr, pageNumber }) => {
+			search_files: async ({ queryStr, pageNumber }) => {
 				const query = queryBuilder.text({
 					pattern: queryStr,
 					isRegExp: true,
@@ -286,7 +286,7 @@ export class ToolsService implements IToolsService {
 
 			// ---
 
-			create_uri: async ({ uri, isFolder }) => {
+			create_file_or_folder: async ({ uri, isFolder }) => {
 				if (isFolder)
 					await fileService.createFolder(uri)
 				else {
@@ -295,12 +295,12 @@ export class ToolsService implements IToolsService {
 				return { result: {} }
 			},
 
-			delete_uri: async ({ uri, isRecursive }) => {
+			delete_file_or_folder: async ({ uri, isRecursive }) => {
 				await fileService.del(uri, { recursive: isRecursive })
 				return { result: {} }
 			},
 
-			edit: async ({ uri, changeDescription }) => {
+			edit_file: async ({ uri, changeDescription }) => {
 				await voidModelService.initializeModel(uri)
 				if (this.commandBarService.getStreamState(uri) === 'streaming') {
 					throw new Error(`The Apply model was already running. This can happen if two agents try editing the same file at the same time. Please try again in a moment.`)
@@ -322,7 +322,7 @@ export class ToolsService implements IToolsService {
 				}
 				return { result: applyDonePromise, interruptTool }
 			},
-			terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
+			run_terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
 				const { terminalId, didCreateTerminal, result, resolveReason } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
 				return { result: { terminalId, didCreateTerminal, result, resolveReason } }
 			},
@@ -333,33 +333,33 @@ export class ToolsService implements IToolsService {
 
 		// given to the LLM after the call
 		this.stringOfResult = {
-			read_file: (params, result) => {
+			view_file_contents: (params, result) => {
 				return result.fileContents + nextPageStr(result.hasNextPage)
 			},
-			list_dir: (params, result) => {
+			ls_dir: (params, result) => {
 				const dirTreeStr = stringifyDirectoryTree1Deep(params, result)
 				return dirTreeStr // + nextPageStr(result.hasNextPage) // already handles num results remaining
 			},
-			list_dir_recursive: (params, result) => {
+			get_dir_structure: (params, result) => {
 				return result.str
 			},
-			pathname_search: (params, result) => {
+			search_pathnames_only: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
-			grep_search: (params, result) => {
+			search_files: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
 			// ---
-			create_uri: (params, result) => {
+			create_file_or_folder: (params, result) => {
 				return `URI ${params.uri.fsPath} successfully created.`
 			},
-			delete_uri: (params, result) => {
+			delete_file_or_folder: (params, result) => {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
-			edit: (params, result) => {
+			edit_file: (params, result) => {
 				return `Change successfully made to ${params.uri.fsPath}.`
 			},
-			terminal_command: (params, result) => {
+			run_terminal_command: (params, result) => {
 
 				const {
 					terminalId,

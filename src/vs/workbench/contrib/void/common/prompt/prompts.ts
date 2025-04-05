@@ -51,8 +51,8 @@ const uriParam = (object: string) => ({
 export const voidTools = {
 	// --- context-gathering (read/search/list) ---
 
-	read_file: {
-		name: 'read_file',
+	view_file_contents: {
+		name: 'view_file_contents',
 		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
 		params: {
 			...uriParam('file'),
@@ -60,8 +60,8 @@ export const voidTools = {
 		},
 	},
 
-	list_dir: {
-		name: 'list_dir',
+	ls_dir: {
+		name: 'ls_dir',
 		description: `Returns all file names and folder names in a given folder. ${paginationHelper.desc}`,
 		params: {
 			...uriParam('folder'),
@@ -69,16 +69,16 @@ export const voidTools = {
 		},
 	},
 
-	list_dir_recursive: {
-		name: 'list_dir_recursive',
-		description: `Returns a tree diagram of all the files and folders in the URI. If results are large, the given string will be truncated (this will be indicated). If truncated, you should use this tool on a more specific folder, or just use list_dir which supports pagination but is not recursive.`,
+	get_dir_structure: {
+		name: 'get_dir_structure',
+		description: `Returns a tree diagram of all the files and folders in the URI. If results are large, the given string will be truncated (this will be indicated). If truncated, you should use this tool on a more specific folder, or just use ls_dir which supports pagination but is not recursive.`,
 		params: {
 			...uriParam('folder')
 		}
 	},
 
-	pathname_search: {
-		name: 'pathname_search',
+	search_pathnames_only: {
+		name: 'search_pathnames_only',
 		description: `Returns all pathnames that match a given \`find\`-style query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
@@ -86,9 +86,9 @@ export const voidTools = {
 		},
 	},
 
-	grep_search: {
-		name: 'grep_search',
-		description: `Returns all pathnames that match a given \`grep\`-style query (searches ONLY file contents). The query can be any regex. This is often followed by the \`read_file\` tool to view the full file contents of results. ${paginationHelper.desc}`,
+	search_files: {
+		name: 'search_files',
+		description: `Returns all pathnames that match a given \`grep\`-style query (searches ONLY file contents). The query can be any regex. This is often followed by the \`view_file_contents\` tool to view the full file contents of results. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
 			...paginationHelper.param,
@@ -97,16 +97,16 @@ export const voidTools = {
 
 	// --- editing (create/delete) ---
 
-	create_uri: {
-		name: 'create_uri',
+	create_file_or_folder: {
+		name: 'create_file_or_folder',
 		description: `Create a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash. Fails gracefully if the file already exists. Missing ancestors in the path will be recursively created automatically.`,
 		params: {
 			...uriParam('file or folder'),
 		},
 	},
 
-	delete_uri: {
-		name: 'delete_uri',
+	delete_file_or_folder: {
+		name: 'delete_file_or_folder',
 		description: `Delete a file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
 		params: {
 			...uriParam('file or folder'),
@@ -114,8 +114,8 @@ export const voidTools = {
 		},
 	},
 
-	edit: { // APPLY TOOL
-		name: 'edit',
+	edit_file: { // APPLY TOOL
+		name: 'edit_file',
 		description: `Edits the contents of a file, given the file's URI and a description. Fails gracefully if the file does not exist.`,
 		params: {
 			...uriParam('file'),
@@ -130,8 +130,8 @@ Here's an example of a good description:\n${editToolDescription}.`
 		},
 	},
 
-	terminal_command: {
-		name: 'terminal_command',
+	run_terminal_command: {
+		name: 'run_terminal_command',
 		description: `Executes a terminal command.`,
 		params: {
 			command: { type: 'string', description: 'The terminal command to execute. Typically you should pipe to cat to avoid pagination.' },

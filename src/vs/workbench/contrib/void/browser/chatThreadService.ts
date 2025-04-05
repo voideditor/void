@@ -651,7 +651,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._setStreamState(threadId, { isRunning: 'tool' }, 'merge')
 			let interrupted = false
 			try {
-				if (toolName === 'edit') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit']).uri }) }
+				if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
 
 				const { result, interruptTool } = await this._toolsService.callTool[toolName](toolParams as any)
 				this._currentlyRunningToolInterruptor[threadId] = () => {
@@ -1198,7 +1198,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			// else search codebase for `target`
 			let uris: URI[] = []
 			try {
-				const { result } = await this._toolsService.callTool['pathname_search']({ queryStr: target, pageNumber: 0 })
+				const { result } = await this._toolsService.callTool['search_pathnames_only']({ queryStr: target, pageNumber: 0 })
 				uris = result.uris
 			} catch (e) {
 				return null

@@ -68,7 +68,7 @@ export const computeDirectoryTree1Deep = async (
 	fileService: IFileService,
 	rootURI: URI,
 	pageNumber: number = 1,
-): Promise<ToolResultType['list_dir']> => {
+): Promise<ToolResultType['ls_dir']> => {
 	const stat = await fileService.resolve(rootURI, { resolveMetadata: false });
 	if (!stat.isDirectory) {
 		return { children: null, hasNextPage: false, hasPrevPage: false, itemsRemaining: 0 };
@@ -99,7 +99,7 @@ export const computeDirectoryTree1Deep = async (
 	};
 };
 
-export const stringifyDirectoryTree1Deep = (params: ToolCallParams['list_dir'], result: ToolResultType['list_dir']): string => {
+export const stringifyDirectoryTree1Deep = (params: ToolCallParams['ls_dir'], result: ToolResultType['ls_dir']): string => {
 	if (!result.children) {
 		return `Error: ${params.rootURI} is not a directory`;
 	}

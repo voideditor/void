@@ -36,34 +36,34 @@ export const isAToolName = (toolName: string): toolName is ToolName => {
 }
 
 
-const toolNamesWithApproval = ['create_uri', 'delete_uri', 'edit', 'terminal_command'] as const satisfies readonly ToolName[]
+const toolNamesWithApproval = ['create_file_or_folder', 'delete_file_or_folder', 'edit_file', 'run_terminal_command'] as const satisfies readonly ToolName[]
 export type ToolNameWithApproval = typeof toolNamesWithApproval[number]
 export const toolNamesThatRequireApproval = new Set<ToolName>(toolNamesWithApproval)
 
 export type ToolCallParams = {
-	'read_file': { uri: URI, pageNumber: number },
-	'list_dir': { rootURI: URI, pageNumber: number },
-	'list_dir_recursive': { rootURI: URI },
-	'pathname_search': { queryStr: string, pageNumber: number },
-	'grep_search': { queryStr: string, pageNumber: number },
+	'view_file_contents': { uri: URI, pageNumber: number },
+	'ls_dir': { rootURI: URI, pageNumber: number },
+	'get_dir_structure': { rootURI: URI },
+	'search_pathnames_only': { queryStr: string, pageNumber: number },
+	'search_files': { queryStr: string, pageNumber: number },
 	// ---
-	'edit': { uri: URI, changeDescription: string },
-	'create_uri': { uri: URI, isFolder: boolean },
-	'delete_uri': { uri: URI, isRecursive: boolean, isFolder: boolean },
-	'terminal_command': { command: string, proposedTerminalId: string, waitForCompletion: boolean },
+	'edit_file': { uri: URI, changeDescription: string },
+	'create_file_or_folder': { uri: URI, isFolder: boolean },
+	'delete_file_or_folder': { uri: URI, isRecursive: boolean, isFolder: boolean },
+	'run_terminal_command': { command: string, proposedTerminalId: string, waitForCompletion: boolean },
 }
 
 
 export type ToolResultType = {
-	'read_file': { fileContents: string, hasNextPage: boolean },
-	'list_dir': { children: ShallowDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
-	'list_dir_recursive': { str: string, },
-	'pathname_search': { uris: URI[], hasNextPage: boolean },
-	'grep_search': { uris: URI[], hasNextPage: boolean },
+	'view_file_contents': { fileContents: string, hasNextPage: boolean },
+	'ls_dir': { children: ShallowDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
+	'get_dir_structure': { str: string, },
+	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },
+	'search_files': { uris: URI[], hasNextPage: boolean },
 	// ---
-	'edit': Promise<void>,
-	'create_uri': {},
-	'delete_uri': {},
-	'terminal_command': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: TerminalResolveReason; },
+	'edit_file': Promise<void>,
+	'create_file_or_folder': {},
+	'delete_file_or_folder': {},
+	'run_terminal_command': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: TerminalResolveReason; },
 }
 

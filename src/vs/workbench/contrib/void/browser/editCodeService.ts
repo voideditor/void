@@ -1361,7 +1361,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
 		// allowed to throw errors - this is called inside a promise that handles everything
 		const runWriteover = async () => {
@@ -1569,7 +1569,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const featureName: FeatureName = 'Apply'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
 		const N_RETRIES = 5
 

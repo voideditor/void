@@ -155,6 +155,13 @@ const openSourceModelOptions_assumingOAICompat = {
 		reasoningCapabilities: false,
 	},
 
+	'gemma': { // https://news.ycombinator.com/item?id=43451406
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: false,
+		reasoningCapabilities: false,
+	},
+
 	// llama
 	'llama3': {
 		supportsFIM: false,
@@ -235,6 +242,7 @@ const extensiveModelFallback: ProviderSettings['modelOptionsFallback'] = (modelN
 	if (lower.includes('qwq')) { return toFallback({ ...openSourceModelOptions_assumingOAICompat.qwq, contextWindow: 128_000, maxOutputTokens: 8_192, }) }
 	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions['gemini-2.5-pro-exp-03-25'])
 	if (lower.includes('phi4')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.phi4, contextWindow: 16_000, maxOutputTokens: 4_096, })
+	if (lower.includes('gemma')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.gemma, contextWindow: 32_000, maxOutputTokens: 4_096, })
 	if (lower.includes('openhands')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['openhands-lm-32b'], contextWindow: 128_000, maxOutputTokens: 4_096 }) // max output unclear
 	if (/\bo1\b/.test(modelName) || /\bo3\b/.test(modelName)) return toFallback(openAIModelOptions['o1'])
 	return toFallback(modelOptionsDefaults)

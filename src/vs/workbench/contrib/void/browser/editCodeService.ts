@@ -108,14 +108,31 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 };
 
 
+// Helper function to remove whitespace except newlines
+const removeWhitespaceExceptNewlines = (str: string): string => {
+	return str.replace(/[^\S\n]+/g, '');
+}
+
+
+
 // finds block.orig in fileContents and return its range in file
 // startingAtLine is 1-indexed and inclusive
-const findTextInCode = (text: string, fileContents: string, startingAtLine?: number) => {
-	const idx = fileContents.indexOf(text,
-		startingAtLine !== undefined ?
-			fileContents.split('\n').slice(0, startingAtLine).join('\n').length // num characters in all lines before startingAtLine
-			: 0
-	)
+const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveWhitespace: boolean, startingAtLine?: number) => {
+
+	const startLineIdx = (fileContents: string) => startingAtLine !== undefined ?
+		fileContents.split('\n').slice(0, startingAtLine).join('\n').length // num characters in all lines before startingAtLine
+		: 0
+
+	// idx = starting index in fileContents
+	let idx = fileContents.indexOf(text, startLineIdx(fileContents))
+
+	// try to find it ignoring all whitespace this time
+	if (idx === -1 && canFallbackToRemoveWhitespace) {
+		text = removeWhitespaceExceptNewlines(text)
+		fileContents = removeWhitespaceExceptNewlines(fileContents)
+		idx = fileContents.indexOf(text, startLineIdx(fileContents));
+	}
+
 	if (idx === -1) return 'Not found' as const
 	const lastIdx = fileContents.lastIndexOf(text)
 	if (lastIdx !== idx) return 'Not unique' as const
@@ -141,9 +158,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	diffAreaOfId: Record<string, DiffArea> = {}; // diffareaId -> diffArea
 	diffOfId: Record<string, Diff> = {}; // diffid -> diff (redundant with diffArea._diffOfId)
 
-
 	// events
-
 
 	// uri: diffZones  // listen on change diffZones
 	private readonly _onDidAddOrDeleteDiffZones = new Emitter<{ uri: URI }>();
@@ -1617,7 +1632,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								// update stream state to the first line of original if some portion of original has been written
 								if (shouldUpdateOrigStreamStyle && block.orig.trim().length >= 20) {
 									const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
-									const originalRange = findTextInCode(block.orig, originalFileCode, startingAtLine)
+									const originalRange = findTextInCode(block.orig, originalFileCode, false, startingAtLine)
 									if (typeof originalRange !== 'string') {
 										const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
 										diffZone._streamState.line = startLine
@@ -1644,7 +1659,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							if (!(blockNum in addedTrackingZoneOfBlockNum)) {
 
 
-								const originalBounds = findTextInCode(block.orig, originalFileCode)
+								const originalBounds = findTextInCode(block.orig, originalFileCode, true)
 								// if error
 								if (typeof originalBounds === 'string') {
 									console.log('--------------Error finding text in code:')

@@ -36,6 +36,7 @@ import { INotificationService, Severity } from '../../../../platform/notificatio
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { IDirectoryStrService } from './directoryStrService.js';
 import { truncate } from '../../../../base/common/strings.js';
+import { THREAD_STORAGE_KEY } from '../common/storageKeys.js';
 
 
 /*
@@ -155,10 +156,6 @@ const newThreadObject = () => {
 }
 
 
-// past values:
-// 'void.chatThreadStorage'
-
-export const THREAD_STORAGE_KEY = 'void.chatThreadStorageI'
 
 
 
@@ -455,7 +452,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// these settings should not change throughout the loop (eg anthropic breaks if you change its thinking mode and it's using tools)
 		const featureName: FeatureName = 'Chat'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 		return { modelSelection, modelSelectionOptions }
 	}
 

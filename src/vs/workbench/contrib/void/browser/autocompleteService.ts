@@ -793,7 +793,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 		const featureName: FeatureName = 'Autocomplete'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
 
 		// set parameters of `newAutocompletion` appropriately

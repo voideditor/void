@@ -157,7 +157,7 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 	const { reasoningCapabilities } = getModelCapabilities(providerName, modelName)
 	const { canTurnOffReasoning, reasoningBudgetSlider } = reasoningCapabilities || {}
 
-	const modelSelectionOptions = voidSettingsState.optionsOfModelSelection[providerName]?.[modelName]
+	const modelSelectionOptions = voidSettingsState.optionsOfModelSelection[featureName][providerName]?.[modelName]
 	const isReasoningEnabled = getIsResoningEnabledState(providerName, modelName, modelSelectionOptions)
 	if (canTurnOffReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider (no models right now)
 		return null // unused right now
@@ -174,7 +174,7 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 	if (reasoningBudgetSlider?.type === 'slider') { // if it's a slider
 		const { min: min_, max, default: defaultVal } = reasoningBudgetSlider
 
-		const value = voidSettingsState.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
+		const value = voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
 
 		const nSteps = 8 // only used in calculating stepSize, stepSize is what actually matters
 		const stepSize = Math.round((max - min_) / nSteps)
@@ -191,7 +191,7 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 				value={value}
 				onChange={(newVal) => {
 					const disabled = newVal === min && canTurnOffReasoning
-					voidSettingsService.setOptionsOfModelSelection(modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
+					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
 				}}
 			/>
 			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${value} tokens` : 'Thinking disabled'}</span>

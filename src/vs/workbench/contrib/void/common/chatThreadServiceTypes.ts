@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../base/common/uri.js';
-import { IRange } from '../../../../editor/common/core/range.js';
 import { VoidFileSnapshot } from './editCodeServiceTypes.js';
 import { AnthropicReasoning } from './sendLLMMessageTypes.js';
 import { ToolName, ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
@@ -66,33 +65,24 @@ export type ChatMessage =
 	| CheckpointEntry
 
 
-// one of the square items that indicates a selection in a chat bubble (NOT a file, a Selection of text)
-export type CodeSelection = {
-	type: 'Selection';
-	fileURI: URI;
-	language: string;
-	selectionStr: string;
-	range: IRange;
-	state: {
-		isOpened: boolean;
-		wasAddedAsCurrentFile: boolean;
-	};
-}
-
-export type FileSelection = {
+// one of the square items that indicates a selection in a chat bubble
+export type StagingSelectionItem = {
 	type: 'File';
-	fileURI: URI;
+	uri: URI;
 	language: string;
-	selectionStr: null;
-	range: null;
-	state: {
-		isOpened: boolean;
-		wasAddedAsCurrentFile: boolean;
-	};
+	state: { wasAddedAsCurrentFile: boolean; };
+} | {
+	type: 'CodeSelection';
+	range: [number, number];
+	uri: URI;
+	language: string;
+	state: { wasAddedAsCurrentFile: boolean; };
+} | {
+	type: 'Folder';
+	uri: URI;
+	language?: undefined;
+	state?: undefined;
 }
-
-export type StagingSelectionItem = CodeSelection | FileSelection
-
 
 
 // a link to a symbol (an underlined link to a piece of code)

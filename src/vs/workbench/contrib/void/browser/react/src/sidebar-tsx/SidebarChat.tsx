@@ -507,18 +507,16 @@ export const SelectedFiles = (
 	useEffect(() => {
 		const computeRecents = async () => {
 			const prospectiveURIs = recentUris
-				.filter(uri => !selections.find(s => s.type === 'File' && s.fileURI.fsPath === uri.fsPath))
+				.filter(uri => !selections.find(s => s.type === 'File' && s.uri.fsPath === uri.fsPath))
 				.slice(0, maxProspectiveFiles)
 
 			const answer: StagingSelectionItem[] = []
 			for (const uri of prospectiveURIs) {
 				answer.push({
 					type: 'File',
-					fileURI: uri,
+					uri: uri,
 					language: (await modelReferenceService.getModelSafe(uri)).model?.getLanguageId() || 'plaintext',
-					selectionStr: null,
-					range: null,
-					state: { isOpened: false, wasAddedAsCurrentFile: false },
+					state: { wasAddedAsCurrentFile: false },
 				})
 			}
 			return answer
@@ -545,19 +543,13 @@ export const SelectedFiles = (
 
 			{allSelections.map((selection, i) => {
 
-				const isThisSelectionOpened = (!!selection.selectionStr && selection.state.isOpened && type === 'staging')
-				const isThisSelectionAFile = selection.selectionStr === null
 				const isThisSelectionProspective = i > selections.length - 1
-				const isThisSelectionAddedAsCurrentFile = selection.state.wasAddedAsCurrentFile
 
 				const thisKey = `${isThisSelectionProspective}-${i}-${selections.length}`
 
 				return <div // container for summarybox and code
 					key={thisKey}
-					className={`
-						flex flex-col space-y-[1px]
-						${isThisSelectionOpened ? 'w-full' : ''}
-					`}
+					className={`flex flex-col space-y-[1px]`}
 				>
 					{/* summarybox */}
 					<div
@@ -571,9 +563,7 @@ export const SelectedFiles = (
 							${isThisSelectionProspective ? 'bg-void-bg-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
 							${isThisSelectionProspective
 								? 'border-void-border-2'
-								: isThisSelectionOpened
-									? 'border-void-border-1 ring-1 ring-void-blue'
-									: 'border-void-border-1'
+								: 'border-void-border-1'
 							}
 							hover:border-void-border-1
 							transition-all duration-150
@@ -582,14 +572,16 @@ export const SelectedFiles = (
 							if (type !== 'staging') return; // (never)
 							if (isThisSelectionProspective) { // add prospective selection to selections
 								setSelections([...selections, selection])
-							} else if (isThisSelectionAFile) { // open files
+							}
+							else if (selection.type === 'File') { // open files
 
-								commandService.executeCommand('vscode.open', selection.fileURI, {
+								commandService.executeCommand('vscode.open', selection.uri, {
 									preview: true,
 									// preserveFocus: false,
 								});
 
-								if (isThisSelectionAddedAsCurrentFile) {
+								const wasAddedAsCurrentFile = selection.state.wasAddedAsCurrentFile
+								if (wasAddedAsCurrentFile) {
 									// make it so the file is added permanently, not just as the current file
 									const newSelection: StagingSelectionItem = { ...selection, state: { ...selection.state, wasAddedAsCurrentFile: false } }
 									setSelections([
@@ -598,35 +590,28 @@ export const SelectedFiles = (
 										...selections.slice(i + 1)
 									])
 								}
-							} else { // show text
-
-								const selection = selections[i]
-								const newSelection = { ...selection, state: { ...selection.state, isOpened: !selection.state.isOpened } }
-								const newSelections = [
-									...selections.slice(0, i),
-									newSelection,
-									...selections.slice(i + 1)
-								]
-								setSelections(newSelections)
-
-								// setSelectionIsOpened(s => {
-								// 	const newS = [...s]
-								// 	newS[i] = !newS[i]
-								// 	return newS
-								// });
-
+							}
+							else if (selection.type === 'CodeSelection') {
+								commandService.executeCommand('vscode.open', selection.uri, {
+									preview: true,
+									// TODO!!! open in range
+								});
+							}
+							else if (selection.type === 'Folder') {
+								// TODO!!! reveal in tree
 							}
 						}}
 					>
 						{ // file name and range
-							getBasename(selection.fileURI.fsPath)
-							+ (isThisSelectionAFile ? '' : ` (${selection.range.startLineNumber}-${selection.range.endLineNumber})`)
+							getBasename(selection.uri.fsPath)
+							+ (selection.type === 'CodeSelection' ? ` (${selection.range[0]}-${selection.range[1]})` : '')
 						}
 
-						{isThisSelectionAddedAsCurrentFile && messageIdx === undefined && currentURI?.fsPath === selection.fileURI.fsPath &&
+						{selection.type === 'File' && selection.state.wasAddedAsCurrentFile && messageIdx === undefined && currentURI?.fsPath === selection.uri.fsPath ?
 							<span className={`text-[8px] ml-0.5 'void-opacity-60 text-void-fg-4`}>
 								{`(Current File)`}
 							</span>
+							: null
 						}
 
 						{type === 'staging' && !isThisSelectionProspective ? // X button
@@ -642,27 +627,6 @@ export const SelectedFiles = (
 							: <></>
 						}
 					</div>
-
-					{/* code box */}
-					{isThisSelectionOpened ?
-						<div
-							className={`
-								w-full rounded-sm border-vscode-editor-border
-								${isThisSelectionOpened ? 'ring-1 ring-void-blue' : ''}
-							`}
-							onClick={(e) => {
-								e.stopPropagation(); // don't focus input box
-							}}
-						>
-							<BlockCode
-								initValue={selection.selectionStr}
-								language={selection.language}
-								maxHeight={200}
-								showScrollbars={true}
-							/>
-						</div>
-						: <></>
-					}
 				</div>
 
 			})}
@@ -840,13 +804,13 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted, _scrollToB
 		const canInitialize = mode === 'edit' && textAreaRefState
 		const shouldInitialize = _justEnabledEdit.current || _mustInitialize.current
 		if (canInitialize && shouldInitialize) {
-			setStagingSelections((chatMessage.selections || [])
-				.map(s => { // quick hack so we dont have to do anything more
-					const sNew = s
-					sNew.state.wasAddedAsCurrentFile = false // wipe all "current file" info when the user first edits a message
-					return sNew
+			setStagingSelections(
+				(chatMessage.selections || []).map(s => { // quick hack so we dont have to do anything more
+					if (s.type === 'File') return { ...s, state: { ...s.state, wasAddedAsCurrentFile: false, } }
+					else return s
 				})
 			)
+
 			if (textAreaFnsRef.current)
 				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
 
@@ -896,7 +860,6 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCommitted, _scrollToB
 			// update state
 			setIsBeingEdited(false)
 			chatThreadsService.setCurrentlyFocusedMessageIdx(undefined)
-			chatThreadsService.closeCurrentStagingSelectionsInMessage({ messageIdx })
 
 			// stream the edit
 			const userMessage = textAreaRefState.value;
@@ -2032,9 +1995,6 @@ export const SidebarChat = () => {
 		if (isRunning) return
 
 		const threadId = chatThreadsService.state.currentThreadId
-
-		// update state
-		chatThreadsService.closeCurrentStagingSelectionsInThread() // close all selections
 
 		// send message to LLM
 		const userMessage = textAreaRef.current?.value ?? ''

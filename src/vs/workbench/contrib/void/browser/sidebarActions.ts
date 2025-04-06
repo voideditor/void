@@ -14,7 +14,6 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
-import { ITextModel } from '../../../../editor/common/model.js';
 import { VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { ISidebarStateService } from './sidebarStateService.js';
@@ -53,23 +52,41 @@ export const roundRangeToLines = (range: IRange | null | undefined, options: { e
 	return newRange
 }
 
-const getContentInRange = (model: ITextModel, range: IRange | null) => {
-	if (!range)
-		return null
-	const content = model.getValueInRange(range)
-	const trimmedContent = content
-		.replace(/^\s*\n/g, '') // trim pure whitespace lines from start
-		.replace(/\n\s*$/g, '') // trim pure whitespace lines from end
-	return trimmedContent
-}
+// const getContentInRange = (model: ITextModel, range: IRange | null) => {
+// 	if (!range)
+// 		return null
+// 	const content = model.getValueInRange(range)
+// 	const trimmedContent = content
+// 		.replace(/^\s*\n/g, '') // trim pure whitespace lines from start
+// 		.replace(/\n\s*$/g, '') // trim pure whitespace lines from end
+// 	return trimmedContent
+// }
 
 
-const findMatchingStagingIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem) => {
-	return currentSelections?.findIndex(s =>
-		s.fileURI.fsPath === newSelection.fileURI.fsPath
-		&& s.range?.startLineNumber === newSelection.range?.startLineNumber
-		&& s.range?.endLineNumber === newSelection.range?.endLineNumber
-	)
+const findStagingItemToReplace = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): [number, StagingSelectionItem] | null => {
+	if (!currentSelections) return null
+
+	for (let i = 0; i < currentSelections.length; i += 1) {
+		const s = currentSelections[i]
+
+		if (s.uri.fsPath !== newSelection.uri.fsPath) continue
+
+		if (s.type === 'File' && newSelection.type === 'File') {
+			return [i, s] as const
+		}
+		if (s.type === 'CodeSelection' && newSelection.type === 'CodeSelection') {
+			if (s.uri.fsPath !== newSelection.uri.fsPath) continue
+			// if there's any collision return true
+			const [oldStart, oldEnd] = s.range
+			const [newStart, newEnd] = newSelection.range
+			if (oldStart !== newStart || oldEnd !== newEnd) continue
+			return [i, s] as const
+		}
+		if (s.type === 'Folder' && newSelection.type === 'Folder') {
+			return [i, s] as const
+		}
+	}
+	return null
 }
 
 const VOID_OPEN_SIDEBAR_ACTION_ID = 'void.sidebar.open'
@@ -114,22 +131,18 @@ registerAction2(class extends Action2 {
 			editor?.setSelection({ startLineNumber: selectionRange.startLineNumber, endLineNumber: selectionRange.endLineNumber, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER })
 		}
 
-		const selectionStr = getContentInRange(model, selectionRange)
 
-		const selection: StagingSelectionItem = !selectionRange || !selectionStr || (selectionRange.startLineNumber > selectionRange.endLineNumber) ? {
+		const selection: StagingSelectionItem = !selectionRange || (selectionRange.startLineNumber > selectionRange.endLineNumber) ? {
 			type: 'File',
-			fileURI: model.uri,
+			uri: model.uri,
 			language: model.getLanguageId(),
-			selectionStr: null,
-			range: null,
-			state: { isOpened: false, wasAddedAsCurrentFile: false }
+			state: { wasAddedAsCurrentFile: false }
 		} : {
-			type: 'Selection',
-			fileURI: model.uri,
+			type: 'CodeSelection',
+			uri: model.uri,
 			language: model.getLanguageId(),
-			selectionStr: selectionStr,
-			range: selectionRange,
-			state: { isOpened: true, wasAddedAsCurrentFile: false }
+			range: [selectionRange.startLineNumber, selectionRange.endLineNumber],
+			state: { wasAddedAsCurrentFile: false }
 		}
 
 		// update the staging selections
@@ -149,17 +162,18 @@ registerAction2(class extends Action2 {
 			setSelections = (s) => chatThreadService.setCurrentMessageState(focusedMessageIdx, { stagingSelections: s })
 		}
 
-		// close all selections besides the new one
-		selections = selections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
-
 		// if matches with existing selection, overwrite (since text may change)
-		const matchingStagingEltIdx = findMatchingStagingIndex(selections, selection)
-		if (matchingStagingEltIdx !== undefined && matchingStagingEltIdx !== -1) {
-			setSelections([
-				...selections!.slice(0, matchingStagingEltIdx),
-				selection,
-				...selections!.slice(matchingStagingEltIdx + 1, Infinity)
-			])
+		const replaceRes = findStagingItemToReplace(selections, selection)
+		if (replaceRes) {
+			const [idx, newSel] = replaceRes
+
+			if (idx !== undefined && idx !== -1) {
+				setSelections([
+					...selections!.slice(0, idx),
+					newSel,
+					...selections!.slice(idx + 1, Infinity)
+				])
+			}
 		}
 		// if no match, add it
 		else {

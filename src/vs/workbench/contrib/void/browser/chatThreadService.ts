@@ -11,7 +11,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_lastUserMessageWithFilesAdded, chat_selectionsString, voidTools } from '../common/prompt/prompts.js';
+import { chat_userMessageContent, chat_systemMessage, voidTools } from '../common/prompt/prompts.js';
 import { getErrorMessage, LLMChatMessage, ToolCallType } from '../common/sendLLMMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
@@ -186,9 +186,9 @@ export interface IChatThreadService {
 	getCurrentFocusedMessageIdx(): number | undefined;
 	isCurrentlyFocusingMessage(): boolean;
 	setCurrentlyFocusedMessageIdx(messageIdx: number | undefined): void;
-	// current thread's staging selections
-	closeCurrentStagingSelectionsInMessage(opts: { messageIdx: number }): void;
-	closeCurrentStagingSelectionsInThread(): void;
+	// // current thread's staging selections
+	// closeCurrentStagingSelectionsInMessage(opts: { messageIdx: number }): void;
+	// closeCurrentStagingSelectionsInThread(): void;
 
 	// codespan links (link to symbols in the markdown)
 	getCodespanLink(opts: { codespanStr: string, messageIdx: number, threadId: string }): CodespanLocationLink | undefined;
@@ -294,11 +294,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		const newStagingSelection: StagingSelectionItem = {
 			type: 'File',
-			fileURI: newModel.uri,
+			uri: newModel.uri,
 			language: newModel.getLanguageId(),
-			selectionStr: null,
-			range: null,
-			state: { isOpened: false, wasAddedAsCurrentFile: true }
+			state: { wasAddedAsCurrentFile: true }
 		}
 
 		const focusedMessageIdx = this.getCurrentFocusedMessageIdx();
@@ -312,7 +310,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const newStagingSelections: StagingSelectionItem[] = oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile);
 
 			// add the new file if it doesn't exist
-			const fileIsAdded = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.fsPath === newStagingSelection.fileURI.fsPath)
+			const fileIsAdded = oldStagingSelections.some(s => s.type === 'File' && s.uri.fsPath === newStagingSelection.uri.fsPath)
 			if (!fileIsAdded) {
 				newStagingSelections.push(newStagingSelection)
 			}
@@ -549,8 +547,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	private async _runChatAgent({
 		threadId,
-		prevSelns,
-		currSelns,
 		modelSelection,
 		modelSelectionOptions,
 		userMessageContent,
@@ -565,11 +561,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		callThisToolFirst?: ToolRequestApproval<ToolName>
 	}) {
-
-		// define helper functions so we can tell what's going on
-		// for now, do not recompute selections as we run (it seems to confuse tool-use models)
-		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidModelService) // all the file CONTENTS or "selections" de-duped
-		const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
+		const userMessageFullContent = userMessageContent
 		const getLatestMessages = async () => {
 			// replace last userMessage with userMessageFullContent (which contains all the files too)
 			const thread = this.state.allThreads[threadId]
@@ -1112,7 +1104,11 @@ We only need to do it for files that were edited since `from`, ie files between 
 		// add user's message to chat history
 		const instructions = userMessage
 
-		const userMessageContent = await chat_userMessageContent(instructions, currSelns) // user message + names of files (NOT content)
+		const { chatMode } = this._settingsService.state.globalSettings
+
+		const opts = chatMode !== 'normal' ? { type: 'references' } as const : { type: 'fullCode', voidModelService: this._voidModelService } as const
+
+		const userMessageContent = await chat_userMessageContent(instructions, currSelns, opts) // user message + names of files (NOT content)
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)
 
@@ -1166,7 +1162,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 
 		// get history of all AI and user added files in conversation + store in reverse order (MRU)
 		const prevUris = this._getAllSelections(threadId)
-			.map(s => s.fileURI)
+			.map(s => s.uri)
 			.filter((uri, index, array) => array.findIndex(u => u.fsPath === uri.fsPath) === index) // O(n^2) but this is small
 			.reverse()
 
@@ -1407,12 +1403,9 @@ We only need to do it for files that were edited since `from`, ie files between 
 					this._setThreadState(this.state.currentThreadId, {
 						stagingSelections: [{
 							type: 'File',
-							fileURI: model.uri,
+							uri: model.uri,
 							language: model.getLanguageId(),
-							selectionStr: null,
-							range: null,
 							state: {
-								isOpened: false,
 								wasAddedAsCurrentFile: true
 							}
 						}]
@@ -1523,31 +1516,31 @@ We only need to do it for files that were edited since `from`, ie files between 
 	}
 
 
-	closeCurrentStagingSelectionsInThread = () => {
-		const currThread = this.getCurrentThreadState()
+	// closeCurrentStagingSelectionsInThread = () => {
+	// 	const currThread = this.getCurrentThreadState()
 
-		// close all stagingSelections
-		const closedStagingSelections = currThread.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
+	// 	// close all stagingSelections
+	// 	const closedStagingSelections = currThread.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
 
-		const newThread = currThread
-		newThread.stagingSelections = closedStagingSelections
+	// 	const newThread = currThread
+	// 	newThread.stagingSelections = closedStagingSelections
 
-		this.setCurrentThreadState(newThread)
+	// 	this.setCurrentThreadState(newThread)
 
-	}
+	// }
 
-	closeCurrentStagingSelectionsInMessage: IChatThreadService['closeCurrentStagingSelectionsInMessage'] = ({ messageIdx }) => {
-		const currMessage = this.getCurrentMessageState(messageIdx)
+	// closeCurrentStagingSelectionsInMessage: IChatThreadService['closeCurrentStagingSelectionsInMessage'] = ({ messageIdx }) => {
+	// 	const currMessage = this.getCurrentMessageState(messageIdx)
 
-		// close all stagingSelections
-		const closedStagingSelections = currMessage.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
+	// 	// close all stagingSelections
+	// 	const closedStagingSelections = currMessage.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
 
-		const newMessage = currMessage
-		newMessage.stagingSelections = closedStagingSelections
+	// 	const newMessage = currMessage
+	// 	newMessage.stagingSelections = closedStagingSelections
 
-		this.setCurrentMessageState(messageIdx, newMessage)
+	// 	this.setCurrentMessageState(messageIdx, newMessage)
 
-	}
+	// }
 
 
 

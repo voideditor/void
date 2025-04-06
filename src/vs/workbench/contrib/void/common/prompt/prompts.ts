@@ -3,13 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { URI } from '../../../../../base/common/uri.js';
 import { os } from '../helpers/systemInfo.js';
-import { CodeSelection, FileSelection, StagingSelectionItem } from '../chatThreadServiceTypes.js';
+import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { ChatMode } from '../voidSettingsTypes.js';
+import { InternalToolInfo } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { EndOfLinePreference } from '../../../../../editor/common/model.js';
-import { InternalToolInfo } from '../toolsServiceTypes.js';
 
 // this is just for ease of readability
 export const tripleTick = ['```', '```']
@@ -232,96 +231,113 @@ The user's codebase is structured as follows:\n${directoryStr}
 // - If you wrote triple ticks and ___, then include the file's full path in the first line of the triple ticks. This is only for display purposes to the user, and it's preferred but optional. Never do this in a tool parameter, or if there's ambiguity about the full path.
 
 
-type FileSelnLocal = { fileURI: URI, language: string, content: string }
-const stringifyFileSelection = ({ fileURI, language, content }: FileSelnLocal) => {
-	return `\
-${fileURI.fsPath}
-${tripleTick[0]}${language}
-${content}
-${tripleTick[1]}
-`
-}
-const stringifyCodeSelection = ({ fileURI, language, selectionStr, range }: CodeSelection) => {
-	return `\
-${fileURI.fsPath} (lines ${range.startLineNumber}:${range.endLineNumber})
-${tripleTick[0]}${language}
-${selectionStr}
-${tripleTick[1]}
-`
-}
+// type FileSelnLocal = { fileURI: URI, language: string, content: string }
+// const stringifyFileSelection = ({ fileURI, language, content }: FileSelnLocal) => {
+// 	return `\
+// ${fileURI.fsPath}
+// ${tripleTick[0]}${language}
+// ${content}
+// ${tripleTick[1]}
+// `
+// }
+// const stringifyCodeSelection = ({ uri, language, range }: StagingSelectionItem & { type: 'CodeSelection' }) => {
+// 	return `\
 
-const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
-const stringifyFileSelections = async (fileSelections: FileSelection[], voidModelService: IVoidModelService) => {
-	if (fileSelections.length === 0) return null
-	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
-		const { model } = await voidModelService.getModelSafe(sel.fileURI)
-		const content = model?.getValue(EndOfLinePreference.LF) ?? failToReadStr
-		return { ...sel, content }
-	}))
-	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
-}
+// ${tripleTick[0]}${language}
+// ${selectionStr}
+// ${tripleTick[1]}
+// `
+// }
 
-
-const stringifyCodeSelections = (codeSelections: CodeSelection[]) => {
-	return codeSelections.map(sel => {
-		stringifyCodeSelection(sel)
-	}).join('\n') || null
-}
-
-const stringifySelectionNames = (currSelns: StagingSelectionItem[] | null): string => {
-	if (!currSelns) return ''
-	return currSelns.map(s => `${s.fileURI.fsPath}${s.range ? ` (lines ${s.range.startLineNumber}:${s.range.endLineNumber})` : ''}`).join('\n')
-}
+// const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
+// const stringifyFileSelections = async (fileSelections: FileSelection[], voidModelService: IVoidModelService) => {
+// 	if (fileSelections.length === 0) return null
+// 	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
+// 		const { model } = await voidModelService.getModelSafe(sel.fileURI)
+// 		const content = model?.getValue(EndOfLinePreference.LF) ?? failToReadStr
+// 		return { ...sel, content }
+// 	}))
+// 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
+// }
 
 
-export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null) => {
 
-	const selnsStr = stringifySelectionNames(currSelns)
 
-	let str = ''
-	if (selnsStr) { str += `SELECTIONS\n${selnsStr}\n` }
-	str += `\nINSTRUCTIONS\n${instructions}`
-	return str;
-};
+// export const chat_selectionsString = async (
+// 	prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null,
+// 	voidModelService: IVoidModelService,
+// ) => {
 
-export const chat_selectionsString = async (
-	prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null,
-	voidModelService: IVoidModelService,
+// 	// ADD IN FILES AT TOP
+// 	const allSelections = [...currSelns || [], ...prevSelns || []]
+
+// 	if (allSelections.length === 0) return null
+
+// 	for (const selection of allSelections) {
+// 		if (selection.type === 'Selection') {
+// 			codeSelections.push(selection)
+// 		}
+// 		else if (selection.type === 'File') {
+// 			const fileSelection = selection
+// 			const path = fileSelection.fileURI.fsPath
+// 			if (!filesURIs.has(path)) {
+// 				filesURIs.add(path)
+// 				fileSelections.push(fileSelection)
+// 			}
+// 		}
+// 	}
+
+// 	const filesStr = await stringifyFileSelections(fileSelections, voidModelService)
+// 	const selnsStr = stringifyCodeSelections(codeSelections)
+
+// 	const fileContents = [filesStr, selnsStr].filter(Boolean).join('\n')
+// 	return fileContents || null
+// }
+
+// export const chat_lastUserMessageWithFilesAdded = (userMessage: string, selectionsString: string | null) => {
+// 	if (userMessage) return `${userMessage}${selectionsString ? `\n${selectionsString}` : ''}`
+// 	else return userMessage
+// }
+
+export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null,
+	opts: { type: 'references' } | { type: 'fullCode', voidModelService: IVoidModelService }
 ) => {
 
-	// ADD IN FILES AT TOP
-	const allSelections = [...currSelns || [], ...prevSelns || []]
+	const lineNumAddition = (range: [number, number]) => ` (lines ${range[0]}:${range[1]})`
+	let selnsStrs: string[] = []
+	if (opts.type === 'references') {
+		selnsStrs = currSelns?.map((s) => {
+			if (s.type === 'File') return `${s.uri.fsPath}`
+			if (s.type === 'CodeSelection') return `${s.uri.fsPath}${lineNumAddition(s.range)}`
+			if (s.type === 'Folder') return `${s.uri.fsPath}/`
+			return ''
+		}) ?? []
+	}
+	if (opts.type === 'fullCode') {
+		selnsStrs = await Promise.all(currSelns?.map(async (s) => {
+			if (s.type === 'File' || s.type === 'CodeSelection') {
+				const voidModelService = opts.voidModelService
+				const { model } = await voidModelService.getModelSafe(s.uri)
+				if (!model) return ''
+				const val = model.getValue(EndOfLinePreference.LF)
 
-	if (allSelections.length === 0) return null
-
-	const codeSelections: CodeSelection[] = []
-	const fileSelections: FileSelection[] = []
-	const filesURIs = new Set<string>()
-
-	for (const selection of allSelections) {
-		if (selection.type === 'Selection') {
-			codeSelections.push(selection)
-		}
-		else if (selection.type === 'File') {
-			const fileSelection = selection
-			const path = fileSelection.fileURI.fsPath
-			if (!filesURIs.has(path)) {
-				filesURIs.add(path)
-				fileSelections.push(fileSelection)
+				const lineNumAdd = s.type === 'CodeSelection' ? lineNumAddition(s.range) : ''
+				const str = `${s.uri.fsPath}${lineNumAdd}\n${tripleTick[0]}${s.language}\n${val}\n${tripleTick[1]}`
+				return str
 			}
-		}
+			if (s.type === 'Folder') {
+				// TODO
+				return ''
+			}
+			return ''
+		}) ?? [])
 	}
 
-	const filesStr = await stringifyFileSelections(fileSelections, voidModelService)
-	const selnsStr = stringifyCodeSelections(codeSelections)
-
-	const fileContents = [filesStr, selnsStr].filter(Boolean).join('\n')
-	return fileContents || null
-}
-
-export const chat_lastUserMessageWithFilesAdded = (userMessage: string, selectionsString: string | null) => {
-	if (userMessage) return `${userMessage}${selectionsString ? `\n${selectionsString}` : ''}`
-	else return userMessage
+	const selnsStr = selnsStrs.join('\n') ?? ''
+	let str = ''
+	str += `${instructions}`
+	if (selnsStr) str += `\n---\nSELECTIONS\n${selnsStr}`
+	return str;
 }
 
 

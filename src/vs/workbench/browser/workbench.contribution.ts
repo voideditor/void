@@ -612,7 +612,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 				'description': localize('workbench.hover.delay', "Controls the delay in milliseconds after which the hover is shown for workbench items (ex. some extension provided tree view items). Already visible items may require a refresh before reflecting this setting change."),
 				// Testing has indicated that on Windows and Linux 500 ms matches the native hovers most closely.
 				// On Mac, the delay is 1500.
-				'default': 300, // Void changed this
+				'default': 300, // Void changed this from isMacintosh ? 1500 : 500,
 				'minimum': 0
 			},
 			'workbench.reduceMotion': {

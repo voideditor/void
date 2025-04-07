@@ -10,7 +10,6 @@ import { QuickEditPropsType } from '../../../quickEditActions.js';
 import { ButtonStop, ButtonSubmit, IconX, VoidChatArea } from '../sidebar-tsx/SidebarChat.js';
 import { VOID_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 import { useRefState } from '../util/helpers.js';
-import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 
 export const QuickEditChat = ({
@@ -88,8 +87,6 @@ export const QuickEditChat = ({
 		onInterrupt()
 		editCodeService.removeCtrlKZone({ diffareaid })
 	}, [editCodeService, diffareaid])
-
-	useScrollbarStyles(sizerRef)
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_K_ACTION_ID)?.getLabel()
 

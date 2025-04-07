@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 
-import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
+import { useAccessor, useActiveURI, useIsDark, useSettingsState } from '../util/services.js';
 
 import '../styles.css'
 import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
@@ -65,6 +65,8 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 	// }, [rerenderKey, reactRerenderCount, setReactRerenderKey, setClickState])
 
 	// if the user selected an option, close
+
+
 	if (clickState === 'clickedOption') {
 		return null
 	}

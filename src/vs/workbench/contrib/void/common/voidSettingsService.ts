@@ -11,9 +11,9 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { getModelCapabilities } from './modelCapabilities.js';
+import { defaultProviderSettings, getModelCapabilities } from './modelCapabilities.js';
 import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode } from './voidSettingsTypes.js';
 
 
 // name is the name in the dropdown
@@ -71,10 +71,10 @@ export interface IVoidSettingsService {
 
 
 
-const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], options: { existingModels: VoidModelInfo[] }) => {
+const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], options: { existingModels: VoidStatefulModelInfo[] }) => {
 	const { existingModels } = options
 
-	const existingModelsMap: Record<string, VoidModelInfo> = {}
+	const existingModelsMap: Record<string, VoidStatefulModelInfo> = {}
 	for (const existingModel of existingModels) {
 		existingModelsMap[existingModel.modelName] = existingModel
 	}
@@ -363,7 +363,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const modelIdx = models.findIndex(m => m.modelName === modelName)
 		if (modelIdx === -1) return
 		const newIsHidden = !models[modelIdx].isHidden
-		const newModels: VoidModelInfo[] = [
+		const newModels: VoidStatefulModelInfo[] = [
 			...models.slice(0, modelIdx),
 			{ ...models[modelIdx], isHidden: newIsHidden },
 			...models.slice(modelIdx + 1, Infinity)

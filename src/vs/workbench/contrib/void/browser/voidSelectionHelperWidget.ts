@@ -125,6 +125,10 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 			return;
 		}
 
+		if (this._editor.getModel().uri.scheme !== 'file') {
+			return;
+		}
+
 		const selection = this._editor.getSelection();
 
 		if (!selection || selection.isEmpty()) {

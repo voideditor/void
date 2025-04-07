@@ -15,7 +15,6 @@ import { ErrorDisplay } from './ErrorDisplay.js';
 import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
-import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
@@ -1027,6 +1026,7 @@ const SmallProseWrapper = ({ children }: { children: React.ReactNode }) => {
 	prose-blockquote:pl-2
 	prose-blockquote:my-2
 
+	prose-code:text-void-fg-3
 	prose-code:text-[12px]
 	prose-code:before:content-none
 	prose-code:after:content-none
@@ -1294,7 +1294,7 @@ export const ToolChildrenWrapper = ({ children, className }: { children: React.R
 	</div>
 }
 export const CodeChildren = ({ children }: { children: React.ReactNode }) => {
-	return <div className='bg-void-bg-3 p-1 rounded-sm font-mono overflow-auto text-sm'>
+	return <div className='bg-void-bg-3 p-1 rounded-sm overflow-auto text-sm'>
 		<div className='!select-text cursor-auto'>
 			{children}
 		</div>
@@ -1328,6 +1328,8 @@ const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescript
 const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr }: { applyBoxId: string, uri: URI, codeStr: string }) => {
 	const { currStreamState } = useApplyButtonState({ applyBoxId, uri })
 	return <div className='flex items-center gap-1'>
+
+
 		<StatusIndicatorForApplyButton applyBoxId={applyBoxId} uri={uri} />
 		<JumpToFileButton uri={uri} />
 		{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} />}
@@ -1767,18 +1769,18 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 							resolveReason.type === 'toofull' ? `\n(truncated)`
 								: null
 
-				componentParams.children = <ToolChildrenWrapper className='font-mono whitespace-pre text-nowrap overflow-auto text-sm'>
+				componentParams.children = <ToolChildrenWrapper className='whitespace-pre text-nowrap overflow-auto text-sm'>
 
 					<div className='!select-text cursor-auto'>
 						<div>
-							<span>{`Ran command: `}</span>
-							<span className="text-void-fg-1">{command}</span>
+							<span className="text-void-fg-1 font-sans">{`Ran command: `}</span>
+							<span className="font-mono">{command}</span>
 						</div>
 						<div>
 							<span>{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}</span>
 							<span>{`Result: `}</span>
-							<span className="text-void-fg-1">{terminalResult}</span>
-							<span className="text-void-fg-1">{additionalDetailsStr}</span>
+							<span className="text-void-fg-1 font-mono">{terminalResult}</span>
+							<span className="text-void-fg-1 font-mono">{additionalDetailsStr}</span>
 						</div>
 					</div>
 				</ToolChildrenWrapper>
@@ -2150,7 +2152,7 @@ const CommandBarInChat = () => {
 			<svg
 				className="transition-transform duration-200 size-3.5"
 				style={{
-					transform: isFileDetailsOpened ? 'rotate(180deg)' : 'rotate(0deg)',
+					transform: isFileDetailsOpened ? 'rotate(0deg)' : 'rotate(180deg)',
 					transition: 'transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1)'
 				}}
 				xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline>
@@ -2253,8 +2255,6 @@ export const SidebarChat = () => {
 
 	const sidebarRef = useRef<HTMLDivElement>(null)
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
-
-	useScrollbarStyles(sidebarRef)
 
 	const onSubmit = useCallback(async () => {
 

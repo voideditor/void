@@ -372,7 +372,7 @@ const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMCh
 
 type PrepareMessagesTools = PrepareMessagesToolsAnthropic | PrepareMessagesToolsOpenAI
 
-const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'anthropic-style' | 'openai-style' }): { messages: PrepareMessagesTools } => {
+const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style' }): { messages: PrepareMessagesTools } => {
 	if (!supportsTools) {
 		return { messages: messages }
 	}
@@ -466,7 +466,7 @@ export const prepareMessages = ({
 	messages: LLMChatMessage[],
 	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
-	supportsTools: false | 'anthropic-style' | 'openai-style',
+	supportsTools: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style',
 	supportsAnthropicReasoningSignature: boolean,
 	contextWindow: number,
 	maxOutputTokens: number | null | undefined,

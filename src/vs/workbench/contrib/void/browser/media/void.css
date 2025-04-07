@@ -76,93 +76,108 @@
 	opacity: 80%;
 }
 
+/* styles for all containers used by void */
+.void-scope {
+	background-color: var(--vscode-editor-background);
+	--scrollbar-vertical-width: 8px;
+	--scrollbar-horizontal-height: 6px;
+}
 
+/* Target both void-scope and all its descendants with scrollbars */
+.void-scope,
+.void-scope * {
+	scrollbar-width: thin !important;
+	scrollbar-color: var(--void-bg-1) var(--void-bg-3) !important; /* For Firefox */
+}
 
+.void-scope::-webkit-scrollbar,
+.void-scope *::-webkit-scrollbar {
+	width: var(--scrollbar-vertical-width) !important;
+	height: var(--scrollbar-horizontal-height) !important;
+	background-color: var(--void-bg-3) !important;
+}
 
+.void-scope::-webkit-scrollbar-thumb,
+.void-scope *::-webkit-scrollbar-thumb {
+	background-color: var(--void-bg-1) !important;
+	border-radius: 4px !important;
+	border: none !important;
+	-webkit-box-shadow: none !important;
+	box-shadow: none !important;
+}
+
+.void-scope::-webkit-scrollbar-thumb:hover,
+.void-scope *::-webkit-scrollbar-thumb:hover {
+	background-color: var(--void-bg-1) !important;
+	filter: brightness(1.1) !important;
+}
+
+.void-scope::-webkit-scrollbar-thumb:active,
+.void-scope *::-webkit-scrollbar-thumb:active {
+	background-color: var(--void-bg-1) !important;
+	filter: brightness(1.2) !important;
+}
+
+.void-scope::-webkit-scrollbar-track,
+.void-scope *::-webkit-scrollbar-track {
+	background-color: var(--void-bg-3) !important;
+	border: none !important;
+}
+
+.void-scope::-webkit-scrollbar-corner,
+.void-scope *::-webkit-scrollbar-corner {
+	background-color: var(--void-bg-3) !important;
+}
+
+/* Add void-scrollable-element styles to match */
+.void-scrollable-element {
+	background-color: var(--vscode-editor-background);
+	--scrollbar-vertical-width: 14px;
+	--scrollbar-horizontal-height: 6px;
+	overflow: auto; /* Ensure scrollbars are shown when needed */
+}
+
+.void-scrollable-element,
+.void-scrollable-element * {
+	scrollbar-width: thin !important; /* For Firefox */
+	scrollbar-color: var(--void-bg-1) var(--void-bg-3) !important; /* For Firefox */
+}
 
 .void-scrollable-element::-webkit-scrollbar,
 .void-scrollable-element *::-webkit-scrollbar {
-    width: 14px !important;
-    height: 4px !important;
-}
-
-.void-scrollable-element::-webkit-scrollbar-track,
-.void-scrollable-element *::-webkit-scrollbar-track {
-    background: transparent !important;
+	width: var(--scrollbar-vertical-width) !important;
+	height: var(--scrollbar-horizontal-height) !important;
+	background-color: var(--void-bg-3) !important;
 }
 
 .void-scrollable-element::-webkit-scrollbar-thumb,
 .void-scrollable-element *::-webkit-scrollbar-thumb {
-    background-color: transparent !important;
-    border-radius: 0px !important;
+	background-color: var(--void-bg-1) !important;
+	border-radius: 4px !important;
+	border: none !important;
+	-webkit-box-shadow: none !important;
+	box-shadow: none !important;
 }
 
 .void-scrollable-element::-webkit-scrollbar-thumb:hover,
 .void-scrollable-element *::-webkit-scrollbar-thumb:hover {
-    background-color: var(--vscode-scrollbarSlider-hoverBackground) !important;
+	background-color: var(--void-bg-1) !important;
+	filter: brightness(1.1) !important;
 }
 
 .void-scrollable-element::-webkit-scrollbar-thumb:active,
 .void-scrollable-element *::-webkit-scrollbar-thumb:active {
-    background-color: var(--vscode-scrollbarSlider-activeBackground) !important;
+	background-color: var(--void-bg-1) !important;
+	filter: brightness(1.2) !important;
+}
+
+.void-scrollable-element::-webkit-scrollbar-track,
+.void-scrollable-element *::-webkit-scrollbar-track {
+	background-color: var(--void-bg-3) !important;
+	border: none !important;
 }
 
 .void-scrollable-element::-webkit-scrollbar-corner,
 .void-scrollable-element *::-webkit-scrollbar-corner {
-    background-color: transparent !important;
-}
-
-.void-scrollable-element.show-scrollbar-0::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-0 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 0%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-1::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-1 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 10%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-2::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-2 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 20%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-3::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-3 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 30%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-4::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-4 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 40%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-5::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-5 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 50%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-6::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-6 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 60%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-7::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-7 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 70%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-8::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-8 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 80%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-9::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-9 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 90%, transparent) !important;
-}
-
-.void-scrollable-element.show-scrollbar-10::-webkit-scrollbar-thumb,
-.void-scrollable-element.show-scrollbar-10 *::-webkit-scrollbar-thumb {
-    background-color: var(--vscode-scrollbarSlider-background) !important;
+	background-color: var(--void-bg-3) !important;
 }

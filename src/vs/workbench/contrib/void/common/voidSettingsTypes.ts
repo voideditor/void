@@ -4,47 +4,11 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { defaultModelsOfProvider } from './modelCapabilities.js';
+import { defaultModelsOfProvider, defaultProviderSettings } from './modelCapabilities.js';
 import { VoidSettingsState } from './voidSettingsService.js'
 
 
 type UnionOfKeys<T> = T extends T ? keyof T : never;
-
-
-export const defaultProviderSettings = {
-	anthropic: {
-		apiKey: '',
-	},
-	openAI: {
-		apiKey: '',
-	},
-	deepseek: {
-		apiKey: '',
-	},
-	ollama: {
-		endpoint: 'http://127.0.0.1:11434',
-	},
-	vLLM: {
-		endpoint: 'http://localhost:8000',
-	},
-	openRouter: {
-		apiKey: '',
-	},
-	openAICompatible: {
-		endpoint: '',
-		apiKey: '',
-	},
-	gemini: {
-		apiKey: '',
-	},
-	groq: {
-		apiKey: '',
-	},
-	xAI: {
-		apiKey: ''
-	},
-} as const
-
 
 
 
@@ -64,7 +28,7 @@ export const customSettingNamesOfProvider = (providerName: ProviderName) => {
 
 
 
-export type VoidModelInfo = { // <-- STATEFUL
+export type VoidStatefulModelInfo = { // <-- STATEFUL
 	modelName: string,
 	isDefault: boolean, // whether or not it's a default for its provider
 	isHidden: boolean, // whether or not the user is hiding it (switched off)
@@ -75,7 +39,7 @@ export type VoidModelInfo = { // <-- STATEFUL
 
 type CommonProviderSettings = {
 	_didFillInProviderSettings: boolean | undefined, // undefined initially, computed when user types in all fields
-	models: VoidModelInfo[],
+	models: VoidStatefulModelInfo[],
 }
 
 export type SettingsAtProvider<providerName extends ProviderName> = CustomProviderSettings<providerName> & CommonProviderSettings
@@ -227,7 +191,7 @@ const defaultCustomSettings: Record<CustomSettingName, undefined> = {
 }
 
 
-const modelInfoOfDefaultModelNames = (defaultModelNames: string[]): { models: VoidModelInfo[] } => {
+const modelInfoOfDefaultModelNames = (defaultModelNames: string[]): { models: VoidStatefulModelInfo[] } => {
 	return {
 		models: defaultModelNames.map((modelName, i) => ({
 			modelName,
@@ -334,6 +298,8 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 export const refreshableProviderNames = localProviderNames
 export type RefreshableProviderName = typeof refreshableProviderNames[number]
 
+// models that come with download buttons
+export const hasDownloadButtonsOnModelsProviderNames = ['ollama'] as const satisfies ProviderName[]
 
 
 

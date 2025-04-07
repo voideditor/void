@@ -1599,7 +1599,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
-		const N_RETRIES = 5
+		const N_RETRIES = 2
 
 		// allowed to throw errors - this is called inside a promise that handles everything
 		const runSearchReplace = async () => {

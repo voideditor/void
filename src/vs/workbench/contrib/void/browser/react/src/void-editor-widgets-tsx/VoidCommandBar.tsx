@@ -309,7 +309,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		</div>
 	</div>
 
-	return <div className={`flex flex-col items-center gap-y-2 mx-2 pointer-events-auto`}>
+	return <div className={`flex flex-col items-center gap-y-2 pointer-events-auto`}>
 		{showAcceptRejectAll && acceptRejectAllButtons}
 		{leftRightUpDownButtons}
 

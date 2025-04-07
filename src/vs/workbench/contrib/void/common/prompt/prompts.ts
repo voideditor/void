@@ -85,6 +85,10 @@ export const voidTools = {
 		}
 	},
 
+	// pathname_search: {
+	// 	name: 'pathname_search',
+	// 	description: `Returns all pathnames that match a given \`find\`-style query over the entire workspace. ONLY searches file names. ONLY searches the current workspace. You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
+
 	search_pathnames_only: {
 		name: 'search_pathnames_only',
 		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
@@ -94,6 +98,8 @@ export const voidTools = {
 			...paginationHelper.param,
 		},
 	},
+
+
 
 	search_files: {
 		name: 'search_files',

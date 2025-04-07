@@ -9,9 +9,9 @@ import OpenAI, { ClientOptions } from 'openai';
 
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
-import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
-import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
+import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings } from '../../common/modelCapabilities.js';
 import { InternalToolInfo, ToolName, isAToolName } from '../../common/toolsServiceTypes.js';
 
 

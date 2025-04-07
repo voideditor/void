@@ -20,19 +20,16 @@ enum CopyButtonText {
 
 
 type IconButtonProps = {
-	onClick: () => void;
 	Icon: LucideIcon
-	disabled?: boolean
-	className?: string
 }
 
-export const IconShell1 = ({ onClick, Icon, disabled, className }: IconButtonProps) => (
+export const IconShell1 = ({ onClick, Icon, disabled, className, ...props }: IconButtonProps & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
 	<button
 		disabled={disabled}
 		onClick={(e) => {
 			e.preventDefault();
 			e.stopPropagation();
-			onClick?.();
+			onClick?.(e);
 		}}
 		className={`
             size-[22px]
@@ -44,6 +41,7 @@ export const IconShell1 = ({ onClick, Icon, disabled, className }: IconButtonPro
             disabled:opacity-50 disabled:cursor-not-allowed
 			${className}
         `}
+		{...props}
 	>
 		<Icon />
 	</button>
@@ -163,9 +161,10 @@ export const useApplyButtonState = ({ applyBoxId, uri }: { applyBoxId: string, u
 			rerender(c => c + 1)
 			console.log('rerendering....')
 		}
-	}, [applyBoxId, applyBoxId, uri]))
+	}, [applyBoxId, uri]))
 
 	const currStreamState = getStreamState()
+
 
 	return {
 		getStreamState,
@@ -192,7 +191,8 @@ export const StatusIndicator = ({ color, title, className }: { color: 'green' | 
 	);
 };
 
-export const StatusIndicatorHTML = ({ applyBoxId, uri }: { applyBoxId: string, uri: URI | 'current' }) => {
+export const StatusIndicatorForApplyButton = ({ applyBoxId, uri }: { applyBoxId: string, uri: URI | 'current' }) => {
+
 	const { currStreamState } = useApplyButtonState({ applyBoxId, uri })
 
 	const color = (
@@ -329,7 +329,7 @@ export const BlockCodeApplyWrapper = ({
 		{/* header */}
 		<div className=" select-none flex justify-between items-center py-1 px-2 border-b border-void-border-3 cursor-default">
 			<div className="flex items-center">
-				<StatusIndicatorHTML uri={uri} applyBoxId={applyBoxId} />
+				<StatusIndicatorForApplyButton uri={uri} applyBoxId={applyBoxId} />
 				<span className="text-[13px] font-light text-void-fg-3">
 					{name}
 				</span>

@@ -10,24 +10,34 @@ import { ToolName, ToolCallParams, ToolResultType } from './toolsServiceTypes.js
 
 export type ToolMessage<T extends ToolName> = {
 	role: 'tool';
-	name: T; // internal use
 	paramsStr: string; // internal use
 	id: string; // apis require this tool use id
-	content: string; // give this result to LLM
+	content: string; // give this result to LLM (string of value)
+} & (
+		// in order of events:
+		| { type: 'invalid_params', result: null, params: null, name: string }
 
-	// if rejected, don't show in chat
-	result:
-	| { type: 'success'; params: ToolCallParams[T]; value: ToolResultType[T], }
-	| { type: 'error'; params: ToolCallParams[T] | undefined; value: string }
-	| { type: 'rejected'; params: ToolCallParams[T] } // user rejected
+		| { type: 'tool_request', result: null, name: T, params: ToolCallParams[T], }  // params were validated, awaiting user
+
+		| { type: 'running_now', result: null, name: T, params: ToolCallParams[T], }
+
+		| { type: 'tool_error', result: string, name: T, params: ToolCallParams[T], } // error when tool was running
+		| { type: 'success', result: ToolResultType[T], name: T, params: ToolCallParams[T], }
+		| { type: 'rejected', result: null, name: T, params: ToolCallParams[T], }
+	) // user rejected
+
+export type DecorativeCanceledTool = {
+	role: 'decorative_canceled_tool';
+	name: string;
 }
-export type ToolRequestApproval<T extends ToolName> = {
-	role: 'tool_request';
-	name: T; // internal use
-	params: ToolCallParams[T]; // internal use
-	paramsStr: string; // internal use - this is what the LLM outputted, not necessarily JSON.stringify(params)
-	id: string; // proposed tool's id
-}
+
+// export type ToolRequestApproval<T extends ToolName> = {
+// 	role: 'tool_request';
+// 	name: T; // internal use
+// 	params: ToolCallParams[T]; // internal use
+// 	paramsStr: string; // internal use - this is what the LLM outputted, not necessarily JSON.stringify(params)
+// 	id: string; // proposed tool's id
+// }
 
 
 // checkpoints
@@ -61,7 +71,7 @@ export type ChatMessage =
 		anthropicReasoning: AnthropicReasoning[] | null; // anthropic reasoning
 	}
 	| ToolMessage<ToolName>
-	| ToolRequestApproval<ToolName>
+	| DecorativeCanceledTool
 	| CheckpointEntry
 
 

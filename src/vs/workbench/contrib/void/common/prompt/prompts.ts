@@ -79,7 +79,7 @@ export const voidTools = {
 
 	get_dir_structure: {
 		name: 'get_dir_structure',
-		description: `Returns a tree diagram of all the files and folders in the given folder URI. Call this to learn more about a folder. If results are large, the given string will be truncated (this will be indicated), in which case you might want to call this tool on a lower folder to get better results, or just use ls_dir which supports pagination.`,
+		description: `This is a very effective way to learn about the user's codebase. You might want to use this instead of ls_dir. Returns a tree diagram of all the files and folders in the given folder URI. If results are large, the given string will be truncated (this will be indicated), in which case you might want to call this tool on a lower folder to get better results, or just use ls_dir which supports pagination.`,
 		params: {
 			...uriParam('folder')
 		}

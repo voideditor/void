@@ -21,7 +21,7 @@ import { ToolName, ToolCallParams, ToolResultType, toolNamesThatRequireApproval,
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
-import { ChatMessage, CheckpointEntry, CodespanLocationLink, StagingSelectionItem, ToolRequestApproval } from '../common/chatThreadServiceTypes.js';
+import { ChatMessage, CheckpointEntry, CodespanLocationLink, StagingSelectionItem, ToolMessage } from '../common/chatThreadServiceTypes.js';
 import { Position } from '../../../../editor/common/core/position.js';
 import { ITerminalToolService } from './terminalToolService.js';
 import { IMetricsService } from '../common/metricsService.js';
@@ -71,7 +71,7 @@ const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
 			llmChatMessages.push({ role: c.role, content: c.content, anthropicReasoning: c.anthropicReasoning })
 		else if (c.role === 'tool')
 			llmChatMessages.push({ role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content })
-		else if (c.role === 'tool_request') { // pass
+		else if (c.role === 'decorative_canceled_tool') { // pass
 		}
 		else if (c.role === 'checkpoint') { // pass
 		}
@@ -125,7 +125,12 @@ export type ThreadsState = {
 	currentThreadId: string; // intended for internal use only
 }
 
-export type IsRunningType = undefined | 'message' | 'tool' | 'awaiting_user'
+export type IsRunningType =
+	| 'LLM' // the LLM is currently streaming
+	| 'tool' // whether a tool is currently running
+	| 'awaiting_user' // awaiting user call
+	| undefined
+
 export type ThreadStreamState = {
 	[threadId: string]: undefined | {
 		// state related to streaming (not just when streaming)
@@ -460,13 +465,33 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
+
+	private _swapOutLatestStreamingToolWithResult = (threadId: string, tool: ChatMessage & { role: 'tool' }) => {
+		const messages = this.state.allThreads[threadId]?.messages
+		if (!messages) return false
+		const lastMsg = messages[messages.length - 1]
+		if (!lastMsg) return false
+		if (lastMsg.role === 'tool' && (lastMsg.type === 'running_now' || lastMsg.type === 'tool_request')) {
+			this._editMessageInThread(threadId, messages.length - 1, tool)
+			return true
+		}
+		return false
+	}
+	private _updateLatestToolTo = (threadId: string, tool: ChatMessage & { role: 'tool' }) => {
+		const swapped = this._swapOutLatestStreamingToolWithResult(threadId, tool)
+		if (swapped) return
+		this._addMessageToThread(threadId, tool)
+	}
+
 	approveLatestToolRequest(threadId: string) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
 
-		const lastMessage = thread.messages[thread.messages.length - 1]
-		if (lastMessage.role !== 'tool_request') return // should never happen
+		const lastMsg = thread.messages[thread.messages.length - 1]
+		if (!(
+			lastMsg.role === 'tool' && (lastMsg.type === 'tool_request')
+		)) return // should never happen
 
 		const lastUserMsgIdx = findLastIdx(thread.messages, m => m.role === 'user')
 		const lastUserMessage = thread.messages[lastUserMsgIdx] as ChatMessage & { role: 'user' }
@@ -476,7 +501,18 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const prevSelns: StagingSelectionItem[] = this._getAllSelections(threadId)
 		const currSelns: StagingSelectionItem[] = []
 
-		const callThisToolFirst: ToolRequestApproval<ToolName> = lastMessage
+		const callThisToolFirst: ToolMessage<ToolName> = lastMsg
+
+		this._updateLatestToolTo(threadId, {
+			role: 'tool',
+			type: 'running_now',
+			name: lastMsg.name,
+			paramsStr: lastMsg.paramsStr,
+			id: lastMsg.id,
+			params: lastMsg.params,
+			content: '(value not received yet...)', // this typically shouldn't ever get read
+			result: null
+		})
 
 		this._wrapRunAgentToNotify(
 			this._runChatAgent({ callThisToolFirst, prevSelns, currSelns, threadId, userMessageContent: instructions, ...this._currentModelSelectionProps() })
@@ -487,37 +523,64 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
-		const lastMessage = thread.messages[thread.messages.length - 1]
-		if (lastMessage.role !== 'tool_request') return // should never happen
-		const { name, params, paramsStr, id } = lastMessage
+		const lastMsg = thread.messages[thread.messages.length - 1]
+
+		let params: ToolCallParams[ToolName]
+		if (lastMsg.role === 'tool' && (lastMsg.type === 'running_now' || lastMsg.type === 'tool_request')) {
+			params = lastMsg.params
+		}
+		else return
+
+		const { name, paramsStr, id } = lastMsg
 
 		const errorMessage = this.errMsgs.rejected
-		this._addMessageToThread(threadId, { role: 'tool', name: name, paramsStr: paramsStr, id, content: errorMessage, result: { type: 'rejected', params: params }, })
+		this._updateLatestToolTo(threadId, { role: 'tool', type: 'rejected', params: params, name: name, paramsStr: paramsStr, id, content: errorMessage, result: null })
 		this._setStreamState(threadId, {}, 'set')
 	}
+
+	// private _rejectLatestStreamingTool(threadId: string) {
+	// 	const thread = this.state.allThreads[threadId]
+	// 	if (!thread) return // should never happen
+
+	// 	const lastMessage = thread.messages[thread.messages.length - 1]
+	// 	if (lastMessage.role !== 'tool') return
+	// 	const { name, paramsStr, id, result } = lastMessage
+	// 	if (result.type !== 'running_now') return
+	// 	const { params } = result
+
+	// 	const errorMessage = this.errMsgs.rejected
+	// 	this._swapOutLatestStreamingToolWithResult(threadId, { role: 'tool', name: name, paramsStr: paramsStr, id, content: errorMessage, result: { type: 'rejected', params: params }, })
+	// 	this._setStreamState(threadId, {}, 'set')
+
+	// }
+
 	stopRunning(threadId: string) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
-		const isRunning = this.streamState[threadId]?.isRunning
-		// reject the tool for the user
-		if (isRunning === 'awaiting_user') {
-			this.rejectLatestToolRequest(threadId)
-		}
-		// interrupt the tool
-		else if (isRunning === 'tool') {
-			this._currentlyRunningToolInterruptor[threadId]?.()
-		}
+		// reject the tool for the user if relevant
+		this.rejectLatestToolRequest(threadId)
+
+		// interrupt the tool if relevant
+		this._currentlyRunningToolInterruptor[threadId]?.()
+
 		// interrupt assistant message
-		else if (isRunning === 'message') {
+		const isRunning = this.streamState[threadId]?.isRunning
+		if (isRunning === 'LLM') {
 			// abort the stream first so it doesn't change any state
 			const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
 			const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
+			const toolInProgress = this.streamState[threadId]?.toolNameSoFar
+			console.log('toolInProgress', toolInProgress)
 
 			const llmCancelToken = this.streamState[threadId]?.streamingToken
 			if (llmCancelToken !== undefined) { this._llmMessageService.abort(llmCancelToken) }
 
 			this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
+
+			if (toolInProgress) {
+				this._addMessageToThread(threadId, { role: 'decorative_canceled_tool', name: toolInProgress })
+			}
 		}
 
 		this._setStreamState(threadId, {}, 'set')
@@ -559,7 +622,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		modelSelectionOptions: ModelSelectionOptions | undefined,
 		userMessageContent: string, // content of LATEST user message
 
-		callThisToolFirst?: ToolRequestApproval<ToolName>
+		callThisToolFirst?: ToolMessage<ToolName> & { type: 'tool_request' }
 	}) {
 		const userMessageFullContent = userMessageContent
 		const getLatestMessages = async () => {
@@ -620,16 +683,18 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					toolParams = params
 				} catch (error) {
 					const errorMessage = getErrorMessage(error)
-					this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: undefined, value: errorMessage }, })
+					this._addMessageToThread(threadId, { role: 'tool', type: 'invalid_params', params: null, result: null, name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, })
 					return {}
 				}
+				// once validated, add checkpoint for edit
+				if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
 
 				// 2. if tool requires approval, break from the loop, awaiting approval
 				const requiresApproval = toolNamesThatRequireApproval.has(toolName)
 				if (requiresApproval) {
 					const autoApprove = this._settingsService.state.globalSettings.autoApprove
 					// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)
-					this._addMessageToThread(threadId, { role: 'tool_request', name: toolName, paramsStr: toolParamsStr, params: toolParams, id: toolId })
+					this._addMessageToThread(threadId, { role: 'tool', type: 'tool_request', content: '(never)', result: null, name: toolName, paramsStr: toolParamsStr, params: toolParams, id: toolId })
 					if (!autoApprove) {
 						return { awaitingUserApproval: true }
 					}
@@ -643,8 +708,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._setStreamState(threadId, { isRunning: 'tool' }, 'merge')
 			let interrupted = false
 			try {
-				if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
-
 				const { result, interruptTool } = await this._toolsService.callTool[toolName](toolParams as any)
 				this._currentlyRunningToolInterruptor[threadId] = () => {
 					interrupted = true;
@@ -655,12 +718,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 			catch (error) {
 				if (interrupted) {
-					// ideally this should have same implementation as abort - addMessage should get called in stopRunning
-					this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: this.errMsgs.rejected, result: { type: 'rejected', params: toolParams }, })
+					// the tool result is added when we stop running
 					return { interrupted: true }
 				}
 				const errorMessage = getErrorMessage(error)
-				this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
+				this._updateLatestToolTo(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, })
 				return {}
 			}
 
@@ -669,12 +731,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
 			} catch (error) {
 				const errorMessage = this.errMsgs.errWhenStringifying(error)
-				this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
+				this._updateLatestToolTo(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, })
 				return {}
 			}
 
 			// 5. add to history and keep going
-			this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
+			this._updateLatestToolTo(threadId, { role: 'tool', type: 'success', params: toolParams, result: toolResult, name: toolName, paramsStr: toolParamsStr, id: toolId, content: toolResultStr, })
 
 			return {}
 		};
@@ -708,7 +770,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const messageIsDonePromise = new Promise<ToolCallType[] | undefined>((res, rej) => { resMessageIsDonePromise = res })
 
 			// send llm message
-			this._setStreamState(threadId, { isRunning: 'message' }, 'merge')
+			this._setStreamState(threadId, { isRunning: 'LLM' }, 'merge')
 			const messages = await getLatestMessages()
 			const llmCancelToken = this._llmMessageService.sendLLMMessage({
 				messagesType: 'chatMessages',

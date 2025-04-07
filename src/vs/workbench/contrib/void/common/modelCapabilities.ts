@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { ModelSelectionOptions, ProviderName } from './voidSettingsTypes.js';
+import { FeatureName, ModelSelectionOptions, ProviderName } from './voidSettingsTypes.js';
 
 
 export const defaultModelsOfProvider = {
@@ -807,15 +807,18 @@ export type SendableReasoningInfo = {
 
 
 
-export const getIsResoningEnabledState = (
+export const getIsReasoningEnabledState = (
+	featureName: FeatureName,
 	providerName: ProviderName,
 	modelName: string,
 	modelSelectionOptions: ModelSelectionOptions | undefined,
 ) => {
-	const { supportsReasoning } = getModelCapabilities(providerName, modelName).reasoningCapabilities || {}
+	const { supportsReasoning, canTurnOffReasoning } = getModelCapabilities(providerName, modelName).reasoningCapabilities || {}
 	if (!supportsReasoning) return false
 
-	const defaultEnabledVal = true // if can't toggle reasoning, then this must be true. just true as default
+	// default to enabled if can't turn off, or if the featureName is Chat.
+	const defaultEnabledVal = featureName === 'Chat' || !canTurnOffReasoning
+
 	const isReasoningEnabled = modelSelectionOptions?.reasoningEnabled ?? defaultEnabledVal
 	return isReasoningEnabled
 }
@@ -823,6 +826,7 @@ export const getIsResoningEnabledState = (
 
 // used to force reasoning state (complex) into something simple we can just read from when sending a message
 export const getSendableReasoningInfo = (
+	featureName: FeatureName,
 	providerName: ProviderName,
 	modelName: string,
 	modelSelectionOptions: ModelSelectionOptions | undefined,
@@ -830,7 +834,7 @@ export const getSendableReasoningInfo = (
 
 	const { canIOReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName).reasoningCapabilities || {}
 	if (!canIOReasoning) return null
-	const isReasoningEnabled = getIsResoningEnabledState(providerName, modelName, modelSelectionOptions)
+	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions)
 	if (!isReasoningEnabled) return null
 
 	// check for reasoning budget

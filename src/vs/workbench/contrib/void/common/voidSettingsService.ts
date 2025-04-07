@@ -12,12 +12,8 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
 import { getModelCapabilities } from './modelCapabilities.js';
+import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
 import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode } from './voidSettingsTypes.js';
-
-// past values:
-// 'void.settingsServiceStorage'
-
-const STORAGE_KEY = 'void.settingsServiceStorageI'
 
 
 // name is the name in the dropdown
@@ -38,7 +34,7 @@ type SetModelSelectionOfFeatureFn = <K extends FeatureName>(
 
 type SetGlobalSettingFn = <T extends GlobalSettingName>(settingName: T, newVal: GlobalSettings[T]) => void;
 
-type SetOptionsOfModelSelection = (providerName: ProviderName, modelName: string, newVal: Partial<ModelSelectionOptions>) => void
+type SetOptionsOfModelSelection = (featureName: FeatureName, providerName: ProviderName, modelName: string, newVal: Partial<ModelSelectionOptions>) => void
 
 
 export type VoidSettingsState = {
@@ -177,7 +173,7 @@ const defaultState = () => {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
 		modelSelectionOfFeature: { 'Chat': null, 'Ctrl+K': null, 'Autocomplete': null, 'Apply': null },
 		globalSettings: deepClone(defaultGlobalSettings),
-		optionsOfModelSelection: {},
+		optionsOfModelSelection: { 'Chat': {}, 'Ctrl+K': {}, 'Autocomplete': {}, 'Apply': {} },
 		_modelOptions: [], // computed later
 	}
 	return d
@@ -227,7 +223,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 
 	private async _readState(): Promise<VoidSettingsState> {
-		const encryptedState = this._storageService.get(STORAGE_KEY, StorageScope.APPLICATION)
+		const encryptedState = this._storageService.get(VOID_SETTINGS_STORAGE_KEY, StorageScope.APPLICATION)
 
 		if (!encryptedState)
 			return defaultState()
@@ -240,7 +236,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	private async _storeState() {
 		const state = this.state
 		const encryptedState = await this._encryptionService.encrypt(JSON.stringify(state))
-		this._storageService.store(STORAGE_KEY, encryptedState, StorageScope.APPLICATION, StorageTarget.USER);
+		this._storageService.store(VOID_SETTINGS_STORAGE_KEY, encryptedState, StorageScope.APPLICATION, StorageTarget.USER);
 	}
 
 	setSettingOfProvider: SetSettingOfProviderFn = async (providerName, settingName, newVal) => {
@@ -318,16 +314,19 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 
-	setOptionsOfModelSelection = async (providerName: ProviderName, modelName: string, newVal: Partial<ModelSelectionOptions>) => {
+	setOptionsOfModelSelection = async (featureName: FeatureName, providerName: ProviderName, modelName: string, newVal: Partial<ModelSelectionOptions>) => {
 		const newState: VoidSettingsState = {
 			...this.state,
 			optionsOfModelSelection: {
 				...this.state.optionsOfModelSelection,
-				[providerName]: {
-					...this.state.optionsOfModelSelection[providerName],
-					[modelName]: {
-						...this.state.optionsOfModelSelection[providerName]?.[modelName],
-						...newVal
+				[featureName]: {
+					...this.state.optionsOfModelSelection[featureName],
+					[providerName]: {
+						...this.state.optionsOfModelSelection[featureName][providerName],
+						[modelName]: {
+							...this.state.optionsOfModelSelection[featureName][providerName]?.[modelName],
+							...newVal
+						}
 					}
 				}
 			}

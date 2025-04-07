@@ -3,33 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { ComputedDiff } from '../../common/editCodeServiceTypes.js';
 import { diffLines } from '../react/out/diff/index.js'
-
-export type ComputedDiff = {
-	type: 'edit';
-	originalCode: string;
-	originalStartLine: number;
-	originalEndLine: number;
-	code: string;
-	startLine: number; // 1-indexed
-	endLine: number;
-} | {
-	type: 'insertion';
-	// originalCode: string;
-	originalStartLine: number; // insertion starts on column 0 of this
-	// originalEndLine: number;
-	code: string;
-	startLine: number;
-	endLine: number;
-} | {
-	type: 'deletion';
-	originalCode: string;
-	originalStartLine: number;
-	originalEndLine: number;
-	// code: string;
-	startLine: number; // deletion starts on column 0 of this
-	// endLine: number;
-}
 
 export function findDiffs(oldStr: string, newStr: string) {
 

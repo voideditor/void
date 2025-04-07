@@ -11,7 +11,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_lastUserMessageWithFilesAdded, chat_selectionsString, voidTools } from '../common/prompt/prompts.js';
+import { chat_userMessageContent, chat_systemMessage, voidTools } from '../common/prompt/prompts.js';
 import { getErrorMessage, LLMChatMessage, ToolCallType } from '../common/sendLLMMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
@@ -21,7 +21,7 @@ import { ToolName, ToolCallParams, ToolResultType, toolNamesThatRequireApproval,
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
-import { ChatMessage, CodespanLocationLink, StagingSelectionItem, ToolMessage, ToolRequestApproval } from '../common/chatThreadServiceTypes.js';
+import { ChatMessage, CheckpointEntry, CodespanLocationLink, StagingSelectionItem, ToolMessage } from '../common/chatThreadServiceTypes.js';
 import { Position } from '../../../../editor/common/core/position.js';
 import { ITerminalToolService } from './terminalToolService.js';
 import { IMetricsService } from '../common/metricsService.js';
@@ -29,16 +29,36 @@ import { shorten } from '../../../../base/common/labels.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
+import { findLast, findLastIdx } from '../../../../base/common/arraysFind.js';
+import { IEditCodeService } from './editCodeServiceInterface.js';
+import { VoidFileSnapshot } from '../common/editCodeServiceTypes.js';
+import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
+import { IModelService } from '../../../../editor/common/services/model.js';
+import { IDirectoryStrService } from './directoryStrService.js';
+import { truncate } from '../../../../base/common/strings.js';
+import { THREAD_STORAGE_KEY } from '../common/storageKeys.js';
 
-const findLastIndex = <T>(arr: T[], condition: (t: T) => boolean): number => {
-	for (let i = arr.length - 1; i >= 0; i--) {
-		if (condition(arr[i])) {
-			return i;
-		}
-	}
-	return -1;
-}
 
+/*
+
+Store a checkpoint of all "before" files on each x.
+x's show up before user messages and LLM edit tool calls.
+
+x     A          (edited A -> A')
+(... user modified changes ...)
+User message
+
+x     A' B C     (edited A'->A'', B->B', C->C')
+LLM Edit
+x
+LLM Edit
+x
+LLM Edit
+
+
+INVARIANT:
+A checkpoint appears before every LLM message, and before every user message (before user really means directly after LLM is done).
+*/
 
 
 const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
@@ -51,8 +71,9 @@ const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
 			llmChatMessages.push({ role: c.role, content: c.content, anthropicReasoning: c.anthropicReasoning })
 		else if (c.role === 'tool')
 			llmChatMessages.push({ role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content })
-		else if (c.role === 'tool_request') {
-			// pass
+		else if (c.role === 'decorative_canceled_tool') { // pass
+		}
+		else if (c.role === 'checkpoint') { // pass
 		}
 		else {
 			throw new Error(`Role ${(c as any).role} not recognized.`)
@@ -75,38 +96,41 @@ type ThreadType = {
 	id: string; // store the id here too
 	createdAt: string; // ISO string
 	lastModified: string; // ISO string
+
 	messages: ChatMessage[];
+	filesWithUserChanges: Set<string>;
+
+	// this doesn't need to go in a state object, but feels right
 	state: {
+		currCheckpointIdx: number | null; // the latest checkpoint we're at (null if not at a particular checkpoint, like if the chat is streaming, or chat just finished and we haven't clicked on a checkpt)
+
 		stagingSelections: StagingSelectionItem[];
-		focusedMessageIdx: number | undefined; // index of the message that is being edited (undefined if none)
+		focusedMessageIdx: number | undefined; // index of the user message that is being edited (undefined if none)
 
 		linksOfMessageIdx: { // eg. link = linksOfMessageIdx[4]['RangeFunction']
 			[messageIdx: number]: {
 				[codespanName: string]: CodespanLocationLink
 			}
 		}
-
-		isCheckedOfSelectionId: { [selectionId: string]: boolean }; // TODO
-	}
+	};
 }
 
 type ChatThreads = {
 	[id: string]: undefined | ThreadType;
 }
 
-export const defaultThreadState: ThreadType['state'] = {
-	stagingSelections: [],
-	focusedMessageIdx: undefined,
-	isCheckedOfSelectionId: {},
-	linksOfMessageIdx: {},
-}
 
 export type ThreadsState = {
 	allThreads: ChatThreads;
 	currentThreadId: string; // intended for internal use only
 }
 
-export type IsRunningType = undefined | 'message' | 'tool' | 'awaiting_user'
+export type IsRunningType =
+	| 'LLM' // the LLM is currently streaming
+	| 'tool' // whether a tool is currently running
+	| 'awaiting_user' // awaiting user call
+	| undefined
+
 export type ThreadStreamState = {
 	[threadId: string]: undefined | {
 		// state related to streaming (not just when streaming)
@@ -129,15 +153,19 @@ const newThreadObject = () => {
 		createdAt: now,
 		lastModified: now,
 		messages: [],
-		state: defaultThreadState,
-	} satisfies ChatThreads[string]
+		state: {
+			currCheckpointIdx: null,
+			stagingSelections: [],
+			focusedMessageIdx: undefined,
+			linksOfMessageIdx: {},
+		},
+		filesWithUserChanges: new Set()
+	} satisfies ThreadType
 }
 
 
-// past values:
-// 'void.chatThreadStorage'
 
-export const THREAD_STORAGE_KEY = 'void.chatThreadStorageI'
+
 
 
 export interface IChatThreadService {
@@ -159,13 +187,14 @@ export interface IChatThreadService {
 	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
 	getCurrentThreadState: () => ThreadType['state']
 	setCurrentThreadState: (newState: Partial<ThreadType['state']>) => void
+
 	// you can edit multiple messages - the one you're currently editing is "focused", and we add items to that one when you press cmd+L.
 	getCurrentFocusedMessageIdx(): number | undefined;
 	isCurrentlyFocusingMessage(): boolean;
 	setCurrentlyFocusedMessageIdx(messageIdx: number | undefined): void;
-	// current thread's staging selections
-	closeCurrentStagingSelectionsInMessage(opts: { messageIdx: number }): void;
-	closeCurrentStagingSelectionsInThread(): void;
+	// // current thread's staging selections
+	// closeCurrentStagingSelectionsInMessage(opts: { messageIdx: number }): void;
+	// closeCurrentStagingSelectionsInThread(): void;
 
 	// codespan links (link to symbols in the markdown)
 	getCodespanLink(opts: { codespanStr: string, messageIdx: number, threadId: string }): CodespanLocationLink | undefined;
@@ -183,8 +212,11 @@ export interface IChatThreadService {
 	addUserMessageAndStreamResponse({ userMessage, threadId }: { userMessage: string, threadId: string }): Promise<void>;
 
 	// approve/reject
-	approveTool(threadId: string): void;
-	rejectTool(threadId: string): void;
+	approveLatestToolRequest(threadId: string): void;
+	rejectLatestToolRequest(threadId: string): void;
+
+	// jump to history
+	jumpToCheckpointBeforeMessageIdx(opts: { threadId: string, messageIdx: number, jumpToUserModified: boolean }): void;
 }
 
 export const IChatThreadService = createDecorator<IChatThreadService>('voidChatThreadService');
@@ -201,6 +233,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	readonly streamState: ThreadStreamState = {}
 	state: ThreadsState // allThreads is persisted, currentThread is not
 
+	// used in checkpointing
+	// private readonly _userModifiedFilesToCheckInCheckpoints = new LRUCache<string, null>(50)
+
+
+
 	constructor(
 		@IStorageService private readonly _storageService: IStorageService,
 		@IVoidModelService private readonly _voidModelService: IVoidModelService,
@@ -213,6 +250,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IMetricsService private readonly _metricsService: IMetricsService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@ICodeEditorService private readonly _codeEditorService: ICodeEditorService,
+		@IEditCodeService private readonly _editCodeService: IEditCodeService,
+		@INotificationService private readonly _notificationService: INotificationService,
+		@IModelService private readonly _modelService: IModelService,
+		@IDirectoryStrService private readonly _directoryStrService: IDirectoryStrService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -231,63 +272,53 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// when the user changes files, automatically add the new file as a stagingSelection
 		this._register(this._editorService.onDidActiveEditorChange(() => this._addCurrentFileAsStagingSelectionDuringFileChange()));
 
+
+		// keep track of user-modified files
+		// const disposablesOfModelId: { [modelId: string]: IDisposable[] } = {}
+		// this._register(
+		// 	this._modelService.onModelAdded(e => {
+		// 		if (!(e.id in disposablesOfModelId)) disposablesOfModelId[e.id] = []
+		// 		disposablesOfModelId[e.id].push(
+		// 			e.onDidChangeContent(() => { this._userModifiedFilesToCheckInCheckpoints.set(e.uri.fsPath, null) })
+		// 		)
+		// 	})
+		// )
+		// this._register(this._modelService.onModelRemoved(e => {
+		// 	if (!(e.id in disposablesOfModelId)) return
+		// 	disposablesOfModelId[e.id].forEach(d => d.dispose())
+		// }))
+
 	}
 
 
+	// add the current file to the thread being edited
 	private _addCurrentFileAsStagingSelectionDuringFileChange() {
-
-
-		// add the current file to the thread being edited
 		const newModel = this._codeEditorService.getActiveCodeEditor()?.getModel() ?? null
-		if (!newModel) { return; }
+		if (!newModel) { return }
+
+		const isCurrentlyFocusing = this.isCurrentlyFocusingMessage()
+		if (isCurrentlyFocusing) return
+
+		// only add if the user hasn't sent a message yet
+		if (this.getCurrentThread().messages.length !== 0) return
 
 		const newStagingSelection: StagingSelectionItem = {
 			type: 'File',
-			fileURI: newModel.uri,
+			uri: newModel.uri,
 			language: newModel.getLanguageId(),
-			selectionStr: null,
-			range: null,
-			state: { isOpened: false, wasAddedAsCurrentFile: true }
+			state: { wasAddedAsCurrentFile: true }
 		}
 
-		const focusedMessageIdx = this.getCurrentFocusedMessageIdx();
+		const oldStagingSelections = this.getCurrentThreadState().stagingSelections || [];
+		const fileIsAlreadyHere = oldStagingSelections.some(s => s.type === 'File' && s.uri.fsPath === newStagingSelection.uri.fsPath)
+		if (fileIsAlreadyHere) return
 
-		// add the selection
-		if (focusedMessageIdx === undefined) { // user is in the default thread
-
-			const oldStagingSelections = this.getCurrentThreadState().stagingSelections || [];
-
-			// remove all old selectons that are marked as `wasAddedAsCurrentFile`
-			const newStagingSelections: StagingSelectionItem[] = oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile);
-
-			// add the new file if it doesn't exist
-			const fileIsAdded = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.fsPath === newStagingSelection.fileURI.fsPath)
-			if (!fileIsAdded) {
-				newStagingSelections.push(newStagingSelection)
-			}
-
-			// update thread state with new selections
-			this.setCurrentThreadState({ stagingSelections: newStagingSelections });
-
-
-
-		} else { // user is editing a message
-
-			// do nothing. I don't think it feels good to auto-add the current file when you're editing a message.
-
-			// const oldStagingSelections = this.getCurrentMessageState(focusedMessageIdx).stagingSelections || [];
-			// const newStagingSelections = [...filteredStagingSelections, newSelection];
-			// this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: newSelections });
-
-			// // if the file already exists, do nothing
-			// const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.fsPath === newSelection.fileURI.fsPath)
-			// if (alreadyHasFile) { return; }
-
-			// const filteredStagingSelections = oldStagingSelections.filter(s => !s.state?.wasAddedDuringFileChange); // remove all old selectons that were added during a file change
-
-
-		}
-
+		// remove all old selectons that are marked as `wasAddedAsCurrentFile`, and add new selection
+		const newStagingSelections: StagingSelectionItem[] = [
+			...oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile),
+			newStagingSelection
+		]
+		this.setCurrentThreadState({ stagingSelections: newStagingSelections });
 
 	}
 
@@ -309,225 +340,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			return null
 		}
 		const threads = this._convertThreadDataFromStorage(threadsStr);
-
-		threads['abc'] = {
-			id: 'abc',
-			createdAt: new Date().toISOString(),
-			lastModified: new Date().toISOString(),
-			messages: [
-				{
-					role: 'tool',
-					name: 'pathname_search',
-					id: 'tool-1',
-					paramsStr: '{"query": "hello", "pageNumber": 0}',
-					content: '/users/andrew/void/Desktop/etc/abc.txt',
-					result: { type: 'success', params: { queryStr: 'hello', pageNumber: 0 }, value: { uris: [URI.file('/Users/username/Downloads/helloooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo.txt'), URI.file('/Users/username/Downloads/hello1.txt'), URI.file('/Users/username/Downloads/hello2.txt'), URI.file('/Users/username/Downloads/hello3.txt'), URI.file('/Users/username/hello.txt')], hasNextPage: true } },
-				} satisfies ToolMessage<'pathname_search'>,
-				{
-					role: 'tool',
-					name: 'pathname_search',
-					id: 'tool-1',
-					paramsStr: '{"query": "hello", "pageNumber": 0}',
-					content: '/users/andrew/void/Desktop/etc/abc.txt',
-					result: { type: 'success', params: { queryStr: 'hello', pageNumber: 0 }, value: { uris: [], hasNextPage: false } },
-				} satisfies ToolMessage<'pathname_search'>,
-
-				// {
-				// 	role: 'tool_request',
-				// 	name: 'pathname_search',
-				// 	params: { queryStr: 'hello', pageNumber: 0 },
-				// 	paramsStr: '{"query": "hello", "pageNumber": 0}',
-				// 	id: 'request-1',
-				// } satisfies ToolRequestApproval<'pathname_search'>,
-
-				{
-					role: 'tool',
-					name: 'list_dir',
-					id: 'tool-2',
-					paramsStr: '{"uri": "/Users/username/Documents"}',
-					content: 'Directory listing of /Users/username/Documents',
-					result: {
-						type: 'success',
-						params: { rootURI: URI.file('/Users/username/Documents'), pageNumber: 1, },
-						value: {
-							children: [
-								{ uri: URI.file('/Users/username/Documents/file1.txt'), name: 'file1.txt', isDirectory: false, isSymbolicLink: false },
-								{ uri: URI.file('/Users/username/Documents/folder1'), name: 'folder1', isDirectory: true, isSymbolicLink: false }
-							],
-							hasNextPage: true,
-							hasPrevPage: true,
-							itemsRemaining: 5,
-						}
-					},
-				} satisfies ToolMessage<'list_dir'>,
-
-				// {
-				// 	role: 'tool_request',
-				// 	name: 'list_dir',
-				// 	params: { rootURI: URI.file('/Users/username/Documents'), pageNumber: 0 },
-				// 	paramsStr: '{"uri": "/Users/username/Documents"}',
-				// 	id: 'request-2',
-				// } satisfies ToolRequestApproval<'list_dir'>,
-
-				{
-					role: 'tool',
-					name: 'read_file',
-					id: 'tool-3',
-					paramsStr: '{"uri": "/Users/username/Documents/file1.txt"}',
-					content: 'Content of file1.txt\nThis is a sample file.\nHello world!',
-					result: {
-						type: 'success',
-						params: { uri: URI.file('/src/vs/workbench/hi'), pageNumber: 0 },
-						value: { fileContents: 'Content of file1.txt\nThis is a sample file.\nHello world!', hasNextPage: false }
-					},
-				} satisfies ToolMessage<'read_file'>,
-
-				// {
-				// 	role: 'tool_request',
-				// 	name: 'read_file',
-				// 	params: { uri: URI.file('/Users/username/Documents/file1.txt'), pageNumber: 0 },
-				// 	paramsStr: '{"uri": "/Users/username/Documents/file1.txt"}',
-				// 	id: 'request-3',
-				// } satisfies ToolRequestApproval<'read_file'>,
-
-				{
-					role: 'tool',
-					name: 'grep_search',
-					id: 'tool-4',
-					paramsStr: '{"query": "function main"}',
-					content: 'Found matches in 3 files',
-					result: {
-						type: 'success',
-						params: { queryStr: 'function main', pageNumber: 0 },
-						value: {
-							uris: [
-								URI.file('/Users/username/Project/main.js'),
-								URI.file('/Users/username/Project/src/app.js'),
-								URI.file('/Users/username/Project/test/test.js')
-							],
-							hasNextPage: false
-						}
-					},
-				} satisfies ToolMessage<'grep_search'>,
-
-				// {
-				// 	role: 'tool_request',
-				// 	name: 'grep_search',
-				// 	params: { queryStr: 'function main', pageNumber: 0 },
-				// 	paramsStr: '{"query": "function main"}',
-				// 	id: 'request-4',
-				// } satisfies ToolRequestApproval<'grep_search'>,
-
-				// ---
-
-				{
-					role: 'tool',
-					name: 'edit',
-					id: 'tool-5',
-					paramsStr: '{"uri": "/Users/username/Project/main.js", "changeDescription": "Add console.log statement"}',
-					content: 'Successfully edited the file at /Users/username/Project/main.js',
-					result: {
-						type: 'success',
-						params: { uri: URI.file('/Users/username/Project/main.js'), changeDescription: 'I think we should do this:\n```typescript\n//Add console.log statement\n for i in ...\n\t\tdo:\nabc\n```' },
-						value: Promise.resolve()
-					},
-				} satisfies ToolMessage<'edit'>,
-				{
-					role: 'tool_request',
-					name: 'edit',
-					params: { uri: URI.file('/Users/username/Project/main.js'), changeDescription: 'I think we should do this:\n```typescript\n//Add console.log statement\n for i in ...\n\t\tdo:\nabc\n```' },
-					paramsStr: '{"uri": "/Users/username/Project/main.js", "changeDescription": "I think we should do this:```Add console.log statement\n for i in ...\n\t\tdo:\nabc```"}',
-					id: 'request-5',
-				} satisfies ToolRequestApproval<'edit'>,
-
-				{
-					role: 'tool',
-					name: 'create_uri',
-					id: 'tool-6',
-					paramsStr: '{"uri": "/Users/username/Project/new-file.js"}',
-					content: 'Successfully created file at /Users/username/Project/new-file/',
-					result: {
-						type: 'success',
-						params: { uri: URI.file('Users/andrew/Desktop/void/src/vs/workbench/hi/'), isFolder: true },
-						value: {}
-					},
-				} satisfies ToolMessage<'create_uri'>,
-				{
-					role: 'tool_request',
-					name: 'create_uri',
-					params: { uri: URI.file('/Users/username/Project/new-file.js'), isFolder: false },
-					paramsStr: '{"uri": "/Users/username/Project/new-file.js"}',
-					id: 'request-6',
-				} satisfies ToolRequestApproval<'create_uri'>,
-
-				{
-					role: 'tool',
-					name: 'delete_uri',
-					id: 'tool-7',
-					paramsStr: '{"uri": "/Users/username/Project/old-file.js", "params": ""}',
-					content: 'Successfully deleted file at /Users/username/Project/old-file.js',
-					result: {
-						type: 'success',
-						params: { uri: URI.file('/Users/username/Project/old-file.js'), isRecursive: false, isFolder: false },
-						value: {}
-					},
-				} satisfies ToolMessage<'delete_uri'>,
-				{
-					role: 'tool_request',
-					name: 'delete_uri',
-					params: { uri: URI.file('/Users/username/Project/old-file.js'), isRecursive: false, isFolder: false },
-					paramsStr: '{"uri": "/Users/username/Project/old-file.js", "params": ""}',
-					id: 'request-7',
-				} satisfies ToolRequestApproval<'delete_uri'>,
-
-				{
-					role: 'tool',
-					name: 'terminal_command',
-					id: 'tool-8',
-					paramsStr: '{"command": "npm install", "waitForCompletion": "true"}',
-					content: 'Command executed: npm install\nAdded 123 packages in 3.5s',
-					result: {
-						type: 'success',
-						params: { command: 'npm install', proposedTerminalId: '1', waitForCompletion: true },
-						value: {
-							terminalId: '1',
-							didCreateTerminal: false,
-							result: 'Added 123 packages in 3.5s',
-							resolveReason: { type: 'done', exitCode: 0 }
-						}
-					},
-				} satisfies ToolMessage<'terminal_command'>,
-				{
-					role: 'tool_request',
-					name: 'terminal_command',
-					params: { command: 'npm install', proposedTerminalId: '1', waitForCompletion: true },
-					paramsStr: '{"command": "npm install", "waitForCompletion": "true"}',
-					id: 'request-8',
-				} satisfies ToolRequestApproval<'terminal_command'>,
-
-
-
-				// Examples of error and rejected states
-				{
-					role: 'tool',
-					name: 'pathname_search',
-					id: 'tool-error',
-					paramsStr: '{"query": "invalid**query"}',
-					content: 'Error: Invalid search pattern',
-					result: { type: 'error', params: { queryStr: 'invalid**query', pageNumber: 0 }, value: 'Error: Invalid search pattern' },
-				} satisfies ToolMessage<'pathname_search'>,
-
-				{
-					role: 'tool',
-					name: 'pathname_search',
-					id: 'tool-rejected',
-					paramsStr: '{"query": "sensitive-data"}',
-					content: 'Tool call was rejected by the user.',
-					result: { type: 'rejected', params: { queryStr: 'sensitive-data', pageNumber: 0 } },
-				} satisfies ToolMessage<'pathname_search'>,
-			],
-			state: defaultThreadState,
-		}
 
 		return threads
 	}
@@ -553,17 +365,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._onDidChangeCurrentThread.fire()
 	}
 
-	private _getAllSelections(threadId: string) {
-		const thread = this.state.allThreads[threadId]
-		if (!thread) return []
-		return thread.messages.flatMap(m => m.role === 'user' && m.selections || [])
-	}
-
-	private _getSelectionsUpToMessageIdx(messageIdx: number) {
-		const thread = this.getCurrentThread()
-		const prevMessages = thread.messages.slice(0, messageIdx)
-		return prevMessages.flatMap(m => m.role === 'user' && m.selections || [])
-	}
 
 	private _setStreamState(threadId: string, state: Partial<NonNullable<ThreadStreamState[string]>>, behavior: 'set' | 'merge') {
 		if (state === undefined)
@@ -600,7 +401,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 
 		// get prev and curr selections before clearing the message
-		const prevSelns = this._getSelectionsUpToMessageIdx(messageIdx) // selections for previous messages
 		const currSelns = thread.messages[messageIdx].state.stagingSelections || [] // staging selections for the edited message
 
 		// clear messages up to the index
@@ -616,7 +416,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}, true)
 
 		// re-add the message and stream it
-		this.addUserMessageAndStreamResponse({ userMessage, _chatSelections: { prevSelns, currSelns }, threadId })
+		this.addUserMessageAndStreamResponse({ userMessage, _chatSelections: currSelns, threadId })
 
 	}
 
@@ -625,66 +425,125 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// these settings should not change throughout the loop (eg anthropic breaks if you change its thinking mode and it's using tools)
 		const featureName: FeatureName = 'Chat'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 		return { modelSelection, modelSelectionOptions }
 	}
 
 
-	approveTool(threadId: string) {
+
+	private _swapOutLatestStreamingToolWithResult = (threadId: string, tool: ChatMessage & { role: 'tool' }) => {
+		const messages = this.state.allThreads[threadId]?.messages
+		if (!messages) return false
+		const lastMsg = messages[messages.length - 1]
+		if (!lastMsg) return false
+		if (lastMsg.role === 'tool' && (lastMsg.type === 'running_now' || lastMsg.type === 'tool_request')) {
+			this._editMessageInThread(threadId, messages.length - 1, tool)
+			return true
+		}
+		return false
+	}
+	private _updateLatestToolTo = (threadId: string, tool: ChatMessage & { role: 'tool' }) => {
+		const swapped = this._swapOutLatestStreamingToolWithResult(threadId, tool)
+		if (swapped) return
+		this._addMessageToThread(threadId, tool)
+	}
+
+	approveLatestToolRequest(threadId: string) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
 
-		const lastMessage = thread.messages[thread.messages.length - 1]
-		if (lastMessage.role !== 'tool_request') return // should never happen
+		const lastMsg = thread.messages[thread.messages.length - 1]
+		if (!(
+			lastMsg.role === 'tool' && (lastMsg.type === 'tool_request')
+		)) return // should never happen
 
-		const lastUserMsgIdx = findLastIndex(thread.messages, m => m.role === 'user')
+		const lastUserMsgIdx = findLastIdx(thread.messages, m => m.role === 'user')
 		const lastUserMessage = thread.messages[lastUserMsgIdx] as ChatMessage & { role: 'user' }
 		if (lastUserMsgIdx === -1 || !lastUserMessage) return // should never happen
 
 		const instructions = lastUserMessage.displayContent || ''
-		const prevSelns: StagingSelectionItem[] = this._getAllSelections(threadId)
-		const currSelns: StagingSelectionItem[] = []
 
-		const callThisToolFirst: ToolRequestApproval<ToolName> = lastMessage
+		const callThisToolFirst: ToolMessage<ToolName> = lastMsg
 
-		this._runChatAgent({ callThisToolFirst, prevSelns, currSelns, threadId, userMessageContent: instructions, ...this._currentModelSelectionProps() })
+		this._updateLatestToolTo(threadId, {
+			role: 'tool',
+			type: 'running_now',
+			name: lastMsg.name,
+			paramsStr: lastMsg.paramsStr,
+			id: lastMsg.id,
+			params: lastMsg.params,
+			content: '(value not received yet...)', // this typically shouldn't ever get read
+			result: null
+		})
+
+		this._wrapRunAgentToNotify(
+			this._runChatAgent({ callThisToolFirst, threadId, userMessageContent: instructions, ...this._currentModelSelectionProps() })
+			, threadId
+		)
 	}
-	rejectTool(threadId: string) {
+	rejectLatestToolRequest(threadId: string) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
-		const lastMessage = thread.messages[thread.messages.length - 1]
-		if (lastMessage.role !== 'tool_request') return // should never happen
-		const { name, params, paramsStr, id } = lastMessage
+		const lastMsg = thread.messages[thread.messages.length - 1]
+
+		let params: ToolCallParams[ToolName]
+		if (lastMsg.role === 'tool' && (lastMsg.type === 'running_now' || lastMsg.type === 'tool_request')) {
+			params = lastMsg.params
+		}
+		else return
+
+		const { name, paramsStr, id } = lastMsg
 
 		const errorMessage = this.errMsgs.rejected
-		this._addMessageToThread(threadId, { role: 'tool', name: name, paramsStr: paramsStr, id, content: errorMessage, result: { type: 'rejected', params: params }, })
+		this._updateLatestToolTo(threadId, { role: 'tool', type: 'rejected', params: params, name: name, paramsStr: paramsStr, id, content: errorMessage, result: null })
 		this._setStreamState(threadId, {}, 'set')
 	}
+
+	// private _rejectLatestStreamingTool(threadId: string) {
+	// 	const thread = this.state.allThreads[threadId]
+	// 	if (!thread) return // should never happen
+
+	// 	const lastMessage = thread.messages[thread.messages.length - 1]
+	// 	if (lastMessage.role !== 'tool') return
+	// 	const { name, paramsStr, id, result } = lastMessage
+	// 	if (result.type !== 'running_now') return
+	// 	const { params } = result
+
+	// 	const errorMessage = this.errMsgs.rejected
+	// 	this._swapOutLatestStreamingToolWithResult(threadId, { role: 'tool', name: name, paramsStr: paramsStr, id, content: errorMessage, result: { type: 'rejected', params: params }, })
+	// 	this._setStreamState(threadId, {}, 'set')
+
+	// }
+
 	stopRunning(threadId: string) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
-		const isRunning = this.streamState[threadId]?.isRunning
-		// reject the tool for the user
-		if (isRunning === 'awaiting_user') {
-			this.rejectTool(threadId)
-		}
-		// interrupt the tool
-		else if (isRunning === 'tool') {
-			this._currentlyRunningToolInterruptor[threadId]?.()
-		}
+		// reject the tool for the user if relevant
+		this.rejectLatestToolRequest(threadId)
+
+		// interrupt the tool if relevant
+		this._currentlyRunningToolInterruptor[threadId]?.()
+
 		// interrupt assistant message
-		else if (isRunning === 'message') {
+		const isRunning = this.streamState[threadId]?.isRunning
+		if (isRunning === 'LLM') {
 			// abort the stream first so it doesn't change any state
 			const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
 			const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
+			const toolInProgress = this.streamState[threadId]?.toolNameSoFar
+			console.log('toolInProgress', toolInProgress)
 
 			const llmCancelToken = this.streamState[threadId]?.streamingToken
 			if (llmCancelToken !== undefined) { this._llmMessageService.abort(llmCancelToken) }
 
 			this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
+
+			if (toolInProgress) {
+				this._addMessageToThread(threadId, { role: 'decorative_canceled_tool', name: toolInProgress })
+			}
 		}
 
 		this._setStreamState(threadId, {}, 'set')
@@ -714,39 +573,42 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	private async _runChatAgent({
 		threadId,
-		prevSelns,
-		currSelns,
 		modelSelection,
 		modelSelectionOptions,
 		userMessageContent,
 		callThisToolFirst,
 	}: {
 		threadId: string,
-		prevSelns: StagingSelectionItem[],
-		currSelns: StagingSelectionItem[],
 		modelSelection: ModelSelection | null,
 		modelSelectionOptions: ModelSelectionOptions | undefined,
 		userMessageContent: string, // content of LATEST user message
 
-		callThisToolFirst?: ToolRequestApproval<ToolName>
+		callThisToolFirst?: ToolMessage<ToolName> & { type: 'tool_request' }
 	}) {
-
-		// define helper functions so we can tell what's going on
-		// for now, do not recompute selections as we run (it seems to confuse tool-use models)
-		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidModelService) // all the file CONTENTS or "selections" de-duped
-		const userMessageFullContent = chat_lastUserMessageWithFilesAdded(userMessageContent, selectionsStr) // full last message: user message + CONTENTS of all files
+		const userMessageFullContent = userMessageContent
 		const getLatestMessages = async () => {
 			// replace last userMessage with userMessageFullContent (which contains all the files too)
 			const thread = this.state.allThreads[threadId]
 			const latestMessages = thread?.messages ?? []
 			const messages_ = toLLMChatMessages(latestMessages)
-			const lastUserMsgIdx = findLastIndex(messages_, m => m.role === 'user')
+			const lastUserMsgIdx = findLastIdx(messages_, m => m.role === 'user')
 			if (lastUserMsgIdx === -1) return [] // should never happen (or how did they send the message?!)
 
 			// system message
 			const workspaceFolders = this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
-			const terminalIds = this._terminalToolService.listTerminalIds()
-			const systemMessage = chat_systemMessage(workspaceFolders, terminalIds, chatMode)
+
+			const openedURIs = this._modelService.getModels().filter(m => m.isAttachedToEditor()).map(m => m.uri.fsPath) || [];
+			const activeURI = this._editorService.activeEditor?.resource?.fsPath;
+
+			const { wasCutOff, str: directoryStr_ } = await this._directoryStrService.getAllDirectoriesStr()
+
+			const directoryStr = wasCutOff ? (
+				chatMode === 'agent' || chatMode === 'gather' ? `${directoryStr_}\nString cut off, use tools to read more.`
+					: `${directoryStr_}\nString cut off, ask user for more if necessary.`
+			) : directoryStr_
+
+			const runningTerminalIds = this._terminalToolService.listTerminalIds()
+			const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, runningTerminalIds, chatMode })
 
 			// all messages so far in the chat history (including tools)
 			const messages: LLMChatMessage[] = [
@@ -782,16 +644,18 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					toolParams = params
 				} catch (error) {
 					const errorMessage = getErrorMessage(error)
-					this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: undefined, value: errorMessage }, })
+					this._addMessageToThread(threadId, { role: 'tool', type: 'invalid_params', params: null, result: null, name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, })
 					return {}
 				}
+				// once validated, add checkpoint for edit
+				if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
 
 				// 2. if tool requires approval, break from the loop, awaiting approval
 				const requiresApproval = toolNamesThatRequireApproval.has(toolName)
 				if (requiresApproval) {
 					const autoApprove = this._settingsService.state.globalSettings.autoApprove
 					// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)
-					this._addMessageToThread(threadId, { role: 'tool_request', name: toolName, paramsStr: toolParamsStr, params: toolParams, id: toolId })
+					this._addMessageToThread(threadId, { role: 'tool', type: 'tool_request', content: '(never)', result: null, name: toolName, paramsStr: toolParamsStr, params: toolParams, id: toolId })
 					if (!autoApprove) {
 						return { awaitingUserApproval: true }
 					}
@@ -815,12 +679,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 			catch (error) {
 				if (interrupted) {
-					// ideally this should have same implementation as abort - addMessage should get called in stopRunning
-					this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: this.errMsgs.rejected, result: { type: 'rejected', params: toolParams }, })
+					// the tool result is added when we stop running
 					return { interrupted: true }
 				}
 				const errorMessage = getErrorMessage(error)
-				this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
+				this._updateLatestToolTo(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, })
 				return {}
 			}
 
@@ -829,12 +692,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
 			} catch (error) {
 				const errorMessage = this.errMsgs.errWhenStringifying(error)
-				this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, result: { type: 'error', params: toolParams, value: errorMessage }, })
+				this._updateLatestToolTo(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, })
 				return {}
 			}
 
 			// 5. add to history and keep going
-			this._addMessageToThread(threadId, { role: 'tool', name: toolName, paramsStr: toolParamsStr, id: toolId, content: toolResultStr, result: { type: 'success', params: toolParams, value: toolResult }, })
+			this._updateLatestToolTo(threadId, { role: 'tool', type: 'success', params: toolParams, result: toolResult, name: toolName, paramsStr: toolParamsStr, id: toolId, content: toolResultStr, })
+
 			return {}
 		};
 
@@ -867,7 +731,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const messageIsDonePromise = new Promise<ToolCallType[] | undefined>((res, rej) => { resMessageIsDonePromise = res })
 
 			// send llm message
-			this._setStreamState(threadId, { isRunning: 'message' }, 'merge')
+			this._setStreamState(threadId, { isRunning: 'LLM' }, 'merge')
 			const messages = await getLatestMessages()
 			const llmCancelToken = this._llmMessageService.sendLLMMessage({
 				messagesType: 'chatMessages',
@@ -937,36 +801,349 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// if awaiting user approval, keep isRunning true, else end isRunning
 		this._setStreamState(threadId, { isRunning: isRunningWhenEnd }, 'merge')
 
+		// add checkpoint before the next user message
+		if (!isRunningWhenEnd)
+			this._addUserCheckpoint({ threadId })
+
 		// capture number of messages sent
 		this._metricsService.capture('Agent Loop Done', { nMessagesSent, chatMode })
+	}
 
+
+	private _addCheckpoint(threadId: string, checkpoint: CheckpointEntry) {
+		this._addMessageToThread(threadId, checkpoint)
+		// // update latest checkpoint idx to the one we just added
+		// const newThread = this.state.allThreads[threadId]
+		// if (!newThread) return // should never happen
+		// const currCheckpointIdx = newThread.messages.length - 1
+		// this._setThreadState(threadId, { currCheckpointIdx: currCheckpointIdx })
 	}
 
 
 
+	private _editMessageInThread(threadId: string, messageIdx: number, newMessage: ChatMessage,) {
+		const { allThreads } = this.state
+		const oldThread = allThreads[threadId]
+		if (!oldThread) return // should never happen
+		// update state and store it
+		const newThreads = {
+			...allThreads,
+			[oldThread.id]: {
+				...oldThread,
+				lastModified: new Date().toISOString(),
+				messages: [
+					...oldThread.messages.slice(0, messageIdx),
+					newMessage,
+					...oldThread.messages.slice(messageIdx + 1, Infinity),
+				],
+			}
+		}
+		this._storeAllThreads(newThreads)
+		this._setState({ allThreads: newThreads }, true) // the current thread just changed (it had a message added to it)
+	}
 
 
+	private _getCheckpointInfo = (checkpointMessage: ChatMessage & { role: 'checkpoint' }, fsPath: string, opts: { includeUserModifiedChanges: boolean }) => {
+		const voidFileSnapshot = checkpointMessage.voidFileSnapshotOfURI ? checkpointMessage.voidFileSnapshotOfURI[fsPath] ?? null : null
+		if (!opts.includeUserModifiedChanges) { return { voidFileSnapshot, } }
 
-	async addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: { prevSelns?: StagingSelectionItem[], currSelns?: StagingSelectionItem[], }, threadId: string }) {
+		const userModifiedVoidFileSnapshot = fsPath in checkpointMessage.userModifications.voidFileSnapshotOfURI ? checkpointMessage.userModifications.voidFileSnapshotOfURI[fsPath] ?? null : null
+		return { voidFileSnapshot: userModifiedVoidFileSnapshot ?? voidFileSnapshot, }
+	}
+
+	private _computeNewCheckpointInfo({ threadId }: { threadId: string }) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+
+		const lastCheckpointIdx = findLastIdx(thread.messages, (m) => m.role === 'checkpoint') ?? -1
+		if (lastCheckpointIdx === -1) return
+
+		const voidFileSnapshotOfURI: { [fsPath: string]: VoidFileSnapshot | undefined } = {}
+
+		// add a change for all the URIs in the checkpoint history
+		const { lastIdxOfURI } = this._getCheckpointsBetween({ threadId, loIdx: 0, hiIdx: lastCheckpointIdx, }) ?? {}
+		for (const fsPath in lastIdxOfURI ?? {}) {
+			const { model } = this._voidModelService.getModelFromFsPath(fsPath)
+			if (!model) continue
+			const checkpoint2 = thread.messages[lastIdxOfURI[fsPath]] || null
+			if (!checkpoint2) continue
+			if (checkpoint2.role !== 'checkpoint') continue
+			const res = this._getCheckpointInfo(checkpoint2, fsPath, { includeUserModifiedChanges: false })
+			if (!res) continue
+			const { voidFileSnapshot: oldVoidFileSnapshot } = res
+
+			// if there was any change to the str or diffAreaSnapshot, update. rough approximation of equality, oldDiffAreasSnapshot === diffAreasSnapshot is not perfect
+			const voidFileSnapshot = this._editCodeService.getVoidFileSnapshot(URI.file(fsPath))
+			if (oldVoidFileSnapshot === voidFileSnapshot) continue
+			voidFileSnapshotOfURI[fsPath] = voidFileSnapshot
+		}
+
+		// // add a change for all user-edited files (that aren't in the history)
+		// for (const fsPath of this._userModifiedFilesToCheckInCheckpoints.keys()) {
+		// 	if (fsPath in lastIdxOfURI) continue // if already visisted, don't visit again
+		// 	const { model } = this._voidModelService.getModelFromFsPath(fsPath)
+		// 	if (!model) continue
+		// 	currStrOfFsPath[fsPath] = model.getValue()
+		// }
+
+		return { voidFileSnapshotOfURI }
+	}
+
+
+	private _addUserCheckpoint({ threadId }: { threadId: string }) {
+		const { voidFileSnapshotOfURI } = this._computeNewCheckpointInfo({ threadId }) ?? {}
+		this._addCheckpoint(threadId, {
+			role: 'checkpoint',
+			type: 'user_edit',
+			voidFileSnapshotOfURI: voidFileSnapshotOfURI ?? {},
+			userModifications: { voidFileSnapshotOfURI: {}, },
+		})
+	}
+	// call this right after LLM edits a file
+	private _addToolEditCheckpoint({ threadId, uri, }: { threadId: string, uri: URI }) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+		const { model } = this._voidModelService.getModel(uri)
+		if (!model) return // should never happen
+		const diffAreasSnapshot = this._editCodeService.getVoidFileSnapshot(uri)
+		this._addCheckpoint(threadId, {
+			role: 'checkpoint',
+			type: 'tool_edit',
+			voidFileSnapshotOfURI: { [uri.fsPath]: diffAreasSnapshot },
+			userModifications: { voidFileSnapshotOfURI: {} },
+		})
+	}
+
+
+	private _getCheckpointBeforeMessage = ({ threadId, messageIdx }: { threadId: string, messageIdx: number }): [CheckpointEntry, number] | undefined => {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return undefined
+		for (let i = messageIdx; i >= 0; i--) {
+			const message = thread.messages[i]
+			if (message.role === 'checkpoint') {
+				return [message, i]
+			}
+		}
+		return undefined
+	}
+
+	private _getCheckpointsBetween({ threadId, loIdx, hiIdx }: { threadId: string, loIdx: number, hiIdx: number }) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return { lastIdxOfURI: {} } // should never happen
+		const lastIdxOfURI: { [fsPath: string]: number } = {}
+		for (let i = loIdx; i <= hiIdx; i += 1) {
+			const message = thread.messages[i]
+			if (message?.role !== 'checkpoint') continue
+			for (const fsPath in message.voidFileSnapshotOfURI) { // do not include userModified.beforeStrOfURI here, jumping should not include those changes
+				lastIdxOfURI[fsPath] = i
+			}
+		}
+		return { lastIdxOfURI }
+	}
+
+	private _readCurrentCheckpoint(threadId: string): [CheckpointEntry, number] | undefined {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+
+		const { currCheckpointIdx } = thread.state
+		if (currCheckpointIdx === null) return
+
+		const checkpoint = thread.messages[currCheckpointIdx]
+		if (!checkpoint) return
+		if (checkpoint.role !== 'checkpoint') return
+		return [checkpoint, currCheckpointIdx]
+	}
+	private _addUserModificationsToCurrCheckpoint({ threadId }: { threadId: string }) {
+		const { voidFileSnapshotOfURI } = this._computeNewCheckpointInfo({ threadId }) ?? {}
+		const res = this._readCurrentCheckpoint(threadId)
+		if (!res) return
+		const [checkpoint, checkpointIdx] = res
+		this._editMessageInThread(threadId, checkpointIdx, {
+			...checkpoint,
+			userModifications: { voidFileSnapshotOfURI: voidFileSnapshotOfURI ?? {}, },
+		})
+	}
+
+
+	private _makeUsStandOnCheckpoint({ threadId }: { threadId: string }) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+		if (thread.state.currCheckpointIdx === null) {
+			const lastMsg = thread.messages[thread.messages.length - 1]
+			if (lastMsg?.role !== 'checkpoint')
+				this._addUserCheckpoint({ threadId })
+			this._setThreadState(threadId, { currCheckpointIdx: thread.messages.length - 1 })
+		}
+	}
+
+	jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified }: { threadId: string, messageIdx: number, jumpToUserModified: boolean }) {
+
+		// if null, add a new temp checkpoint so user can jump forward again
+		this._makeUsStandOnCheckpoint({ threadId })
+
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+		if (this.streamState[threadId]?.isRunning) return
+
+		const c = this._getCheckpointBeforeMessage({ threadId, messageIdx })
+		if (c === undefined) return // should never happen
+
+		const fromIdx = thread.state.currCheckpointIdx
+		if (fromIdx === null) return // should never happen
+
+		const [_, toIdx] = c
+		if (toIdx === fromIdx) return
+
+		console.log(`going from ${fromIdx} to ${toIdx}`)
+
+		// update the user's checkpoint
+		this._addUserModificationsToCurrCheckpoint({ threadId })
+
+		/*
+if undoing
+
+A,B,C are all files.
+x means a checkpoint where the file changed.
+
+A B C D E F G H I
+x x x x x x x x x
+| | | | | | | | |
+x | | | | | | | x
+---x-|-|-|-x-|-x-|-----     <-- to
+ x | | | | | x
+   | | x x |
+   | |   | |
+-------x-|---x-x-------     <-- from
+	 x
+
+We need to revert anything that happened between to+1 and from.
+**We do this by finding the last x from 0...`to` for each file and applying those contents.**
+We only need to do it for files that were edited since `to`, ie files between to+1...from.
+*/
+		if (toIdx < fromIdx) {
+			const { lastIdxOfURI } = this._getCheckpointsBetween({ threadId, loIdx: toIdx + 1, hiIdx: fromIdx })
+			for (const fsPath in lastIdxOfURI) {
+				// apply lowest down content for each uri (or original if not found)
+				for (let k = toIdx; k >= 0; k -= 1) {
+					const message = thread.messages[k]
+					if (message.role !== 'checkpoint') continue
+					const res = this._getCheckpointInfo(message, fsPath, { includeUserModifiedChanges: jumpToUserModified })
+					if (!res) continue
+					const { voidFileSnapshot } = res
+					if (!voidFileSnapshot) continue
+					this._editCodeService.restoreVoidFileSnapshot(URI.file(fsPath), voidFileSnapshot)
+					break
+				}
+			}
+		}
+
+		/*
+if redoing
+
+A B C D E F G H I
+x x x x x x x x x
+| | | | | | | | |
+x | | | | | | | x
+---x-|-|-|-x-|-x-|-----     <-- from
+ x | | | | | x
+   | | x x |
+   | |   | |
+-------x-|---x-x-------     <-- to
+	 x
+
+We need to apply latest change for anything that happened between from+1 and to.
+We only need to do it for files that were edited since `from`, ie files between from+1...to.
+*/
+		if (toIdx > fromIdx) {
+			const { lastIdxOfURI } = this._getCheckpointsBetween({ threadId, loIdx: fromIdx + 1, hiIdx: toIdx })
+			for (const fsPath in lastIdxOfURI) {
+				// apply lowest down content for each uri
+				for (let k = toIdx; k >= fromIdx + 1; k -= 1) {
+					const message = thread.messages[k]
+					if (message.role !== 'checkpoint') continue
+					const res = this._getCheckpointInfo(message, fsPath, { includeUserModifiedChanges: jumpToUserModified })
+					if (!res) continue
+					const { voidFileSnapshot } = res
+					if (!voidFileSnapshot) continue
+
+					this._editCodeService.restoreVoidFileSnapshot(URI.file(fsPath), voidFileSnapshot)
+					break
+				}
+			}
+		}
+
+		this._setThreadState(threadId, { currCheckpointIdx: toIdx })
+	}
+
+
+	private _wrapRunAgentToNotify(p: Promise<void>, threadId: string) {
+		const notify = ({ error }: { error: string | null }) => {
+			const thread = this.state.allThreads[threadId]
+			if (!thread) return
+			const userMsg = findLast(thread.messages, m => m.role === 'user')
+			if (!userMsg) return
+			if (userMsg.role !== 'user') return
+			const messageContent = truncate(userMsg.displayContent, 50, '...')
+
+			this._notificationService.notify({
+				severity: error ? Severity.Warning : Severity.Info,
+				message: error ? `Error: ${error} ` : `A new Chat result is ready.`,
+				source: messageContent,
+				actions: {
+					primary: [{
+						id: 'void.goToChat',
+						enabled: true,
+						label: `Jump to Chat`,
+						tooltip: '',
+						class: undefined,
+						run: () => {
+							this.switchToThread(threadId)
+							// TODO!!! scroll to bottom
+						}
+					}]
+				},
+			})
+		}
+
+		p.then(() => {
+			if (threadId !== this.state.currentThreadId) notify({ error: null })
+		}).catch((e) => {
+			if (threadId !== this.state.currentThreadId) notify({ error: getErrorMessage(e) })
+			throw e
+		})
+	}
+
+	async addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: StagingSelectionItem[], threadId: string }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
+
+
+		// add dummy before this message to keep checkpoint before user message idea consistent
+		if (thread.messages.length === 0) {
+			this._addUserCheckpoint({ threadId })
+		}
 
 		// if the current thread is already streaming, stop it (this simply resolves the promise to free up space)
 		const llmCancelToken = this.streamState[threadId]?.streamingToken
 		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
 
-		// selections in all past chats, then in current chat (can have many duplicates here)
-		const prevSelns: StagingSelectionItem[] = _chatSelections?.prevSelns ?? this._getAllSelections(threadId)
-		const currSelns: StagingSelectionItem[] = _chatSelections?.currSelns ?? thread.state.stagingSelections
+		const { chatMode } = this._settingsService.state.globalSettings
 
 		// add user's message to chat history
 		const instructions = userMessage
+		const currSelns: StagingSelectionItem[] = _chatSelections ?? thread.state.stagingSelections
+		const opts = chatMode !== 'normal' ? { type: 'references' } as const : { type: 'fullCode', voidModelService: this._voidModelService } as const
 
-		const userMessageContent = await chat_userMessageContent(instructions, currSelns) // user message + names of files (NOT content)
+		const userMessageContent = await chat_userMessageContent(instructions, currSelns, opts) // user message + names of files (NOT content)
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)
 
-		this._runChatAgent({ prevSelns, currSelns, threadId, userMessageContent, ...this._currentModelSelectionProps(), })
+		this._setThreadState(threadId, { currCheckpointIdx: null }) // no longer at a checkpoint because started streaming
+
+		this._wrapRunAgentToNotify(
+			this._runChatAgent({ threadId, userMessageContent, ...this._currentModelSelectionProps(), }),
+			threadId,
+		)
 	}
 
 	dismissStreamError(threadId: string): void {
@@ -977,6 +1154,35 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// ---------- the rest ----------
 
+	private _getAllSeenFileURIs(threadId: string) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return []
+
+		const fsPathsSet = new Set<string>()
+		const uris: URI[] = []
+		const addURI = (uri: URI) => {
+			if (!fsPathsSet.has(uri.fsPath)) uris.push(uri)
+			fsPathsSet.add(uri.fsPath)
+			uris.push(uri)
+		}
+
+		for (const m of thread.messages) {
+			// URIs of user selections
+			if (m.role === 'user') {
+				for (const sel of m.selections ?? []) {
+					addURI(sel.uri)
+				}
+			}
+			// URIs of files that have been read
+			else if (m.role === 'tool' && m.type === 'success' && m.name === 'read_file') {
+				const params = m.params as ToolCallParams['read_file']
+				addURI(params.uri)
+			}
+		}
+		return uris
+	}
+
+
 	// gets the location of codespan link so the user can click on it
 	generateCodespanLink: IChatThreadService['generateCodespanLink'] = async ({ codespanStr: _codespanStr, threadId }) => {
 
@@ -986,7 +1192,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const functionParensPattern = /^([^\s(]+)\([^)]*\)$/; // `functionName( args )`
 
 		let target = _codespanStr // the string to search for
-		let codespanType: 'file-or-folder' | 'function-or-class' | 'unsearchable' = 'unsearchable';
+		let codespanType: 'file-or-folder' | 'function-or-class'
 		if (target.includes('.') || target.includes('/')) {
 
 			codespanType = 'file-or-folder'
@@ -1005,22 +1211,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				target = match[1]
 
 			}
+			else { return null }
 		}
-
-		if (codespanType === 'unsearchable') {
+		else {
 			return null
 		}
 
 		// get history of all AI and user added files in conversation + store in reverse order (MRU)
-		const prevUris = this._getAllSelections(threadId)
-			.map(s => s.fileURI)
-			.filter((uri, index, array) => array.findIndex(u => u.fsPath === uri.fsPath) === index) // O(n^2) but this is small
-			.reverse()
-
+		const prevUris = this._getAllSeenFileURIs(threadId).reverse()
 
 		if (codespanType === 'file-or-folder') {
-
-
 			const doesUriMatchTarget = (uri: URI) => uri.path.includes(target)
 
 			// check if any prevFiles are the `target`
@@ -1045,7 +1245,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// else search codebase for `target`
 			let uris: URI[] = []
 			try {
-				const { result } = await this._toolsService.callTool['pathname_search']({ queryStr: target, pageNumber: 0 })
+				const { result } = await this._toolsService.callTool['search_pathnames_only']({ queryStr: target, include: null, pageNumber: 0 })
 				uris = result.uris
 			} catch (e) {
 				return null
@@ -1251,7 +1451,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				// add the current file as a staging selection
 				const model = this._codeEditorService.getActiveCodeEditor()?.getModel()
 				if (model) {
-					this._setCurrentThreadState({ ...defaultThreadState, stagingSelections: [{ type: 'File', fileURI: model.uri, language: model.getLanguageId(), selectionStr: null, range: null, state: { isOpened: false, wasAddedAsCurrentFile: true } }] })
+					this._setThreadState(this.state.currentThreadId, {
+						stagingSelections: [{
+							type: 'File',
+							uri: model.uri,
+							language: model.getLanguageId(),
+							state: {
+								wasAddedAsCurrentFile: true
+							}
+						}]
+					})
 				}
 				return;
 			}
@@ -1269,19 +1478,20 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
-	_addMessageToThread(threadId: string, message: ChatMessage) {
+	private _addMessageToThread(threadId: string, message: ChatMessage) {
 		const { allThreads } = this.state
-
 		const oldThread = allThreads[threadId]
 		if (!oldThread) return // should never happen
-
 		// update state and store it
 		const newThreads = {
 			...allThreads,
 			[oldThread.id]: {
 				...oldThread,
 				lastModified: new Date().toISOString(),
-				messages: [...oldThread.messages, message],
+				messages: [
+					...oldThread.messages,
+					message
+				],
 			}
 		}
 		this._storeAllThreads(newThreads)
@@ -1337,9 +1547,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 	// set thread.state
-	private _setCurrentThreadState(state: Partial<ThreadType['state']>): void {
-
-		const threadId = this.state.currentThreadId
+	private _setThreadState(threadId: string, state: Partial<ThreadType['state']>): void {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return
 
@@ -1359,31 +1567,31 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
-	closeCurrentStagingSelectionsInThread = () => {
-		const currThread = this.getCurrentThreadState()
+	// closeCurrentStagingSelectionsInThread = () => {
+	// 	const currThread = this.getCurrentThreadState()
 
-		// close all stagingSelections
-		const closedStagingSelections = currThread.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
+	// 	// close all stagingSelections
+	// 	const closedStagingSelections = currThread.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
 
-		const newThread = currThread
-		newThread.stagingSelections = closedStagingSelections
+	// 	const newThread = currThread
+	// 	newThread.stagingSelections = closedStagingSelections
 
-		this.setCurrentThreadState(newThread)
+	// 	this.setCurrentThreadState(newThread)
 
-	}
+	// }
 
-	closeCurrentStagingSelectionsInMessage: IChatThreadService['closeCurrentStagingSelectionsInMessage'] = ({ messageIdx }) => {
-		const currMessage = this.getCurrentMessageState(messageIdx)
+	// closeCurrentStagingSelectionsInMessage: IChatThreadService['closeCurrentStagingSelectionsInMessage'] = ({ messageIdx }) => {
+	// 	const currMessage = this.getCurrentMessageState(messageIdx)
 
-		// close all stagingSelections
-		const closedStagingSelections = currMessage.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
+	// 	// close all stagingSelections
+	// 	const closedStagingSelections = currMessage.stagingSelections.map(s => ({ ...s, state: { ...s.state, isOpened: false } }))
 
-		const newMessage = currMessage
-		newMessage.stagingSelections = closedStagingSelections
+	// 	const newMessage = currMessage
+	// 	newMessage.stagingSelections = closedStagingSelections
 
-		this.setCurrentMessageState(messageIdx, newMessage)
+	// 	this.setCurrentMessageState(messageIdx, newMessage)
 
-	}
+	// }
 
 
 
@@ -1392,7 +1600,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		return currentThread.state
 	}
 	setCurrentThreadState = (newState: Partial<ThreadType['state']>) => {
-		this._setCurrentThreadState(newState)
+		this._setThreadState(this.state.currentThreadId, newState)
 	}
 
 	// gets `staging` and `setStaging` of the currently focused element, given the index of the currently selected message (or undefined if no message is selected)

@@ -40,20 +40,102 @@ const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatM
 	const newMessages: LLMChatMessage[] = []
 	if (messages.length >= 0) newMessages.push(messages[0])
 
-	// remove duplicate roles
+	// remove duplicate roles - we used to do this, but we don't anymore
 	for (let i = 1; i < messages.length; i += 1) {
-		const curr = messages[i]
-		// const prev = messages[i - 1]
-		// // if found a repeated role, put the current content in the prev
-		// if ((curr.role === 'assistant' && prev.role === 'assistant')) {
-		// 	prev.content += '\n' + curr.content
-		// 	continue
-		// }
-		// add the message
-		newMessages.push(curr)
+		const m = messages[i]
+		newMessages.push(m)
 	}
 	const finalMessages = newMessages.map(m => ({ ...m, content: m.content.trim() }))
 	return { messages: finalMessages }
+}
+
+
+
+
+
+
+const CHARS_PER_TOKEN = 4
+const TRIM_TO_LEN = 60
+
+const prepareMessages_fitIntoContext = ({ messages, contextWindow, maxOutputTokens }: { messages: LLMChatMessage[], contextWindow: number, maxOutputTokens: number }): { messages: LLMChatMessage[] } => {
+
+	// the higher the weight, the higher the desire to truncate
+	const alreadyTrimmedIdxes = new Set<number>()
+	const weight = (message: LLMChatMessage, messages: LLMChatMessage[], idx: number) => {
+		const base = message.content.length
+
+		let multiplier: number
+		if (message.role === 'system')
+			return 0 // never erase system message
+
+		multiplier = 1 + (messages.length - 1 - idx) / messages.length // slow rampdown from 2 to 1 as index increases
+		if (message.role === 'user') {
+			multiplier *= 1
+		}
+		else {
+			multiplier *= 10 // llm tokens are far less valuable than user tokens
+		}
+
+		// 1st message, last 3 msgs, any already modified message should be low in weight
+		if (idx === 0 || idx >= messages.length - 1 - 3 || alreadyTrimmedIdxes.has(idx)) {
+			multiplier *= .05
+		}
+
+		return base * multiplier
+
+	}
+	const _findLargestByWeight = (messages: LLMChatMessage[]) => {
+		let largestIndex = -1
+		let largestWeight = -Infinity
+		for (let i = 0; i < messages.length; i += 1) {
+			const m = messages[i]
+			const w = weight(m, messages, i)
+			if (w > largestWeight) {
+				largestWeight = w
+				largestIndex = i
+			}
+		}
+		return largestIndex
+	}
+
+	let totalLen = 0
+	for (const m of messages) { totalLen += m.content.length }
+	const charsNeedToTrim = totalLen - (contextWindow - maxOutputTokens) * CHARS_PER_TOKEN
+	if (charsNeedToTrim <= 0) return { messages }
+
+	// <----------------------------------------->
+	// 0                      |    |             |
+	//                        |    contextWindow |
+	//                     contextWindow - maxOut|putTokens
+	//                                           |
+	//                                          totalLen
+
+
+	// TRIM HIGHEST WEIGHT MESSAGES
+	let remainingCharsToTrim = charsNeedToTrim
+	let i = 0
+
+	while (remainingCharsToTrim > 0) {
+		i += 1
+		if (i > 100) break
+
+		const trimIdx = _findLargestByWeight(messages)
+		const m = messages[trimIdx]
+
+		// if can finish here, do
+		const numCharsWillTrim = m.content.length - TRIM_TO_LEN
+		if (numCharsWillTrim > remainingCharsToTrim) {
+			m.content = m.content.slice(0, m.content.length - remainingCharsToTrim)
+			break
+		}
+
+		remainingCharsToTrim -= numCharsWillTrim
+		m.content = m.content.substring(0, TRIM_TO_LEN - 3) + '...'
+		alreadyTrimmedIdxes.add(trimIdx)
+	}
+
+	return { messages }
+
 }
 
 
@@ -378,14 +460,21 @@ export const prepareMessages = ({
 	supportsSystemMessage,
 	supportsTools,
 	supportsAnthropicReasoningSignature,
+	contextWindow,
+	maxOutputTokens,
 }: {
 	messages: LLMChatMessage[],
 	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 	supportsTools: false | 'anthropic-style' | 'openai-style',
 	supportsAnthropicReasoningSignature: boolean,
+	contextWindow: number,
+	maxOutputTokens: number | null | undefined,
 }) => {
-	const { messages: messages1 } = prepareMessages_normalize({ messages })
+	maxOutputTokens = maxOutputTokens ?? 4_096 // default to 4096
+
+	const { messages: messages0 } = prepareMessages_normalize({ messages })
+	const { messages: messages1 } = prepareMessages_fitIntoContext({ messages: messages0, contextWindow, maxOutputTokens })
 	const { messages: messages2 } = prepareMessages_anthropicContent({ messages: messages1, supportsAnthropicReasoningSignature })
 	const { messages: messages3, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages2, aiInstructions, supportsSystemMessage })
 	const { messages: messages4 } = prepareMessages_tools({ messages: messages3, supportsTools })

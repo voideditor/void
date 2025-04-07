@@ -420,4 +420,11 @@ export type ModelSelectionOptions = {
 	reasoningBudget?: number;
 }
 
-export type OptionsOfModelSelection = Partial<{ [providerName in ProviderName]: { [modelName: string]: ModelSelectionOptions | undefined } }>
+export type OptionsOfModelSelection = {
+	[featureName in FeatureName]: Partial<{
+		[providerName in ProviderName]: {
+			[modelName: string]:
+			ModelSelectionOptions | undefined
+		}
+	}>
+}

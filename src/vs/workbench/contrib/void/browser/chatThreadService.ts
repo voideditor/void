@@ -388,17 +388,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._onDidChangeCurrentThread.fire()
 	}
 
-	private _getAllSelections(threadId: string) {
-		const thread = this.state.allThreads[threadId]
-		if (!thread) return []
-		return thread.messages.flatMap(m => m.role === 'user' && m.selections || [])
-	}
-
-	private _getSelectionsUpToMessageIdx(messageIdx: number) {
-		const thread = this.getCurrentThread()
-		const prevMessages = thread.messages.slice(0, messageIdx)
-		return prevMessages.flatMap(m => m.role === 'user' && m.selections || [])
-	}
 
 	private _setStreamState(threadId: string, state: Partial<NonNullable<ThreadStreamState[string]>>, behavior: 'set' | 'merge') {
 		if (state === undefined)
@@ -435,7 +424,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 
 		// get prev and curr selections before clearing the message
-		const prevSelns = this._getSelectionsUpToMessageIdx(messageIdx) // selections for previous messages
 		const currSelns = thread.messages[messageIdx].state.stagingSelections || [] // staging selections for the edited message
 
 		// clear messages up to the index
@@ -451,7 +439,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}, true)
 
 		// re-add the message and stream it
-		this.addUserMessageAndStreamResponse({ userMessage, _chatSelections: { prevSelns, currSelns }, threadId })
+		this.addUserMessageAndStreamResponse({ userMessage, _chatSelections: currSelns, threadId })
 
 	}
 
@@ -498,8 +486,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		if (lastUserMsgIdx === -1 || !lastUserMessage) return // should never happen
 
 		const instructions = lastUserMessage.displayContent || ''
-		const prevSelns: StagingSelectionItem[] = this._getAllSelections(threadId)
-		const currSelns: StagingSelectionItem[] = []
 
 		const callThisToolFirst: ToolMessage<ToolName> = lastMsg
 
@@ -515,7 +501,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		})
 
 		this._wrapRunAgentToNotify(
-			this._runChatAgent({ callThisToolFirst, prevSelns, currSelns, threadId, userMessageContent: instructions, ...this._currentModelSelectionProps() })
+			this._runChatAgent({ callThisToolFirst, threadId, userMessageContent: instructions, ...this._currentModelSelectionProps() })
 			, threadId
 		)
 	}
@@ -616,8 +602,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		callThisToolFirst,
 	}: {
 		threadId: string,
-		prevSelns: StagingSelectionItem[],
-		currSelns: StagingSelectionItem[],
 		modelSelection: ModelSelection | null,
 		modelSelectionOptions: ModelSelectionOptions | undefined,
 		userMessageContent: string, // content of LATEST user message
@@ -1152,7 +1136,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 		})
 	}
 
-	async addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: { prevSelns?: StagingSelectionItem[], currSelns?: StagingSelectionItem[], }, threadId: string }) {
+	async addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: StagingSelectionItem[], threadId: string }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
@@ -1166,15 +1150,11 @@ We only need to do it for files that were edited since `from`, ie files between 
 		const llmCancelToken = this.streamState[threadId]?.streamingToken
 		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
 
-		// selections in all past chats, then in current chat (can have many duplicates here)
-		const prevSelns: StagingSelectionItem[] = _chatSelections?.prevSelns ?? this._getAllSelections(threadId)
-		const currSelns: StagingSelectionItem[] = _chatSelections?.currSelns ?? thread.state.stagingSelections
+		const { chatMode } = this._settingsService.state.globalSettings
 
 		// add user's message to chat history
 		const instructions = userMessage
-
-		const { chatMode } = this._settingsService.state.globalSettings
-
+		const currSelns: StagingSelectionItem[] = _chatSelections ?? thread.state.stagingSelections
 		const opts = chatMode !== 'normal' ? { type: 'references' } as const : { type: 'fullCode', voidModelService: this._voidModelService } as const
 
 		const userMessageContent = await chat_userMessageContent(instructions, currSelns, opts) // user message + names of files (NOT content)
@@ -1184,7 +1164,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 		this._setThreadState(threadId, { currCheckpointIdx: null }) // no longer at a checkpoint because started streaming
 
 		this._wrapRunAgentToNotify(
-			this._runChatAgent({ prevSelns, currSelns, threadId, userMessageContent, ...this._currentModelSelectionProps(), }),
+			this._runChatAgent({ threadId, userMessageContent, ...this._currentModelSelectionProps(), }),
 			threadId,
 		)
 	}
@@ -1197,6 +1177,35 @@ We only need to do it for files that were edited since `from`, ie files between 
 
 	// ---------- the rest ----------
 
+	private _getAllSeenFileURIs(threadId: string) {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return []
+
+		const fsPathsSet = new Set<string>()
+		const uris: URI[] = []
+		const addURI = (uri: URI) => {
+			if (!fsPathsSet.has(uri.fsPath)) uris.push(uri)
+			fsPathsSet.add(uri.fsPath)
+			uris.push(uri)
+		}
+
+		for (const m of thread.messages) {
+			// URIs of user selections
+			if (m.role === 'user') {
+				for (const sel of m.selections ?? []) {
+					addURI(sel.uri)
+				}
+			}
+			// URIs of files that have been read
+			else if (m.role === 'tool' && m.type === 'success' && m.name === 'read_file') {
+				const params = m.params as ToolCallParams['read_file']
+				addURI(params.uri)
+			}
+		}
+		return uris
+	}
+
+
 	// gets the location of codespan link so the user can click on it
 	generateCodespanLink: IChatThreadService['generateCodespanLink'] = async ({ codespanStr: _codespanStr, threadId }) => {
 
@@ -1206,7 +1215,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 		const functionParensPattern = /^([^\s(]+)\([^)]*\)$/; // `functionName( args )`
 
 		let target = _codespanStr // the string to search for
-		let codespanType: 'file-or-folder' | 'function-or-class' | 'unsearchable' = 'unsearchable';
+		let codespanType: 'file-or-folder' | 'function-or-class'
 		if (target.includes('.') || target.includes('/')) {
 
 			codespanType = 'file-or-folder'
@@ -1225,22 +1234,16 @@ We only need to do it for files that were edited since `from`, ie files between 
 				target = match[1]
 
 			}
+			else { return null }
 		}
-
-		if (codespanType === 'unsearchable') {
+		else {
 			return null
 		}
 
 		// get history of all AI and user added files in conversation + store in reverse order (MRU)
-		const prevUris = this._getAllSelections(threadId)
-			.map(s => s.uri)
-			.filter((uri, index, array) => array.findIndex(u => u.fsPath === uri.fsPath) === index) // O(n^2) but this is small
-			.reverse()
-
+		const prevUris = this._getAllSeenFileURIs(threadId).reverse()
 
 		if (codespanType === 'file-or-folder') {
-
-
 			const doesUriMatchTarget = (uri: URI) => uri.path.includes(target)
 
 			// check if any prevFiles are the `target`

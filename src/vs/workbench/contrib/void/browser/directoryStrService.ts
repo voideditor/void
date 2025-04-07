@@ -275,7 +275,6 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 		if (!eRoot) throw new Error(`There was a problem reading the URI: ${uri.fsPath}.`)
 
 		const dirTree = await computeDirectoryTree(eRoot, this.explorerService);
-		console.log('dirtree', dirTree)
 		const { content, wasCutOff } = stringifyDirectoryTree(dirTree, MAX_CHARS_TOTAL_TOOL);
 
 		return {

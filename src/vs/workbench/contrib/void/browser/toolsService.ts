@@ -433,7 +433,7 @@ export class ToolsService implements IToolsService {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
 			edit_file: (params, result) => {
-				const additionalStr = result.lintErrorsStr ? `Lint errors found after change:\n${result.lintErrorsStr}.\nIf this is related to a change you made, you should eventually fix this error.` : `No lint errors found.`
+				const additionalStr = result.lintErrorsStr ? `Lint errors found after change:\n${result.lintErrorsStr}.\nIf this is related to a change made while calling this tool, you might want to fix the error.` : `No lint errors found.`
 				return `Change successfully made to ${params.uri.fsPath}. ${additionalStr}`
 			},
 			run_terminal_command: (params, result) => {

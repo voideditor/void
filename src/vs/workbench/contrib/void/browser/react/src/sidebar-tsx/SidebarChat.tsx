@@ -1816,14 +1816,15 @@ const Checkpoint = ({ message, threadId, messageIdx, isCheckpointGhost, threadIs
 	const chatThreadService = accessor.get('IChatThreadService')
 
 	return <div
-		className={`
-			 flex items-center justify-center
-				px-2 text-xs text-void-fg-3 transition-all duration-200
-			${isCheckpointGhost ? 'opacity-50' : ''}
-			`}
+		className={`flex items-center justify-center px-2 `}
 	>
 		<div
-			className='cursor-pointer select-none hover:brightness-125'
+			className={`
+				text-xs
+				text-void-fg-3
+				cursor-pointer select-none
+				${isCheckpointGhost ? 'opacity-50' : 'opacity-100'}
+				`}
 			onClick={() => {
 				if (threadIsRunning) return
 				chatThreadService.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
@@ -1897,7 +1898,9 @@ const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, mes
 	else if (role === 'tool') {
 
 		if (chatMessage.type === 'invalid_params') {
-			return <InvalidTool toolName={chatMessage.name} />
+			return <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
+				<InvalidTool toolName={chatMessage.name} />
+			</div>
 		}
 
 		const ToolResultWrapper = toolNameToComponent[chatMessage.name]?.resultWrapper as ResultWrapper<ToolName>
@@ -1919,7 +1922,9 @@ const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, mes
 	}
 
 	else if (role === 'decorative_canceled_tool') {
-		return <CanceledTool toolName={chatMessage.name} />
+		return <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
+			<CanceledTool toolName={chatMessage.name} />
+		</div>
 	}
 
 	else if (role === 'checkpoint') {

@@ -67,8 +67,8 @@ export const defaultModelsOfProvider = {
 
 
 type ModelOptions = {
-	contextWindow: number; // input tokens              // <-- UNUSED
-	maxOutputTokens: number | null; // output tokens    // <-- UNUSED
+	contextWindow: number; // input tokens
+	maxOutputTokens: number | null; // output tokens, defaults to 4092
 	cost: {                                             // <-- UNUSED
 		input: number;
 		output: number;
@@ -113,9 +113,9 @@ type ProviderSettings = {
 
 
 const modelOptionsDefaults: ModelOptions = {
-	contextWindow: 32_000, // unused
-	maxOutputTokens: null, // unused
-	cost: { input: 0, output: 0 }, // unused
+	contextWindow: 32_000,
+	maxOutputTokens: 4_096,
+	cost: { input: 0, output: 0 },
 	supportsSystemMessage: false,
 	supportsTools: false,
 	supportsFIM: false,
@@ -493,7 +493,7 @@ const xAISettings: ProviderSettings = {
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	'gemini-2.5-pro-exp-03-25': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: null, // 8_192,
+		maxOutputTokens: 8_192,
 		cost: { input: 0, output: 0 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -502,7 +502,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-2.0-flash': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: null, // 8_192,
+		maxOutputTokens: 8_192, // 8_192,
 		cost: { input: 0.10, output: 0.40 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -511,7 +511,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: null, // 8_192,
+		maxOutputTokens: 8_192, // 8_192,
 		cost: { input: 0.075, output: 0.30 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -520,7 +520,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-1.5-flash': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: null, // 8_192,
+		maxOutputTokens: 8_192, // 8_192,
 		cost: { input: 0.075, output: 0.30 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -529,7 +529,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-1.5-pro': {
 		contextWindow: 2_097_152,
-		maxOutputTokens: null, // 8_192,
+		maxOutputTokens: 8_192,
 		cost: { input: 1.25, output: 5.00 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -538,7 +538,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-1.5-flash-8b': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: null, // 8_192,
+		maxOutputTokens: 8_192,
 		cost: { input: 0.0375, output: 0.15 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -559,13 +559,13 @@ const deepseekModelOptions = {
 	'deepseek-chat': {
 		...openSourceModelOptions_assumingOAICompat.deepseekR1,
 		contextWindow: 64_000, // https://api-docs.deepseek.com/quick_start/pricing
-		maxOutputTokens: null, // 8_000,
+		maxOutputTokens: 8_000, // 8_000,
 		cost: { cache_read: .07, input: .27, output: 1.10, },
 	},
 	'deepseek-reasoner': {
 		...openSourceModelOptions_assumingOAICompat.deepseekCoderV2,
 		contextWindow: 64_000,
-		maxOutputTokens: null, // 8_000,
+		maxOutputTokens: 8_000, // 8_000,
 		cost: { cache_read: .14, input: .55, output: 2.19, },
 	},
 } as const satisfies { [s: string]: ModelOptions }
@@ -584,7 +584,7 @@ const deepseekSettings: ProviderSettings = {
 const groqModelOptions = { // https://console.groq.com/docs/models, https://groq.com/pricing/
 	'llama-3.3-70b-versatile': {
 		contextWindow: 128_000,
-		maxOutputTokens: null, // 32_768,
+		maxOutputTokens: 32_768, // 32_768,
 		cost: { input: 0.59, output: 0.79 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
@@ -593,7 +593,7 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 	},
 	'llama-3.1-8b-instant': {
 		contextWindow: 128_000,
-		maxOutputTokens: null, // 8_192,
+		maxOutputTokens: 8_192,
 		cost: { input: 0.05, output: 0.08 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',

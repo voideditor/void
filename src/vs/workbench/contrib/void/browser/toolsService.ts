@@ -437,7 +437,6 @@ export class ToolsService implements IToolsService {
 				return `Change successfully made to ${params.uri.fsPath}. ${additionalStr}`
 			},
 			run_terminal_command: (params, result) => {
-
 				const {
 					terminalId,
 					didCreateTerminal,

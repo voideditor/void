@@ -63,7 +63,7 @@ export type ToolResultType = {
 	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },
 	'search_files': { uris: URI[], hasNextPage: boolean },
 	// ---
-	'edit_file': Promise<void>,
+	'edit_file': Promise<{ lintErrorsStr: string | null }>,
 	'create_file_or_folder': {},
 	'delete_file_or_folder': {},
 	'run_terminal_command': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: TerminalResolveReason; },

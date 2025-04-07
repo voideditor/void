@@ -14,6 +14,8 @@ import { EndOfLinePreference } from '../../../../editor/common/model.js'
 import { basename } from '../../../../base/common/path.js'
 import { IVoidCommandBarService } from './voidCommandBarService.js'
 import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree1Deep } from './directoryStrService.js'
+import { IMarkerService } from '../../../../platform/markers/common/markers.js'
+import { timeout } from '../../../../base/common/async.js'
 
 
 // tool use for AI
@@ -23,7 +25,7 @@ import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree
 
 type ValidateParams = { [T in ToolName]: (p: string) => Promise<ToolCallParams[T]> }
 type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], interruptTool?: () => void }> }
-type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: ToolResultType[T]) => string }
+type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awaited<ToolResultType[T]>) => string }
 
 
 
@@ -164,6 +166,7 @@ export class ToolsService implements IToolsService {
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 		@IVoidCommandBarService private readonly commandBarService: IVoidCommandBarService,
 		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
+		@IMarkerService private readonly markerService: IMarkerService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -364,7 +367,7 @@ export class ToolsService implements IToolsService {
 			edit_file: async ({ uri, changeDescription }) => {
 				await voidModelService.initializeModel(uri)
 				if (this.commandBarService.getStreamState(uri) === 'streaming') {
-					throw new Error(`The Apply model was already running. This can happen if two agents try editing the same file at the same time. Please try again in a moment.`)
+					throw new Error(`Another LLM is currently making changes to this file. Please stop streaming for now and resume later.`)
 				}
 				const opts = {
 					uri,
@@ -381,7 +384,19 @@ export class ToolsService implements IToolsService {
 				const interruptTool = () => { // must reject the applyPromiseDone promise
 					editCodeService.interruptURIStreaming({ uri: diffZoneURI })
 				}
-				return { result: applyDonePromise, interruptTool }
+
+				const lintErrorsPromise = applyDonePromise.then(async () => {
+					await timeout(500)
+					const lintErrorsStr = this.markerService
+						.read({ resource: uri })
+						.map(l => l.message)
+						.join('\n')
+
+					if (!lintErrorsStr) return { lintErrorsStr: null }
+					return { lintErrorsStr }
+				})
+
+				return { result: lintErrorsPromise, interruptTool }
 			},
 			run_terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
 				const { terminalId, didCreateTerminal, result, resolveReason } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
@@ -418,7 +433,8 @@ export class ToolsService implements IToolsService {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
 			edit_file: (params, result) => {
-				return `Change successfully made to ${params.uri.fsPath}.`
+				const additionalStr = result.lintErrorsStr ? `Lint errors found after change:\n${result.lintErrorsStr}.\nIf this is related to a change you made, you should eventually fix this error.` : `No lint errors found.`
+				return `Change successfully made to ${params.uri.fsPath}. ${additionalStr}`
 			},
 			run_terminal_command: (params, result) => {
 

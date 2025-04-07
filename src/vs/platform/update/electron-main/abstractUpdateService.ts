@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 // import { timeout } from '../../../base/common/async.js';
+import { timeout } from '../../../base/common/async.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { IConfigurationService } from '../../configuration/common/configuration.js';
@@ -13,13 +14,16 @@ import { ILifecycleMainService, LifecycleMainPhase } from '../../lifecycle/elect
 import { ILogService } from '../../log/common/log.js';
 import { IProductService } from '../../product/common/productService.js';
 import { IRequestService } from '../../request/common/request.js';
-import { AvailableForDownload, DisablementReason, IUpdateService, State, StateType, UpdateType } from '../common/update.js';
+import { Architecture, AvailableForDownload, DisablementReason, IUpdateService, Platform, State, StateType, Target, UpdateType } from '../common/update.js';
 
-export function createUpdateURL(platform: string, quality: string, productService: IProductService): string {
-	// return `https://voideditor.dev/api/update/${platform}/stable`;
-	// return `${productService.updateUrl}/api/update/${platform}/${quality}/${productService.commit}`;
-	// https://github.com/VSCodium/update-api
-	return `https://updates.voideditor.dev/api/update/${platform}/${quality}/${productService.commit}`;
+// Void - VSCodium's version-1-update.patch
+export function createUpdateURL(productService: IProductService, quality: string, platform: Platform, architecture: Architecture, target?: Target): string {	// return `https://voideditor.dev/api/update/${platform}/stable`;
+	if (target) {
+		return `${productService.updateUrl}/${quality}/${platform}/${architecture}/${target}/latest.json`;
+	} else { // we shouldn't usually have a target:
+		// https://raw.githubusercontent.com/voideditor/versions/refs/heads/main/stable/darwin/arm64/latest.json
+		return `${productService.updateUrl}/${quality}/${platform}/${architecture}/latest.json`;
+	}
 }
 
 export type UpdateErrorClassification = {
@@ -81,22 +85,20 @@ export abstract class AbstractUpdateService implements IUpdateService {
 			return;
 		}
 
-		this.setState(State.Disabled(DisablementReason.ManuallyDisabled));
+		// Void - re-enabled auto updates
+		// this.setState(State.Disabled(DisablementReason.ManuallyDisabled));
 
-
-		// Void - temporarily disabled while we figure out how to do this the right way
-
-		// this.setState(State.Idle(this.getUpdateType()));
+		this.setState(State.Idle(this.getUpdateType()));
 
 		// start checking for updates after 10 seconds
-		// this.scheduleCheckForUpdates(10 * 1000).then(undefined, err => this.logService.error(err));
+		this.scheduleCheckForUpdates(10 * 1000).then(undefined, err => this.logService.error(err));
 	}
 
-	// private async scheduleCheckForUpdates(delay = 60 * 60 * 1000): Promise<void> {
-	// 	await timeout(delay);
-	// 	await this.checkForUpdates(false);
-	// 	return await this.scheduleCheckForUpdates(60 * 60 * 1000);
-	// }
+	private async scheduleCheckForUpdates(delay = 60 * 60 * 1000): Promise<void> {
+		await timeout(delay);
+		await this.checkForUpdates(false);
+		return await this.scheduleCheckForUpdates(60 * 60 * 1000);
+	}
 
 	async checkForUpdates(explicit: boolean): Promise<void> {
 		this.logService.trace('update#checkForUpdates, state = ', this.state.type);

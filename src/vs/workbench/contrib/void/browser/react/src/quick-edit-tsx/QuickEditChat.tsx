@@ -63,11 +63,14 @@ export const QuickEditChat = ({
 		if (isStreamingRef.current) return
 		textAreaFnsRef.current?.disable()
 
-		const [newApplyingUri, applyDonePromise] = await editCodeService.startApplying({
+		const opts = {
 			from: 'QuickEdit',
 			diffareaid,
 			startBehavior: 'keep-conflicts',
-		}) ?? []
+		} as const
+
+		await editCodeService.callBeforeStartApplying(opts)
+		const [newApplyingUri, applyDonePromise] = editCodeService.startApplying(opts) ?? []
 		// catch any errors by interrupting the stream
 		applyDonePromise?.catch(e => { if (newApplyingUri) editCodeService.interruptCtrlKStreaming({ diffareaid }) })
 

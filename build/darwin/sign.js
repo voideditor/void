@@ -54,9 +54,11 @@ async function main(buildDir) {
         ...defaultOpts,
         // TODO(deepak1556): Incorrectly declared type in electron-osx-sign
         ignore: (filePath) => {
+            const ext = path_1.default.extname(filePath);
             return filePath.includes(gpuHelperAppName) ||
                 filePath.includes(rendererHelperAppName) ||
-                filePath.includes(pluginHelperAppName);
+                filePath.includes(pluginHelperAppName) ||
+                ext === '.asar' || ext === '.dat' || ext === '.gif' || ext === '.icns' || ext === '.ico' || ext === '.json' || ext === '.mp3' || ext === '.nib' || ext === '.pak' || ext === '.png' || ext === '.scpt' || ext === '.ttf' || ext === '.wasm' || ext === '.woff' || ext === '.woff2';
         }
     };
     const gpuHelperOpts = {

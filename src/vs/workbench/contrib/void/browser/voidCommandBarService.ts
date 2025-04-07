@@ -173,7 +173,7 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 			}
 
 		}))
-		this._register(this._editCodeService.onDidChangeDiffsInDiffZone(e => {
+		this._register(this._editCodeService.onDidChangeDiffsInDiffZoneNotStreaming(e => {
 			for (const uri of this._listenToTheseURIs) {
 				if (e.uri.fsPath !== uri.fsPath) continue
 				// --- sortedURIs: no change

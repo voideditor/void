@@ -90,7 +90,7 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 - If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
 - If you see missing styles, wait a few seconds and then reload.
 - If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
-
+- If you get errors like `npm error libtool:   error: unrecognised option: '-static'`, make sure you have GNU libtool instead of BSD libtool (BSD is the default in macos)
 
 
 ## Packaging
@@ -104,12 +104,11 @@ We don't usually recommend packaging. Instead, you should probably just build. I
 
 ### Windows
 - `npm run gulp vscode-win32-x64` - most common
-- `npm run gulp vscode-win32-ia32`
+- `npm run gulp vscode-win32-arm64`
 
 ### Linux
 - `npm run gulp vscode-linux-x64` - most common
-- `npm run gulp vscode-linux-arm`
-- `npm run gulp vscode-linux-ia32`
+- `npm run gulp vscode-linux-arm64`
 
 
 ### Output

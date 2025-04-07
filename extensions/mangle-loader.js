@@ -37,7 +37,7 @@ function getMangledFileContents(projectPath) {
  * @type {webpack.LoaderDefinitionFunction}
  */
 module.exports = async function (source, sourceMap, meta) {
-	if (this.mode !== 'production') {
+	if (true) { // Void - extensions-disable-mangler
 		// Only enable mangling in production builds
 		return source;
 	}

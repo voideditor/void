@@ -262,7 +262,6 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 	const settingsState = useSettingsState()
 
 	const settingValue = settingsState.settingsOfProvider[providerName][settingName] as string // this should always be a string in this component
-	console.log(`providerName:${providerName} settingName: ${settingName}, settingValue: ${settingValue}`)
 	if (typeof settingValue !== 'string') {
 		console.log('Error: Provider setting had a non-string value.')
 		return
@@ -682,6 +681,8 @@ const OneClickSwitchButton = () => {
 const GeneralTab = () => {
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
+	const environmentService = accessor.get('IEnvironmentService')
+	const nativeHostService = accessor.get('INativeHostService')
 
 	return <>
 
@@ -711,6 +712,11 @@ const GeneralTab = () => {
 			<div className='my-4'>
 				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
 					Theme Settings
+				</VoidButton>
+			</div>
+			<div className='my-4'>
+				<VoidButton onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+					Open Logs
 				</VoidButton>
 			</div>
 		</div>

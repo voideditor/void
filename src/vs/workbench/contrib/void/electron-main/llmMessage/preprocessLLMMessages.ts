@@ -68,15 +68,16 @@ const prepareMessages_fitIntoContext = ({ messages, contextWindow, maxOutputToke
 		if (message.role === 'system')
 			return 0 // never erase system message
 
+		multiplier = 1 + (messages.length - 1 - idx) / messages.length // slow rampdown from 2 to 1 as index increases
 		if (message.role === 'user') {
-			multiplier = 4
+			multiplier *= 1
 		}
 		else {
-			multiplier = 8
+			multiplier *= 10 // llm tokens are far less valuable than user tokens
 		}
 
-		// last 3 msgs are very important
-		if (idx >= messages.length - 1 - 3 || alreadyTrimmedIdxes.has(idx)) {
+		// 1st message, last 3 msgs, any already modified message should be low in weight
+		if (idx === 0 || idx >= messages.length - 1 - 3 || alreadyTrimmedIdxes.has(idx)) {
 			multiplier *= .05
 		}
 

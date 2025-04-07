@@ -109,7 +109,6 @@ We don't usually recommend packaging. Instead, you should probably just build. I
 ### Linux
 - `npm run gulp vscode-linux-x64` - most common
 - `npm run gulp vscode-linux-arm64`
-- `npm run gulp vscode-linux-ia32`
 
 
 ### Output

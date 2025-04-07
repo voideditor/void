@@ -187,6 +187,7 @@ export interface IChatThreadService {
 	setCurrentMessageState: (messageIdx: number, newState: Partial<UserMessageState>) => void
 	getCurrentThreadState: () => ThreadType['state']
 	setCurrentThreadState: (newState: Partial<ThreadType['state']>) => void
+
 	// you can edit multiple messages - the one you're currently editing is "focused", and we add items to that one when you press cmd+L.
 	getCurrentFocusedMessageIdx(): number | undefined;
 	isCurrentlyFocusingMessage(): boolean;
@@ -290,12 +291,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	}
 
 
+	// add the current file to the thread being edited
 	private _addCurrentFileAsStagingSelectionDuringFileChange() {
-
-
-		// add the current file to the thread being edited
 		const newModel = this._codeEditorService.getActiveCodeEditor()?.getModel() ?? null
-		if (!newModel) { return; }
+		if (!newModel) { return }
+
+		const isCurrentlyFocusing = this.isCurrentlyFocusingMessage()
+		if (isCurrentlyFocusing) return
+
+		// only add if the user hasn't sent a message yet
+		if (this.getCurrentThread().messages.length !== 0) return
 
 		const newStagingSelection: StagingSelectionItem = {
 			type: 'File',
@@ -304,44 +309,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			state: { wasAddedAsCurrentFile: true }
 		}
 
-		const focusedMessageIdx = this.getCurrentFocusedMessageIdx();
+		const oldStagingSelections = this.getCurrentThreadState().stagingSelections || [];
+		const fileIsAlreadyHere = oldStagingSelections.some(s => s.type === 'File' && s.uri.fsPath === newStagingSelection.uri.fsPath)
+		if (fileIsAlreadyHere) return
 
-		// add the selection
-		if (focusedMessageIdx === undefined) { // user is in the default thread
-
-			const oldStagingSelections = this.getCurrentThreadState().stagingSelections || [];
-
-			// remove all old selectons that are marked as `wasAddedAsCurrentFile`
-			const newStagingSelections: StagingSelectionItem[] = oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile);
-
-			// add the new file if it doesn't exist
-			const fileIsAdded = oldStagingSelections.some(s => s.type === 'File' && s.uri.fsPath === newStagingSelection.uri.fsPath)
-			if (!fileIsAdded) {
-				newStagingSelections.push(newStagingSelection)
-			}
-
-			// update thread state with new selections
-			this.setCurrentThreadState({ stagingSelections: newStagingSelections });
-
-
-
-		} else { // user is editing a message
-
-			// do nothing. I don't think it feels good to auto-add the current file when you're editing a message.
-
-			// const oldStagingSelections = this.getCurrentMessageState(focusedMessageIdx).stagingSelections || [];
-			// const newStagingSelections = [...filteredStagingSelections, newSelection];
-			// this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: newSelections });
-
-			// // if the file already exists, do nothing
-			// const alreadyHasFile = oldStagingSelections.some(s => s.type === 'File' && s.fileURI.fsPath === newSelection.fileURI.fsPath)
-			// if (alreadyHasFile) { return; }
-
-			// const filteredStagingSelections = oldStagingSelections.filter(s => !s.state?.wasAddedDuringFileChange); // remove all old selectons that were added during a file change
-
-
-		}
-
+		// remove all old selectons that are marked as `wasAddedAsCurrentFile`, and add new selection
+		const newStagingSelections: StagingSelectionItem[] = [
+			...oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile),
+			newStagingSelection
+		]
+		this.setCurrentThreadState({ stagingSelections: newStagingSelections });
 
 	}
 

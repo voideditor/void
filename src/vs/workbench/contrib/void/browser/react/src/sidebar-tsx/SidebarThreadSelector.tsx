@@ -72,7 +72,7 @@ export const SidebarThreadSelector = () => {
 							let firstMsg = null;
 							// let secondMsg = null;
 
-							const firstUserMsgIdx = pastThread.messages.findIndex((msg) => msg.role !== 'tool' && msg.role !== 'tool_request');
+							const firstUserMsgIdx = pastThread.messages.findIndex((msg) => msg.role === 'user');
 
 							if (firstUserMsgIdx !== -1) {
 								// firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');

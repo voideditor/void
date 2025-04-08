@@ -7,13 +7,20 @@ import { Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { Diff, DiffArea } from './editCodeService.js';
-
+import { Diff, DiffArea, VoidFileSnapshot } from '../common/editCodeServiceTypes.js';
 
 
 export type StartBehavior = 'accept-conflicts' | 'reject-conflicts' | 'keep-conflicts'
 
-export type StartApplyingOpts = ({
+export type CallBeforeStartApplyingOpts = {
+	from: 'QuickEdit';
+	diffareaid: number; // id of the CtrlK area (contains text selection)
+} | {
+	from: 'ClickApply';
+	uri: 'current' | URI;
+}
+
+export type StartApplyingOpts = {
 	from: 'QuickEdit';
 	diffareaid: number; // id of the CtrlK area (contains text selection)
 	startBehavior: StartBehavior;
@@ -22,9 +29,7 @@ export type StartApplyingOpts = ({
 	applyStr: string;
 	uri: 'current' | URI;
 	startBehavior: StartBehavior;
-})
-
-
+}
 
 export type AddCtrlKOpts = {
 	startLine: number,
@@ -37,7 +42,8 @@ export const IEditCodeService = createDecorator<IEditCodeService>('editCodeServi
 export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
 
-	startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null>;
+	callBeforeStartApplying(opts: CallBeforeStartApplyingOpts): Promise<void>;
+	startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null;
 	addCtrlKZone(opts: AddCtrlKOpts): number | undefined;
 	removeCtrlKZone(opts: { diffareaid: number }): void;
 
@@ -49,7 +55,7 @@ export interface IEditCodeService {
 
 	// events
 	onDidAddOrDeleteDiffZones: Event<{ uri: URI }>;
-	onDidChangeDiffsInDiffZone: Event<{ uri: URI; diffareaid: number }>; // only fires when not streaming!!! streaming would be too much
+	onDidChangeDiffsInDiffZoneNotStreaming: Event<{ uri: URI; diffareaid: number }>; // only fires when not streaming!!! streaming would be too much
 	onDidChangeStreamingInDiffZone: Event<{ uri: URI; diffareaid: number }>;
 	onDidChangeStreamingInCtrlKZone: Event<{ uri: URI; diffareaid: number }>;
 
@@ -61,4 +67,6 @@ export interface IEditCodeService {
 	interruptURIStreaming(opts: { uri: URI }): void;
 
 	// testDiffs(): void;
+	getVoidFileSnapshot(uri: URI): VoidFileSnapshot;
+	restoreVoidFileSnapshot(uri: URI, snapshot: VoidFileSnapshot): void;
 }

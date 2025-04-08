@@ -262,7 +262,6 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 	const settingsState = useSettingsState()
 
 	const settingValue = settingsState.settingsOfProvider[providerName][settingName] as string // this should always be a string in this component
-	console.log(`providerName:${providerName} settingName: ${settingName}, settingValue: ${settingValue}`)
 	if (typeof settingValue !== 'string') {
 		console.log('Error: Provider setting had a non-string value.')
 		return

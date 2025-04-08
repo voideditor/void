@@ -11,7 +11,7 @@ import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/brows
 // import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 // import { throttle } from '../../../../base/common/decorators.js';
-import { ComputedDiff, findDiffs } from './helpers/findDiffs.js';
+import { findDiffs } from './helpers/findDiffs.js';
 import { EndOfLinePreference, IModelDecorationOptions, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
@@ -40,13 +40,14 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
 import { LLMChatMessage, OnError, errorDetails } from '../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
-import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts } from './editCodeServiceInterface.js';
+import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts, CallBeforeStartApplyingOpts, } from './editCodeServiceInterface.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { ITextFileService } from '../../../services/textfile/common/textfiles.js';
 import { deepClone } from '../../../../base/common/objects.js';
 import { acceptBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../common/helpers/colors.js';
+import { DiffArea, Diff, CtrlKZone, VoidFileSnapshot, DiffAreaSnapshotEntry, diffAreaSnapshotKeys, DiffZone, TrackingZone, ComputedDiff } from '../common/editCodeServiceTypes.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -107,15 +108,31 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 };
 
 
+// Helper function to remove whitespace except newlines
+const removeWhitespaceExceptNewlines = (str: string): string => {
+	return str.replace(/[^\S\n]+/g, '');
+}
+
+
 
 // finds block.orig in fileContents and return its range in file
 // startingAtLine is 1-indexed and inclusive
-const findTextInCode = (text: string, fileContents: string, startingAtLine?: number) => {
-	const idx = fileContents.indexOf(text,
-		startingAtLine !== undefined ?
-			fileContents.split('\n').slice(0, startingAtLine).join('\n').length // num characters in all lines before startingAtLine
-			: 0
-	)
+const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveWhitespace: boolean, startingAtLine?: number) => {
+
+	const startLineIdx = (fileContents: string) => startingAtLine !== undefined ?
+		fileContents.split('\n').slice(0, startingAtLine).join('\n').length // num characters in all lines before startingAtLine
+		: 0
+
+	// idx = starting index in fileContents
+	let idx = fileContents.indexOf(text, startLineIdx(fileContents))
+
+	// try to find it ignoring all whitespace this time
+	if (idx === -1 && canFallbackToRemoveWhitespace) {
+		text = removeWhitespaceExceptNewlines(text)
+		fileContents = removeWhitespaceExceptNewlines(fileContents)
+		idx = fileContents.indexOf(text, startLineIdx(fileContents));
+	}
+
 	if (idx === -1) return 'Not found' as const
 	const lastIdx = fileContents.lastIndexOf(text)
 	if (lastIdx !== idx) return 'Not unique' as const
@@ -123,108 +140,6 @@ const findTextInCode = (text: string, fileContents: string, startingAtLine?: num
 	const numLines = numLinesOfStr(text)
 	const endLine = startLine + numLines - 1
 	return [startLine, endLine] as const
-}
-
-
-
-
-// // TODO diffArea should be removed if we just discovered it has no more diffs in it
-// for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
-// 	const diffArea = this.diffAreaOfId[diffareaid]
-// 	if (Object.keys(diffArea._diffOfId).length === 0 && !diffArea._sweepState.isStreaming) {
-// 		const { onFinishEdit } = this._addToHistory(uri)
-// 		this._deleteDiffArea(diffArea)
-// 		onFinishEdit()
-// 	}
-// }
-
-
-export type Diff = {
-	diffid: number;
-	diffareaid: number; // the diff area this diff belongs to, "computed"
-} & ComputedDiff
-
-
-
-// _ means anything we don't include if we clone it
-// DiffArea.originalStartLine is the line in originalCode (not the file)
-
-type CommonZoneProps = {
-	diffareaid: number;
-	startLine: number;
-	endLine: number;
-
-	_URI: URI; // typically we get the URI from model
-
-}
-
-type CtrlKZone = {
-	type: 'CtrlKZone';
-	originalCode?: undefined;
-
-	editorId: string; // the editor the input lives on
-
-	_mountInfo: null | {
-		textAreaRef: { current: HTMLTextAreaElement | null }
-		dispose: () => void;
-		refresh: () => void;
-	}
-
-	_linkedStreamingDiffZone: number | null; // diffareaid of the diffZone currently streaming here
-	_removeStylesFns: Set<Function> // these don't remove diffs or this diffArea, only their styles
-
-} & CommonZoneProps
-
-
-export type DiffZone = {
-	type: 'DiffZone',
-	originalCode: string;
-	_diffOfId: Record<string, Diff>; // diffid -> diff in this DiffArea
-	_streamState: {
-		isStreaming: true;
-		streamRequestIdRef: { current: string | null };
-		line: number;
-	} | {
-		isStreaming: false;
-		streamRequestIdRef?: undefined;
-		line?: undefined;
-	};
-	editorId?: undefined;
-	linkedStreamingDiffZone?: undefined;
-	_removeStylesFns: Set<Function> // these don't remove diffs or this diffArea, only their styles
-} & CommonZoneProps
-
-
-
-type TrackingZone<T> = {
-	type: 'TrackingZone';
-	metadata: T;
-	originalCode?: undefined;
-	editorId?: undefined;
-	_removeStylesFns?: undefined;
-} & CommonZoneProps
-
-
-// called DiffArea for historical purposes, we can rename to something like TextRegion if we want
-export type DiffArea = CtrlKZone | DiffZone | TrackingZone<any>
-
-const diffAreaSnapshotKeys = [
-	'type',
-	'diffareaid',
-	'originalCode',
-	'startLine',
-	'endLine',
-	'editorId',
-
-] as const satisfies (keyof DiffArea)[]
-
-type DiffAreaSnapshot<DiffAreaType extends DiffArea = DiffArea> = Pick<DiffAreaType, typeof diffAreaSnapshotKeys[number]>
-
-
-
-type HistorySnapshot = {
-	snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot>;
-	entireFileCode: string;
 }
 
 
@@ -243,23 +158,21 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	diffAreaOfId: Record<string, DiffArea> = {}; // diffareaId -> diffArea
 	diffOfId: Record<string, Diff> = {}; // diffid -> diff (redundant with diffArea._diffOfId)
 
-
 	// events
-
 
 	// uri: diffZones  // listen on change diffZones
 	private readonly _onDidAddOrDeleteDiffZones = new Emitter<{ uri: URI }>();
 	onDidAddOrDeleteDiffZones = this._onDidAddOrDeleteDiffZones.event;
 
 	// diffZone: [uri], diffs, isStreaming  // listen on change diffs, change streaming (uri is const)
-	private readonly _onDidChangeDiffsInDiffZone = new Emitter<{ uri: URI, diffareaid: number }>();
+	private readonly _onDidChangeDiffsInDiffZoneNotStreaming = new Emitter<{ uri: URI, diffareaid: number }>();
 	private readonly _onDidChangeStreamingInDiffZone = new Emitter<{ uri: URI, diffareaid: number }>();
-	onDidChangeDiffsInDiffZone = this._onDidChangeDiffsInDiffZone.event;
+	onDidChangeDiffsInDiffZoneNotStreaming = this._onDidChangeDiffsInDiffZoneNotStreaming.event;
 	onDidChangeStreamingInDiffZone = this._onDidChangeStreamingInDiffZone.event;
 
 	// ctrlKZone: [uri], isStreaming  // listen on change streaming
 	private readonly _onDidChangeStreamingInCtrlKZone = new Emitter<{ uri: URI; diffareaid: number }>();
-	onDidChangeStreamingInCtrlKZone = this._onDidChangeStreamingInCtrlKZone.event
+	onDidChangeStreamingInCtrlKZone = this._onDidChangeStreamingInCtrlKZone.event;
 
 
 	constructor(
@@ -722,103 +635,113 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
+
+
+
+	private _getCurrentVoidFileSnapshot = (uri: URI): VoidFileSnapshot => {
+		const { model } = this._voidModelService.getModel(uri)
+		const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshotEntry> = {}
+
+		for (const diffareaid in this.diffAreaOfId) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+
+			if (diffArea._URI.fsPath !== uri.fsPath) continue
+
+			snapshottedDiffAreaOfId[diffareaid] = deepClone(
+				Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
+			) as DiffAreaSnapshotEntry
+		}
+
+		const entireFileCode = model ? model.getValue(EndOfLinePreference.LF) : ''
+
+		// this._noLongerNeedModelReference(uri)
+		return {
+			snapshottedDiffAreaOfId,
+			entireFileCode, // the whole file's code
+		}
+	}
+
+
+	private _restoreVoidFileSnapshot = async (uri: URI, snapshot: VoidFileSnapshot) => {
+		// for each diffarea in this uri, stop streaming if currently streaming
+		for (const diffareaid in this.diffAreaOfId) {
+			const diffArea = this.diffAreaOfId[diffareaid]
+			if (diffArea.type === 'DiffZone')
+				this._stopIfStreaming(diffArea)
+		}
+
+		// delete all diffareas on this uri (clearing their styles)
+		this._deleteAllDiffAreas(uri)
+
+		const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = deepClone(snapshot) // don't want to destroy the snapshot
+
+		// restore diffAreaOfId and diffAreasOfModelId
+		for (const diffareaid in snapshottedDiffAreaOfId) {
+
+			const snapshottedDiffArea = snapshottedDiffAreaOfId[diffareaid]
+
+			if (snapshottedDiffArea.type === 'DiffZone') {
+				this.diffAreaOfId[diffareaid] = {
+					...snapshottedDiffArea as DiffAreaSnapshotEntry<DiffZone>,
+					type: 'DiffZone',
+					_diffOfId: {},
+					_URI: uri,
+					_streamState: { isStreaming: false }, // when restoring, we will never be streaming
+					_removeStylesFns: new Set(),
+				}
+			}
+			else if (snapshottedDiffArea.type === 'CtrlKZone') {
+				this.diffAreaOfId[diffareaid] = {
+					...snapshottedDiffArea as DiffAreaSnapshotEntry<CtrlKZone>,
+					_URI: uri,
+					_removeStylesFns: new Set<Function>(),
+					_mountInfo: null,
+					_linkedStreamingDiffZone: null, // when restoring, we will never be streaming
+				}
+			}
+			this._addOrInitializeDiffAreaAtURI(uri, diffareaid)
+		}
+		this._onDidAddOrDeleteDiffZones.fire({ uri })
+
+		// restore file content
+		this._writeURIText(uri, entireModelCode,
+			'wholeFileRange',
+			{ shouldRealignDiffAreas: false }
+		)
+		// this._noLongerNeedModelReference(uri)
+	}
+
 	private _addToHistory(uri: URI, opts?: { onWillUndo?: () => void }) {
-
-		const getCurrentSnapshot = (): HistorySnapshot => {
-
-			const { model } = this._voidModelService.getModel(uri)
-			const snapshottedDiffAreaOfId: Record<string, DiffAreaSnapshot> = {}
-
-			for (const diffareaid in this.diffAreaOfId) {
-				const diffArea = this.diffAreaOfId[diffareaid]
-
-				if (diffArea._URI.fsPath !== uri.fsPath) continue
-
-				snapshottedDiffAreaOfId[diffareaid] = deepClone(
-					Object.fromEntries(diffAreaSnapshotKeys.map(key => [key, diffArea[key]]))
-				) as DiffAreaSnapshot
-			}
-
-			const entireFileCode = model ? model.getValue(EndOfLinePreference.LF) : ''
-
-			// this._noLongerNeedModelReference(uri)
-			return {
-				snapshottedDiffAreaOfId,
-				entireFileCode, // the whole file's code
-			}
-		}
-
-		const restoreDiffAreas = async (snapshot: HistorySnapshot) => {
-
-			// for each diffarea in this uri, stop streaming if currently streaming
-			for (const diffareaid in this.diffAreaOfId) {
-				const diffArea = this.diffAreaOfId[diffareaid]
-				if (diffArea.type === 'DiffZone')
-					this._stopIfStreaming(diffArea)
-			}
-
-			// delete all diffareas on this uri (clearing their styles)
-			this._deleteAllDiffAreas(uri)
-			this.diffAreasOfURI[uri.fsPath]?.clear()
-
-			const { snapshottedDiffAreaOfId, entireFileCode: entireModelCode } = deepClone(snapshot) // don't want to destroy the snapshot
-
-			// restore diffAreaOfId and diffAreasOfModelId
-			for (const diffareaid in snapshottedDiffAreaOfId) {
-
-				const snapshottedDiffArea = snapshottedDiffAreaOfId[diffareaid]
-
-				if (snapshottedDiffArea.type === 'DiffZone') {
-					this.diffAreaOfId[diffareaid] = {
-						...snapshottedDiffArea as DiffAreaSnapshot<DiffZone>,
-						type: 'DiffZone',
-						_diffOfId: {},
-						_URI: uri,
-						_streamState: { isStreaming: false }, // when restoring, we will never be streaming
-						_removeStylesFns: new Set(),
-					}
-				}
-				else if (snapshottedDiffArea.type === 'CtrlKZone') {
-					this.diffAreaOfId[diffareaid] = {
-						...snapshottedDiffArea as DiffAreaSnapshot<CtrlKZone>,
-						_URI: uri,
-						_removeStylesFns: new Set<Function>(),
-						_mountInfo: null,
-						_linkedStreamingDiffZone: null, // when restoring, we will never be streaming
-					}
-				}
-				this._addOrInitializeDiffAreaAtURI(uri, diffareaid)
-			}
-			this._onDidAddOrDeleteDiffZones.fire({ uri })
-
-			// restore file content
-			this._writeURIText(uri, entireModelCode,
-				'wholeFileRange',
-				{ shouldRealignDiffAreas: false }
-			)
-			// this._noLongerNeedModelReference(uri)
-		}
-
-		const beforeSnapshot: HistorySnapshot = getCurrentSnapshot()
-		let afterSnapshot: HistorySnapshot | null = null
+		const beforeSnapshot: VoidFileSnapshot = this._getCurrentVoidFileSnapshot(uri)
+		let afterSnapshot: VoidFileSnapshot | null = null
 
 		const elt: IUndoRedoElement = {
 			type: UndoRedoElementType.Resource,
 			resource: uri,
 			label: 'Void Agent',
 			code: 'undoredo.editCode',
-			undo: () => { opts?.onWillUndo?.(); restoreDiffAreas(beforeSnapshot); },
-			redo: () => { if (afterSnapshot) restoreDiffAreas(afterSnapshot) }
+			undo: () => { opts?.onWillUndo?.(); this._restoreVoidFileSnapshot(uri, beforeSnapshot); },
+			redo: () => { if (afterSnapshot) this._restoreVoidFileSnapshot(uri, afterSnapshot) }
 		}
 		this._undoRedoService.pushElement(elt)
 
 		const onFinishEdit = async () => {
-			afterSnapshot = getCurrentSnapshot()
+			afterSnapshot = this._getCurrentVoidFileSnapshot(uri)
 			await this._textFileService.save(uri, { // we want [our change] -> [save] so it's all treated as one change.
 				skipSaveParticipants: true // avoid triggering extensions etc (if they reformat the page, it will add another item to the undo stack)
 			})
 		}
 		return { onFinishEdit }
+	}
+
+
+	public getVoidFileSnapshot(uri: URI) {
+		return this._getCurrentVoidFileSnapshot(uri)
+	}
+
+
+	public restoreVoidFileSnapshot(uri: URI, snapshot: VoidFileSnapshot): void {
+		this._restoreVoidFileSnapshot(uri, snapshot)
 	}
 
 
@@ -886,6 +809,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			else if (diffArea.type === 'CtrlKZone')
 				this._deleteCtrlKZone(diffArea)
 		})
+		this.diffAreasOfURI[uri.fsPath]?.clear()
 	}
 
 	private _addOrInitializeDiffAreaAtURI = (uri: URI, diffareaid: string | number) => {
@@ -994,7 +918,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			if (diffArea?.type !== 'DiffZone') continue
 			// fire changed diffs (this is the only place Diffs are added)
 			if (!diffArea._streamState.isStreaming) {
-				this._onDidChangeDiffsInDiffZone.fire({ uri, diffareaid: diffArea.diffareaid })
+				this._onDidChangeDiffsInDiffZoneNotStreaming.fire({ uri, diffareaid: diffArea.diffareaid })
 			}
 		}
 	}
@@ -1160,29 +1084,50 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
+	private _getURIBeforeStartApplying(opts: CallBeforeStartApplyingOpts) {
+		// SR
+		if (opts.from === 'ClickApply') {
+			const uri = this._uriOfGivenURI(opts.uri)
+			if (!uri) return
+			return uri
+		}
+		else if (opts.from === 'QuickEdit') {
+			const { diffareaid } = opts
+			const ctrlKZone = this.diffAreaOfId[diffareaid]
+			if (ctrlKZone?.type !== 'CtrlKZone') return
+			const { _URI: uri } = ctrlKZone
+			return uri
+		}
+		return
+	}
 
+	public async callBeforeStartApplying(opts: CallBeforeStartApplyingOpts) {
+		const uri = this._getURIBeforeStartApplying(opts)
+		if (!uri) return
+		await this._voidModelService.initializeModel(uri)
+	}
 
 
 	// the applyDonePromise this returns can reject, and should be caught with .catch
-	public async startApplying(opts: StartApplyingOpts): Promise<[URI, Promise<void>] | null> {
+	public startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null {
 		let res: [DiffZone, Promise<void>] | undefined = undefined
 
 		if (opts.from === 'QuickEdit') {
-			res = await this._initializeWriteoverStream(opts) // rewrite
+			res = this._initializeWriteoverStream(opts) // rewrite
 		}
 		else if (opts.from === 'ClickApply') {
 			if (this._settingsService.state.globalSettings.enableFastApply) {
 				const numCharsInFile = this._fileLengthOfGivenURI(opts.uri)
 				if (numCharsInFile === null) return null
 				if (numCharsInFile < 1000) { // slow apply for short files (especially important for empty files)
-					res = await this._initializeWriteoverStream(opts)
+					res = this._initializeWriteoverStream(opts)
 				}
 				else {
-					res = await this._initializeSearchAndReplaceStream(opts) // fast apply
+					res = this._initializeSearchAndReplaceStream(opts) // fast apply
 				}
 			}
 			else {
-				res = await this._initializeWriteoverStream(opts) // rewrite
+				res = this._initializeWriteoverStream(opts) // rewrite
 			}
 		}
 
@@ -1278,6 +1223,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			_removeStylesFns: new Set(),
 		}
 
+		console.log('FIRING START STREAMING IN DIFFZONE!!!')
 		const diffZone = this._addDiffArea(adding)
 		this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
@@ -1308,19 +1254,17 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
-	private async _initializeWriteoverStream(opts: StartApplyingOpts): Promise<[DiffZone, Promise<void>] | undefined> {
+	private _initializeWriteoverStream(opts: StartApplyingOpts): [DiffZone, Promise<void>] | undefined {
 
 		const { from, } = opts
 
-		let uri: URI
-		let startRange: 'fullFile' | [number, number]
+		const uri = this._getURIBeforeStartApplying(opts)
+		if (!uri) return
 
+		let startRange: 'fullFile' | [number, number]
 		let ctrlKZoneIfQuickEdit: CtrlKZone | null = null
 
 		if (from === 'ClickApply') {
-			const uri_ = this._uriOfGivenURI(opts.uri)
-			if (!uri_) return
-			uri = uri_
 			startRange = 'fullFile'
 		}
 		else if (from === 'QuickEdit') {
@@ -1328,15 +1272,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
 			if (ctrlKZone?.type !== 'CtrlKZone') return
 			ctrlKZoneIfQuickEdit = ctrlKZone
-			const { startLine: startLine_, endLine: endLine_, _URI } = ctrlKZone
-			uri = _URI
+			const { startLine: startLine_, endLine: endLine_ } = ctrlKZone
 			startRange = [startLine_, endLine_]
 		}
 		else {
 			throw new Error(`Void: diff.type not recognized on: ${from}`)
 		}
 
-		await this._voidModelService.initializeModel(uri)
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
 
@@ -1434,7 +1376,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
 		// allowed to throw errors - this is called inside a promise that handles everything
 		const runWriteover = async () => {
@@ -1530,13 +1472,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
-	private async _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): Promise<[DiffZone, Promise<void>] | undefined> {
-		const { from, applyStr, uri: givenURI, } = opts
+	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): [DiffZone, Promise<void>] | undefined {
+		const { from, applyStr, } = opts
 
-		const uri = this._uriOfGivenURI(givenURI)
+		const uri = this._getURIBeforeStartApplying(opts)
 		if (!uri) return
 
-		await this._voidModelService.initializeModel(uri)
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
 
@@ -1643,7 +1584,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const featureName: FeatureName = 'Apply'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[modelSelection.providerName]?.[modelSelection.modelName] : undefined
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
 		const N_RETRIES = 5
 
@@ -1691,7 +1632,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 								// update stream state to the first line of original if some portion of original has been written
 								if (shouldUpdateOrigStreamStyle && block.orig.trim().length >= 20) {
 									const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
-									const originalRange = findTextInCode(block.orig, originalFileCode, startingAtLine)
+									const originalRange = findTextInCode(block.orig, originalFileCode, false, startingAtLine)
 									if (typeof originalRange !== 'string') {
 										const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
 										diffZone._streamState.line = startLine
@@ -1718,7 +1659,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							if (!(blockNum in addedTrackingZoneOfBlockNum)) {
 
 
-								const originalBounds = findTextInCode(block.orig, originalFileCode)
+								const originalBounds = findTextInCode(block.orig, originalFileCode, true)
 								// if error
 								if (typeof originalBounds === 'string') {
 									console.log('--------------Error finding text in code:')
@@ -1757,14 +1698,15 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									return
 								}
 
-								console.log('---------adding-------')
-								console.log('CURRENT TEXT!!!', { current: model?.getValue() })
-								console.log('block', deepClone(block))
-								console.log('origBounds', originalBounds)
 
 
 								const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
-								console.log('start end', startLine, endLine)
+
+								// console.log('---------adding-------')
+								// console.log('CURRENT TEXT!!!', { current: model?.getValue() })
+								// console.log('block', deepClone(block))
+								// console.log('origBounds', originalBounds)
+								// console.log('start end', startLine, endLine)
 
 								// otherwise if no error, add the position as a diffarea
 								const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
@@ -1821,7 +1763,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					onFinalMessage: async (params) => {
 						const { fullText } = params
 
-						console.log('DONE - editCode!', { fullText })
 
 						// 1. wait 500ms and fix lint errors - call lint error workflow
 						// (update react state to say "Fixing errors")
@@ -1836,10 +1777,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						// IMPORTANT - sort by lineNum
 						addedTrackingZoneOfBlockNum.sort((a, b) => a.metadata.originalBounds[0] - b.metadata.originalBounds[0])
 
-						const { model } = this._voidModelService.getModel(uri)
-						console.log('CURRENT TEXT!!!', { current: model?.getValue() })
-						console.log('addedTrackingZoneOfBlockNum', addedTrackingZoneOfBlockNum)
-						console.log('blocks', deepClone(blocks))
+						// const { model } = this._voidModelService.getModel(uri)
+						// console.log('DONE - editCode!', { fullText })
+						// console.log('CURRENT TEXT!!!', { current: model?.getValue() })
+						// console.log('addedTrackingZoneOfBlockNum', addedTrackingZoneOfBlockNum)
+						// console.log('blocks', deepClone(blocks))
 
 						for (let blockNum = addedTrackingZoneOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
 							const { originalBounds } = addedTrackingZoneOfBlockNum[blockNum].metadata

@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { ToolName } from './toolsServiceTypes.js'
+import { ToolName } from './prompt/prompts.js'
 import { ChatMode, ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
@@ -43,7 +43,7 @@ export type LLMChatMessage = {
 export type ParsedToolParamsObj = {
 	[paramName: string]: string;
 }
-export type ParsedToolCallObj = {
+export type RawToolCallObj = {
 	name: ToolName;
 	rawParams: ParsedToolParamsObj;
 	doneParams: string[];
@@ -53,8 +53,8 @@ export type ParsedToolCallObj = {
 
 export type AnthropicReasoning = ({ type: 'thinking'; thinking: any; signature: string; } | { type: 'redacted_thinking', data: any })
 
-export type OnText = (p: { fullText: string; fullReasoning: string; toolCall?: ParsedToolCallObj }) => void
-export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCall?: ParsedToolCallObj; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
+export type OnText = (p: { fullText: string; fullReasoning: string; toolCall?: RawToolCallObj }) => void
+export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCall?: RawToolCallObj; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
 export type OnError = (p: { message: string; fullError: Error | null }) => void
 export type OnAbort = () => void
 export type AbortRef = { current: (() => void) | null }

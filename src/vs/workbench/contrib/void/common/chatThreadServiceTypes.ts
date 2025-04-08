@@ -5,8 +5,9 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import { VoidFileSnapshot } from './editCodeServiceTypes.js';
+import { ToolName } from './prompt/prompts.js';
 import { AnthropicReasoning } from './sendLLMMessageTypes.js';
-import { ToolName, ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
+import { ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
 
 export type ToolMessage<T extends ToolName> = {
 	role: 'tool';

@@ -1,8 +1,8 @@
 import { endsWithAnyPrefixOf } from '../../common/helpers/extractCodeFromResult.js'
-import { InternalToolInfo } from '../../common/prompt/prompts.js'
-import { OnText, ParsedToolCallObj } from '../../common/sendLLMMessageTypes.js'
+import { availableTools, InternalToolInfo, ToolName } from '../../common/prompt/prompts.js'
+import { OnText, RawToolCallObj } from '../../common/sendLLMMessageTypes.js'
+import { ChatMode } from '../../common/voidSettingsTypes.js'
 import sax from 'sax'
-import { ToolName } from '../../common/toolsServiceTypes.js'
 
 
 // =============== reasoning ===============
@@ -123,22 +123,25 @@ type ToolsState = {
 } | {
 	level: 'tool',
 	toolName: string,
-	currentToolCall: ParsedToolCallObj,
+	currentToolCall: RawToolCallObj,
 } | {
 	level: 'param',
 	toolName: string,
 	paramName: string,
-	currentToolCall: ParsedToolCallObj,
+	currentToolCall: RawToolCallObj,
 }
 
-export const extractToolsOnTextWrapper = (onText: OnText, availableTools: InternalToolInfo[]) => {
+export const extractToolsOnTextWrapper = (onText: OnText, chatMode: ChatMode) => {
+	const tools = availableTools(chatMode)
+	if (!tools) return onText
+
 	const toolOfToolName: { [toolName: string]: InternalToolInfo | undefined } = {}
-	for (const t of availableTools) { toolOfToolName[t.name] = t }
+	for (const t of tools) { toolOfToolName[t.name] = t }
 
 	// detect <availableTools[0]></availableTools[0]>, etc
 	let fullText = '';
 	let trueFullText = ''
-	const currentToolCalls: ParsedToolCallObj[] = []; // the answer
+	const currentToolCalls: RawToolCallObj[] = []; // the answer
 
 	let state: ToolsState = { level: 'normal' }
 
@@ -146,7 +149,9 @@ export const extractToolsOnTextWrapper = (onText: OnText, availableTools: Intern
 	const getRawNewText = () => {
 		return trueFullText.substring(parser.startTagPosition, parser.position + 1)
 	}
-	const parser = sax.parser(false);
+	const parser = sax.parser(false, {
+		lowercase: true,
+	});
 
 
 	// when see open tag <tagName>
@@ -186,7 +191,7 @@ export const extractToolsOnTextWrapper = (onText: OnText, availableTools: Intern
 	};
 
 	parser.ontext = (text) => {
-		console.log('TEXT!', text)
+		console.log('TEXT!', JSON.stringify(text))
 		if (state.level === 'normal') {
 			fullText += text
 		}
@@ -227,16 +232,23 @@ export const extractToolsOnTextWrapper = (onText: OnText, availableTools: Intern
 					currentToolCall: state.currentToolCall,
 				}
 			}
+			else {
+				fullText += rawNewText
+			}
 		}
 
 	};
 
+	let prevFullTextLen = 0
 	const newOnText: OnText = (params) => {
-		const newText = params.fullText.substring(fullText.length);
-		console.log('newText', state.level, newText)
+		const newText = params.fullText.substring(prevFullTextLen)
+		prevFullTextLen = params.fullText.length
 		trueFullText = params.fullText
+
+		console.log('newText', newText.length)
 		parser.write(newText)
 
+		console.log('calling ontext...')
 		onText({
 			...params,
 			fullText,

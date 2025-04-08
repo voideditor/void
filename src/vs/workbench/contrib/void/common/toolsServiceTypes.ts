@@ -1,5 +1,5 @@
 import { URI } from '../../../../base/common/uri.js'
-import { voidTools } from './prompt/prompts.js';
+import { ToolName } from './prompt/prompts.js';
 
 
 
@@ -13,15 +13,6 @@ export type ShallowDirectoryItem = {
 	isSymbolicLink: boolean;
 }
 
-
-export type ToolName = keyof typeof voidTools
-export const toolNames = Object.keys(voidTools) as ToolName[]
-
-const toolNamesSet = new Set<string>(toolNames)
-export const isAToolName = (toolName: string): toolName is ToolName => {
-	const isAToolName = toolNamesSet.has(toolName)
-	return isAToolName
-}
 
 
 const toolNamesWithApproval = ['create_file_or_folder', 'delete_file_or_folder', 'edit_file', 'run_terminal_command'] as const satisfies readonly ToolName[]

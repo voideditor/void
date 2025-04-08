@@ -23,9 +23,10 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, Ban, ChevronRight, Dot, Pencil, Undo, Undo2, X } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
-import { ToolCallParams, ToolName, toolNames, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
+import { ToolCallParams } from '../../../../common/toolsServiceTypes.js';
 import { ApplyButtonsHTML, CopyButton, JumpToFileButton, JumpToTerminalButton, StatusIndicatorHTML, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
+import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 
 
 
@@ -2007,9 +2008,8 @@ export const SidebarChat = () => {
 	const messageSoFar = currThreadStreamState?.messageSoFar
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
 
-	const toolNameSoFar = currThreadStreamState?.toolNameSoFar
-	const toolParamsSoFar = currThreadStreamState?.toolParamsSoFar
-	const toolIsGenerating = !!toolNameSoFar && toolNameSoFar === 'edit_file' // show loading for slow tools (right now just edit)
+	const toolCallSoFar = currThreadStreamState?.toolCallSoFar
+	const toolIsGenerating = !!toolCallSoFar && toolCallSoFar.name === 'edit_file' // show loading for slow tools (right now just edit)
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -2101,7 +2101,7 @@ export const SidebarChat = () => {
 		/> : null
 
 
-	const generatingToolTitle = toolNameSoFar && toolNames.includes(toolNameSoFar as ToolName) ? titleOfToolName[toolNameSoFar as ToolName]?.proposed : toolNameSoFar
+	const generatingToolTitle = toolCallSoFar && toolNames.includes(toolCallSoFar.name as ToolName) ? titleOfToolName[toolCallSoFar.name as ToolName]?.proposed : toolCallSoFar?.name
 
 	const messagesHTML = <ScrollToBottomContainer
 		key={'messages' + chatThreadsState.currentThreadId} // force rerender on all children if id changes

@@ -90,7 +90,7 @@ export const SidebarThreadSelector = () => {
 							// 	secondMsg = truncate(pastThread.messages[secondMsgIdx].displayContent ?? '');
 							// }
 
-							const numMessages = pastThread.messages.filter((msg) => msg.role !== 'tool_request').length;
+							const numMessages = pastThread.messages.filter((msg) => msg.role === 'assistant' || msg.role === 'user').length;
 
 							return (
 								<li key={pastThread.id}>

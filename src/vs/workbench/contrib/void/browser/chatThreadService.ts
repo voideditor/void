@@ -11,13 +11,13 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, } from '../common/prompt/prompts.js';
-import { getErrorMessage, LLMChatMessage, ParsedToolCallObj, ParsedToolParamsObj } from '../common/sendLLMMessageTypes.js';
+import { chat_userMessageContent, chat_systemMessage, ToolName, } from '../common/prompt/prompts.js';
+import { getErrorMessage, LLMChatMessage, RawToolCallObj, ParsedToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { ToolName, ToolCallParams, ToolResultType, toolNamesThatRequireApproval } from '../common/toolsServiceTypes.js';
+import { ToolCallParams, ToolResultType, toolNamesThatRequireApproval } from '../common/toolsServiceTypes.js';
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
@@ -148,7 +148,7 @@ export type ThreadStreamState = {
 		streamingToken?: string;
 		messageSoFar?: string;
 		reasoningSoFar?: string;
-		toolCallSoFar?: ParsedToolCallObj;
+		toolCallSoFar?: RawToolCallObj;
 	}
 }
 
@@ -700,8 +700,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			isRunningWhenEnd = undefined
 			nMessagesSent += 1
 
-			let resMessageIsDonePromise: (toolCall?: ParsedToolCallObj | undefined) => void // resolves when user approves this tool use (or if tool doesn't require approval)
-			const messageIsDonePromise = new Promise<ParsedToolCallObj | undefined>((res, rej) => { resMessageIsDonePromise = res })
+			let resMessageIsDonePromise: (toolCall?: RawToolCallObj | undefined) => void // resolves when user approves this tool use (or if tool doesn't require approval)
+			const messageIsDonePromise = new Promise<RawToolCallObj | undefined>((res, rej) => { resMessageIsDonePromise = res })
 
 			// send llm message
 			this._setStreamState(threadId, { isRunning: 'LLM' }, 'merge')
@@ -752,7 +752,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._setStreamState(threadId, { streamingToken: undefined }, 'merge') // streaming message is done
 
 			// call tool if there is one
-			const tool: ParsedToolCallObj | undefined = toolCall
+			const tool: RawToolCallObj | undefined = toolCall
 			if (tool) {
 				const { awaitingUserApproval, interrupted } = await handleToolCall(tool.name, { preapproved: false, unvalidatedToolParams: tool.rawParams })
 

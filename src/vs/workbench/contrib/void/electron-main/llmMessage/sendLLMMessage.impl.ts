@@ -12,7 +12,6 @@ import { ChatMode, defaultProviderSettings, displayInfoOfProviderName, ModelSele
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper, extractToolsOnTextWrapper } from './extractGrammar.js';
-import { availableTools } from '../../common/prompt/prompts.js';
 
 
 type InternalCommonMessageParams = {
@@ -162,10 +161,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 
 	// manually parse out tool results
 	if (chatMode) {
-		const tools = availableTools(chatMode)
-		if (tools) {
-			onText = extractToolsOnTextWrapper(onText, tools)
-		}
+		onText = extractToolsOnTextWrapper(onText, chatMode)
 	}
 
 	let fullReasoningSoFar = ''
@@ -250,7 +246,7 @@ const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_,
 
 
 // ------------ ANTHROPIC ------------
-const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, aiInstructions }: SendChatParams_Internal) => {
+const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, aiInstructions, chatMode }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		supportsSystemMessage,
@@ -283,6 +279,11 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 		max_tokens: maxTokens ?? 4_096, // anthropic requires this
 		...includeInPayload,
 	})
+
+	// manually parse out tool results
+	if (chatMode) {
+		onText = extractToolsOnTextWrapper(onText, chatMode)
+	}
 
 	// when receive text
 	let fullText = ''

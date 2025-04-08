@@ -6,7 +6,7 @@
 import { os } from '../helpers/systemInfo.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { ChatMode } from '../voidSettingsTypes.js';
-import { ToolName, toolNamesThatRequireApproval } from '../toolsServiceTypes.js';
+import { toolNamesThatRequireApproval } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 
@@ -153,7 +153,7 @@ Here's an example of a good description:\n${editToolDescriptionExample}.`
 		name: 'run_terminal_command',
 		description: `Executes a terminal command.`,
 		params: {
-			command: { description: 'The terminal command to execute. Typically you should pipe to cat to avoid pagination.' },
+			command: { description: 'The terminal command to execute.' },
 			waitForCompletion: { description: `Whether or not to await the command to complete and get the final result. Default is true. Make this value false when you want a command to run indefinitely without waiting for it.` },
 			terminalId: { description: 'Optional (value must be an integer >= 1, or empty which will go with the default). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
 		},
@@ -165,6 +165,16 @@ Here's an example of a good description:\n${editToolDescriptionExample}.`
 
 } satisfies { [name: string]: InternalToolInfo }
 
+
+export type ToolName = keyof typeof voidTools
+export const toolNames = Object.keys(voidTools) as ToolName[]
+
+const toolNamesSet = new Set<string>(toolNames)
+
+export const isAToolName = (toolName: string): toolName is ToolName => {
+	const isAToolName = toolNamesSet.has(toolName)
+	return isAToolName
+}
 
 export const availableTools = (chatMode: ChatMode) => {
 	const toolNames: ToolName[] | undefined = chatMode === 'normal' ? undefined

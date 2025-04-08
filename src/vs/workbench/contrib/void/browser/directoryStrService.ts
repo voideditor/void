@@ -287,6 +287,8 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 		let str: string = '';
 		let cutOff = false;
 		const folders = this.workspaceContextService.getWorkspace().folders;
+		if (folders.length === 0)
+			return { str: '(NO WORKSPACE OPEN)', wasCutOff: false };
 
 		for (let i = 0; i < folders.length; i += 1) {
 			if (i > 0) str += '\n';

@@ -3,7 +3,6 @@ import { voidTools } from './prompt/prompts.js';
 
 
 
-
 export type TerminalResolveReason = { type: 'toofull' | 'timeout' | 'bgtask' } | { type: 'done', exitCode: number }
 
 // Partial of IFileStat
@@ -13,17 +12,6 @@ export type ShallowDirectoryItem = {
 	isDirectory: boolean;
 	isSymbolicLink: boolean;
 }
-
-// we do this using Anthropic's style and convert to OpenAI style later
-export type InternalToolInfo = {
-	name: string,
-	description: string,
-	params: {
-		[paramName: string]: { type: string, description: string | undefined } // name -> type
-	},
-}
-
-
 
 
 export type ToolName = keyof typeof voidTools

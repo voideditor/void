@@ -6,7 +6,7 @@
 import { os } from '../helpers/systemInfo.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { ChatMode } from '../voidSettingsTypes.js';
-import { InternalToolInfo } from '../toolsServiceTypes.js';
+import { ToolName, toolNamesThatRequireApproval } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 
@@ -22,7 +22,7 @@ const changesExampleContent = `\
 // {{change 3}}
 // ... existing code ...`
 
-const editToolDescription = `\
+const editToolDescriptionExample = `\
 ${tripleTick[0]}
 ${changesExampleContent}
 ${tripleTick[1]}`
@@ -34,9 +34,18 @@ ${tripleTick[1]}`
 
 
 
-
-
 // ======================================================== tools ========================================================
+
+
+export type InternalToolInfo = {
+	name: string,
+	description: string,
+	params: {
+		[paramName: string]: { description: string }
+	},
+}
+
+
 
 const paginationHelper = {
 	desc: `Very large results may be paginated (a note will always be included if pagination took place). Pagination fails gracefully if out of bounds or invalid page number.`,
@@ -44,13 +53,13 @@ const paginationHelper = {
 } as const
 
 const uriParam = (object: string) => ({
-	uri: { type: 'string', description: `The FULL path to the ${object}.` }
+	uri: { description: `The FULL path to the ${object} from the root of the file system.` }
 })
 
 
 const searchParams = {
-	searchInFolder: { type: 'string', description: 'Only search files in this given folder. Leave as empty to search all available files.' },
-	isRegex: { type: 'string', description: 'Whether to treat the query as a regular expression. Default is "false".' },
+	searchInFolder: { description: 'Only search files in this given folder. Leave as empty to search all available files.' },
+	isRegex: { description: 'Whether to treat the query as a regular expression. Default is "false".' },
 } as const
 
 
@@ -62,8 +71,8 @@ export const voidTools = {
 		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
 		params: {
 			...uriParam('file'),
-			startLine: { type: 'string', description: 'Line to start reading from. Default is "null", treated as 1.' },
-			endLine: { type: 'string', description: 'Line to stop reading from (inclusive). Default is "null", treated as Infinity.' },
+			startLine: { description: 'Line to start reading from. Default is "null", treated as 1.' },
+			endLine: { description: 'Line to stop reading from (inclusive). Default is "null", treated as Infinity.' },
 			...paginationHelper.param,
 		},
 	},
@@ -89,7 +98,7 @@ export const voidTools = {
 		name: 'search_pathnames_only',
 		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
 		params: {
-			query: { type: 'string', description: undefined },
+			query: { description: `Your query for the search.` },
 			...searchParams,
 			...paginationHelper.param,
 		},
@@ -97,9 +106,9 @@ export const voidTools = {
 
 	search_files: {
 		name: 'search_files',
-		description: `Returns all pathnames that match a given \`grep\`-style query (searches ONLY file contents). The query can be any regex. This is often followed by the \`read_file\` tool to view the full file contents of results. ${paginationHelper.desc}`,
+		description: `Returns all pathnames that match a given query (searches ONLY file contents). The query can be any substring or glob. This is often followed by the \`read_file\` tool to view the full file contents of results. ${paginationHelper.desc}`,
 		params: {
-			query: { type: 'string', description: undefined },
+			query: { description: `Your query for the search.` },
 			...searchParams,
 			...paginationHelper.param,
 		},
@@ -120,7 +129,7 @@ export const voidTools = {
 		description: `Delete a file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
 		params: {
 			...uriParam('file or folder'),
-			params: { type: 'string', description: 'Return -r here to delete recursively (if applicable). Default is the empty string.' }
+			params: { description: 'Return -r here to delete recursively (if applicable). Default is the empty string.' }
 		},
 	},
 
@@ -130,12 +139,12 @@ export const voidTools = {
 		params: {
 			...uriParam('file'),
 			changeDescription: {
-				type: 'string', description: `\
+				description: `\
 - Your changeDescription should be a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing.
 - NEVER re-write the whole file, and ALWAYS use comments like "// ... existing code ...". Bias towards writing as little as possible.
 - Your description will be handed to a dumber, faster model that will quickly apply the change, so it should be clear and concise.
 - You must output your description in triple backticks.
-Here's an example of a good description:\n${editToolDescription}.`
+Here's an example of a good description:\n${editToolDescriptionExample}.`
 			}
 		},
 	},
@@ -144,9 +153,9 @@ Here's an example of a good description:\n${editToolDescription}.`
 		name: 'run_terminal_command',
 		description: `Executes a terminal command.`,
 		params: {
-			command: { type: 'string', description: 'The terminal command to execute. Typically you should pipe to cat to avoid pagination.' },
-			waitForCompletion: { type: 'string', description: `Whether or not to await the command to complete and get the final result. Default is true. Make this value false when you want a command to run indefinitely without waiting for it.` },
-			terminalId: { type: 'string', description: 'Optional (value must be an integer >= 1, or empty which will go with the default). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
+			command: { description: 'The terminal command to execute. Typically you should pipe to cat to avoid pagination.' },
+			waitForCompletion: { description: `Whether or not to await the command to complete and get the final result. Default is true. Make this value false when you want a command to run indefinitely without waiting for it.` },
+			terminalId: { description: 'Optional (value must be an integer >= 1, or empty which will go with the default). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
 		},
 	},
 
@@ -157,7 +166,61 @@ Here's an example of a good description:\n${editToolDescription}.`
 } satisfies { [name: string]: InternalToolInfo }
 
 
+export const availableTools = (chatMode: ChatMode) => {
+	const toolNames: ToolName[] | undefined = chatMode === 'normal' ? undefined
+		: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !toolNamesThatRequireApproval.has(toolName))
+			: chatMode === 'agent' ? Object.keys(voidTools) as ToolName[]
+				: undefined
 
+	const tools: InternalToolInfo[] | undefined = toolNames?.map(toolName => voidTools[toolName])
+	return tools
+}
+
+const availableToolsStr = (tools: InternalToolInfo[]) => {
+	return `${tools.map((t, i) => {
+		const params = Object.keys(t.params).map(paramName => `<${paramName}>\n${t.params[paramName].description}\n</${paramName}>`).join('\n')
+		return `\
+${i}. ${t.name}: ${t.description}
+<${t.name}>${!params ? '' : `\n${params}`}
+</${t.name}>`
+	}).join('\n\n')}`
+}
+
+const systemToolsPrompt = (chatMode: ChatMode) => {
+	const tools = availableTools(chatMode)
+	if (!tools || tools.length === 0) return ''
+
+	return `\
+You are allowed to call tools in your response.
+Tool calling guidelines:
+${chatMode === 'agent' ? `\
+- Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.
+- ALWAYS use tools to take actions. For example, if you would like to edit a file, you MUST use a tool.
+- You will OFTEN need to gather context before making a change. Do not immediately make a change unless you have ALL relevant context.
+- ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`
+			: chatMode === 'gather' ? `\
+- Your primary use of tools should be to gather information to help the user understand the codebase and answer their query.
+- You should extensively read files, types, content, etc and gather relevant context.`
+				: chatMode === 'normal' ? ''
+					: ''}
+- If you think you should use tools, you do not need to ask for permission.
+- NEVER refer to a tool by name when speaking with the user (NEVER say something like "I'm going to use \`tool_name\`"). Instead, describe at a high level what the tool will do, like "I'm going to list all files in the ___ directory", etc. Also do not refer to "pages" of results, just say you're getting more results.
+- Some tools only work if the user has a workspace open.${chatMode === 'agent' ? `
+- NEVER modify a file outside the user's workspace(s) without permission from the user.` : ''}\
+
+Available tools:
+${availableToolsStr(tools)}
+
+Tool calling details:  ${''/* We expect tools to come at the end - not a hard limit, but that's just how we process them, and the flow makes more sense that way. */}
+- To call a tool, just write its name followed by any parameters in XML format. For example:
+<tool_name>
+	<parameter1>value1</parameter1>
+	<parameter2>value2</parameter2>
+</tool_name>
+- You must write all tool calls at the END of your response. The beginning of your response should be your normal response followed by tool calls at the END.
+- You are allowed to call multiple tools by specifying them consecutively. However, there should be NO text or writing between tool calls or after them.
+- Tool that you call will be executed immediately, and you will have access to the results in your next response.`
+}
 
 
 // ======================================================== chat (normal, gather, agent) ========================================================
@@ -172,30 +235,9 @@ ${mode === 'agent' ? `to help the user develop, run, deploy, and make changes to
 				: ''}
 You will be given instructions to follow from the user, \`INSTRUCTIONS\`. You may also be given a list of files that the user has specifically selected, \`SELECTIONS\`.
 Please assist the user with their query. The user's query is never invalid.
-${/* system info */''}
-The user's system information is as follows:
-- ${os}
-- Open workspace(s): ${workspaceFolders.join(', ') || 'NO WORKSPACE OPEN'}
-- Open tab(s): ${openedURIs.join(', ') || 'NO OPENED EDITORS'}
-- Active tab: ${activeURI}
-${(mode === 'agent') && runningTerminalIds.length !== 0 ? `
-- Existing terminal IDs: ${runningTerminalIds.join(', ')}` : ''}
 
 ${/* tool use */ mode === 'agent' || mode === 'gather' ? `\
-You will be given tools you can call.
-${mode === 'agent' ? `\
-- Only use tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.
-- ALWAYS use tools to take actions. For example, if you would like to edit a file, you MUST use a tool.
-- You will OFTEN need to gather context before making a change. Do not immediately make a change unless you have ALL relevant context.
-- ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`
-			: mode === 'gather' ? `\
-- Your primary use of tools should be to gather information to help the user understand the codebase and answer their query.
-- You should extensively read files, types, etc and gather relevant context.`
-				: ''}
-- If you think you should use tools, you do not need to ask for permission. Feel free to call tools whenever you'd like. You can use them to understand the codebase, ${mode === 'agent' ? 'run terminal commands, edit files, ' : 'gather relevant files and information, '}etc.
-- NEVER refer to a tool by name when speaking with the user (NEVER say something like "I'm going to use \`tool_name\`"). Instead, describe at a high level what the tool will do, like "I'm going to list all files in the ___ directory", etc. Also do not refer to "pages" of results, just say you're getting more results.
-- Some tools only work if the user has a workspace open.${mode === 'agent' ? `
-- NEVER modify a file outside the user's workspace(s) without permission from the user.` : ''}
+${systemToolsPrompt(mode)}
 \
 `: `\
 You're allowed to ask for more context. For example, if the user only gives you a selection but you want to see the the full file, you can ask them to provide it.
@@ -218,6 +260,8 @@ If you write a code block that's related to a specific file, please use the same
 - The remaining contents of the file should proceed as usual.
 \
 `}
+
+
 ${/* misc */''}
 Misc:
 - Do not make things up.
@@ -225,80 +269,22 @@ Misc:
 - NEVER re-write the entire file.
 - Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.
 - Today's date is ${new Date().toDateString()}
-The user's codebase is structured as follows:\n${directoryStr}
+
+${/* system info */''}
+The user's system information is as follows:
+- ${os}
+- Open workspace(s): ${workspaceFolders.join(', ') || 'NO WORKSPACE OPEN'}
+- Open tab(s): ${openedURIs.join(', ') || 'NO OPENED EDITORS'}
+- Active tab: ${activeURI}
+${(mode === 'agent') && runningTerminalIds.length !== 0 ? `
+- Existing terminal IDs: ${runningTerminalIds.join(', ')}` : ''}
+- The user's codebase is structured as follows:\n${directoryStr}
+
+
 \
-`
-// agent mode doesn't know about 1st line paths yet
-// - If you wrote triple ticks and ___, then include the file's full path in the first line of the triple ticks. This is only for display purposes to the user, and it's preferred but optional. Never do this in a tool parameter, or if there's ambiguity about the full path.
+`.trim().replace('\t', '  ')
 
 
-// type FileSelnLocal = { fileURI: URI, language: string, content: string }
-// const stringifyFileSelection = ({ fileURI, language, content }: FileSelnLocal) => {
-// 	return `\
-// ${fileURI.fsPath}
-// ${tripleTick[0]}${language}
-// ${content}
-// ${tripleTick[1]}
-// `
-// }
-// const stringifyCodeSelection = ({ uri, language, range }: StagingSelectionItem & { type: 'CodeSelection' }) => {
-// 	return `\
-
-// ${tripleTick[0]}${language}
-// ${selectionStr}
-// ${tripleTick[1]}
-// `
-// }
-
-// const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
-// const stringifyFileSelections = async (fileSelections: FileSelection[], voidModelService: IVoidModelService) => {
-// 	if (fileSelections.length === 0) return null
-// 	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
-// 		const { model } = await voidModelService.getModelSafe(sel.fileURI)
-// 		const content = model?.getValue(EndOfLinePreference.LF) ?? failToReadStr
-// 		return { ...sel, content }
-// 	}))
-// 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
-// }
-
-
-
-
-// export const chat_selectionsString = async (
-// 	prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null,
-// 	voidModelService: IVoidModelService,
-// ) => {
-
-// 	// ADD IN FILES AT TOP
-// 	const allSelections = [...currSelns || [], ...prevSelns || []]
-
-// 	if (allSelections.length === 0) return null
-
-// 	for (const selection of allSelections) {
-// 		if (selection.type === 'Selection') {
-// 			codeSelections.push(selection)
-// 		}
-// 		else if (selection.type === 'File') {
-// 			const fileSelection = selection
-// 			const path = fileSelection.fileURI.fsPath
-// 			if (!filesURIs.has(path)) {
-// 				filesURIs.add(path)
-// 				fileSelections.push(fileSelection)
-// 			}
-// 		}
-// 	}
-
-// 	const filesStr = await stringifyFileSelections(fileSelections, voidModelService)
-// 	const selnsStr = stringifyCodeSelections(codeSelections)
-
-// 	const fileContents = [filesStr, selnsStr].filter(Boolean).join('\n')
-// 	return fileContents || null
-// }
-
-// export const chat_lastUserMessageWithFilesAdded = (userMessage: string, selectionsString: string | null) => {
-// 	if (userMessage) return `${userMessage}${selectionsString ? `\n${selectionsString}` : ''}`
-// 	else return userMessage
-// }
 
 export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null,
 	opts: { type: 'references' } | { type: 'fullCode', voidModelService: IVoidModelService }
@@ -558,6 +544,40 @@ ${tripleTick[1]}).`
 
 
 
+
+
+
+// const toAnthropicTool = (toolInfo: InternalToolInfo) => {
+// 	const { name, description, params } = toolInfo
+// 	return {
+// 		name: name,
+// 		description: description,
+// 		input_schema: {
+// 			type: 'object',
+// 			properties: params,
+// 			// required: Object.keys(params),
+// 		},
+// 	} satisfies Anthropic.Messages.Tool
+// }
+
+
+// const toOpenAICompatibleTool = (toolInfo: InternalToolInfo) => {
+// 	const { name, description, params } = toolInfo
+// 	return {
+// 		type: 'function',
+// 		function: {
+// 			name: name,
+// 			// strict: true, // strict mode - https://platform.openai.com/docs/guides/function-calling?api-mode=chat
+// 			description: description,
+// 			parameters: {
+// 				type: 'object',
+// 				properties: params,
+// 				// required: Object.keys(params), // in strict mode, all params are required and additionalProperties is false
+// 				// additionalProperties: false,
+// 			},
+// 		}
+// 	} satisfies OpenAI.Chat.Completions.ChatCompletionTool
+// }
 
 
 /*

@@ -11,13 +11,13 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, voidTools } from '../common/prompt/prompts.js';
+import { chat_userMessageContent, chat_systemMessage, } from '../common/prompt/prompts.js';
 import { getErrorMessage, LLMChatMessage, ToolCallType } from '../common/sendLLMMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
-import { ChatMode, FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
+import { FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { ToolName, ToolCallParams, ToolResultType, toolNamesThatRequireApproval, InternalToolInfo } from '../common/toolsServiceTypes.js';
+import { ToolName, ToolCallParams, ToolResultType, toolNamesThatRequireApproval } from '../common/toolsServiceTypes.js';
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
@@ -63,6 +63,9 @@ A checkpoint appears before every LLM message, and before every user message (be
 
 const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
 	const llmChatMessages: LLMChatMessage[] = []
+
+	// merge tools into user message
+
 	for (const c of chatMessages) {
 		if (c.role === 'user') {
 			llmChatMessages.push({ role: c.role, content: c.content })
@@ -551,18 +554,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 
-	private _tools = (chatMode: ChatMode) => {
-		const toolNames: ToolName[] | undefined = chatMode === 'normal' ? undefined
-			: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !toolNamesThatRequireApproval.has(toolName))
-				: chatMode === 'agent' ? Object.keys(voidTools) as ToolName[]
-					: undefined
-
-		const tools: InternalToolInfo[] | undefined = toolNames?.map(toolName => voidTools[toolName])
-		return tools
-	}
-
-
-
 	private readonly errMsgs = {
 		rejected: 'Tool call was rejected by the user.',
 		errWhenStringifying: (error: any) => `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
@@ -704,7 +695,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// above just defines helpers, below starts the actual function
 		const { chatMode } = this._settingsService.state.globalSettings // should not change as we loop even if user changes it, so it goes here
-		const tools = this._tools(chatMode)
 
 		// clear any previous error
 		this._setStreamState(threadId, { error: undefined }, 'set')
@@ -736,7 +726,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const llmCancelToken = this._llmMessageService.sendLLMMessage({
 				messagesType: 'chatMessages',
 				messages,
-				tools: tools,
 				modelSelection,
 				modelSelectionOptions,
 				logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },

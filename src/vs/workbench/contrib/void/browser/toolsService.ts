@@ -157,7 +157,6 @@ export class ToolsService implements IToolsService {
 		this.validateParams = {
 			read_file: async (params: ParsedToolParamsObj) => {
 				const { uri: uriStr, startLine: startLineUnknown, endLine: endLineUnknown, pageNumber: pageNumberUnknown } = params
-
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 

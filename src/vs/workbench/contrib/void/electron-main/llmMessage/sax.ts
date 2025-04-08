@@ -63,7 +63,7 @@ export function createSaxParser(options: SaxParserOptions = {}): SaxParser {
 					if (cursor < buffer.length && this.ontext) {
 						this.ontext(buffer.substring(cursor));
 					}
-					// Clear the buffer once all content is processed.
+					// Clear the buffer since all content is processed.
 					buffer = '';
 					break;
 				}
@@ -123,7 +123,11 @@ export function createSaxParser(options: SaxParserOptions = {}): SaxParser {
 				// Move the cursor past the current tag.
 				cursor = gtIndex + 1;
 			}
-		},
+
+			// Remove any content already processed from the buffer.
+			buffer = buffer.slice(cursor);
+		}
+
 	};
 
 	return parser;

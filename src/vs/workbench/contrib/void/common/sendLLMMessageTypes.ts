@@ -41,7 +41,7 @@ export type LLMChatMessage = {
 
 
 export type ParsedToolParamsObj = {
-	[paramName: string]: string;
+	[paramName: string]: string | undefined;
 }
 export type RawToolCallObj = {
 	name: ToolName;

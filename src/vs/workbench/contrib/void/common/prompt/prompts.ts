@@ -188,9 +188,11 @@ export const availableTools = (chatMode: ChatMode) => {
 
 const availableToolsStr = (tools: InternalToolInfo[]) => {
 	return `${tools.map((t, i) => {
-		const params = Object.keys(t.params).map(paramName => `<${paramName}>\n${t.params[paramName].description}\n</${paramName}>`).join('\n')
+		const params = Object.keys(t.params).map(paramName => `	<${paramName}>\n${t.params[paramName].description}\n	</${paramName}>`).join('\n')
 		return `\
-${i}. ${t.name}: ${t.description}
+${i}. ${t.name}
+Description: ${t.description}
+Format:
 <${t.name}>${!params ? '' : `\n${params}`}
 </${t.name}>`
 	}).join('\n\n')}`
@@ -225,11 +227,16 @@ Tool calling details:  ${''/* We expect tools to come at the end - not a hard li
 - Tool calling is optional.
 - To call a tool, just write its name followed by any parameters in XML format. For example:
 <tool_name>
-	<parameter1>value1</parameter1>
-	<parameter2>value2</parameter2>
+	<parameter1>
+value1
+	</parameter1>
+	<parameter2>
+value2
+	</parameter2>
 </tool_name>
-- You must write your tool call at the END of your response. The beginning of your response should be your normal response followed by the tool call at the END.
+- You must write your tool call at the END of your response. The beginning of your response should be normal text, explanations, etc (if you decide to write anything), followed by the tool call at the END.
 - You are only allowed to output one tool call per response.
+- You may omit optional parameters.
 - The tool call will be executed immediately, and you will have access to the results in your next response.`
 }
 // - You are allowed to call multiple tools by specifying them consecutively. However, there should be NO text or writing between tool calls or after them.

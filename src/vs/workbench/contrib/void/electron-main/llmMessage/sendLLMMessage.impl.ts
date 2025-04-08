@@ -11,7 +11,7 @@ import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, On
 import { ChatMode, defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
-import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper, extractToolsOnTextWrapper } from './extractGrammar.js';
+import { extractReasoningOnTextWrapper, extractToolsOnTextWrapper } from './extractGrammar.js';
 
 
 type InternalCommonMessageParams = {
@@ -156,12 +156,16 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 	const { needsManualParse: needsManualReasoningParse, nameOfFieldInDelta: nameOfReasoningFieldInDelta } = providerReasoningIOSettings?.output ?? {}
 	const manuallyParseReasoning = needsManualReasoningParse && canIOReasoning && openSourceThinkTags
 	if (manuallyParseReasoning) {
-		onText = extractReasoningOnTextWrapper(onText, openSourceThinkTags)
+		const { newOnText, newOnFinalMessage } = extractReasoningOnTextWrapper(onText, onFinalMessage, openSourceThinkTags)
+		onText = newOnText
+		onFinalMessage = newOnFinalMessage
 	}
 
 	// manually parse out tool results
 	if (chatMode) {
-		onText = extractToolsOnTextWrapper(onText, chatMode)
+		const { newOnText, newOnFinalMessage } = extractToolsOnTextWrapper(onText, onFinalMessage, chatMode)
+		onText = newOnText
+		onFinalMessage = newOnFinalMessage
 	}
 
 	let fullReasoningSoFar = ''
@@ -192,12 +196,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			}
 			else {
-				if (manuallyParseReasoning) {
-					const { fullText, fullReasoning } = extractReasoningOnFinalMessage(fullTextSoFar, openSourceThinkTags)
-					onFinalMessage({ fullText, fullReasoning, anthropicReasoning: null });
-				} else {
-					onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null });
-				}
+				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null });
 			}
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
@@ -282,7 +281,9 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 
 	// manually parse out tool results
 	if (chatMode) {
-		onText = extractToolsOnTextWrapper(onText, chatMode)
+		const { newOnText, newOnFinalMessage } = extractToolsOnTextWrapper(onText, onFinalMessage, chatMode)
+		onText = newOnText
+		onFinalMessage = newOnFinalMessage
 	}
 
 	// when receive text

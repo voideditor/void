@@ -1,14 +1,21 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
 import { endsWithAnyPrefixOf } from '../../common/helpers/extractCodeFromResult.js'
 import { availableTools, InternalToolInfo, ToolName } from '../../common/prompt/prompts.js'
-import { OnText, RawToolCallObj } from '../../common/sendLLMMessageTypes.js'
+import { OnFinalMessage, OnText, RawToolCallObj } from '../../common/sendLLMMessageTypes.js'
 import { ChatMode } from '../../common/voidSettingsTypes.js'
-import sax from 'sax'
+import { createSaxParser } from './sax.js'
 
 
 // =============== reasoning ===============
 
 // could simplify this - this assumes we can never add a tag without committing it to the user's screen, but that's not true
-export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string, string]): OnText => {
+export const extractReasoningOnTextWrapper = (
+	onText: OnText, onFinalMessage: OnFinalMessage, thinkTags: [string, string]
+): { newOnText: OnText, newOnFinalMessage: OnFinalMessage } => {
 	let latestAddIdx = 0 // exclusive index in fullText_
 	let foundTag1 = false
 	let foundTag2 = false
@@ -100,19 +107,26 @@ export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string
 		onText({ ...p, fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 	}
 
-	return newOnText
-}
 
+	const getOnFinalMessageParams = () => {
+		const fullText_ = fullTextSoFar
+		const tag1Idx = fullText_.indexOf(thinkTags[0])
+		const tag2Idx = fullText_.indexOf(thinkTags[1])
+		if (tag1Idx === -1) return { fullText: fullText_, fullReasoning: '' } // never started reasoning
+		if (tag2Idx === -1) return { fullText: '', fullReasoning: fullText_ } // never stopped reasoning
 
-export const extractReasoningOnFinalMessage = (fullText_: string, thinkTags: [string, string]): { fullText: string, fullReasoning: string } => {
-	const tag1Idx = fullText_.indexOf(thinkTags[0])
-	const tag2Idx = fullText_.indexOf(thinkTags[1])
-	if (tag1Idx === -1) return { fullText: fullText_, fullReasoning: '' } // never started reasoning
-	if (tag2Idx === -1) return { fullText: '', fullReasoning: fullText_ } // never stopped reasoning
+		const fullReasoning = fullText_.substring(tag1Idx + thinkTags[0].length, tag2Idx)
+		const fullText = fullText_.substring(0, tag1Idx) + fullText_.substring(tag2Idx + thinkTags[1].length, Infinity)
 
-	const fullReasoning = fullText_.substring(tag1Idx + thinkTags[0].length, tag2Idx)
-	const fullText = fullText_.substring(0, tag1Idx) + fullText_.substring(tag2Idx + thinkTags[1].length, Infinity)
-	return { fullText, fullReasoning }
+		return { fullText, fullReasoning }
+	}
+
+	const newOnFinalMessage: OnFinalMessage = (params) => {
+		const { fullText, fullReasoning } = getOnFinalMessageParams()
+		onFinalMessage({ ...params, fullText, fullReasoning })
+	}
+
+	return { newOnText, newOnFinalMessage }
 }
 
 
@@ -131,9 +145,11 @@ type ToolsState = {
 	currentToolCall: RawToolCallObj,
 }
 
-export const extractToolsOnTextWrapper = (onText: OnText, chatMode: ChatMode) => {
+export const extractToolsOnTextWrapper = (
+	onText: OnText, onFinalMessage: OnFinalMessage, chatMode: ChatMode
+): { newOnText: OnText, newOnFinalMessage: OnFinalMessage } => {
 	const tools = availableTools(chatMode)
-	if (!tools) return onText
+	if (!tools) return { newOnText: onText, newOnFinalMessage: onFinalMessage }
 
 	const toolOfToolName: { [toolName: string]: InternalToolInfo | undefined } = {}
 	for (const t of tools) { toolOfToolName[t.name] = t }
@@ -149,17 +165,15 @@ export const extractToolsOnTextWrapper = (onText: OnText, chatMode: ChatMode) =>
 	const getRawNewText = () => {
 		return trueFullText.substring(parser.startTagPosition, parser.position + 1)
 	}
-	const parser = sax.parser(false, {
-		lowercase: true,
-	});
-
+	const parser = createSaxParser({ lowercase: true })
 
 	// when see open tag <tagName>
 	parser.onopentag = (node) => {
 		const rawNewText = getRawNewText()
-		console.log('raw new text a', rawNewText)
-		console.log('OPEN!', node.name)
 		const tagName = node.name;
+		console.log('OPENING', tagName)
+		console.log('state0:', state.level, { toolName: (state as any).toolName, paramName: (state as any).paramName })
+
 		if (state.level === 'normal') {
 			if (tagName in toolOfToolName) { // valid toolName
 				state = {
@@ -170,6 +184,8 @@ export const extractToolsOnTextWrapper = (onText: OnText, chatMode: ChatMode) =>
 			}
 			else {
 				fullText += rawNewText // count as plaintext
+				console.log('adding raw a', rawNewText)
+
 			}
 		}
 		else if (state.level === 'tool') {
@@ -185,31 +201,25 @@ export const extractToolsOnTextWrapper = (onText: OnText, chatMode: ChatMode) =>
 				// would normally be rawNewText, but we ignore all text inside tools
 			}
 		}
-		else if (state.level === 'param') {
+		else if (state.level === 'param') { // cannot double nest
 			fullText += rawNewText // count as plaintext
-		}
-	};
+			console.log('adding raw b', rawNewText)
 
-	parser.ontext = (text) => {
-		console.log('TEXT!', JSON.stringify(text))
-		if (state.level === 'normal') {
-			fullText += text
 		}
-		// start param
-		else if (state.level === 'tool') {
-			// ignore all text in a tool, all text should go in the param tags inside it
-		}
-		else if (state.level === 'param') {
-			state.currentToolCall.rawParams[state.currentToolCall.name] += text
-		}
-	}
+
+		console.log('state1:', state.level, { toolName: (state as any).toolName, paramName: (state as any).paramName })
+
+	};
 
 	parser.onclosetag = (tagName) => {
 		const rawNewText = getRawNewText()
-		console.log('raw new text b', rawNewText)
-		console.log('CLOSE!', tagName)
+		console.log('CLOSING', tagName)
+		console.log('state0:', state.level, { toolName: (state as any).toolName, paramName: (state as any).paramName })
+
+
 		if (state.level === 'normal') {
 			fullText += rawNewText
+			console.log('adding raw A', rawNewText)
 		}
 		else if (state.level === 'tool') {
 			if (tagName === state.toolName) { // closed the tool
@@ -221,6 +231,7 @@ export const extractToolsOnTextWrapper = (onText: OnText, chatMode: ChatMode) =>
 			}
 			else { // add as text
 				fullText += rawNewText
+				console.log('adding raw B', rawNewText)
 			}
 		}
 		else if (state.level === 'param') {
@@ -234,10 +245,31 @@ export const extractToolsOnTextWrapper = (onText: OnText, chatMode: ChatMode) =>
 			}
 			else {
 				fullText += rawNewText
+				console.log('adding raw C', rawNewText)
+
 			}
 		}
+		console.log('state1:', state.level, { toolName: (state as any).toolName, paramName: (state as any).paramName })
+
 
 	};
+
+
+	parser.ontext = (text) => {
+		if (state.level === 'normal') {
+			fullText += text
+		}
+		// start param
+		else if (state.level === 'tool') {
+			// ignore all text in a tool, all text should go in the param tags inside it
+		}
+		else if (state.level === 'param') {
+			if (!(state.paramName in state.currentToolCall.rawParams)) state.currentToolCall.rawParams[state.paramName] = ''
+			state.currentToolCall.rawParams[state.paramName] += text
+		}
+	}
+
+
 
 	let prevFullTextLen = 0
 	const newOnText: OnText = (params) => {
@@ -245,10 +277,8 @@ export const extractToolsOnTextWrapper = (onText: OnText, chatMode: ChatMode) =>
 		prevFullTextLen = params.fullText.length
 		trueFullText = params.fullText
 
-		console.log('newText', newText.length)
 		parser.write(newText)
 
-		console.log('calling ontext...')
 		onText({
 			...params,
 			fullText,
@@ -256,7 +286,15 @@ export const extractToolsOnTextWrapper = (onText: OnText, chatMode: ChatMode) =>
 		});
 	};
 
-	return newOnText;
+
+	const newOnFinalMessage: OnFinalMessage = (params) => {
+		console.log('final message!!!', trueFullText)
+		console.log('----- returning ----\n', fullText)
+		console.log('----- tools ----\n', JSON.stringify(currentToolCalls, null, 2))
+		onFinalMessage({ ...params, fullText, toolCall: currentToolCalls[0] })
+	}
+
+	return { newOnText, newOnFinalMessage };
 }
 
 

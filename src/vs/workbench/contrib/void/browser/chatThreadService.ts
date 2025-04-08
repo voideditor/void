@@ -586,6 +586,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const runningTerminalIds = this._terminalToolService.listTerminalIds()
 			const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, runningTerminalIds, chatMode })
 
+			// console.log('SYSTEM MESSAGE', systemMessage)
 			// all messages so far in the chat history (including tools)
 			const messages: LLMChatMessage[] = [
 				{ role: 'system', content: systemMessage, },
@@ -613,6 +614,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			if (!opts.preapproved) { // skip this if pre-approved
 				// 1. validate tool params
 				try {
+					console.log('VALIDATING PARAMS!!!', opts.unvalidatedToolParams)
 
 					const params = await this._toolsService.validateParams[toolName](opts.unvalidatedToolParams)
 					toolParams = params
@@ -716,12 +718,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				onText: ({ fullText, fullReasoning, toolCall }) => {
 					this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning, toolCallSoFar: toolCall }, 'merge')
 				},
-				onFinalMessage: async ({ fullText, toolCall, fullReasoning, anthropicReasoning }) => {
+				onFinalMessage: async ({ fullText, fullReasoning, toolCall, anthropicReasoning, }) => {
 					this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning, anthropicReasoning })
-					// added to history and no longer streaming this, so clear messages so far and streamingToken (but do not stop isRunning)
 					this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolCallSoFar: undefined }, 'merge')
-					// resolve with tool calls
-					resMessageIsDonePromise(toolCall)
+					resMessageIsDonePromise(toolCall) // resolve with tool calls
 				},
 				onError: (error) => {
 					const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''

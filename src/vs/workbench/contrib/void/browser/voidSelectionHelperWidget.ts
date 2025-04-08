@@ -55,6 +55,8 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 		// Set styles for container
 		root.style.position = 'absolute';
 		root.style.display = 'none'; // Start hidden
+		root.style.pointerEvents = 'none';
+		root.style.marginLeft = '16px';
 
 		// Initialize React component
 		this._instantiationService.invokeFunction(accessor => {

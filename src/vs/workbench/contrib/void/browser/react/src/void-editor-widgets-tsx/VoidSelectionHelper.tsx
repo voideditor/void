@@ -20,7 +20,7 @@ export const VoidSelectionHelperMain = (props: VoidSelectionHelperProps) => {
 	const isDark = useIsDark()
 
 	return <div
-		className={`@@void-scope ${isDark ? 'dark' : ''} pointer-events-none`}
+		className={`@@void-scope ${isDark ? 'dark' : ''}`}
 	>
 		<VoidSelectionHelper {...props} />
 	</div>
@@ -143,7 +143,7 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 
 	return <div className='
 		pointer-events-auto select-none
-		ml-4 z-[1000]
+		z-[1000]
 		rounded-sm shadow-md flex flex-nowrap text-nowrap
 		border border-void-border-3 bg-void-bg-2
 		transition-all duration-200

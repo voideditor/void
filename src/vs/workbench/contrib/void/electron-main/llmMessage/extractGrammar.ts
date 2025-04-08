@@ -13,7 +13,7 @@ import { createSaxParser } from './sax.js'
 // =============== reasoning ===============
 
 // could simplify this - this assumes we can never add a tag without committing it to the user's screen, but that's not true
-export const extractReasoningOnTextWrapper = (
+export const extractReasoningWrapper = (
 	onText: OnText, onFinalMessage: OnFinalMessage, thinkTags: [string, string]
 ): { newOnText: OnText, newOnFinalMessage: OnFinalMessage } => {
 	let latestAddIdx = 0 // exclusive index in fullText_
@@ -122,6 +122,10 @@ export const extractReasoningOnTextWrapper = (
 	}
 
 	const newOnFinalMessage: OnFinalMessage = (params) => {
+
+		// treat like just got text before calling onFinalMessage (or else we sometimes miss the final chunk that's new to finalMessage)
+		newOnText({ ...params })
+
 		const { fullText, fullReasoning } = getOnFinalMessageParams()
 		onFinalMessage({ ...params, fullText, fullReasoning })
 	}
@@ -145,7 +149,7 @@ type ToolsState = {
 	currentToolCall: RawToolCallObj,
 }
 
-export const extractToolsOnTextWrapper = (
+export const extractToolsWrapper = (
 	onText: OnText, onFinalMessage: OnFinalMessage, chatMode: ChatMode
 ): { newOnText: OnText, newOnFinalMessage: OnFinalMessage } => {
 	const tools = availableTools(chatMode)
@@ -288,16 +292,44 @@ export const extractToolsOnTextWrapper = (
 
 
 	const newOnFinalMessage: OnFinalMessage = (params) => {
+		// treat like just got text before calling onFinalMessage (or else we sometimes miss the final chunk that's new to finalMessage)
+		newOnText({ ...params })
+
 		console.log('final message!!!', trueFullText)
 		console.log('----- returning ----\n', fullText)
 		console.log('----- tools ----\n', JSON.stringify(currentToolCalls, null, 2))
-		onFinalMessage({ ...params, fullText, toolCall: currentToolCalls[0] })
-	}
 
+		fullText = fullText.trimEnd()
+		const toolCall = currentToolCalls[0]
+		if (toolCall) {
+			// trim off all whitespace at and before first \n and after last \n for each param
+			for (const paramName in toolCall.rawParams) {
+				const orig = toolCall.rawParams[paramName]
+				if (orig === undefined) continue
+				toolCall.rawParams[paramName] = trimBeforeAndAfterNewLines(orig)
+			}
+		}
+		onFinalMessage({ ...params, fullText, toolCall: currentToolCalls.length > 0 ? currentToolCalls[0] : undefined })
+	}
 	return { newOnText, newOnFinalMessage };
 }
 
 
 
+// trim all whitespace up until the first newline, and all whitespace after the last newline
+const trimBeforeAndAfterNewLines = (s: string) => {
+	if (!s) return s;
 
+	const firstNewLineIndex = s.indexOf('\n');
 
+	if (firstNewLineIndex !== -1 && s.substring(0, firstNewLineIndex).trim() === '') {
+		s = s.substring(firstNewLineIndex + 1, Infinity)
+	}
+
+	const lastNewLineIndex = s.lastIndexOf('\n');
+	if (lastNewLineIndex !== -1 && s.substring(lastNewLineIndex + 1, Infinity).trim() === '') {
+		s = s.substring(0, lastNewLineIndex)
+	}
+
+	return s
+}

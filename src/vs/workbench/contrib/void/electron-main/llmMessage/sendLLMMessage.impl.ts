@@ -11,7 +11,7 @@ import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, On
 import { ChatMode, defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
-import { extractReasoningOnTextWrapper, extractToolsOnTextWrapper } from './extractGrammar.js';
+import { extractReasoningWrapper, extractToolsWrapper } from './extractGrammar.js';
 
 
 type InternalCommonMessageParams = {
@@ -156,14 +156,14 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 	const { needsManualParse: needsManualReasoningParse, nameOfFieldInDelta: nameOfReasoningFieldInDelta } = providerReasoningIOSettings?.output ?? {}
 	const manuallyParseReasoning = needsManualReasoningParse && canIOReasoning && openSourceThinkTags
 	if (manuallyParseReasoning) {
-		const { newOnText, newOnFinalMessage } = extractReasoningOnTextWrapper(onText, onFinalMessage, openSourceThinkTags)
+		const { newOnText, newOnFinalMessage } = extractReasoningWrapper(onText, onFinalMessage, openSourceThinkTags)
 		onText = newOnText
 		onFinalMessage = newOnFinalMessage
 	}
 
 	// manually parse out tool results
 	if (chatMode) {
-		const { newOnText, newOnFinalMessage } = extractToolsOnTextWrapper(onText, onFinalMessage, chatMode)
+		const { newOnText, newOnFinalMessage } = extractToolsWrapper(onText, onFinalMessage, chatMode)
 		onText = newOnText
 		onFinalMessage = newOnFinalMessage
 	}
@@ -281,7 +281,7 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 
 	// manually parse out tool results
 	if (chatMode) {
-		const { newOnText, newOnFinalMessage } = extractToolsOnTextWrapper(onText, onFinalMessage, chatMode)
+		const { newOnText, newOnFinalMessage } = extractToolsWrapper(onText, onFinalMessage, chatMode)
 		onText = newOnText
 		onFinalMessage = newOnFinalMessage
 	}
@@ -290,8 +290,8 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	let fullText = ''
 	let fullReasoning = ''
 
-	let fullToolName = ''
-	let fullToolParams = ''
+	// let fullToolName = ''
+	// let fullToolParams = ''
 
 	// there are no events for tool_use, it comes in at the end
 	stream.on('streamEvent', e => {
@@ -313,10 +313,10 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 				fullReasoning += '[redacted_thinking]'
 				onText({ fullText, fullReasoning, })
 			}
-			else if (e.content_block.type === 'tool_use') {
-				fullToolName += e.content_block.name ?? '' // anthropic gives us the tool name in the start block
-				onText({ fullText, fullReasoning, })
-			}
+			// else if (e.content_block.type === 'tool_use') {
+			// 	fullToolName += e.content_block.name ?? '' // anthropic gives us the tool name in the start block
+			// 	onText({ fullText, fullReasoning, })
+			// }
 		}
 
 		// delta
@@ -329,10 +329,10 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 				fullReasoning += e.delta.thinking
 				onText({ fullText, fullReasoning, })
 			}
-			else if (e.delta.type === 'input_json_delta') { // tool use
-				fullToolParams += e.delta.partial_json ?? '' // anthropic gives us the partial delta (string) here - https://docs.anthropic.com/en/api/messages-streaming
-				onText({ fullText, fullReasoning, })
-			}
+			// else if (e.delta.type === 'input_json_delta') { // tool use
+			// 	fullToolParams += e.delta.partial_json ?? '' // anthropic gives us the partial delta (string) here - https://docs.anthropic.com/en/api/messages-streaming
+			// 	onText({ fullText, fullReasoning, })
+			// }
 		}
 	})
 

@@ -721,6 +721,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				onFinalMessage: async ({ fullText, fullReasoning, toolCall, anthropicReasoning, }) => {
 					this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning, anthropicReasoning })
 					this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolCallSoFar: undefined }, 'merge')
+					console.log('tool call!!', toolCall)
 					resMessageIsDonePromise(toolCall) // resolve with tool calls
 				},
 				onError: (error) => {

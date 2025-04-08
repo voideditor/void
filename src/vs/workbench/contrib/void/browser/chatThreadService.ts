@@ -68,15 +68,17 @@ const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
 
 	for (const c of chatMessages) {
 		if (c.role === 'assistant')
-			llmChatMessages.push({ role: c.role, content: c.content, anthropicReasoning: c.anthropicReasoning })
+			llmChatMessages.push({ role: c.role, content: c.displayContent, anthropicReasoning: c.anthropicReasoning })
 		// merge all tool/user messages into one big user message
 		else if (c.role === 'user' || c.role === 'tool') {
-			if (llmChatMessages.length === 0 || llmChatMessages[llmChatMessages.length - 1].role !== 'user') {
+			if (c.role === 'tool')
+				c.content = `TOOL_RESULT (${c.name}):\n${c.content}`
+
+			if (llmChatMessages.length === 0 || llmChatMessages[llmChatMessages.length - 1].role !== 'user')
 				llmChatMessages.push({ role: 'user', content: c.content })
-			}
-			else {
+			else
 				llmChatMessages[llmChatMessages.length - 1].content += '\n\n' + c.content
-			}
+
 		}
 		else if (c.role === 'interrupted_streaming_tool') { // pass
 		}
@@ -146,7 +148,7 @@ export type ThreadStreamState = {
 
 		// streaming related - when streaming message
 		streamingToken?: string;
-		messageSoFar?: string;
+		displayContentSoFar?: string;
 		reasoningSoFar?: string;
 		toolCallSoFar?: RawToolCallObj;
 	}
@@ -519,7 +521,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const isRunning = this.streamState[threadId]?.isRunning
 		if (isRunning === 'LLM') {
 			// abort the stream first so it doesn't change any state
-			const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
+			const displayContentSoFar = this.streamState[threadId]?.displayContentSoFar ?? ''
 			const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
 			const toolCallSoFar = this.streamState[threadId]?.toolCallSoFar
 			console.log('toolInProgress', toolCallSoFar)
@@ -527,7 +529,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const llmCancelToken = this.streamState[threadId]?.streamingToken
 			if (llmCancelToken !== undefined) { this._llmMessageService.abort(llmCancelToken) }
 
-			this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
+			this._addMessageToThread(threadId, { role: 'assistant', displayContent: displayContentSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
 
 			if (toolCallSoFar) {
 				this._addMessageToThread(threadId, { role: 'interrupted_streaming_tool', name: toolCallSoFar.name })
@@ -716,19 +718,19 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				modelSelectionOptions,
 				logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },
 				onText: ({ fullText, fullReasoning, toolCall }) => {
-					this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning, toolCallSoFar: toolCall }, 'merge')
+					this._setStreamState(threadId, { displayContentSoFar: fullText, reasoningSoFar: fullReasoning, toolCallSoFar: toolCall }, 'merge')
 				},
 				onFinalMessage: async ({ fullText, fullReasoning, toolCall, anthropicReasoning, }) => {
-					this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning, anthropicReasoning })
-					this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolCallSoFar: undefined }, 'merge')
+					this._addMessageToThread(threadId, { role: 'assistant', displayContent: fullText, reasoning: fullReasoning, anthropicReasoning })
+					this._setStreamState(threadId, { displayContentSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolCallSoFar: undefined }, 'merge')
 					console.log('tool call!!', toolCall)
 					resMessageIsDonePromise(toolCall) // resolve with tool calls
 				},
 				onError: (error) => {
-					const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
+					const messageSoFar = this.streamState[threadId]?.displayContentSoFar ?? ''
 					const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
 					// add assistant's message to chat history, and clear selection
-					this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
+					this._addMessageToThread(threadId, { role: 'assistant', displayContent: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
 					this._setStreamState(threadId, { error }, 'set')
 					resMessageIsDonePromise()
 				},

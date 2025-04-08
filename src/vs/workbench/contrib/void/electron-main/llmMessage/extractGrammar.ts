@@ -29,6 +29,7 @@ export const extractReasoningWrapper = (
 	}
 
 	const newOnText: OnText = ({ fullText: fullText_, ...p }) => {
+
 		// until found the first think tag, keep adding to fullText
 		if (!foundTag1) {
 			const endsWithTag1 = endsWithAnyPrefixOf(fullText_, thinkTags[0])
@@ -293,6 +294,9 @@ export const extractToolsWrapper = (
 
 	const newOnFinalMessage: OnFinalMessage = (params) => {
 		// treat like just got text before calling onFinalMessage (or else we sometimes miss the final chunk that's new to finalMessage)
+		console.log('final message!!!', trueFullText)
+		console.log('----- returning ----\n', fullText)
+		console.log('----- tools ----\n', JSON.stringify(currentToolCalls, null, 2))
 		newOnText({ ...params })
 
 		console.log('final message!!!', trueFullText)
@@ -300,7 +304,7 @@ export const extractToolsWrapper = (
 		console.log('----- tools ----\n', JSON.stringify(currentToolCalls, null, 2))
 
 		fullText = fullText.trimEnd()
-		const toolCall = currentToolCalls[0]
+		const toolCall = currentToolCalls.length > 0 ? currentToolCalls[0] : undefined
 		if (toolCall) {
 			// trim off all whitespace at and before first \n and after last \n for each param
 			for (const paramName in toolCall.rawParams) {
@@ -309,7 +313,9 @@ export const extractToolsWrapper = (
 				toolCall.rawParams[paramName] = trimBeforeAndAfterNewLines(orig)
 			}
 		}
-		onFinalMessage({ ...params, fullText, toolCall: currentToolCalls.length > 0 ? currentToolCalls[0] : undefined })
+		console.log('----- toolCall ----\n', JSON.stringify(toolCall, null, 2))
+
+		onFinalMessage({ ...params, fullText, toolCall: toolCall })
 	}
 	return { newOnText, newOnFinalMessage };
 }

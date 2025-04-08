@@ -1075,7 +1075,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 
 	const reasoningStr = chatMessage.reasoning?.trim() || null
 	const hasReasoning = !!reasoningStr
-	const isDoneReasoning = !!chatMessage.content
+	const isDoneReasoning = !!chatMessage.displayContent
 	const thread = chatThreadsService.getCurrentThread()
 
 
@@ -1084,7 +1084,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 		messageIdx: messageIdx,
 	}
 
-	const isEmpty = !chatMessage.content && !chatMessage.reasoning
+	const isEmpty = !chatMessage.displayContent && !chatMessage.reasoning
 	if (isEmpty) return null
 
 	return <>
@@ -1108,7 +1108,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 		<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
 			<ProseWrapper>
 				<ChatMarkdownRender
-					string={chatMessage.content || ''}
+					string={chatMessage.displayContent || ''}
 					chatMessageLocation={chatMessageLocation}
 					isApplyEnabled={true}
 					isLinkDetectionEnabled={true}
@@ -2005,7 +2005,7 @@ export const SidebarChat = () => {
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
 	const isRunning = currThreadStreamState?.isRunning
 	const latestError = currThreadStreamState?.error
-	const messageSoFar = currThreadStreamState?.messageSoFar
+	const displayContentSoFar = currThreadStreamState?.displayContentSoFar
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
 
 	const toolCallSoFar = currThreadStreamState?.toolCallSoFar
@@ -2082,13 +2082,13 @@ export const SidebarChat = () => {
 	}, [previousMessages, isRunning, threadId])
 
 	const streamingChatIdx = previousMessagesHTML.length
-	const currStreamingMessageHTML = reasoningSoFar || messageSoFar || isRunning ?
+	const currStreamingMessageHTML = reasoningSoFar || displayContentSoFar || isRunning ?
 		<ChatBubble
 			key={getChatBubbleId(threadId, streamingChatIdx)}
 			currCheckpointIdx={currCheckpointIdx} // if streaming, can't be the case
 			chatMessage={{
 				role: 'assistant',
-				content: messageSoFar ?? '',
+				displayContent: displayContentSoFar ?? '',
 				reasoning: reasoningSoFar ?? '',
 				anthropicReasoning: null,
 			}}
@@ -2112,7 +2112,7 @@ export const SidebarChat = () => {
 			w-full h-full
 			overflow-x-hidden
 			overflow-y-auto
-			${previousMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
+			${previousMessagesHTML.length === 0 && !displayContentSoFar ? 'hidden' : ''}
 		`}
 	>
 		{/* previous messages */}

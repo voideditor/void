@@ -56,7 +56,7 @@ export type ChatMessage =
 		}
 	} | {
 		role: 'assistant';
-		content: string; // content received from LLM  - allowed to be '', will be replaced with (empty)
+		displayContent: string; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		reasoning: string; // reasoning from the LLM, used for step-by-step thinking
 
 		anthropicReasoning: AnthropicReasoning[] | null; // anthropic reasoning

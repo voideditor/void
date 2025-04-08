@@ -16,6 +16,7 @@ import { IVoidCommandBarService } from './voidCommandBarService.js'
 import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree1Deep } from './directoryStrService.js'
 import { IMarkerService } from '../../../../platform/markers/common/markers.js'
 import { timeout } from '../../../../base/common/async.js'
+import { ParsedToolParamsObj } from '../common/sendLLMMessageTypes.js'
 
 
 // tool use for AI
@@ -23,7 +24,7 @@ import { timeout } from '../../../../base/common/async.js'
 
 
 
-type ValidateParams = { [T in ToolName]: (p: string) => Promise<ToolCallParams[T]> }
+type ValidateParams = { [T in ToolName]: (p: ParsedToolParamsObj) => Promise<ToolCallParams[T]> }
 type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], interruptTool?: () => void }> }
 type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awaited<ToolResultType[T]>) => string }
 
@@ -37,25 +38,6 @@ export const MAX_TERMINAL_CHARS_PAGE = 20_000
 export const TERMINAL_TIMEOUT_TIME = 15
 export const TERMINAL_BG_WAIT_TIME = 1
 
-
-
-
-
-const validateJSON = (s: string): { [s: string]: unknown } => {
-	try {
-		const o = JSON.parse(s)
-		if (typeof o !== 'object') throw new Error()
-
-		if ('result' in o) { // openrouter sometimes wraps the result with { 'result': ... }
-			return o.result
-		}
-
-		return o
-	}
-	catch (e) {
-		throw new Error(`Invalid LLM output format: Tool parameter was not a string of a valid JSON: "${s}".`)
-	}
-}
 
 const isFalsy = (u: unknown) => {
 	return !u || u === 'null' || u === 'undefined'
@@ -172,9 +154,8 @@ export class ToolsService implements IToolsService {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.validateParams = {
-			read_file: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriStr, startLine: startLineUnknown, endLine: endLineUnknown, pageNumber: pageNumberUnknown } = o
+			read_file: async (params: ParsedToolParamsObj) => {
+				const { uri: uriStr, startLine: startLineUnknown, endLine: endLineUnknown, pageNumber: pageNumberUnknown } = params
 
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
@@ -184,27 +165,24 @@ export class ToolsService implements IToolsService {
 
 				return { uri, startLine, endLine, pageNumber }
 			},
-			ls_dir: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
+			ls_dir: async (params: ParsedToolParamsObj) => {
+				const { uri: uriStr, pageNumber: pageNumberUnknown } = params
 
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 				return { rootURI: uri, pageNumber }
 			},
-			get_dir_structure: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriStr, } = o
+			get_dir_structure: async (params: ParsedToolParamsObj) => {
+				const { uri: uriStr, } = params
 				const uri = validateURI(uriStr)
 				return { rootURI: uri }
 			},
-			search_pathnames_only: async (params: string) => {
-				const o = validateJSON(params)
+			search_pathnames_only: async (params: ParsedToolParamsObj) => {
 				const {
 					query: queryUnknown,
 					include: includeUnknown,
 					pageNumber: pageNumberUnknown
-				} = o
+				} = params
 
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
@@ -213,14 +191,13 @@ export class ToolsService implements IToolsService {
 				return { queryStr, include, pageNumber }
 
 			},
-			search_files: async (params: string) => {
-				const o = validateJSON(params)
+			search_files: async (params: ParsedToolParamsObj) => {
 				const {
 					query: queryUnknown,
 					searchInFolder: searchInFolderUnknown,
 					isRegex: isRegexUnknown,
 					pageNumber: pageNumberUnknown
-				} = o
+				} = params
 
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
@@ -233,18 +210,16 @@ export class ToolsService implements IToolsService {
 
 			// ---
 
-			create_file_or_folder: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriUnknown } = o
+			create_file_or_folder: async (params: ParsedToolParamsObj) => {
+				const { uri: uriUnknown } = params
 				const uri = validateURI(uriUnknown)
 				const uriStr = validateStr('uri', uriUnknown)
 				const isFolder = checkIfIsFolder(uriStr)
 				return { uri, isFolder }
 			},
 
-			delete_file_or_folder: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriUnknown, params: paramsStr } = o
+			delete_file_or_folder: async (params: ParsedToolParamsObj) => {
+				const { uri: uriUnknown, params: paramsStr } = params
 				const uri = validateURI(uriUnknown)
 				const isRecursive = validateRecursiveParamStr(paramsStr)
 				const uriStr = validateStr('uri', uriUnknown)
@@ -252,17 +227,15 @@ export class ToolsService implements IToolsService {
 				return { uri, isRecursive, isFolder }
 			},
 
-			edit_file: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = o
+			edit_file: async (params: ParsedToolParamsObj) => {
+				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = params
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
 				return { uri, changeDescription }
 			},
 
-			run_terminal_command: async (s: string) => {
-				const o = validateJSON(s)
-				const { command: commandUnknown, terminalId: terminalIdUnknown, waitForCompletion: waitForCompletionUnknown } = o
+			run_terminal_command: async (params: ParsedToolParamsObj) => {
+				const { command: commandUnknown, terminalId: terminalIdUnknown, waitForCompletion: waitForCompletionUnknown } = params
 				const command = validateStr('command', commandUnknown)
 				const proposedTerminalId = validateProposedTerminalId(terminalIdUnknown)
 				const waitForCompletion = validateBoolean(waitForCompletionUnknown, { default: true })

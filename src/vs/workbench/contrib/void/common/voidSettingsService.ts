@@ -95,7 +95,7 @@ const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], opt
 
 export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter: (o: ModelSelection, opts: { chatMode: ChatMode }) => boolean; emptyMessage: null | { message: string, priority: 'always' | 'fallback' } } } = {
 	'Autocomplete': { filter: (o) => getModelCapabilities(o.providerName, o.modelName).supportsFIM, emptyMessage: { message: 'No models support FIM', priority: 'always' } },
-	'Chat': { filter: (o, { chatMode }) => chatMode === 'normal' ? true : !!getModelCapabilities(o.providerName, o.modelName).supportsTools, emptyMessage: { message: 'No models support tool use', priority: 'fallback' } },
+	'Chat': { filter: o => true, emptyMessage: null, },
 	'Ctrl+K': { filter: o => true, emptyMessage: null, },
 	'Apply': { filter: o => true, emptyMessage: null, },
 }

@@ -1921,7 +1921,7 @@ const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, mes
 		return null
 	}
 
-	else if (role === 'decorative_canceled_tool') {
+	else if (role === 'interrupted_streaming_tool') {
 		return <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
 			<CanceledTool toolName={chatMessage.name} />
 		</div>

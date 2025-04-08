@@ -8,10 +8,11 @@ import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
-import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { ChatMode, defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper, extractToolsOnTextWrapper } from './extractGrammar.js';
+import { availableTools } from '../../common/prompt/prompts.js';
 
 
 type InternalCommonMessageParams = {
@@ -26,7 +27,7 @@ type InternalCommonMessageParams = {
 	_setAborter: (aborter: () => void) => void;
 }
 
-type SendChatParams_Internal = InternalCommonMessageParams & { messages: LLMChatMessage[]; }
+type SendChatParams_Internal = InternalCommonMessageParams & { messages: LLMChatMessage[]; chatMode: ChatMode | null; }
 type SendFIMParams_Internal = InternalCommonMessageParams & { messages: LLMFIMMessage; }
 export type ListParams_Internal<ModelResponse> = ModelListParams<ModelResponse>
 
@@ -123,7 +124,7 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 
 
 
-const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, aiInstructions }: SendChatParams_Internal) => {
+const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, aiInstructions, chatMode }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		supportsSystemMessage,
@@ -159,8 +160,13 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 		onText = extractReasoningOnTextWrapper(onText, openSourceThinkTags)
 	}
 
-	if ()
-		onText = extractToolsOnTextWrapper(onText,)
+	// manually parse out tool results
+	if (chatMode) {
+		const tools = availableTools(chatMode)
+		if (tools) {
+			onText = extractToolsOnTextWrapper(onText, tools)
+		}
+	}
 
 	let fullReasoningSoFar = ''
 	let fullTextSoFar = ''

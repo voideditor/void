@@ -212,15 +212,17 @@ Available tools:
 ${availableToolsStr(tools)}
 
 Tool calling details:  ${''/* We expect tools to come at the end - not a hard limit, but that's just how we process them, and the flow makes more sense that way. */}
+- Tool calling is optional.
 - To call a tool, just write its name followed by any parameters in XML format. For example:
 <tool_name>
 	<parameter1>value1</parameter1>
 	<parameter2>value2</parameter2>
 </tool_name>
-- You must write all tool calls at the END of your response. The beginning of your response should be your normal response followed by tool calls at the END.
-- You are allowed to call multiple tools by specifying them consecutively. However, there should be NO text or writing between tool calls or after them.
-- Tool that you call will be executed immediately, and you will have access to the results in your next response.`
+- You must write your tool call at the END of your response. The beginning of your response should be your normal response followed by the tool call at the END.
+- You are only allowed to output one tool call per response.
+- The tool call will be executed immediately, and you will have access to the results in your next response.`
 }
+// - You are allowed to call multiple tools by specifying them consecutively. However, there should be NO text or writing between tool calls or after them.
 
 
 // ======================================================== chat (normal, gather, agent) ========================================================

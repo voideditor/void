@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { ToolName } from './toolsServiceTypes.js'
-import { ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
+import { ChatMode, ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
 export const errorDetails = (fullError: Error | null): string | null => {
@@ -40,16 +40,21 @@ export type LLMChatMessage = {
 }
 
 
-export type ToolCallType = {
-	name: ToolName;
-	paramsStr: string;
-	id: string;
+export type ParsedToolParamsObj = {
+	[paramName: string]: string;
 }
+export type ParsedToolCallObj = {
+	name: ToolName;
+	rawParams: ParsedToolParamsObj;
+	doneParams: string[];
+	isDone: boolean;
+};
+
 
 export type AnthropicReasoning = ({ type: 'thinking'; thinking: any; signature: string; } | { type: 'redacted_thinking', data: any })
 
-export type OnText = (p: { fullText: string; fullReasoning: string; }) => void
-export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCalls?: ToolCallType[]; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
+export type OnText = (p: { fullText: string; fullReasoning: string; toolCall?: ParsedToolCallObj }) => void
+export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCall?: ParsedToolCallObj; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
 export type OnError = (p: { message: string; fullError: Error | null }) => void
 export type OnAbort = () => void
 export type AbortRef = { current: (() => void) | null }
@@ -64,9 +69,11 @@ export type LLMFIMMessage = {
 type SendLLMType = {
 	messagesType: 'chatMessages';
 	messages: LLMChatMessage[];
+	chatMode: ChatMode | null;
 } | {
 	messagesType: 'FIMMessage';
 	messages: LLMFIMMessage;
+	chatMode?: undefined;
 }
 
 // service types

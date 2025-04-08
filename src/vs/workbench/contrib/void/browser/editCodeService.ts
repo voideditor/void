@@ -1400,6 +1400,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					chatMode: null, // not chat
 					onText: (params) => {
 						const { fullText: fullText_ } = params
 						const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
@@ -1617,6 +1618,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					chatMode: null, // not chat
 					onText: (params) => {
 						const { fullText } = params
 						// blocks are [done done done ... {writingFinal|writingOriginal}]

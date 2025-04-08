@@ -21,6 +21,7 @@ export const sendLLMMessage = ({
 	settingsOfProvider,
 	modelSelection,
 	modelSelectionOptions,
+	chatMode,
 }: SendLLMMessageParams,
 
 	metricsService: IMetricsService
@@ -107,7 +108,7 @@ export const sendLLMMessage = ({
 		}
 		const { sendFIM, sendChat } = implementation
 		if (messagesType === 'chatMessages') {
-			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, aiInstructions })
+			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, aiInstructions, chatMode })
 			return
 		}
 		if (messagesType === 'FIMMessage') {

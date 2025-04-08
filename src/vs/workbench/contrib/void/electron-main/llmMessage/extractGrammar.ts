@@ -1,10 +1,11 @@
 import { endsWithAnyPrefixOf } from '../../common/helpers/extractCodeFromResult.js'
 import { InternalToolInfo } from '../../common/prompt/prompts.js'
-import { OnText } from '../../common/sendLLMMessageTypes.js'
+import { OnText, ParsedToolCallObj } from '../../common/sendLLMMessageTypes.js'
 import sax from 'sax'
+import { ToolName } from '../../common/toolsServiceTypes.js'
 
 
-// =========================================== reasoning ===========================================
+// =============== reasoning ===============
 
 // could simplify this - this assumes we can never add a tag without committing it to the user's screen, but that's not true
 export const extractReasoningOnTextWrapper = (onText: OnText, thinkTags: [string, string]): OnText => {
@@ -115,19 +116,19 @@ export const extractReasoningOnFinalMessage = (fullText_: string, thinkTags: [st
 }
 
 
-// =========================================== tools ===========================================
+// =============== tools ===============
 
 type ToolsState = {
 	level: 'normal',
 } | {
 	level: 'tool',
 	toolName: string,
-	currentToolCall: ToolCall,
+	currentToolCall: ParsedToolCallObj,
 } | {
 	level: 'param',
 	toolName: string,
 	paramName: string,
-	currentToolCall: ToolCall,
+	currentToolCall: ParsedToolCallObj,
 }
 
 export const extractToolsOnTextWrapper = (onText: OnText, availableTools: InternalToolInfo[]) => {
@@ -137,16 +138,20 @@ export const extractToolsOnTextWrapper = (onText: OnText, availableTools: Intern
 	// detect <availableTools[0]></availableTools[0]>, etc
 	let fullText = '';
 	let trueFullText = ''
-	const currentToolCalls: ToolCall[] = []; // the answer
+	const currentToolCalls: ParsedToolCallObj[] = []; // the answer
 
 	let state: ToolsState = { level: 'normal' }
 
+
+	const getRawNewText = () => {
+		return trueFullText.substring(parser.startTagPosition, parser.position + 1)
+	}
 	const parser = sax.parser(false);
 
 
 	// when see open tag <tagName>
 	parser.onopentag = (node) => {
-		const rawNewText = trueFullText.substring(parser.startTagPosition, parser.position)
+		const rawNewText = getRawNewText()
 		console.log('raw new text a', rawNewText)
 		console.log('OPEN!', node.name)
 		const tagName = node.name;
@@ -155,7 +160,7 @@ export const extractToolsOnTextWrapper = (onText: OnText, availableTools: Intern
 				state = {
 					level: 'tool',
 					toolName: tagName,
-					currentToolCall: { name: tagName, parameters: {} }
+					currentToolCall: { name: tagName as ToolName, rawParams: {}, doneParams: [], isDone: false }
 				}
 			}
 			else {
@@ -190,12 +195,12 @@ export const extractToolsOnTextWrapper = (onText: OnText, availableTools: Intern
 			// ignore all text in a tool, all text should go in the param tags inside it
 		}
 		else if (state.level === 'param') {
-			state.currentToolCall.parameters[state.currentToolCall.name] += text
+			state.currentToolCall.rawParams[state.currentToolCall.name] += text
 		}
 	}
 
 	parser.onclosetag = (tagName) => {
-		const rawNewText = trueFullText.substring(parser.startTagPosition, parser.position)
+		const rawNewText = getRawNewText()
 		console.log('raw new text b', rawNewText)
 		console.log('CLOSE!', tagName)
 		if (state.level === 'normal') {
@@ -203,6 +208,7 @@ export const extractToolsOnTextWrapper = (onText: OnText, availableTools: Intern
 		}
 		else if (state.level === 'tool') {
 			if (tagName === state.toolName) { // closed the tool
+				state.currentToolCall.isDone = true
 				currentToolCalls.push(state.currentToolCall)
 				state = {
 					level: 'normal',
@@ -214,6 +220,7 @@ export const extractToolsOnTextWrapper = (onText: OnText, availableTools: Intern
 		}
 		else if (state.level === 'param') {
 			if (tagName === state.paramName) { // closed the param
+				state.currentToolCall.doneParams.push(state.paramName)
 				state = {
 					level: 'tool',
 					toolName: state.toolName,
@@ -226,15 +233,14 @@ export const extractToolsOnTextWrapper = (onText: OnText, availableTools: Intern
 
 	const newOnText: OnText = (params) => {
 		const newText = params.fullText.substring(fullText.length);
-		console.log('newText', newText)
+		console.log('newText', state.level, newText)
 		trueFullText = params.fullText
 		parser.write(newText)
 
-		console.log('state',)
 		onText({
 			...params,
 			fullText,
-			toolCalls: currentToolCalls.length > 0 ? [...currentToolCalls] : undefined
+			toolCall: currentToolCalls.length > 0 ? currentToolCalls[0] : undefined
 		});
 	};
 

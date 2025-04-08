@@ -10,8 +10,6 @@ import { ToolName, ToolCallParams, ToolResultType } from './toolsServiceTypes.js
 
 export type ToolMessage<T extends ToolName> = {
 	role: 'tool';
-	paramsStr: string; // internal use
-	id: string; // apis require this tool use id
 	content: string; // give this result to LLM (string of value)
 } & (
 		// in order of events:
@@ -27,17 +25,9 @@ export type ToolMessage<T extends ToolName> = {
 	) // user rejected
 
 export type DecorativeCanceledTool = {
-	role: 'decorative_canceled_tool';
+	role: 'interrupted_streaming_tool';
 	name: string;
 }
-
-// export type ToolRequestApproval<T extends ToolName> = {
-// 	role: 'tool_request';
-// 	name: T; // internal use
-// 	params: ToolCallParams[T]; // internal use
-// 	paramsStr: string; // internal use - this is what the LLM outputted, not necessarily JSON.stringify(params)
-// 	id: string; // proposed tool's id
-// }
 
 
 // checkpoints

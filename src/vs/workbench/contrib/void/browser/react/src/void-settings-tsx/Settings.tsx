@@ -19,7 +19,6 @@ import { WarningBox } from './WarningBox.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
 import { IconLoading, IconX } from '../sidebar-tsx/SidebarChat.js'
 import { getModelCapabilities, getProviderCapabilities, ollamaRecommendedModels, VoidStaticModelInfo } from '../../../../common/modelCapabilities.js'
-import VoidImage from './VoidImage.js'
 
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
@@ -1428,9 +1427,9 @@ const VoidOnboarding = () => {
 				<div className="text-5xl font-light mb-6 mt-12 text-center">Welcome to Void</div>
 
 
-				<div className="w-8 h-8 mb-2">
+				{/* <div className="w-8 h-8 mb-2">
 					<VoidImage className='h-full w-full' />
-				</div>
+				</div> */}
 			</FadeIn>
 
 			<FadeIn delayMs={1000} className="text-center pb-8" onClick={() => { setPageIndex(pageIndex + 1) }}>

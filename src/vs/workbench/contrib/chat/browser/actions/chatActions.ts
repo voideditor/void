@@ -653,10 +653,12 @@ MenuRegistry.appendMenuItem(MenuId.CommandCenter, {
 	submenu: MenuId.ChatTitleBarMenu,
 	title: localize('title4', "Copilot"),
 	icon: Codicon.copilot,
-	when: ContextKeyExpr.and(
-		ChatContextKeys.supported,
-		ContextKeyExpr.has('config.chat.commandCenter.enabled')
-	),
+	// Void commented this out - copilot head
+	when: ContextKeyExpr.false(),
+	// when: ContextKeyExpr.and(
+	// 	ChatContextKeys.supported,
+	// 	ContextKeyExpr.has('config.chat.commandCenter.enabled')
+	// ),
 	order: 10001 // to the right of command center
 });
 
@@ -666,11 +668,13 @@ MenuRegistry.appendMenuItem(MenuId.TitleBar, {
 	title: localize('title4', "Copilot"),
 	group: 'navigation',
 	icon: Codicon.copilot,
-	when: ContextKeyExpr.and(
-		ChatContextKeys.supported,
-		ContextKeyExpr.has('config.chat.commandCenter.enabled'),
-		ContextKeyExpr.has('config.window.commandCenter').negate(),
-	),
+	when: ContextKeyExpr.false(),
+	// Void commented this out - copilot head
+	// when: ContextKeyExpr.and(
+	// 	ChatContextKeys.supported,
+	// 	ContextKeyExpr.has('config.chat.commandCenter.enabled'),
+	// 	ContextKeyExpr.has('config.window.commandCenter').negate(),
+	// ),
 	order: 1
 });
 

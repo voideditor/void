@@ -773,7 +773,7 @@ const SimplifiedToolHeader = ({
 
 
 
-const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, _scrollToBottom }: { chatMessage: ChatMessage & { role: 'user' }, messageIdx: number, isCheckpointGhost: boolean, _scrollToBottom: (() => void) | null }) => {
+const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, currCheckpointIdx, _scrollToBottom }: { chatMessage: ChatMessage & { role: 'user' }, messageIdx: number, currCheckpointIdx: number | undefined, isCheckpointGhost: boolean, _scrollToBottom: (() => void) | null }) => {
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -924,7 +924,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, _scr
 		</VoidChatArea>
 	}
 
-
+	const isMsgAfterCheckpoint = currCheckpointIdx !== undefined && currCheckpointIdx === messageIdx - 1
 
 	return <div
 		// align chatbubble accoridng to role
@@ -934,7 +934,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, _scr
 				: mode === 'display' ? `self-end w-fit max-w-full whitespace-pre-wrap` : '' // user words should be pre
 			}
 
-			${isCheckpointGhost ? 'opacity-50 pointer-events-none' : ''}
+			${isCheckpointGhost && !isMsgAfterCheckpoint ? 'opacity-50 pointer-events-none' : ''}
 		`}
 		onMouseEnter={() => setIsHovered(true)}
 		onMouseLeave={() => setIsHovered(false)}
@@ -1850,19 +1850,20 @@ type ChatBubbleProps = {
 	isCommitted: boolean,
 	chatIsRunning: IsRunningType,
 	threadId: string,
-	currCheckpointIdx: number,
+	currCheckpointIdx: number | undefined,
 	_scrollToBottom: (() => void) | null,
 }
 
 const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, messageIdx, chatIsRunning, _scrollToBottom }: ChatBubbleProps) => {
 	const role = chatMessage.role
 
-	const isCheckpointGhost = messageIdx > currCheckpointIdx && !chatIsRunning // whether to show as gray (if chat is running, for good measure just dont show any ghosts)
+	const isCheckpointGhost = messageIdx > (currCheckpointIdx ?? Infinity) && !chatIsRunning // whether to show as gray (if chat is running, for good measure just dont show any ghosts)
 
 	if (role === 'user') {
 		return <UserMessageComponent
 			chatMessage={chatMessage}
 			isCheckpointGhost={isCheckpointGhost}
+			currCheckpointIdx={currCheckpointIdx}
 			messageIdx={messageIdx}
 			_scrollToBottom={_scrollToBottom}
 		/>
@@ -2015,7 +2016,8 @@ export const SidebarChat = () => {
 	const toolCallSoFar = currThreadStreamState?.toolCallSoFar
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
 
-	const toolIsGenerating = !!toolCallSoFar && toolCallSoFar.name === 'edit_file' // show loading for slow tools (right now just edit)
+	// this is just if it's currently being generated, NOT if it's currently running
+	const toolIsGenerating = toolCallSoFar && !toolCallSoFar.isDone && toolCallSoFar.name === 'edit_file' // show loading for slow tools (right now just edit)
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -2067,11 +2069,10 @@ export const SidebarChat = () => {
 
 
 	const threadId = currentThread.id
-	const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? Infinity // if not exist, treat like checkpoint is last message (infinity)
+	const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? undefined  // if not exist, treat like checkpoint is last message (infinity)
 
 	const previousMessagesHTML = useMemo(() => {
 		const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
-
 		// tool request shows up as Editing... if in progress
 		return previousMessages.map((message, i) => {
 			return <ChatBubble
@@ -2085,13 +2086,13 @@ export const SidebarChat = () => {
 				_scrollToBottom={() => scrollToBottom(scrollContainerRef)}
 			/>
 		})
-	}, [previousMessages, isRunning, threadId])
+	}, [previousMessages, threadId, currCheckpointIdx, isRunning])
 
 	const streamingChatIdx = previousMessagesHTML.length
 	const currStreamingMessageHTML = reasoningSoFar || displayContentSoFar || isRunning ?
 		<ChatBubble
 			key={getChatBubbleId(threadId, streamingChatIdx)}
-			currCheckpointIdx={currCheckpointIdx} // if streaming, can't be the case
+			currCheckpointIdx={currCheckpointIdx}
 			chatMessage={{
 				role: 'assistant',
 				displayContent: displayContentSoFar ?? '',
@@ -2108,8 +2109,6 @@ export const SidebarChat = () => {
 		/> : null
 
 
-	const generatingToolTitle = toolCallSoFar && toolNames.includes(toolCallSoFar.name as ToolName) ? titleOfToolName[toolCallSoFar.name as ToolName]?.proposed : toolCallSoFar?.name
-
 	const messagesHTML = <ScrollToBottomContainer
 		key={'messages' + chatThreadsState.currentThreadId} // force rerender on all children if id changes
 		scrollContainerRef={scrollContainerRef}
@@ -2124,13 +2123,15 @@ export const SidebarChat = () => {
 	>
 		{/* previous messages */}
 		{previousMessagesHTML}
-
-
 		{currStreamingMessageHTML}
 
-
 		{toolIsGenerating ?
-			<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)} title={generatingToolTitle} desc1={<span className='flex items-center'>Generating<IconLoading /></span>} />
+			<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)}
+				title={toolCallSoFar && toolNames.includes(toolCallSoFar.name as ToolName) ?
+					titleOfToolName[toolCallSoFar.name as ToolName]?.proposed
+					: toolCallSoFar?.name}
+				desc1={<span className='flex items-center'>Generating<IconLoading /></span>}
+			/>
 			: null}
 
 		{isRunning === 'LLM' && !toolIsGenerating ? <ProseWrapper>

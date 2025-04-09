@@ -339,11 +339,11 @@ ${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
 }
 
 
-// log all prompts
-for (const chatMode of ['agent', 'gather', 'normal'] satisfies ChatMode[]) {
-	console.log(`========================================= SYSTEM MESSAGE FOR ${chatMode} ===================================\n`,
-		chat_systemMessage({ chatMode, workspaceFolders: [], openedURIs: [], activeURI: 'pee', runningTerminalIds: [], directoryStr: 'lol', }))
-}
+// // log all prompts
+// for (const chatMode of ['agent', 'gather', 'normal'] satisfies ChatMode[]) {
+// 	console.log(`========================================= SYSTEM MESSAGE FOR ${chatMode} ===================================\n`,
+// 		chat_systemMessage({ chatMode, workspaceFolders: [], openedURIs: [], activeURI: 'pee', runningTerminalIds: [], directoryStr: 'lol', }))
+// }
 
 
 export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null,

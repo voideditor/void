@@ -303,7 +303,6 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 
 			// Use our new approach with direct explorer service
 			const dirTree = await computeDirectoryTree(eRoot, this.explorerService);
-			console.log('dirtree', dirTree)
 			const { content, wasCutOff } = stringifyDirectoryTree(dirTree, MAX_DIRSTR_CHARS_TOTAL_BEGINNING - str.length);
 			str += content;
 			if (wasCutOff) {

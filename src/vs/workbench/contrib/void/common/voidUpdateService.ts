@@ -12,7 +12,7 @@ import { IMainProcessService } from '../../../../platform/ipc/common/mainProcess
 
 export interface IVoidUpdateService {
 	readonly _serviceBrand: undefined;
-	check: () => Promise<{ hasUpdate: true, message: string } | { hasUpdate: false } | null>;
+	check: (explicit: boolean) => Promise<{ hasUpdate: true, message: string } | { hasUpdate: false } | null>;
 }
 
 
@@ -34,8 +34,8 @@ export class VoidUpdateService implements IVoidUpdateService {
 
 
 	// anything transmitted over a channel must be async even if it looks like it doesn't have to be
-	check: IVoidUpdateService['check'] = async () => {
-		const res = await this.voidUpdateService.check()
+	check: IVoidUpdateService['check'] = async (explicit) => {
+		const res = await this.voidUpdateService.check(explicit)
 		return res
 	}
 }

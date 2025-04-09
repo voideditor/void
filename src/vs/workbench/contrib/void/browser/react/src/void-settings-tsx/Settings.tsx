@@ -19,6 +19,7 @@ import { WarningBox } from './WarningBox.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
 import { IconLoading, IconX } from '../sidebar-tsx/SidebarChat.js'
 import { getModelCapabilities, getProviderCapabilities, ollamaRecommendedModels, VoidStaticModelInfo } from '../../../../common/modelCapabilities.js'
+import VoidImage from './VoidImage.js'
 
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
@@ -544,7 +545,10 @@ export const FeaturesTab = () => {
 		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
 		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
 		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
-		{ollamaSetupInstructions}
+
+		<div className='opacity-80 mb-4'>
+			{ollamaSetupInstructions}
+		</div>
 
 		<ErrorBoundary>
 			<VoidProviderSettings providerNames={localProviderNames} />
@@ -805,7 +809,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 }
 
 
-const OneClickSwitchButton = ({ fromEditor = 'VS Code' }: { fromEditor?: TransferEditorType }) => {
+const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }: { fromEditor?: TransferEditorType, className?: string }) => {
 	const accessor = useAccessor()
 	const fileService = accessor.get('IFileService')
 
@@ -866,7 +870,7 @@ const OneClickSwitchButton = ({ fromEditor = 'VS Code' }: { fromEditor?: Transfe
 	}
 
 	return <>
-		<VoidButtonBgDarken disabled={transferState.type !== 'done'} onClick={onClick}>
+		<VoidButtonBgDarken className={`max-w-48 p-4 ${className}`} disabled={transferState.type !== 'done'} onClick={onClick}>
 			{transferState.type === 'done' ? `Transfer from ${fromEditor}`
 				: transferState.type === 'loading' ? <span className='text-nowrap flex flex-nowrap'>Transferring<IconLoading /></span>
 					: transferState.type === 'justfinished' ? <AnimatedCheckmarkButton text='Settings Transferred' className='bg-none' />
@@ -889,10 +893,10 @@ const GeneralTab = () => {
 			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
 			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
 
-			<div className='flex flex-col gap-3'>
-				<OneClickSwitchButton fromEditor="VS Code" />
-				<OneClickSwitchButton fromEditor="Cursor" />
-				<OneClickSwitchButton fromEditor="Windsurf" />
+			<div className='flex flex-col gap-4'>
+				<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
+				<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
+				<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
 			</div>
 		</div>
 
@@ -903,29 +907,29 @@ const GeneralTab = () => {
 			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
 			<div className='my-4'>
-				<VoidButtonBgDarken onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
 					General Settings
 				</VoidButtonBgDarken>
 			</div>
 			<div className='my-4'>
-				<VoidButtonBgDarken onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
+				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
 					Keyboard Settings
 				</VoidButtonBgDarken>
 			</div>
 			<div className='my-4'>
-				<VoidButtonBgDarken onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
 					Theme Settings
 				</VoidButtonBgDarken>
 			</div>
 			<div className='my-4'>
-				<VoidButtonBgDarken onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
 					Open Logs
 				</VoidButtonBgDarken>
 			</div>
 		</div>
 
 
-		<div className='mt-12'>
+		<div className='mt-12 max-w-[600px]'>
 			<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
 			<h4 className={`text-void-fg-3 mb-2`}>{`Instructions to include on all AI requests.`}</h4>
 			<AIInstructionsBox />
@@ -943,7 +947,7 @@ export const Settings = () => {
 	const [tab, setTab] = useState<TabName>('models')
 
 
-	const deleteme = true
+	const deleteme = false
 	if (deleteme) {
 		return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
 			<VoidOnboarding />
@@ -964,10 +968,10 @@ export const Settings = () => {
 
 					{/* tabs */}
 					<div className='flex flex-col w-full max-w-32'>
-						<button className={`text-left p-1 px-3 my-0.5 rounded-full overflow-hidden ${tab === 'models' ? 'bg-[#0e70c0]/90 text-white font-medium' : 'bg-[#0e70c0]/10 text-void-fg-2'} hover:bg-[#0e70c0]/30 transition-colors duration-150`}
+						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
 							onClick={() => { setTab('models') }}
 						>Models</button>
-						<button className={`text-left p-1 px-3 my-0.5 rounded-full overflow-hidden ${tab === 'general' ? 'bg-[#0e70c0]/90 text-white font-medium' : 'bg-[#0e70c0]/10 text-void-fg-2'} hover:bg-[#0e70c0]/30 transition-colors duration-150`}
+						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'general' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
 							onClick={() => { setTab('general') }}
 						>General</button>
 					</div>
@@ -1100,7 +1104,7 @@ const PreviousButton = ({ onClick, ...props }: { onClick: () => void } & React.B
 }
 
 
-const ollamaSetupInstructions = <div className='prose-p:my-0 prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm font-light  list-decimal select-text'>
+const ollamaSetupInstructions = <div className='prose-p:my-0 prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm font-light list-decimal select-text opacity-80'>
 	<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
 	<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
 	<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
@@ -1420,12 +1424,12 @@ const VoidOnboarding = () => {
 	// TODO add a description next to the skip button saying (you can always restart the onboarding in Settings)
 	const contentOfIdx: { [pageIndex: number]: React.ReactNode } = {
 		0: <div className="max-w-[600px] w-full h-full text-left mx-auto flex flex-col items-center justify-between">
-			<FadeIn className="text-5xl font-light mb-6 mt-12">
-				Welcome to Void
+			<FadeIn >
+				<div className="text-5xl font-light mb-6 mt-12 text-center">Welcome to Void</div>
 
-				Image
+
 				<div className="w-8 h-8 mb-2">
-					<img src="void-icon.png" alt="Void Logo" className="w-full h-full" />
+					<VoidImage className='h-full w-full' />
 				</div>
 			</FadeIn>
 

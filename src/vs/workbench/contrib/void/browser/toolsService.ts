@@ -36,7 +36,7 @@ type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awai
 export const MAX_FILE_CHARS_PAGE = 50_000
 export const MAX_CHILDREN_URIs_PAGE = 500
 export const MAX_TERMINAL_CHARS_PAGE = 20_000
-export const TERMINAL_TIMEOUT_TIME = 15
+export const TERMINAL_TIMEOUT_TIME = 5 // seconds
 export const TERMINAL_BG_WAIT_TIME = 1
 
 
@@ -419,7 +419,7 @@ export class ToolsService implements IToolsService {
 				const terminalDesc = `terminal ${terminalId}${didCreateTerminal ? ` (a newly-created terminal)` : ''}`
 
 				if (resolveReason.type === 'timeout') {
-					return `Terminal command ran in ${terminalDesc}, but timed out after ${TERMINAL_TIMEOUT_TIME} seconds. Result:\n${result_}`
+					return `Terminal command ran in ${terminalDesc}, but did not complete after ${TERMINAL_TIMEOUT_TIME} seconds. Result:\n${result_}`
 				}
 				else if (resolveReason.type === 'bgtask') {
 					return `Terminal command is running in the background in ${terminalDesc}. Here were the outputs after ${TERMINAL_BG_WAIT_TIME} seconds:\n${result_}`

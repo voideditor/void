@@ -14,6 +14,7 @@ export interface IVoidModelService {
 	readonly _serviceBrand: undefined;
 	initializeModel(uri: URI): Promise<void>;
 	getModel(uri: URI): VoidModelType;
+	getModelFromFsPath(fsPath: string): VoidModelType;
 	getModelSafe(uri: URI): Promise<VoidModelType>;
 }
 
@@ -37,8 +38,8 @@ class VoidModelService extends Disposable implements IVoidModelService {
 		this._modelRefOfURI[uri.fsPath] = editorModelRef;
 	};
 
-	getModel = (uri: URI): VoidModelType => {
-		const editorModelRef = this._modelRefOfURI[uri.fsPath];
+	getModelFromFsPath = (fsPath: string): VoidModelType => {
+		const editorModelRef = this._modelRefOfURI[fsPath];
 		if (!editorModelRef) {
 			return { model: null, editorModel: null };
 		}
@@ -51,6 +52,11 @@ class VoidModelService extends Disposable implements IVoidModelService {
 
 		return { model, editorModel: editorModelRef.object };
 	};
+
+	getModel = (uri: URI) => {
+		return this.getModelFromFsPath(uri.fsPath)
+	}
+
 
 	getModelSafe = async (uri: URI): Promise<VoidModelType> => {
 		if (!(uri.fsPath in this._modelRefOfURI)) await this.initializeModel(uri);

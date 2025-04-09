@@ -3,15 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-
-import { URI } from '../../../../../base/common/uri.js';
 import { os } from '../helpers/systemInfo.js';
-import { CodeSelection, FileSelection, StagingSelectionItem } from '../chatThreadServiceTypes.js';
+import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { ChatMode } from '../voidSettingsTypes.js';
+import { InternalToolInfo } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { EndOfLinePreference } from '../../../../../editor/common/model.js';
-import { InternalToolInfo } from '../toolsServiceTypes.js';
-
 
 // this is just for ease of readability
 export const tripleTick = ['```', '```']
@@ -42,9 +39,20 @@ ${tripleTick[1]}`
 // ======================================================== tools ========================================================
 
 const paginationHelper = {
-	desc: `Very large results may be paginated (indicated in the result). Pagination fails gracefully if out of bounds or invalid page number.`,
+	desc: `Very large results may be paginated (a note will always be included if pagination took place). Pagination fails gracefully if out of bounds or invalid page number.`,
 	param: { pageNumber: { type: 'number', description: 'The page number (default is the first page = 1).' }, }
 } as const
+
+const uriParam = (object: string) => ({
+	uri: { type: 'string', description: `The FULL path to the ${object}.` }
+})
+
+
+const searchParams = {
+	searchInFolder: { type: 'string', description: 'Only search files in this given folder. Leave as empty to search all available files.' },
+	isRegex: { type: 'string', description: 'Whether to treat the query as a regular expression. Default is "false".' },
+} as const
+
 
 export const voidTools = {
 	// --- context-gathering (read/search/list) ---
@@ -53,62 +61,74 @@ export const voidTools = {
 		name: 'read_file',
 		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
 		params: {
-			uri: { type: 'string', description: undefined },
+			...uriParam('file'),
+			startLine: { type: 'string', description: 'Line to start reading from. Default is "null", treated as 1.' },
+			endLine: { type: 'string', description: 'Line to stop reading from (inclusive). Default is "null", treated as Infinity.' },
 			...paginationHelper.param,
 		},
 	},
 
-	list_dir: {
-		name: 'list_dir',
-		description: `Returns all file names and folder names in a given URI. ${paginationHelper.desc}`,
+	ls_dir: {
+		name: 'ls_dir',
+		description: `Returns all file names and folder names in a given folder. ${paginationHelper.desc}`,
 		params: {
-			uri: { type: 'string', description: undefined },
+			...uriParam('folder'),
 			...paginationHelper.param,
 		},
 	},
 
-	pathname_search: {
-		name: 'pathname_search',
-		description: `Returns all pathnames that match a given \`find\`-style query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
+	get_dir_structure: {
+		name: 'get_dir_structure',
+		description: `This is a very effective way to learn about the user's codebase. You might want to use this instead of ls_dir. Returns a tree diagram of all the files and folders in the given folder URI. If results are large, the given string will be truncated (this will be indicated), in which case you might want to call this tool on a lower folder to get better results, or just use ls_dir which supports pagination.`,
+		params: {
+			...uriParam('folder')
+		}
+	},
+
+	search_pathnames_only: {
+		name: 'search_pathnames_only',
+		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
+			...searchParams,
 			...paginationHelper.param,
 		},
 	},
 
-	grep_search: {
-		name: 'grep_search',
+	search_files: {
+		name: 'search_files',
 		description: `Returns all pathnames that match a given \`grep\`-style query (searches ONLY file contents). The query can be any regex. This is often followed by the \`read_file\` tool to view the full file contents of results. ${paginationHelper.desc}`,
 		params: {
 			query: { type: 'string', description: undefined },
+			...searchParams,
 			...paginationHelper.param,
 		},
 	},
 
 	// --- editing (create/delete) ---
 
-	create_uri: {
-		name: 'create_uri',
+	create_file_or_folder: {
+		name: 'create_file_or_folder',
 		description: `Create a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash. Fails gracefully if the file already exists. Missing ancestors in the path will be recursively created automatically.`,
 		params: {
-			uri: { type: 'string', description: undefined },
+			...uriParam('file or folder'),
 		},
 	},
 
-	delete_uri: {
-		name: 'delete_uri',
+	delete_file_or_folder: {
+		name: 'delete_file_or_folder',
 		description: `Delete a file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
 		params: {
-			uri: { type: 'string', description: undefined },
-			params: { type: 'string', description: 'Return -r here to delete this URI and all descendants (if applicable). Default is the empty string.' }
+			...uriParam('file or folder'),
+			params: { type: 'string', description: 'Return -r here to delete recursively (if applicable). Default is the empty string.' }
 		},
 	},
 
-	edit: { // APPLY TOOL
-		name: 'edit',
+	edit_file: { // APPLY TOOL
+		name: 'edit_file',
 		description: `Edits the contents of a file, given the file's URI and a description. Fails gracefully if the file does not exist.`,
 		params: {
-			uri: { type: 'string', description: undefined },
+			...uriParam('file'),
 			changeDescription: {
 				type: 'string', description: `\
 - Your changeDescription should be a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing.
@@ -120,11 +140,11 @@ Here's an example of a good description:\n${editToolDescription}.`
 		},
 	},
 
-	terminal_command: {
-		name: 'terminal_command',
+	run_terminal_command: {
+		name: 'run_terminal_command',
 		description: `Executes a terminal command.`,
 		params: {
-			command: { type: 'string', description: 'The terminal command to execute.' },
+			command: { type: 'string', description: 'The terminal command to execute. Typically you should pipe to cat to avoid pagination.' },
 			waitForCompletion: { type: 'string', description: `Whether or not to await the command to complete and get the final result. Default is true. Make this value false when you want a command to run indefinitely without waiting for it.` },
 			terminalId: { type: 'string', description: 'Optional (value must be an integer >= 1, or empty which will go with the default). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
 		},
@@ -144,8 +164,8 @@ Here's an example of a good description:\n${editToolDescription}.`
 
 
 
-export const chat_systemMessage = (workspaces: string[], runningTerminalIds: string[], mode: ChatMode) => `\
-You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} that runs in the Void code editor. Your job is \
+export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, directoryStr, chatMode: mode }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, runningTerminalIds: string[], chatMode: ChatMode }) => `\
+You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} that runs in the user's IDE called Void. Your job is \
 ${mode === 'agent' ? `to help the user develop, run, deploy, and make changes to their codebase. You should ALWAYS bring user's task to completion to the fullest extent possible, calling tools to make all necessary changes.`
 		: mode === 'gather' ? `to search and understand the user's codebase. You MUST use tools to read files and help the user understand the codebase, even if you were initially given files.`
 			: mode === 'normal' ? `to assist the user with their coding tasks.`
@@ -155,10 +175,12 @@ Please assist the user with their query. The user's query is never invalid.
 ${/* system info */''}
 The user's system information is as follows:
 - ${os}
-- Open workspace(s): ${workspaces.join(', ') || 'NO WORKSPACE OPEN'}
-${(mode === 'agent') && runningTerminalIds.length !== 0 ? `\
-- Existing terminal IDs: ${runningTerminalIds.join(', ')}
-`: '\n'}
+- Open workspace(s): ${workspaceFolders.join(', ') || 'NO WORKSPACE OPEN'}
+- Open tab(s): ${openedURIs.join(', ') || 'NO OPENED EDITORS'}
+- Active tab: ${activeURI}
+${(mode === 'agent') && runningTerminalIds.length !== 0 ? `
+- Existing terminal IDs: ${runningTerminalIds.join(', ')}` : ''}
+
 ${/* tool use */ mode === 'agent' || mode === 'gather' ? `\
 You will be given tools you can call.
 ${mode === 'agent' ? `\
@@ -189,109 +211,134 @@ If you think it's appropriate to suggest an edit to a file, then you must descri
 - The remaining contents should be a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing.
 - NEVER re-write the whole file, and ALWAYS use comments like "// ... existing code ...". Bias towards writing as little as possible.
 - Your description will be handed to a dumber, faster model that will quickly apply the change, so it should be clear and concise.
-Here's an example of a good code block:\n${fileNameEdit}.\
+Here's an example of a good code block:\n${fileNameEdit}.
+
+If you write a code block that's related to a specific file, please use the same format as above:
+- The first line of the code block must be the FULL PATH of the related file if known.
+- The remaining contents of the file should proceed as usual.
+\
 `}
 ${/* misc */''}
 Misc:
 - Do not make things up.
 - Do not be lazy.
 - NEVER re-write the entire file.
-- Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.\
+- Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.
+- Today's date is ${new Date().toDateString()}
+The user's codebase is structured as follows:\n${directoryStr}
+\
 `
 // agent mode doesn't know about 1st line paths yet
 // - If you wrote triple ticks and ___, then include the file's full path in the first line of the triple ticks. This is only for display purposes to the user, and it's preferred but optional. Never do this in a tool parameter, or if there's ambiguity about the full path.
 
 
-type FileSelnLocal = { fileURI: URI, language: string, content: string }
-const stringifyFileSelection = ({ fileURI, language, content }: FileSelnLocal) => {
-	return `\
-${fileURI.fsPath}
-${tripleTick[0]}${language}
-${content}
-${tripleTick[1]}
-`
-}
-const stringifyCodeSelection = ({ fileURI, language, selectionStr, range }: CodeSelection) => {
-	return `\
-${fileURI.fsPath} (lines ${range.startLineNumber}:${range.endLineNumber})
-${tripleTick[0]}${language}
-${selectionStr}
-${tripleTick[1]}
-`
-}
+// type FileSelnLocal = { fileURI: URI, language: string, content: string }
+// const stringifyFileSelection = ({ fileURI, language, content }: FileSelnLocal) => {
+// 	return `\
+// ${fileURI.fsPath}
+// ${tripleTick[0]}${language}
+// ${content}
+// ${tripleTick[1]}
+// `
+// }
+// const stringifyCodeSelection = ({ uri, language, range }: StagingSelectionItem & { type: 'CodeSelection' }) => {
+// 	return `\
 
-const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
-const stringifyFileSelections = async (fileSelections: FileSelection[], voidModelService: IVoidModelService) => {
-	if (fileSelections.length === 0) return null
-	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
-		const { model } = await voidModelService.getModelSafe(sel.fileURI)
-		const content = model?.getValue(EndOfLinePreference.LF) ?? failToReadStr
-		return { ...sel, content }
-	}))
-	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
-}
+// ${tripleTick[0]}${language}
+// ${selectionStr}
+// ${tripleTick[1]}
+// `
+// }
 
-
-const stringifyCodeSelections = (codeSelections: CodeSelection[]) => {
-	return codeSelections.map(sel => {
-		stringifyCodeSelection(sel)
-	}).join('\n') || null
-}
-
-const stringifySelectionNames = (currSelns: StagingSelectionItem[] | null): string => {
-	if (!currSelns) return ''
-	return currSelns.map(s => `${s.fileURI.fsPath}${s.range ? ` (lines ${s.range.startLineNumber}:${s.range.endLineNumber})` : ''}`).join('\n')
-}
+// const failToReadStr = 'Could not read content. This file may have been deleted. If you expected content here, you can tell the user about this as they might not know.'
+// const stringifyFileSelections = async (fileSelections: FileSelection[], voidModelService: IVoidModelService) => {
+// 	if (fileSelections.length === 0) return null
+// 	const fileSlns: FileSelnLocal[] = await Promise.all(fileSelections.map(async (sel) => {
+// 		const { model } = await voidModelService.getModelSafe(sel.fileURI)
+// 		const content = model?.getValue(EndOfLinePreference.LF) ?? failToReadStr
+// 		return { ...sel, content }
+// 	}))
+// 	return fileSlns.map(sel => stringifyFileSelection(sel)).join('\n')
+// }
 
 
-export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null) => {
 
-	const selnsStr = stringifySelectionNames(currSelns)
 
-	let str = ''
-	if (selnsStr) { str += `SELECTIONS\n${selnsStr}\n` }
-	str += `\nINSTRUCTIONS\n${instructions}`
-	return str;
-};
+// export const chat_selectionsString = async (
+// 	prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null,
+// 	voidModelService: IVoidModelService,
+// ) => {
 
-export const chat_selectionsString = async (
-	prevSelns: StagingSelectionItem[] | null, currSelns: StagingSelectionItem[] | null,
-	voidModelService: IVoidModelService,
+// 	// ADD IN FILES AT TOP
+// 	const allSelections = [...currSelns || [], ...prevSelns || []]
+
+// 	if (allSelections.length === 0) return null
+
+// 	for (const selection of allSelections) {
+// 		if (selection.type === 'Selection') {
+// 			codeSelections.push(selection)
+// 		}
+// 		else if (selection.type === 'File') {
+// 			const fileSelection = selection
+// 			const path = fileSelection.fileURI.fsPath
+// 			if (!filesURIs.has(path)) {
+// 				filesURIs.add(path)
+// 				fileSelections.push(fileSelection)
+// 			}
+// 		}
+// 	}
+
+// 	const filesStr = await stringifyFileSelections(fileSelections, voidModelService)
+// 	const selnsStr = stringifyCodeSelections(codeSelections)
+
+// 	const fileContents = [filesStr, selnsStr].filter(Boolean).join('\n')
+// 	return fileContents || null
+// }
+
+// export const chat_lastUserMessageWithFilesAdded = (userMessage: string, selectionsString: string | null) => {
+// 	if (userMessage) return `${userMessage}${selectionsString ? `\n${selectionsString}` : ''}`
+// 	else return userMessage
+// }
+
+export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null,
+	opts: { type: 'references' } | { type: 'fullCode', voidModelService: IVoidModelService }
 ) => {
 
-	// ADD IN FILES AT TOP
-	const allSelections = [...currSelns || [], ...prevSelns || []]
+	const lineNumAddition = (range: [number, number]) => ` (lines ${range[0]}:${range[1]})`
+	let selnsStrs: string[] = []
+	if (opts.type === 'references') {
+		selnsStrs = currSelns?.map((s) => {
+			if (s.type === 'File') return `${s.uri.fsPath}`
+			if (s.type === 'CodeSelection') return `${s.uri.fsPath}${lineNumAddition(s.range)}`
+			if (s.type === 'Folder') return `${s.uri.fsPath}/`
+			return ''
+		}) ?? []
+	}
+	if (opts.type === 'fullCode') {
+		selnsStrs = await Promise.all(currSelns?.map(async (s) => {
+			if (s.type === 'File' || s.type === 'CodeSelection') {
+				const voidModelService = opts.voidModelService
+				const { model } = await voidModelService.getModelSafe(s.uri)
+				if (!model) return ''
+				const val = model.getValue(EndOfLinePreference.LF)
 
-	if (allSelections.length === 0) return null
-
-	const codeSelections: CodeSelection[] = []
-	const fileSelections: FileSelection[] = []
-	const filesURIs = new Set<string>()
-
-	for (const selection of allSelections) {
-		if (selection.type === 'Selection') {
-			codeSelections.push(selection)
-		}
-		else if (selection.type === 'File') {
-			const fileSelection = selection
-			const path = fileSelection.fileURI.fsPath
-			if (!filesURIs.has(path)) {
-				filesURIs.add(path)
-				fileSelections.push(fileSelection)
+				const lineNumAdd = s.type === 'CodeSelection' ? lineNumAddition(s.range) : ''
+				const str = `${s.uri.fsPath}${lineNumAdd}\n${tripleTick[0]}${s.language}\n${val}\n${tripleTick[1]}`
+				return str
 			}
-		}
+			if (s.type === 'Folder') {
+				// TODO
+				return ''
+			}
+			return ''
+		}) ?? [])
 	}
 
-	const filesStr = await stringifyFileSelections(fileSelections, voidModelService)
-	const selnsStr = stringifyCodeSelections(codeSelections)
-
-	const fileContents = [filesStr, selnsStr].filter(Boolean).join('\n')
-	return fileContents || null
-}
-
-export const chat_lastUserMessageWithFilesAdded = (userMessage: string, selectionsString: string | null) => {
-	if (userMessage) return `${userMessage}${selectionsString ? `\n${selectionsString}` : ''}`
-	else return userMessage
+	const selnsStr = selnsStrs.join('\n') ?? ''
+	let str = ''
+	str += `${instructions}`
+	if (selnsStr) str += `\n---\nSELECTIONS\n${selnsStr}`
+	return str;
 }
 
 

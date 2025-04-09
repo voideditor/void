@@ -1,12 +1,16 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
 import { useState, useEffect, useCallback } from 'react'
 import { useAccessor, useCommandBarState, useCommandBarURIListener, useSettingsState } from '../util/services.js'
 import { usePromise, useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
-import { FileSymlink, LucideIcon, RotateCw } from 'lucide-react'
+import { FileSymlink, LucideIcon, RotateCw, Terminal } from 'lucide-react'
 import { Check, X, Square, Copy, Play, } from 'lucide-react'
 import { getBasename, ListableToolItem, ToolChildrenWrapper } from '../sidebar-tsx/SidebarChat.js'
-import { ChatMarkdownRender } from './ChatMarkdownRender.js'
 
 enum CopyButtonText {
 	Idle = 'Copy',
@@ -64,9 +68,9 @@ export const IconShell1 = ({ onClick, Icon, disabled, className }: IconButtonPro
 // 	</button>
 // )
 
-const COPY_FEEDBACK_TIMEOUT = 1000 // amount of time to say 'Copied!'
+const COPY_FEEDBACK_TIMEOUT = 1500 // amount of time to say 'Copied!'
 
-const CopyButton = ({ codeStr }: { codeStr: string }) => {
+export const CopyButton = ({ codeStr }: { codeStr: string }) => {
 	const accessor = useAccessor()
 
 	const metricsService = accessor.get('IMetricsService')
@@ -94,11 +98,6 @@ const CopyButton = ({ codeStr }: { codeStr: string }) => {
 }
 
 
-// state persisted for duration of react only
-// TODO change this to use type `ChatThreads.applyBoxState[applyBoxId]`
-const applyingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undefined } } = { current: {} }
-
-
 
 
 export const JumpToFileButton = ({ uri }: { uri: URI | 'current' }) => {
@@ -113,164 +112,76 @@ export const JumpToFileButton = ({ uri }: { uri: URI | 'current' }) => {
 			}}
 		/>
 	)
-
 	return jumpToFileButton
 }
 
-export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: string, applyBoxId: string, uri: URI | 'current' }) => {
+
+
+export const JumpToTerminalButton = ({ onClick }: { onClick: () => void }) => {
+	return (
+		<IconShell1
+			Icon={Terminal}
+			onClick={onClick}
+			className="text-void-fg-1"
+		/>
+	)
+}
+
+
+// state persisted for duration of react only
+// TODO change this to use type `ChatThreads.applyBoxState[applyBoxId]`
+const applyingURIOfApplyBoxIdRef: { current: { [applyBoxId: string]: URI | undefined } } = { current: {} }
+
+const getUriBeingApplied = (applyBoxId: string) => {
+	return applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null
+}
+
+
+export const useApplyButtonState = ({ applyBoxId, uri }: { applyBoxId: string, uri: URI | 'current' }) => {
 
 	const settingsState = useSettingsState()
 	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
 
 	const accessor = useAccessor()
-	const editCodeService = accessor.get('IEditCodeService')
 	const voidCommandBarService = accessor.get('IVoidCommandBarService')
-	const metricsService = accessor.get('IMetricsService')
 
 	const [_, rerender] = useState(0)
 
-	const getUriBeingApplied = useCallback(() => {
-		return applyingURIOfApplyBoxIdRef.current[applyBoxId] ?? null
-	}, [applyBoxId])
-
 	const getStreamState = useCallback(() => {
-		const uri = getUriBeingApplied()
+		const uri = getUriBeingApplied(applyBoxId)
 		if (!uri) return 'idle-no-changes'
 		return voidCommandBarService.getStreamState(uri)
-	}, [voidCommandBarService, getUriBeingApplied])
+	}, [voidCommandBarService, applyBoxId])
 
 	// listen for stream updates on this box
-
-
 	useCommandBarURIListener(useCallback((uri_) => {
 		const shouldUpdate = (
-			getUriBeingApplied()?.fsPath === uri_.fsPath
+			getUriBeingApplied(applyBoxId)?.fsPath === uri_.fsPath
 			|| (uri !== 'current' && uri.fsPath === uri_.fsPath)
 		)
-		if (!shouldUpdate) return
-		rerender(c => c + 1)
-	}, [applyBoxId, editCodeService, getUriBeingApplied, uri])
-	)
-
-	const onClickSubmit = useCallback(async () => {
-		if (isDisabled) return
-		if (getStreamState() === 'streaming') return
-		const [newApplyingUri, applyDonePromise] = await editCodeService.startApplying({
-			from: 'ClickApply',
-			applyStr: codeStr,
-			uri: uri,
-			startBehavior: 'keep-conflicts',
-		}) ?? []
-		// catch any errors by interrupting the stream
-		applyDonePromise?.catch(e => { if (newApplyingUri) editCodeService.interruptURIStreaming({ uri: newApplyingUri }) })
-
-		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
-
-		rerender(c => c + 1)
-		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
-	}, [isDisabled, getStreamState, editCodeService, codeStr, uri, applyBoxId, metricsService])
-
-
-	const onInterrupt = useCallback(() => {
-		if (getStreamState() !== 'streaming') return
-		const uri = getUriBeingApplied()
-		if (!uri) return
-
-		editCodeService.interruptURIStreaming({ uri })
-		metricsService.capture('Stop Apply', {})
-	}, [getStreamState, getUriBeingApplied, editCodeService, metricsService])
-
-	const onAccept = useCallback(() => {
-		const uri = getUriBeingApplied()
-		if (uri) editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
-	}, [getUriBeingApplied, editCodeService])
-
-	const onReject = useCallback(() => {
-		const uri = getUriBeingApplied()
-		if (uri) editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
-	}, [getUriBeingApplied, editCodeService])
-
-	const onReapply = useCallback(() => {
-		onReject()
-		onClickSubmit()
-	}, [onReject, onClickSubmit])
+		if (shouldUpdate) {
+			rerender(c => c + 1)
+			console.log('rerendering....')
+		}
+	}, [applyBoxId, applyBoxId, uri]))
 
 	const currStreamState = getStreamState()
 
-	const copyButton = (
-		<CopyButton codeStr={codeStr} />
-	)
-
-	const playButton = (
-		<IconShell1
-			Icon={Play}
-			onClick={onClickSubmit}
-		/>
-	)
-
-	const stopButton = (
-		<IconShell1
-			Icon={Square}
-			onClick={onInterrupt}
-		/>
-	)
-
-	const reapplyButton = (
-		<IconShell1
-			Icon={RotateCw}
-			onClick={onReapply}
-		/>
-	)
-
-	const acceptButton = (
-		<IconShell1
-			Icon={Check}
-			onClick={onAccept}
-			className="text-green-600"
-		/>
-	)
-
-	const rejectButton = (
-		<IconShell1
-			Icon={X}
-			onClick={onReject}
-			className="text-red-600"
-		/>
-	)
-
-
-
-	let buttonsHTML = <></>
-
-	if (currStreamState === 'streaming') {
-		buttonsHTML = <>
-			<JumpToFileButton uri={uri} />
-			{copyButton}
-			{stopButton}
-		</>
+	return {
+		getStreamState,
+		isDisabled,
+		currStreamState,
 	}
+}
 
-	if (currStreamState === 'idle-no-changes') {
-		buttonsHTML = <>
-			<JumpToFileButton uri={uri} />
-			{copyButton}
-			{playButton}
-		</>
-	}
 
-	if (currStreamState === 'idle-has-changes') {
-		buttonsHTML = <>
-			<JumpToFileButton uri={uri} />
-			{reapplyButton}
-			{rejectButton}
-			{acceptButton}
-		</>
-	}
+export const StatusIndicatorHTML = ({ applyBoxId, uri }: { applyBoxId: string, uri: URI | 'current' }) => {
+	const { currStreamState } = useApplyButtonState({ applyBoxId, uri })
 
-	const statusIndicatorHTML = <div className='flex flex-row items-center min-h-4 max-h-4 min-w-4 max-w-4'>
+	return <div className='flex flex-row items-center min-h-4 max-h-4 min-w-4 max-w-4'>
 		<div
 			className={` size-1.5 rounded-full border
-				 ${currStreamState === 'idle-no-changes' ? 'bg-void-bg-3 border-void-border-1' :
+		 ${currStreamState === 'idle-no-changes' ? 'bg-void-bg-3 border-void-border-1' :
 					currStreamState === 'streaming' ? 'bg-orange-500 border-orange-500 shadow-[0_0_4px_0px_rgba(234,88,12,0.6)]' :
 						currStreamState === 'idle-has-changes' ? 'bg-green-500 border-green-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
 							'bg-void-border-1 border-void-border-1'
@@ -278,16 +189,95 @@ export const useApplyButtonHTML = ({ codeStr, applyBoxId, uri }: { codeStr: stri
 			}
 		/>
 	</div>
+}
 
-	return {
-		statusIndicatorHTML,
-		buttonsHTML,
+export const ApplyButtonsHTML = ({ codeStr, applyBoxId, reapplyIcon, uri }: { codeStr: string, applyBoxId: string, reapplyIcon: boolean, uri: URI | 'current' }) => {
+	const accessor = useAccessor()
+	const editCodeService = accessor.get('IEditCodeService')
+	const metricsService = accessor.get('IMetricsService')
+
+	const {
+		currStreamState,
+		isDisabled,
+		getStreamState,
+	} = useApplyButtonState({ applyBoxId, uri })
+
+	const onClickSubmit = useCallback(async () => {
+		if (isDisabled) return
+		if (getStreamState() === 'streaming') return
+		const opts = {
+			from: 'ClickApply',
+			applyStr: codeStr,
+			uri: uri,
+			startBehavior: 'reject-conflicts',
+		} as const
+
+		await editCodeService.callBeforeStartApplying(opts)
+		const [newApplyingUri, applyDonePromise] = editCodeService.startApplying(opts) ?? []
+
+		// catch any errors by interrupting the stream
+		applyDonePromise?.catch(e => { if (newApplyingUri) editCodeService.interruptURIStreaming({ uri: newApplyingUri }) })
+
+		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
+
+		// rerender(c => c + 1)
+		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
+	}, [isDisabled, getStreamState, editCodeService, codeStr, uri, applyBoxId, metricsService])
+
+
+	const onInterrupt = useCallback(() => {
+		if (getStreamState() !== 'streaming') return
+		const uri = getUriBeingApplied(applyBoxId)
+		if (!uri) return
+
+		editCodeService.interruptURIStreaming({ uri })
+		metricsService.capture('Stop Apply', {})
+	}, [getStreamState, applyBoxId, editCodeService, metricsService])
+
+	const onAccept = useCallback(() => {
+		const uri = getUriBeingApplied(applyBoxId)
+		if (uri) editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
+	}, [applyBoxId, editCodeService])
+
+	const onReject = useCallback(() => {
+		const uri = getUriBeingApplied(applyBoxId)
+		if (uri) editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
+	}, [applyBoxId, editCodeService])
+
+	// const onReapply = useCallback(() => {
+	// 	onReject()
+	// 	onClickSubmit()
+	// }, [onReject, onClickSubmit])
+
+
+	if (currStreamState === 'streaming') {
+		return <IconShell1 Icon={Square} onClick={onInterrupt} />
+	}
+
+	if (currStreamState === 'idle-no-changes') {
+		return <IconShell1 Icon={reapplyIcon ? RotateCw : Play} onClick={onClickSubmit} />
+	}
+
+	if (currStreamState === 'idle-has-changes') {
+		return <>
+			{/* <IconShell1
+				Icon={RotateCw}
+				onClick={onReapply}
+			/> */}
+			<IconShell1
+				Icon={X}
+				onClick={onReject}
+				className="text-red-600"
+			/>
+			<IconShell1
+				Icon={Check}
+				onClick={onAccept}
+				className="text-green-600"
+			/>
+		</>
 	}
 
 }
-
-
-
 
 
 export const BlockCodeApplyWrapper = ({
@@ -305,10 +295,10 @@ export const BlockCodeApplyWrapper = ({
 	language: string;
 	uri: URI | 'current',
 }) => {
-
-	const { statusIndicatorHTML, buttonsHTML } = useApplyButtonHTML({ codeStr: initValue, applyBoxId, uri })
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
+	const { currStreamState } = useApplyButtonState({ applyBoxId, uri })
+
 
 	const name = uri !== 'current' ?
 		<ListableToolItem
@@ -324,13 +314,15 @@ export const BlockCodeApplyWrapper = ({
 		{/* header */}
 		<div className=" select-none flex justify-between items-center py-1 px-2 border-b border-void-border-3 cursor-default">
 			<div className="flex items-center">
-				{statusIndicatorHTML}
+				<StatusIndicatorHTML uri={uri} applyBoxId={applyBoxId} />
 				<span className="text-[13px] font-light text-void-fg-3">
 					{name}
 				</span>
 			</div>
 			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>
-				{buttonsHTML}
+				<JumpToFileButton uri={uri} />
+				{currStreamState === 'idle-no-changes' && <CopyButton codeStr={initValue} />}
+				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={initValue} reapplyIcon={false} />
 			</div>
 		</div>
 

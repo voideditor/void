@@ -2,17 +2,17 @@ import { URI } from '../../../../base/common/uri.js'
 import { voidTools } from './prompt/prompts.js';
 
 
-export type ToolDirectoryItem = {
+
+
+export type TerminalResolveReason = { type: 'toofull' | 'timeout' | 'bgtask' } | { type: 'done', exitCode: number }
+
+// Partial of IFileStat
+export type ShallowDirectoryItem = {
 	uri: URI;
 	name: string;
 	isDirectory: boolean;
 	isSymbolicLink: boolean;
 }
-
-
-export type TerminalResolveReason = { type: 'toofull' | 'timeout' | 'bgtask' } | { type: 'done', exitCode: number }
-
-
 
 // we do this using Anthropic's style and convert to OpenAI style later
 export type InternalToolInfo = {
@@ -36,32 +36,36 @@ export const isAToolName = (toolName: string): toolName is ToolName => {
 }
 
 
-const toolNamesWithApproval = ['create_uri', 'delete_uri', 'edit', 'terminal_command'] as const satisfies readonly ToolName[]
+const toolNamesWithApproval = ['create_file_or_folder', 'delete_file_or_folder', 'edit_file', 'run_terminal_command'] as const satisfies readonly ToolName[]
 export type ToolNameWithApproval = typeof toolNamesWithApproval[number]
 export const toolNamesThatRequireApproval = new Set<ToolName>(toolNamesWithApproval)
 
+// PARAMS OF TOOL CALL
 export type ToolCallParams = {
-	'read_file': { uri: URI, pageNumber: number },
-	'list_dir': { rootURI: URI, pageNumber: number },
-	'pathname_search': { queryStr: string, pageNumber: number },
-	'grep_search': { queryStr: string, pageNumber: number },
+	'read_file': { uri: URI, startLine: number | null, endLine: number | null, pageNumber: number },
+	'ls_dir': { rootURI: URI, pageNumber: number },
+	'get_dir_structure': { rootURI: URI },
+	'search_pathnames_only': { queryStr: string, include: string | null, pageNumber: number },
+	'search_files': { queryStr: string, isRegex: boolean, searchInFolder: URI | null, pageNumber: number },
 	// ---
-	'edit': { uri: URI, changeDescription: string },
-	'create_uri': { uri: URI, isFolder: boolean },
-	'delete_uri': { uri: URI, isRecursive: boolean, isFolder: boolean },
-	'terminal_command': { command: string, proposedTerminalId: string, waitForCompletion: boolean },
+	'edit_file': { uri: URI, changeDescription: string },
+	'create_file_or_folder': { uri: URI, isFolder: boolean },
+	'delete_file_or_folder': { uri: URI, isRecursive: boolean, isFolder: boolean },
+	'run_terminal_command': { command: string, proposedTerminalId: string, waitForCompletion: boolean },
 }
 
 
+// RESULT OF TOOL CALL
 export type ToolResultType = {
 	'read_file': { fileContents: string, hasNextPage: boolean },
-	'list_dir': { children: ToolDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
-	'pathname_search': { uris: URI[], hasNextPage: boolean },
-	'grep_search': { uris: URI[], hasNextPage: boolean },
+	'ls_dir': { children: ShallowDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
+	'get_dir_structure': { str: string, },
+	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },
+	'search_files': { uris: URI[], hasNextPage: boolean },
 	// ---
-	'edit': Promise<void>,
-	'create_uri': {},
-	'delete_uri': {},
-	'terminal_command': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: TerminalResolveReason; },
+	'edit_file': Promise<{ lintErrorsStr: string | null }>,
+	'create_file_or_folder': {},
+	'delete_file_or_folder': {},
+	'run_terminal_command': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: TerminalResolveReason; },
 }
 

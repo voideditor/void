@@ -171,7 +171,8 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 		modelName,
 		supportsSystemMessage,
 		supportsTools,
-		// maxOutputTokens,
+		contextWindow,
+		maxOutputTokens,
 		reasoningCapabilities,
 	} = getModelCapabilities(providerName, modelName_)
 
@@ -179,7 +180,7 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 
 	// reasoning
 	const { canIOReasoning, openSourceThinkTags, } = reasoningCapabilities || {}
-	const reasoningInfo = getSendableReasoningInfo(providerName, modelName_, modelSelectionOptions) // user's modelName_ here
+	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
 	// tools
@@ -187,10 +188,10 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 	const toolsObj = tools ? { tools: tools, tool_choice: 'auto', parallel_tool_calls: false, } as const : {}
 
 	// max tokens
-	// const maxTokens = reasoningInfo?.isReasoningEnabled && reasoningCapabilities ? reasoningCapabilities.reasoningMaxOutputTokens : maxOutputTokens
+	const maxTokens = reasoningInfo?.isReasoningEnabled && reasoningCapabilities ? reasoningCapabilities.reasoningMaxOutputTokens : maxOutputTokens
 
 	// instance
-	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: false })
+	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: false, contextWindow, maxOutputTokens: maxTokens })
 	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
@@ -330,6 +331,7 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	const {
 		modelName,
 		supportsSystemMessage,
+		contextWindow,
 		supportsTools,
 		maxOutputTokens,
 		reasoningCapabilities,
@@ -339,7 +341,7 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	// reasoning
-	const reasoningInfo = getSendableReasoningInfo(providerName, modelName_, modelSelectionOptions) // user's modelName_ here
+	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
 	// tools
@@ -353,7 +355,7 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	const maxTokens = reasoningInfo?.isReasoningEnabled && reasoningCapabilities ? reasoningCapabilities.reasoningMaxOutputTokens : maxOutputTokens
 
 	// instance
-	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: true })
+	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsTools, supportsAnthropicReasoningSignature: true, contextWindow, maxOutputTokens: maxTokens })
 	const anthropic = new Anthropic({
 		apiKey: thisConfig.apiKey,
 		dangerouslyAllowBrowser: true

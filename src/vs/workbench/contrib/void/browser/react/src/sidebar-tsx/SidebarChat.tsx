@@ -1334,17 +1334,19 @@ const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr }: { applyBoxId: strin
 
 
 
-const InvalidTool = ({ toolName }: { toolName: string }) => {
+const InvalidTool = ({ toolName }: { toolName: ToolName }) => {
 	const accessor = useAccessor()
 	const title = getTitle({ name: toolName, type: 'invalid_params' })
 	const desc1 = 'Invalid parameters'
 	const icon = null
 	const isError = true
 	const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+	componentParams.children
 	return <ToolHeaderWrapper {...componentParams} />
 }
 
-const CanceledTool = ({ toolName }: { toolName: string }) => {
+const CanceledTool = ({ toolName }: { toolName: ToolName }) => {
 	const accessor = useAccessor()
 	const title = getTitle({ name: toolName, type: 'rejected' })
 	const desc1 = ''
@@ -2006,9 +2008,9 @@ export const SidebarChat = () => {
 	const isRunning = currThreadStreamState?.isRunning
 	const latestError = currThreadStreamState?.error
 	const displayContentSoFar = currThreadStreamState?.displayContentSoFar
+	const toolCallSoFar = currThreadStreamState?.toolCallSoFar
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
 
-	const toolCallSoFar = currThreadStreamState?.toolCallSoFar
 	const toolIsGenerating = !!toolCallSoFar && toolCallSoFar.name === 'edit_file' // show loading for slow tools (right now just edit)
 
 	// ----- SIDEBAR CHAT state (local) -----
@@ -2090,6 +2092,7 @@ export const SidebarChat = () => {
 				role: 'assistant',
 				displayContent: displayContentSoFar ?? '',
 				reasoning: reasoningSoFar ?? '',
+				toolCall: toolCallSoFar,
 				anthropicReasoning: null,
 			}}
 			messageIdx={streamingChatIdx}

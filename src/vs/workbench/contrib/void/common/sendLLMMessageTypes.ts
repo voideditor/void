@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { ToolName } from './prompt/prompts.js'
+import { ToolName, ToolParamName } from './prompt/prompts.js'
 import { ChatMode, ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
@@ -40,13 +40,13 @@ export type LLMChatMessage = {
 }
 
 
-export type ParsedToolParamsObj = {
-	[paramName: string]: string | undefined;
+export type RawToolParamsObj = {
+	[paramName in ToolParamName]?: string;
 }
 export type RawToolCallObj = {
 	name: ToolName;
-	rawParams: ParsedToolParamsObj;
-	doneParams: string[];
+	rawParams: RawToolParamsObj;
+	doneParams: ToolParamName[];
 	isDone: boolean;
 };
 

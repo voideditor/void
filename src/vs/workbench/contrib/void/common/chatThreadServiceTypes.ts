@@ -6,7 +6,7 @@
 import { URI } from '../../../../base/common/uri.js';
 import { VoidFileSnapshot } from './editCodeServiceTypes.js';
 import { ToolName } from './prompt/prompts.js';
-import { AnthropicReasoning } from './sendLLMMessageTypes.js';
+import { AnthropicReasoning, RawToolCallObj } from './sendLLMMessageTypes.js';
 import { ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
 
 export type ToolMessage<T extends ToolName> = {
@@ -14,7 +14,7 @@ export type ToolMessage<T extends ToolName> = {
 	content: string; // give this result to LLM (string of value)
 } & (
 		// in order of events:
-		| { type: 'invalid_params', result: null, params: null, name: string }
+		| { type: 'invalid_params', result: null, name: T, params: RawToolCallObj | null, }
 
 		| { type: 'tool_request', result: null, name: T, params: ToolCallParams[T], }  // params were validated, awaiting user
 
@@ -27,7 +27,7 @@ export type ToolMessage<T extends ToolName> = {
 
 export type DecorativeCanceledTool = {
 	role: 'interrupted_streaming_tool';
-	name: string;
+	name: ToolName;
 }
 
 
@@ -58,6 +58,7 @@ export type ChatMessage =
 		role: 'assistant';
 		displayContent: string; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		reasoning: string; // reasoning from the LLM, used for step-by-step thinking
+		toolCall: RawToolCallObj | undefined;
 
 		anthropicReasoning: AnthropicReasoning[] | null; // anthropic reasoning
 	}

@@ -15,18 +15,17 @@ import { IExplorerService } from '../../files/browser/files.js';
 import { SortOrder } from '../../files/common/files.js';
 import { ExplorerItem } from '../../files/common/explorerModel.js';
 import { VoidDirectoryItem } from '../common/directoryStrTypes.js';
+import { MAX_DIRSTR_CHARS_TOTAL_BEGINNING, MAX_DIRSTR_CHARS_TOTAL_TOOL } from '../common/prompt/prompts.js';
 
 
-const MAX_CHARS_TOTAL_BEGINNING = 20_000
-const MAX_CHARS_TOTAL_TOOL = 20_000
 // const MAX_FILES_TOTAL = 200
 
 
 export interface IDirectoryStrService {
 	readonly _serviceBrand: undefined;
 
-	getDirectoryStrTool(uri: URI): Promise<{ wasCutOff: boolean, str: string }>
-	getAllDirectoriesStr(): Promise<{ wasCutOff: boolean, str: string }>
+	getDirectoryStrTool(uri: URI): Promise<string>
+	getAllDirectoriesStr(opts: { cutOffMessage: string }): Promise<string>
 
 }
 export const IDirectoryStrService = createDecorator<IDirectoryStrService>('voidDirectoryStrService');
@@ -275,20 +274,21 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 		if (!eRoot) throw new Error(`There was a problem reading the URI: ${uri.fsPath}.`)
 
 		const dirTree = await computeDirectoryTree(eRoot, this.explorerService);
-		const { content, wasCutOff } = stringifyDirectoryTree(dirTree, MAX_CHARS_TOTAL_TOOL);
+		const { content, wasCutOff } = stringifyDirectoryTree(dirTree, MAX_DIRSTR_CHARS_TOTAL_TOOL);
 
-		return {
-			str: `Directory of ${uri.fsPath}:\n${content}`,
-			wasCutOff,
-		}
+		let c = content.substring(0, MAX_DIRSTR_CHARS_TOTAL_TOOL)
+		c = `Directory of ${uri.fsPath}:\n${content}`
+		if (wasCutOff) c = `${c}\n...Result was truncated...`
+
+		return c
 	}
 
-	async getAllDirectoriesStr() {
+	async getAllDirectoriesStr({ cutOffMessage }: { cutOffMessage: string }) {
 		let str: string = '';
 		let cutOff = false;
 		const folders = this.workspaceContextService.getWorkspace().folders;
 		if (folders.length === 0)
-			return { str: '(NO WORKSPACE OPEN)', wasCutOff: false };
+			return '(NO WORKSPACE OPEN)';
 
 		for (let i = 0; i < folders.length; i += 1) {
 			if (i > 0) str += '\n';
@@ -304,7 +304,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			// Use our new approach with direct explorer service
 			const dirTree = await computeDirectoryTree(eRoot, this.explorerService);
 			console.log('dirtree', dirTree)
-			const { content, wasCutOff } = stringifyDirectoryTree(dirTree, MAX_CHARS_TOTAL_BEGINNING - str.length);
+			const { content, wasCutOff } = stringifyDirectoryTree(dirTree, MAX_DIRSTR_CHARS_TOTAL_BEGINNING - str.length);
 			str += content;
 			if (wasCutOff) {
 				cutOff = true;
@@ -312,7 +312,10 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			}
 		}
 
-		return { wasCutOff: cutOff, str };
+		if (cutOff) {
+			return `${str}\n${cutOffMessage}`
+		}
+		return str
 	}
 }
 

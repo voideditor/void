@@ -16,7 +16,7 @@ import { IVoidCommandBarService } from './voidCommandBarService.js'
 import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree1Deep } from './directoryStrService.js'
 import { IMarkerService } from '../../../../platform/markers/common/markers.js'
 import { timeout } from '../../../../base/common/async.js'
-import { ParsedToolParamsObj } from '../common/sendLLMMessageTypes.js'
+import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
 import { ToolName } from '../common/prompt/prompts.js'
 
 
@@ -25,7 +25,7 @@ import { ToolName } from '../common/prompt/prompts.js'
 
 
 
-type ValidateParams = { [T in ToolName]: (p: ParsedToolParamsObj) => Promise<ToolCallParams[T]> }
+type ValidateParams = { [T in ToolName]: (p: RawToolParamsObj) => Promise<ToolCallParams[T]> }
 type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], interruptTool?: () => void }> }
 type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awaited<ToolResultType[T]>) => string }
 
@@ -45,7 +45,7 @@ const isFalsy = (u: unknown) => {
 }
 
 const validateStr = (argName: string, value: unknown) => {
-	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string.`)
+	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string, but it's a ${typeof value}. Value: ${value}.`)
 	return value
 }
 
@@ -53,7 +53,7 @@ const validateStr = (argName: string, value: unknown) => {
 // We are NOT checking to make sure in workspace
 // TODO!!!! check to make sure folder/file exists
 const validateURI = (uriStr: unknown) => {
-	if (typeof uriStr !== 'string') throw new Error('Invalid LLM output format: Provided uri must be a string.')
+	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a ${typeof uriStr}. Value: ${uriStr}.`)
 	const uri = URI.file(uriStr)
 	return uri
 }
@@ -92,6 +92,7 @@ const validateNumber = (numStr: unknown, opts: { default: number | null }) => {
 }
 
 const validateRecursiveParamStr = (paramsUnknown: unknown) => {
+	if (!paramsUnknown) return false
 	if (typeof paramsUnknown !== 'string') throw new Error('Invalid LLM output format: Error calling tool: provided params must be a string.')
 	const params = paramsUnknown
 	const isRecursive = params.includes('r')
@@ -155,8 +156,8 @@ export class ToolsService implements IToolsService {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.validateParams = {
-			read_file: async (params: ParsedToolParamsObj) => {
-				const { uri: uriStr, startLine: startLineUnknown, endLine: endLineUnknown, pageNumber: pageNumberUnknown } = params
+			read_file: async (params: RawToolParamsObj) => {
+				const { uri: uriStr, start_line: startLineUnknown, end_line: endLineUnknown, page_number: pageNumberUnknown } = params
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
@@ -165,38 +166,38 @@ export class ToolsService implements IToolsService {
 
 				return { uri, startLine, endLine, pageNumber }
 			},
-			ls_dir: async (params: ParsedToolParamsObj) => {
-				const { uri: uriStr, pageNumber: pageNumberUnknown } = params
+			ls_dir: async (params: RawToolParamsObj) => {
+				const { uri: uriStr, page_number: pageNumberUnknown } = params
 
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 				return { rootURI: uri, pageNumber }
 			},
-			get_dir_structure: async (params: ParsedToolParamsObj) => {
+			get_dir_structure: async (params: RawToolParamsObj) => {
 				const { uri: uriStr, } = params
 				const uri = validateURI(uriStr)
 				return { rootURI: uri }
 			},
-			search_pathnames_only: async (params: ParsedToolParamsObj) => {
+			search_pathnames_only: async (params: RawToolParamsObj) => {
 				const {
 					query: queryUnknown,
-					include: includeUnknown,
-					pageNumber: pageNumberUnknown
+					search_in_folder: includeUnknown,
+					page_number: pageNumberUnknown
 				} = params
 
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
-				const include = validateOptionalStr('include', includeUnknown)
+				const searchInFolder = validateOptionalStr('search_in_folder', includeUnknown)
 
-				return { queryStr, include, pageNumber }
+				return { queryStr, searchInFolder, pageNumber }
 
 			},
-			search_files: async (params: ParsedToolParamsObj) => {
+			search_files: async (params: RawToolParamsObj) => {
 				const {
 					query: queryUnknown,
-					searchInFolder: searchInFolderUnknown,
-					isRegex: isRegexUnknown,
-					pageNumber: pageNumberUnknown
+					search_in_folder: searchInFolderUnknown,
+					is_regex: isRegexUnknown,
+					page_number: pageNumberUnknown
 				} = params
 
 				const queryStr = validateStr('query', queryUnknown)
@@ -210,7 +211,7 @@ export class ToolsService implements IToolsService {
 
 			// ---
 
-			create_file_or_folder: async (params: ParsedToolParamsObj) => {
+			create_file_or_folder: async (params: RawToolParamsObj) => {
 				const { uri: uriUnknown } = params
 				const uri = validateURI(uriUnknown)
 				const uriStr = validateStr('uri', uriUnknown)
@@ -218,7 +219,7 @@ export class ToolsService implements IToolsService {
 				return { uri, isFolder }
 			},
 
-			delete_file_or_folder: async (params: ParsedToolParamsObj) => {
+			delete_file_or_folder: async (params: RawToolParamsObj) => {
 				const { uri: uriUnknown, params: paramsStr } = params
 				const uri = validateURI(uriUnknown)
 				const isRecursive = validateRecursiveParamStr(paramsStr)
@@ -227,15 +228,15 @@ export class ToolsService implements IToolsService {
 				return { uri, isRecursive, isFolder }
 			},
 
-			edit_file: async (params: ParsedToolParamsObj) => {
-				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = params
+			edit_file: async (params: RawToolParamsObj) => {
+				const { uri: uriStr, change_description: changeDescriptionUnknown } = params
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
 				return { uri, changeDescription }
 			},
 
-			run_terminal_command: async (params: ParsedToolParamsObj) => {
-				const { command: commandUnknown, terminalId: terminalIdUnknown, waitForCompletion: waitForCompletionUnknown } = params
+			run_terminal_command: async (params: RawToolParamsObj) => {
+				const { command: commandUnknown, terminal_id: terminalIdUnknown, wait_for_completion: waitForCompletionUnknown } = params
 				const command = validateStr('command', commandUnknown)
 				const proposedTerminalId = validateProposedTerminalId(terminalIdUnknown)
 				const waitForCompletion = validateBoolean(waitForCompletionUnknown, { default: true })
@@ -275,17 +276,15 @@ export class ToolsService implements IToolsService {
 			},
 
 			get_dir_structure: async ({ rootURI }) => {
-				const result = await this.directoryStrService.getDirectoryStrTool(rootURI)
-				let str = result.str
-				if (result.wasCutOff) str += '\n(Result was truncated)'
+				const str = await this.directoryStrService.getDirectoryStrTool(rootURI)
 				return { result: { str } }
 			},
 
-			search_pathnames_only: async ({ queryStr, include, pageNumber }) => {
+			search_pathnames_only: async ({ queryStr, searchInFolder, pageNumber }) => {
 
 				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), {
 					filePattern: queryStr,
-					includePattern: include ?? undefined,
+					includePattern: searchInFolder ?? undefined,
 				})
 				const data = await searchService.fileSearch(query, CancellationToken.None)
 

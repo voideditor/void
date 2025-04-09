@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { endsWithAnyPrefixOf } from '../../common/helpers/extractCodeFromResult.js'
-import { availableTools, InternalToolInfo, ToolName } from '../../common/prompt/prompts.js'
+import { availableTools, InternalToolInfo, ToolName, ToolParamName } from '../../common/prompt/prompts.js'
 import { OnFinalMessage, OnText, RawToolCallObj } from '../../common/sendLLMMessageTypes.js'
 import { ChatMode } from '../../common/voidSettingsTypes.js'
 import { createSaxParser } from './sax.js'
@@ -141,12 +141,12 @@ type ToolsState = {
 	level: 'normal',
 } | {
 	level: 'tool',
-	toolName: string,
+	toolName: ToolName,
 	currentToolCall: RawToolCallObj,
 } | {
 	level: 'param',
-	toolName: string,
-	paramName: string,
+	toolName: ToolName,
+	paramName: ToolParamName,
 	currentToolCall: RawToolCallObj,
 }
 
@@ -162,7 +162,7 @@ export const extractToolsWrapper = (
 	// detect <availableTools[0]></availableTools[0]>, etc
 	let fullText = '';
 	let trueFullText = ''
-	const currentToolCalls: RawToolCallObj[] = []; // the answer
+	const firstToolCallRef: { current: RawToolCallObj | undefined } = { current: undefined }
 
 	let state: ToolsState = { level: 'normal' }
 
@@ -170,7 +170,7 @@ export const extractToolsWrapper = (
 	const getRawNewText = () => {
 		return trueFullText.substring(parser.startTagPosition, parser.position + 1)
 	}
-	const parser = createSaxParser({ lowercase: true })
+	const parser = createSaxParser()
 
 	// when see open tag <tagName>
 	parser.onopentag = (node) => {
@@ -183,9 +183,10 @@ export const extractToolsWrapper = (
 			if (tagName in toolOfToolName) { // valid toolName
 				state = {
 					level: 'tool',
-					toolName: tagName,
+					toolName: tagName as ToolName,
 					currentToolCall: { name: tagName as ToolName, rawParams: {}, doneParams: [], isDone: false }
 				}
+				firstToolCallRef.current = state.currentToolCall
 			}
 			else {
 				fullText += rawNewText // count as plaintext
@@ -198,7 +199,7 @@ export const extractToolsWrapper = (
 				state = {
 					level: 'param',
 					toolName: state.toolName,
-					paramName: tagName,
+					paramName: tagName as ToolParamName,
 					currentToolCall: state.currentToolCall,
 				}
 			}
@@ -229,7 +230,6 @@ export const extractToolsWrapper = (
 		else if (state.level === 'tool') {
 			if (tagName === state.toolName) { // closed the tool
 				state.currentToolCall.isDone = true
-				currentToolCalls.push(state.currentToolCall)
 				state = {
 					level: 'normal',
 				}
@@ -287,33 +287,31 @@ export const extractToolsWrapper = (
 		onText({
 			...params,
 			fullText,
-			toolCall: currentToolCalls.length > 0 ? currentToolCalls[0] : undefined
+			toolCall: firstToolCallRef.current,
 		});
 	};
 
 
 	const newOnFinalMessage: OnFinalMessage = (params) => {
 		// treat like just got text before calling onFinalMessage (or else we sometimes miss the final chunk that's new to finalMessage)
-		console.log('final message!!!', trueFullText)
-		console.log('----- returning ----\n', fullText)
-		console.log('----- tools ----\n', JSON.stringify(currentToolCalls, null, 2))
 		newOnText({ ...params })
 
-		console.log('final message!!!', trueFullText)
-		console.log('----- returning ----\n', fullText)
-		console.log('----- tools ----\n', JSON.stringify(currentToolCalls, null, 2))
-
 		fullText = fullText.trimEnd()
-		const toolCall = currentToolCalls.length > 0 ? currentToolCalls[0] : undefined
+		const toolCall = firstToolCallRef.current
 		if (toolCall) {
 			// trim off all whitespace at and before first \n and after last \n for each param
-			for (const paramName in toolCall.rawParams) {
+			for (const p in toolCall.rawParams) {
+				const paramName = p as ToolParamName
 				const orig = toolCall.rawParams[paramName]
 				if (orig === undefined) continue
 				toolCall.rawParams[paramName] = trimBeforeAndAfterNewLines(orig)
 			}
 		}
-		console.log('----- toolCall ----\n', JSON.stringify(toolCall, null, 2))
+
+		// console.log('final message!!!', trueFullText)
+		// console.log('----- returning ----\n', fullText)
+		// console.log('----- tools ----\n', JSON.stringify(firstToolCallRef.current, null, 2))
+		// console.log('----- toolCall ----\n', JSON.stringify(toolCall, null, 2))
 
 		onFinalMessage({ ...params, fullText, toolCall: toolCall })
 	}

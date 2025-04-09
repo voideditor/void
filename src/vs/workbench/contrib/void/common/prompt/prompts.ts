@@ -3,16 +3,24 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { os } from '../helpers/systemInfo.js';
+import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
-import { ChatMode } from '../voidSettingsTypes.js';
+import { os } from '../helpers/systemInfo.js';
+import { RawToolCallObj } from '../sendLLMMessageTypes.js';
 import { toolNamesThatRequireApproval } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
-import { EndOfLinePreference } from '../../../../../editor/common/model.js';
+import { ChatMode } from '../voidSettingsTypes.js';
 
 // this is just for ease of readability
 export const tripleTick = ['```', '```']
 
+export const MAX_DIRSTR_CHARS_TOTAL_BEGINNING = 20_000
+export const MAX_DIRSTR_CHARS_TOTAL_TOOL = 20_000
+
+export const MAX_PREFIX_SUFFIX_CHARS = 20_000
+
+
+// ======================================================== tools ========================================================
 const changesExampleContent = `\
 // ... existing code ...
 // {{change 1}}
@@ -27,14 +35,11 @@ ${tripleTick[0]}
 ${changesExampleContent}
 ${tripleTick[1]}`
 
-const fileNameEdit = `${tripleTick[0]}typescript
+const fileNameEditExample = `${tripleTick[0]}typescript
 /Users/username/Dekstop/my_project/app.ts
 ${changesExampleContent}
 ${tripleTick[1]}`
 
-
-
-// ======================================================== tools ========================================================
 
 
 export type InternalToolInfo = {
@@ -47,19 +52,12 @@ export type InternalToolInfo = {
 
 
 
-const paginationHelper = {
-	desc: `Very large results may be paginated (a note will always be included if pagination took place). Pagination fails gracefully if out of bounds or invalid page number.`,
-	param: { pageNumber: { type: 'number', description: 'The page number (default is the first page = 1).' }, }
-} as const
-
 const uriParam = (object: string) => ({
-	uri: { description: `The FULL path to the ${object} from the root of the file system.` }
+	uri: { description: `The FULL path to the ${object}.` }
 })
 
-
-const searchParams = {
-	searchInFolder: { description: 'Only search files in this given folder. Leave as empty to search all available files.' },
-	isRegex: { description: 'Whether to treat the query as a regular expression. Default is "false".' },
+const paginationParam = {
+	page_number: { description: 'Optional. The page number of the result. Default is 1.' }
 } as const
 
 
@@ -68,27 +66,27 @@ export const voidTools = {
 
 	read_file: {
 		name: 'read_file',
-		description: `Returns file contents of a given URI. ${paginationHelper.desc}`,
+		description: `Returns file contents of a given URI.`,
 		params: {
 			...uriParam('file'),
-			startLine: { description: 'Line to start reading from. Default is "null", treated as 1.' },
-			endLine: { description: 'Line to stop reading from (inclusive). Default is "null", treated as Infinity.' },
-			...paginationHelper.param,
+			start_line: { description: 'Optional. Default is 1. Start reading on this line.' },
+			end_line: { description: 'Optional. Default is Infinity. Stop reading after this line.' },
+			...paginationParam,
 		},
 	},
 
 	ls_dir: {
 		name: 'ls_dir',
-		description: `Returns all file names and folder names in a given folder. ${paginationHelper.desc}`,
+		description: `Lists all files and folders in the given URI.`,
 		params: {
 			...uriParam('folder'),
-			...paginationHelper.param,
+			...paginationParam,
 		},
 	},
 
 	get_dir_structure: {
 		name: 'get_dir_structure',
-		description: `This is a very effective way to learn about the user's codebase. You might want to use this instead of ls_dir. Returns a tree diagram of all the files and folders in the given folder URI. If results are large, the given string will be truncated (this will be indicated), in which case you might want to call this tool on a lower folder to get better results, or just use ls_dir which supports pagination.`,
+		description: `This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder. `,
 		params: {
 			...uriParam('folder')
 		}
@@ -96,21 +94,22 @@ export const voidTools = {
 
 	search_pathnames_only: {
 		name: 'search_pathnames_only',
-		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
+		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.`,
 		params: {
 			query: { description: `Your query for the search.` },
-			...searchParams,
-			...paginationHelper.param,
+			search_in_folder: { description: 'Optional. Only search files in this given folder glob.' },
+			...paginationParam,
 		},
 	},
 
 	search_files: {
 		name: 'search_files',
-		description: `Returns all pathnames that match a given query (searches ONLY file contents). The query can be any substring or glob. This is often followed by the \`read_file\` tool to view the full file contents of results. ${paginationHelper.desc}`,
+		description: `Returns all pathnames that match a given query (searches ONLY file contents). The query can be any substring or glob. You can follow this with read_file to view result contents.`,
 		params: {
 			query: { description: `Your query for the search.` },
-			...searchParams,
-			...paginationHelper.param,
+			search_in_folder: { description: 'Optional. Only search files in this given folder glob.' },
+			is_regex: { description: 'Optional. Default is false. Whether query is a regex.' },
+			...paginationParam,
 		},
 	},
 
@@ -118,7 +117,7 @@ export const voidTools = {
 
 	create_file_or_folder: {
 		name: 'create_file_or_folder',
-		description: `Create a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash. Fails gracefully if the file already exists. Missing ancestors in the path will be recursively created automatically.`,
+		description: `Create a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash.`,
 		params: {
 			...uriParam('file or folder'),
 		},
@@ -126,25 +125,25 @@ export const voidTools = {
 
 	delete_file_or_folder: {
 		name: 'delete_file_or_folder',
-		description: `Delete a file or folder at the given path. Fails gracefully if the file or folder does not exist.`,
+		description: `Delete a file or folder at the given path.`,
 		params: {
 			...uriParam('file or folder'),
-			params: { description: 'Return -r here to delete recursively (if applicable). Default is the empty string.' }
+			params: { description: 'Optional. Return -r here to delete recursively.' }
 		},
 	},
 
 	edit_file: { // APPLY TOOL
 		name: 'edit_file',
-		description: `Edits the contents of a file, given the file's URI and a description. Fails gracefully if the file does not exist.`,
+		description: `Edits the contents of a file given the file's URI and a description.`,
 		params: {
 			...uriParam('file'),
-			changeDescription: {
+			change_description: {
 				description: `\
-- Your changeDescription should be a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing.
-- NEVER re-write the whole file, and ALWAYS use comments like "// ... existing code ...". Bias towards writing as little as possible.
-- Your description will be handed to a dumber, faster model that will quickly apply the change, so it should be clear and concise.
-- You must output your description in triple backticks.
-Here's an example of a good description:\n${editToolDescriptionExample}.`
+A brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing. \
+NEVER re-write the whole file. Instead, use comments like  "// ... existing code ...". Bias towards writing as little as possible. \
+Your description will be handed to a smaller model to make the change, so it must be clear and concise. \
+Your description MUST be wrapped in triple backticks. \
+Here's an example of a good description:\n${editToolDescriptionExample}`
 			}
 		},
 	},
@@ -154,11 +153,10 @@ Here's an example of a good description:\n${editToolDescriptionExample}.`
 		description: `Executes a terminal command.`,
 		params: {
 			command: { description: 'The terminal command to execute.' },
-			waitForCompletion: { description: `Whether or not to await the command to complete and get the final result. Default is true. Make this value false when you want a command to run indefinitely without waiting for it.` },
-			terminalId: { description: 'Optional (value must be an integer >= 1, or empty which will go with the default). This is the ID of the terminal instance to execute the command in. The primary purpose of this is to start a new terminal for background processes or tasks that run indefinitely (e.g. if you want to run a server locally). Fails gracefully if a terminal ID does not exist, by creating a new terminal instance. Defaults to the preferred terminal ID.' },
+			wait_for_completion: { description: `Optional. Default is true. Make this value false when you want a command to run without waiting for it to complete.` },
+			terminal_id: { description: 'Optional. The ID of the terminal instance that should execute the command (if not provided, defaults to the preferred terminal ID). The primary purpose of this is to let you open a new terminal for testing or background processes (e.g. running a dev server for the user in a separate terminal). Must be an integer >= 1.' },
 		},
 	},
-
 
 	// go_to_definition
 	// go_to_usages
@@ -168,6 +166,9 @@ Here's an example of a good description:\n${editToolDescriptionExample}.`
 
 export type ToolName = keyof typeof voidTools
 export const toolNames = Object.keys(voidTools) as ToolName[]
+
+type ToolParamNameOfTool<T extends ToolName> = keyof (typeof voidTools)[T]['params']
+export type ToolParamName = { [T in ToolName]: ToolParamNameOfTool<T> }[ToolName]
 
 const toolNamesSet = new Set<string>(toolNames)
 
@@ -186,11 +187,11 @@ export const availableTools = (chatMode: ChatMode) => {
 	return tools
 }
 
-const availableToolsStr = (tools: InternalToolInfo[]) => {
+const availableXMLToolsStr = (tools: InternalToolInfo[]) => {
 	return `${tools.map((t, i) => {
-		const params = Object.keys(t.params).map(paramName => `	<${paramName}>\n${t.params[paramName].description}\n	</${paramName}>`).join('\n')
+		const params = Object.keys(t.params).map(paramName => `<${paramName}>${t.params[paramName].description}</${paramName}>`).join('\n')
 		return `\
-${i}. ${t.name}
+${i + 1}. ${t.name}
 Description: ${t.description}
 Format:
 <${t.name}>${!params ? '' : `\n${params}`}
@@ -198,111 +199,151 @@ Format:
 	}).join('\n\n')}`
 }
 
-const systemToolsPrompt = (chatMode: ChatMode) => {
+export const toolCallXMLStr = (toolCall: RawToolCallObj) => {
+	const t = toolCall
+	const params = Object.keys(t.rawParams).map(paramName => `<${paramName}>${t.rawParams[paramName as ToolParamName]}</${paramName}>`).join('\n')
+	return `\
+<${toolCall.name}>${!params ? '' : `\n${params}`}
+</${toolCall.name}>`
+		.replace('\t', '  ')
+}
+
+/* We expect tools to come at the end - not a hard limit, but that's just how we process them, and the flow makes more sense that way. */
+// - You are allowed to call multiple tools by specifying them consecutively. However, there should be NO text or writing between tool calls or after them.
+const systemToolsXMLPrompt = (chatMode: ChatMode) => {
 	const tools = availableTools(chatMode)
 	if (!tools || tools.length === 0) return ''
 
-	return `\
-You are allowed to call tools in your response.
-Tool calling guidelines:
-${chatMode === 'agent' ? `\
-- Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.
-- ALWAYS use tools to take actions. For example, if you would like to edit a file, you MUST use a tool.
-- You will OFTEN need to gather context before making a change. Do not immediately make a change unless you have ALL relevant context.
-- ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`
-			: chatMode === 'gather' ? `\
-- Your primary use of tools should be to gather information to help the user understand the codebase and answer their query.
-- You should extensively read files, types, content, etc and gather relevant context.`
-				: chatMode === 'normal' ? ''
-					: ''}
-- If you think you should use tools, you do not need to ask for permission.
-- NEVER refer to a tool by name when speaking with the user (NEVER say something like "I'm going to use \`tool_name\`"). Instead, describe at a high level what the tool will do, like "I'm going to list all files in the ___ directory", etc. Also do not refer to "pages" of results, just say you're getting more results.
-- Some tools only work if the user has a workspace open.${chatMode === 'agent' ? `
-- NEVER modify a file outside the user's workspace(s) without permission from the user.` : ''}\
-
+	const toolXMLDefinitions = (`\
 Available tools:
-${availableToolsStr(tools)}
 
-Tool calling details:  ${''/* We expect tools to come at the end - not a hard limit, but that's just how we process them, and the flow makes more sense that way. */}
-- Tool calling is optional.
-- To call a tool, just write its name followed by any parameters in XML format. For example:
-<tool_name>
-	<parameter1>
-value1
-	</parameter1>
-	<parameter2>
-value2
-	</parameter2>
-</tool_name>
-- You must write your tool call at the END of your response. The beginning of your response should be normal text, explanations, etc (if you decide to write anything), followed by the tool call at the END.
-- You are only allowed to output one tool call per response.
-- You may omit optional parameters.
-- The tool call will be executed immediately, and you will have access to the results in your next response.`
+${availableXMLToolsStr(tools)}`)
+
+	const toolCallXMLGuidelines = (`\
+Tool calling details:
+- Once you write a tool call, you must STOP and WAIT for the result.
+- All parameters are REQUIRED unless noted otherwise.
+- To call a tool, write its name and parameters in one of the XML formats specified above.
+- You are only allowed to output ONE tool call, and it must be at the END of your response.
+- Your tool call will be executed immediately, and the results will appear in the following user message.`)
+
+	return `\
+${toolXMLDefinitions}
+
+${toolCallXMLGuidelines}`
 }
-// - You are allowed to call multiple tools by specifying them consecutively. However, there should be NO text or writing between tool calls or after them.
-
 
 // ======================================================== chat (normal, gather, agent) ========================================================
 
 
-
-export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, directoryStr, chatMode: mode }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, runningTerminalIds: string[], chatMode: ChatMode }) => `\
-You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} that runs in the user's IDE called Void. Your job is \
-${mode === 'agent' ? `to help the user develop, run, deploy, and make changes to their codebase. You should ALWAYS bring user's task to completion to the fullest extent possible, calling tools to make all necessary changes.`
-		: mode === 'gather' ? `to search and understand the user's codebase. You MUST use tools to read files and help the user understand the codebase, even if you were initially given files.`
-			: mode === 'normal' ? `to assist the user with their coding tasks.`
-				: ''}
-You will be given instructions to follow from the user, \`INSTRUCTIONS\`. You may also be given a list of files that the user has specifically selected, \`SELECTIONS\`.
-Please assist the user with their query. The user's query is never invalid.
-
-${/* tool use */ mode === 'agent' || mode === 'gather' ? `\
-${systemToolsPrompt(mode)}
-\
-`: `\
-You're allowed to ask for more context. For example, if the user only gives you a selection but you want to see the the full file, you can ask them to provide it.
-\
-`}
-${/* code blocks */ mode === 'agent' ? `\
-Behavior:
-- Always use tools (edit, terminal, etc) to take actions and implement changes. Don't just describe them.
-- Prioritize taking as many steps as you need to complete your request over stopping early.\
-`: `\
-If you think it's appropriate to suggest an edit to a file, then you must describe your suggestion in CODE BLOCK(S) (wrapped in triple backticks).
-- The first line of the code block must be the FULL PATH of the file you want to change.
-- The remaining contents should be a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing.
-- NEVER re-write the whole file, and ALWAYS use comments like "// ... existing code ...". Bias towards writing as little as possible.
-- Your description will be handed to a dumber, faster model that will quickly apply the change, so it should be clear and concise.
-Here's an example of a good code block:\n${fileNameEdit}.
-
-If you write a code block that's related to a specific file, please use the same format as above:
-- The first line of the code block must be the FULL PATH of the related file if known.
-- The remaining contents of the file should proceed as usual.
-\
-`}
+export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, directoryStr, chatMode: mode }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, runningTerminalIds: string[], chatMode: ChatMode }) => {
+	const header = (`You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} whose job is \
+${mode === 'agent' ? `to help the user develop, run, and make changes to their codebase.`
+			: mode === 'gather' ? `to search, understand, and reference files in the user's codebase.`
+				: mode === 'normal' ? `to assist the user with their coding tasks.`
+					: ''}
+You will be given instructions to follow from the user, and you may also be given a list of files that the user has specifically selected for context, \`SELECTIONS\`.
+Please assist the user with their query.`)
 
 
-${/* misc */''}
-Misc:
-- Do not make things up.
-- Do not be lazy.
-- NEVER re-write the entire file.
-- Always wrap any code you produce in triple backticks, and specify a language if possible. For example, ${tripleTick[0]}typescript\n...\n${tripleTick[1]}.
-- Today's date is ${new Date().toDateString()}
 
-${/* system info */''}
-The user's system information is as follows:
+	const sysInfo = (`Here is the user's system information:
+<system_info>
 - ${os}
-- Open workspace(s): ${workspaceFolders.join(', ') || 'NO WORKSPACE OPEN'}
-- Open tab(s): ${openedURIs.join(', ') || 'NO OPENED EDITORS'}
-- Active tab: ${activeURI}
-${(mode === 'agent') && runningTerminalIds.length !== 0 ? `
+
+- Open workspaces:
+${workspaceFolders.join('\n') || 'NO WORKSPACE OPEN'}
+
+- Active file:
+${activeURI}
+
+- Open files:
+${openedURIs.join('\n') || 'NO OPENED EDITORS'}${''/* separator */}${mode === 'agent' && runningTerminalIds.length !== 0 ? `
+
 - Existing terminal IDs: ${runningTerminalIds.join(', ')}` : ''}
-- The user's codebase is structured as follows:\n${directoryStr}
+</system_info>`)
 
 
-\
-`.trim().replace('\t', '  ')
+	const fsInfo = (`Here is an overview of the user's file system:
+<files_overview>
+${directoryStr}
+</files_overview>`)
 
+
+	const toolDefinitions = systemToolsXMLPrompt(mode)
+
+	const details: string[] = []
+
+	if (mode === 'agent' || mode === 'gather') {
+		details.push(`Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.`)
+		details.push('Only use ONE tool call at a time, and always wait for the result before proceeding.') // XML
+		details.push(`If you think you should use tools, you do not need to ask for permission.`)
+		details.push(`NEVER say something like "I'm going to use \`tool_name\`". Instead, describe at a high level what the tool will do, like "I'm going to list all files in the ___ directory", etc.`)
+		details.push(`Many tools only work if the user has a workspace open.`)
+	}
+	else {
+		details.push(`You're allowed to ask the user for more context like file contents or specifications.`)
+	}
+
+	if (mode === 'agent') {
+		details.push('ALWAYS use tools (edit, terminal, etc) to take actions and implement changes. For example, if you would like to edit a file, you MUST use a tool.')
+		details.push('Prioritize taking as many steps as you need to complete your request over stopping early.')
+		details.push(`You will OFTEN need to gather context before making a change. Do not immediately make a change unless you have ALL relevant context.`)
+		details.push(`ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`)
+		details.push(`NEVER modify a file outside the user's workspace(s) without permission from the user.`)
+	}
+
+	if (mode === 'gather') {
+		details.push(`Your primary use of tools should be to gather information to help the user understand the codebase and answer their query.`)
+		details.push(`You should extensively read files, types, content, etc and gather relevant context.`)
+	}
+
+
+	if (mode === 'gather' || mode === 'normal') {
+		details.push(`If you write any code blocks, please use this format:
+- The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).
+- The remaining contents of the file should proceed as usual.`)
+
+		details.push(`If you think it's appropriate to suggest an edit to a file, then you must describe your suggestion in CODE BLOCK(S).
+- The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).
+- The remaining contents should be \
+a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing. \
+NEVER re-write the whole file. Instead, use comments like  "// ... existing code ...". Bias towards writing as little as possible. \
+Here's an example of a good edit suggestion:
+${fileNameEditExample}.`)
+	}
+
+	details.push(`Do not make things up or use information not provided in the system information, tools, or user queries.`)
+	details.push(`Today's date is ${new Date().toDateString()}.`)
+
+	const importantDetails = (`Important notes:
+${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
+
+
+	// return answer
+	const ansStrs: string[] = []
+	ansStrs.push(header)
+	ansStrs.push(sysInfo)
+	ansStrs.push(fsInfo)
+	if (toolDefinitions) ansStrs.push(toolDefinitions)
+	ansStrs.push(importantDetails)
+	ansStrs.push('Now, please assist the user with their query.')
+
+	const fullSystemMsgStr = ansStrs
+		.join('\n\n\n')
+		.trim()
+		.replace('\t', '  ')
+
+	return fullSystemMsgStr
+
+}
+
+
+// log all prompts
+for (const chatMode of ['agent', 'gather', 'normal'] satisfies ChatMode[]) {
+	console.log(`========================================= SYSTEM MESSAGE FOR ${chatMode} ===================================\n`,
+		chat_systemMessage({ chatMode, workspaceFolders: [], openedURIs: [], activeURI: 'pee', runningTerminalIds: [], directoryStr: 'lol', }))
+}
 
 
 export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null,
@@ -458,8 +499,6 @@ export const voidPrefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullF
 
 	const fullFileLines = fullFileStr.split('\n')
 
-	// we can optimize this later
-	const MAX_PREFIX_SUFFIX_CHARS = 20_000
 	/*
 
 	a

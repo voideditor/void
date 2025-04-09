@@ -24,7 +24,7 @@ export type ToolCallParams = {
 	'read_file': { uri: URI, startLine: number | null, endLine: number | null, pageNumber: number },
 	'ls_dir': { rootURI: URI, pageNumber: number },
 	'get_dir_structure': { rootURI: URI },
-	'search_pathnames_only': { queryStr: string, include: string | null, pageNumber: number },
+	'search_pathnames_only': { queryStr: string, searchInFolder: string | null, pageNumber: number },
 	'search_files': { queryStr: string, isRegex: boolean, searchInFolder: URI | null, pageNumber: number },
 	// ---
 	'edit_file': { uri: URI, changeDescription: string },

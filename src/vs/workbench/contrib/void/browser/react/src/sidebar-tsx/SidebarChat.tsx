@@ -2141,7 +2141,7 @@ const CommandBarInChat = () => {
 
 			const acceptRejectButtons = <div
 				// do this with opacity so that the height remains the same at all times
-				className={`flex
+				className={`flex items-center gap-0.5
 					${isFinishedMakingThreadChanges ? '' : 'opacity-0 pointer-events-none'}
 				`}
 			>
@@ -2149,7 +2149,7 @@ const CommandBarInChat = () => {
 					uri={uri}
 					data-tooltip-id='void-tooltip'
 					data-tooltip-place='top'
-					data-tooltip-content='Goto file'
+					data-tooltip-content='Go to file'
 				/>
 				<IconShell1 // RejectAllButtonWrapper
 					Icon={X}

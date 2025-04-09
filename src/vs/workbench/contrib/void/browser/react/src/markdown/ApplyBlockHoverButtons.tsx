@@ -110,7 +110,7 @@ export const JumpToFileButton = ({ uri, ...props }: { uri: URI | 'current' } & R
 			onClick={() => {
 				commandService.executeCommand('vscode.open', uri, { preview: true })
 			}}
-			{...tooltipPropsForApplyBlock({ tooltipName: 'Goto file' })}
+			{...tooltipPropsForApplyBlock({ tooltipName: 'Go to file' })}
 			{...props}
 		/>
 	)
@@ -180,7 +180,7 @@ export const useApplyButtonState = ({ applyBoxId, uri }: { applyBoxId: string, u
 type IndicatorColor = 'green' | 'orange' | 'dark' | 'yellow' | null
 export const StatusIndicator = ({ indicatorColor, title, className, ...props }: { indicatorColor: IndicatorColor, title?: React.ReactNode, className?: string } & React.HTMLAttributes<HTMLDivElement>) => {
 	return (
-		<div className={`flex flex-row text-void-fg-3 text-xs items-center gap-1 ${className}`} {...props}>
+		<div className={`flex flex-row text-void-fg-3 text-xs items-center gap-1.5 ${className}`} {...props}>
 			{title && <span className='opacity-80'>{title}</span>}
 			<div
 				className={` size-1.5 rounded-full border
@@ -196,7 +196,7 @@ export const StatusIndicator = ({ indicatorColor, title, className, ...props }: 
 	);
 };
 
-const tooltipPropsForApplyBlock = ({ tooltipName, color = undefined, position = 'top-end', offset = undefined }: { tooltipName: string, color?: IndicatorColor, position?: PlacesType, offset?: number }) => ({
+const tooltipPropsForApplyBlock = ({ tooltipName, color = undefined, position = 'top', offset = undefined }: { tooltipName: string, color?: IndicatorColor, position?: PlacesType, offset?: number }) => ({
 	'data-tooltip-id': color === 'orange' ? `void-tooltip-orange` : color === 'green' ? 'void-tooltip-green' : 'void-tooltip',
 	'data-tooltip-place': position as PlacesType,
 	'data-tooltip-content': `${tooltipName}`,

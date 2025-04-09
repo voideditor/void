@@ -5,6 +5,7 @@
 
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
+import { useIsDark } from '../util/services.js';
 
 /**
  * Creates a configured global tooltip component with consistent styling
@@ -13,6 +14,10 @@ import 'react-tooltip/dist/react-tooltip.css';
  * 2. Add data-tooltip-id="void-tooltip" and data-tooltip-content="Your tooltip text" to any element
  */
 export const VoidTooltip = () => {
+
+
+	const isDark = useIsDark()
+
 	return (
 
 		// use native colors so we don't have to worry about @@void-scope styles
@@ -39,15 +44,30 @@ export const VoidTooltip = () => {
 		<>
 			<style>
 				{`
+				#void-tooltip, #void-tooltip-orange, #void-tooltip-green {
+					font-size: 12px;
+					padding: 0px 8px;
+					border-radius: 6px;
+					z-index: 999;
+				}
+
 				#void-tooltip {
 					background-color: var(--vscode-editor-background);
 					color: var(--vscode-input-foreground);
+				}
 
-					box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-					font-size: 10px;
-					padding: 0px 8px;
-					border-radius: 6px;
-					z-index: 9999;
+				#void-tooltip-orange {
+					background-color: #F6762A;
+					color: white;
+				}
+
+				#void-tooltip-green {
+					background-color: #228B22;
+					color: white;
+				}
+
+				.react-tooltip-arrow {
+					z-index: -1 !important; /* Keep arrow behind content (somehow this isnt done automatically) */
 				}
 				`}
 			</style>
@@ -55,7 +75,20 @@ export const VoidTooltip = () => {
 
 			<Tooltip
 				id="void-tooltip"
-				border='1px solid var(--vscode-commandCenter-border)'
+				// border='1px solid var(--vscode-editorGroup-border)'
+				border='1px solid rgba(100,100,100,.2)'
+				opacity={1}
+				delayShow={50}
+			/>
+			<Tooltip
+				id="void-tooltip-orange"
+				border='1px solid rgba(200,200,200,.3)'
+				opacity={1}
+				delayShow={50}
+			/>
+			<Tooltip
+				id="void-tooltip-green"
+				border='1px solid rgba(200,200,200,.3)'
 				opacity={1}
 				delayShow={50}
 			/>

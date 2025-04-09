@@ -11,6 +11,7 @@ import { URI } from '../../../../../../../base/common/uri.js'
 import { FileSymlink, LucideIcon, RotateCw, Terminal } from 'lucide-react'
 import { Check, X, Square, Copy, Play, } from 'lucide-react'
 import { getBasename, ListableToolItem, ToolChildrenWrapper } from '../sidebar-tsx/SidebarChat.js'
+import { PlacesType, VariantType } from 'react-tooltip'
 
 enum CopyButtonText {
 	Idle = 'Copy',
@@ -31,13 +32,13 @@ export const IconShell1 = ({ onClick, Icon, disabled, className, ...props }: Ico
 			e.stopPropagation();
 			onClick?.(e);
 		}}
+		// border border-void-border-1 rounded
 		className={`
-            size-[22px]
-			p-[4px]
+            size-[18px]
+			p-[2px]
             flex items-center justify-center
-            text-sm bg-void-bg-3 text-void-fg-1
+            text-sm bg-void-bg-3 text-void-fg-3
             hover:brightness-110
-            border border-void-border-1 rounded
             disabled:opacity-50 disabled:cursor-not-allowed
 			${className}
         `}
@@ -92,13 +93,14 @@ export const CopyButton = ({ codeStr }: { codeStr: string }) => {
 	return <IconShell1
 		Icon={copyButtonText === CopyButtonText.Copied ? Check : copyButtonText === CopyButtonText.Error ? X : Copy}
 		onClick={onCopy}
+		{...tooltipPropsForApplyBlock({ tooltipName: 'Copy' })}
 	/>
 }
 
 
 
 
-export const JumpToFileButton = ({ uri }: { uri: URI | 'current' }) => {
+export const JumpToFileButton = ({ uri, ...props }: { uri: URI | 'current' } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 
@@ -108,6 +110,8 @@ export const JumpToFileButton = ({ uri }: { uri: URI | 'current' }) => {
 			onClick={() => {
 				commandService.executeCommand('vscode.open', uri, { preview: true })
 			}}
+			{...tooltipPropsForApplyBlock({ tooltipName: 'Goto file' })}
+			{...props}
 		/>
 	)
 	return jumpToFileButton
@@ -120,7 +124,6 @@ export const JumpToTerminalButton = ({ onClick }: { onClick: () => void }) => {
 		<IconShell1
 			Icon={Terminal}
 			onClick={onClick}
-			className="text-void-fg-1"
 		/>
 	)
 }
@@ -174,16 +177,18 @@ export const useApplyButtonState = ({ applyBoxId, uri }: { applyBoxId: string, u
 }
 
 
-export const StatusIndicator = ({ color, title, className }: { color: 'green' | 'orange' | 'dark' | null, title?: React.ReactNode, className?: string }) => {
+type IndicatorColor = 'green' | 'orange' | 'dark' | 'yellow' | null
+export const StatusIndicator = ({ indicatorColor, title, className, ...props }: { indicatorColor: IndicatorColor, title?: React.ReactNode, className?: string } & React.HTMLAttributes<HTMLDivElement>) => {
 	return (
-		<div className={`flex flex-row text-void-fg-3 text-xs items-center gap-1 ${className}`}>
-			{title && <span>{title}</span>}
+		<div className={`flex flex-row text-void-fg-3 text-xs items-center gap-1 ${className}`} {...props}>
+			{title && <span className='opacity-80'>{title}</span>}
 			<div
 				className={` size-1.5 rounded-full border
-					${color === 'dark' ? 'bg-void-bg-3 border-void-border-1' :
-						color === 'orange' ? 'bg-orange-500 border-orange-500 shadow-[0_0_4px_0px_rgba(234,88,12,0.6)]' :
-							color === 'green' ? 'bg-green-500 border-green-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
-								'bg-void-border-1 border-void-border-1'
+					${indicatorColor === 'dark' ? 'bg-void-bg-3 border-void-border-1' :
+						indicatorColor === 'orange' ? 'bg-orange-500 border-orange-500 shadow-[0_0_4px_0px_rgba(234,88,12,0.6)]' :
+							indicatorColor === 'green' ? 'bg-green-500 border-green-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
+								indicatorColor === 'yellow' ? 'bg-yellow-500 border-yellow-500 shadow-[0_0_4px_0px_rgba(22,163,74,0.6)]' :
+									'bg-void-border-1 border-void-border-1'
 					}
 				`}
 			/>
@@ -191,7 +196,15 @@ export const StatusIndicator = ({ color, title, className }: { color: 'green' | 
 	);
 };
 
-export const StatusIndicatorForApplyButton = ({ applyBoxId, uri }: { applyBoxId: string, uri: URI | 'current' }) => {
+const tooltipPropsForApplyBlock = ({ tooltipName, color = undefined, position = 'top-end', offset = undefined }: { tooltipName: string, color?: IndicatorColor, position?: PlacesType, offset?: number }) => ({
+	'data-tooltip-id': color === 'orange' ? `void-tooltip-orange` : color === 'green' ? 'void-tooltip-green' : 'void-tooltip',
+	'data-tooltip-place': position as PlacesType,
+	'data-tooltip-content': `${tooltipName}`,
+	'data-tooltip-offset': offset,
+})
+
+
+export const StatusIndicatorForApplyButton = ({ applyBoxId, uri }: { applyBoxId: string, uri: URI | 'current' } & React.HTMLAttributes<HTMLDivElement>) => {
 
 	const { currStreamState } = useApplyButtonState({ applyBoxId, uri })
 
@@ -202,7 +215,19 @@ export const StatusIndicatorForApplyButton = ({ applyBoxId, uri }: { applyBoxId:
 					null
 	)
 
-	const statusIndicatorHTML = <StatusIndicator className='mx-2' color={color} />
+	const tooltipName = (
+		currStreamState === 'idle-no-changes' ? 'Done' :
+			currStreamState === 'streaming' ? 'Applying' :
+				currStreamState === 'idle-has-changes' ? 'Done' : // also 'Done'? 'Applied' looked bad
+					''
+	)
+
+	const statusIndicatorHTML = <StatusIndicator
+		key={currStreamState}
+		className='mx-2'
+		indicatorColor={color}
+		{...tooltipPropsForApplyBlock({ tooltipName, color, position: 'top', offset: 12 })}
+	/>
 	return statusIndicatorHTML
 }
 
@@ -267,11 +292,22 @@ export const ApplyButtonsHTML = ({ codeStr, applyBoxId, reapplyIcon, uri }: { co
 
 
 	if (currStreamState === 'streaming') {
-		return <IconShell1 Icon={Square} onClick={onInterrupt} />
+		return <IconShell1
+
+			Icon={Square}
+			onClick={onInterrupt}
+
+			{...tooltipPropsForApplyBlock({ tooltipName: 'Stop' })}
+		/>
 	}
 
 	if (currStreamState === 'idle-no-changes') {
-		return <IconShell1 Icon={reapplyIcon ? RotateCw : Play} onClick={onClickSubmit} />
+
+		return <IconShell1
+			Icon={reapplyIcon ? RotateCw : Play}
+			onClick={onClickSubmit}
+			{...tooltipPropsForApplyBlock({ tooltipName: reapplyIcon ? 'Reapply' : 'Apply' })}
+		/>
 	}
 
 	if (currStreamState === 'idle-has-changes') {
@@ -283,12 +319,12 @@ export const ApplyButtonsHTML = ({ codeStr, applyBoxId, reapplyIcon, uri }: { co
 			<IconShell1
 				Icon={X}
 				onClick={onReject}
-				className="text-red-600"
+				{...tooltipPropsForApplyBlock({ tooltipName: 'Reject file' })}
 			/>
 			<IconShell1
 				Icon={Check}
 				onClick={onAccept}
-				className="text-green-600"
+				{...tooltipPropsForApplyBlock({ tooltipName: 'Accept file' })}
 			/>
 		</>
 	}

@@ -78,7 +78,6 @@
 
 /* styles for all containers used by void */
 .void-scope {
-	background-color: var(--vscode-editor-background);
 	--scrollbar-vertical-width: 8px;
 	--scrollbar-horizontal-height: 6px;
 }

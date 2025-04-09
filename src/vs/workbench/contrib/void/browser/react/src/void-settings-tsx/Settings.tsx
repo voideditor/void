@@ -19,8 +19,7 @@ import { WarningBox } from './WarningBox.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
 import { IconLoading, IconX } from '../sidebar-tsx/SidebarChat.js'
 import { getModelCapabilities, getProviderCapabilities, ollamaRecommendedModels, VoidStaticModelInfo } from '../../../../common/modelCapabilities.js'
-import { ToolCallType, AnthropicReasoning } from '../../../../common/sendLLMMessageTypes.js'
-import { IconShell1, StatusIndicatorForApplyButton } from '../markdown/ApplyBlockHoverButtons.js'
+
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 

@@ -139,6 +139,20 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 		>
 			Disable Suggestions?
 		</div>
+
+		{dividerHTML}
+
+		<div
+			className='
+				flex items-center px-0.5
+				cursor-pointer
+			'
+			onClick={() => {
+				setClickState('init');
+			}}
+		>
+			<MoreVertical className="w-4" />
+		</div>
 	</>
 
 	return <div className='

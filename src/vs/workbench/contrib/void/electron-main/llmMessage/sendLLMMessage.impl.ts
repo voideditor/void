@@ -95,7 +95,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 	}
 	else if (providerName === 'gemini') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return new OpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 	else if (providerName === 'deepseek') {
 		const thisConfig = settingsOfProvider[providerName]

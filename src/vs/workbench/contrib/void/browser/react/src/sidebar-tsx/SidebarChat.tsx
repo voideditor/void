@@ -23,9 +23,10 @@ import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../co
 import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
 import { ToolCallParams, ToolName, toolNames, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
-import { ApplyButtonsHTML, CopyButton, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
+import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
+import { PlacesType } from 'react-tooltip';
 
 
 
@@ -391,6 +392,9 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 			${disabled ? 'bg-vscode-disabled-fg cursor-default' : 'bg-white cursor-pointer'}
 			${className}
 		`}
+		// data-tooltip-id='void-tooltip'
+		// data-tooltip-content={'Send'}
+		// data-tooltip-place='left'
 		{...props}
 	>
 		<IconArrowUp size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[2px]" />
@@ -955,25 +959,32 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, _scr
 		</div>
 
 
-		<EditSymbol
-			size={18}
-			className={`
-				absolute -top-1 -right-1
-				translate-x-0 -translate-y-0
-				cursor-pointer z-1
-				p-[2px]
-				bg-void-bg-1 border border-void-border-1 rounded-md
-				transition-opacity duration-200 ease-in-out
-				${isHovered || (isFocused && mode === 'edit') ? 'opacity-100' : 'opacity-0'}
-			`}
-			onClick={() => {
-				if (mode === 'display') {
-					onOpenEdit()
-				} else if (mode === 'edit') {
-					onCloseEdit()
-				}
-			}}
-		/>
+
+		<div
+			className="absolute -top-1 -right-1 translate-x-0 -translate-y-0 z-1"
+		// data-tooltip-id='void-tooltip'
+		// data-tooltip-content='Edit message'
+		// data-tooltip-place='left'
+		>
+			<EditSymbol
+				size={18}
+				className={`
+						cursor-pointer
+						p-[2px]
+						bg-void-bg-1 border border-void-border-1 rounded-md
+						transition-opacity duration-200 ease-in-out
+						${isHovered || (isFocused && mode === 'edit') ? 'opacity-100' : 'opacity-0'}
+					`}
+				onClick={() => {
+					if (mode === 'display') {
+						onOpenEdit()
+					} else if (mode === 'edit') {
+						onCloseEdit()
+					}
+				}}
+			/>
+		</div>
+
 
 	</div>
 
@@ -1240,7 +1251,7 @@ const ToolRequestAcceptRejectButtons = () => {
 		<button
 			onClick={onAccept}
 			className={`
-                px-4 py-1.5
+                px-2 py-1
                 bg-[var(--vscode-button-background)]
                 text-[var(--vscode-button-foreground)]
                 hover:bg-[var(--vscode-button-hoverBackground)]
@@ -1256,7 +1267,7 @@ const ToolRequestAcceptRejectButtons = () => {
 		<button
 			onClick={onReject}
 			className={`
-                px-4 py-1.5
+                px-2 py-1
                 bg-[var(--vscode-button-secondaryBackground)]
                 text-[var(--vscode-button-secondaryForeground)]
                 hover:bg-[var(--vscode-button-secondaryHoverBackground)]
@@ -1271,7 +1282,7 @@ const ToolRequestAcceptRejectButtons = () => {
 	const autoApproveToggle = (
 		<div className="flex items-center ml-2 gap-x-1">
 			<VoidSwitch
-				size="xs"
+				size="xxs"
 				value={voidSettingsState.globalSettings.autoApprove}
 				onChange={onToggleAutoApprove}
 			/>
@@ -2002,17 +2013,24 @@ const CommandBarInChat = () => {
 	const chatThreadsState = useChatThreadsState()
 	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
 
-	const [isFileDetailsOpened, setFileDetailsOpened] = useState(false);
+	const [fileDetailsOpenedState, setFileDetailsOpenedState] = useState<'auto-opened' | 'auto-closed' | 'user-opened' | 'user-closed'>('auto-closed');
+	const isFileDetailsOpened = fileDetailsOpenedState === 'auto-opened' || fileDetailsOpenedState === 'user-opened';
 
-	// close the file details if there are no files
+
 	useEffect(() => {
-		if (isFileDetailsOpened && numFilesChanged === 0) {
-			setFileDetailsOpened(false)
+		// close the file details if there are no files
+		// this converts 'user-closed' to 'auto-closed'
+		if (numFilesChanged === 0) {
+			setFileDetailsOpenedState('auto-closed')
 		}
-	}, [isFileDetailsOpened, numFilesChanged, setFileDetailsOpened])
+		// open the file details if it hasnt been closed
+		if (numFilesChanged > 0 && fileDetailsOpenedState !== 'user-closed') {
+			setFileDetailsOpenedState('auto-opened')
+		}
+	}, [fileDetailsOpenedState, setFileDetailsOpenedState, numFilesChanged])
 
 
-	const isFinishedMakingThreadChanges = chatThreadsStreamState && !chatThreadsStreamState.isRunning && numFilesChanged !== 0
+	const isFinishedMakingThreadChanges = numFilesChanged !== 0 && (chatThreadsStreamState ? !chatThreadsStreamState.isRunning : true)
 
 	// ======== status of agent ========
 	// This icon answers the question "is the LLM doing work on this thread?"
@@ -2022,13 +2040,13 @@ const CommandBarInChat = () => {
 	// dark = Done
 
 	const threadStatus = (
-		chatThreadsStreamState?.isRunning === 'awaiting_user' ? { title: 'Needs Approval', color: 'orange', } as const
-			: chatThreadsStreamState?.isRunning ? { title: 'Running', color: 'green', } as const
+		chatThreadsStreamState?.isRunning === 'awaiting_user' ? { title: 'Needs Approval', color: 'yellow', } as const
+			: chatThreadsStreamState?.isRunning ? { title: 'Running', color: 'orange', } as const
 				: { title: 'Done', color: 'dark', } as const
 	)
 
 
-	const threadStatusHTML = <StatusIndicator color={threadStatus.color} title={threadStatus.title} />
+	const threadStatusHTML = <StatusIndicator className='mx-1' indicatorColor={threadStatus.color} title={threadStatus.title} />
 
 
 	// ======== info about changes ========
@@ -2037,29 +2055,21 @@ const CommandBarInChat = () => {
 	// popup info about each change (each with num changes + acceptall + rejectall of their own)
 
 	const numFilesChangedStr = numFilesChanged === 0 ? 'No files with changes'
-		: `${sortedCommandBarURIs.length} file${numFilesChanged === 1 ? '' : 's'} changed`
+		: `${sortedCommandBarURIs.length} file${numFilesChanged === 1 ? '' : 's'} with changes`
 
-	const acceptAllButton = (
-		<AcceptAllButtonWrapper
-			text="Accept All"
-			className="text-xs"
-			onClick={() => {
-				sortedCommandBarURIs.forEach(uri => {
-					editCodeService.acceptOrRejectAllDiffAreas({
-						uri,
-						removeCtrlKs: true,
-						behavior: "accept",
-						_addToHistory: true,
-					})
-				})
-			}}
-		/>
-	)
 
-	const rejectAllButton = (
-		<RejectAllButtonWrapper
-			text="Reject All"
-			className="text-xs"
+
+
+	const acceptRejectAllButtons = <div
+		// do this with opacity so that the height remains the same at all times
+		className={`flex items-center gap-0.5
+			${isFinishedMakingThreadChanges ? '' : 'opacity-0 pointer-events-none'}`
+		}
+	>
+		<IconShell1 // RejectAllButtonWrapper
+			// text="Reject All"
+			// className="text-xs"
+			Icon={X}
 			onClick={() => {
 				sortedCommandBarURIs.forEach(uri => {
 					editCodeService.acceptOrRejectAllDiffAreas({
@@ -2067,16 +2077,35 @@ const CommandBarInChat = () => {
 						removeCtrlKs: true,
 						behavior: "reject",
 						_addToHistory: true,
-					})
-				})
+					});
+				});
 			}}
+			data-tooltip-id='void-tooltip'
+			data-tooltip-place='top'
+			data-tooltip-content='Reject all'
 		/>
-	)
+
+		<IconShell1 // AcceptAllButtonWrapper
+			// text="Accept All"
+			// className="text-xs"
+			Icon={Check}
+			onClick={() => {
+				sortedCommandBarURIs.forEach(uri => {
+					editCodeService.acceptOrRejectAllDiffAreas({
+						uri,
+						removeCtrlKs: true,
+						behavior: "accept",
+						_addToHistory: true,
+					});
+				});
+			}}
+			data-tooltip-id='void-tooltip'
+			data-tooltip-place='top'
+			data-tooltip-content='Accept all'
+		/>
 
 
-	const acceptRejectAllButtons = isFinishedMakingThreadChanges && <div className='flex items-center gap-1'>
-		{acceptAllButton}
-		{rejectAllButton}
+
 	</div>
 
 
@@ -2092,44 +2121,60 @@ const CommandBarInChat = () => {
 
 			const fileStatus = (isFinishedMakingFileChanges
 				? { title: 'Done', color: 'dark', } as const
-				: { title: 'Running', color: 'green', } as const
+				: { title: 'Running', color: 'orange', } as const
 			)
 
-			const acceptButton = <AcceptAllButtonWrapper
-				text="Accept"
-				className="text-xs"
-				onClick={() => { editCodeService.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: "accept", _addToHistory: true, }) }}
-			/>
-
-			const rejectButton = <RejectAllButtonWrapper
-				text="Reject"
-				className="text-xs"
-				onClick={() => { editCodeService.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: "reject", _addToHistory: true, }) }}
-			/>
-
 			const fileNameHTML = <div
-				className="flex items-center gap-1.5 hover:brightness-125 transition-all duration-200 cursor-pointer"
+				className="flex items-center gap-1.5 text-void-fg-3 hover:brightness-125 transition-all duration-200 cursor-pointer"
 				onClick={() => commandService.executeCommand('vscode.open', uri, { preview: true })}
 			>
-				<FileIcon size={14} className="text-void-fg-3" />
-				<span className="text-void-fg-2">{basename}</span>
+				{/* <FileIcon size={14} className="text-void-fg-3" /> */}
+				<span className="text-void-fg-3">{basename}</span>
 			</div>
 
-			const detailsContent = <>
-				<span className="text-void-fg-3">{numDiffs} change{numDiffs !== 1 ? 's' : ''}</span>
-			</>
 
-			const acceptRejectButtons = isFinishedMakingFileChanges && <div className='flex gap-1'>
-				{acceptButton}
-				{rejectButton}
+
+
+			const detailsContent = <div className='flex px-4'>
+				<span className="text-void-fg-3 opacity-80">{numDiffs} diff{numDiffs !== 1 ? 's' : ''}</span>
 			</div>
 
-			const fileStatusHTML = <StatusIndicator color={fileStatus.color} title={fileStatus.title} />
+			const acceptRejectButtons = <div
+				// do this with opacity so that the height remains the same at all times
+				className={`flex
+					${isFinishedMakingThreadChanges ? '' : 'opacity-0 pointer-events-none'}
+				`}
+			>
+				<JumpToFileButton
+					uri={uri}
+					data-tooltip-id='void-tooltip'
+					data-tooltip-place='top'
+					data-tooltip-content='Goto file'
+				/>
+				<IconShell1 // RejectAllButtonWrapper
+					Icon={X}
+					onClick={() => { editCodeService.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: "reject", _addToHistory: true, }); }}
+					data-tooltip-id='void-tooltip'
+					data-tooltip-place='top'
+					data-tooltip-content='Reject file'
+
+				/>
+				<IconShell1 // AcceptAllButtonWrapper
+					Icon={Check}
+					onClick={() => { editCodeService.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: "accept", _addToHistory: true, }); }}
+					data-tooltip-id='void-tooltip'
+					data-tooltip-place='top'
+					data-tooltip-content='Accept file'
+				/>
+
+			</div>
+
+			const fileStatusHTML = <StatusIndicator className='mx-1' indicatorColor={fileStatus.color} title={fileStatus.title} />
 
 			return (
 				// name, details
-				<div key={i} className="flex justify-between items-center gap-2">
-					<div className="flex items-center gap-2">
+				<div key={i} className="flex justify-between items-center">
+					<div className="flex items-center">
 						{fileNameHTML}
 						{detailsContent}
 					</div>
@@ -2145,7 +2190,7 @@ const CommandBarInChat = () => {
 	const fileDetailsButton = (
 		<button
 			className={`flex items-center gap-1 rounded ${numFilesChanged === 0 ? 'cursor-pointer' : 'cursor-pointer hover:brightness-125 transition-all duration-200'}`}
-			onClick={() => setFileDetailsOpened(!isFileDetailsOpened)}
+			onClick={() => isFileDetailsOpened ? setFileDetailsOpenedState('user-closed') : setFileDetailsOpenedState('user-opened')}
 			type='button'
 			disabled={numFilesChanged === 0}
 		>
@@ -2171,8 +2216,8 @@ const CommandBarInChat = () => {
 						flex w-full rounded-t-lg bg-void-bg-3
 						text-void-fg-3 text-xs text-nowrap
 
-						overflow-hidden transition-all duration-200 ease-in-out origin-top
-						${isFileDetailsOpened ? 'max-h-32' : 'max-h-0'}
+						overflow-hidden transition-all duration-200 ease-in-out
+						${isFileDetailsOpened ? 'max-h-24' : 'max-h-0'}
 					`}
 				>
 					{fileDetailsContent}
@@ -2183,7 +2228,8 @@ const CommandBarInChat = () => {
 				className={`
 					select-none
 					flex w-full rounded-t-lg bg-void-bg-3
-					text-void-fg-4 text-xs text-nowrap
+					text-void-fg-3 text-xs text-nowrap
+					border-t border-l border-r border-zinc-300/10
 
 					px-2 py-1
 					justify-between

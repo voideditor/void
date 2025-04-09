@@ -22,7 +22,7 @@ export type ToolMessage<T extends ToolName> = {
 		| { type: 'running_now', result: null, name: T, params: ToolCallParams[T], }
 
 		| { type: 'tool_error', result: string, name: T, params: ToolCallParams[T], } // error when tool was running
-		| { type: 'success', result: ToolResultType[T], name: T, params: ToolCallParams[T], }
+		| { type: 'success', result: Awaited<ToolResultType[T]>, name: T, params: ToolCallParams[T], }
 		| { type: 'rejected', result: null, name: T, params: ToolCallParams[T], }
 	) // user rejected
 

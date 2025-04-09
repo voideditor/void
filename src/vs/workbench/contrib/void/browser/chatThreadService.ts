@@ -634,7 +634,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			// compute these below
 			let toolParams: ToolCallParams[ToolName]
-			let toolResult: ToolResultType[typeof toolName]
+			let toolResult: Awaited<ToolResultType[typeof toolName]>
 			let toolResultStr: string
 
 			if (!opts?.preapproved) { // skip this if pre-approved

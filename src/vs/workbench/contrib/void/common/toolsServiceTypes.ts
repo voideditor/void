@@ -6,6 +6,8 @@ import { voidTools } from './prompt/prompts.js';
 
 export type TerminalResolveReason = { type: 'toofull' | 'timeout' | 'bgtask' } | { type: 'done', exitCode: number }
 
+export type LintErrorItem = { code: string, message: string, startLineNumber: number, endLineNumber: number }
+
 // Partial of IFileStat
 export type ShallowDirectoryItem = {
 	uri: URI;
@@ -63,7 +65,7 @@ export type ToolResultType = {
 	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },
 	'search_files': { uris: URI[], hasNextPage: boolean },
 	// ---
-	'edit_file': Promise<{ lintErrorsStr: string | null }>,
+	'edit_file': Promise<{ lintErrors: LintErrorItem[] | null }>,
 	'create_file_or_folder': {},
 	'delete_file_or_folder': {},
 	'run_terminal_command': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: TerminalResolveReason; },

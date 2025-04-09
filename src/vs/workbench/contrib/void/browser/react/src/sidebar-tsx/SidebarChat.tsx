@@ -22,7 +22,7 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
-import { ToolCallParams, ToolName, toolNames, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
+import { LintErrorItem, ToolCallParams, ToolName, toolNames, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
@@ -657,6 +657,7 @@ type ToolHeaderParams = {
 	numResults?: number;
 	hasNextPage?: boolean;
 	children?: React.ReactNode;
+	bottomChildren?: React.ReactNode;
 	onClick?: () => void;
 	isOpen?: boolean,
 }
@@ -1716,7 +1717,10 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 				// add children
 				if (toolMessage.type !== 'tool_error') {
-					const { params } = toolMessage
+					const { params, result } = toolMessage
+
+					// componentParams.bottomChildren = <EditToolLintErrors lintErrors={result?.lintErrors || []} />
+
 					componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
 						<EditToolChildren
 							uri={params.uri}

@@ -2,16 +2,14 @@
   "name": "razor",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "publisher": "vscode",
   "license": "MIT",
-  "keywords": ["razor", "cshtml", "aspnet", "blazor"],
   "engines": {
-    "vscode": "^1.50.0"
+    "vscode": "0.10.x"
   },
   "scripts": {
-    "update-grammar": "node ./build/update-grammar.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "update-grammar": "node ./build/update-grammar.mjs"
   },
   "categories": ["Programming Languages"],
   "contributes": {

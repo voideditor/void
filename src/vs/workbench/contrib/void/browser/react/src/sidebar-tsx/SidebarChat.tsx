@@ -2146,7 +2146,7 @@ const CommandBarInChat = () => {
 			const acceptRejectButtons = <div
 				// do this with opacity so that the height remains the same at all times
 				className={`flex items-center gap-0.5
-					${isFinishedMakingThreadChanges ? '' : 'opacity-0 pointer-events-none'}
+					${isFinishedMakingFileChanges ? '' : 'opacity-0 pointer-events-none'}
 				`}
 			>
 				<JumpToFileButton

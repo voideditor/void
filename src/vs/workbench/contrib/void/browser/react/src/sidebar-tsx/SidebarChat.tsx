@@ -658,6 +658,7 @@ type ToolHeaderParams = {
 	numResults?: number;
 	hasNextPage?: boolean;
 	children?: React.ReactNode;
+	bottomChildren?: React.ReactNode;
 	onClick?: () => void;
 	isOpen?: boolean,
 }
@@ -1723,7 +1724,10 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 				// add children
 				if (toolMessage.type !== 'tool_error') {
-					const { params } = toolMessage
+					const { params, result } = toolMessage
+
+					// componentParams.bottomChildren = <EditToolLintErrors lintErrors={result?.lintErrors || []} />
+
 					componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
 						<EditToolChildren
 							uri={params.uri}
@@ -2150,7 +2154,7 @@ const CommandBarInChat = () => {
 			const acceptRejectButtons = <div
 				// do this with opacity so that the height remains the same at all times
 				className={`flex items-center gap-0.5
-					${isFinishedMakingThreadChanges ? '' : 'opacity-0 pointer-events-none'}
+					${isFinishedMakingFileChanges ? '' : 'opacity-0 pointer-events-none'}
 				`}
 			>
 				<JumpToFileButton

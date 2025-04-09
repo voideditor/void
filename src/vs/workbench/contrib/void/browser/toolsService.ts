@@ -8,7 +8,7 @@ import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
 import { ITerminalToolService } from './terminalToolService.js'
-import { ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js'
+import { LintErrorItem, ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js'
 import { IVoidModelService } from '../common/voidModelService.js'
 import { EndOfLinePreference } from '../../../../editor/common/model.js'
 import { basename } from '../../../../base/common/path.js'
@@ -359,13 +359,18 @@ export class ToolsService implements IToolsService {
 
 				const lintErrorsPromise = applyDonePromise.then(async () => {
 					await timeout(500)
-					const lintErrorsStr = this.markerService
-						.read({ resource: uri })
-						.map(l => l.message)
-						.join('\n')
 
-					if (!lintErrorsStr) return { lintErrorsStr: null }
-					return { lintErrorsStr }
+					const lintErrors = this.markerService
+						.read({ resource: uri })
+						.map(l => ({
+							code: typeof l.code === 'string' ? l.code : l.code?.value || '',
+							message: l.message,
+							startLineNumber: l.startLineNumber,
+							endLineNumber: l.endLineNumber,
+						} satisfies LintErrorItem))
+
+					if (!lintErrors.length) return { lintErrors: null }
+					return { lintErrors, }
 				})
 
 				return { result: lintErrorsPromise, interruptTool }
@@ -378,6 +383,8 @@ export class ToolsService implements IToolsService {
 
 
 		const nextPageStr = (hasNextPage: boolean) => hasNextPage ? '\n\n(more on next page...)' : ''
+
+		const lintErrorsStr = (lintErrors: LintErrorItem[]) => lintErrors.map((e, i) => `Error ${i + 1}:\nLines Affected: ${e.startLineNumber}-${e.endLineNumber}\nError message:${e.message}`).join('\n\n')
 
 		// given to the LLM after the call
 		this.stringOfResult = {
@@ -405,8 +412,10 @@ export class ToolsService implements IToolsService {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
 			edit_file: (params, result) => {
-				const additionalStr = result.lintErrorsStr ? `Lint errors found after change:\n${result.lintErrorsStr}.\nIf this is related to a change made while calling this tool, you might want to fix the error.` : `No lint errors found.`
-				return `Change successfully made to ${params.uri.fsPath}. ${additionalStr}`
+
+				const additionalStr = result.lintErrors ? `Lint errors found after change:\n${lintErrorsStr(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.` : `No lint errors found.`
+
+				return `Change successfully made to ${params.uri.fsPath}.${additionalStr}`
 			},
 			run_terminal_command: (params, result) => {
 				const {

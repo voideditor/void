@@ -8,7 +8,7 @@ import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
 import { ITerminalToolService } from './terminalToolService.js'
-import { LintErrorItem, ToolCallParams, ToolName, ToolResultType } from '../common/toolsServiceTypes.js'
+import { LintErrorItem, ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js'
 import { IVoidModelService } from '../common/voidModelService.js'
 import { EndOfLinePreference } from '../../../../editor/common/model.js'
 import { basename } from '../../../../base/common/path.js'
@@ -16,6 +16,8 @@ import { IVoidCommandBarService } from './voidCommandBarService.js'
 import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree1Deep } from './directoryStrService.js'
 import { IMarkerService } from '../../../../platform/markers/common/markers.js'
 import { timeout } from '../../../../base/common/async.js'
+import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
+import { ToolName } from '../common/prompt/prompts.js'
 
 
 // tool use for AI
@@ -23,7 +25,7 @@ import { timeout } from '../../../../base/common/async.js'
 
 
 
-type ValidateParams = { [T in ToolName]: (p: string) => Promise<ToolCallParams[T]> }
+type ValidateParams = { [T in ToolName]: (p: RawToolParamsObj) => Promise<ToolCallParams[T]> }
 type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], interruptTool?: () => void }> }
 type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awaited<ToolResultType[T]>) => string }
 
@@ -34,35 +36,16 @@ type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awai
 export const MAX_FILE_CHARS_PAGE = 50_000
 export const MAX_CHILDREN_URIs_PAGE = 500
 export const MAX_TERMINAL_CHARS_PAGE = 20_000
-export const TERMINAL_TIMEOUT_TIME = 15
+export const TERMINAL_TIMEOUT_TIME = 5 // seconds
 export const TERMINAL_BG_WAIT_TIME = 1
 
-
-
-
-
-const validateJSON = (s: string): { [s: string]: unknown } => {
-	try {
-		const o = JSON.parse(s)
-		if (typeof o !== 'object') throw new Error()
-
-		if ('result' in o) { // openrouter sometimes wraps the result with { 'result': ... }
-			return o.result
-		}
-
-		return o
-	}
-	catch (e) {
-		throw new Error(`Invalid LLM output format: Tool parameter was not a string of a valid JSON: "${s}".`)
-	}
-}
 
 const isFalsy = (u: unknown) => {
 	return !u || u === 'null' || u === 'undefined'
 }
 
 const validateStr = (argName: string, value: unknown) => {
-	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string.`)
+	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string, but it's a ${typeof value}. Value: ${value}.`)
 	return value
 }
 
@@ -70,7 +53,7 @@ const validateStr = (argName: string, value: unknown) => {
 // We are NOT checking to make sure in workspace
 // TODO!!!! check to make sure folder/file exists
 const validateURI = (uriStr: unknown) => {
-	if (typeof uriStr !== 'string') throw new Error('Invalid LLM output format: Provided uri must be a string.')
+	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a ${typeof uriStr}. Value: ${uriStr}.`)
 	const uri = URI.file(uriStr)
 	return uri
 }
@@ -109,6 +92,7 @@ const validateNumber = (numStr: unknown, opts: { default: number | null }) => {
 }
 
 const validateRecursiveParamStr = (paramsUnknown: unknown) => {
+	if (!paramsUnknown) return false
 	if (typeof paramsUnknown !== 'string') throw new Error('Invalid LLM output format: Error calling tool: provided params must be a string.')
 	const params = paramsUnknown
 	const isRecursive = params.includes('r')
@@ -172,10 +156,8 @@ export class ToolsService implements IToolsService {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.validateParams = {
-			read_file: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriStr, startLine: startLineUnknown, endLine: endLineUnknown, pageNumber: pageNumberUnknown } = o
-
+			read_file: async (params: RawToolParamsObj) => {
+				const { uri: uriStr, start_line: startLineUnknown, end_line: endLineUnknown, page_number: pageNumberUnknown } = params
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
@@ -184,43 +166,39 @@ export class ToolsService implements IToolsService {
 
 				return { uri, startLine, endLine, pageNumber }
 			},
-			ls_dir: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriStr, pageNumber: pageNumberUnknown } = o
+			ls_dir: async (params: RawToolParamsObj) => {
+				const { uri: uriStr, page_number: pageNumberUnknown } = params
 
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 				return { rootURI: uri, pageNumber }
 			},
-			get_dir_structure: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriStr, } = o
+			get_dir_structure: async (params: RawToolParamsObj) => {
+				const { uri: uriStr, } = params
 				const uri = validateURI(uriStr)
 				return { rootURI: uri }
 			},
-			search_pathnames_only: async (params: string) => {
-				const o = validateJSON(params)
+			search_pathnames_only: async (params: RawToolParamsObj) => {
 				const {
 					query: queryUnknown,
-					include: includeUnknown,
-					pageNumber: pageNumberUnknown
-				} = o
+					search_in_folder: includeUnknown,
+					page_number: pageNumberUnknown
+				} = params
 
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
-				const include = validateOptionalStr('include', includeUnknown)
+				const searchInFolder = validateOptionalStr('search_in_folder', includeUnknown)
 
-				return { queryStr, include, pageNumber }
+				return { queryStr, searchInFolder, pageNumber }
 
 			},
-			search_files: async (params: string) => {
-				const o = validateJSON(params)
+			search_files: async (params: RawToolParamsObj) => {
 				const {
 					query: queryUnknown,
-					searchInFolder: searchInFolderUnknown,
-					isRegex: isRegexUnknown,
-					pageNumber: pageNumberUnknown
-				} = o
+					search_in_folder: searchInFolderUnknown,
+					is_regex: isRegexUnknown,
+					page_number: pageNumberUnknown
+				} = params
 
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
@@ -233,18 +211,16 @@ export class ToolsService implements IToolsService {
 
 			// ---
 
-			create_file_or_folder: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriUnknown } = o
+			create_file_or_folder: async (params: RawToolParamsObj) => {
+				const { uri: uriUnknown } = params
 				const uri = validateURI(uriUnknown)
 				const uriStr = validateStr('uri', uriUnknown)
 				const isFolder = checkIfIsFolder(uriStr)
 				return { uri, isFolder }
 			},
 
-			delete_file_or_folder: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriUnknown, params: paramsStr } = o
+			delete_file_or_folder: async (params: RawToolParamsObj) => {
+				const { uri: uriUnknown, params: paramsStr } = params
 				const uri = validateURI(uriUnknown)
 				const isRecursive = validateRecursiveParamStr(paramsStr)
 				const uriStr = validateStr('uri', uriUnknown)
@@ -252,17 +228,15 @@ export class ToolsService implements IToolsService {
 				return { uri, isRecursive, isFolder }
 			},
 
-			edit_file: async (params: string) => {
-				const o = validateJSON(params)
-				const { uri: uriStr, changeDescription: changeDescriptionUnknown } = o
+			edit_file: async (params: RawToolParamsObj) => {
+				const { uri: uriStr, change_description: changeDescriptionUnknown } = params
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
 				return { uri, changeDescription }
 			},
 
-			run_terminal_command: async (s: string) => {
-				const o = validateJSON(s)
-				const { command: commandUnknown, terminalId: terminalIdUnknown, waitForCompletion: waitForCompletionUnknown } = o
+			run_terminal_command: async (params: RawToolParamsObj) => {
+				const { command: commandUnknown, terminal_id: terminalIdUnknown, wait_for_completion: waitForCompletionUnknown } = params
 				const command = validateStr('command', commandUnknown)
 				const proposedTerminalId = validateProposedTerminalId(terminalIdUnknown)
 				const waitForCompletion = validateBoolean(waitForCompletionUnknown, { default: true })
@@ -302,17 +276,15 @@ export class ToolsService implements IToolsService {
 			},
 
 			get_dir_structure: async ({ rootURI }) => {
-				const result = await this.directoryStrService.getDirectoryStrTool(rootURI)
-				let str = result.str
-				if (result.wasCutOff) str += '\n(Result was truncated)'
+				const str = await this.directoryStrService.getDirectoryStrTool(rootURI)
 				return { result: { str } }
 			},
 
-			search_pathnames_only: async ({ queryStr, include, pageNumber }) => {
+			search_pathnames_only: async ({ queryStr, searchInFolder, pageNumber }) => {
 
 				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), {
 					filePattern: queryStr,
-					includePattern: include ?? undefined,
+					includePattern: searchInFolder ?? undefined,
 				})
 				const data = await searchService.fileSearch(query, CancellationToken.None)
 
@@ -456,7 +428,7 @@ export class ToolsService implements IToolsService {
 				const terminalDesc = `terminal ${terminalId}${didCreateTerminal ? ` (a newly-created terminal)` : ''}`
 
 				if (resolveReason.type === 'timeout') {
-					return `Terminal command ran in ${terminalDesc}, but timed out after ${TERMINAL_TIMEOUT_TIME} seconds. Result:\n${result_}`
+					return `Terminal command ran in ${terminalDesc}, but did not complete after ${TERMINAL_TIMEOUT_TIME} seconds. Result:\n${result_}`
 				}
 				else if (resolveReason.type === 'bgtask') {
 					return `Terminal command is running in the background in ${terminalDesc}. Here were the outputs after ${TERMINAL_BG_WAIT_TIME} seconds:\n${result_}`

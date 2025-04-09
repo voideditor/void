@@ -23,17 +23,10 @@ type InternalLLMChatMessage = {
 } | {
 	role: 'assistant',
 	content: string | (AnthropicReasoning | { type: 'text'; text: string })[];
-} | {
-	role: 'tool';
-	content: string; // result
-	name: string;
-	params: string;
-	id: string;
 }
 
 
 const EMPTY_MESSAGE = '(empty message)'
-const EMPTY_TOOL_CONTENT = '(empty content)'
 
 const prepareMessages_normalize = ({ messages: messages_ }: { messages: LLMChatMessage[] }): { messages: LLMChatMessage[] } => {
 	const messages = deepClone(messages_)
@@ -145,7 +138,7 @@ const prepareMessages_fitIntoContext = ({ messages, contextWindow, maxOutputToke
 
 
 // no matter whether the model supports a system message or not (or what format it supports), add it in some way
-const prepareMessages_systemMessage = ({
+const prepareMessages_addSystemInstructions = ({
 	messages,
 	aiInstructions,
 	supportsSystemMessage,
@@ -206,190 +199,190 @@ const prepareMessages_systemMessage = ({
 
 
 
-// convert messages as if about to send to openai
-/*
-reference - https://platform.openai.com/docs/guides/function-calling#function-calling-steps
-openai MESSAGE (role=assistant):
-"tool_calls":[{
-	"type": "function",
-	"id": "call_12345xyz",
-	"function": {
-	"name": "get_weather",
-	"arguments": "{\"latitude\":48.8566,\"longitude\":2.3522}"
-}]
+// // convert messages as if about to send to openai
+// /*
+// reference - https://platform.openai.com/docs/guides/function-calling#function-calling-steps
+// openai MESSAGE (role=assistant):
+// "tool_calls":[{
+// 	"type": "function",
+// 	"id": "call_12345xyz",
+// 	"function": {
+// 	"name": "get_weather",
+// 	"arguments": "{\"latitude\":48.8566,\"longitude\":2.3522}"
+// }]
 
-openai RESPONSE (role=user):
-{   "role": "tool",
-	"tool_call_id": tool_call.id,
-	"content": str(result)    }
+// openai RESPONSE (role=user):
+// {   "role": "tool",
+// 	"tool_call_id": tool_call.id,
+// 	"content": str(result)    }
 
-also see
-openai on prompting - https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
-openai on developer system message - https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
-*/
+// also see
+// openai on prompting - https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
+// openai on developer system message - https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
+// */
 
-type PrepareMessagesToolsOpenAI = (
-	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'tool' }> | {
-		role: 'assistant',
-		content: string | (AnthropicReasoning | { type: 'text'; text: string })[];
-		tool_calls?: {
-			type: 'function';
-			id: string;
-			function: {
-				name: string;
-				arguments: string;
-			}
-		}[]
-	} | {
-		role: 'tool',
-		tool_call_id: string;
-		content: string;
-	}
-)[]
-const prepareMessages_tools_openai = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
+// type PrepareMessagesToolsOpenAI = (
+// 	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'tool' }> | {
+// 		role: 'assistant',
+// 		content: string | (AnthropicReasoning | { type: 'text'; text: string })[];
+// 		tool_calls?: {
+// 			type: 'function';
+// 			id: string;
+// 			function: {
+// 				name: string;
+// 				arguments: string;
+// 			}
+// 		}[]
+// 	} | {
+// 		role: 'tool',
+// 		tool_call_id: string;
+// 		content: string;
+// 	}
+// )[]
+// const prepareMessages_tools_openai = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
 
-	const newMessages: PrepareMessagesToolsOpenAI = [];
+// 	const newMessages: PrepareMessagesToolsOpenAI = [];
 
-	for (let i = 0; i < messages.length; i += 1) {
-		const currMsg = messages[i]
+// 	for (let i = 0; i < messages.length; i += 1) {
+// 		const currMsg = messages[i]
 
-		if (currMsg.role !== 'tool') {
-			newMessages.push(currMsg)
-			continue
-		}
+// 		if (currMsg.role !== 'tool') {
+// 			newMessages.push(currMsg)
+// 			continue
+// 		}
 
-		// edit previous assistant message to have called the tool
-		const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
-		if (prevMsg?.role === 'assistant') {
-			prevMsg.tool_calls = [{
-				type: 'function',
-				id: currMsg.id,
-				function: {
-					name: currMsg.name,
-					arguments: JSON.stringify(currMsg.params)
-				}
-			}]
-		}
+// 		// edit previous assistant message to have called the tool
+// 		const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
+// 		if (prevMsg?.role === 'assistant') {
+// 			prevMsg.tool_calls = [{
+// 				type: 'function',
+// 				id: currMsg.id,
+// 				function: {
+// 					name: currMsg.name,
+// 					arguments: JSON.stringify(currMsg.params)
+// 				}
+// 			}]
+// 		}
 
-		// add the tool
-		newMessages.push({
-			role: 'tool',
-			tool_call_id: currMsg.id,
-			content: currMsg.content || EMPTY_TOOL_CONTENT,
-		})
-	}
-	return { messages: newMessages }
+// 		// add the tool
+// 		newMessages.push({
+// 			role: 'tool',
+// 			tool_call_id: currMsg.id,
+// 			content: currMsg.content || EMPTY_TOOL_CONTENT,
+// 		})
+// 	}
+// 	return { messages: newMessages }
 
-}
-
-
-// convert messages as if about to send to anthropic
-/*
-https://docs.anthropic.com/en/docs/build-with-claude/tool-use#tool-use-examples
-anthropic MESSAGE (role=assistant):
-"content": [{
-	"type": "text",
-	"text": "<thinking>I need to call the get_weather function, and the user wants SF, which is likely San Francisco, CA.</thinking>"
-}, {
-	"type": "tool_use",
-	"id": "toolu_01A09q90qw90lq917835lq9",
-	"name": "get_weather",
-	"input": { "location": "San Francisco, CA", "unit": "celsius" }
-}]
-anthropic RESPONSE (role=user):
-"content": [{
-	"type": "tool_result",
-	"tool_use_id": "toolu_01A09q90qw90lq917835lq9",
-	"content": "15 degrees"
-}]
-*/
-
-type PrepareMessagesToolsAnthropic = (
-	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'user' }> | {
-		role: 'assistant',
-		content: string | (
-			| AnthropicReasoning
-			| {
-				type: 'text';
-				text: string;
-			}
-			| {
-				type: 'tool_use';
-				name: string;
-				input: Record<string, any>;
-				id: string;
-			})[]
-	} | {
-		role: 'user',
-		content: string | ({
-			type: 'text';
-			text: string;
-		} | {
-			type: 'tool_result';
-			tool_use_id: string;
-			content: string;
-		})[]
-	}
-)[]
-/*
-Converts:
-
-assistant: ...content
-tool: (id, name, params)
-->
-assistant: ...content, call(name, id, params)
-user: ...content, result(id, content)
-*/
-const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
-	const newMessages: PrepareMessagesToolsAnthropic = messages;
+// }
 
 
-	for (let i = 0; i < newMessages.length; i += 1) {
-		const currMsg = newMessages[i]
+// // convert messages as if about to send to anthropic
+// /*
+// https://docs.anthropic.com/en/docs/build-with-claude/tool-use#tool-use-examples
+// anthropic MESSAGE (role=assistant):
+// "content": [{
+// 	"type": "text",
+// 	"text": "<thinking>I need to call the get_weather function, and the user wants SF, which is likely San Francisco, CA.</thinking>"
+// }, {
+// 	"type": "tool_use",
+// 	"id": "toolu_01A09q90qw90lq917835lq9",
+// 	"name": "get_weather",
+// 	"input": { "location": "San Francisco, CA", "unit": "celsius" }
+// }]
+// anthropic RESPONSE (role=user):
+// "content": [{
+// 	"type": "tool_result",
+// 	"tool_use_id": "toolu_01A09q90qw90lq917835lq9",
+// 	"content": "15 degrees"
+// }]
+// */
 
-		if (currMsg.role !== 'tool') continue
+// type PrepareMessagesToolsAnthropic = (
+// 	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'user' }> | {
+// 		role: 'assistant',
+// 		content: string | (
+// 			| AnthropicReasoning
+// 			| {
+// 				type: 'text';
+// 				text: string;
+// 			}
+// 			| {
+// 				type: 'tool_use';
+// 				name: string;
+// 				input: Record<string, any>;
+// 				id: string;
+// 			})[]
+// 	} | {
+// 		role: 'user',
+// 		content: string | ({
+// 			type: 'text';
+// 			text: string;
+// 		} | {
+// 			type: 'tool_result';
+// 			tool_use_id: string;
+// 			content: string;
+// 		})[]
+// 	}
+// )[]
+// /*
+// Converts:
 
-		const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
-
-		if (prevMsg?.role === 'assistant') {
-			if (typeof prevMsg.content === 'string') prevMsg.content = [{ type: 'text', text: prevMsg.content }]
-			prevMsg.content.push({ type: 'tool_use', id: currMsg.id, name: currMsg.name, input: parseObject(currMsg.params) })
-		}
-
-		// turn each tool into a user message with tool results at the end
-		newMessages[i] = {
-			role: 'user',
-			content: [
-				...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content || EMPTY_TOOL_CONTENT }] as const,
-			]
-		}
-	}
-	return { messages: newMessages }
-}
+// assistant: ...content
+// tool: (id, name, params)
+// ->
+// assistant: ...content, call(name, id, params)
+// user: ...content, result(id, content)
+// */
+// const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
+// 	const newMessages: PrepareMessagesToolsAnthropic = messages;
 
 
+// 	for (let i = 0; i < newMessages.length; i += 1) {
+// 		const currMsg = newMessages[i]
+
+// 		if (currMsg.role !== 'tool') continue
+
+// 		const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
+
+// 		if (prevMsg?.role === 'assistant') {
+// 			if (typeof prevMsg.content === 'string') prevMsg.content = [{ type: 'text', text: prevMsg.content }]
+// 			prevMsg.content.push({ type: 'tool_use', id: currMsg.id, name: currMsg.name, input: parseObject(currMsg.params) })
+// 		}
+
+// 		// turn each tool into a user message with tool results at the end
+// 		newMessages[i] = {
+// 			role: 'user',
+// 			content: [
+// 				...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content || EMPTY_TOOL_CONTENT }] as const,
+// 			]
+// 		}
+// 	}
+// 	return { messages: newMessages }
+// }
 
 
-type PrepareMessagesTools = PrepareMessagesToolsAnthropic | PrepareMessagesToolsOpenAI
 
-const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style' }): { messages: PrepareMessagesTools } => {
-	if (!supportsTools) {
-		return { messages: messages }
-	}
-	else if (supportsTools === 'anthropic-style') {
-		return prepareMessages_tools_anthropic({ messages })
-	}
-	else if (supportsTools === 'openai-style') {
-		return prepareMessages_tools_openai({ messages })
-	}
-	else {
-		throw new Error(`supportsTools type not recognized`)
-	}
-}
+
+// type PrepareMessagesTools = PrepareMessagesToolsAnthropic | PrepareMessagesToolsOpenAI
+
+// const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style' }): { messages: PrepareMessagesTools } => {
+// 	if (!supportsTools) {
+// 		return { messages: messages }
+// 	}
+// 	else if (supportsTools === 'anthropic-style') {
+// 		return prepareMessages_tools_anthropic({ messages })
+// 	}
+// 	else if (supportsTools === 'openai-style') {
+// 		return prepareMessages_tools_openai({ messages })
+// 	}
+// 	else {
+// 		throw new Error(`supportsTools type not recognized`)
+// 	}
+// }
 
 
 // remove rawAnthropicAssistantContent, and make content equal to it if supportsAnthropicContent
-const prepareMessages_anthropicContent = ({ messages, supportsAnthropicReasoningSignature }: { messages: LLMChatMessage[], supportsAnthropicReasoningSignature: boolean }) => {
+const prepareMessages_anthropicReasoning = ({ messages, supportsAnthropicReasoningSignature }: { messages: LLMChatMessage[], supportsAnthropicReasoningSignature: boolean }) => {
 	const newMessages: InternalLLMChatMessage[] = []
 	for (const m of messages) {
 		if (m.role !== 'assistant') {
@@ -414,38 +407,18 @@ const prepareMessages_anthropicContent = ({ messages, supportsAnthropicReasoning
 
 
 // do this at end
-const prepareMessages_noEmptyMessage = ({ messages }: { messages: PrepareMessagesTools }): { messages: PrepareMessagesTools } => {
+const prepareMessages_noEmptyMessage = ({ messages }: { messages: InternalLLMChatMessage[] }): { messages: InternalLLMChatMessage[] } => {
 	for (const currMsg of messages) {
-
-		// don't do this for tools
-		if (currMsg.role === 'tool') continue
-
-		// don't do this for assistant or user messages that have tool_calls or tool_results
-		const oai = currMsg as PrepareMessagesToolsOpenAI[0]
-		if (oai.role === 'assistant') {
-			if (oai.tool_calls) continue
-		}
-		const anth = currMsg as PrepareMessagesToolsAnthropic[0]
-		if (anth.role === 'assistant' || anth.role === 'user') {
-			if (typeof anth.content !== 'string') {
-				const hasContent = anth.content.find(c => c.type === 'tool_use' || c.type === 'tool_result')
-				if (hasContent) continue
-			}
-		}
-
-
-		if (typeof currMsg.content === 'string') {
+		// if content is a string, replace string with empty msg
+		if (typeof currMsg.content === 'string')
 			currMsg.content = currMsg.content || EMPTY_MESSAGE
-		}
 		else {
+			// if content is an array, replace any empty text entries with empty msg, and make sure there's at least 1 entry
 			for (const c of currMsg.content) {
 				if (c.type === 'text') c.text = c.text || EMPTY_MESSAGE
-				else if (c.type === 'tool_use') { }
-				else if (c.type === 'tool_result') { }
 			}
 			if (currMsg.content.length === 0) currMsg.content = [{ type: 'text', text: EMPTY_MESSAGE }]
 		}
-
 	}
 	return { messages }
 }
@@ -458,7 +431,6 @@ export const prepareMessages = ({
 	messages,
 	aiInstructions,
 	supportsSystemMessage,
-	supportsTools,
 	supportsAnthropicReasoningSignature,
 	contextWindow,
 	maxOutputTokens,
@@ -466,7 +438,6 @@ export const prepareMessages = ({
 	messages: LLMChatMessage[],
 	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
-	supportsTools: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style',
 	supportsAnthropicReasoningSignature: boolean,
 	contextWindow: number,
 	maxOutputTokens: number | null | undefined,
@@ -475,13 +446,12 @@ export const prepareMessages = ({
 
 	const { messages: messages0 } = prepareMessages_normalize({ messages })
 	const { messages: messages1 } = prepareMessages_fitIntoContext({ messages: messages0, contextWindow, maxOutputTokens })
-	const { messages: messages2 } = prepareMessages_anthropicContent({ messages: messages1, supportsAnthropicReasoningSignature })
-	const { messages: messages3, separateSystemMessageStr } = prepareMessages_systemMessage({ messages: messages2, aiInstructions, supportsSystemMessage })
-	const { messages: messages4 } = prepareMessages_tools({ messages: messages3, supportsTools })
-	const { messages: messages5 } = prepareMessages_noEmptyMessage({ messages: messages4 })
+	const { messages: messages2 } = prepareMessages_anthropicReasoning({ messages: messages1, supportsAnthropicReasoningSignature })
+	const { messages: messages3, separateSystemMessageStr } = prepareMessages_addSystemInstructions({ messages: messages2, aiInstructions, supportsSystemMessage })
+	const { messages: messages4 } = prepareMessages_noEmptyMessage({ messages: messages3 })
 
 	return {
-		messages: messages5 as any,
+		messages: messages4 as any,
 		separateSystemMessageStr
 	} as const
 }

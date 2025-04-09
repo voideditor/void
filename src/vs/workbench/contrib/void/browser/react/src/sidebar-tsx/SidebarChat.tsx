@@ -22,11 +22,12 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
-import { LintErrorItem, ToolCallParams, ToolName, toolNames, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
+import { ToolCallParams,  ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { PlacesType } from 'react-tooltip';
+import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 
 
 
@@ -780,7 +781,7 @@ const SimplifiedToolHeader = ({
 
 
 
-const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, _scrollToBottom }: { chatMessage: ChatMessage & { role: 'user' }, messageIdx: number, isCheckpointGhost: boolean, _scrollToBottom: (() => void) | null }) => {
+const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, currCheckpointIdx, _scrollToBottom }: { chatMessage: ChatMessage & { role: 'user' }, messageIdx: number, currCheckpointIdx: number | undefined, isCheckpointGhost: boolean, _scrollToBottom: (() => void) | null }) => {
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -931,7 +932,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, _scr
 		</VoidChatArea>
 	}
 
-
+	const isMsgAfterCheckpoint = currCheckpointIdx !== undefined && currCheckpointIdx === messageIdx - 1
 
 	return <div
 		// align chatbubble accoridng to role
@@ -941,7 +942,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, _scr
 				: mode === 'display' ? `self-end w-fit max-w-full whitespace-pre-wrap` : '' // user words should be pre
 			}
 
-			${isCheckpointGhost ? 'opacity-50 pointer-events-none' : ''}
+			${isCheckpointGhost && !isMsgAfterCheckpoint ? 'opacity-50 pointer-events-none' : ''}
 		`}
 		onMouseEnter={() => setIsHovered(true)}
 		onMouseLeave={() => setIsHovered(false)}
@@ -1090,7 +1091,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 
 	const reasoningStr = chatMessage.reasoning?.trim() || null
 	const hasReasoning = !!reasoningStr
-	const isDoneReasoning = !!chatMessage.content
+	const isDoneReasoning = !!chatMessage.displayContent
 	const thread = chatThreadsService.getCurrentThread()
 
 
@@ -1099,7 +1100,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 		messageIdx: messageIdx,
 	}
 
-	const isEmpty = !chatMessage.content && !chatMessage.reasoning
+	const isEmpty = !chatMessage.displayContent && !chatMessage.reasoning
 	if (isEmpty) return null
 
 	return <>
@@ -1123,7 +1124,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 		<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
 			<ProseWrapper>
 				<ChatMarkdownRender
-					string={chatMessage.content || ''}
+					string={chatMessage.displayContent || ''}
 					chatMessageLocation={chatMessageLocation}
 					isApplyEnabled={true}
 					isLinkDetectionEnabled={true}
@@ -1351,17 +1352,23 @@ const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr }: { applyBoxId: strin
 
 
 
-const InvalidTool = ({ toolName }: { toolName: string }) => {
+const InvalidTool = ({ toolName, message }: { toolName: ToolName, message: string }) => {
 	const accessor = useAccessor()
 	const title = getTitle({ name: toolName, type: 'invalid_params' })
 	const desc1 = 'Invalid parameters'
 	const icon = null
 	const isError = true
 	const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+	componentParams.children = <ToolChildrenWrapper>
+		<CodeChildren>
+			{message}
+		</CodeChildren>
+	</ToolChildrenWrapper>
 	return <ToolHeaderWrapper {...componentParams} />
 }
 
-const CanceledTool = ({ toolName }: { toolName: string }) => {
+const CanceledTool = ({ toolName }: { toolName: ToolName }) => {
 	const accessor = useAccessor()
 	const title = getTitle({ name: toolName, type: 'rejected' })
 	const desc1 = ''
@@ -1864,19 +1871,20 @@ type ChatBubbleProps = {
 	isCommitted: boolean,
 	chatIsRunning: IsRunningType,
 	threadId: string,
-	currCheckpointIdx: number,
+	currCheckpointIdx: number | undefined,
 	_scrollToBottom: (() => void) | null,
 }
 
 const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, messageIdx, chatIsRunning, _scrollToBottom }: ChatBubbleProps) => {
 	const role = chatMessage.role
 
-	const isCheckpointGhost = messageIdx > currCheckpointIdx && !chatIsRunning // whether to show as gray (if chat is running, for good measure just dont show any ghosts)
+	const isCheckpointGhost = messageIdx > (currCheckpointIdx ?? Infinity) && !chatIsRunning // whether to show as gray (if chat is running, for good measure just dont show any ghosts)
 
 	if (role === 'user') {
 		return <UserMessageComponent
 			chatMessage={chatMessage}
 			isCheckpointGhost={isCheckpointGhost}
+			currCheckpointIdx={currCheckpointIdx}
 			messageIdx={messageIdx}
 			_scrollToBottom={_scrollToBottom}
 		/>
@@ -1920,7 +1928,7 @@ const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, mes
 
 		if (chatMessage.type === 'invalid_params') {
 			return <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-				<InvalidTool toolName={chatMessage.name} />
+				<InvalidTool toolName={chatMessage.name} message={chatMessage.content} />
 			</div>
 		}
 
@@ -1942,7 +1950,7 @@ const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, mes
 		return null
 	}
 
-	else if (role === 'decorative_canceled_tool') {
+	else if (role === 'interrupted_streaming_tool') {
 		return <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
 			<CanceledTool toolName={chatMessage.name} />
 		</div>
@@ -2288,12 +2296,12 @@ export const SidebarChat = () => {
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
 	const isRunning = currThreadStreamState?.isRunning
 	const latestError = currThreadStreamState?.error
-	const messageSoFar = currThreadStreamState?.messageSoFar
+	const displayContentSoFar = currThreadStreamState?.displayContentSoFar
+	const toolCallSoFar = currThreadStreamState?.toolCallSoFar
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
 
-	const toolNameSoFar = currThreadStreamState?.toolNameSoFar
-	const toolParamsSoFar = currThreadStreamState?.toolParamsSoFar
-	const toolIsGenerating = !!toolNameSoFar && toolNameSoFar === 'edit_file' // show loading for slow tools (right now just edit)
+	// this is just if it's currently being generated, NOT if it's currently running
+	const toolIsGenerating = toolCallSoFar && !toolCallSoFar.isDone && toolCallSoFar.name === 'edit_file' // show loading for slow tools (right now just edit)
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -2343,11 +2351,10 @@ export const SidebarChat = () => {
 
 
 	const threadId = currentThread.id
-	const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? Infinity // if not exist, treat like checkpoint is last message (infinity)
+	const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? undefined  // if not exist, treat like checkpoint is last message (infinity)
 
 	const previousMessagesHTML = useMemo(() => {
 		const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
-
 		// tool request shows up as Editing... if in progress
 		return previousMessages.map((message, i) => {
 			return <ChatBubble
@@ -2361,17 +2368,18 @@ export const SidebarChat = () => {
 				_scrollToBottom={() => scrollToBottom(scrollContainerRef)}
 			/>
 		})
-	}, [previousMessages, isRunning, threadId])
+	}, [previousMessages, threadId, currCheckpointIdx, isRunning])
 
 	const streamingChatIdx = previousMessagesHTML.length
-	const currStreamingMessageHTML = reasoningSoFar || messageSoFar || isRunning ?
+	const currStreamingMessageHTML = reasoningSoFar || displayContentSoFar || isRunning ?
 		<ChatBubble
 			key={getChatBubbleId(threadId, streamingChatIdx)}
-			currCheckpointIdx={currCheckpointIdx} // if streaming, can't be the case
+			currCheckpointIdx={currCheckpointIdx}
 			chatMessage={{
 				role: 'assistant',
-				content: messageSoFar ?? '',
+				displayContent: displayContentSoFar ?? '',
 				reasoning: reasoningSoFar ?? '',
+				toolCall: toolCallSoFar,
 				anthropicReasoning: null,
 			}}
 			messageIdx={streamingChatIdx}
@@ -2383,8 +2391,6 @@ export const SidebarChat = () => {
 		/> : null
 
 
-	const generatingToolTitle = toolNameSoFar && toolNames.includes(toolNameSoFar as ToolName) ? titleOfToolName[toolNameSoFar as ToolName]?.proposed : toolNameSoFar
-
 	const messagesHTML = <ScrollToBottomContainer
 		key={'messages' + chatThreadsState.currentThreadId} // force rerender on all children if id changes
 		scrollContainerRef={scrollContainerRef}
@@ -2394,18 +2400,20 @@ export const SidebarChat = () => {
 			w-full h-full
 			overflow-x-hidden
 			overflow-y-auto
-			${previousMessagesHTML.length === 0 && !messageSoFar ? 'hidden' : ''}
+			${previousMessagesHTML.length === 0 && !displayContentSoFar ? 'hidden' : ''}
 		`}
 	>
 		{/* previous messages */}
 		{previousMessagesHTML}
-
-
 		{currStreamingMessageHTML}
 
-
 		{toolIsGenerating ?
-			<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)} title={generatingToolTitle} desc1={<span className='flex items-center'>Generating<IconLoading /></span>} />
+			<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)}
+				title={toolCallSoFar && toolNames.includes(toolCallSoFar.name as ToolName) ?
+					titleOfToolName[toolCallSoFar.name as ToolName]?.proposed
+					: toolCallSoFar?.name}
+				desc1={<span className='flex items-center'>Generating<IconLoading /></span>}
+			/>
 			: null}
 
 		{isRunning === 'LLM' && !toolIsGenerating ? <ProseWrapper>

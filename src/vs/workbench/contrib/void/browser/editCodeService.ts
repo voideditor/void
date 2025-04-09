@@ -44,7 +44,6 @@ import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts, CallBeforeStartApply
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';
 import { IVoidModelService } from '../common/voidModelService.js';
-import { ITextFileService } from '../../../services/textfile/common/textfiles.js';
 import { deepClone } from '../../../../base/common/objects.js';
 import { acceptBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../common/helpers/colors.js';
 import { DiffArea, Diff, CtrlKZone, VoidFileSnapshot, DiffAreaSnapshotEntry, diffAreaSnapshotKeys, DiffZone, TrackingZone, ComputedDiff } from '../common/editCodeServiceTypes.js';
@@ -203,7 +202,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		// @IFileService private readonly _fileService: IFileService,
 		@IVoidModelService private readonly _voidModelService: IVoidModelService,
-		@ITextFileService private readonly _textFileService: ITextFileService,
 	) {
 		super();
 
@@ -733,16 +731,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			resource: uri,
 			label: 'Void Agent',
 			code: 'undoredo.editCode',
-			undo: () => { opts?.onWillUndo?.(); this._restoreVoidFileSnapshot(uri, beforeSnapshot); },
-			redo: () => { if (afterSnapshot) this._restoreVoidFileSnapshot(uri, afterSnapshot) }
+			undo: async () => { opts?.onWillUndo?.(); await this._restoreVoidFileSnapshot(uri, beforeSnapshot) },
+			redo: async () => { if (afterSnapshot) await this._restoreVoidFileSnapshot(uri, afterSnapshot) }
 		}
 		this._undoRedoService.pushElement(elt)
 
 		const onFinishEdit = async () => {
 			afterSnapshot = this._getCurrentVoidFileSnapshot(uri)
-			await this._textFileService.save(uri, { // we want [our change] -> [save] so it's all treated as one change.
-				skipSaveParticipants: true // avoid triggering extensions etc (if they reformat the page, it will add another item to the undo stack)
-			})
+			await this._voidModelService.saveModel(uri)
 		}
 		return { onFinishEdit }
 	}
@@ -1118,6 +1114,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const uri = this._getURIBeforeStartApplying(opts)
 		if (!uri) return
 		await this._voidModelService.initializeModel(uri)
+		await this._voidModelService.saveModel(uri) // save the URI
 	}
 
 
@@ -1413,6 +1410,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					chatMode: null, // not chat
 					onText: (params) => {
 						const { fullText: fullText_ } = params
 						const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
@@ -1630,6 +1628,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					chatMode: null, // not chat
 					onText: (params) => {
 						const { fullText } = params
 						// blocks are [done done done ... {writingFinal|writingOriginal}]
@@ -1889,6 +1888,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	interruptURIStreaming({ uri }: { uri: URI }) {
+		if (!this._uriIsStreaming(uri)) return
+		this._undoHistory(uri)
 		// brute force for now is OK
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
 			const diffArea = this.diffAreaOfId[diffareaid]
@@ -1896,7 +1897,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			if (!diffArea._streamState.isStreaming) continue
 			this._stopIfStreaming(diffArea)
 		}
-		this._undoHistory(uri)
 	}
 
 

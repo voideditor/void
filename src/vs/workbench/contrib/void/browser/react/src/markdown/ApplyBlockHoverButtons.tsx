@@ -257,7 +257,10 @@ export const ApplyButtonsHTML = ({ codeStr, applyBoxId, reapplyIcon, uri }: { co
 		const [newApplyingUri, applyDonePromise] = editCodeService.startApplying(opts) ?? []
 
 		// catch any errors by interrupting the stream
-		applyDonePromise?.catch(e => { if (newApplyingUri) editCodeService.interruptURIStreaming({ uri: newApplyingUri }) })
+		applyDonePromise?.catch(e => {
+			const uri = getUriBeingApplied(applyBoxId)
+			if (uri) editCodeService.interruptURIStreaming({ uri: uri })
+		})
 
 		applyingURIOfApplyBoxIdRef.current[applyBoxId] = newApplyingUri ?? undefined
 

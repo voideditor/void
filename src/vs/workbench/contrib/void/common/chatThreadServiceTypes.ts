@@ -5,17 +5,16 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import { VoidFileSnapshot } from './editCodeServiceTypes.js';
-import { AnthropicReasoning } from './sendLLMMessageTypes.js';
-import { ToolName, ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
+import { ToolName } from './prompt/prompts.js';
+import { AnthropicReasoning, RawToolCallObj } from './sendLLMMessageTypes.js';
+import { ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
 
 export type ToolMessage<T extends ToolName> = {
 	role: 'tool';
-	paramsStr: string; // internal use
-	id: string; // apis require this tool use id
 	content: string; // give this result to LLM (string of value)
 } & (
 		// in order of events:
-		| { type: 'invalid_params', result: null, params: null, name: string }
+		| { type: 'invalid_params', result: null, name: T, params: RawToolCallObj | null, }
 
 		| { type: 'tool_request', result: null, name: T, params: ToolCallParams[T], }  // params were validated, awaiting user
 
@@ -27,17 +26,9 @@ export type ToolMessage<T extends ToolName> = {
 	) // user rejected
 
 export type DecorativeCanceledTool = {
-	role: 'decorative_canceled_tool';
-	name: string;
+	role: 'interrupted_streaming_tool';
+	name: ToolName;
 }
-
-// export type ToolRequestApproval<T extends ToolName> = {
-// 	role: 'tool_request';
-// 	name: T; // internal use
-// 	params: ToolCallParams[T]; // internal use
-// 	paramsStr: string; // internal use - this is what the LLM outputted, not necessarily JSON.stringify(params)
-// 	id: string; // proposed tool's id
-// }
 
 
 // checkpoints
@@ -65,8 +56,9 @@ export type ChatMessage =
 		}
 	} | {
 		role: 'assistant';
-		content: string; // content received from LLM  - allowed to be '', will be replaced with (empty)
+		displayContent: string; // content received from LLM  - allowed to be '', will be replaced with (empty)
 		reasoning: string; // reasoning from the LLM, used for step-by-step thinking
+		toolCall: RawToolCallObj | undefined;
 
 		anthropicReasoning: AnthropicReasoning[] | null; // anthropic reasoning
 	}

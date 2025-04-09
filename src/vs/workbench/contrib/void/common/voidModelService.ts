@@ -4,6 +4,7 @@ import { ITextModel } from '../../../../editor/common/model.js';
 import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/services/resolverService.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+import { ITextFileService } from '../../../services/textfile/common/textfiles.js';
 
 type VoidModelType = {
 	model: ITextModel | null;
@@ -16,6 +17,8 @@ export interface IVoidModelService {
 	getModel(uri: URI): VoidModelType;
 	getModelFromFsPath(fsPath: string): VoidModelType;
 	getModelSafe(uri: URI): Promise<VoidModelType>;
+	saveModel(uri: URI): Promise<void>;
+
 }
 
 export const IVoidModelService = createDecorator<IVoidModelService>('voidVoidModelService');
@@ -27,8 +30,15 @@ class VoidModelService extends Disposable implements IVoidModelService {
 
 	constructor(
 		@ITextModelService private readonly _textModelService: ITextModelService,
+		@ITextFileService private readonly _textFileService: ITextFileService,
 	) {
 		super();
+	}
+
+	saveModel = async (uri: URI) => {
+		await this._textFileService.save(uri, { // we want [our change] -> [save] so it's all treated as one change.
+			skipSaveParticipants: true // avoid triggering extensions etc (if they reformat the page, it will add another item to the undo stack)
+		})
 	}
 
 	initializeModel = async (uri: URI) => {

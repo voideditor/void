@@ -123,7 +123,7 @@ export type VoidStaticModelInfo = { // not stateful
 	}
 
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated'; // separated = anthropic where "system" is a special parameter
-	supportsTools: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style';
+	supportsTools?: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style';
 	supportsFIM: boolean;
 
 	reasoningCapabilities: false | {
@@ -165,7 +165,6 @@ const modelOptionsDefaults: VoidStaticModelInfo = {
 	cost: { input: 0, output: 0 },
 	downloadable: false,
 	supportsSystemMessage: false,
-	supportsTools: false,
 	supportsFIM: false,
 	reasoningCapabilities: false,
 }
@@ -180,42 +179,36 @@ const openSourceModelOptions_assumingOAICompat = {
 	'deepseekR1': {
 		supportsFIM: false,
 		supportsSystemMessage: false,
-		supportsTools: false,
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
 	'deepseekCoderV3': {
 		supportsFIM: false,
 		supportsSystemMessage: false, // unstable
-		supportsTools: false,
 		reasoningCapabilities: false,
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
 	'deepseekCoderV2': {
 		supportsFIM: false,
 		supportsSystemMessage: false, // unstable
-		supportsTools: false,
 		reasoningCapabilities: false,
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
 	'codestral': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
 	'openhands-lm-32b': { // https://www.all-hands.dev/blog/introducing-openhands-lm-32b----a-strong-open-coding-agent-model
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false, // built on qwen 2.5 32B instruct
 		contextWindow: 128_000, maxOutputTokens: 4_096
 	},
 	'phi4': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: false,
 		reasoningCapabilities: false,
 		contextWindow: 16_000, maxOutputTokens: 4_096,
 	},
@@ -223,7 +216,6 @@ const openSourceModelOptions_assumingOAICompat = {
 	'gemma': { // https://news.ycombinator.com/item?id=43451406
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: false,
 		reasoningCapabilities: false,
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
@@ -231,14 +223,12 @@ const openSourceModelOptions_assumingOAICompat = {
 	'llama4-scout': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 10_000_000, maxOutputTokens: 4_096,
 	},
 	'llama4-maverick': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 10_000_000, maxOutputTokens: 4_096,
 	},
@@ -247,28 +237,24 @@ const openSourceModelOptions_assumingOAICompat = {
 	'llama3': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
 	'llama3.1': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
 	'llama3.2': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
 	'llama3.3': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
@@ -276,14 +262,12 @@ const openSourceModelOptions_assumingOAICompat = {
 	'qwen2.5coder': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, maxOutputTokens: 4_096,
 	},
 	'qwq': {
 		supportsFIM: false, // no FIM, yes reasoning
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 128_000, maxOutputTokens: 8_192,
 	},
@@ -291,7 +275,6 @@ const openSourceModelOptions_assumingOAICompat = {
 	'starcoder2': {
 		supportsFIM: true,
 		supportsSystemMessage: false,
-		supportsTools: false,
 		reasoningCapabilities: false,
 		contextWindow: 128_000, maxOutputTokens: 8_192,
 
@@ -299,7 +282,6 @@ const openSourceModelOptions_assumingOAICompat = {
 	'codegemma:2b': {
 		supportsFIM: true,
 		supportsSystemMessage: false,
-		supportsTools: false,
 		reasoningCapabilities: false,
 		contextWindow: 128_000, maxOutputTokens: 8_192,
 
@@ -381,7 +363,6 @@ const anthropicModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
 		reasoningCapabilities: {
 			supportsReasoning: true,
 			canTurnOffReasoning: true,
@@ -397,7 +378,6 @@ const anthropicModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
 		reasoningCapabilities: false,
 	},
 	'claude-3-5-haiku-20241022': {
@@ -407,7 +387,6 @@ const anthropicModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
 		reasoningCapabilities: false,
 	},
 	'claude-3-opus-20240229': {
@@ -417,7 +396,6 @@ const anthropicModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
 		reasoningCapabilities: false,
 	},
 	'claude-3-sonnet-20240229': { // no point of using this, but including this for people who put it in
@@ -426,7 +404,6 @@ const anthropicModelOptions = {
 		maxOutputTokens: 4_096,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
-		supportsTools: 'anthropic-style',
 		reasoningCapabilities: false,
 	}
 } as const satisfies { [s: string]: VoidStaticModelInfo }
@@ -465,7 +442,6 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 15.00, cache_read: 7.50, output: 60.00, },
 		downloadable: false,
 		supportsFIM: false,
-		supportsTools: false,
 		supportsSystemMessage: 'developer-role',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false }, // it doesn't actually output reasoning, but our logic is fine with it
 	},
@@ -475,7 +451,6 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
 		downloadable: false,
 		supportsFIM: false,
-		supportsTools: false,
 		supportsSystemMessage: 'developer-role',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false },
 	},
@@ -485,7 +460,6 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 2.50, cache_read: 1.25, output: 10.00, },
 		downloadable: false,
 		supportsFIM: false,
-		supportsTools: 'openai-style',
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
@@ -495,7 +469,6 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
 		downloadable: false,
 		supportsFIM: false,
-		supportsTools: false,
 		supportsSystemMessage: false, // does not support any system
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false },
 	},
@@ -505,7 +478,6 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 0.15, cache_read: 0.075, output: 0.60, },
 		downloadable: false,
 		supportsFIM: false,
-		supportsTools: 'openai-style',
 		supportsSystemMessage: 'system-role', // ??
 		reasoningCapabilities: false,
 	},
@@ -534,7 +506,6 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
@@ -560,7 +531,6 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style', // we are assuming OpenAI SDK when calling gemini
 		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash': {
@@ -570,7 +540,6 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style', // we are assuming OpenAI SDK when calling gemini
 		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
@@ -580,7 +549,6 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-flash': {
@@ -590,7 +558,6 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-pro': {
@@ -600,7 +567,6 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-flash-8b': {
@@ -610,7 +576,6 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
@@ -659,7 +624,6 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'llama-3.1-8b-instant': {
@@ -669,7 +633,6 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'qwen-2.5-coder-32b': {
@@ -679,7 +642,6 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		downloadable: false,
 		supportsFIM: false, // unfortunately looks like no FIM support on groq
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'qwen-qwq-32b': { // https://huggingface.co/Qwen/QwQ-32B
@@ -689,7 +651,6 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] }, // we're using reasoning_format:parsed so really don't need to know openSourceThinkTags
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
@@ -788,7 +749,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
-		supportsTools: 'openai-style',
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
@@ -798,7 +758,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
-		supportsTools: 'openai-style',
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
@@ -808,7 +767,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
-		supportsTools: 'openai-style',
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
@@ -818,7 +776,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
-		supportsTools: 'openai-style',
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
@@ -836,7 +793,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: { // same as anthropic, see above
 			supportsReasoning: true,
 			canTurnOffReasoning: false,
@@ -852,7 +808,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false, // stupidly, openrouter separates thinking from non-thinking
 	},
 	'anthropic/claude-3.5-sonnet': {
@@ -862,7 +817,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'mistralai/codestral-2501': {
@@ -878,7 +832,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		...openSourceModelOptions_assumingOAICompat['qwen2.5coder'],
 		contextWindow: 33_000,
 		maxOutputTokens: null,
-		supportsTools: false, // openrouter qwen doesn't seem to support tools...?
 		cost: { input: 0.07, output: 0.16 },
 		downloadable: false,
 	},
@@ -886,7 +839,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		...openSourceModelOptions_assumingOAICompat['qwq'],
 		contextWindow: 33_000,
 		maxOutputTokens: null,
-		supportsTools: false, // openrouter qwen doesn't seem to support tools...?
 		cost: { input: 0.07, output: 0.16 },
 		downloadable: false,
 	}

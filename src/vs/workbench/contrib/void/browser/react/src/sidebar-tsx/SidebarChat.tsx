@@ -1334,7 +1334,7 @@ const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr }: { applyBoxId: strin
 
 
 
-const InvalidTool = ({ toolName }: { toolName: ToolName }) => {
+const InvalidTool = ({ toolName, message }: { toolName: ToolName, message: string }) => {
 	const accessor = useAccessor()
 	const title = getTitle({ name: toolName, type: 'invalid_params' })
 	const desc1 = 'Invalid parameters'
@@ -1342,7 +1342,11 @@ const InvalidTool = ({ toolName }: { toolName: ToolName }) => {
 	const isError = true
 	const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
-	componentParams.children
+	componentParams.children = <ToolChildrenWrapper>
+		<CodeChildren>
+			{message}
+		</CodeChildren>
+	</ToolChildrenWrapper>
 	return <ToolHeaderWrapper {...componentParams} />
 }
 
@@ -1902,7 +1906,7 @@ const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, mes
 
 		if (chatMessage.type === 'invalid_params') {
 			return <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-				<InvalidTool toolName={chatMessage.name} />
+				<InvalidTool toolName={chatMessage.name} message={chatMessage.content} />
 			</div>
 		}
 

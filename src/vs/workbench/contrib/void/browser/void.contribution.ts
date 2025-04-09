@@ -46,6 +46,12 @@ import './metricsPollService.js'
 // helper services
 import './helperServices/consistentItemService.js'
 
+// register selection helper
+import './voidSelectionHelperWidget.js'
+
+// register tooltip service
+import './tooltipService.js'
+
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
 
 // llmMessage

@@ -648,8 +648,9 @@ const defaultChat = {
 	providerSetting: product.defaultChatAgent?.providerSetting ?? '',
 };
 
+// Void commented this out - copilot head
 // Add next to the command center if command center is disabled
-MenuRegistry.appendMenuItem(MenuId.CommandCenter, {
+/* MenuRegistry.appendMenuItem(MenuId.CommandCenter, {
 	submenu: MenuId.ChatTitleBarMenu,
 	title: localize('title4', "Copilot"),
 	icon: Codicon.copilot,
@@ -672,7 +673,7 @@ MenuRegistry.appendMenuItem(MenuId.TitleBar, {
 		ContextKeyExpr.has('config.window.commandCenter').negate(),
 	),
 	order: 1
-});
+}); */
 
 registerAction2(class ToggleCopilotControl extends ToggleTitleBarConfigAction {
 	constructor() {

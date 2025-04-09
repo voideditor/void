@@ -106,6 +106,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 	return (
 		<textarea
+			autoFocus={false}
 			ref={useCallback((r: HTMLTextAreaElement | null) => {
 				if (fnsRef)
 					fnsRef.current = fns
@@ -153,12 +154,13 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 })
 
 
-export const VoidSimpleInputBox = ({ value, onChangeValue, placeholder, className, disabled, passwordBlur, ...inputProps }: {
+export const VoidSimpleInputBox = ({ value, onChangeValue, placeholder, className, disabled, passwordBlur, compact, ...inputProps }: {
 	value: string;
 	onChangeValue: (value: string) => void;
 	placeholder: string;
 	className?: string;
 	disabled?: boolean;
+	compact?: boolean;
 	passwordBlur?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>) => {
 
@@ -168,7 +170,11 @@ export const VoidSimpleInputBox = ({ value, onChangeValue, placeholder, classNam
 			onChange={(e) => onChangeValue(e.target.value)}
 			placeholder={placeholder}
 			disabled={disabled}
-			className={`w-full resize-none text-void-fg-1 placeholder:text-void-fg-3 px-2 py-1 rounded-sm
+			// className='max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'
+			// className={`w-full resize-none text-void-fg-1 placeholder:text-void-fg-3 px-2 py-1 rounded-sm
+			className={`w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1
+				${compact ? 'py-1 px-2' : 'py-2 px-4 '}
+				rounded
 				${disabled ? 'opacity-50 cursor-not-allowed' : ''}
 				${className}`}
 			style={{
@@ -635,7 +641,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 				className="flex items-center h-4 bg-transparent whitespace-nowrap hover:brightness-90 w-full"
 				onClick={() => setIsOpen(!isOpen)}
 			>
-				<span className={`max-w-[120px] truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
+				<span className={`truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
 					{getOptionDisplayName(selectedOption)}
 				</span>
 				<svg
@@ -954,9 +960,9 @@ export const BlockCode = ({ initValue, language, maxHeight, showScrollbars }: Bl
 }
 
 
-export const VoidButton = ({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) => {
+export const VoidButtonBgDarken = ({ children, disabled, onClick, className }: { children: React.ReactNode; disabled?: boolean; onClick: () => void; className?: string }) => {
 	return <button disabled={disabled}
-		className='px-3 py-1 bg-black/10 dark:bg-white/10 rounded-sm overflow-hidden whitespace-nowrap'
+		className={`px-3 py-1 bg-black/10 dark:bg-white/10 rounded-sm overflow-hidden whitespace-nowrap flex items-center justify-center ${className || ''}`}
 		onClick={onClick}
 	>{children}</button>
 }

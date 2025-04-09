@@ -121,6 +121,93 @@ export class SmartSelectController implements IEditorContribution {
 		}
 		this._state = this._state.map(state => state.mov(forward));
 		const newSelections = this._state.map(state => Selection.fromPositions(state.ranges[state.index].getStartPosition(), state.ranges[state.index].getEndPosition()));
+
+		// Void changed this to skip over added whitespace when using smartSelect
+		// // Store the original selections for comparison
+		// const originalSelections = selections;
+
+		// // Keep skipping while we're only adding/removing whitespace
+		// let keepSkipping = true;
+		// let skipCount = 0;
+		// const MAX_SKIPS = 5; // Avoid infinite loops by setting a reasonable limit
+
+		// while (keepSkipping && skipCount < MAX_SKIPS) {
+		// 	keepSkipping = false; // Reset for each iteration
+
+		// 	// Check if all selections only added/removed whitespace
+		// 	if (originalSelections.length === newSelections.length) {
+		// 		for (let i = 0; i < originalSelections.length; i++) {
+		// 			const oldSel = originalSelections[i];
+		// 			const newSel = newSelections[i];
+
+		// 			if (forward) { // For expanding (^+Shift+Right)
+		// 				// Skip if only whitespace was added
+		// 				const oldText = model.getValueInRange(oldSel).trim();
+		// 				const newText = model.getValueInRange(newSel).trim();
+		// 				const onlyWhitespaceAdded = oldText === newText && oldText.length > 0;
+
+		// 				if (onlyWhitespaceAdded) {
+		// 					console.log(`SMART SELECT - SKIPPING (EXPAND) [${skipCount + 1}]:`, {
+		// 						reason: 'only whitespace added',
+		// 						oldText: model.getValueInRange(oldSel),
+		// 						newText: model.getValueInRange(newSel)
+		// 					});
+		// 					keepSkipping = true;
+		// 					break;
+		// 				}
+		// 			} else { // For shrinking (^+Shift+Left)
+		// 				// Skip if only whitespace was removed
+		// 				const oldText = model.getValueInRange(oldSel).trim();
+		// 				const newText = model.getValueInRange(newSel).trim();
+		// 				const onlyWhitespaceRemoved = oldText === newText && newText.length > 0;
+
+		// 				if (onlyWhitespaceRemoved) {
+		// 					console.log(`SMART SELECT - SKIPPING (SHRINK) [${skipCount + 1}]:`, {
+		// 						reason: 'only whitespace removed',
+		// 						oldText: model.getValueInRange(oldSel),
+		// 						newText: model.getValueInRange(newSel)
+		// 					});
+		// 					keepSkipping = true;
+		// 					break;
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+
+		// 	// If we need to skip, move one more time
+		// 	if (keepSkipping) {
+		// 		skipCount++;
+
+		// 		// Try to move to the next range
+		// 		const prevState = this._state;
+		// 		this._state = this._state.map(state => state.mov(forward));
+
+		// 		// Check if we've reached the end of available ranges
+		// 		const stateUnchanged = this._state.every((state, idx) =>
+		// 			state.index === prevState[idx].index
+		// 		);
+
+		// 		if (stateUnchanged) {
+		// 			// We can't move any further, so stop skipping
+		// 			keepSkipping = false;
+		// 		} else {
+		// 			// Update selections for the next iteration
+		// 			newSelections = this._state.map(state => Selection.fromPositions(
+		// 				state.ranges[state.index].getStartPosition(),
+		// 				state.ranges[state.index].getEndPosition()
+		// 			));
+		// 		}
+		// 	}
+		// }
+
+		// // Print AFTER selection (before actually setting it)
+		// console.log('SMART SELECT - AFTER:', newSelections.map(s => {
+		// 	return {
+		// 		range: `(${s.startLineNumber},${s.startColumn}) -> (${s.endLineNumber},${s.endColumn})`,
+		// 		text: model.getValueInRange(s)
+		// 	};
+		// }));
+
 		this._ignoreSelection = true;
 		try {
 			this._editor.setSelections(newSelections);

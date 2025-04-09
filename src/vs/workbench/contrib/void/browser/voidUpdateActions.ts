@@ -46,13 +46,23 @@ const notifyYesUpdate = (notifService: INotificationService, res: { message?: st
 					const { window } = dom.getActiveWindow()
 					window.open('https://voideditor.com/')
 				}
+			}],
+			secondary: [{
+				id: 'void.updater.close',
+				enabled: true,
+				label: `Keep Void outdated`,
+				tooltip: '',
+				class: undefined,
+				run: () => {
+					notifController.close()
+				}
 			}]
 		},
 	})
-	const d = notifController.onDidClose(() => {
-		notifyYesUpdate(notifService, res)
-		d.dispose()
-	})
+	// const d = notifController.onDidClose(() => {
+	// 	notifyYesUpdate(notifService, res)
+	// 	d.dispose()
+	// })
 }
 const notifyNoUpdate = (notifService: INotificationService) => {
 	notifService.notify({
@@ -86,7 +96,7 @@ registerAction2(class extends Action2 {
 		const metricsService = accessor.get(IMetricsService)
 
 		metricsService.capture('Void Update Manual: Checking...', {})
-		const res = await voidUpdateService.check()
+		const res = await voidUpdateService.check(true)
 		if (!res) { notifyErrChecking(notifService); metricsService.capture('Void Update Manual: Error', { res }) }
 		else if (res.hasUpdate) { notifyYesUpdate(notifService, res); metricsService.capture('Void Update Manual: Yes', { res }) }
 		else if (!res.hasUpdate) { notifyNoUpdate(notifService); metricsService.capture('Void Update Manual: No', { res }) }
@@ -104,7 +114,7 @@ class VoidUpdateWorkbenchContribution extends Disposable implements IWorkbenchCo
 		super()
 		const autoCheck = async () => {
 			this.metricsService.capture('Void Update Startup: Checking...', {})
-			const res = await this.voidUpdateService.check()
+			const res = await this.voidUpdateService.check(false)
 			if (!res) { notifyErrChecking(this.notifService); this.metricsService.capture('Void Update Startup: Error', { res }) }
 			else if (res.hasUpdate) { notifyYesUpdate(this.notifService, res); this.metricsService.capture('Void Update Startup: Yes', { res }) }
 			else if (!res.hasUpdate) { this.metricsService.capture('Void Update Startup: No', { res }) } // display nothing if up to date

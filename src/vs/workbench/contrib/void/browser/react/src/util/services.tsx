@@ -350,9 +350,9 @@ export const useCommandBarURIListener = (listener: (uri: URI) => void) => {
 export const useCommandBarState = () => {
 	const accessor = useAccessor()
 	const commandBarService = accessor.get('IVoidCommandBarService')
-	const [s, ss] = useState({ state: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
+	const [s, ss] = useState({ stateOfURI: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
 	const listener = useCallback(() => {
-		ss({ state: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
+		ss({ stateOfURI: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
 	}, [commandBarService])
 	useCommandBarURIListener(listener)
 

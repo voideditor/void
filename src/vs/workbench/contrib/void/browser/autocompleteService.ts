@@ -8,8 +8,7 @@ import { ILanguageFeaturesService } from '../../../../editor/common/services/lan
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ITextModel } from '../../../../editor/common/model.js';
 import { Position } from '../../../../editor/common/core/position.js';
-import { InlineCompletion, InlineCompletionContext, } from '../../../../editor/common/languages.js';
-import { CancellationToken } from '../../../../base/common/cancellation.js';
+import { InlineCompletion, } from '../../../../editor/common/languages.js';
 import { Range } from '../../../../editor/common/core/range.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
@@ -633,8 +632,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 	async _provideInlineCompletionItems(
 		model: ITextModel,
 		position: Position,
-		context: InlineCompletionContext,
-		token: CancellationToken,
 	): Promise<InlineCompletion[]> {
 
 		const isEnabled = this._settingsService.state.globalSettings.enableAutocomplete
@@ -852,7 +849,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(message)
 				},
-				onAbort: () => { },
+				onAbort: () => { reject('Aborted autocomplete') },
 			})
 			newAutocompletion.requestId = requestId
 
@@ -897,9 +894,9 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 	) {
 		super()
 
-		this._langFeatureService.inlineCompletionsProvider.register('*', {
+		this._register(this._langFeatureService.inlineCompletionsProvider.register('*', {
 			provideInlineCompletions: async (model, position, context, token) => {
-				const items = await this._provideInlineCompletionItems(model, position, context, token)
+				const items = await this._provideInlineCompletionItems(model, position)
 
 				// console.log('item: ', items?.[0]?.insertText)
 				return { items: items, }
@@ -936,7 +933,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				});
 
 			},
-		})
+		}))
 	}
 
 

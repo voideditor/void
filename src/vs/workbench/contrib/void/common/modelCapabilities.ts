@@ -123,7 +123,7 @@ export type VoidStaticModelInfo = { // not stateful
 	}
 
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated'; // separated = anthropic where "system" is a special parameter
-	// supportsTools: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style';
+	supportsTools?: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style';
 	supportsFIM: boolean;
 
 	reasoningCapabilities: false | {
@@ -678,6 +678,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 1.9 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
+		supportsTools: false,
 		reasoningCapabilities: false,
 	},
 	'qwen2.5-coder': {
@@ -687,6 +688,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 4.7 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsTools: false,
 		reasoningCapabilities: false,
 	},
 	'qwq': {
@@ -696,6 +698,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 20 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsTools: 'TODO-yes-but-we-handle-it-manually',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'deepseek-r1': {
@@ -705,6 +708,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 4.7 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsTools: 'TODO-yes-but-we-handle-it-manually',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 
@@ -820,8 +824,9 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		contextWindow: 256_000,
 		maxOutputTokens: null,
 		cost: { input: 0.3, output: 0.9 },
-		reasoningCapabilities: false,
 		downloadable: false,
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
 	},
 	'qwen/qwen-2.5-coder-32b-instruct': {
 		...openSourceModelOptions_assumingOAICompat['qwen2.5coder'],

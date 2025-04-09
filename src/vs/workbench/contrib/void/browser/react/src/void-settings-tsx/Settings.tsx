@@ -5,12 +5,11 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName } from '../../../../common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { VoidButton, VoidCheckBox, VoidCustomDropdownBox, VoidInputBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
+import { VoidButtonBgDarken, VoidCheckBox, VoidCustomDropdownBox, VoidInputBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
-import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
-import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
+import { X, RefreshCw, Loader2, Check, MoveRight, PlusCircle, MinusCircle, Download, Trash, StopCircle, Square, ExternalLink } from 'lucide-react'
 import { isWindows, isLinux, isMacintosh } from '../../../../../../../base/common/platform.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
@@ -18,11 +17,13 @@ import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
-import { IconX } from '../sidebar-tsx/SidebarChat.js'
+import { IconLoading, IconX } from '../sidebar-tsx/SidebarChat.js'
+import { getModelCapabilities, getProviderCapabilities, ollamaRecommendedModels, VoidStaticModelInfo } from '../../../../common/modelCapabilities.js'
+
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
-	return <div className='flex items-center text-void-fg-3 px-3 py-0.5 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
+	return <div className='flex items-center text-void-fg-3 px-3 py-0.5 rounded-sm overflow-hidden gap-2'>
 		{leftButton ? leftButton : null}
 		<span>
 			{text}
@@ -98,58 +99,134 @@ const RefreshableModels = () => {
 
 
 
-const AddModelMenu = ({ onSubmit, onClose }: { onSubmit: () => void, onClose: () => void }) => {
+const AnimatedCheckmarkButton = ({ text, className }: { text?: string, className?: string }) => {
+	const [dashOffset, setDashOffset] = useState(40);
+
+	useEffect(() => {
+		const startTime = performance.now();
+		const duration = 500; // 500ms animation
+
+		const animate = (currentTime: number) => {
+			const elapsed = currentTime - startTime;
+			const progress = Math.min(elapsed / duration, 1);
+			const newOffset = 40 - (progress * 40);
+
+			setDashOffset(newOffset);
+
+			if (progress < 1) {
+				requestAnimationFrame(animate);
+			}
+		};
+
+		const animationId = requestAnimationFrame(animate);
+		return () => cancelAnimationFrame(animationId);
+	}, []);
+
+	return <div
+		className={`flex items-center gap-1.5 w-fit
+			${className ? className : `px-2 py-0.5 text-xs text-white bg-[#0e70c0] rounded-sm`}
+		`}
+	>
+		<svg className="size-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path
+				d="M5 13l4 4L19 7"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				style={{
+					strokeDasharray: 40,
+					strokeDashoffset: dashOffset
+				}}
+			/>
+		</svg>
+		{text}
+	</div>
+}
+
+
+const AddButton = ({ disabled, text = 'Add', ...props }: { disabled?: boolean, text?: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+
+	return <button
+		disabled={disabled}
+		className={`bg-[#0e70c0] px-3 py-1 text-white rounded-sm ${!disabled ? 'hover:bg-[#1177cb] cursor-pointer' : 'opacity-50 cursor-not-allowed bg-opacity-70'}`}
+		{...props}
+	>{text}</button>
+
+}
+
+
+// shows a providerName dropdown if no `providerName` is given
+const AddModelInputBox = ({ providerName: permanentProviderName, className, compact }: { providerName?: ProviderName, className?: string, compact?: boolean }) => {
 
 	const accessor = useAccessor()
 	const settingsStateService = accessor.get('IVoidSettingsService')
 
 	const settingsState = useSettingsState()
 
+	const [isOpen, setIsOpen] = useState(false)
+
 	// const providerNameRef = useRef<ProviderName | null>(null)
-	const [providerName, setProviderName] = useState<ProviderName | null>(null)
+	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName | null>(null)
 
-	const modelNameRef = useRef<HTMLTextAreaElement | null>(null)
+	const providerName = permanentProviderName ?? userChosenProviderName;
 
+	const [modelName, setModelName] = useState<string>('')
 	const [errorString, setErrorString] = useState('')
+
+	if (!providerName) { return null; }
+
+	const numModels = settingsState.settingsOfProvider[providerName].models.length
+
+	if (!isOpen) {
+		return <div
+			className={`text-void-fg-4 flex flex-nowrap text-nowrap items-center hover:brightness-110 cursor-pointer ${className}`}
+			onClick={() => setIsOpen(true)}
+
+		>
+			<div>
+				{numModels > 0 ? `Add a different model?` : `Add a model`}
+			</div>
+		</div>
+	}
 
 
 	return <>
-		<div className='flex items-center gap-4'>
+		<form className={`flex items-center gap-2 ${className}`}>
 
-			{/* provider */}
-			<VoidCustomDropdownBox
-				options={providerNames}
-				selectedOption={providerName}
-				onChangeOption={(pn) => setProviderName(pn)}
-				getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
-				getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
-				getOptionsEqual={(a, b) => a === b}
-				className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
+			{/* X button
+			<button onClick={() => { setIsOpen(false) }} className='text-void-fg-4'><X className='size-4' /></button> */}
+
+			{/* provider input */}
+			{!permanentProviderName &&
+				<VoidCustomDropdownBox
+					options={providerNames}
+					selectedOption={providerName}
+					onChangeOption={(pn) => setUserChosenProviderName(pn)}
+					getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
+					getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
+					getOptionsEqual={(a, b) => a === b}
+					className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
 					py-[4px] px-[6px]
 				`}
-				arrowTouchesText={false}
-			/>
-			{/* <_VoidSelectBox
-					onCreateInstance={useCallback(() => { providerNameRef.current = providerOptions[0].value }, [providerOptions])} // initialize state
-					onChangeSelection={useCallback((providerName: ProviderName) => { providerNameRef.current = providerName }, [])}
-					options={providerOptions}
-				/> */}
-
-			{/* model */}
-			<div className='max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'>
-				<VoidInputBox2
-					placeholder='Model Name'
-					className='mt-[2px] px-[6px] h-full w-full'
-					ref={modelNameRef}
-					multiline={false}
+					arrowTouchesText={false}
 				/>
-			</div>
+			}
 
-			{/* button */}
-			<VoidButton
-				onClick={() => {
-					const modelName = modelNameRef.current?.value
+			{/* model input */}
+			<VoidSimpleInputBox
+				value={modelName}
+				onChangeValue={setModelName}
+				placeholder='Model Name'
+				compact={compact}
+				className={'max-w-44'}
+			/>
 
+			{/* add button */}
+			<AddButton
+				type='submit'
+				disabled={!modelName}
+				onClick={(e) => {
 					if (providerName === null) {
 						setErrorString('Please select a provider.')
 						return
@@ -160,17 +237,20 @@ const AddModelMenu = ({ onSubmit, onClose }: { onSubmit: () => void, onClose: ()
 					}
 					// if model already exists here
 					if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
-						setErrorString(`This model already exists under ${providerName}.`)
+						// setErrorString(`This model already exists under ${providerName}.`)
+						setErrorString(`This model already exists.`)
 						return
 					}
 
 					settingsStateService.addModel(providerName, modelName)
-					onSubmit()
+					setIsOpen(false)
+					setErrorString('')
+					setModelName('')
 				}}
-			>Add model</VoidButton>
+			/>
 
-			<button onClick={onClose} className='ml-auto'><X className='size-4' /></button>
-		</div>
+
+		</form>
 
 		{!errorString ? null : <div className='text-red-500 truncate whitespace-nowrap mt-1'>
 			{errorString}
@@ -178,17 +258,6 @@ const AddModelMenu = ({ onSubmit, onClose }: { onSubmit: () => void, onClose: ()
 
 	</>
 
-}
-
-const AddModelMenuFull = () => {
-	const [open, setOpen] = useState(false)
-
-	return <div className='hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 my-4 px-3 rounded-sm overflow-hidden'>
-		{open ?
-			<AddModelMenu onSubmit={() => setOpen(false)} onClose={() => setOpen(false)} />
-			: <VoidButton onClick={() => setOpen(true)}>Add Model</VoidButton>
-		}
-	</div>
 }
 
 
@@ -200,7 +269,7 @@ export const ModelDump = () => {
 	const settingsState = useSettingsState()
 
 	// a dump of all the enabled providers' models
-	const modelDump: (VoidModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
+	const modelDump: (VoidStatefulModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
 	for (let providerName of providerNames) {
 		const providerSettings = settingsState.settingsOfProvider[providerName]
 		// if (!providerSettings.enabled) continue
@@ -277,6 +346,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 				// placeholder={`${providerTitle} ${settingTitle} (${placeholder})`}
 				placeholder={`${settingTitle} (${placeholder})`}
 				passwordBlur={isPasswordField}
+				compact={true}
 			/>
 			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-sm'>
 				<ChatMarkdownRender string={subTextMd} chatMessageLocation={undefined} />
@@ -286,7 +356,52 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 	</ErrorBoundary>
 }
 
-const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
+// const OldSettingsForProvider = ({ providerName, showProviderTitle }: { providerName: ProviderName, showProviderTitle: boolean }) => {
+// 	const voidSettingsState = useSettingsState()
+
+// 	const needsModel = isProviderNameDisabled(providerName, voidSettingsState) === 'addModel'
+
+// 	// const accessor = useAccessor()
+// 	// const voidSettingsService = accessor.get('IVoidSettingsService')
+
+// 	// const { enabled } = voidSettingsState.settingsOfProvider[providerName]
+// 	const settingNames = customSettingNamesOfProvider(providerName)
+
+// 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
+
+// 	return <div className='my-4'>
+
+// 		<div className='flex items-center w-full gap-4'>
+// 			{showProviderTitle && <h3 className='text-xl truncate'>{providerTitle}</h3>}
+
+// 			{/* enable provider switch */}
+// 			{/* <VoidSwitch
+// 				value={!!enabled}
+// 				onChange={
+// 					useCallback(() => {
+// 						const enabledRef = voidSettingsService.state.settingsOfProvider[providerName].enabled
+// 						voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabledRef)
+// 					}, [voidSettingsService, providerName])}
+// 				size='sm+'
+// 			/> */}
+// 		</div>
+
+// 		<div className='px-0'>
+// 			{/* settings besides models (e.g. api key) */}
+// 			{settingNames.map((settingName, i) => {
+// 				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
+// 			})}
+
+// 			{needsModel ?
+// 				providerName === 'ollama' ?
+// 					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
+// 					: <WarningBox text={`Please add a model for ${providerTitle} (Models section).`} />
+// 				: null}
+// 		</div>
+// 	</div >
+// }
+
+const SettingsForProvider = ({ providerName, showProviderTitle, showProviderSuggestions }: { providerName: ProviderName, showProviderTitle: boolean, showProviderSuggestions: boolean }) => {
 	const voidSettingsState = useSettingsState()
 
 	const needsModel = isProviderNameDisabled(providerName, voidSettingsState) === 'addModel'
@@ -299,10 +414,10 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 
 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
 
-	return <div className='my-4'>
+	return <div>
 
 		<div className='flex items-center w-full gap-4'>
-			<h3 className='text-xl truncate'>{providerTitle}</h3>
+			{showProviderTitle && <h3 className='text-xl truncate'>{providerTitle}</h3>}
 
 			{/* enable provider switch */}
 			{/* <VoidSwitch
@@ -322,7 +437,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
 			})}
 
-			{needsModel ?
+			{showProviderSuggestions && needsModel ?
 				providerName === 'ollama' ?
 					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
 					: <WarningBox text={`Please add a model for ${providerTitle} (Models section).`} />
@@ -335,7 +450,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 export const VoidProviderSettings = ({ providerNames }: { providerNames: ProviderName[] }) => {
 	return <>
 		{providerNames.map(providerName =>
-			<SettingsForProvider key={providerName} providerName={providerName} />
+			<SettingsForProvider key={providerName} providerName={providerName} showProviderTitle={true} showProviderSuggestions={true} />
 		)}
 	</>
 }
@@ -418,7 +533,7 @@ export const FeaturesTab = () => {
 		<h2 className={`text-3xl mb-2`}>Models</h2>
 		<ErrorBoundary>
 			<ModelDump />
-			<AddModelMenuFull />
+			<AddModelInputBox />
 			<AutoDetectLocalModelsToggle />
 			<RefreshableModels />
 		</ErrorBoundary>
@@ -429,14 +544,7 @@ export const FeaturesTab = () => {
 		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
 		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
 		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
-		<div className='pl-4 prose-ol:list-decimal opacity-80'>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></span>
-			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1:8b\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} chatMessageLocation={undefined} /></span>
-			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} chatMessageLocation={undefined} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></span>
-			{/* TODO we should create UI for downloading models without user going into terminal */}
-		</div>
+		{ollamaSetupInstructions}
 
 		<ErrorBoundary>
 			<VoidProviderSettings providerNames={localProviderNames} />
@@ -533,8 +641,25 @@ export const FeaturesTab = () => {
 					</div>
 				</div>
 
+
+
 				<div className='w-full'>
+					<h4 className={`text-base`}>Editor</h4>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of suggestions and widgets in the code editor.`}</div>
+
+					<div className='my-2'>
+						{/* Auto Accept Switch */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<VoidSwitch
+								size='xs'
+								value={voidSettingsState.globalSettings.showInlineSuggestions}
+								onChange={(newVal) => voidSettingsService.setGlobalSetting('showInlineSuggestions', newVal)}
+							/>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.showInlineSuggestions ? 'Show suggestions on select' : 'Show suggestions on select'}</span>
+						</div>
+					</div>
 				</div>
+
 
 			</div>
 
@@ -547,41 +672,91 @@ export const FeaturesTab = () => {
 }
 
 
-
+type TransferEditorType = 'VS Code' | 'Cursor' | 'Windsurf'
 // https://github.com/VSCodium/vscodium/blob/master/docs/index.md#migrating-from-visual-studio-code-to-vscodium
 // https://code.visualstudio.com/docs/editor/extension-marketplace#_where-are-extensions-installed
 type TransferFilesInfo = { from: URI, to: URI }[]
-const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): TransferFilesInfo => {
+const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEditor: TransferEditorType = 'VS Code'): TransferFilesInfo => {
 	if (os === null)
 		throw new Error(`One-click switch is not possible in this environment.`)
 	if (os === 'mac') {
 		const homeDir = env['HOME']
 		if (!homeDir) throw new Error(`$HOME not found`)
-		return [{
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'settings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'keybindings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-		}]
+
+		if (fromEditor === 'VS Code') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Cursor') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Cursor', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Cursor', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.cursor', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Windsurf') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Windsurf', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Windsurf', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.windsurf', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		}
 	}
 
 	if (os === 'linux') {
 		const homeDir = env['HOME']
 		if (!homeDir) throw new Error(`variable for $HOME location not found`)
-		return [{
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'settings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'keybindings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-		}]
+
+		if (fromEditor === 'VS Code') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Cursor') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Cursor', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Cursor', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.cursor', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Windsurf') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Windsurf', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Windsurf', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.windsurf', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		}
 	}
 
 	if (os === 'windows') {
@@ -590,73 +765,115 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): Transfe
 		const userprofile = env['USERPROFILE']
 		if (!userprofile) throw new Error(`variable for %USERPROFILE% location not found`)
 
-		return [{
-			from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'settings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'keybindings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.vscode', 'extensions'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
-		}]
+		if (fromEditor === 'VS Code') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.vscode', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Cursor') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Cursor', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Cursor', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.cursor', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Windsurf') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Windsurf', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Windsurf', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.windsurf', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+			}]
+		}
 	}
 
-	throw new Error(`os '${os}' not recognized`)
+	throw new Error(`os '${os}' not recognized or editor type '${fromEditor}' not supported for this OS`)
 }
 
 
-let transferTheseFiles: TransferFilesInfo = []
-let transferError: string | null = null
-
-try { transferTheseFiles = transferTheseFilesOfOS(os) }
-catch (e) { transferError = e + '' }
-
-const OneClickSwitchButton = () => {
+const OneClickSwitchButton = ({ fromEditor = 'VS Code' }: { fromEditor?: TransferEditorType }) => {
 	const accessor = useAccessor()
 	const fileService = accessor.get('IFileService')
 
-	const [state, setState] = useState<{ type: 'done', error?: string } | { type: | 'loading' | 'justfinished' }>({ type: 'done' })
+	const [transferState, setTransferState] = useState<{ type: 'done', error?: string } | { type: | 'loading' | 'justfinished' }>({ type: 'done' })
+
+	let transferTheseFiles: TransferFilesInfo = [];
+	let editorError: string | null = null;
+
+	try {
+		transferTheseFiles = transferTheseFilesOfOS(os, fromEditor)
+	} catch (e) {
+		editorError = e + ''
+	}
 
 	if (transferTheseFiles.length === 0)
 		return <>
-			<WarningBox text={transferError ?? `One-click switch not available.`} />
+			<WarningBox text={editorError ?? `Transfer from ${fromEditor} not available.`} />
 		</>
 
-
-
 	const onClick = async () => {
+		if (transferState.type !== 'done') return
 
-		if (state.type !== 'done') return
-
-		setState({ type: 'loading' })
+		setTransferState({ type: 'loading' })
 
 		let errAcc = ''
 		for (let { from, to } of transferTheseFiles) {
 			console.log('transferring', from, to)
-			// not sure if this can fail, just wrapping it with try/catch for now
-			try { await fileService.copy(from, to, true) }
-			catch (e) { errAcc += e + '\n' }
+			// Check if the source file exists before attempting to copy
+			try {
+				const exists = await fileService.exists(from)
+				if (exists) {
+					// Ensure the destination directory exists
+					const toParent = URI.joinPath(to, '..')
+					const toParentExists = await fileService.exists(toParent)
+					if (!toParentExists) {
+						await fileService.createFolder(toParent)
+					}
+					await fileService.copy(from, to, true)
+				} else {
+					console.log(`Skipping file that doesn't exist: ${from.toString()}`)
+				}
+			}
+			catch (e) {
+				console.error('Error copying file:', e)
+				errAcc += `Error copying ${from.toString()}: ${e}\n`
+			}
 		}
+
+		// Even if some files were missing, consider it a success if no actual errors occurred
 		const hadError = !!errAcc
 		if (hadError) {
-			setState({ type: 'done', error: errAcc })
+			setTransferState({ type: 'done', error: errAcc })
 		}
 		else {
-			setState({ type: 'justfinished' })
-			setTimeout(() => { setState({ type: 'done' }); }, 3000)
+			setTransferState({ type: 'justfinished' })
+			setTimeout(() => { setTransferState({ type: 'done' }); }, 3000)
 		}
 	}
 
 	return <>
-		<VoidButton disabled={state.type !== 'done'} onClick={onClick}>
-			{state.type === 'done' ? 'Transfer my Settings'
-				: state.type === 'loading' ? 'Transferring...'
-					: state.type === 'justfinished' ? 'Success!'
+		<VoidButtonBgDarken disabled={transferState.type !== 'done'} onClick={onClick}>
+			{transferState.type === 'done' ? `Transfer from ${fromEditor}`
+				: transferState.type === 'loading' ? <span className='text-nowrap flex flex-nowrap'>Transferring<IconLoading /></span>
+					: transferState.type === 'justfinished' ? <AnimatedCheckmarkButton text='Settings Transferred' className='bg-none' />
 						: null
 			}
-		</VoidButton>
-		{state.type === 'done' && state.error ? <WarningBox text={state.error} /> : null}
+		</VoidButtonBgDarken>
+		{transferState.type === 'done' && transferState.error ? <WarningBox text={transferState.error} /> : null}
 	</>
 }
 
@@ -668,12 +885,15 @@ const GeneralTab = () => {
 	const nativeHostService = accessor.get('INativeHostService')
 
 	return <>
-
-
 		<div className=''>
 			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from VS Code to Void in one click.`}</h4>
-			<OneClickSwitchButton />
+			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
+
+			<div className='flex flex-col gap-3'>
+				<OneClickSwitchButton fromEditor="VS Code" />
+				<OneClickSwitchButton fromEditor="Cursor" />
+				<OneClickSwitchButton fromEditor="Windsurf" />
+			</div>
 		</div>
 
 
@@ -683,24 +903,24 @@ const GeneralTab = () => {
 			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
 			<div className='my-4'>
-				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+				<VoidButtonBgDarken onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
 					General Settings
-				</VoidButton>
+				</VoidButtonBgDarken>
 			</div>
 			<div className='my-4'>
-				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
+				<VoidButtonBgDarken onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
 					Keyboard Settings
-				</VoidButton>
+				</VoidButtonBgDarken>
 			</div>
 			<div className='my-4'>
-				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+				<VoidButtonBgDarken onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
 					Theme Settings
-				</VoidButton>
+				</VoidButtonBgDarken>
 			</div>
 			<div className='my-4'>
-				<VoidButton onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+				<VoidButtonBgDarken onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
 					Open Logs
-				</VoidButton>
+				</VoidButtonBgDarken>
 			</div>
 		</div>
 
@@ -722,11 +942,16 @@ export const Settings = () => {
 
 	const [tab, setTab] = useState<TabName>('models')
 
-	const containerRef = useRef<HTMLDivElement | null>(null)
-	useScrollbarStyles(containerRef)
+
+	const deleteme = true
+	if (deleteme) {
+		return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
+			<VoidOnboarding />
+		</div>
+	}
 
 	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
-		<div ref={containerRef} className='overflow-y-auto w-full h-full px-10 py-10 select-none'>
+		<div className='overflow-y-auto w-full h-full px-10 py-10 select-none'>
 
 			<div className='max-w-5xl mx-auto'>
 
@@ -739,10 +964,10 @@ export const Settings = () => {
 
 					{/* tabs */}
 					<div className='flex flex-col w-full max-w-32'>
-						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
+						<button className={`text-left p-1 px-3 my-0.5 rounded-full overflow-hidden ${tab === 'models' ? 'bg-[#0e70c0]/90 text-white font-medium' : 'bg-[#0e70c0]/10 text-void-fg-2'} hover:bg-[#0e70c0]/30 transition-colors duration-150`}
 							onClick={() => { setTab('models') }}
 						>Models</button>
-						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'general' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
+						<button className={`text-left p-1 px-3 my-0.5 rounded-full overflow-hidden ${tab === 'general' ? 'bg-[#0e70c0]/90 text-white font-medium' : 'bg-[#0e70c0]/10 text-void-fg-2'} hover:bg-[#0e70c0]/30 transition-colors duration-150`}
 							onClick={() => { setTab('general') }}
 						>General</button>
 					</div>
@@ -768,5 +993,666 @@ export const Settings = () => {
 			</div>
 		</div>
 
+	</div>
+}
+
+
+const FADE_DURATION_MS = 2000
+
+
+const FadeIn = ({ children, className, delayMs = 0, ...props }: { children: React.ReactNode, delayMs?: number, className?: string } & React.HTMLAttributes<HTMLDivElement>) => {
+	const [opacity, setOpacity] = useState(0)
+
+	useEffect(() => {
+
+		const timeout = setTimeout(() => {
+			setOpacity(1)
+		}, delayMs)
+
+		return () => clearTimeout(timeout)
+	}, [setOpacity, delayMs])
+
+
+	return (
+		<div className={className} style={{ opacity, transition: `opacity ${FADE_DURATION_MS}ms ease-in-out` }} {...props}>
+			{children}
+		</div>
+	)
+}
+
+// Onboarding
+// 	OnboardingPage
+// 		title:
+// 			div
+// 				"Welcome to Void"
+// 			image
+// 		content:<></>
+// 		title
+// 		content
+// 		prev/next
+
+// 	OnboardingPage
+// 		title:
+// 			div
+// 				"How would you like to use Void?"
+// 		content:
+// 			ModelQuestionContent
+// 				|
+// 					div
+// 						"I want to:"
+// 					div
+// 						"Use the smartest models"
+// 						"Keep my data fully private"
+// 						"Save money"
+// 						"I don't know"
+// 				| div
+// 					| div
+// 						"We recommend using "
+// 						"Set API"
+// 					| div
+// 						""
+// 					| div
+//
+// 		title
+// 		content
+// 		prev/next
+//
+// 	OnboardingPage
+// 		title
+// 		content
+// 		prev/next
+
+
+const NextButton = ({ onClick, ...props }: { onClick: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+	return (
+		<button
+			onClick={onClick}
+			className="px-6 py-2 rounded bg-void-accent hover:bg-void-accent/90 text-white"
+			{...props}
+		>
+			Next
+		</button>
+	)
+}
+
+const SkipButton = ({ onClick, ...props }: { onClick: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+	return (
+		<button
+			onClick={onClick}
+			className="px-6 py-2 rounded bg-void-bg-2 hover:bg-void-bg-3 text-void-fg-2"
+			{...props}
+		>
+			Skip
+		</button>
+	)
+}
+
+const PreviousButton = ({ onClick, ...props }: { onClick: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+	return (
+		<button
+			onClick={onClick}
+			className="px-6 py-2 rounded bg-void-bg-2 hover:bg-void-bg-3"
+			{...props}
+		>
+			Previous
+		</button>
+	)
+}
+
+
+const ollamaSetupInstructions = <div className='prose-p:my-0 prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm font-light  list-decimal select-text'>
+	<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
+	<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
+	<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
+	<div className=' pl-6'><ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} /></div>
+	<div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>
+</div>
+
+const OllamaDownloadOrRemoveModelButton = ({ modelName, isModelInstalled, sizeGb }: { modelName: string, isModelInstalled: boolean, sizeGb: number | false | 'not-known' }) => {
+
+
+	// for now just link to the ollama download page
+	return <a
+		href={`https://ollama.com/library/${modelName}`}
+		target="_blank"
+		rel="noopener noreferrer"
+		className="flex items-center text-void-fg-2 hover:text-void-fg-1"
+	>
+		<ExternalLink className="w-3.5 h-3.5" />
+	</a>
+
+	// if (isModelInstalled) {
+	// 	return <div className="flex items-center">
+
+	// 		<span className="flex items-center">Uninstall</span>
+
+	// 		<IconShell1
+	// 			className="ml-1"
+	// 			Icon={Trash}
+	// 			onClick={() => {
+
+	// 				setIsModelInstalling(false);
+	// 			}}
+	// 		/>
+
+	// 	</div>
+	// }
+
+
+
+	// else if (isModelInstalling) {
+	// 	return <div className="flex items-center">
+
+	// 		<span className="flex items-center">{`Download? ${typeof sizeGb === 'number' ? `(${sizeGb} Gb)` : ''}`}</span>
+
+	// 		<IconShell1
+	// 			className="ml-1"
+	// 			Icon={Square}
+	// 			onClick={() => {
+	// 				// abort()
+
+	// 				// TODO!!!!!!!!!!! don't do this
+	// 				setIsModelInstalling(false);
+	// 			}}
+	// 		/>
+
+	// 	</div>
+	// }
+
+
+	// else if (!isModelInstalled) {
+
+	// 	return <div className="flex items-center">
+
+	// 		<span className="flex items-center">Download ({sizeGb} Gb)</span>
+
+	// 		<IconShell1
+	// 			className="ml-1"
+	// 			Icon={Download}
+	// 			onClick={() => {
+	// 				// this is a check for whether the model was installed:
+
+	// 				if (isModelInstalling) return
+
+
+	// 				// TODO!!!!!! don't do this
+
+
+	// 				// install(modelname), callback = setIsModelInstalling(false);
+
+	// 				setIsModelInstalling(true);
+	// 			}}
+	// 		/>
+
+	// 	</div>
+
+	// }
+
+	// return <></>
+
+
+}
+
+
+const YesNoText = ({ val }: { val: boolean | null }) => {
+
+	return <div
+		className={
+			val === true ? "text text-green-500"
+				: val === false ? 'text-red-500'
+					: "text text-yellow-500"
+		}
+	>
+		{
+			val === true ? "Yes"
+				: val === false ? 'No'
+					: "Yes*"
+		}
+	</div>
+
+}
+
+
+
+const abbreviateNumber = (num: number): string => {
+	if (num >= 1000000) {
+		// For millions
+		return Math.floor(num / 1000000) + 'M';
+	} else if (num >= 1000) {
+		// For thousands
+		return Math.floor(num / 1000) + 'K';
+	} else {
+		// For numbers less than 1000
+		return num.toString();
+	}
+}
+
+const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName }) => {
+
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
+	const isDetectableLocally = (refreshableProviderNames as ProviderName[]).includes(providerName)
+	// const providerCapabilities = getProviderCapabilities(providerName)
+
+
+	// info used to show the table
+	const infoOfModelName: Record<string, { showAsDefault: boolean, isDownloaded: boolean }> = {}
+
+	voidSettingsState.settingsOfProvider[providerName].models.forEach(m => {
+		infoOfModelName[m.modelName] = {
+			showAsDefault: m.isDefault,
+			isDownloaded: true
+		}
+	})
+
+	// special case  columns for ollama; show recommended models as default
+	if (providerName === 'ollama') {
+		for (const modelName of ollamaRecommendedModels) {
+			if (modelName in infoOfModelName) continue
+			infoOfModelName[modelName] = {
+				...infoOfModelName[modelName],
+				showAsDefault: true,
+			}
+		}
+	}
+
+	return <table className="table-fixed border-collapse mb-6 bg-void-bg-2 text-sm mx-auto select-text">
+		<thead>
+			<tr className="border-b border-void-border-1 text-nowrap text-ellipsis">
+				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[200px]">Models Offered</th>
+				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Cost/M</th>
+				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Context</th>
+				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Chat</th>
+				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Agent</th>
+				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Autotab</th>
+				{/* <th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Reasoning</th> */}
+				{isDetectableLocally && <th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Detected</th>}
+				{providerName === 'ollama' && <th className="text-left py-2 px-3 font-normal text-void-fg-3">Download</th>}
+			</tr>
+		</thead>
+		<tbody>
+			{Object.keys(infoOfModelName).map(modelName => {
+				const { showAsDefault, isDownloaded } = infoOfModelName[modelName]
+
+				const {
+					downloadable,
+					cost,
+					supportsTools,
+					supportsFIM,
+					reasoningCapabilities,
+					contextWindow,
+
+					isUnrecognizedModel,
+					maxOutputTokens,
+					supportsSystemMessage,
+				} = getModelCapabilities(providerName, modelName)
+
+
+				const removeModelButton = <button
+					className="absolute -left-1 top-1/2 transform -translate-y-1/2 -translate-x-full text-void-fg-3 hover:text-void-fg-1 text-xs"
+					onClick={() => voidSettingsService.deleteModel(providerName, modelName)}
+				>
+					<X className="w-3.5 h-3.5" />
+				</button>
+
+
+
+				return (
+					<tr key={modelName} className="border-b border-void-border-1 hover:bg-void-bg-3/50">
+						<td className="py-2 px-3 relative">
+							{!showAsDefault && removeModelButton}
+							{modelName}
+						</td>
+						<td className="py-2 px-3">${cost.output ?? ''}</td>
+						<td className="py-2 px-3">{contextWindow ? abbreviateNumber(contextWindow) : ''}</td>
+						<td className="py-2 px-3"><YesNoText val={true} /></td>
+						<td className="py-2 px-3"><YesNoText val={!!supportsTools || null} /></td>
+						<td className="py-2 px-3"><YesNoText val={!!supportsFIM} /></td>
+						{/* <td className="py-2 px-3"><YesNoText val={!!reasoningCapabilities} /></td> */}
+						{isDetectableLocally && <td className="py-2 px-3">{!!isDownloaded ? <Check className="w-4 h-4" /> : <></>}</td>}
+						{providerName === 'ollama' && <th className="py-2 px-3">
+							<OllamaDownloadOrRemoveModelButton modelName={modelName} isModelInstalled={infoOfModelName[modelName].isDownloaded} sizeGb={downloadable && downloadable.sizeGb} />
+						</th>}
+
+					</tr>
+				)
+			})}
+			<tr className="hover:bg-void-bg-3/50">
+				<td className="py-2 px-3 text-void-accent">
+					<AddModelInputBox
+						key={providerName}
+						providerName={providerName}
+						compact={true} />
+				</td>
+				<td colSpan={4}></td>
+			</tr>
+		</tbody>
+	</table>
+}
+
+
+
+
+type WantToUseOption = 'smart' | 'private' | 'cheap' | 'all'
+
+const VoidOnboarding = () => {
+
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+
+	const voidSettingsState = useSettingsState()
+	const isOnboardingComplete = false // voidSettingsService._isOnboardingComplete
+
+	if (isOnboardingComplete) {
+		return null
+	}
+
+	const [pageIndex, setPageIndex] = useState(0)
+
+
+	const skipButton = <SkipButton onClick={() => { setPageIndex(pageIndex + 1) }} />
+
+
+	// page 1 state
+	const [wantToUseOption, setWantToUseOption] = useState<WantToUseOption>('smart')
+
+	// page 2 state
+	const [selectedProviderName, setSelectedProviderName] = useState<ProviderName | null>(null)
+
+	const providerNamesOfWantToUseOption: { [wantToUseOption in WantToUseOption]: ProviderName[] } = {
+		smart: ['anthropic', 'openAI', 'gemini', 'openRouter'],
+		private: ['ollama', 'vLLM', 'openAICompatible'],
+		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM'],
+		all: providerNames,
+		// TODO allow user to redo onboarding
+	}
+
+
+	const didFillInProviderSettings = selectedProviderName && voidSettingsState.settingsOfProvider[selectedProviderName]._didFillInProviderSettings
+	const isApiKeyLongEnoughIfApiKeyExists = selectedProviderName && voidSettingsState.settingsOfProvider[selectedProviderName].apiKey ? voidSettingsState.settingsOfProvider[selectedProviderName].apiKey.length > 15 : true
+	const isAtLeastOneModel = selectedProviderName && voidSettingsState.settingsOfProvider[selectedProviderName].models.length >= 1
+
+	const didFillInSelectedProviderSettings = !!(didFillInProviderSettings && isApiKeyLongEnoughIfApiKeyExists && isAtLeastOneModel)
+
+	const prevAndNextButtons = <div className="self-end flex items-center gap-1 pb-8">
+		<PreviousButton
+			onClick={() => { setPageIndex(pageIndex - 1) }}
+		/>
+		<NextButton
+			onClick={() => { setPageIndex(pageIndex + 1) }}
+			disabled={pageIndex === 2 && !didFillInSelectedProviderSettings}
+		/>
+	</div>
+
+
+	// cannot be md
+	const basicDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
+		smart: "Models with the best performance on benchmarks.",
+		private: "Fully private and hosted on your computer/network.",
+		cheap: "Free and affordable options.",
+		all: "",
+	}
+
+	// can be md
+	const detailedDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
+		smart: "Most intelligent and best for agent mode.",
+		private: "Private-hosted so your data never leaves your computer or network. [Email us](mailto:founders@voideditor.com) for help setting up at your company.",
+		cheap: "Great deals like Gemini 2.5 Pro or self-host a model for free.",
+		all: "",
+	}
+
+	// set the selected provider name appropriately
+	useEffect(() => {
+		if (wantToUseOption && providerNamesOfWantToUseOption[wantToUseOption].length > 0) {
+			setSelectedProviderName(providerNamesOfWantToUseOption[wantToUseOption][0]);
+		} else {
+			setSelectedProviderName(null);
+		}
+	}, [wantToUseOption]);
+
+	// set wantToUseOption to smart when page changes
+	useEffect(() => {
+		setWantToUseOption(wantToUseOption);
+	}, [pageIndex]);
+
+
+	// TODO add a description next to the skip button saying (you can always restart the onboarding in Settings)
+	const contentOfIdx: { [pageIndex: number]: React.ReactNode } = {
+		0: <div className="max-w-[600px] w-full h-full text-left mx-auto flex flex-col items-center justify-between">
+			<FadeIn className="text-5xl font-light mb-6 mt-12">
+				Welcome to Void
+
+				Image
+				<div className="w-8 h-8 mb-2">
+					<img src="void-icon.png" alt="Void Logo" className="w-full h-full" />
+				</div>
+			</FadeIn>
+
+			<FadeIn delayMs={1000} className="text-center pb-8" onClick={() => { setPageIndex(pageIndex + 1) }}>
+				Get Started
+			</FadeIn>
+		</div>,
+		1: <div className="max-w-full w-full h-full text-left mx-auto flex flex-col items-center justify-between">
+
+			<FadeIn>
+
+				<div className="text-3xl font-medium mb-6 mt-8 text-center">AI Preferences</div>
+
+				<div className="flex flex-col items-center w-full mx-auto">
+
+					<div className="text-base text-void-fg-2 mb-8 text-center">What are you looking for in an AI model?</div>
+
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full md:max-w-[75%] max-w-[90%]">
+						<div
+							onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
+							className="flex flex-col items-center justify-center p-6 rounded-md transition-all duration-300 cursor-pointer md:aspect-[8/7] border-void-border-1 border bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent hover:from-[#0e70c0]/25 hover:via-[#0e70c0]/10 hover:to-[#0e70c0]/5 dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 dark:hover:from-[#0e70c0]/30 dark:hover:via-[#0e70c0]/15 dark:hover:to-[#0e70c0]/5"
+						>
+							<span className="text-5xl mb-4">🧠</span>
+							<h3 className="text-xl font-medium mb-3">Intelligence</h3>
+							<p className="text-center text-sm text-void-fg-2">{basicDescOfWantToUseOption['smart']}</p>
+						</div>
+
+						<div
+							onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
+							className="flex flex-col items-center justify-center p-6 rounded-md transition-all duration-300 cursor-pointer md:aspect-[8/7] border-void-border-1 border bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent hover:from-[#0e70c0]/25 hover:via-[#0e70c0]/10 hover:to-[#0e70c0]/5 dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 dark:hover:from-[#0e70c0]/30 dark:hover:via-[#0e70c0]/15 dark:hover:to-[#0e70c0]/5"
+						>
+							<span className="text-5xl mb-4">🔒</span>
+							<h3 className="text-xl font-medium mb-3">Privacy</h3>
+							<p className="text-center text-sm text-void-fg-2">{basicDescOfWantToUseOption['private']}</p>
+						</div>
+
+						<div
+							onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
+							className="flex flex-col items-center justify-center p-6 rounded-md transition-all duration-300 cursor-pointer md:aspect-[8/7] border-void-border-1 border bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent hover:from-[#0e70c0]/25 hover:via-[#0e70c0]/10 hover:to-[#0e70c0]/5 dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 dark:hover:from-[#0e70c0]/30 dark:hover:via-[#0e70c0]/15 dark:hover:to-[#0e70c0]/5"
+						>
+							<span className="text-5xl mb-4">💵</span>
+							<h3 className="text-xl font-medium mb-3">Low-Cost</h3>
+							<p className="text-center text-sm text-void-fg-2">{basicDescOfWantToUseOption['cheap']}</p>
+						</div>
+					</div>
+				</div>
+
+			</FadeIn>
+
+			<div className="max-w-[600px] w-full flex flex-col items-center justify-between">
+				{prevAndNextButtons}
+			</div>
+
+		</div>,
+		2: <div className="max-w-[600px] w-full h-full text-left mx-auto flex flex-col items-center justify-between">
+			<FadeIn className="flex flex-col gap-2 w-full">
+
+				<div className="text-5xl font-light mb-6 mt-12 text-center">Choose a Provider</div>
+
+				<div className="mx-auto flex items-center overflow-hidden bg-zinc-700/5 dark:bg-zinc-300/5 rounded-md">
+					<button
+						onClick={() => {
+							setWantToUseOption('smart');
+						}}
+						className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors
+								${wantToUseOption === 'smart'
+								? 'bg-zinc-700/10 dark:bg-zinc-300/10 text-white font-medium'
+								: 'text-void-fg-3 hover:text-void-fg-2'
+							}
+							`}
+					>
+						Intelligent
+					</button>
+					<button
+						onClick={() => {
+							setWantToUseOption('private');
+						}}
+						className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors
+								${wantToUseOption === 'private'
+								? 'bg-zinc-700/10 dark:bg-zinc-300/10 text-white font-medium'
+								: 'text-void-fg-3 hover:text-void-fg-2'
+							}
+							`}
+					>
+						Private
+					</button>
+					<button
+						onClick={() => {
+							setWantToUseOption('cheap');
+						}}
+						className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors
+								${wantToUseOption === 'cheap'
+								? 'bg-zinc-700/10 dark:bg-zinc-300/10 text-white font-medium'
+								: 'text-void-fg-3 hover:text-void-fg-2'
+							}
+							`}
+					>
+						Low-Cost
+					</button>
+					<button
+						onClick={() => {
+							setWantToUseOption('all')
+						}}
+						className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors
+								${wantToUseOption === 'all'
+								? 'bg-zinc-700/10 dark:bg-zinc-300/10 text-white font-medium'
+								: 'text-void-fg-3 hover:text-void-fg-2'
+							}
+							`}
+					>
+						All
+					</button>
+				</div>
+
+				{/* Provider Buttons */}
+				<div
+					key={wantToUseOption}
+					className="flex flex-wrap items-center mt-4 min-h-[37px] w-full"
+				>
+
+					{(wantToUseOption === 'all' ? providerNames : providerNamesOfWantToUseOption[wantToUseOption]).map((providerName) => {
+						const isSelected = selectedProviderName === providerName
+
+						return (
+							<button
+								key={providerName}
+								onClick={() => setSelectedProviderName(providerName)}
+								className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-colors duration-150 border
+									${isSelected ? 'bg-[#0e70c0] text-white shadow-sm border-[#0e70c0]/80' : 'bg-[#0e70c0]/10 text-void-fg-3 hover:bg-[#0e70c0]/30 border-[#0e70c0]/20'}
+								`}
+							>
+								{displayInfoOfProviderName(providerName).title}
+							</button>
+						)
+					})}
+
+				</div>
+
+				{/* Description */}
+				<div className="text-left text-sm text-void-fg-3 px-2 py-1">
+
+					<div className='pl-4 select-text'>
+						<ChatMarkdownRender string={detailedDescOfWantToUseOption[wantToUseOption]} chatMessageLocation={undefined} />
+					</div>
+
+				</div>
+
+
+				{/* ModelsTable and ProviderFields */}
+				{selectedProviderName && <div className='mt-4'>
+
+
+					{/* Models Table */}
+					<TableOfModelsForProvider providerName={selectedProviderName} />
+
+
+					{/* Add provider section - simplified styling */}
+					<div className='mb-5 mt-8'>
+						<div className='text-base font-semibold'>
+							Add {displayInfoOfProviderName(selectedProviderName).title}
+
+
+							{selectedProviderName === 'ollama' ? ollamaSetupInstructions : ''}
+
+						</div>
+
+						{selectedProviderName &&
+							<SettingsForProvider providerName={selectedProviderName} showProviderTitle={false} showProviderSuggestions={false} />
+						}
+
+						{/* Button and status indicators */}
+						{!didFillInProviderSettings ? <p className="text-xs text-void-fg-3 mt-2">Please fill in all fields to continue</p>
+							: !isAtLeastOneModel ? <p className="text-xs text-void-fg-3 mt-2">Please add a model to continue</p>
+								: !isApiKeyLongEnoughIfApiKeyExists ? <p className="text-xs text-void-fg-3 mt-2">Please enter a valid API key</p>
+									: <div className="mt-2"><AnimatedCheckmarkButton text='Added' /></div>}
+					</div>
+
+
+				</div>}
+
+			</FadeIn>
+
+			{prevAndNextButtons}
+		</div>,
+		// 2.5: <div className="max-w-[600px] w-full h-full text-left mx-auto flex flex-col items-center justify-between">
+		// 	<FadeIn>
+		// 		<div className="text-5xl font-light mb-6 mt-12 text-center">Autocomplete</div>
+
+		// 		<div className="text-center flex flex-col gap-4 w-full max-w-md mx-auto">
+		// 			<h4 className="text-void-fg-3 mb-2">Void offers free autocomplete with locally hosted models</h4>
+		// 			<h4 className="text-void-fg-3 mb-2">[have buttons for Ollama install Qwen2.5coder3b and memory requirements] </h4>
+
+		// 		</div>
+		// 	</FadeIn>
+
+		// 	{prevAndNextButtons}
+		// </div>,
+		3: <div className="max-w-[600px] w-full h-full text-left mx-auto flex flex-col items-center justify-between">
+			<FadeIn>
+				<div className="text-5xl font-light mb-6 mt-12">Settings and Themes</div>
+
+				<div className="text-center flex flex-col gap-4 w-full max-w-md mx-auto">
+					<h4 className="text-void-fg-3 mb-2">Transfer your settings from an existing editor?</h4>
+					<OneClickSwitchButton fromEditor="VS Code" />
+					<OneClickSwitchButton fromEditor="Cursor" />
+					<OneClickSwitchButton fromEditor="Windsurf" />
+				</div>
+
+			</FadeIn>
+
+			{prevAndNextButtons}
+		</div>,
+		4: <div className="max-w-[600px] w-full h-full text-left mx-auto flex flex-col items-center justify-between">
+			<FadeIn className="text-5xl font-light mb-6 mt-12">
+				Jump in
+			</FadeIn>
+
+			<FadeIn className="text-center">
+				Enter the Void
+			</FadeIn>
+
+			{prevAndNextButtons}
+		</div>,
+	}
+
+
+	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-auto flex flex-col items-center justify-between">
+		{contentOfIdx[pageIndex]}
 	</div>
 }

@@ -195,6 +195,192 @@ const prepareMessages_addSystemInstructions = ({
 	return { messages: newMessages, separateSystemMessageStr }
 }
 
+
+
+
+
+// // convert messages as if about to send to openai
+// /*
+// reference - https://platform.openai.com/docs/guides/function-calling#function-calling-steps
+// openai MESSAGE (role=assistant):
+// "tool_calls":[{
+// 	"type": "function",
+// 	"id": "call_12345xyz",
+// 	"function": {
+// 	"name": "get_weather",
+// 	"arguments": "{\"latitude\":48.8566,\"longitude\":2.3522}"
+// }]
+
+// openai RESPONSE (role=user):
+// {   "role": "tool",
+// 	"tool_call_id": tool_call.id,
+// 	"content": str(result)    }
+
+// also see
+// openai on prompting - https://platform.openai.com/docs/guides/reasoning#advice-on-prompting
+// openai on developer system message - https://cdn.openai.com/spec/model-spec-2024-05-08.html#follow-the-chain-of-command
+// */
+
+// type PrepareMessagesToolsOpenAI = (
+// 	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'tool' }> | {
+// 		role: 'assistant',
+// 		content: string | (AnthropicReasoning | { type: 'text'; text: string })[];
+// 		tool_calls?: {
+// 			type: 'function';
+// 			id: string;
+// 			function: {
+// 				name: string;
+// 				arguments: string;
+// 			}
+// 		}[]
+// 	} | {
+// 		role: 'tool',
+// 		tool_call_id: string;
+// 		content: string;
+// 	}
+// )[]
+// const prepareMessages_tools_openai = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
+
+// 	const newMessages: PrepareMessagesToolsOpenAI = [];
+
+// 	for (let i = 0; i < messages.length; i += 1) {
+// 		const currMsg = messages[i]
+
+// 		if (currMsg.role !== 'tool') {
+// 			newMessages.push(currMsg)
+// 			continue
+// 		}
+
+// 		// edit previous assistant message to have called the tool
+// 		const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
+// 		if (prevMsg?.role === 'assistant') {
+// 			prevMsg.tool_calls = [{
+// 				type: 'function',
+// 				id: currMsg.id,
+// 				function: {
+// 					name: currMsg.name,
+// 					arguments: JSON.stringify(currMsg.params)
+// 				}
+// 			}]
+// 		}
+
+// 		// add the tool
+// 		newMessages.push({
+// 			role: 'tool',
+// 			tool_call_id: currMsg.id,
+// 			content: currMsg.content || EMPTY_TOOL_CONTENT,
+// 		})
+// 	}
+// 	return { messages: newMessages }
+
+// }
+
+
+// // convert messages as if about to send to anthropic
+// /*
+// https://docs.anthropic.com/en/docs/build-with-claude/tool-use#tool-use-examples
+// anthropic MESSAGE (role=assistant):
+// "content": [{
+// 	"type": "text",
+// 	"text": "<thinking>I need to call the get_weather function, and the user wants SF, which is likely San Francisco, CA.</thinking>"
+// }, {
+// 	"type": "tool_use",
+// 	"id": "toolu_01A09q90qw90lq917835lq9",
+// 	"name": "get_weather",
+// 	"input": { "location": "San Francisco, CA", "unit": "celsius" }
+// }]
+// anthropic RESPONSE (role=user):
+// "content": [{
+// 	"type": "tool_result",
+// 	"tool_use_id": "toolu_01A09q90qw90lq917835lq9",
+// 	"content": "15 degrees"
+// }]
+// */
+
+// type PrepareMessagesToolsAnthropic = (
+// 	Exclude<InternalLLMChatMessage, { role: 'assistant' | 'user' }> | {
+// 		role: 'assistant',
+// 		content: string | (
+// 			| AnthropicReasoning
+// 			| {
+// 				type: 'text';
+// 				text: string;
+// 			}
+// 			| {
+// 				type: 'tool_use';
+// 				name: string;
+// 				input: Record<string, any>;
+// 				id: string;
+// 			})[]
+// 	} | {
+// 		role: 'user',
+// 		content: string | ({
+// 			type: 'text';
+// 			text: string;
+// 		} | {
+// 			type: 'tool_result';
+// 			tool_use_id: string;
+// 			content: string;
+// 		})[]
+// 	}
+// )[]
+// /*
+// Converts:
+
+// assistant: ...content
+// tool: (id, name, params)
+// ->
+// assistant: ...content, call(name, id, params)
+// user: ...content, result(id, content)
+// */
+// const prepareMessages_tools_anthropic = ({ messages }: { messages: InternalLLMChatMessage[], }) => {
+// 	const newMessages: PrepareMessagesToolsAnthropic = messages;
+
+
+// 	for (let i = 0; i < newMessages.length; i += 1) {
+// 		const currMsg = newMessages[i]
+
+// 		if (currMsg.role !== 'tool') continue
+
+// 		const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
+
+// 		if (prevMsg?.role === 'assistant') {
+// 			if (typeof prevMsg.content === 'string') prevMsg.content = [{ type: 'text', text: prevMsg.content }]
+// 			prevMsg.content.push({ type: 'tool_use', id: currMsg.id, name: currMsg.name, input: parseObject(currMsg.params) })
+// 		}
+
+// 		// turn each tool into a user message with tool results at the end
+// 		newMessages[i] = {
+// 			role: 'user',
+// 			content: [
+// 				...[{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content || EMPTY_TOOL_CONTENT }] as const,
+// 			]
+// 		}
+// 	}
+// 	return { messages: newMessages }
+// }
+
+
+
+
+// type PrepareMessagesTools = PrepareMessagesToolsAnthropic | PrepareMessagesToolsOpenAI
+
+// const prepareMessages_tools = ({ messages, supportsTools }: { messages: InternalLLMChatMessage[], supportsTools: false | 'TODO-yes-but-we-handle-it-manually' | 'anthropic-style' | 'openai-style' }): { messages: PrepareMessagesTools } => {
+// 	if (!supportsTools) {
+// 		return { messages: messages }
+// 	}
+// 	else if (supportsTools === 'anthropic-style') {
+// 		return prepareMessages_tools_anthropic({ messages })
+// 	}
+// 	else if (supportsTools === 'openai-style') {
+// 		return prepareMessages_tools_openai({ messages })
+// 	}
+// 	else {
+// 		throw new Error(`supportsTools type not recognized`)
+// 	}
+// }
+
+
 // remove rawAnthropicAssistantContent, and make content equal to it if supportsAnthropicContent
 const prepareMessages_anthropicReasoning = ({ messages, supportsAnthropicReasoningSignature }: { messages: LLMChatMessage[], supportsAnthropicReasoningSignature: boolean }) => {
 	const newMessages: InternalLLMChatMessage[] = []

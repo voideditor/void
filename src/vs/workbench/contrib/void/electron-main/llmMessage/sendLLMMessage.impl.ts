@@ -8,9 +8,9 @@ import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
-import { ChatMode, defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
-import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
+import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractToolsWrapper } from './extractGrammar.js';
 
 
@@ -66,7 +66,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 	}
 	else if (providerName === 'gemini') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return new OpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 	else if (providerName === 'deepseek') {
 		const thisConfig = settingsOfProvider[providerName]

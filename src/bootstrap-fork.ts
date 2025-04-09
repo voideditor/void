@@ -3,6 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// This bootstrap-fork module handles the initialization of a forked process in VS Code.
+// It sets up logging, exception handling, and loads the ESM module system.
+
 import * as performance from './vs/base/common/performance.js';
 import { removeGlobalNodeJsModuleLookupPaths, devInjectNodeModuleLookupPath } from './bootstrap-node.js';
 import { bootstrapESM } from './bootstrap-esm.js';

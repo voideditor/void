@@ -71,6 +71,21 @@ registerColor('void.sweepIdxBG', configOfBG(sweepIdxBG), '', true);
 
 const numLinesOfStr = (str: string) => str.split('\n').length
 
+
+export const getLengthOfTextPx = ({ tabWidth, spaceWidth, content }: { tabWidth: number, spaceWidth: number, content: string }) => {
+	let lengthOfTextPx = 0;
+	for (const char of content) {
+		if (char === '\t') {
+			lengthOfTextPx += tabWidth
+		} else {
+			lengthOfTextPx += spaceWidth;
+		}
+	}
+
+	return lengthOfTextPx
+}
+
+
 const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number => {
 
 	const model = editor.getModel();
@@ -94,16 +109,14 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 	const spaceWidth = editor.getOption(EditorOption.fontInfo).spaceWidth;
 	const tabWidth = numSpacesInTab * spaceWidth;
 
-	let paddingLeft = 0;
-	for (const char of leadingWhitespace) {
-		if (char === '\t') {
-			paddingLeft += tabWidth
-		} else if (char === ' ') {
-			paddingLeft += spaceWidth;
-		}
-	}
+	const leftWhitespacePx = getLengthOfTextPx({
+		tabWidth,
+		spaceWidth,
+		content: leadingWhitespace
+	});
 
-	return paddingLeft;
+
+	return leftWhitespacePx;
 };
 
 
@@ -1584,7 +1597,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
-		const N_RETRIES = 5
+		const N_RETRIES = 2
 
 		// allowed to throw errors - this is called inside a promise that handles everything
 		const runSearchReplace = async () => {

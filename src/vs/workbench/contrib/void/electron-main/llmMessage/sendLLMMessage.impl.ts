@@ -439,18 +439,22 @@ const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError
 	const {
 		supportsSystemMessage,
 		supportsTools,
+		contextWindow,
+		maxOutputTokens,
 	} = getModelCapabilities(providerName, modelName_);
 
-	// Prétraiter les messages pour le format Mistral
+	// Preprocess messages for Mistral format
 	prepareMessages({
 		messages: messages_,
 		aiInstructions,
 		supportsSystemMessage,
 		supportsTools,
-		supportsAnthropicReasoningSignature: false
+		supportsAnthropicReasoningSignature: false,
+		contextWindow,
+		maxOutputTokens
 	});
 
-	// Pour Mistral, nous utilisons l'implémentation OpenAI compatible
+	// For Mistral, we use the OpenAI compatible implementation
 	_sendOpenAICompatibleChat({
 		messages: messages_,
 		onText,
@@ -462,7 +466,7 @@ const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError
 		providerName,
 		aiInstructions,
 		modelSelectionOptions,
-		tools: tools_ // Passons les outils originaux directement
+		tools: tools_
 	});
 }
 

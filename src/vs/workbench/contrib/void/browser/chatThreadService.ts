@@ -358,8 +358,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			else if (behavior === 'set') {
 				this.streamState[threadId] = state
 			}
+			else throw new Error(`setStreamState`)
 		}
-
 
 		this._onDidChangeStreamState.fire({ threadId })
 	}
@@ -488,7 +488,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const displayContentSoFar = this.streamState[threadId]?.displayContentSoFar ?? ''
 			const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
 			const toolCallSoFar = this.streamState[threadId]?.toolCallSoFar
-			console.log('toolInProgress', toolCallSoFar)
 
 			const llmCancelToken = this.streamState[threadId]?.streamingToken
 			if (llmCancelToken !== undefined) { this._llmMessageService.abort(llmCancelToken) }
@@ -498,6 +497,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			if (toolCallSoFar) {
 				this._addMessageToThread(threadId, { role: 'interrupted_streaming_tool', name: toolCallSoFar.name })
 			}
+
+			this._addUserCheckpoint({ threadId })
 		}
 
 		this._setStreamState(threadId, {}, 'set')
@@ -1089,14 +1090,21 @@ We only need to do it for files that were edited since `from`, ie files between 
 		if (!thread) return // should never happen
 
 
+		const llmCancelToken = this.streamState[threadId]?.streamingToken // currently streaming LLM on this thread
+		if (llmCancelToken === undefined && this.streamState[threadId]?.isRunning === 'LLM') {
+			// if about to call the other LLM, just wait for it by stopping right now
+			return
+		}
+		// stop it (this simply resolves the promise to free up space)
+		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
+
+
+
 		// add dummy before this message to keep checkpoint before user message idea consistent
 		if (thread.messages.length === 0) {
 			this._addUserCheckpoint({ threadId })
 		}
 
-		// if the current thread is already streaming, stop it (this simply resolves the promise to free up space)
-		const llmCancelToken = this.streamState[threadId]?.streamingToken
-		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
 
 		const { chatMode } = this._settingsService.state.globalSettings
 
@@ -1488,6 +1496,10 @@ We only need to do it for files that were edited since `from`, ie files between 
 				}
 			}
 		}, true)
+
+		// when change focused message idx, jump
+		if (messageIdx !== undefined)
+			this.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
 	}
 
 	// set message.state

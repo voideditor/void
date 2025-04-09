@@ -284,6 +284,7 @@ export const extractToolsWrapper = (
 
 		parser.write(newText)
 
+		// firstToolCallRef.current === state.currentToolCall is always true
 		onText({
 			...params,
 			fullText,

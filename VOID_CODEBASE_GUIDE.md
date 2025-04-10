@@ -86,7 +86,7 @@ Here is some important terminology:
 
 
 ### Void Settings Inner Workings
-We have a service `voidSettingsService` that stores all your Void settings (providers, models, global Void settings, etc). Imagine this as an implicit dependency on this for any of the other core Void services:
+We have a service `voidSettingsService` that stores all your Void settings (providers, models, global Void settings, etc). Imagine this as an implicit dependency for any of the core Void services:
 
 <div align="center">
 	<img width="800" src="https://github.com/user-attachments/assets/9f3cb68c-a61b-4810-8429-bb90b992b3fa">
@@ -103,7 +103,7 @@ Here's a guide to some of the terminology we're using:
 
 
 ### Approval State
-`editCodeService`'s data structures contain all the information about changes that the user needs to review. However, it doesn't store that information in a useful format. We wrote the following service to get a more useful derived state:
+`editCodeService`'s data structures contain all the information about changes that the user needs to review. However, they don't store that information in a useful format. We wrote the following service to get a more useful derived state:
 
 <div align="center">
 	<img width="600" src="https://github.com/user-attachments/assets/f3645355-dff6-467c-bc38-ffe52077c08b">
@@ -114,34 +114,32 @@ Here's a guide to some of the terminology we're using:
 
 ### Misc
 
-- VSCode's repo is the source for Monaco. An "editor" is a Monaco editor, and it shares the code for ITextModel, etc.
+- VSCode's repo is the source code for the Monaco editor! An "editor" is a Monaco editor, and it shares the code for ITextModel, etc.
 
 
 ## VSCode Codebase Guide (Not Void)
 
 The Void team put together this list of links to get up and running with VSCode's sourcecode, the foundation of Void. We hope it's helpful!
 
-### Links for Beginners
+#### Links for Beginners
 
 - [VSCode UI guide](https://code.visualstudio.com/docs/getstarted/userinterface)  - covers auxbar, panels, etc.
 
 - [UX guide](https://code.visualstudio.com/api/ux-guidelines/overview) - covers Containers, Views, Items, etc.
 
-
-
-### Links for Contributors
+#### Links for Contributors
 
 - [How VSCode's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. This is the most important read on this whole list! We recommend reading the whole thing.
 
 - [Built-in VSCode styles](https://code.visualstudio.com/api/references/theme-color) - CSS variables that are built into VSCode. Use `var(--vscode-{theme but replacing . with -})`. You can also see their [Webview theming guide](https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content).
 
 
-### Misc
+#### Misc
 
 - [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - not used often, but here for reference.
 
 
-### VSCode's Extension API
+#### VSCode's Extension API
 
 Void is no longer an extension, so these links are no longer required, but they might be useful if we ever build an extension again.
 

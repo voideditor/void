@@ -11,6 +11,38 @@ Each section below contains an overview of a core part of Void's sourcecode. You
 
 ## Void Codebase Guide
 
+### Terminology
+
+Here is some important terminology you should know if you're working inside VSCode:
+- A **URI** is a path to a file. Often URIs are named **resource**.
+- An **Editor** is the thing that you type your code in. If you have 10 tabs open, that's just one editor! Editors contain tabs (or "models").
+- A **Model** is an internal representation of a file's contents. It's shared between editors (for example, if you press `Cmd+\` to make a new editor, then the model of a file like `A.ts` is shared between them. Two editors, one model. That's how changes sync.).
+- The **Workbench** is the wrapper that contains all the editors, the terminal, the file system tree, etc.
+- Usually you use the `ITextModel` type for models and the `ICodeEditor` type for editors. There aren't that many other types.
+
+
+
+### Minimal VSCode Rundown
+Here's a minimal VSCode rundown if you're just getting started with Void:
+
+- VSCode is (and therefore Void is) an Electron app. Electron runs two processes: a **main** process (for internal workings) and a **browser** process (browser means HTML in general, not just "web browser").
+- Code in a  `browser/` folder lives in the browser, so it can use window and other browser items
+- Code in an `electron-main/` lives on the main process, so it can import node_modules.
+- Code in `common/` can be imported by either one.
+- The browser environment is not allowed to import `node_modules`, but there are two workarounds:
+  1. Bundle the node_module code and ship it in the browser - we're doing this for React.
+  2. Implement the code on `electron-main/` and set up a channel - we're doing this for sendLLMMessage.
+
+
+
+VSCode is organized into "Services". A service is just a class that mounts a single time (in computer science theory this is called a "singleton"). You can register services with `registerSingleton` so that you can easily use them in any constructor with `@<Service>`. See _dummyContrib for an example we put together on how to register them (the registration is the same every time). Services need `_serviceBrand` for some reason.
+
+Services are always lazily created, even if you register them as Eager. If you want something that always runs on Void's mount, you should use a "workbench contribution". See _dummyContrib for this. Very similar to a Service, just registered slightly differently.
+
+Actions or "commands" are functions you register on VSCode so that either you or the user can call them later. You can run actions as a user by pressing Cmd+Shift+P (opens the command pallete), or you can run them internally by using the commandService to call them by ID. We use actions to register keybinding listeners like Cmd+L, Cmd+K, etc. The nice thing about actions is the user can change the keybindings.
+
+See [here](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) for a decent VSCode guide with even more info.
+
 
 ### Internal LLM Message Pipeline
 
@@ -25,14 +57,6 @@ Sending LLM messages from the main process avoids CSP issues with local provider
 
 
 **Notes:** `modelCapabilities` is an important file that must be updated when new models come out! 
-
-### Terminology
-
-Here is some important terminology you should know if you're working inside VSCode:
-- A **URI** is a path to a file. Often URIs are named **resource**.
-- An **Editor** is the thing that you type your code in. If you have 10 tabs open, that's just one editor! Editors contain tabs (or "models").
-- A **Model** is an internal representation of a file's contents. It's shared between editors (for example, if you press `Cmd+\` to make a new editor, then the model of a file like `A.ts` is shared between them. Two editors, one model. That's how changes sync.).
-- Usually you use the `ITextModel` type for models and the `ICodeEditor` type for editors. There aren't that many other types.
 
 
 ### Apply
@@ -85,20 +109,6 @@ Here's a guide to some of the terminology we're using:
 	<img width="600" src="https://github.com/user-attachments/assets/f3645355-dff6-467c-bc38-ffe52077c08b">
 </div>
 
-
-
-
-### Minimal VSCode Rundown
-Here's a minimal VSCode rundown if you're just getting started with Void:
-
-- VSCode is (and therefore Void is) an Electron app. Electron runs two processes: a **main** process (for internal workings) and a **browser** process (browser means HTML in general, not just "web browser").
-- Code in a  `browser/` folder lives in the browser, so it can use window and other browser items
-- Code in an `electron-main/` lives on the main process, so it can import node_modules.
-- Code in `common/` can be imported by either one.
-- There are a few others, see here for more:  [How VSCode's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization).
-- The browser environment is not allowed to import `node_modules`, but there are two workarounds:
-  1. Bundle the node_module code and ship it in the browser - we're doing this for React.
-  2. Implement the code on `electron-main/` and set up a channel - we're doing this for sendLLMMessage.
 
 
 

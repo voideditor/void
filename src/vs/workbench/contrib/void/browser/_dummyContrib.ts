@@ -16,7 +16,7 @@ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase 
 
 
 export interface IDummyService {
-	readonly _serviceBrand: undefined;
+	readonly _serviceBrand: undefined; // services need this, just leave it undefined
 }
 
 export const IDummyService = createDecorator<IDummyService>('DummyService');

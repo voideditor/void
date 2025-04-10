@@ -135,7 +135,9 @@ const computeDirectoryTree = async (
 	explorerService: IExplorerService
 ): Promise<VoidDirectoryItem> => {
 	// Fetch children with default sort order
+	console.log('11111!!!!')
 	const eChildren = await eItem.fetchChildren(SortOrder.FilesFirst);
+	console.log('222222!!!!')
 
 	const isGitIgnoredDirectory = eItem.isDirectory && shouldExcludeDirectory(eItem)
 
@@ -143,6 +145,8 @@ const computeDirectoryTree = async (
 	const children = !isGitIgnoredDirectory ? await Promise.all(
 		eChildren.map(async c => await computeDirectoryTree(c, explorerService))
 	) : null
+	console.log('333333!!!!!')
+
 
 	// Create our directory item
 	const item: VoidDirectoryItem = {

@@ -210,6 +210,9 @@ const renderChildren = (
 		const child = children[i];
 		const isLast = i === children.length - 1;
 
+		console.log('child!!!!', child.uri.fsPath)
+
+
 		// Create the tree branch symbols
 		const branchSymbol = isLast ? '└── ' : '├── ';
 		const childLine = `${parentPrefix}${branchSymbol}${child.name}${child.isDirectory ? '/' : ''}${child.isSymbolicLink ? ' (symbolic link)' : ''}\n`;

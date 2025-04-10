@@ -87,7 +87,7 @@ Here is some important terminology:
 - When you click Apply, we create a **DiffZone** so that any changes that the LLM makes will show up in red/green. We then stream the change.
 
 ### Writing Files Inner Workings
-Void uses text models to write code when it changes your code, so all you need to know to write is a URI. There are some annoying background URI/model things to think about, but we handled them all in `voidModelService`.
+When Void wants to change your code, it just writes to a text model. This means all you need to know to write to a file is its URI - you don't have to load it, save it, etc. There are some annoying background URI/model things to think about to get this to work, but we handled them all in `voidModelService`.
 
 ### Void Settings Inner Workings
 We have a service `voidSettingsService` that stores all your Void settings (providers, models, global Void settings, etc). Imagine this as an implicit dependency for any of the core Void services:

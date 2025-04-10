@@ -15,7 +15,7 @@ The purpose of this document is to explain how Void's codebase works. If you wan
 Here is some important terminology you should know if you're working inside VSCode:
 - An **Editor** is the thing that you type your code in. If you have 10 tabs open, that's just one editor! Editors contain tabs (or "models").
 - A **Model** is an internal representation of a file's contents. It's shared between editors (for example, if you press `Cmd+\` to make a new editor, then the model of a file like `A.ts` is shared between them. Two editors, one model. That's how changes sync.).
-- Each model has a **URI**, which is just a path to a file, like `/Users/.../my_file.txt`. (A URI or "resource" is generally just a path).
+- Each model has a **URI** it represents, like `/Users/.../my_file.txt`. (A URI or "resource" is generally just a path).
 - The **Workbench** is the wrapper that contains all the editors, the terminal, the file system tree, etc.
 - Usually you use the `ITextModel` type for models and the `ICodeEditor` type for editors. There aren't that many other types.
 

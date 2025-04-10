@@ -113,9 +113,6 @@ Here's a guide to some of the terminology we're using:
 
 
 
-### Misc
-
-- VSCode's repo is the source code for the Monaco editor! An "editor" is a Monaco editor, and it shares the code for ITextModel, etc.
 
 
 ## VSCode Codebase Guide (Not Void)
@@ -138,6 +135,8 @@ The Void team put together this list of links to get up and running with VSCode'
 #### Misc
 
 - [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - not used often, but here for reference.
+
+- Note: VSCode's repo is the source code for the Monaco editor! An "editor" is a Monaco editor, and it shares the code for ITextModel, etc.
 
 
 #### VSCode's Extension API

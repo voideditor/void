@@ -15,7 +15,7 @@ This repo contains the full sourcecode for Void. We are currently in [open beta]
 
 - 👋 [Discord](https://discord.gg/RSNjgaugJs)
 
-- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md)
+- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md)
 
 - 🚙 [Roadmap](https://github.com/orgs/voideditor/projects/2)
 
@@ -26,7 +26,7 @@ This repo contains the full sourcecode for Void. We are currently in [open beta]
 
 1. Feel free to attend a weekly meeting in our Discord channel if you'd like to contribute!
 
-2. To get started working on Void, see [Contributing](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
+2. To get started working on Void, see [Contributing](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
 
 3. We're open to collaborations and suggestions of all types - just reach out.
 

@@ -24,7 +24,7 @@ Here is some important terminology you should know if you're working inside VSCo
 ### Minimal VSCode Rundown
 Here's a minimal VSCode rundown if you're just getting started with Void:
 
-- VSCode is (and therefore Void is) an Electron app. Electron runs two processes: a **main** process (for internal workings) and a **browser** process (browser means HTML in general, not just "web browser").
+- VSCode is (and therefore Void is) an Electron app. Electron runs two processes: a **main** process (for internals) and a **browser** process (browser means HTML in general, not just "web browser").
 - Code in a  `browser/` folder lives in the browser, so it can use `window` and other browser items.
 - Code in an `electron-main/` lives on the main process, so it can import `node_modules`.
 - Code in `common/` can be imported by either one.

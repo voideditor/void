@@ -943,7 +943,7 @@ export const Settings = () => {
 	const [tab, setTab] = useState<TabName>('models')
 
 
-	const deleteme = false
+	const deleteme = true
 	if (deleteme) {
 		return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
 			<VoidOnboarding />
@@ -1437,7 +1437,7 @@ const VoidOnboarding = () => {
 
 			<FadeIn>
 
-				<div className="text-3xl font-medium mb-6 mt-8 text-center">AI Preferences</div>
+				<div className="text-5xl font-light mb-6 mt-12 text-center">AI Preferences</div>
 
 				<div className="flex flex-col items-center w-full mx-auto">
 
@@ -1446,29 +1446,35 @@ const VoidOnboarding = () => {
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full md:max-w-[75%] max-w-[90%]">
 						<div
 							onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
-							className="flex flex-col items-center justify-center p-6 rounded-md transition-all duration-300 cursor-pointer md:aspect-[8/7] border-void-border-1 border bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent hover:from-[#0e70c0]/25 hover:via-[#0e70c0]/10 hover:to-[#0e70c0]/5 dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 dark:hover:from-[#0e70c0]/30 dark:hover:via-[#0e70c0]/15 dark:hover:to-[#0e70c0]/5"
+							className="flex flex-col items-center justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
 						>
-							<span className="text-5xl mb-4">🧠</span>
-							<h3 className="text-xl font-medium mb-3">Intelligence</h3>
-							<p className="text-center text-sm text-void-fg-2">{basicDescOfWantToUseOption['smart']}</p>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
+							<span className="text-5xl mb-4 relative z-10">🧠</span>
+							<h3 className="text-xl font-medium mb-3 relative z-10">Intelligence</h3>
+							<p className="text-center text-sm text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['smart']}</p>
 						</div>
 
 						<div
 							onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
-							className="flex flex-col items-center justify-center p-6 rounded-md transition-all duration-300 cursor-pointer md:aspect-[8/7] border-void-border-1 border bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent hover:from-[#0e70c0]/25 hover:via-[#0e70c0]/10 hover:to-[#0e70c0]/5 dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 dark:hover:from-[#0e70c0]/30 dark:hover:via-[#0e70c0]/15 dark:hover:to-[#0e70c0]/5"
+							className="flex flex-col items-center justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
 						>
-							<span className="text-5xl mb-4">🔒</span>
-							<h3 className="text-xl font-medium mb-3">Privacy</h3>
-							<p className="text-center text-sm text-void-fg-2">{basicDescOfWantToUseOption['private']}</p>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
+							<span className="text-5xl mb-4 relative z-10">🔒</span>
+							<h3 className="text-xl font-medium mb-3 relative z-10">Privacy</h3>
+							<p className="text-center text-sm text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['private']}</p>
 						</div>
 
 						<div
 							onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
-							className="flex flex-col items-center justify-center p-6 rounded-md transition-all duration-300 cursor-pointer md:aspect-[8/7] border-void-border-1 border bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent hover:from-[#0e70c0]/25 hover:via-[#0e70c0]/10 hover:to-[#0e70c0]/5 dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 dark:hover:from-[#0e70c0]/30 dark:hover:via-[#0e70c0]/15 dark:hover:to-[#0e70c0]/5"
+							className="flex flex-col items-center justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
 						>
-							<span className="text-5xl mb-4">💵</span>
-							<h3 className="text-xl font-medium mb-3">Low-Cost</h3>
-							<p className="text-center text-sm text-void-fg-2">{basicDescOfWantToUseOption['cheap']}</p>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
+							<span className="text-5xl mb-4 relative z-10">💵</span>
+							<h3 className="text-xl font-medium mb-3 relative z-10">Low-Cost</h3>
+							<p className="text-center text-sm text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['cheap']}</p>
 						</div>
 					</div>
 				</div>
@@ -1652,7 +1658,7 @@ const VoidOnboarding = () => {
 	}
 
 
-	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-auto flex flex-col items-center justify-between">
+	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-auto flex flex-col items-center justify-around">
 		{contentOfIdx[pageIndex]}
 	</div>
 }

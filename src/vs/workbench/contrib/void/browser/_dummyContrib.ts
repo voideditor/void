@@ -45,7 +45,7 @@ registerAction2(class extends Action2 {
 
 // on mount
 class DummyService extends Disposable implements IWorkbenchContribution, IDummyService {
-	static readonly ID = 'workbench.contrib.void.dummy'
+	static readonly ID = 'workbench.contrib.void.dummy' // workbenchContributions need this, services do not
 	_serviceBrand: undefined;
 
 	constructor(
@@ -56,6 +56,8 @@ class DummyService extends Disposable implements IWorkbenchContribution, IDummyS
 	}
 }
 
+
+// pick one and delete the other:
 registerSingleton(IDummyService, DummyService, InstantiationType.Eager);
 
 registerWorkbenchContribution2(DummyService.ID, DummyService, WorkbenchPhase.BlockRestore);

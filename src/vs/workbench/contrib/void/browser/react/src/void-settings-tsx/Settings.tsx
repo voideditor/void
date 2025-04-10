@@ -1443,21 +1443,21 @@ const VoidOnboarding = () => {
 
 					<div className="text-base text-void-fg-2 mb-8 text-center">What are you looking for in an AI model?</div>
 
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full md:max-w-[75%] max-w-[90%]">
+					<div className="flex md:flex-nowrap gap-4 w-full md:max-w-[80%] max-w-[90%]">
 						<div
 							onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
-							className="flex flex-col items-center justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
+							className="flex flex-col items-center w-full justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
 						>
 							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
 							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
 							<span className="text-5xl mb-4 relative z-10">🧠</span>
 							<h3 className="text-xl font-medium mb-3 relative z-10">Intelligence</h3>
-							<p className="text-center text-sm text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['smart']}</p>
+							<p className="text-center text-root text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['smart']}</p>
 						</div>
 
 						<div
 							onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
-							className="flex flex-col items-center justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
+							className="flex flex-col items-center w-full justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
 						>
 							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
 							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
@@ -1468,7 +1468,7 @@ const VoidOnboarding = () => {
 
 						<div
 							onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
-							className="flex flex-col items-center justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
+							className="flex flex-col items-center w-full justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
 						>
 							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
 							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
@@ -1633,11 +1633,11 @@ const VoidOnboarding = () => {
 			<FadeIn>
 				<div className="text-5xl font-light mb-6 mt-12">Settings and Themes</div>
 
-				<div className="text-center flex flex-col gap-4 w-full max-w-md mx-auto">
+				<div className="text-center flex flex-col items-center gap-4 w-full max-w-md mx-auto">
 					<h4 className="text-void-fg-3 mb-4">Transfer your settings from an existing editor?</h4>
-					<OneClickSwitchButton fromEditor="VS Code" />
-					<OneClickSwitchButton fromEditor="Cursor" />
-					<OneClickSwitchButton fromEditor="Windsurf" />
+					<OneClickSwitchButton className='w-full' fromEditor="VS Code" />
+					<OneClickSwitchButton className='w-full' fromEditor="Cursor" />
+					<OneClickSwitchButton className='w-full' fromEditor="Windsurf" />
 				</div>
 
 			</FadeIn>

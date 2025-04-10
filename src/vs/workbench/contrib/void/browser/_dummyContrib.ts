@@ -15,7 +15,7 @@ import { KeybindingWeight } from '../../../../platform/keybinding/common/keybind
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 
 
-// to change this, just Cmd+Shift+F and replace DummyService with YourServiceName, and replace
+// to change this, just Cmd+Shift+F and replace DummyService with YourServiceName, and create a unique ID below
 export interface IDummyService {
 	readonly _serviceBrand: undefined; // services need this, just leave it undefined
 }

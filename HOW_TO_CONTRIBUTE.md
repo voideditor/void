@@ -14,18 +14,6 @@ There are a few ways to contribute:
 
 We [highly recommend reading this](https://github.com/voideditor/void/edit/main/VOID_USEFUL_LINKS.md) guide that we put together on Void's sourcecode if you'd like to contribute!
 
-<!-- ADD BLOG HERE
-We wrote a [guide to working in VSCode].
--->
-
-Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
-
-Here are a few pictures on how our code is organized:
-
-
-
-Feel free to ask us any clarifying questions in our Discord!
-
 
 ## Building Void
 

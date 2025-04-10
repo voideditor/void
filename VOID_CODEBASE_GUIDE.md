@@ -61,7 +61,7 @@ Sending LLM messages from the main process avoids CSP issues with local provider
 
 ### Apply
 
-There are two types of Apply: **Fast Apply** (uses Search/Replace, see below), and **Slow Apply** (rewrites whole file).
+Void has two types of Apply: **Fast Apply** (uses Search/Replace, see below), and **Slow Apply** (rewrites whole file).
 
 When you click Apply and Fast Apply is enabled, we prompt the LLM to output Search/Replace block(s) like this:
 ```

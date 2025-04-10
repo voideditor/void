@@ -927,7 +927,7 @@ const GeneralTab = () => {
 
 		<div className='mt-12 max-w-[600px]'>
 			<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Instructions to include on all AI requests.`}</h4>
+			<h4 className={`text-void-fg-3 mb-4`}>{`Instructions to include on all AI requests.`}</h4>
 			<AIInstructionsBox />
 		</div>
 

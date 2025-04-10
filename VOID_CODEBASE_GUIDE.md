@@ -80,10 +80,12 @@ This is what allows Void to quickly apply code even on 1000-line files. It's the
 The `editCodeService` file runs Apply. The same exact code is also used when the LLM calls the Edit tool, and when you submit Cmd+K. Just different versions of Fast/Slow Apply mode. 
 
 Here is some important terminology:
-- A **DiffZone** is a {startLine, endLine} region in which we show Diffs (red/green areas).
-- A **DiffArea** is a generalization just used to track line numbers like a DiffZone.
-- A DiffZone has an llmCancelToken (is streaming) if and only if we are Applying in its file's URI.
-- When you click Apply, we create a **DiffZone** so that any changes that the LLM makes will show up in red/green. We then stream the change.
+- A **DiffZone** is a {startLine, endLine} region in which we show Diffs (red/green areas). We update it when the user types, so it's always accurate.
+- A **DiffArea** is a generalization that tracks line numbers like a DiffZone.
+- The only type of zone that can "stream" is a DiffZone. Each DiffZone has an llmCancelToken if it's streaming.
+- When you click Apply, we create a **DiffZone** over that the full file so that any changes that the LLM makes will show up in red/green. We then stream the change.
+- When an LLM calls Edit, it's really calling Apply.
+- When you submit Cmd+K, it's the same as Apply except we create a smaller DiffZone (not on the whole file).
 
 ### Writing Files Inner Workings
 When Void wants to change your code, it just writes to a text model. This means all you need to know to write to a file is its URI - you don't have to load it, save it, etc. There are some annoying background URI/model things to think about to get this to work, but we handled them all in `voidModelService`.

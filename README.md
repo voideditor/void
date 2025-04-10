@@ -21,6 +21,7 @@ This repo contains the full sourcecode for Void. We are currently in [open beta]
 
 - 📝 [Changelog](https://voideditor.com/changelog)
 
+- 🧭 [Codebase Guide](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md)
 
 ## Contributing
 

@@ -34,7 +34,7 @@ This repo contains the full sourcecode for Void. We are currently in [open beta]
 
 ## Reference
 
-Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For some useful links on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
+Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For some useful links on VSCode, see [our Codebase Guide](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md).
 
 ## Support
 Feel free to reach out in our Discord or contact us via email: hello@voideditor.com.

@@ -35,7 +35,7 @@ Here's a minimal VSCode rundown if you're just getting started with Void:
 
 
 
-VSCode is organized into "Services". A service is just a class that mounts a single time (in computer science theory this is called a "singleton"). You can register services with `registerSingleton` so that you can easily use them in any constructor with `@<Service>`. See _dummyContrib for an example we put together on how to register them (the registration is the same every time). Services need `_serviceBrand` for some reason.
+VSCode is organized into "Services". A service is just a class that mounts a single time (in computer science theory this is called a "singleton"). You can register services with `registerSingleton` so that you can easily use them in any constructor with `@<Service>`. See _dummyContrib for an example we put together on how to register them (the registration is the same every time).
 
 Services are always lazily created, even if you register them as Eager. If you want something that always runs on Void's mount, you should use a "workbench contribution". See _dummyContrib for this. Very similar to a Service, just registered slightly differently.
 

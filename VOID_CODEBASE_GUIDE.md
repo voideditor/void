@@ -13,12 +13,12 @@ The purpose of this document is to explain how Void's codebase works. If you wan
 ### Terminology
 
 Here is some important terminology you should know if you're working inside VSCode:
-- A **URI** is a path to a file, like `/Users/.../my_file.txt`. 
 - An **Editor** is the thing that you type your code in. If you have 10 tabs open, that's just one editor! Editors contain tabs (or "models").
 - A **Model** is an internal representation of a file's contents. It's shared between editors (for example, if you press `Cmd+\` to make a new editor, then the model of a file like `A.ts` is shared between them. Two editors, one model. That's how changes sync.).
+- Each model has a **URI**, which is just a path to a file, like `/Users/.../my_file.txt`. (A URI or "resource" is generally just a path).
+
 - The **Workbench** is the wrapper that contains all the editors, the terminal, the file system tree, etc.
 - Usually you use the `ITextModel` type for models and the `ICodeEditor` type for editors. There aren't that many other types.
-- Often URIs are called **resource**.
 
 
 
@@ -40,6 +40,7 @@ VSCode is organized into "Services". A service is just a class that mounts a sin
 Services are always lazily created, even if you register them as Eager. If you want something that always runs on Void's mount, you should use a "workbench contribution". See _dummyContrib for this. Very similar to a Service, just registered slightly differently.
 
 Actions or "commands" are functions you register on VSCode so that either you or the user can call them later. You can run actions as a user by pressing Cmd+Shift+P (opens the command pallete), or you can run them internally by using the commandService to call them by ID. We use actions to register keybinding listeners like Cmd+L, Cmd+K, etc. The nice thing about actions is the user can change the keybindings.
+
 
 See [here](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) for a decent VSCode guide with even more info.
 
@@ -77,7 +78,7 @@ This is what allows Void to quickly apply code even on 1000-line files. It's the
 
 ### Apply Inner Workings
 
-The `editCodeService` file runs Apply. The same exact code is also used when the LLM calls the Edit tool, and when you submit Cmd+K. Just different versions of Fast/Slow Apply mode. Void uses text models to write code when it changes your code. See `voidModelService` for details.
+The `editCodeService` file runs Apply. The same exact code is also used when the LLM calls the Edit tool, and when you submit Cmd+K. Just different versions of Fast/Slow Apply mode. 
 
 Here is some important terminology:
 - A **DiffZone** is a {startLine, endLine} region in which we show Diffs (red/green areas).
@@ -85,7 +86,8 @@ Here is some important terminology:
 - A DiffZone has an llmCancelToken (is streaming) if and only if we are Applying in its file's URI.
 - When you click Apply, we create a **DiffZone** so that any changes that the LLM makes will show up in red/green. We then stream the change.
 
-
+### Writing Files Inner Workings
+Void uses text models to write code when it changes your code, so all you need to know to write is a URI. There are some annoying background URI/model things to think about, but we handled them all in `voidModelService`.
 
 ### Void Settings Inner Workings
 We have a service `voidSettingsService` that stores all your Void settings (providers, models, global Void settings, etc). Imagine this as an implicit dependency for any of the core Void services:
@@ -110,6 +112,7 @@ Here's a guide to some of the terminology we're using:
 <div align="center">
 	<img width="600" src="https://github.com/user-attachments/assets/f3645355-dff6-467c-bc38-ffe52077c08b">
 </div>
+
 
 
 ### Build process

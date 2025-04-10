@@ -20,7 +20,11 @@ We wrote a [guide to working in VSCode].
 
 Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
 
+Here are a few pictures on how our code is organized:
 
+
+
+Feel free to ask us any clarifying questions in our Discord!
 
 
 ## Building Void

@@ -14,6 +14,12 @@ There are a few ways to contribute:
 
 We [highly recommend reading this](https://github.com/voideditor/void/edit/main/VOID_USEFUL_LINKS.md) guide that we put together on Void's sourcecode if you'd like to contribute!
 
+The repo is not as intimidating as it first seems if you read the guide!
+
+Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
+
+
+
 
 ## Building Void
 

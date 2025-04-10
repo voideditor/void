@@ -167,14 +167,12 @@ const AddModelInputBox = ({ providerName: permanentProviderName, className, comp
 	const [isOpen, setIsOpen] = useState(false)
 
 	// const providerNameRef = useRef<ProviderName | null>(null)
-	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName | null>(null)
+	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName>('anthropic')
 
 	const providerName = permanentProviderName ?? userChosenProviderName;
 
 	const [modelName, setModelName] = useState<string>('')
 	const [errorString, setErrorString] = useState('')
-
-	if (!providerName) { return null; }
 
 	const numModels = settingsState.settingsOfProvider[providerName].models.length
 
@@ -206,9 +204,8 @@ const AddModelInputBox = ({ providerName: permanentProviderName, className, comp
 					getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
 					getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
 					getOptionsEqual={(a, b) => a === b}
-					className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
-					py-[4px] px-[6px]
-				`}
+					// className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root py-[4px] px-[6px]`}
+					className={`max-w-32 mx-2 w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1 py-1 px-2 rounded`}
 					arrowTouchesText={false}
 				/>
 			}
@@ -219,7 +216,7 @@ const AddModelInputBox = ({ providerName: permanentProviderName, className, comp
 				onChangeValue={setModelName}
 				placeholder='Model Name'
 				compact={compact}
-				className={'max-w-44'}
+				className={'max-w-32'}
 			/>
 
 			{/* add button */}
@@ -533,7 +530,7 @@ export const FeaturesTab = () => {
 		<h2 className={`text-3xl mb-2`}>Models</h2>
 		<ErrorBoundary>
 			<ModelDump />
-			<AddModelInputBox />
+			<AddModelInputBox className='my-4' compact />
 			<AutoDetectLocalModelsToggle />
 			<RefreshableModels />
 		</ErrorBoundary>

@@ -32,6 +32,7 @@ Here is some important terminology you should know if you're working inside VSCo
 - A **URI** is a path to a file. Often URIs are named **resource**.
 - An **Editor** is the thing that you type your code in. If you have 10 tabs open, that's just one editor! Editors contain tabs (or "models").
 - A **Model** is an internal representation of a file's contents. It's shared between editors (for example, if you press `Cmd+\` to make a new editor, then the model of a file like `A.ts` is shared between them. Two editors, one model. That's how changes sync.).
+- Usually you use the `ITextModel` type for models and the `ICodeEditor` type for editors. There aren't that many other types.
 
 
 ### Apply
@@ -47,6 +48,17 @@ When you click Apply and Fast Apply is enabled, we prompt the LLM to output Sear
 >>>>>>> UPDATED
 ```
 This is what allows Void to quickly apply code even on 1000-line files. It's the same as asking the LLM to press Ctrl+F and enter in a search/replace query. 
+
+### Apply Inner Workings
+
+The `editCodeService` file runs Apply. The same exact code is also used when the LLM calls the Edit tool, and when you submit Cmd+K. Just different versions of Fast/Slow Apply mode. Void uses text models to write code when it changes your code. See `voidModelService` for details.
+
+Here is some important terminology:
+- A **DiffZone** is a {startLine, endLine} region in which we show Diffs (red/green areas).
+- A **DiffArea** is a generalization just used to track line numbers like a DiffZone.
+- A DiffZone has an llmCancelToken (is streaming) if and only if we are Applying in its file's URI.
+- When you click Apply, we create a **DiffZone** so that any changes that the LLM makes will show up in red/green. We then stream the change.
+
 
 
 ### Void Settings Inner Workings
@@ -65,19 +77,9 @@ Here's a guide to some of the terminology we're using:
 - **ChatMode** = normal | gather | agent
 
 
-### Apply Inner Workings
-
-The `editCodeService` file runs Apply. The same exact code is also used when the LLM calls the Edit tool, and when you submit Cmd+K. Just different versions of Fast/Slow Apply mode.
-
-Here is some important terminology:
-- A **DiffZone** is a {startLine, endLine} region in which we show Diffs (red/green areas).
-- A **DiffArea** is a generalization just used to track line numbers like a DiffZone.
-- A DiffZone has an llmCancelToken (is streaming) if and only if we are Applying in its file's URI.
-- When you click Apply, we create a **DiffZone** so that any changes that the LLM makes will show up in red/green. We then stream the change.
-
 
 ### Approval State
-`editCodeService` fundamentally contains all the state about changes that the user needs to review, but it doesn't store that information in a useful format. We wrote the following service to get a more useful derived state from it:
+`editCodeService`'s data structures contain all the information about changes that the user needs to review. However, it doesn't store that information in a useful format. We wrote the following service to get a more useful derived state:
 
 <div align="center">
 	<img width="600" src="https://github.com/user-attachments/assets/f3645355-dff6-467c-bc38-ffe52077c08b">

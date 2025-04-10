@@ -7,7 +7,6 @@ Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
 The purpose of this document is to explain how Void's codebase works. If you want build instructions, see [Contributing](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
 
 
-Each section below contains an overview of a core part of Void's sourcecode. You might want to scroll to find the item that's relevant to you.
 
 ## Void Codebase Guide
 
@@ -43,6 +42,8 @@ Actions or "commands" are functions you register on VSCode so that either you or
 
 See [here](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) for a decent VSCode guide with even more info.
 
+
+Each section below contains an overview of a core part of Void's sourcecode. You might want to scroll to find the item that's relevant to you.
 
 ### Internal LLM Message Pipeline
 

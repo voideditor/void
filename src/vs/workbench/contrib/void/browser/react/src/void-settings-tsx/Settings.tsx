@@ -887,7 +887,7 @@ const GeneralTab = () => {
 	return <>
 		<div className=''>
 			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
+			<h4 className={`text-void-fg-3 mb-4`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
 
 			<div className='flex flex-col gap-4'>
 				<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
@@ -900,7 +900,7 @@ const GeneralTab = () => {
 
 		<div className='mt-12'>
 			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
+			<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
 			<div className='my-4'>
 				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
@@ -1100,7 +1100,7 @@ const PreviousButton = ({ onClick, ...props }: { onClick: () => void } & React.B
 }
 
 
-const ollamaSetupInstructions = <div className='prose-p:my-0 prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm font-light list-decimal select-text opacity-80'>
+const ollamaSetupInstructions = <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm list-decimal select-text'>
 	<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
 	<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
 	<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
@@ -1628,7 +1628,7 @@ const VoidOnboarding = () => {
 				<div className="text-5xl font-light mb-6 mt-12">Settings and Themes</div>
 
 				<div className="text-center flex flex-col gap-4 w-full max-w-md mx-auto">
-					<h4 className="text-void-fg-3 mb-2">Transfer your settings from an existing editor?</h4>
+					<h4 className="text-void-fg-3 mb-4">Transfer your settings from an existing editor?</h4>
 					<OneClickSwitchButton fromEditor="VS Code" />
 					<OneClickSwitchButton fromEditor="Cursor" />
 					<OneClickSwitchButton fromEditor="Windsurf" />

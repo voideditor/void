@@ -12,7 +12,7 @@ There are a few ways to contribute:
 
 ### Codebase Guide
 
-We [highly recommend reading this](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) article on VSCode's sourcecode organization too. Void's codebase is pretty simple when you know what a service is and what `browser/` and `common/` mean, and the article covers all the jargon.
+We [highly recommend reading this](https://github.com/voideditor/void/edit/main/VOID_USEFUL_LINKS.md) guide that we put together on Void's sourcecode if you'd like to contribute!
 
 <!-- ADD BLOG HERE
 We wrote a [guide to working in VSCode].

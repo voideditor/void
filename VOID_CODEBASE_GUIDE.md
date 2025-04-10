@@ -25,16 +25,16 @@ Here is some important terminology you should know if you're working inside VSCo
 Here's a minimal VSCode rundown if you're just getting started with Void:
 
 - VSCode is (and therefore Void is) an Electron app. Electron runs two processes: a **main** process (for internals) and a **browser** process (browser means HTML in general, not just "web browser").
-- Code in a  `browser/` folder lives in the browser, so it can use `window` and other browser items.
-- Code in an `electron-main/` lives on the main process, so it can import `node_modules`.
-- Code in `common/` can be imported by either one.
+- Code in a  `browser/` folder always lives on the browser process, and it can use `window` and other browser items.
+- Code in an `electron-main/` folder always lives on the main process, and it can import `node_modules`.
+- Code in `common/` can be used by either process, but doesn't get any special imports.
 - The browser environment is not allowed to import `node_modules`, but there are two workarounds:
-  1. Bundle the node_module code and ship it in the browser - we're doing this for React.
-  2. Implement the code on `electron-main/` and set up a channel - we're doing this for sendLLMMessage.
+  1. Bundle the raw node_module code to the browser - we're doing this for React.
+  2. Implement the code on `electron-main/` and set up a channel between main/browser - we're doing this for sendLLMMessage.
 
 
 
-VSCode is organized into "Services". A service is just a class that mounts a single time (in computer science theory this is called a "singleton"). You can register services with `registerSingleton` so that you can easily use them in any constructor with `@<Service>`. See _dummyContrib for an example we put together on how to register them (the registration is the same every time).
+VSCode is organized into "Services". A service is just a class that mounts a single time (in computer science theory this is called a "singleton"). You can register services with `registerSingleton` so that you can easily use them in any constructor with `@<Service>`. See _dummyContrib for an example we put together on how to register them. The registration is the same every time.
 
 Services are always lazily created, even if you register them as Eager. If you want something that always runs on Void's mount, you should use a "workbench contribution". See _dummyContrib for this. Very similar to a Service, just registered slightly differently.
 

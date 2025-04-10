@@ -25,8 +25,8 @@ Here is some important terminology you should know if you're working inside VSCo
 Here's a minimal VSCode rundown if you're just getting started with Void:
 
 - VSCode is (and therefore Void is) an Electron app. Electron runs two processes: a **main** process (for internal workings) and a **browser** process (browser means HTML in general, not just "web browser").
-- Code in a  `browser/` folder lives in the browser, so it can use window and other browser items
-- Code in an `electron-main/` lives on the main process, so it can import node_modules.
+- Code in a  `browser/` folder lives in the browser, so it can use `window` and other browser items.
+- Code in an `electron-main/` lives on the main process, so it can import `node_modules`.
 - Code in `common/` can be imported by either one.
 - The browser environment is not allowed to import `node_modules`, but there are two workarounds:
   1. Bundle the node_module code and ship it in the browser - we're doing this for React.

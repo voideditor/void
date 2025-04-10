@@ -111,7 +111,8 @@ Here's a guide to some of the terminology we're using:
 </div>
 
 
-
+### Build process
+If you want to know how our build pipeline works, see our build repo [here](https://github.com/voideditor/void-builder).
 
 
 

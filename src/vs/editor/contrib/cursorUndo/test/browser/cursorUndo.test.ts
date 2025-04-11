@@ -11,6 +11,7 @@ import { Handler } from '../../../../common/editorCommon.js';
 import { CursorUndo, CursorUndoRedoController } from '../../browser/cursorUndo.js';
 import { withTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
 
+
 suite('FindController', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();

@@ -3,11 +3,10 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { endsWithAnyPrefixOf } from '../../common/helpers/extractCodeFromResult.js'
+import { endsWithAnyPrefixOf, SurroundingsRemover } from '../../common/helpers/extractCodeFromResult.js'
 import { availableTools, InternalToolInfo, ToolName, ToolParamName } from '../../common/prompt/prompts.js'
-import { OnFinalMessage, OnText, RawToolCallObj } from '../../common/sendLLMMessageTypes.js'
+import { OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js'
 import { ChatMode } from '../../common/voidSettingsTypes.js'
-import { createSaxParser } from './sax.js'
 
 
 // =============== reasoning ===============
@@ -137,17 +136,113 @@ export const extractReasoningWrapper = (
 
 // =============== tools ===============
 
-type ToolsState = {
-	level: 'normal',
-} | {
-	level: 'tool',
-	toolName: ToolName,
-	currentToolCall: RawToolCallObj,
-} | {
-	level: 'param',
-	toolName: ToolName,
-	paramName: ToolParamName,
-	currentToolCall: RawToolCallObj,
+
+
+const findPartiallyWrittenToolTagAtEnd = (fullText: string, toolTags: string[]) => {
+	for (const toolTag of toolTags) {
+		const foundPrefix = endsWithAnyPrefixOf(fullText, toolTag)
+		if (foundPrefix) {
+			return [foundPrefix, toolTag] as const
+		}
+	}
+	return false
+}
+
+const findIndexOfAny = (fullText: string, matches: string[]) => {
+	for (const str of matches) {
+		const idx = fullText.indexOf(str);
+		if (idx !== -1) {
+			return [idx, str] as const
+		}
+	}
+	return null
+}
+
+
+type ToolOfToolName = { [toolName: string]: InternalToolInfo | undefined }
+const parseXMLPrefixToToolCall = (toolName: ToolName, str: string, toolOfToolName: ToolOfToolName): RawToolCallObj => {
+	const paramsObj: RawToolParamsObj = {}
+	const doneParams: ToolParamName[] = []
+	let isDone = false
+
+	const getAnswer = (): RawToolCallObj => {
+		const ans: RawToolCallObj = {
+			name: toolName,
+			rawParams: paramsObj,
+			doneParams: doneParams,
+			isDone: isDone
+		}
+		return ans
+	}
+
+	// find first toolName tag
+	const openToolTag = `<${toolName}>`
+	let i = str.indexOf(openToolTag)
+	if (i === -1) return getAnswer()
+	let j = str.lastIndexOf(`</${toolName}>`)
+	if (j === -1) j = Infinity
+	else isDone = true
+
+
+	str = str.substring(i + openToolTag.length, j)
+
+	const pm = new SurroundingsRemover(str)
+
+	const allowedParams = Object.keys(toolOfToolName[toolName]?.params ?? {}) as ToolParamName[]
+	if (allowedParams.length === 0) return getAnswer()
+	let latestMatchedOpenParam: null | ToolParamName = null
+	let n = 0
+	while (true) {
+		n += 1
+		if (n > 10) return getAnswer() // just for good measure as this code is early
+
+		// find the param name opening tag
+		let matchedOpenParam: null | ToolParamName = null
+		for (const paramName of allowedParams) {
+			const removed = pm.removeFromStartUntilFullMatch(`<${paramName}>`, true)
+			if (removed) {
+				matchedOpenParam = paramName
+				break
+			}
+		}
+		// if did not find a new param, stop
+		if (matchedOpenParam === null) {
+			if (latestMatchedOpenParam !== null) {
+				paramsObj[latestMatchedOpenParam] += pm.value()
+			}
+			return getAnswer()
+		}
+		else {
+			latestMatchedOpenParam = matchedOpenParam
+		}
+
+		paramsObj[latestMatchedOpenParam] = ''
+
+		// find the param name closing tag
+		let matchedCloseParam: boolean = false
+		let paramContents = ''
+		for (const paramName of allowedParams) {
+			const i = pm.i
+			const closeTag = `</${paramName}>`
+			const removed = pm.removeFromStartUntilFullMatch(closeTag, true)
+			if (removed) {
+				const i2 = pm.i
+				paramContents = pm.originalS.substring(i, i2 - closeTag.length)
+				matchedCloseParam = true
+				break
+			}
+		}
+		// if did not find a new close tag, stop
+		if (!matchedCloseParam) {
+			paramsObj[latestMatchedOpenParam] += pm.value()
+			return getAnswer()
+		}
+		else {
+			doneParams.push(latestMatchedOpenParam)
+		}
+
+		paramsObj[latestMatchedOpenParam] += paramContents
+	}
 }
 
 export const extractToolsWrapper = (
@@ -156,125 +251,18 @@ export const extractToolsWrapper = (
 	const tools = availableTools(chatMode)
 	if (!tools) return { newOnText: onText, newOnFinalMessage: onFinalMessage }
 
-	const toolOfToolName: { [toolName: string]: InternalToolInfo | undefined } = {}
+	const toolOfToolName: ToolOfToolName = {}
+	const toolOpenTags = tools.map(t => `<${t.name}>`)
 	for (const t of tools) { toolOfToolName[t.name] = t }
 
 	// detect <availableTools[0]></availableTools[0]>, etc
 	let fullText = '';
 	let trueFullText = ''
-	const firstToolCallRef: { current: RawToolCallObj | undefined } = { current: undefined }
-
-	let state: ToolsState = { level: 'normal' }
+	let latestToolCall: RawToolCallObj | undefined = undefined
 
 
-	const getRawNewText = () => {
-		return trueFullText.substring(parser.startTagPosition, parser.position + 1)
-	}
-	const parser = createSaxParser()
-
-	// when see open tag <tagName>
-	parser.onopentag = (node) => {
-		const rawNewText = getRawNewText()
-		const tagName = node.name;
-		console.log('OPENING', tagName)
-		console.log('state0:', state.level, { toolName: (state as any).toolName, paramName: (state as any).paramName })
-
-		if (state.level === 'normal') {
-			if (tagName in toolOfToolName) { // valid toolName
-				state = {
-					level: 'tool',
-					toolName: tagName as ToolName,
-					currentToolCall: { name: tagName as ToolName, rawParams: {}, doneParams: [], isDone: false }
-				}
-				firstToolCallRef.current = state.currentToolCall
-			}
-			else {
-				fullText += rawNewText // count as plaintext
-				console.log('adding raw a', rawNewText)
-
-			}
-		}
-		else if (state.level === 'tool') {
-			if (tagName in (toolOfToolName[state.toolName]?.params ?? {})) { // valid param
-				state = {
-					level: 'param',
-					toolName: state.toolName,
-					paramName: tagName as ToolParamName,
-					currentToolCall: state.currentToolCall,
-				}
-			}
-			else {
-				// would normally be rawNewText, but we ignore all text inside tools
-			}
-		}
-		else if (state.level === 'param') { // cannot double nest
-			fullText += rawNewText // count as plaintext
-			console.log('adding raw b', rawNewText)
-
-		}
-
-		console.log('state1:', state.level, { toolName: (state as any).toolName, paramName: (state as any).paramName })
-
-	};
-
-	parser.onclosetag = (tagName) => {
-		const rawNewText = getRawNewText()
-		console.log('CLOSING', tagName)
-		console.log('state0:', state.level, { toolName: (state as any).toolName, paramName: (state as any).paramName })
-
-
-		if (state.level === 'normal') {
-			fullText += rawNewText
-			console.log('adding raw A', rawNewText)
-		}
-		else if (state.level === 'tool') {
-			if (tagName === state.toolName) { // closed the tool
-				state.currentToolCall.isDone = true
-				state = {
-					level: 'normal',
-				}
-			}
-			else { // add as text
-				fullText += rawNewText
-				console.log('adding raw B', rawNewText)
-			}
-		}
-		else if (state.level === 'param') {
-			if (tagName === state.paramName) { // closed the param
-				state.currentToolCall.doneParams.push(state.paramName)
-				state = {
-					level: 'tool',
-					toolName: state.toolName,
-					currentToolCall: state.currentToolCall,
-				}
-			}
-			else {
-				fullText += rawNewText
-				console.log('adding raw C', rawNewText)
-
-			}
-		}
-		console.log('state1:', state.level, { toolName: (state as any).toolName, paramName: (state as any).paramName })
-
-
-	};
-
-
-	parser.ontext = (text) => {
-		if (state.level === 'normal') {
-			fullText += text
-		}
-		// start param
-		else if (state.level === 'tool') {
-			// ignore all text in a tool, all text should go in the param tags inside it
-		}
-		else if (state.level === 'param') {
-			if (!(state.paramName in state.currentToolCall.rawParams)) state.currentToolCall.rawParams[state.paramName] = ''
-			state.currentToolCall.rawParams[state.paramName] += text
-		}
-	}
-
-
+	let foundOpenTag: { idx: number, toolName: ToolName } | null = null
+	let openToolTagBuffer = '' // the characters we've seen so far that come after a < with no space afterwards, not yet added to fullText
 
 	let prevFullTextLen = 0
 	const newOnText: OnText = (params) => {
@@ -282,13 +270,55 @@ export const extractToolsWrapper = (
 		prevFullTextLen = params.fullText.length
 		trueFullText = params.fullText
 
-		parser.write(newText)
+		console.log('NEWTEXT', JSON.stringify(newText))
 
-		// firstToolCallRef.current === state.currentToolCall is always true
+
+		if (foundOpenTag === null) {
+			const newFullText = openToolTagBuffer + newText
+			// ensure the code below doesn't run if only half a tag has been written
+			const isPartial = findPartiallyWrittenToolTagAtEnd(newFullText, toolOpenTags)
+			if (isPartial) {
+				console.log('--- partial!!!')
+				openToolTagBuffer += newText
+			}
+			// if no tooltag is partially written at the end, attempt to get the index
+			else {
+				// we will instantly retroactively remove this if it's a tag match
+				fullText += openToolTagBuffer
+				openToolTagBuffer = ''
+				fullText += newText
+
+				const i = findIndexOfAny(fullText, toolOpenTags)
+				if (i !== null) {
+					const [idx, toolTag] = i
+					const toolName = toolTag.substring(1, toolTag.length - 1) as ToolName
+					console.log('found ', toolName)
+					foundOpenTag = { idx, toolName }
+
+					// do not count anything at or after i in fullText
+					fullText = fullText.substring(0, idx)
+				}
+
+
+			}
+		}
+
+		// toolTagIdx is not null, so parse the XML
+		if (foundOpenTag !== null) {
+			latestToolCall = parseXMLPrefixToToolCall(
+				foundOpenTag.toolName,
+				trueFullText.substring(foundOpenTag.idx, Infinity),
+				toolOfToolName,
+			)
+
+		}
+
+
+
 		onText({
 			...params,
 			fullText,
-			toolCall: firstToolCallRef.current,
+			toolCall: latestToolCall,
 		});
 	};
 
@@ -298,7 +328,7 @@ export const extractToolsWrapper = (
 		newOnText({ ...params })
 
 		fullText = fullText.trimEnd()
-		const toolCall = firstToolCallRef.current
+		const toolCall = latestToolCall
 		if (toolCall) {
 			// trim off all whitespace at and before first \n and after last \n for each param
 			for (const p in toolCall.rawParams) {

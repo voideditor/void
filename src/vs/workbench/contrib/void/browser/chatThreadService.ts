@@ -1500,9 +1500,9 @@ We only need to do it for files that were edited since `from`, ie files between 
 			}
 		}, true)
 
-		// when change focused message idx, jump
-		if (messageIdx !== undefined)
-			this.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
+		// // when change focused message idx, jump - do not jump back when click edit, too confusing.
+		// if (messageIdx !== undefined)
+		// 	this.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
 	}
 
 	// set message.state

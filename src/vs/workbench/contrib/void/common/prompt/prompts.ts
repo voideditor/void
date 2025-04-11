@@ -16,6 +16,10 @@ export const tripleTick = ['```', '```']
 
 export const MAX_DIRSTR_CHARS_TOTAL_BEGINNING = 20_000
 export const MAX_DIRSTR_CHARS_TOTAL_TOOL = 20_000
+export const MAX_DIRSTR_RESULTS_TOTAL_BEGINNING = 100
+export const MAX_DIRSTR_RESULTS_TOTAL_TOOL = 100
+
+
 
 export const MAX_PREFIX_SUFFIX_CHARS = 20_000
 
@@ -300,8 +304,8 @@ ${directoryStr}
 	}
 
 	if (mode === 'gather') {
-		details.push(`Your primary use of tools should be to gather information to help the user understand the codebase and answer their query.`)
-		details.push(`You should extensively read files, types, content, etc and gather relevant context.`)
+		details.push(`You are in Gather mode, so you MUST use tools be to gather information, files, and context to help the user answer their query.`)
+		details.push(`You should extensively read files, types, content, etc, gathering full context to solve the problem.`)
 	}
 
 

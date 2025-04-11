@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { DIVIDER, FINAL, ORIGINAL } from '../prompt/prompts.js'
-class SurroundingsRemover {
+export class SurroundingsRemover {
 	readonly originalS: string
 	i: number
 	j: number
@@ -58,12 +58,13 @@ class SurroundingsRemover {
 	// 	return offset === suffix.length
 	// }
 
+	// either removes all or nothing
 	removeFromStartUntilFullMatch = (until: string, alsoRemoveUntilStr: boolean) => {
 		const index = this.originalS.indexOf(until, this.i)
 
 		if (index === -1) {
-			this.i = this.j + 1
-			return null
+			// this.i = this.j + 1
+			return false
 		}
 		// console.log('index', index, until.length)
 

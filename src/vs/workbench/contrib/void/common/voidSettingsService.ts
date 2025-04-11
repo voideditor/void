@@ -211,7 +211,15 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 	async readAndInitializeState() {
-		const readS = await this._readState();
+		let readS: VoidSettingsState
+		try {
+			readS = await this._readState();
+			// 1.0.3 addition, remove when enough users have had this code run
+			if (readS.globalSettings.includeToolLintErrors === undefined) readS.globalSettings.includeToolLintErrors = true
+		}
+		catch (e) {
+			readS = defaultState()
+		}
 
 		// the stored data structure might be outdated, so we need to update it here
 		const finalState = readS

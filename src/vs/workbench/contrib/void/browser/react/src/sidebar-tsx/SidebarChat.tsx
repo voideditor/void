@@ -22,12 +22,13 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
-import { ToolCallParams,  ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
+import { LintErrorItem, ToolCallParams, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { PlacesType } from 'react-tooltip';
 import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
+import { error } from 'console';
 
 
 
@@ -671,6 +672,7 @@ const ToolHeaderWrapper = ({
 	numResults,
 	hasNextPage,
 	children,
+	bottomChildren,
 	isError,
 	onClick,
 	isOpen,
@@ -733,6 +735,7 @@ const ToolHeaderWrapper = ({
 				{children}
 			</div>}
 		</div>
+		{bottomChildren}
 	</div>);
 };
 
@@ -1338,6 +1341,28 @@ const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescript
 	</div>
 }
 
+const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => {
+
+	if (lintErrors.length === 0) return null;
+
+	return (
+		<div className="w-full px-2">
+			<div className="w-full border-l border-r border-b border-void-border-2 rounded bg-void-bg-3 overflow-hidden">
+
+				<div className="text-xs text-void-fg-4 opacity-80 border-l-2 border-void-warning px-2 py-0.5 flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap">
+					{lintErrors.map((error, i) => (
+						<div key={i}>Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
+					))}
+				</div>
+
+			</div>
+		</div>
+	)
+
+
+}
+
+
 const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr }: { applyBoxId: string, uri: URI, codeStr: string }) => {
 	const { currStreamState } = useApplyButtonState({ applyBoxId, uri })
 	return <div className='flex items-center gap-1'>
@@ -1726,7 +1751,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				if (toolMessage.type !== 'tool_error') {
 					const { params, result } = toolMessage
 
-					// componentParams.bottomChildren = <EditToolLintErrors lintErrors={result?.lintErrors || []} />
+					componentParams.bottomChildren = <EditToolLintErrors lintErrors={result?.lintErrors || []} />
 
 					componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
 						<EditToolChildren

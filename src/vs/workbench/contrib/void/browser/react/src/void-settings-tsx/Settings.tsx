@@ -167,14 +167,12 @@ const AddModelInputBox = ({ providerName: permanentProviderName, className, comp
 	const [isOpen, setIsOpen] = useState(false)
 
 	// const providerNameRef = useRef<ProviderName | null>(null)
-	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName | null>(null)
+	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName>('anthropic')
 
 	const providerName = permanentProviderName ?? userChosenProviderName;
 
 	const [modelName, setModelName] = useState<string>('')
 	const [errorString, setErrorString] = useState('')
-
-	if (!providerName) { return null; }
 
 	const numModels = settingsState.settingsOfProvider[providerName].models.length
 
@@ -206,9 +204,8 @@ const AddModelInputBox = ({ providerName: permanentProviderName, className, comp
 					getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
 					getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
 					getOptionsEqual={(a, b) => a === b}
-					className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
-					py-[4px] px-[6px]
-				`}
+					// className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root py-[4px] px-[6px]`}
+					className={`max-w-32 mx-2 w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1 py-1 px-2 rounded`}
 					arrowTouchesText={false}
 				/>
 			}
@@ -219,7 +216,7 @@ const AddModelInputBox = ({ providerName: permanentProviderName, className, comp
 				onChangeValue={setModelName}
 				placeholder='Model Name'
 				compact={compact}
-				className={'max-w-44'}
+				className={'max-w-32'}
 			/>
 
 			{/* add button */}
@@ -299,7 +296,14 @@ export const ModelDump = () => {
 					<span className='w-fit truncate'>{modelName}</span>
 				</div>
 				{/* right part is anything that fits */}
-				<div className='flex items-center gap-4'>
+				<div className='flex items-center gap-4'
+					data-tooltip-id='void-tooltip'
+					data-tooltip-place='top'
+					data-tooltip-content={disabled? `${displayInfoOfProviderName(providerName).title} is disabled`
+					: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
+
+					}
+				>
 					<span className='opacity-50 truncate'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
 
 					<VoidSwitch
@@ -533,7 +537,7 @@ export const FeaturesTab = () => {
 		<h2 className={`text-3xl mb-2`}>Models</h2>
 		<ErrorBoundary>
 			<ModelDump />
-			<AddModelInputBox />
+			<AddModelInputBox className='my-4' compact />
 			<AutoDetectLocalModelsToggle />
 			<RefreshableModels />
 		</ErrorBoundary>
@@ -640,6 +644,16 @@ export const FeaturesTab = () => {
 								onChange={(newVal) => voidSettingsService.setGlobalSetting('autoApprove', newVal)}
 							/>
 							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Auto-approve'}</span>
+						</div>
+
+						{/* Tool Lint Errors Switch */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<VoidSwitch
+								size='xs'
+								value={voidSettingsState.globalSettings.includeToolLintErrors}
+								onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
+							/>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.includeToolLintErrors ? 'Include after-edit lint errors' : `Don't include lint errors`}</span>
 						</div>
 					</div>
 				</div>
@@ -890,7 +904,7 @@ const GeneralTab = () => {
 	return <>
 		<div className=''>
 			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
+			<h4 className={`text-void-fg-3 mb-4`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
 
 			<div className='flex flex-col gap-4'>
 				<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
@@ -903,7 +917,7 @@ const GeneralTab = () => {
 
 		<div className='mt-12'>
 			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
+			<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
 			<div className='my-4'>
 				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
@@ -930,7 +944,7 @@ const GeneralTab = () => {
 
 		<div className='mt-12 max-w-[600px]'>
 			<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Instructions to include on all AI requests.`}</h4>
+			<h4 className={`text-void-fg-3 mb-4`}>{`Instructions to include on all AI requests.`}</h4>
 			<AIInstructionsBox />
 		</div>
 
@@ -946,7 +960,7 @@ export const Settings = () => {
 	const [tab, setTab] = useState<TabName>('models')
 
 
-	const deleteme = false
+	const deleteme = true
 	if (deleteme) {
 		return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ width: '100%', height: '100%' }}>
 			<VoidOnboarding />
@@ -1103,7 +1117,7 @@ const PreviousButton = ({ onClick, ...props }: { onClick: () => void } & React.B
 }
 
 
-const ollamaSetupInstructions = <div className='prose-p:my-0 prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm font-light list-decimal select-text opacity-80'>
+const ollamaSetupInstructions = <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm list-decimal select-text'>
 	<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
 	<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
 	<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
@@ -1440,38 +1454,44 @@ const VoidOnboarding = () => {
 
 			<FadeIn>
 
-				<div className="text-3xl font-medium mb-6 mt-8 text-center">AI Preferences</div>
+				<div className="text-5xl font-light mb-6 mt-12 text-center">AI Preferences</div>
 
 				<div className="flex flex-col items-center w-full mx-auto">
 
 					<div className="text-base text-void-fg-2 mb-8 text-center">What are you looking for in an AI model?</div>
 
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full md:max-w-[75%] max-w-[90%]">
+					<div className="flex md:flex-nowrap gap-4 w-full md:max-w-[80%] max-w-[90%]">
 						<div
 							onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
-							className="flex flex-col items-center justify-center p-6 rounded-md transition-all duration-300 cursor-pointer md:aspect-[8/7] border-void-border-1 border bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent hover:from-[#0e70c0]/25 hover:via-[#0e70c0]/10 hover:to-[#0e70c0]/5 dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 dark:hover:from-[#0e70c0]/30 dark:hover:via-[#0e70c0]/15 dark:hover:to-[#0e70c0]/5"
+							className="flex flex-col items-center w-full justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
 						>
-							<span className="text-5xl mb-4">🧠</span>
-							<h3 className="text-xl font-medium mb-3">Intelligence</h3>
-							<p className="text-center text-sm text-void-fg-2">{basicDescOfWantToUseOption['smart']}</p>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
+							<span className="text-5xl mb-4 relative z-10">🧠</span>
+							<h3 className="text-xl font-medium mb-3 relative z-10">Intelligence</h3>
+							<p className="text-center text-root text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['smart']}</p>
 						</div>
 
 						<div
 							onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
-							className="flex flex-col items-center justify-center p-6 rounded-md transition-all duration-300 cursor-pointer md:aspect-[8/7] border-void-border-1 border bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent hover:from-[#0e70c0]/25 hover:via-[#0e70c0]/10 hover:to-[#0e70c0]/5 dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 dark:hover:from-[#0e70c0]/30 dark:hover:via-[#0e70c0]/15 dark:hover:to-[#0e70c0]/5"
+							className="flex flex-col items-center w-full justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
 						>
-							<span className="text-5xl mb-4">🔒</span>
-							<h3 className="text-xl font-medium mb-3">Privacy</h3>
-							<p className="text-center text-sm text-void-fg-2">{basicDescOfWantToUseOption['private']}</p>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
+							<span className="text-5xl mb-4 relative z-10">🔒</span>
+							<h3 className="text-xl font-medium mb-3 relative z-10">Privacy</h3>
+							<p className="text-center text-sm text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['private']}</p>
 						</div>
 
 						<div
 							onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
-							className="flex flex-col items-center justify-center p-6 rounded-md transition-all duration-300 cursor-pointer md:aspect-[8/7] border-void-border-1 border bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent hover:from-[#0e70c0]/25 hover:via-[#0e70c0]/10 hover:to-[#0e70c0]/5 dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 dark:hover:from-[#0e70c0]/30 dark:hover:via-[#0e70c0]/15 dark:hover:to-[#0e70c0]/5"
+							className="flex flex-col items-center w-full justify-center p-6 rounded-md cursor-pointer md:aspect-[8/7] border-void-border-1 border relative overflow-hidden group"
 						>
-							<span className="text-5xl mb-4">💵</span>
-							<h3 className="text-xl font-medium mb-3">Low-Cost</h3>
-							<p className="text-center text-sm text-void-fg-2">{basicDescOfWantToUseOption['cheap']}</p>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
+							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
+							<span className="text-5xl mb-4 relative z-10">💵</span>
+							<h3 className="text-xl font-medium mb-3 relative z-10">Low-Cost</h3>
+							<p className="text-center text-sm text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['cheap']}</p>
 						</div>
 					</div>
 				</div>
@@ -1630,11 +1650,11 @@ const VoidOnboarding = () => {
 			<FadeIn>
 				<div className="text-5xl font-light mb-6 mt-12">Settings and Themes</div>
 
-				<div className="text-center flex flex-col gap-4 w-full max-w-md mx-auto">
-					<h4 className="text-void-fg-3 mb-2">Transfer your settings from an existing editor?</h4>
-					<OneClickSwitchButton fromEditor="VS Code" />
-					<OneClickSwitchButton fromEditor="Cursor" />
-					<OneClickSwitchButton fromEditor="Windsurf" />
+				<div className="text-center flex flex-col items-center gap-4 w-full max-w-md mx-auto">
+					<h4 className="text-void-fg-3 mb-4">Transfer your settings from an existing editor?</h4>
+					<OneClickSwitchButton className='w-full' fromEditor="VS Code" />
+					<OneClickSwitchButton className='w-full' fromEditor="Cursor" />
+					<OneClickSwitchButton className='w-full' fromEditor="Windsurf" />
 				</div>
 
 			</FadeIn>
@@ -1655,7 +1675,7 @@ const VoidOnboarding = () => {
 	}
 
 
-	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-auto flex flex-col items-center justify-between">
+	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-auto flex flex-col items-center justify-around">
 		{contentOfIdx[pageIndex]}
 	</div>
 }

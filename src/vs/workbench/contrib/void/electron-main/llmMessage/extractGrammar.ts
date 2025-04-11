@@ -166,6 +166,15 @@ const parseXMLPrefixToToolCall = (toolName: ToolName, str: string, toolOfToolNam
 	let isDone = false
 
 	const getAnswer = (): RawToolCallObj => {
+		// trim off all whitespace at and before first \n and after last \n for each param
+		for (const p in paramsObj) {
+			const paramName = p as ToolParamName
+			const orig = paramsObj[paramName]
+			if (orig === undefined) continue
+			paramsObj[paramName] = trimBeforeAndAfterNewLines(orig)
+		}
+
+		// return tool call
 		const ans: RawToolCallObj = {
 			name: toolName,
 			rawParams: paramsObj,
@@ -260,7 +269,6 @@ export const extractToolsWrapper = (
 	let trueFullText = ''
 	let latestToolCall: RawToolCallObj | undefined = undefined
 
-
 	let foundOpenTag: { idx: number, toolName: ToolName } | null = null
 	let openToolTagBuffer = '' // the characters we've seen so far that come after a < with no space afterwards, not yet added to fullText
 
@@ -270,7 +278,7 @@ export const extractToolsWrapper = (
 		prevFullTextLen = params.fullText.length
 		trueFullText = params.fullText
 
-		console.log('NEWTEXT', JSON.stringify(newText))
+		// console.log('NEWTEXT', JSON.stringify(newText))
 
 
 		if (foundOpenTag === null) {
@@ -278,7 +286,7 @@ export const extractToolsWrapper = (
 			// ensure the code below doesn't run if only half a tag has been written
 			const isPartial = findPartiallyWrittenToolTagAtEnd(newFullText, toolOpenTags)
 			if (isPartial) {
-				console.log('--- partial!!!')
+				// console.log('--- partial!!!')
 				openToolTagBuffer += newText
 			}
 			// if no tooltag is partially written at the end, attempt to get the index
@@ -292,7 +300,7 @@ export const extractToolsWrapper = (
 				if (i !== null) {
 					const [idx, toolTag] = i
 					const toolName = toolTag.substring(1, toolTag.length - 1) as ToolName
-					console.log('found ', toolName)
+					// console.log('found ', toolName)
 					foundOpenTag = { idx, toolName }
 
 					// do not count anything at or after i in fullText
@@ -329,15 +337,6 @@ export const extractToolsWrapper = (
 
 		fullText = fullText.trimEnd()
 		const toolCall = latestToolCall
-		if (toolCall) {
-			// trim off all whitespace at and before first \n and after last \n for each param
-			for (const p in toolCall.rawParams) {
-				const paramName = p as ToolParamName
-				const orig = toolCall.rawParams[paramName]
-				if (orig === undefined) continue
-				toolCall.rawParams[paramName] = trimBeforeAndAfterNewLines(orig)
-			}
-		}
 
 		// console.log('final message!!!', trueFullText)
 		// console.log('----- returning ----\n', fullText)
@@ -351,7 +350,7 @@ export const extractToolsWrapper = (
 
 
 
-// trim all whitespace up until the first newline, and all whitespace after the last newline
+// trim all whitespace up until the first newline, and all whitespace up until the last newline
 const trimBeforeAndAfterNewLines = (s: string) => {
 	if (!s) return s;
 

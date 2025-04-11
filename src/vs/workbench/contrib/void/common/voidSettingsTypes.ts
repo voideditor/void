@@ -356,6 +356,7 @@ export type GlobalSettings = {
 	chatMode: ChatMode;
 	autoApprove: boolean;
 	showInlineSuggestions: boolean;
+	includeToolLintErrors: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -367,6 +368,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	chatMode: 'agent',
 	autoApprove: false,
 	showInlineSuggestions: true,
+	includeToolLintErrors: true,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

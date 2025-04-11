@@ -661,7 +661,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// above just defines helpers, below starts the actual function
 		const { chatMode } = this._settingsService.state.globalSettings // should not change as we loop even if user changes it, so it goes here
 
-		console.log('a', chatMode)
 		// clear any previous error
 		this._setStreamState(threadId, { error: undefined }, 'set')
 
@@ -670,13 +669,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		let isRunningWhenEnd: IsRunningType = undefined
 		let aborted = false
 
-		console.log('b')
 		// before enter loop, call tool
 		if (callThisToolFirst) {
 			const { interrupted } = await this._runToolCall(threadId, callThisToolFirst.name, { preapproved: true, validatedParams: callThisToolFirst.params })
 			if (interrupted) return
 		}
-		console.log('c')
 
 		// tool use loop
 		while (shouldSendAnotherMessage) {
@@ -688,17 +685,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			let resMessageIsDonePromise: (toolCall?: RawToolCallObj | undefined) => void // resolves when user approves this tool use (or if tool doesn't require approval)
 			const messageIsDonePromise = new Promise<RawToolCallObj | undefined>((res, rej) => { resMessageIsDonePromise = res })
 
-			console.log('d')
 			// send llm message
 			this._setStreamState(threadId, { isRunning: 'LLM' }, 'merge')
 			const systemMessage = await this._generateSystemMessage(chatMode)
-			console.log('e0')
 			const llmMessages = await this._generateLLMMessages(threadId)
 			const messages: LLMChatMessage[] = [
 				{ role: 'system', content: systemMessage },
 				...llmMessages
 			]
-			console.log('e')
 
 			const llmCancelToken = this._llmMessageService.sendLLMMessage({
 				messagesType: 'chatMessages',
@@ -740,20 +734,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				break
 			}
 			this._setStreamState(threadId, { streamingToken: llmCancelToken }, 'merge') // new stream token for the new message
-			console.log('waiting...')
 			const toolCall = await messageIsDonePromise // wait for message to complete
-			console.log('done!')
 			if (aborted) { return }
-			console.log('H')
 			this._setStreamState(threadId, { streamingToken: undefined }, 'merge') // streaming message is done
-			console.log('I')
 
 			// call tool if there is one
 			const tool: RawToolCallObj | undefined = toolCall
 			if (tool) {
-				console.log('J')
 				const { awaitingUserApproval, interrupted } = await this._runToolCall(threadId, tool.name, { preapproved: false, unvalidatedToolParams: tool.rawParams })
-				console.log('K')
 
 				// stop if interrupted. we don't have to do this for llmMessage because we have a stream token for it and onAbort gets called, but we don't have the equivalent for tools.
 				// just detect tool interruption which is the same as chat interruption right now
@@ -768,17 +756,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 
 		} // end while
-		console.log('L')
 
 
 		// if awaiting user approval, keep isRunning true, else end isRunning
 		this._setStreamState(threadId, { isRunning: isRunningWhenEnd }, 'merge')
-		console.log('M')
 
 		// add checkpoint before the next user message
 		if (!isRunningWhenEnd)
 			this._addUserCheckpoint({ threadId })
-		console.log('N')
 
 		// capture number of messages sent
 		this._metricsService.capture('Agent Loop Done', { nMessagesSent, chatMode })
@@ -969,7 +954,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const [_, toIdx] = c
 		if (toIdx === fromIdx) return
 
-		console.log(`going from ${fromIdx} to ${toIdx}`)
+		// console.log(`going from ${fromIdx} to ${toIdx}`)
 
 		// update the user's checkpoint
 		this._addUserModificationsToCurrCheckpoint({ threadId })
@@ -1064,6 +1049,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 				severity: error ? Severity.Warning : Severity.Info,
 				message: error ? `Error: ${error} ` : `A new Chat result is ready.`,
 				source: messageContent,
+				sticky: true,
 				actions: {
 					primary: [{
 						id: 'void.goToChat',

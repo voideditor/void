@@ -638,6 +638,16 @@ export const FeaturesTab = () => {
 							/>
 							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Auto-approve'}</span>
 						</div>
+
+						{/* Tool Lint Errors Switch */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<VoidSwitch
+								size='xs'
+								value={voidSettingsState.globalSettings.includeToolLintErrors}
+								onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
+							/>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.includeToolLintErrors ? 'Include after-edit lint errors' : `Don't include lint errors`}</span>
+						</div>
 					</div>
 				</div>
 

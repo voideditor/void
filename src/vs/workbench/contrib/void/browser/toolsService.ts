@@ -18,6 +18,7 @@ import { IMarkerService } from '../../../../platform/markers/common/markers.js'
 import { timeout } from '../../../../base/common/async.js'
 import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
 import { ToolName } from '../common/prompt/prompts.js'
+import { IVoidSettingsService } from '../common/voidSettingsService.js'
 
 
 // tool use for AI
@@ -151,6 +152,7 @@ export class ToolsService implements IToolsService {
 		@IVoidCommandBarService private readonly commandBarService: IVoidCommandBarService,
 		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
 		@IMarkerService private readonly markerService: IMarkerService,
+		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -412,10 +414,13 @@ export class ToolsService implements IToolsService {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
 			edit_file: (params, result) => {
+				const lintErrsString = (
+					this.voidSettingsService.state.globalSettings.includeToolLintErrors ?
+						(result.lintErrors ? ` Lint errors found after change:\n${lintErrorsStr(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.`
+							: ` No lint errors found.`)
+						: '')
 
-				const additionalStr = result.lintErrors ? `Lint errors found after change:\n${lintErrorsStr(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.` : `No lint errors found.`
-
-				return `Change successfully made to ${params.uri.fsPath}.${additionalStr}`
+				return `Change successfully made to ${params.uri.fsPath}.${lintErrsString}`
 			},
 			run_terminal_command: (params, result) => {
 				const {

@@ -3,32 +3,32 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ButtonHTMLAttributes, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState } from '../util/services.js';
+import { useAccessor, useActiveURI, useChatThreadsState, useChatThreadsStreamState, useCommandBarState, useSettingsState, useSidebarState } from '../util/services.js';
 
-import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
-import { URI } from '../../../../../../../base/common/uri.js';
+import { AlertTriangle, Ban, Check, ChevronRight, Pencil, X } from 'lucide-react';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
-import { ErrorDisplay } from './ErrorDisplay.js';
-import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
-import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
-import { SidebarThreadSelector } from './SidebarThreadSelector.js';
-import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
-import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
+import { URI } from '../../../../../../../base/common/uri.js';
 import { ChatMode, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
-import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
-import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
-import { LintErrorItem, ToolCallParams, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
-import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
-import { IsRunningType } from '../../../chatThreadService.js';
-import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
-import { PlacesType } from 'react-tooltip';
+import { acceptAllBg, acceptBorder, rejectAllBg, rejectBorder } from '../../../../common/helpers/colors.js';
+import { getIsReasoningEnabledState, getModelCapabilities } from '../../../../common/modelCapabilities.js';
 import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
-import { error } from 'console';
+import { LintErrorItem, ToolCallParams } from '../../../../common/toolsServiceTypes.js';
+import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
+import { IsRunningType } from '../../../chatThreadService.js';
+import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
+import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
+import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
+import { TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
+import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
+import { WarningBox } from '../void-settings-tsx/WarningBox.js';
+import { ErrorDisplay } from './ErrorDisplay.js';
+import { SidebarThreadSelector } from './SidebarThreadSelector.js';
+
+
 
 
 

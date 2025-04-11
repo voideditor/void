@@ -162,7 +162,7 @@ Here's an example of a good description:\n${editToolDescriptionExample}`
 		name: 'run_terminal_command',
 		description: `Executes a terminal command.`,
 		params: {
-			command: { description: 'The terminal command to execute.' },
+			command: { description: 'The terminal command to execute. If working with tools like git that can paginate, you should pipe to cat so results are not truncated.' },
 			wait_for_completion: { description: `Optional. Default is true. Make this value false when you want a command to run without waiting for it to complete.` },
 			terminal_id: { description: 'Optional. The ID of the terminal instance that should execute the command (if not provided, defaults to the preferred terminal ID). The primary purpose of this is to let you open a new terminal for testing or background processes (e.g. running a dev server for the user in a separate terminal). Must be an integer >= 1.' },
 		},

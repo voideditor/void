@@ -26,7 +26,7 @@ import { IVoidSettingsService } from '../common/voidSettingsService.js'
 
 
 
-type ValidateParams = { [T in ToolName]: (p: RawToolParamsObj) => Promise<ToolCallParams[T]> }
+type ValidateParams = { [T in ToolName]: (p: RawToolParamsObj) => ToolCallParams[T] }
 type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], interruptTool?: () => void }> }
 type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awaited<ToolResultType[T]>) => string }
 
@@ -158,7 +158,7 @@ export class ToolsService implements IToolsService {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.validateParams = {
-			read_file: async (params: RawToolParamsObj) => {
+			read_file: (params: RawToolParamsObj) => {
 				const { uri: uriStr, start_line: startLineUnknown, end_line: endLineUnknown, page_number: pageNumberUnknown } = params
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
@@ -168,19 +168,19 @@ export class ToolsService implements IToolsService {
 
 				return { uri, startLine, endLine, pageNumber }
 			},
-			ls_dir: async (params: RawToolParamsObj) => {
+			ls_dir: (params: RawToolParamsObj) => {
 				const { uri: uriStr, page_number: pageNumberUnknown } = params
 
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 				return { rootURI: uri, pageNumber }
 			},
-			get_dir_structure: async (params: RawToolParamsObj) => {
+			get_dir_structure: (params: RawToolParamsObj) => {
 				const { uri: uriStr, } = params
 				const uri = validateURI(uriStr)
 				return { rootURI: uri }
 			},
-			search_pathnames_only: async (params: RawToolParamsObj) => {
+			search_pathnames_only: (params: RawToolParamsObj) => {
 				const {
 					query: queryUnknown,
 					search_in_folder: includeUnknown,
@@ -194,7 +194,7 @@ export class ToolsService implements IToolsService {
 				return { queryStr, searchInFolder, pageNumber }
 
 			},
-			search_files: async (params: RawToolParamsObj) => {
+			search_files: (params: RawToolParamsObj) => {
 				const {
 					query: queryUnknown,
 					search_in_folder: searchInFolderUnknown,
@@ -213,7 +213,7 @@ export class ToolsService implements IToolsService {
 
 			// ---
 
-			create_file_or_folder: async (params: RawToolParamsObj) => {
+			create_file_or_folder: (params: RawToolParamsObj) => {
 				const { uri: uriUnknown } = params
 				const uri = validateURI(uriUnknown)
 				const uriStr = validateStr('uri', uriUnknown)
@@ -221,7 +221,7 @@ export class ToolsService implements IToolsService {
 				return { uri, isFolder }
 			},
 
-			delete_file_or_folder: async (params: RawToolParamsObj) => {
+			delete_file_or_folder: (params: RawToolParamsObj) => {
 				const { uri: uriUnknown, params: paramsStr } = params
 				const uri = validateURI(uriUnknown)
 				const isRecursive = validateRecursiveParamStr(paramsStr)
@@ -230,14 +230,14 @@ export class ToolsService implements IToolsService {
 				return { uri, isRecursive, isFolder }
 			},
 
-			edit_file: async (params: RawToolParamsObj) => {
+			edit_file: (params: RawToolParamsObj) => {
 				const { uri: uriStr, change_description: changeDescriptionUnknown } = params
 				const uri = validateURI(uriStr)
 				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
 				return { uri, changeDescription }
 			},
 
-			run_terminal_command: async (params: RawToolParamsObj) => {
+			run_terminal_command: (params: RawToolParamsObj) => {
 				const { command: commandUnknown, terminal_id: terminalIdUnknown, wait_for_completion: waitForCompletionUnknown } = params
 				const command = validateStr('command', commandUnknown)
 				const proposedTerminalId = validateProposedTerminalId(terminalIdUnknown)

@@ -29,6 +29,7 @@ import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg
 import { PlacesType } from 'react-tooltip';
 import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 import { error } from 'console';
+import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 
 
 
@@ -1333,7 +1334,7 @@ export const ListableToolItem = ({ name, onClick, isSmall, className, showDot }:
 
 
 
-const EditToolChildren = ({ uri, changeDescription }: { uri: URI, changeDescription: string }) => {
+const EditToolChildren = ({ uri, changeDescription }: { uri: URI | undefined, changeDescription: string }) => {
 	return <div className='!select-text cursor-auto'>
 		<SmallProseWrapper>
 			<ChatMarkdownRender string={changeDescription} codeURI={uri} chatMessageLocation={undefined} />
@@ -2285,6 +2286,37 @@ const CommandBarInChat = () => {
 }
 
 
+const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) => {
+
+	const uri = URI.file(toolCallSoFar.rawParams.uri ?? 'unknown')
+
+	const title = titleOfToolName['edit_file'].proposed
+
+	const uriDone = toolCallSoFar.doneParams.includes('uri')
+	const desc1 = <span className='flex items-center'>
+		{uriDone ?
+			getBasename(toolCallSoFar.rawParams['uri'] ?? 'unknown')
+			: `Generating`}
+		<IconLoading />
+	</span>
+
+	// If URI has not been specified
+	return <ToolHeaderWrapper
+		title={title}
+		desc1={desc1}
+		desc2={<JumpToFileButton uri={uri} />}
+	>
+		<EditToolChildren
+			uri={uri}
+			changeDescription={toolCallSoFar.rawParams.change_description ?? ''}
+		/>
+		<IconLoading />
+	</ToolHeaderWrapper>
+
+
+
+}
+
 export const SidebarChat = () => {
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
@@ -2416,6 +2448,15 @@ export const SidebarChat = () => {
 		/> : null
 
 
+	// the tool currently being generated
+	const generatingTool = toolIsGenerating ?
+		toolCallSoFar.name === 'edit_file' ? <EditToolSoFar
+			key={getChatBubbleId(threadId, streamingChatIdx + 1)}
+			toolCallSoFar={toolCallSoFar}
+		/>
+			: null
+		: null
+
 	const messagesHTML = <ScrollToBottomContainer
 		key={'messages' + chatThreadsState.currentThreadId} // force rerender on all children if id changes
 		scrollContainerRef={scrollContainerRef}
@@ -2432,17 +2473,11 @@ export const SidebarChat = () => {
 		{previousMessagesHTML}
 		{currStreamingMessageHTML}
 
-		{toolIsGenerating ?
-			<ToolHeaderWrapper key={getChatBubbleId(currentThread.id, streamingChatIdx + 1)}
-				title={toolCallSoFar && toolNames.includes(toolCallSoFar.name as ToolName) ?
-					titleOfToolName[toolCallSoFar.name as ToolName]?.proposed
-					: toolCallSoFar?.name}
-				desc1={<span className='flex items-center'>Generating<IconLoading /></span>}
-			/>
-			: null}
+		{/* Generating tool */}
+		{generatingTool}
 
+		{/* loading indicator */}
 		{isRunning === 'LLM' && !toolIsGenerating ? <ProseWrapper>
-			{/* loading indicator */}
 			{<IconLoading className='opacity-50 text-sm' />}
 		</ProseWrapper> : null}
 

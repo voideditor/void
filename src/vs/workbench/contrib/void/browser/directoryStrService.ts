@@ -247,6 +247,9 @@ const renderChildrenCombined = async (
 		const child = itemsToProcess[i];
 		const isLast = (i === itemsToProcess.length - 1) && !hasMoreItems;
 
+		console.log('child!!!!', child.uri.fsPath)
+
+
 		// Create the tree branch symbols
 		const branchSymbol = isLast ? '└── ' : '├── ';
 		const childLine = `${parentPrefix}${branchSymbol}${child.name}${child.isDirectory ? '/' : ''}${child.isSymbolicLink ? ' (symbolic link)' : ''}\n`;

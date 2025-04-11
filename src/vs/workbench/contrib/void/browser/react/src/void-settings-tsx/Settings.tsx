@@ -296,7 +296,14 @@ export const ModelDump = () => {
 					<span className='w-fit truncate'>{modelName}</span>
 				</div>
 				{/* right part is anything that fits */}
-				<div className='flex items-center gap-4'>
+				<div className='flex items-center gap-4'
+					data-tooltip-id='void-tooltip'
+					data-tooltip-place='top'
+					data-tooltip-content={disabled? `${displayInfoOfProviderName(providerName).title} is disabled`
+					: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
+
+					}
+				>
 					<span className='opacity-50 truncate'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
 
 					<VoidSwitch

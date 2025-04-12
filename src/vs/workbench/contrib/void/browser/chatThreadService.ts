@@ -616,12 +616,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				delete this._currentlyRunningToolInterruptor[threadId];
 			}
 			toolResult = await result // ts is bad... await is needed
+
+			if (interrupted) { return { interrupted: true } } // the tool result is added where we interrupt, not here
 		}
 		catch (error) {
-			if (interrupted) {
-				// the tool result is added when we stop running
-				return { interrupted: true }
-			}
+			if (interrupted) { return { interrupted: true } } // the tool result is added where we interrupt, not here
+
+
 			const errorMessage = getErrorMessage(error)
 			this._updateLatestTool(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, content: errorMessage, })
 			return {}

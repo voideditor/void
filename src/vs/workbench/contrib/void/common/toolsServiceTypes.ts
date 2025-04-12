@@ -28,6 +28,7 @@ export type ToolCallParams = {
 	'get_dir_structure': { rootURI: URI },
 	'search_pathnames_only': { queryStr: string, searchInFolder: string | null, pageNumber: number },
 	'search_files': { queryStr: string, isRegex: boolean, searchInFolder: URI | null, pageNumber: number },
+	'read_lint_errors': { uri: URI },
 	// ---
 	'edit_file': { uri: URI, changeDescription: string },
 	'create_file_or_folder': { uri: URI, isFolder: boolean },
@@ -43,6 +44,7 @@ export type ToolResultType = {
 	'get_dir_structure': { str: string, },
 	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },
 	'search_files': { uris: URI[], hasNextPage: boolean },
+	'read_lint_errors': { lintErrors: LintErrorItem[] | null },
 	// ---
 	'edit_file': Promise<{ lintErrors: LintErrorItem[] | null }>,
 	'create_file_or_folder': {},

@@ -11,6 +11,7 @@ export default defineConfig({
 		'./src2/sidebar-tsx/index.tsx',
 		'./src2/void-settings-tsx/index.tsx',
 		'./src2/void-tooltip/index.tsx',
+		'./src2/void-onboarding/index.tsx',
 		'./src2/quick-edit-tsx/index.tsx',
 		'./src2/diff/index.tsx',
 	],

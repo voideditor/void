@@ -357,6 +357,7 @@ export type GlobalSettings = {
 	autoApprove: boolean;
 	showInlineSuggestions: boolean;
 	includeToolLintErrors: boolean;
+	isOnboardingComplete: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -369,6 +370,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	autoApprove: false,
 	showInlineSuggestions: true,
 	includeToolLintErrors: true,
+	isOnboardingComplete: true,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

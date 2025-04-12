@@ -418,6 +418,7 @@ export const VoidSwitch = ({
 	onChange,
 	size = 'md',
 	disabled = false,
+	...props
 }: {
 	value: boolean;
 	onChange: (value: boolean) => void;
@@ -425,7 +426,7 @@ export const VoidSwitch = ({
 	size?: 'xxs' | 'xs' | 'sm' | 'sm+' | 'md';
 }) => {
 	return (
-		<label className="inline-flex items-center">
+		<label className="inline-flex items-center" {...props}>
 			<div
 				onClick={() => !disabled && onChange(!value)}
 				className={`

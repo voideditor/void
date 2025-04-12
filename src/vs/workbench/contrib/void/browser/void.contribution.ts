@@ -52,6 +52,9 @@ import './voidSelectionHelperWidget.js'
 // register tooltip service
 import './tooltipService.js'
 
+// register onboarding service
+import './voidOnboardingService.js'
+
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
 
 // llmMessage

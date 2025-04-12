@@ -678,7 +678,8 @@ const ToolHeaderWrapper = ({
 	onClick,
 	isOpen,
 	isRejected,
-}: ToolHeaderParams) => {
+	className, // applies to the main content
+}: ToolHeaderParams & { className?: string }) => {
 
 	const [isOpen_, setIsOpen] = useState(false);
 	const isExpanded = isOpen !== undefined ? isOpen : isOpen_
@@ -687,7 +688,7 @@ const ToolHeaderWrapper = ({
 	const isClickable = !!(isDropdown || onClick)
 
 	return (<div className=''>
-		<div className="w-full border border-void-border-3 rounded px-2 py-1 bg-void-bg-3 overflow-hidden ">
+		<div className={`w-full border border-void-border-3 rounded px-2 py-1 bg-void-bg-3 overflow-hidden ${className}`}>
 			{/* header */}
 			<div className={`select-none flex items-center min-h-[24px] ${!isDropdown ? 'mx-1' : ''}`}>
 				<div className={`flex items-center w-full gap-x-2 overflow-hidden justify-between ${isRejected ? 'line-through' : ''}`}>
@@ -1346,17 +1347,18 @@ const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => 
 
 	if (lintErrors.length === 0) return null;
 
+	const [isOpen, setIsOpen] = useState(false);
+
 	return (
 		<div className="w-full px-2">
-			<div className="w-full border-l border-r border-b border-void-border-2 rounded bg-void-bg-3 overflow-hidden">
-
+			<ToolHeaderWrapper className='!border-t-0' title={'Lint errors'} desc1={''} isOpen={isOpen} onClick={() => { setIsOpen(o => !o) }} >
 				<div className="text-xs text-void-fg-4 opacity-80 border-l-2 border-void-warning px-2 py-0.5 flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap">
 					{lintErrors.map((error, i) => (
 						<div key={i}>Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
 					))}
 				</div>
+			</ToolHeaderWrapper>
 
-			</div>
 		</div>
 	)
 

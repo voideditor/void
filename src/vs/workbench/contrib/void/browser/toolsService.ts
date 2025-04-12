@@ -211,6 +211,14 @@ export class ToolsService implements IToolsService {
 				return { queryStr, searchInFolder, isRegex, pageNumber }
 			},
 
+			read_lint_errors: (params: RawToolParamsObj) => {
+				const {
+					uri: uriUnknown,
+				} = params
+				const uri = validateURI(uriUnknown)
+				return { uri }
+			},
+
 			// ---
 
 			create_file_or_folder: (params: RawToolParamsObj) => {
@@ -322,6 +330,12 @@ export class ToolsService implements IToolsService {
 				return { result: { queryStr, uris, hasNextPage } }
 			},
 
+			read_lint_errors: async ({ uri }) => {
+				await timeout(1000)
+				const { lintErrors } = this._getLintErrors(uri)
+				return { result: { lintErrors } }
+			},
+
 			// ---
 
 			create_file_or_folder: async ({ uri, isFolder }) => {
@@ -359,20 +373,11 @@ export class ToolsService implements IToolsService {
 					editCodeService.interruptURIStreaming({ uri: diffZoneURI })
 				}
 
+				// at end, get lint errors
 				const lintErrorsPromise = applyDonePromise.then(async () => {
-					await timeout(500)
-
-					const lintErrors = this.markerService
-						.read({ resource: uri })
-						.map(l => ({
-							code: typeof l.code === 'string' ? l.code : l.code?.value || '',
-							message: l.message,
-							startLineNumber: l.startLineNumber,
-							endLineNumber: l.endLineNumber,
-						} satisfies LintErrorItem))
-
-					if (!lintErrors.length) return { lintErrors: null }
-					return { lintErrors, }
+					await timeout(2000)
+					const { lintErrors } = this._getLintErrors(uri)
+					return { lintErrors }
 				})
 
 				return { result: lintErrorsPromise, interruptTool }
@@ -386,7 +391,11 @@ export class ToolsService implements IToolsService {
 
 		const nextPageStr = (hasNextPage: boolean) => hasNextPage ? '\n\n(more on next page...)' : ''
 
-		const lintErrorsStr = (lintErrors: LintErrorItem[]) => lintErrors.map((e, i) => `Error ${i + 1}:\nLines Affected: ${e.startLineNumber}-${e.endLineNumber}\nError message:${e.message}`).join('\n\n')
+		const stringifyLintErrors = (lintErrors: LintErrorItem[]) => {
+			return lintErrors
+				.map((e, i) => `Error ${i + 1}:\nLines Affected: ${e.startLineNumber}-${e.endLineNumber}\nError message:${e.message}`)
+				.join('\n\n')
+		}
 
 		// given to the LLM after the call
 		this.stringOfResult = {
@@ -406,6 +415,11 @@ export class ToolsService implements IToolsService {
 			search_files: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
+			read_lint_errors: (params, result) => {
+				return result.lintErrors ?
+					stringifyLintErrors(result.lintErrors)
+					: 'No lint errors found.'
+			},
 			// ---
 			create_file_or_folder: (params, result) => {
 				return `URI ${params.uri.fsPath} successfully created.`
@@ -416,7 +430,7 @@ export class ToolsService implements IToolsService {
 			edit_file: (params, result) => {
 				const lintErrsString = (
 					this.voidSettingsService.state.globalSettings.includeToolLintErrors ?
-						(result.lintErrors ? ` Lint errors found after change:\n${lintErrorsStr(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.`
+						(result.lintErrors ? ` Lint errors found after change:\n${stringifyLintErrors(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.`
 							: ` No lint errors found.`)
 						: '')
 
@@ -451,6 +465,21 @@ export class ToolsService implements IToolsService {
 
 
 
+	}
+
+
+	private _getLintErrors(uri: URI): { lintErrors: LintErrorItem[] | null } {
+		const lintErrors = this.markerService
+			.read({ resource: uri })
+			.map(l => ({
+				code: typeof l.code === 'string' ? l.code : l.code?.value || '',
+				message: l.message,
+				startLineNumber: l.startLineNumber,
+				endLineNumber: l.endLineNumber,
+			} satisfies LintErrorItem))
+
+		if (!lintErrors.length) return { lintErrors: null }
+		return { lintErrors, }
 	}
 
 

@@ -48,7 +48,7 @@ export const VoidTooltip = () => {
 					font-size: 12px;
 					padding: 0px 8px;
 					border-radius: 6px;
-					z-index: 999;
+					z-index: 999999;
 				}
 
 				#void-tooltip {

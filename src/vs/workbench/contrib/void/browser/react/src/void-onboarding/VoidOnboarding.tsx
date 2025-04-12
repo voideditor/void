@@ -108,7 +108,7 @@ const NextButton = ({ onClick, ...props }: { onClick: () => void } & React.Butto
 			className="px-6 py-2 bg-[#0e70c0] enabled:hover:bg-[#1177cb] disabled:opacity-50 disabled:cursor-not-allowed rounded text-white duration-300 transition-all"
 			{...props.disabled && {
 				'data-tooltip-id': 'void-tooltip',
-				'data-tooltip-content': 'Disabled (Please enter all required fields)',
+				'data-tooltip-content': 'Disabled (Please enter all required fields or choose another Provider)',
 				'data-tooltip-place': 'top',
 			}}
 			{...props}

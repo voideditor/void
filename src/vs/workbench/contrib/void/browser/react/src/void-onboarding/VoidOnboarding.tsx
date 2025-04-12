@@ -341,7 +341,8 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 					supportsSystemMessage,
 				} = capabilities
 
-				const supportsTools = !!((capabilities as unknown as any).supportsTools)
+				// TODO update this when tools work
+				const supportsTools = !!!((capabilities as unknown as any).supportsTools)
 
 				const removeModelButton = <button
 					className="absolute -left-1 top-1/2 transform -translate-y-1/2 -translate-x-full text-void-fg-3 hover:text-void-fg-1 text-xs"

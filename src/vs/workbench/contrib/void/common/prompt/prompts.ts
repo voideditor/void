@@ -11,16 +11,17 @@ import { toolNamesThatRequireApproval } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { ChatMode } from '../voidSettingsTypes.js';
 
-// this is just for ease of readability
+// Triple backtick wrapper used throughout the prompts for code blocks
 export const tripleTick = ['```', '```']
 
+// Maximum limits for directory structure information
 export const MAX_DIRSTR_CHARS_TOTAL_BEGINNING = 20_000
 export const MAX_DIRSTR_CHARS_TOTAL_TOOL = 20_000
 export const MAX_DIRSTR_RESULTS_TOTAL_BEGINNING = 100
 export const MAX_DIRSTR_RESULTS_TOTAL_TOOL = 100
 
 
-
+// Maximum character limits for prefix and suffix context
 export const MAX_PREFIX_SUFFIX_CHARS = 20_000
 
 
@@ -70,7 +71,7 @@ export const voidTools = {
 
 	read_file: {
 		name: 'read_file',
-		description: `Returns file contents of a given URI.`,
+		description: `Returns full contents of a given file.`,
 		params: {
 			...uriParam('file'),
 			start_line: { description: 'Optional. Default is 1. Start reading on this line.' },
@@ -123,11 +124,19 @@ export const voidTools = {
 		},
 	},
 
+	read_lint_errors: {
+		name: 'read_lint_errors',
+		description: `Returns all lint errors on a given file.`,
+		params: {
+			...uriParam('file'),
+		},
+	},
+
 	// --- editing (create/delete) ---
 
 	create_file_or_folder: {
 		name: 'create_file_or_folder',
-		description: `Create a file or folder at the given path. To create a folder, ensure the path ends with a trailing slash.`,
+		description: `Create a file or folder at the given path. To create a folder, the path MUST end with a trailing slash.`,
 		params: {
 			...uriParam('file or folder'),
 		},
@@ -581,10 +590,16 @@ Instructions:
 `
 }
 
-export const ctrlKStream_userMessage = ({ selection, prefix, suffix, instructions, fimTags, isOllamaFIM, language }: {
-	selection: string, prefix: string, suffix: string, instructions: string, fimTags: QuickEditFimTagsType, language: string,
-	isOllamaFIM: false, // we require this be false for clarity
-}) => {
+export const ctrlKStream_userMessage = ({
+	selection,
+	prefix,
+	suffix,
+	instructions,
+	// isOllamaFIM: false, // Remove unused variable
+	fimTags,
+	language }: {
+		selection: string, prefix: string, suffix: string, instructions: string, fimTags: QuickEditFimTagsType, language: string,
+	}) => {
 	const { preTag, sufTag, midTag } = fimTags
 
 	// prompt the model artifically on how to do FIM

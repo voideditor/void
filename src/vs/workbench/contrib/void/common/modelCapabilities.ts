@@ -78,15 +78,17 @@ export const defaultModelsOfProvider = {
 	vLLM: [ // autodetected
 	],
 	openRouter: [ // https://openrouter.ai/models
-		'anthropic/claude-3.7-sonnet:thinking',
+		// 'anthropic/claude-3.7-sonnet:thinking',
 		'anthropic/claude-3.7-sonnet',
 		'anthropic/claude-3.5-sonnet',
 		'deepseek/deepseek-r1',
 		'deepseek/deepseek-r1-zero:free',
-		'mistralai/codestral-2501',
-		'qwen/qwen-2.5-coder-32b-instruct',
+		'openrouter/quasar-alpha',
+		'google/gemini-2.5-pro-preview-03-25',
+		// 'mistralai/codestral-2501',
+		// 'qwen/qwen-2.5-coder-32b-instruct',
 		// 'mistralai/mistral-small-3.1-24b-instruct:free',
-		'google/gemini-2.0-flash-lite-preview-02-05:free',
+		// 'google/gemini-2.0-flash-lite-preview-02-05:free',
 		// 'google/gemini-2.0-pro-exp-02-05:free',
 		// 'google/gemini-2.0-flash-exp:free',
 	],
@@ -285,6 +287,12 @@ const openSourceModelOptions_assumingOAICompat = {
 		contextWindow: 128_000, maxOutputTokens: 8_192,
 
 	},
+	'quasar': { // openrouter/quasar-alpha
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+		contextWindow: 1_000_000, maxOutputTokens: 32_000,
+	}
 } as const satisfies { [s: string]: Partial<VoidStaticModelInfo> }
 
 
@@ -305,9 +313,6 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 			...fallbackKnownValues
 		}
 	}
-	if (Object.keys(openSourceModelOptions_assumingOAICompat).map(k => k.toLowerCase()).includes(lower))
-		return toFallback(openSourceModelOptions_assumingOAICompat[lower as keyof typeof openSourceModelOptions_assumingOAICompat])
-
 	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions['gemini-2.5-pro-exp-03-25'])
 
 	if (lower.includes('claude-3-5') || lower.includes('claude-3.5')) return toFallback(anthropicModelOptions['claude-3-5-sonnet-20241022'])
@@ -338,12 +343,17 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 
 	if (lower.includes('openhands')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['openhands-lm-32b'], }) // max output unclear
 
+	if (lower.includes('quasar') || lower.includes('quaser')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['quasar'] })
+
 	if (lower.includes('4o') && lower.includes('mini')) return toFallback(openAIModelOptions['gpt-4o-mini'])
 	if (lower.includes('4o')) return toFallback(openAIModelOptions['gpt-4o'])
 	if (lower.includes('o1') && lower.includes('mini')) return toFallback(openAIModelOptions['o1-mini'])
 	if (lower.includes('o1')) return toFallback(openAIModelOptions['o1'])
 	if (lower.includes('o3') && lower.includes('mini')) return toFallback(openAIModelOptions['o3-mini'])
 	// if (lower.includes('o3')) return toFallback(openAIModelOptions['o3'])
+
+	if (Object.keys(openSourceModelOptions_assumingOAICompat).map(k => k.toLowerCase()).includes(lower))
+		return toFallback(openSourceModelOptions_assumingOAICompat[lower as keyof typeof openSourceModelOptions_assumingOAICompat])
 
 	return toFallback(modelOptionsDefaults)
 }

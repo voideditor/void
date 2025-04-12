@@ -327,10 +327,11 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 			{Object.keys(infoOfModelName).map(modelName => {
 				const { showAsDefault, isDownloaded } = infoOfModelName[modelName]
 
+
+				const capabilities = getModelCapabilities(providerName, modelName)
 				const {
 					downloadable,
 					cost,
-					// supportsTools,
 					supportsFIM,
 					reasoningCapabilities,
 					contextWindow,
@@ -338,8 +339,9 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 					isUnrecognizedModel,
 					maxOutputTokens,
 					supportsSystemMessage,
-				} = getModelCapabilities(providerName, modelName)
+				} = capabilities
 
+				const supportsTools = !!((capabilities as unknown as any).supportsTools)
 
 				const removeModelButton = <button
 					className="absolute -left-1 top-1/2 transform -translate-y-1/2 -translate-x-full text-void-fg-3 hover:text-void-fg-1 text-xs"
@@ -359,7 +361,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 						<td className="py-2 px-3">${cost.output ?? ''}</td>
 						<td className="py-2 px-3">{contextWindow ? abbreviateNumber(contextWindow) : ''}</td>
 						<td className="py-2 px-3"><YesNoText val={true} /></td>
-						<td className="py-2 px-3"><YesNoText val={true} /></td>
+						<td className="py-2 px-3"><YesNoText val={!!supportsTools} /></td>
 						<td className="py-2 px-3"><YesNoText val={!!supportsFIM} /></td>
 						{/* <td className="py-2 px-3"><YesNoText val={!!reasoningCapabilities} /></td> */}
 						{isDetectableLocally && <td className="py-2 px-3">{!!isDownloaded ? <Check className="w-4 h-4" /> : <></>}</td>}

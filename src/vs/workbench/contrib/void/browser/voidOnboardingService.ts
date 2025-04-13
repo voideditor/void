@@ -32,15 +32,12 @@ export class OnboardingContribution extends Disposable implements IWorkbenchCont
 
 			const onboardingContainer = h('div.void-onboarding-container').root;
 			workbench.appendChild(onboardingContainer);
-
-			// Mount the React component
 			this.instantiationService.invokeFunction((accessor: ServicesAccessor) => {
 				const result = mountVoidOnboarding(onboardingContainer, accessor);
 				if (result && typeof result.dispose === 'function') {
 					this._register(toDisposable(result.dispose));
 				}
 			});
-
 			// Register cleanup for the DOM element
 			this._register(toDisposable(() => {
 				if (onboardingContainer.parentElement) {

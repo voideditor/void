@@ -14,7 +14,7 @@ import { EndOfLinePreference } from '../../../../editor/common/model.js'
 import { basename } from '../../../../base/common/path.js'
 import { IVoidCommandBarService } from './voidCommandBarService.js'
 import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree1Deep } from './directoryStrService.js'
-import { IMarkerService } from '../../../../platform/markers/common/markers.js'
+import { IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js'
 import { timeout } from '../../../../base/common/async.js'
 import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
 import { ToolName } from '../common/prompt/prompts.js'
@@ -471,9 +471,10 @@ export class ToolsService implements IToolsService {
 	private _getLintErrors(uri: URI): { lintErrors: LintErrorItem[] | null } {
 		const lintErrors = this.markerService
 			.read({ resource: uri })
+			.filter(l => l.severity === MarkerSeverity.Error || l.severity === MarkerSeverity.Warning)
 			.map(l => ({
 				code: typeof l.code === 'string' ? l.code : l.code?.value || '',
-				message: l.message,
+				message: (l.severity === MarkerSeverity.Error ? '(error) ' : '(warning) ') + l.message,
 				startLineNumber: l.startLineNumber,
 				endLineNumber: l.endLineNumber,
 			} satisfies LintErrorItem))

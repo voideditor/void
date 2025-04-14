@@ -39,8 +39,11 @@ export const defaultProviderSettings = {
 		apiKey: '',
 	},
 	xAI: {
-		apiKey: ''
+		apiKey: '',
 	},
+	mistral: {
+		apiKey: '',
+	}
 } as const
 
 
@@ -98,13 +101,12 @@ export const defaultModelsOfProvider = {
 		'llama-3.1-8b-instant',
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)
 	],
-	// not supporting mistral right now- it's last on Void usage, and a huge pain to set up since it's nonstandard (it supports codestral FIM but it's on v1/fim/completions, etc)
-	// mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
-	// 	'codestral-latest',
-	// 	'mistral-large-latest',
-	// 	'ministral-3b-latest',
-	// 	'ministral-8b-latest',
-	// ],
+	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
+		'codestral-latest',
+		'mistral-large-latest',
+		'ministral-3b-latest',
+		'ministral-8b-latest',
+	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>
 
@@ -170,12 +172,9 @@ const modelOptionsDefaults: VoidStaticModelInfo = {
 	reasoningCapabilities: false,
 }
 
-
-
 // TODO!!! double check all context sizes below
 // TODO!!! add openrouter common models
 // TODO!!! allow user to modify capabilities and tell them if autodetected model or falling back
-
 const openSourceModelOptions_assumingOAICompat = {
 	'deepseekR1': {
 		supportsFIM: false,
@@ -624,6 +623,55 @@ const deepseekSettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => { return null }
 }
 
+
+
+// ---------------- MISTRAL ----------------
+
+const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#pricing https://docs.mistral.ai/getting-started/models/models_overview/#premier-models
+	'mistral-large-latest': {
+		contextWindow: 131_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 2.00, output: 6.00 },
+		supportsFIM: false,
+		downloadable: { sizeGb: 73 },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'codestral-latest': {
+		contextWindow: 256_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.30, output: 0.90 },
+		supportsFIM: true,
+		downloadable: { sizeGb: 13 },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'ministral-8b-latest': { // ollama 'mistral'
+		contextWindow: 131_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.10, output: 0.10 },
+		supportsFIM: false,
+		downloadable: { sizeGb: 4.1 },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'ministral-3b-latest': {
+		contextWindow: 131_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.04, output: 0.04 },
+		supportsFIM: false,
+		downloadable: { sizeGb: 'not-known' },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+
+const mistralSettings: VoidStaticProviderInfo = {
+	modelOptions: mistralModelOptions,
+	modelOptionsFallback: (modelName) => { return null },
+}
+
+
 // ---------------- GROQ ----------------
 const groqModelOptions = { // https://console.groq.com/docs/models, https://groq.com/pricing/
 	'llama-3.3-70b-versatile': {
@@ -890,8 +938,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	vLLM: vLLMSettings,
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
-
-	// TODO!!!
+	mistral: mistralSettings,
 	// googleVertex: {},
 	// microsoftAzure: {},
 	// openHands: {},

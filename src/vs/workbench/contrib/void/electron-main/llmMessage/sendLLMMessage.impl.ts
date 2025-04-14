@@ -6,6 +6,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
+import { MistralCore } from '@mistralai/mistralai/core.js';
+import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
+
 
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
@@ -83,6 +86,10 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 	else if (providerName === 'xAI') {
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+	else if (providerName === 'mistral') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
@@ -349,6 +356,44 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	_setAborter(() => stream.controller.abort())
 }
 
+
+
+// ------------ MISTRAL ------------
+// https://docs.mistral.ai/api/#tag/fim
+const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
+	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
+	if (!supportsFIM) {
+		if (modelName === modelName_)
+			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
+		else
+			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
+		return
+	}
+	const messages = prepareFIMMessage({ messages: messages_, aiInstructions })
+
+	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
+	fimComplete(mistral,
+		{
+			model: modelName,
+			prompt: messages.prefix,
+			suffix: messages.suffix,
+			stream: false,
+			maxTokens: messages.maxTokens,
+			stop: messages.stopTokens,
+		})
+		.then(async response => {
+			let content = response?.ok ? response.value.choices?.[0]?.message?.content ?? '' : '';
+			const fullText = typeof content === 'string' ? content
+				: content.map(chunk => (chunk.type === 'text' ? chunk.text : '')).join('')
+
+			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
+		})
+		.catch(error => {
+			onError({ message: error + '', fullError: error });
+		})
+}
+
+
 // ------------ OLLAMA ------------
 const newOllamaSDK = ({ endpoint }: { endpoint: string }) => {
 	// if endpoint is empty, normally ollama will send to 11434, but we want it to fail - the user should type it in
@@ -445,11 +490,11 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
-	// mistral: {
-	// 	sendChat: , // TODO
-	// 	sendFIM: , // TODO // https://docs.mistral.ai/api/#tag/fim
-	// 	list: null,
-	// },
+	mistral: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: (params) => sendMistralFIM(params),
+		list: null,
+	},
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: sendOllamaFIM,

@@ -39,8 +39,11 @@ export const defaultProviderSettings = {
 		apiKey: '',
 	},
 	xAI: {
-		apiKey: ''
+		apiKey: '',
 	},
+	mistral: {
+		apiKey: '',
+	}
 } as const
 
 
@@ -627,8 +630,8 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		maxOutputTokens: 8_192,
 		cost: { input: 2.00, output: 6.00 },
 		supportsFIM: false,
+		downloadable: { sizeGb: 73 },
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'codestral-latest': {
@@ -636,26 +639,17 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		maxOutputTokens: 8_192,
 		cost: { input: 0.30, output: 0.90 },
 		supportsFIM: true,
+		downloadable: { sizeGb: 13 },
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
-	'mistral-saba-latest': {
-		contextWindow: 32_000,
-		maxOutputTokens: 8_192,
-		cost: { input: 0.20, output: 0.60 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: false,
-		reasoningCapabilities: false,
-	},
-	'ministral-8b-latest': {
+	'ministral-8b-latest': { // ollama 'mistral'
 		contextWindow: 131_000,
 		maxOutputTokens: 4_096,
 		cost: { input: 0.10, output: 0.10 },
 		supportsFIM: false,
+		downloadable: { sizeGb: 4.1 },
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'ministral-3b-latest': {
@@ -663,13 +657,13 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		maxOutputTokens: 4_096,
 		cost: { input: 0.04, output: 0.04 },
 		supportsFIM: false,
+		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
-		supportsTools: 'openai-style',
 		reasoningCapabilities: false,
 	},
-} as const satisfies { [s: string]: ModelOptions }
+} as const satisfies { [s: string]: VoidStaticModelInfo }
 
-const mistralSettings: ProviderSettings = {
+const mistralSettings: VoidStaticProviderInfo = {
 	modelOptions: mistralModelOptions,
 	modelOptionsFallback: (modelName) => { return null },
 }

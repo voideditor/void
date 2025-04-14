@@ -1315,7 +1315,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const startLine = startRange === 'fullFile' ? 1 : startRange[0]
 			const endLine = startRange === 'fullFile' ? model.getLineCount() : startRange[1]
 			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: originalFileCode, startLine, endLine })
-			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, isOllamaFIM: false, fimTags: quickEditFIMTags, language })
+			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, fimTags: quickEditFIMTags, language })
 			// type: 'messages',
 			messages = [
 				{ role: 'system', content: ctrlKStream_systemMessage({ quickEditFIMTags: quickEditFIMTags }), },

@@ -1361,7 +1361,7 @@ const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => 
 
 	return (
 		<div className="w-full px-2">
-			<ToolHeaderWrapper className='!border-t-0 !pt-0' title={'Lint errors'} desc1={''} isOpen={isOpen} onClick={() => { setIsOpen(o => !o) }} >
+			<ToolHeaderWrapper className='!border-t-0' title={'Lint errors'} desc1={''} isOpen={isOpen} onClick={() => { setIsOpen(o => !o) }} >
 				<LintErrorChildren lintErrors={lintErrors} />
 			</ToolHeaderWrapper>
 
@@ -1660,7 +1660,10 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			if (toolMessage.type === 'success') {
 				const { params, result } = toolMessage
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
-
+				if (result.lintErrors)
+					componentParams.children = <LintErrorChildren lintErrors={result.lintErrors} />
+				else
+					componentParams.children = `No lint errors found.`
 
 			}
 			else if (toolMessage.type === 'tool_error') {

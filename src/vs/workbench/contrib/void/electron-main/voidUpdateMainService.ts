@@ -47,7 +47,7 @@ export class VoidMainUpdateService extends Disposable implements IVoidUpdateServ
 
 		if (this._updateService.state.type === StateType.CheckingForUpdates) {
 			// Currently checking for updates
-			return { message: explicit ? 'Currently checking for updates...' : null } as const
+			return { message: explicit ? 'No updates found!' : null } as const
 		}
 
 		if (this._updateService.state.type === StateType.AvailableForDownload) {

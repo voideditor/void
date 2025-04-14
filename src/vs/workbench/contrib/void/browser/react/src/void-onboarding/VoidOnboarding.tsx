@@ -11,11 +11,12 @@ import { getModelCapabilities, ollamaRecommendedModels } from '../../../../commo
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { AddModelInputBox, AnimatedCheckmarkButton, ollamaSetupInstructions, OneClickSwitchButton, SettingsForProvider } from '../void-settings-tsx/Settings.js';
 
+const OVERRIDE_VALUE = true
 
 export const VoidOnboarding = () => {
 
 	const voidSettingsState = useSettingsState()
-	const isOnboardingComplete = voidSettingsState.globalSettings.isOnboardingComplete
+	const isOnboardingComplete = voidSettingsState.globalSettings.isOnboardingComplete || OVERRIDE_VALUE
 
 	const isDark = useIsDark()
 
@@ -23,6 +24,7 @@ export const VoidOnboarding = () => {
 		<div className={`@@void-scope ${isDark ? 'dark' : ''}`}>
 			<div
 				className={`
+					hidden
 					bg-void-bg-3 fixed top-0 right-0 bottom-0 left-0 width-full h-full z-[99999]
 					transition-all duration-1000 ${isOnboardingComplete ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}
 				`}

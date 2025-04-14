@@ -370,7 +370,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	autoApprove: false,
 	showInlineSuggestions: true,
 	includeToolLintErrors: true,
-	isOnboardingComplete: true,
+	isOnboardingComplete: false,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

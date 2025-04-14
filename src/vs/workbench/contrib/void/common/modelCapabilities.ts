@@ -51,11 +51,14 @@ export const defaultProviderSettings = {
 
 export const defaultModelsOfProvider = {
 	openAI: [ // https://platform.openai.com/docs/models/gp
+		'gpt-4.1',
+		'gpt-4.1-mini',
+		'gpt-4.1-nano',
 		'o3-mini',
-		'o1',
-		'o1-mini',
-		'gpt-4o',
-		'gpt-4o-mini',
+		// 'o1',
+		// 'o1-mini',
+		// 'gpt-4o',
+		// 'gpt-4o-mini',
 	],
 	anthropic: [ // https://docs.anthropic.com/en/docs/about-claude/models
 		'claude-3-7-sonnet-latest',
@@ -344,12 +347,16 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 
 	if (lower.includes('quasar') || lower.includes('quaser')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['quasar'] })
 
+	if (lower.includes('gpt') && lower.includes('mini') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions['gpt-4.1-mini'])
+	if (lower.includes('gpt') && lower.includes('nano') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions['gpt-4.1-nano'])
+	if (lower.includes('gpt') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions['gpt-4.1'])
+
 	if (lower.includes('4o') && lower.includes('mini')) return toFallback(openAIModelOptions['gpt-4o-mini'])
 	if (lower.includes('4o')) return toFallback(openAIModelOptions['gpt-4o'])
+
 	if (lower.includes('o1') && lower.includes('mini')) return toFallback(openAIModelOptions['o1-mini'])
 	if (lower.includes('o1')) return toFallback(openAIModelOptions['o1'])
 	if (lower.includes('o3') && lower.includes('mini')) return toFallback(openAIModelOptions['o3-mini'])
-	// if (lower.includes('o3')) return toFallback(openAIModelOptions['o3'])
 
 	if (Object.keys(openSourceModelOptions_assumingOAICompat).map(k => k.toLowerCase()).includes(lower))
 		return toFallback(openSourceModelOptions_assumingOAICompat[lower as keyof typeof openSourceModelOptions_assumingOAICompat])
@@ -444,6 +451,33 @@ const anthropicSettings: VoidStaticProviderInfo = {
 
 // ---------------- OPENAI ----------------
 const openAIModelOptions = { // https://platform.openai.com/docs/pricing
+	'gpt-4.1': {
+		contextWindow: 1_047_576,
+		maxOutputTokens: 32_768,
+		cost: { input: 2.00, output: 8.00, cache_read: 0.50 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: false,
+	},
+	'gpt-4.1-mini': {
+		contextWindow: 1_047_576,
+		maxOutputTokens: 32_768,
+		cost: { input: 0.40, output: 1.60, cache_read: 0.10 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: false,
+	},
+	'gpt-4.1-nano': {
+		contextWindow: 1_047_576,
+		maxOutputTokens: 32_768,
+		cost: { input: 0.10, output: 0.40, cache_read: 0.03 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: false,
+	},
 	'o1': {
 		contextWindow: 128_000,
 		maxOutputTokens: 100_000,

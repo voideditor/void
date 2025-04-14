@@ -241,8 +241,8 @@ ${availableXMLToolsStr(tools)}`)
 	const toolCallXMLGuidelines = (`\
 Tool calling details:
 - Once you write a tool call, you must STOP and WAIT for the result.
+- To call a tool, write its name and parameters in one of the XML formats specified above at the BOTTOM of your response.
 - All parameters are REQUIRED unless noted otherwise.
-- To call a tool, write its name and parameters in one of the XML formats specified above.
 - You are only allowed to output ONE tool call, and it must be at the END of your response.
 - Your tool call will be executed immediately, and the results will appear in the following user message.`)
 

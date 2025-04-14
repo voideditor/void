@@ -71,8 +71,8 @@ export interface IVoidSettingsService {
 
 
 
-const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], options: { existingModels: VoidStatefulModelInfo[] }) => {
-	const { existingModels } = options
+const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], options: { existingModels: VoidStatefulModelInfo[], didAutoDetect: boolean }) => {
+	const { existingModels, didAutoDetect } = options
 
 	const existingModelsMap: Record<string, VoidStatefulModelInfo> = {}
 	for (const existingModel of existingModels) {
@@ -82,7 +82,7 @@ const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], opt
 	const newDefaultModels = defaultModelNames.map((modelName, i) => ({
 		modelName,
 		isDefault: true,
-		isAutodetected: true,
+		isAutodetected: didAutoDetect,
 		isHidden: !!existingModelsMap[modelName]?.isHidden,
 	}))
 
@@ -101,7 +101,30 @@ export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter:
 }
 
 
-const _validatedModelState = (state: Omit<VoidSettingsState, '_modelOptions'>) => {
+const _stateWithUpdatedDefaultModels = (state: VoidSettingsState): VoidSettingsState => {
+	let newSettingsOfProvider = state.settingsOfProvider
+
+	// recompute default models
+	for (const providerName of providerNames) {
+		const defaultModels = defaultSettingsOfProvider[providerName]?.models ?? []
+		const currentModels = newSettingsOfProvider[providerName]?.models ?? []
+		const defaultModelNames = defaultModels.map(m => m.modelName)
+		const newModels = _updatedModelsAfterDefaultModelsChange(defaultModelNames, { existingModels: currentModels, didAutoDetect: false })
+		newSettingsOfProvider = {
+			...newSettingsOfProvider,
+			[providerName]: {
+				...newSettingsOfProvider[providerName],
+				models: newModels,
+			},
+		}
+	}
+	return {
+		...state,
+		settingsOfProvider: newSettingsOfProvider,
+	}
+}
+
+const _validatedModelState = (state: Omit<VoidSettingsState, '_modelOptions'>): VoidSettingsState => {
 
 	let newSettingsOfProvider = state.settingsOfProvider
 
@@ -222,8 +245,10 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		}
 
 		// the stored data structure might be outdated, so we need to update it here
-		const finalState = readS
-		this.state = _validatedModelState(finalState);
+		this.state = readS
+		this.state = _stateWithUpdatedDefaultModels(this.state)
+		this.state = _validatedModelState(this.state);
+
 
 		this._resolver();
 		this._onDidChangeState.fire();
@@ -353,7 +378,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const { models } = this.state.settingsOfProvider[providerName]
 		const oldModelNames = models.map(m => m.modelName)
 
-		const newModels = _updatedModelsAfterDefaultModelsChange(autodetectedModelNames, { existingModels: models })
+		const newModels = _updatedModelsAfterDefaultModelsChange(autodetectedModelNames, { existingModels: models, didAutoDetect: true })
 		this.setSettingOfProvider(providerName, 'models', newModels)
 
 		// if the models changed, log it

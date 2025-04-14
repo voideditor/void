@@ -304,12 +304,6 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		return <p>{contents}</p>
 	}
 
-	if (t.type === "html") {
-		const contents = t.raw
-		if (inPTag) return <span className='block'>{contents}</span>
-		return <p>{contents}</p>
-	}
-
 	if (t.type === "text" || t.type === "escape") {
 		return <span>{t.raw}</span>
 	}
@@ -324,7 +318,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 				onClick={() => { window.open(t.href) }}
 				href={t.href}
 				title={t.title ?? undefined}
-				className='underline cursor-pointer hover:brightness-90 transition-all duration-200'
+				className='underline cursor-pointer hover:brightness-90 transition-all duration-200 text-void-fg-2'
 			>
 				{t.text}
 			</a>
@@ -349,7 +343,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 	}
 
 	// inline code
-	if (t.type === "codespan") {
+	if (t.type === "codespan" || t.type === "html") {
 
 		if (options.isLinkDetectionEnabled && chatMessageLocation) {
 			return <CodespanWithLink

@@ -150,7 +150,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 								providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
 									providerName === 'xAI' ? 'Get your [API Key here](https://console.x.ai).' :
 										providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys).' :
-											providerName === 'openAICompatible' ? undefined :
+											providerName === 'openAICompatible' ? `Use any OpenAI-compatible endpoint (LM Studio, LiteLM, etc).` :
 												'',
 			isPasswordField: true,
 		}

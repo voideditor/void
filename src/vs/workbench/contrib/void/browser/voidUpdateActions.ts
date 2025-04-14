@@ -23,12 +23,7 @@ const notifyYesUpdate = (notifService: INotificationService, res: { message?: st
 		severity: Severity.Info,
 		message: message,
 		sticky: true,
-		// progress: { worked: 0, total: 100 },
-		// progress: { worked: 0, total: 100 },
-		neverShowAgain: {
-			id: 'voidUpdateNotification',
-			isSecondary: false
-		},
+		progress: { worked: 0, total: 100 },
 		actions: {
 			primary: [{
 				id: 'void.updater.update',

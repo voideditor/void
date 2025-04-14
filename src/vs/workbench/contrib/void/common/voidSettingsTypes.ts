@@ -188,7 +188,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 							providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 								providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
 									providerName === 'xAI' ? 'Get your [API Key here](https://console.x.ai).' :
-										providerName === 'mistral' ? 'Get your [API Key here](https://mistral.ai/settings/keys).' :
+										providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys).' :
 											providerName === 'openAICompatible' ? undefined :
 												'',
 			isPasswordField: true,
@@ -280,40 +280,40 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.xAI),
 		_didFillInProviderSettings: undefined,
 	},
-	groq: { // aggregator
+	mistral: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.mistral,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
+		_didFillInProviderSettings: undefined,
+	},
+	groq: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.groq,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.groq),
 		_didFillInProviderSettings: undefined,
 	},
-	openRouter: { // aggregator
+	openRouter: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.openRouter,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openRouter),
 		_didFillInProviderSettings: undefined,
 	},
-	openAICompatible: { // aggregator
+	openAICompatible: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAICompatible,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible),
 		_didFillInProviderSettings: undefined,
 	},
-	ollama: { // aggregator
+	ollama: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.ollama,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.ollama),
 		_didFillInProviderSettings: undefined,
 	},
-	vLLM: { // aggregator
+	vLLM: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.vLLM,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.vLLM),
-		_didFillInProviderSettings: undefined,
-	},
-	mistral: { // aggregator
-		...defaultCustomSettings,
-		...defaultProviderSettings.mistral,
-		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
 		_didFillInProviderSettings: undefined,
 	},
 }

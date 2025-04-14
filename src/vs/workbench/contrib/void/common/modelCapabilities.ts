@@ -59,16 +59,8 @@ export const defaultModelsOfProvider = {
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
 		'mistral-large-latest',
-		'pixtral-large-latest',
-		'mistral-saba-latest',
 		'ministral-3b-latest',
 		'ministral-8b-latest',
-		'mistral-ocr-latest',
-		'mistral-embed',
-		'mistral-small-latest',
-		'pixtral-12b-2409',
-		'open-mistral-nemo',
-		'open-codestral-mamba'
 	],
 	openAICompatible: [], // fallback
 } as const satisfies Record<ProviderName, string[]>
@@ -88,7 +80,7 @@ type ModelOptions = {
 		cache_write?: number;
 	}
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated';
-	supportsTools: false | 'anthropic-style' | 'openai-style' | 'mistral-style';
+	supportsTools: false | 'anthropic-style' | 'openai-style';
 	supportsFIM: boolean;
 
 	reasoningCapabilities: false | {
@@ -132,115 +124,6 @@ const modelOptionsDefaults: ModelOptions = {
 	supportsTools: false,
 	supportsFIM: false,
 	reasoningCapabilities: false,
-}
-
-const mistralModelOptions = {
-	'codestral-latest': {
-		contextWindow: 128_000,
-		maxOutputTokens: 16_384,
-		cost: { input: 0.000015, output: 0.000090 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'mistral-style',
-		reasoningCapabilities: false,
-	},
-	'mistral-large-latest': {
-		contextWindow: 131_000,
-		maxOutputTokens: 8_192,
-		cost: { input: 0.000015, output: 0.000060 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'mistral-style',
-		reasoningCapabilities: false,
-	},
-	'mistral-small-latest': {
-		contextWindow: 131_000,
-		maxOutputTokens: 8_192,
-		cost: { input: 0.000002, output: 0.000008 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'mistral-style',
-		reasoningCapabilities: false,
-	},
-	'pixtral-large-latest': {
-		contextWindow: 128_000,
-		maxOutputTokens: 8_192,
-		cost: { input: 0.000025, output: 0.000075 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'mistral-style',
-		reasoningCapabilities: false,
-	},
-	'mistral-saba-latest': {
-		contextWindow: 32_000,
-		maxOutputTokens: 8_192,
-		cost: { input: 0.000005, output: 0.000025 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: false,
-		reasoningCapabilities: false,
-	},
-	'ministral-3b-latest': {
-		contextWindow: 131_000,
-		maxOutputTokens: 4_096,
-		cost: { input: 0.000001, output: 0.000003 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'mistral-style',
-		reasoningCapabilities: false,
-	},
-	'ministral-8b-latest': {
-		contextWindow: 32_000,
-		maxOutputTokens: 4_096,
-		cost: { input: 0.000001, output: 0.000005 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'mistral-style',
-		reasoningCapabilities: false,
-	},
-	'mistral-ocr-latest': {
-		contextWindow: 64_000,
-		maxOutputTokens: 4_096,
-		cost: { input: 0.000010, output: 0.000020 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: false,
-		reasoningCapabilities: false,
-	},
-	'pixtral-12b-2409': {
-		contextWindow: 128_000,
-		maxOutputTokens: 8_192,
-		cost: { input: 0.000020, output: 0.000060 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: 'mistral-style',
-		reasoningCapabilities: false,
-	},
-	'open-mistral-nemo': {
-		contextWindow: 32_768,
-		maxOutputTokens: 4_096,
-		cost: { input: 0.0, output: 0.0 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: false,
-		reasoningCapabilities: false,
-	},
-	'open-codestral-mamba': {
-		contextWindow: 16_384,
-		maxOutputTokens: 4_096,
-		cost: { input: 0.0, output: 0.0 },
-		supportsFIM: true,
-		supportsSystemMessage: 'system-role',
-		supportsTools: false,
-		reasoningCapabilities: false,
-	}
-
-} as const satisfies { [s: string]: ModelOptions }
-
-const mistralSettings: ProviderSettings = {
-	...mistralModelOptions,
-	modelOptions: {},
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
 }
 
 const openSourceModelOptions_assumingOAICompat = {
@@ -694,6 +577,64 @@ const deepseekSettings: ProviderSettings = {
 	},
 	modelOptionsFallback: (modelName) => { return null }
 }
+
+
+
+// ---------------- MISTRAL ----------------
+
+const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#pricing https://docs.mistral.ai/getting-started/models/models_overview/#premier-models
+	'mistral-large-latest': {
+		contextWindow: 131_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 2.00, output: 6.00 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'codestral-latest': {
+		contextWindow: 256_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.30, output: 0.90 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'mistral-saba-latest': {
+		contextWindow: 32_000,
+		maxOutputTokens: 8_192,
+		cost: { input: 0.20, output: 0.60 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		supportsTools: false,
+		reasoningCapabilities: false,
+	},
+	'ministral-8b-latest': {
+		contextWindow: 131_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.10, output: 0.10 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'ministral-3b-latest': {
+		contextWindow: 131_000,
+		maxOutputTokens: 4_096,
+		cost: { input: 0.04, output: 0.04 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		supportsTools: 'openai-style',
+		reasoningCapabilities: false,
+	},
+} as const satisfies { [s: string]: ModelOptions }
+
+const mistralSettings: ProviderSettings = {
+	modelOptions: mistralModelOptions,
+	modelOptionsFallback: (modelName) => { return null },
+}
+
 
 // ---------------- GROQ ----------------
 const groqModelOptions = { // https://console.groq.com/docs/models, https://groq.com/pricing/

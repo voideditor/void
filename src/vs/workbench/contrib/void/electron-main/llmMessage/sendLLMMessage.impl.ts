@@ -6,11 +6,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
-
-// Mistral FIM
 import { MistralCore } from "@mistralai/mistralai/core.js";
 import { fimComplete } from "@mistralai/mistralai/funcs/fimComplete.js";
-//
+
+
 import { extractReasoningOnFinalMessage, extractReasoningOnTextWrapper } from '../../common/helpers/extractCodeFromResult.js';
 import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { defaultProviderSettings, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
@@ -18,12 +17,6 @@ import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities } from '../../common/modelCapabilities.js';
 import { InternalToolInfo, ToolName, isAToolName } from '../../common/toolsServiceTypes.js';
 
-// Déclarer les types manquants pour résoudre les erreurs de linter
-declare const PrepareMessagesToolsOpenAI: any;
-declare const prepareMessages_tools_openai: any;
-declare const prepareMessages_tools_anthropic: any;
-declare const InternalLLMChatMessage: any;
-declare const PrepareMessagesTools: any;
 
 type InternalCommonMessageParams = {
 	aiInstructions: string;
@@ -434,43 +427,11 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	_setAborter(() => stream.controller.abort())
 }
 
-//////// MISTRAL ////////
-const _sendMistralChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions, tools: tools_ }: SendChatParams_Internal) => {
-	const {
-		supportsSystemMessage,
-		supportsTools,
-		contextWindow,
-		maxOutputTokens,
-	} = getModelCapabilities(providerName, modelName_);
 
-	// Preprocess messages for Mistral format
-	prepareMessages({
-		messages: messages_,
-		aiInstructions,
-		supportsSystemMessage,
-		supportsTools,
-		supportsAnthropicReasoningSignature: false,
-		contextWindow,
-		maxOutputTokens
-	});
 
-	// For Mistral, we use the OpenAI compatible implementation
-	_sendOpenAICompatibleChat({
-		messages: messages_,
-		onText,
-		onFinalMessage,
-		onError,
-		settingsOfProvider,
-		modelName: modelName_,
-		_setAborter,
-		providerName,
-		aiInstructions,
-		modelSelectionOptions,
-		tools: tools_
-	});
-}
-
-const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
+// ------------ MISTRAL ------------
+// https://docs.mistral.ai/api/#tag/fim
+const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -479,34 +440,29 @@ const _sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, setting
 			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
 		return
 	}
-
-	prepareFIMMessage({ messages: messages_, aiInstructions })
+	const messages = prepareFIMMessage({ messages: messages_, aiInstructions })
 
 	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
-
-	fimComplete(
-		mistral, {
-		model: modelName,
-		prompt: messages_.prefix,
-		suffix: messages_.suffix,
-		stream: false,
-		topP: 1,
-		stop: messages_.stopTokens
-	},
-	)
+	fimComplete(mistral,
+		{
+			model: modelName,
+			prompt: messages.prefix,
+			suffix: messages.suffix,
+			stream: false,
+			maxTokens: messages.maxTokens,
+			stop: messages.stopTokens,
+		})
 		.then(async response => {
-			let content = response?.ok ? response.value.choices?.[0]?.message?.content : '';
-			const fullText = typeof content === 'string' ? content :
-				Array.isArray(content) ? content.map(chunk => chunk.type === 'text' ? chunk.text : '').join('') : '';
+			let content = response?.ok ? response.value.choices?.[0]?.message?.content ?? '' : '';
+			const fullText = typeof content === 'string' ? content
+				: content.map(chunk => (chunk.type === 'text' ? chunk.text : '')).join('')
+
 			onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
 		})
 		.catch(error => {
 			onError({ message: error + '', fullError: error });
 		})
 }
-
-
-
 
 // //  in future, can do tool_use streaming in anthropic, but it's pretty fast even without streaming...
 // const toolCallOfIndex: { [index: string]: { name: string, args: string } } = {}
@@ -622,8 +578,8 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 	mistral: {
-		sendChat: (params) => _sendMistralChat(params),
-		sendFIM: (params) => _sendMistralFIM(params),
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: (params) => sendMistralFIM(params),
 		list: null,
 	},
 	ollama: {
@@ -671,7 +627,7 @@ codestral https://ollama.com/library/codestral/blobs/51707752a87c
 [SUFFIX]{{ .Suffix }}[PREFIX] {{ .Prompt }}
 
 deepseek-coder-v2 https://ollama.com/library/deepseek-coder-v2/blobs/22091531faf0
-{{ .Prompt }}
+<｜fim▁begin｜>{{ .Prompt }}<｜fim▁hole｜>{{ .Suffix }}<｜fim▁end｜>
 
 starcoder2 https://ollama.com/library/starcoder2/blobs/3b190e68fefe
 <file_sep>

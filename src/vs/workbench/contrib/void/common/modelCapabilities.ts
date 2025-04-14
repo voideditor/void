@@ -172,6 +172,9 @@ const modelOptionsDefaults: VoidStaticModelInfo = {
 	reasoningCapabilities: false,
 }
 
+// TODO!!! double check all context sizes below
+// TODO!!! add openrouter common models
+// TODO!!! allow user to modify capabilities and tell them if autodetected model or falling back
 const openSourceModelOptions_assumingOAICompat = {
 	'deepseekR1': {
 		supportsFIM: false,

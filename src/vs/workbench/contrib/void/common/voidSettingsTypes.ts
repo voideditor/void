@@ -143,8 +143,9 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 							providerName === 'gemini' ? 'Get your [API Key here](https://aistudio.google.com/apikey).' :
 								providerName === 'groq' ? 'Get your [API Key here](https://console.groq.com/keys).' :
 									providerName === 'xAI' ? 'Get your [API Key here](https://console.x.ai).' :
-										providerName === 'openAICompatible' ? undefined :
-											'',
+										providerName === 'mistral' ? 'Get your [API Key here](https://console.mistral.ai/api-keys).' :
+											providerName === 'openAICompatible' ? `Use any OpenAI-compatible endpoint (LM Studio, LiteLM, etc).` :
+												'',
 			isPasswordField: true,
 		}
 	}

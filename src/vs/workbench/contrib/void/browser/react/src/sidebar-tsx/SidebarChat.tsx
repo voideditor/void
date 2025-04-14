@@ -26,7 +26,6 @@ import { LintErrorItem, ToolCallParams, ToolNameWithApproval } from '../../../..
 import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
-import { PlacesType } from 'react-tooltip';
 import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 import { error } from 'console';
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
@@ -662,7 +661,8 @@ type ToolHeaderParams = {
 	children?: React.ReactNode;
 	bottomChildren?: React.ReactNode;
 	onClick?: () => void;
-	isOpen?: boolean,
+	isOpen?: boolean;
+	className?: string;
 }
 
 const ToolHeaderWrapper = ({
@@ -679,7 +679,7 @@ const ToolHeaderWrapper = ({
 	isOpen,
 	isRejected,
 	className, // applies to the main content
-}: ToolHeaderParams & { className?: string }) => {
+}: ToolHeaderParams) => {
 
 	const [isOpen_, setIsOpen] = useState(false);
 	const isExpanded = isOpen !== undefined ? isOpen : isOpen_
@@ -1176,7 +1176,8 @@ const titleOfToolName = {
 	'create_file_or_folder': { done: `Created`, proposed: `Create`, running: loadingTitleWrapper(`Creating`) },
 	'delete_file_or_folder': { done: `Deleted`, proposed: `Delete`, running: loadingTitleWrapper(`Deleting`) },
 	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
-	'run_terminal_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') }
+	'run_terminal_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
+	'read_lint_errors': { done: `Read lint errors`, proposed: 'Read lint errors', running: loadingTitleWrapper('Reading lint errors') },
 } as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
 
 const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'type'>): React.ReactNode => {
@@ -1343,6 +1344,15 @@ const EditToolChildren = ({ uri, changeDescription }: { uri: URI | undefined, ch
 	</div>
 }
 
+
+const LintErrorChildren = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => {
+	return <div className="text-xs text-void-fg-4 opacity-80 border-l-2 border-void-warning px-2 py-0.5 flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap">
+		{lintErrors.map((error, i) => (
+			<div key={i}>Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
+		))}
+	</div>
+}
+
 const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => {
 
 	if (lintErrors.length === 0) return null;
@@ -1351,12 +1361,8 @@ const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => 
 
 	return (
 		<div className="w-full px-2">
-			<ToolHeaderWrapper className='!border-t-0' title={'Lint errors'} desc1={''} isOpen={isOpen} onClick={() => { setIsOpen(o => !o) }} >
-				<div className="text-xs text-void-fg-4 opacity-80 border-l-2 border-void-warning px-2 py-0.5 flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap">
-					{lintErrors.map((error, i) => (
-						<div key={i}>Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
-					))}
-				</div>
+			<ToolHeaderWrapper className='!border-t-0 !pt-0' title={'Lint errors'} desc1={''} isOpen={isOpen} onClick={() => { setIsOpen(o => !o) }} >
+				<LintErrorChildren lintErrors={lintErrors} />
 			</ToolHeaderWrapper>
 
 		</div>
@@ -1426,6 +1432,13 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			const isError = toolMessage.type === 'tool_error'
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+			if (toolMessage.params.startLine !== null || toolMessage.params.endLine !== null) {
+				const start = toolMessage.params.startLine === null ? `start` : `${toolMessage.params.startLine}`
+				const end = toolMessage.params.endLine === null ? `end` : `${toolMessage.params.endLine}`
+				const addStr = `(${start}-${end})`
+				componentParams.title += ` ${addStr}`
+			}
 
 			if (toolMessage.type === 'success') {
 				const { params, result } = toolMessage
@@ -1624,6 +1637,44 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			return <ToolHeaderWrapper {...componentParams} />
 		}
+	},
+
+	'read_lint_errors': {
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor()
+			const commandService = accessor.get('ICommandService')
+
+			const title = getTitle(toolMessage)
+
+			const { uri } = toolMessage.params ?? {}
+			const desc1 = uri ? getBasename(uri.fsPath) : '';
+			const icon = null
+
+			if (toolMessage.type === 'tool_request') return null
+			if (toolMessage.type === 'rejected') return null // will never happen, not rejectable
+			if (toolMessage.type === 'running_now') return null // do not show running
+
+			const isError = toolMessage.type === 'tool_error'
+			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
+
+			if (toolMessage.type === 'success') {
+				const { params, result } = toolMessage
+				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+
+
+			}
+			else if (toolMessage.type === 'tool_error') {
+				const { params, result } = toolMessage
+				if (params) componentParams.desc2 = <JumpToFileButton uri={params.uri} />
+				componentParams.children = <ToolChildrenWrapper>
+					<CodeChildren>
+						{result}
+					</CodeChildren>
+				</ToolChildrenWrapper>
+			}
+
+			return <ToolHeaderWrapper {...componentParams} />
+		},
 	},
 
 	// ---

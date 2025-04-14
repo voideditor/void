@@ -108,6 +108,11 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 			title: 'Grok (xAI)',
 		}
 	}
+	else if (providerName === 'mistral') {
+		return {
+			title: 'Mistral API',
+		}
+	}
 
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
@@ -134,7 +139,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 								providerName === 'groq' ? 'gsk_key...' :
 									providerName === 'openAICompatible' ? 'sk-key...' :
 										providerName === 'xAI' ? 'xai-key...' :
-											'',
+											providerName === 'mistral' ? 'api-key...' :
+												'',
 
 			subTextMd: providerName === 'anthropic' ? 'Get your [API Key here](https://console.anthropic.com/settings/keys).' :
 				providerName === 'openAI' ? 'Get your [API Key here](https://platform.openai.com/api-keys).' :
@@ -235,31 +241,37 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.xAI),
 		_didFillInProviderSettings: undefined,
 	},
-	groq: { // aggregator
+	mistral: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.mistral,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
+		_didFillInProviderSettings: undefined,
+	},
+	groq: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.groq,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.groq),
 		_didFillInProviderSettings: undefined,
 	},
-	openRouter: { // aggregator
+	openRouter: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.openRouter,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openRouter),
 		_didFillInProviderSettings: undefined,
 	},
-	openAICompatible: { // aggregator
+	openAICompatible: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAICompatible,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible),
 		_didFillInProviderSettings: undefined,
 	},
-	ollama: { // aggregator
+	ollama: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.ollama,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.ollama),
 		_didFillInProviderSettings: undefined,
 	},
-	vLLM: { // aggregator
+	vLLM: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.vLLM,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.vLLM),

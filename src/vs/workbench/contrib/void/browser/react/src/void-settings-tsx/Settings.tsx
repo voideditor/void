@@ -312,12 +312,11 @@ export const ModelDump = () => {
 				</div>
 				{/* right part is anything that fits */}
 				<div className='flex items-center gap-4'
-					data-tooltip-id='void-tooltip'
-					data-tooltip-place='top'
-					data-tooltip-content={disabled? `${displayInfoOfProviderName(providerName).title} is disabled`
-					: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
-
-					}
+				// data-tooltip-id='void-tooltip'
+				// data-tooltip-place='top'
+				// data-tooltip-content={disabled ? `${displayInfoOfProviderName(providerName).title} is disabled`
+				// 	: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
+				// }
 				>
 					<span className='opacity-50 truncate'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
 
@@ -616,7 +615,19 @@ export const FeaturesTab = () => {
 				{/* FIM */}
 				<div className='w-full'>
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
-					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Experimental. Only works with models that support FIM.</div>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>
+						<span>
+							Experimental. Only works with FIM models.
+						</span>
+						<span
+							className='hover:brightness-110'
+							data-tooltip-id='void-tooltip'
+							data-tooltip-content='We recommend using qwen2.5-coder:1.5b with Ollama.'
+							data-tooltip-class-name='void-max-w-[20px]'
+						>
+							*
+						</span>
+					</div>
 
 					<div className='my-2'>
 						{/* Enable Switch */}

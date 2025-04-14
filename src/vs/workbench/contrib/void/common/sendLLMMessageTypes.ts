@@ -3,8 +3,8 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { ToolName, InternalToolInfo } from './toolsServiceTypes.js'
-import { ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
+import { ToolName, ToolParamName } from './prompt/prompts.js'
+import { ChatMode, ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
 export const errorDetails = (fullError: Error | null): string | null => {
@@ -37,25 +37,24 @@ export type LLMChatMessage = {
 	role: 'assistant',
 	content: string; // text content
 	anthropicReasoning: AnthropicReasoning[] | null;
-} | {
-	role: 'tool';
-	content: string; // result
-	name: string;
-	params: string;
-	id: string;
 }
 
 
-export type ToolCallType = {
+export type RawToolParamsObj = {
+	[paramName in ToolParamName]?: string;
+}
+export type RawToolCallObj = {
 	name: ToolName;
-	paramsStr: string;
-	id: string;
-}
+	rawParams: RawToolParamsObj;
+	doneParams: ToolParamName[];
+	isDone: boolean;
+};
+
 
 export type AnthropicReasoning = ({ type: 'thinking'; thinking: any; signature: string; } | { type: 'redacted_thinking', data: any })
 
-export type OnText = (p: { fullText: string; fullReasoning: string; fullToolName: string; fullToolParams: string; }) => void
-export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCalls?: ToolCallType[]; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
+export type OnText = (p: { fullText: string; fullReasoning: string; toolCall?: RawToolCallObj }) => void
+export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCall?: RawToolCallObj; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
 export type OnError = (p: { message: string; fullError: Error | null }) => void
 export type OnAbort = () => void
 export type AbortRef = { current: (() => void) | null }
@@ -70,11 +69,11 @@ export type LLMFIMMessage = {
 type SendLLMType = {
 	messagesType: 'chatMessages';
 	messages: LLMChatMessage[];
-	tools?: InternalToolInfo[];
+	chatMode: ChatMode | null;
 } | {
 	messagesType: 'FIMMessage';
 	messages: LLMFIMMessage;
-	tools?: undefined;
+	chatMode?: undefined;
 }
 
 // service types

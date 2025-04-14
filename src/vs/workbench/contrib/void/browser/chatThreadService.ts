@@ -11,13 +11,13 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, voidTools } from '../common/prompt/prompts.js';
-import { getErrorMessage, LLMChatMessage, ToolCallType } from '../common/sendLLMMessageTypes.js';
+import { chat_userMessageContent, chat_systemMessage, ToolName, toolCallXMLStr, } from '../common/prompt/prompts.js';
+import { getErrorMessage, LLMChatMessage, RawToolCallObj, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { ChatMode, FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { ToolName, ToolCallParams, ToolResultType, toolNamesThatRequireApproval, InternalToolInfo } from '../common/toolsServiceTypes.js';
+import { ToolCallParams, ToolResultType, toolNamesThatRequireApproval } from '../common/toolsServiceTypes.js';
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
@@ -37,6 +37,7 @@ import { IModelService } from '../../../../editor/common/services/model.js';
 import { IDirectoryStrService } from './directoryStrService.js';
 import { truncate } from '../../../../base/common/strings.js';
 import { THREAD_STORAGE_KEY } from '../common/storageKeys.js';
+import { deepClone } from '../../../../base/common/objects.js';
 
 
 /*
@@ -59,28 +60,6 @@ LLM Edit
 INVARIANT:
 A checkpoint appears before every LLM message, and before every user message (before user really means directly after LLM is done).
 */
-
-
-const toLLMChatMessages = (chatMessages: ChatMessage[]): LLMChatMessage[] => {
-	const llmChatMessages: LLMChatMessage[] = []
-	for (const c of chatMessages) {
-		if (c.role === 'user') {
-			llmChatMessages.push({ role: c.role, content: c.content })
-		}
-		else if (c.role === 'assistant')
-			llmChatMessages.push({ role: c.role, content: c.content, anthropicReasoning: c.anthropicReasoning })
-		else if (c.role === 'tool')
-			llmChatMessages.push({ role: c.role, id: c.id, name: c.name, params: c.paramsStr, content: c.content })
-		else if (c.role === 'decorative_canceled_tool') { // pass
-		}
-		else if (c.role === 'checkpoint') { // pass
-		}
-		else {
-			throw new Error(`Role ${(c as any).role} not recognized.`)
-		}
-	}
-	return llmChatMessages
-}
 
 
 type UserMessageType = ChatMessage & { role: 'user' }
@@ -139,10 +118,9 @@ export type ThreadStreamState = {
 
 		// streaming related - when streaming message
 		streamingToken?: string;
-		messageSoFar?: string;
+		displayContentSoFar?: string;
 		reasoningSoFar?: string;
-		toolNameSoFar?: string;
-		toolParamsSoFar?: string;
+		toolCallSoFar?: RawToolCallObj;
 	}
 }
 
@@ -380,8 +358,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			else if (behavior === 'set') {
 				this.streamState[threadId] = state
 			}
+			else throw new Error(`setStreamState`)
 		}
-
 
 		this._onDidChangeStreamState.fire({ threadId })
 	}
@@ -442,7 +420,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 		return false
 	}
-	private _updateLatestToolTo = (threadId: string, tool: ChatMessage & { role: 'tool' }) => {
+	private _updateLatestTool = (threadId: string, tool: ChatMessage & { role: 'tool' }) => {
 		const swapped = this._swapOutLatestStreamingToolWithResult(threadId, tool)
 		if (swapped) return
 		this._addMessageToThread(threadId, tool)
@@ -452,33 +430,15 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
-
 		const lastMsg = thread.messages[thread.messages.length - 1]
 		if (!(
 			lastMsg.role === 'tool' && (lastMsg.type === 'tool_request')
 		)) return // should never happen
 
-		const lastUserMsgIdx = findLastIdx(thread.messages, m => m.role === 'user')
-		const lastUserMessage = thread.messages[lastUserMsgIdx] as ChatMessage & { role: 'user' }
-		if (lastUserMsgIdx === -1 || !lastUserMessage) return // should never happen
-
-		const instructions = lastUserMessage.displayContent || ''
-
 		const callThisToolFirst: ToolMessage<ToolName> = lastMsg
 
-		this._updateLatestToolTo(threadId, {
-			role: 'tool',
-			type: 'running_now',
-			name: lastMsg.name,
-			paramsStr: lastMsg.paramsStr,
-			id: lastMsg.id,
-			params: lastMsg.params,
-			content: '(value not received yet...)', // this typically shouldn't ever get read
-			result: null
-		})
-
 		this._wrapRunAgentToNotify(
-			this._runChatAgent({ callThisToolFirst, threadId, userMessageContent: instructions, ...this._currentModelSelectionProps() })
+			this._runChatAgent({ callThisToolFirst, threadId, ...this._currentModelSelectionProps() })
 			, threadId
 		)
 	}
@@ -494,28 +454,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 		else return
 
-		const { name, paramsStr, id } = lastMsg
+		const { name } = lastMsg
 
 		const errorMessage = this.errMsgs.rejected
-		this._updateLatestToolTo(threadId, { role: 'tool', type: 'rejected', params: params, name: name, paramsStr: paramsStr, id, content: errorMessage, result: null })
+		this._updateLatestTool(threadId, { role: 'tool', type: 'rejected', params: params, name: name, content: errorMessage, result: null })
 		this._setStreamState(threadId, {}, 'set')
 	}
-
-	// private _rejectLatestStreamingTool(threadId: string) {
-	// 	const thread = this.state.allThreads[threadId]
-	// 	if (!thread) return // should never happen
-
-	// 	const lastMessage = thread.messages[thread.messages.length - 1]
-	// 	if (lastMessage.role !== 'tool') return
-	// 	const { name, paramsStr, id, result } = lastMessage
-	// 	if (result.type !== 'running_now') return
-	// 	const { params } = result
-
-	// 	const errorMessage = this.errMsgs.rejected
-	// 	this._swapOutLatestStreamingToolWithResult(threadId, { role: 'tool', name: name, paramsStr: paramsStr, id, content: errorMessage, result: { type: 'rejected', params: params }, })
-	// 	this._setStreamState(threadId, {}, 'set')
-
-	// }
 
 	stopRunning(threadId: string) {
 		const thread = this.state.allThreads[threadId]
@@ -531,34 +475,23 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const isRunning = this.streamState[threadId]?.isRunning
 		if (isRunning === 'LLM') {
 			// abort the stream first so it doesn't change any state
-			const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
+			const displayContentSoFar = this.streamState[threadId]?.displayContentSoFar ?? ''
 			const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
-			const toolInProgress = this.streamState[threadId]?.toolNameSoFar
-			console.log('toolInProgress', toolInProgress)
+			const toolCallSoFar = this.streamState[threadId]?.toolCallSoFar
 
 			const llmCancelToken = this.streamState[threadId]?.streamingToken
 			if (llmCancelToken !== undefined) { this._llmMessageService.abort(llmCancelToken) }
 
-			this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
+			this._addMessageToThread(threadId, { role: 'assistant', displayContent: displayContentSoFar, reasoning: reasoningSoFar, toolCall: toolCallSoFar, anthropicReasoning: null })
 
-			if (toolInProgress) {
-				this._addMessageToThread(threadId, { role: 'decorative_canceled_tool', name: toolInProgress })
+			if (toolCallSoFar) {
+				this._addMessageToThread(threadId, { role: 'interrupted_streaming_tool', name: toolCallSoFar.name })
 			}
+
+			this._addUserCheckpoint({ threadId })
 		}
 
 		this._setStreamState(threadId, {}, 'set')
-	}
-
-
-
-	private _tools = (chatMode: ChatMode) => {
-		const toolNames: ToolName[] | undefined = chatMode === 'normal' ? undefined
-			: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !toolNamesThatRequireApproval.has(toolName))
-				: chatMode === 'agent' ? Object.keys(voidTools) as ToolName[]
-					: undefined
-
-		const tools: InternalToolInfo[] | undefined = toolNames?.map(toolName => voidTools[toolName])
-		return tools
 	}
 
 
@@ -571,140 +504,163 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	private readonly _currentlyRunningToolInterruptor: { [threadId: string]: (() => void) | undefined } = {}
 
+
+
+	// system message
+	private _generateSystemMessage = async (chatMode: ChatMode) => {
+		const workspaceFolders = this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
+
+		const openedURIs = this._modelService.getModels().filter(m => m.isAttachedToEditor()).map(m => m.uri.fsPath) || [];
+		const activeURI = this._editorService.activeEditor?.resource?.fsPath;
+
+		const directoryStr = await this._directoryStrService.getAllDirectoriesStr({
+			cutOffMessage: chatMode === 'agent' || chatMode === 'gather' ? `...Directories string cut off, use tools to read more...`
+				: `...Directories string cut off, ask user for more if necessary...`
+		})
+
+		const runningTerminalIds = this._terminalToolService.listTerminalIds()
+		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, runningTerminalIds, chatMode })
+		return systemMessage
+	}
+
+	private _generateLLMMessages = async (threadId: string) => {
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return []
+
+		const chatMessages = deepClone(thread.messages)
+		const llmChatMessages: LLMChatMessage[] = []
+
+		// merge tools into user message
+		for (const c of chatMessages) {
+			if (c.role === 'assistant') {
+				// if called a tool, re-add its XML to the message
+				// alternatively, could just hold onto the original output, but this way requires less piping raw strings everywhere
+				let content = c.displayContent
+				if (c.toolCall) {
+					content = `${content}\n\n${toolCallXMLStr(c.toolCall)}`
+				}
+				llmChatMessages.push({ role: c.role, content: content, anthropicReasoning: c.anthropicReasoning })
+			}
+			else if (c.role === 'user' || c.role === 'tool') {
+				if (c.role === 'tool')
+					c.content = `<${c.name}_result>\n${c.content}\n</${c.name}_result>`
+
+				if (llmChatMessages.length === 0 || llmChatMessages[llmChatMessages.length - 1].role !== 'user')
+					llmChatMessages.push({ role: 'user', content: c.content })
+				else
+					llmChatMessages[llmChatMessages.length - 1].content += '\n\n' + c.content
+
+			}
+			else if (c.role === 'interrupted_streaming_tool') { // pass
+			}
+			else if (c.role === 'checkpoint') { // pass
+			}
+			else {
+				throw new Error(`Role ${(c as any).role} not recognized.`)
+			}
+		}
+		return llmChatMessages
+	}
+
+
+	// returns true when the tool call is waiting for user approval
+	private _runToolCall = async (
+		threadId: string,
+		toolName: ToolName,
+		opts: { preapproved: true, validatedParams: ToolCallParams[ToolName] } | { preapproved: false, unvalidatedToolParams: RawToolParamsObj },
+	): Promise<{ awaitingUserApproval?: boolean, interrupted?: boolean }> => {
+
+		// compute these below
+		let toolParams: ToolCallParams[ToolName]
+		let toolResult: Awaited<ToolResultType[typeof toolName]>
+		let toolResultStr: string
+
+		if (!opts.preapproved) { // skip this if pre-approved
+			// 1. validate tool params
+			try {
+				const params = await this._toolsService.validateParams[toolName](opts.unvalidatedToolParams)
+				toolParams = params
+			} catch (error) {
+				const errorMessage = getErrorMessage(error)
+				this._addMessageToThread(threadId, { role: 'tool', type: 'invalid_params', params: null, result: null, name: toolName, content: errorMessage, })
+				return {}
+			}
+			// once validated, add checkpoint for edit
+			if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
+
+			// 2. if tool requires approval, break from the loop, awaiting approval
+			const toolRequiresApproval = toolNamesThatRequireApproval.has(toolName)
+			if (toolRequiresApproval) {
+				const autoApprove = this._settingsService.state.globalSettings.autoApprove
+				// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)
+				this._addMessageToThread(threadId, { role: 'tool', type: 'tool_request', content: '(never)', result: null, name: toolName, params: toolParams })
+				if (!autoApprove) {
+					return { awaitingUserApproval: true }
+				}
+			}
+		}
+		else {
+			toolParams = opts.validatedParams
+		}
+
+		// 3. call the tool
+		this._setStreamState(threadId, { isRunning: 'tool' }, 'merge')
+		this._updateLatestTool(threadId, { role: 'tool', type: 'running_now', name: toolName, params: toolParams, content: '(value not received yet...)', result: null })
+
+		let interrupted = false
+		try {
+			const { result, interruptTool } = await this._toolsService.callTool[toolName](toolParams as any)
+			this._currentlyRunningToolInterruptor[threadId] = () => {
+				interrupted = true;
+				interruptTool?.();
+				delete this._currentlyRunningToolInterruptor[threadId];
+			}
+			toolResult = await result // ts is bad... await is needed
+
+			if (interrupted) { return { interrupted: true } } // the tool result is added where we interrupt, not here
+		}
+		catch (error) {
+			if (interrupted) { return { interrupted: true } } // the tool result is added where we interrupt, not here
+
+
+			const errorMessage = getErrorMessage(error)
+			this._updateLatestTool(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, content: errorMessage, })
+			return {}
+		}
+
+		// 4. stringify the result to give to the LLM
+		try {
+			toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
+		} catch (error) {
+			const errorMessage = this.errMsgs.errWhenStringifying(error)
+			this._updateLatestTool(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, content: errorMessage, })
+			return {}
+		}
+
+		// 5. add to history and keep going
+		this._updateLatestTool(threadId, { role: 'tool', type: 'success', params: toolParams, result: toolResult, name: toolName, content: toolResultStr, })
+
+		return {}
+	};
+
+
+
+
 	private async _runChatAgent({
 		threadId,
 		modelSelection,
 		modelSelectionOptions,
-		userMessageContent,
 		callThisToolFirst,
 	}: {
 		threadId: string,
 		modelSelection: ModelSelection | null,
 		modelSelectionOptions: ModelSelectionOptions | undefined,
-		userMessageContent: string, // content of LATEST user message
 
 		callThisToolFirst?: ToolMessage<ToolName> & { type: 'tool_request' }
 	}) {
-		const userMessageFullContent = userMessageContent
-		const getLatestMessages = async () => {
-			// replace last userMessage with userMessageFullContent (which contains all the files too)
-			const thread = this.state.allThreads[threadId]
-			const latestMessages = thread?.messages ?? []
-			const messages_ = toLLMChatMessages(latestMessages)
-			const lastUserMsgIdx = findLastIdx(messages_, m => m.role === 'user')
-			if (lastUserMsgIdx === -1) return [] // should never happen (or how did they send the message?!)
-
-			// system message
-			const workspaceFolders = this._workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
-
-			const openedURIs = this._modelService.getModels().filter(m => m.isAttachedToEditor()).map(m => m.uri.fsPath) || [];
-			const activeURI = this._editorService.activeEditor?.resource?.fsPath;
-
-			const { wasCutOff, str: directoryStr_ } = await this._directoryStrService.getAllDirectoriesStr()
-
-			const directoryStr = wasCutOff ? (
-				chatMode === 'agent' || chatMode === 'gather' ? `${directoryStr_}\nString cut off, use tools to read more.`
-					: `${directoryStr_}\nString cut off, ask user for more if necessary.`
-			) : directoryStr_
-
-			const runningTerminalIds = this._terminalToolService.listTerminalIds()
-			const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, runningTerminalIds, chatMode })
-
-			// all messages so far in the chat history (including tools)
-			const messages: LLMChatMessage[] = [
-				{ role: 'system', content: systemMessage, },
-				...messages_.slice(0, lastUserMsgIdx),
-				{ role: 'user', content: userMessageFullContent },
-				...messages_.slice(lastUserMsgIdx + 1, Infinity),
-			]
-			// console.log('MESSAGES!!!', messages)
-			return messages
-		}
-
-
-
-		// returns true when the tool call is waiting for user approval
-		const handleToolCall = async (
-			tool: ToolCallType,
-			opts?: { preapproved: true, toolParams: ToolCallParams[ToolName] },
-		): Promise<{ awaitingUserApproval?: boolean, interrupted?: boolean }> => {
-			const toolName: ToolName = tool.name
-			const toolParamsStr = tool.paramsStr
-			const toolId = tool.id
-
-			// compute these below
-			let toolParams: ToolCallParams[ToolName]
-			let toolResult: ToolResultType[typeof toolName]
-			let toolResultStr: string
-
-			if (!opts?.preapproved) { // skip this if pre-approved
-				// 1. validate tool params
-				try {
-					const params = await this._toolsService.validateParams[toolName](toolParamsStr)
-					toolParams = params
-				} catch (error) {
-					const errorMessage = getErrorMessage(error)
-					this._addMessageToThread(threadId, { role: 'tool', type: 'invalid_params', params: null, result: null, name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, })
-					return {}
-				}
-				// once validated, add checkpoint for edit
-				if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
-
-				// 2. if tool requires approval, break from the loop, awaiting approval
-				const requiresApproval = toolNamesThatRequireApproval.has(toolName)
-				if (requiresApproval) {
-					const autoApprove = this._settingsService.state.globalSettings.autoApprove
-					// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)
-					this._addMessageToThread(threadId, { role: 'tool', type: 'tool_request', content: '(never)', result: null, name: toolName, paramsStr: toolParamsStr, params: toolParams, id: toolId })
-					if (!autoApprove) {
-						return { awaitingUserApproval: true }
-					}
-				}
-			}
-			else {
-				toolParams = opts.toolParams
-			}
-
-			// 3. call the tool
-			this._setStreamState(threadId, { isRunning: 'tool' }, 'merge')
-			let interrupted = false
-			try {
-				const { result, interruptTool } = await this._toolsService.callTool[toolName](toolParams as any)
-				this._currentlyRunningToolInterruptor[threadId] = () => {
-					interrupted = true;
-					interruptTool?.();
-					delete this._currentlyRunningToolInterruptor[threadId];
-				}
-				toolResult = await result // ts is bad... await is needed
-			}
-			catch (error) {
-				if (interrupted) {
-					// the tool result is added when we stop running
-					return { interrupted: true }
-				}
-				const errorMessage = getErrorMessage(error)
-				this._updateLatestToolTo(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, })
-				return {}
-			}
-
-			// 4. stringify the result to give to the LLM
-			try {
-				toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
-			} catch (error) {
-				const errorMessage = this.errMsgs.errWhenStringifying(error)
-				this._updateLatestToolTo(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, paramsStr: toolParamsStr, id: toolId, content: errorMessage, })
-				return {}
-			}
-
-			// 5. add to history and keep going
-			this._updateLatestToolTo(threadId, { role: 'tool', type: 'success', params: toolParams, result: toolResult, name: toolName, paramsStr: toolParamsStr, id: toolId, content: toolResultStr, })
-
-			return {}
-		};
 
 		// above just defines helpers, below starts the actual function
 		const { chatMode } = this._settingsService.state.globalSettings // should not change as we loop even if user changes it, so it goes here
-		const tools = this._tools(chatMode)
 
 		// clear any previous error
 		this._setStreamState(threadId, { error: undefined }, 'set')
@@ -716,7 +672,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// before enter loop, call tool
 		if (callThisToolFirst) {
-			const { interrupted } = await handleToolCall(callThisToolFirst, { preapproved: true, toolParams: callThisToolFirst.params })
+			const { interrupted } = await this._runToolCall(threadId, callThisToolFirst.name, { preapproved: true, validatedParams: callThisToolFirst.params })
 			if (interrupted) return
 		}
 
@@ -727,34 +683,39 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			isRunningWhenEnd = undefined
 			nMessagesSent += 1
 
-			let resMessageIsDonePromise: (toolCalls?: ToolCallType[] | undefined) => void // resolves when user approves this tool use (or if tool doesn't require approval)
-			const messageIsDonePromise = new Promise<ToolCallType[] | undefined>((res, rej) => { resMessageIsDonePromise = res })
+			let resMessageIsDonePromise: (toolCall?: RawToolCallObj | undefined) => void // resolves when user approves this tool use (or if tool doesn't require approval)
+			const messageIsDonePromise = new Promise<RawToolCallObj | undefined>((res, rej) => { resMessageIsDonePromise = res })
 
 			// send llm message
 			this._setStreamState(threadId, { isRunning: 'LLM' }, 'merge')
-			const messages = await getLatestMessages()
+			const systemMessage = await this._generateSystemMessage(chatMode)
+			const llmMessages = await this._generateLLMMessages(threadId)
+			const messages: LLMChatMessage[] = [
+				{ role: 'system', content: systemMessage },
+				...llmMessages
+			]
+
 			const llmCancelToken = this._llmMessageService.sendLLMMessage({
 				messagesType: 'chatMessages',
+				chatMode,
 				messages,
-				tools: tools,
 				modelSelection,
 				modelSelectionOptions,
 				logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },
-				onText: ({ fullText, fullReasoning, fullToolName, fullToolParams }) => {
-					this._setStreamState(threadId, { messageSoFar: fullText, reasoningSoFar: fullReasoning, toolNameSoFar: fullToolName, toolParamsSoFar: fullToolParams }, 'merge')
+				onText: ({ fullText, fullReasoning, toolCall }) => {
+					this._setStreamState(threadId, { displayContentSoFar: fullText, reasoningSoFar: fullReasoning, toolCallSoFar: toolCall }, 'merge')
 				},
-				onFinalMessage: async ({ fullText, toolCalls, fullReasoning, anthropicReasoning }) => {
-					this._addMessageToThread(threadId, { role: 'assistant', content: fullText, reasoning: fullReasoning, anthropicReasoning })
-					// added to history and no longer streaming this, so clear messages so far and streamingToken (but do not stop isRunning)
-					this._setStreamState(threadId, { messageSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolNameSoFar: undefined, toolParamsSoFar: undefined }, 'merge')
-					// resolve with tool calls
-					resMessageIsDonePromise(toolCalls)
+				onFinalMessage: async ({ fullText, fullReasoning, toolCall, anthropicReasoning, }) => {
+					this._addMessageToThread(threadId, { role: 'assistant', displayContent: fullText, reasoning: fullReasoning, toolCall, anthropicReasoning })
+					this._setStreamState(threadId, { displayContentSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolCallSoFar: undefined }, 'merge')
+					resMessageIsDonePromise(toolCall) // resolve with tool calls
 				},
 				onError: (error) => {
-					const messageSoFar = this.streamState[threadId]?.messageSoFar ?? ''
+					const messageSoFar = this.streamState[threadId]?.displayContentSoFar ?? ''
 					const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
+					const toolCallSoFar = this.streamState[threadId]?.toolCallSoFar
 					// add assistant's message to chat history, and clear selection
-					this._addMessageToThread(threadId, { role: 'assistant', content: messageSoFar, reasoning: reasoningSoFar, anthropicReasoning: null })
+					this._addMessageToThread(threadId, { role: 'assistant', displayContent: messageSoFar, reasoning: reasoningSoFar, toolCall: toolCallSoFar, anthropicReasoning: null })
 					this._setStreamState(threadId, { error }, 'set')
 					resMessageIsDonePromise()
 				},
@@ -774,14 +735,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				break
 			}
 			this._setStreamState(threadId, { streamingToken: llmCancelToken }, 'merge') // new stream token for the new message
-			const toolCalls = await messageIsDonePromise // wait for message to complete
+			const toolCall = await messageIsDonePromise // wait for message to complete
 			if (aborted) { return }
 			this._setStreamState(threadId, { streamingToken: undefined }, 'merge') // streaming message is done
 
 			// call tool if there is one
-			const tool: ToolCallType | undefined = toolCalls?.[0]
+			const tool: RawToolCallObj | undefined = toolCall
 			if (tool) {
-				const { awaitingUserApproval, interrupted } = await handleToolCall(tool)
+				const { awaitingUserApproval, interrupted } = await this._runToolCall(threadId, tool.name, { preapproved: false, unvalidatedToolParams: tool.rawParams })
 
 				// stop if interrupted. we don't have to do this for llmMessage because we have a stream token for it and onAbort gets called, but we don't have the equivalent for tools.
 				// just detect tool interruption which is the same as chat interruption right now
@@ -994,7 +955,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const [_, toIdx] = c
 		if (toIdx === fromIdx) return
 
-		console.log(`going from ${fromIdx} to ${toIdx}`)
+		// console.log(`going from ${fromIdx} to ${toIdx}`)
 
 		// update the user's checkpoint
 		this._addUserModificationsToCurrCheckpoint({ threadId })
@@ -1089,6 +1050,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 				severity: error ? Severity.Warning : Severity.Info,
 				message: error ? `Error: ${error} ` : `A new Chat result is ready.`,
 				source: messageContent,
+				sticky: true,
 				actions: {
 					primary: [{
 						id: 'void.goToChat',
@@ -1118,14 +1080,21 @@ We only need to do it for files that were edited since `from`, ie files between 
 		if (!thread) return // should never happen
 
 
+		const llmCancelToken = this.streamState[threadId]?.streamingToken // currently streaming LLM on this thread
+		if (llmCancelToken === undefined && this.streamState[threadId]?.isRunning === 'LLM') {
+			// if about to call the other LLM, just wait for it by stopping right now
+			return
+		}
+		// stop it (this simply resolves the promise to free up space)
+		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
+
+
+
 		// add dummy before this message to keep checkpoint before user message idea consistent
 		if (thread.messages.length === 0) {
 			this._addUserCheckpoint({ threadId })
 		}
 
-		// if the current thread is already streaming, stop it (this simply resolves the promise to free up space)
-		const llmCancelToken = this.streamState[threadId]?.streamingToken
-		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
 
 		const { chatMode } = this._settingsService.state.globalSettings
 
@@ -1141,7 +1110,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 		this._setThreadState(threadId, { currCheckpointIdx: null }) // no longer at a checkpoint because started streaming
 
 		this._wrapRunAgentToNotify(
-			this._runChatAgent({ threadId, userMessageContent, ...this._currentModelSelectionProps(), }),
+			this._runChatAgent({ threadId, ...this._currentModelSelectionProps(), }),
 			threadId,
 		)
 	}
@@ -1245,7 +1214,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			// else search codebase for `target`
 			let uris: URI[] = []
 			try {
-				const { result } = await this._toolsService.callTool['search_pathnames_only']({ queryStr: target, include: null, pageNumber: 0 })
+				const { result } = await this._toolsService.callTool['search_pathnames_only']({ queryStr: target, searchInFolder: null, pageNumber: 0 })
 				uris = result.uris
 			} catch (e) {
 				return null
@@ -1517,6 +1486,10 @@ We only need to do it for files that were edited since `from`, ie files between 
 				}
 			}
 		}, true)
+
+		// // when change focused message idx, jump - do not jump back when click edit, too confusing.
+		// if (messageIdx !== undefined)
+		// 	this.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
 	}
 
 	// set message.state

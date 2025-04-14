@@ -15,25 +15,26 @@ This repo contains the full sourcecode for Void. We are currently in [open beta]
 
 - 👋 [Discord](https://discord.gg/RSNjgaugJs)
 
-- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md)
+- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md)
 
 - 🚙 [Roadmap](https://github.com/orgs/voideditor/projects/2)
 
 - 📝 [Changelog](https://voideditor.com/changelog)
 
+- 🧭 [Codebase Guide](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md)
 
 ## Contributing
 
 1. Feel free to attend a weekly meeting in our Discord channel if you'd like to contribute!
 
-2. To get started working on Void, see [Contributing](https://github.com/voideditor/void/blob/main/CONTRIBUTING.md).
+2. To get started working on Void, see [Contributing](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
 
 3. We're open to collaborations and suggestions of all types - just reach out.
 
 
 ## Reference
 
-Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For some useful links on VSCode, see [`VOID_USEFUL_LINKS.md`](https://github.com/voideditor/void/blob/main/VOID_USEFUL_LINKS.md).
+Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For a guide to the VSCode/Void codebase, see [our Codebase Guide](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md).
 
 ## Support
 Feel free to reach out in our Discord or contact us via email: hello@voideditor.com.

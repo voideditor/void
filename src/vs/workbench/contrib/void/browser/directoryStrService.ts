@@ -14,19 +14,23 @@ import { MAX_CHILDREN_URIs_PAGE } from './toolsService.js';
 import { IExplorerService } from '../../files/browser/files.js';
 import { SortOrder } from '../../files/common/files.js';
 import { ExplorerItem } from '../../files/common/explorerModel.js';
-import { VoidDirectoryItem } from '../common/directoryStrTypes.js';
+import { MAX_DIRSTR_CHARS_TOTAL_BEGINNING, MAX_DIRSTR_CHARS_TOTAL_TOOL } from '../common/prompt/prompts.js';
 
 
-const MAX_CHARS_TOTAL_BEGINNING = 20_000
-const MAX_CHARS_TOTAL_TOOL = 20_000
-// const MAX_FILES_TOTAL = 200
+const MAX_FILES_TOTAL = 300;
+
+const DEFAULT_MAX_DEPTH = 3;
+const DEFAULT_MAX_ITEMS_PER_DIR = 3;
+
+const START_MAX_DEPTH = Infinity;
+const START_MAX_ITEMS_PER_DIR = Infinity; // Add start value as Infinity
 
 
 export interface IDirectoryStrService {
 	readonly _serviceBrand: undefined;
 
-	getDirectoryStrTool(uri: URI): Promise<{ wasCutOff: boolean, str: string }>
-	getAllDirectoriesStr(): Promise<{ wasCutOff: boolean, str: string }>
+	getDirectoryStrTool(uri: URI, options?: { maxItemsPerDir?: number }): Promise<string>
+	getAllDirectoriesStr(opts: { cutOffMessage: string, maxItemsPerDir?: number }): Promise<string>
 
 }
 export const IDirectoryStrService = createDecorator<IDirectoryStrService>('voidDirectoryStrService');
@@ -54,11 +58,17 @@ const shouldExcludeDirectory = (item: ExplorerItem) => {
 		item.name === 'obj' ||
 		item.name === 'vendor' ||
 		item.name === 'logs' ||
-		item.name === 'cache'
+		item.name === 'cache' ||
+		item.name === 'resource' ||
+		item.name === 'resources'
 
 	) {
 		return true;
 	}
+
+	if (item.name.match(/\bout\b/)) return true
+	if (item.name.match(/\bbuild\b/)) return true
+
 	return false;
 }
 
@@ -129,128 +139,173 @@ export const stringifyDirectoryTree1Deep = (params: ToolCallParams['ls_dir'], re
 
 // ---------- IN GENERAL ----------
 
-
-// if the filter exists use it to filter out files and folders when creating the tree
-const computeDirectoryTree = async (
+// Remove the old computeDirectoryTree function and replace with a combined version that handles both computation and rendering
+const computeAndStringifyDirectoryTree = async (
 	eItem: ExplorerItem,
-	explorerService: IExplorerService
-): Promise<VoidDirectoryItem> => {
-	// Fetch children with default sort order
-	const eChildren = await eItem.fetchChildren(SortOrder.FilesFirst);
-
-	const isGitIgnoredDirectory = eItem.isDirectory && shouldExcludeDirectory(eItem)
-
-	// Process children recursively
-	const children = !isGitIgnoredDirectory ? await Promise.all(
-		eChildren.map(async c => await computeDirectoryTree(c, explorerService))
-	) : null
-
-	// Create our directory item
-	const item: VoidDirectoryItem = {
-		uri: eItem.resource,
-		name: eItem.name,
-		isDirectory: eItem.isDirectory,
-		isSymbolicLink: eItem.isSymbolicLink,
-		children,
-		isGitIgnoredDirectory: isGitIgnoredDirectory && { numChildren: eItem.children.size },
-	};
-
-	return item;
-};
-
-
-const stringifyDirectoryTree = (
-	node: VoidDirectoryItem,
+	explorerService: IExplorerService,
 	MAX_CHARS: number,
-): { content: string, wasCutOff: boolean } => {
-	let content = '';
-	let wasCutOff = false;
+	fileCount: { count: number } = { count: 0 },
+	options: { maxDepth?: number, currentDepth?: number, maxItemsPerDir?: number } = {}
+): Promise<{ content: string, wasCutOff: boolean }> => {
+	// Set default values for options
+	const maxDepth = options.maxDepth ?? DEFAULT_MAX_DEPTH;
+	const currentDepth = options.currentDepth ?? 0;
+	const maxItemsPerDir = options.maxItemsPerDir ?? DEFAULT_MAX_ITEMS_PER_DIR;
+
+	// Check if we've reached the max depth
+	if (currentDepth > maxDepth) {
+		return { content: '', wasCutOff: true };
+	}
+
+	// Check if we've reached the file limit
+	if (fileCount.count >= MAX_FILES_TOTAL) {
+		return { content: '', wasCutOff: true };
+	}
 
 	// If we're already exceeding the max characters, return immediately
 	if (MAX_CHARS <= 0) {
-		return { content, wasCutOff: true };
+		return { content: '', wasCutOff: true };
 	}
 
+	// Increment file count
+	fileCount.count++;
+
 	// Add the root node first (without tree characters)
-	const nodeLine = `${node.name}${node.isDirectory ? '/' : ''}${node.isSymbolicLink ? ' (symbolic link)' : ''}\n`;
+	const nodeLine = `${eItem.name}${eItem.isDirectory ? '/' : ''}${eItem.isSymbolicLink ? ' (symbolic link)' : ''}\n`;
 
 	if (nodeLine.length > MAX_CHARS) {
 		return { content: '', wasCutOff: true };
 	}
 
-	content += nodeLine;
+	let content = nodeLine;
+	let wasCutOff = false;
 	let remainingChars = MAX_CHARS - nodeLine.length;
 
-	// Then recursively add all children with proper tree formatting
-	if (node.children && node.children.length > 0) {
-		const { childrenContent, childrenCutOff } = renderChildren(
-			node.children,
-			remainingChars,
-			''
-		);
-		content += childrenContent;
-		wasCutOff = childrenCutOff;
+	// Check if it's a directory we should skip
+	const isGitIgnoredDirectory = eItem.isDirectory && shouldExcludeDirectory(eItem);
+
+	// Fetch and process children if not a filtered directory
+	if (eItem.isDirectory && !isGitIgnoredDirectory) {
+		// Fetch children with Modified sort order to show recently modified first
+		const eChildren = await eItem.fetchChildren(SortOrder.Modified);
+
+		// Then recursively add all children with proper tree formatting
+		if (eChildren && eChildren.length > 0) {
+			const { childrenContent, childrenCutOff } = await renderChildrenCombined(
+				eChildren,
+				remainingChars,
+				'',
+				explorerService,
+				fileCount,
+				{ maxDepth, currentDepth, maxItemsPerDir } // Pass maxItemsPerDir to the render function
+			);
+			content += childrenContent;
+			wasCutOff = childrenCutOff;
+		}
 	}
+
 	return { content, wasCutOff };
 };
 
 // Helper function to render children with proper tree formatting
-const renderChildren = (
-	children: VoidDirectoryItem[],
+const renderChildrenCombined = async (
+	children: ExplorerItem[],
 	maxChars: number,
-	parentPrefix: string
-): { childrenContent: string, childrenCutOff: boolean } => {
+	parentPrefix: string,
+	explorerService: IExplorerService,
+	fileCount: { count: number },
+	options: { maxDepth: number, currentDepth: number, maxItemsPerDir?: number }
+): Promise<{ childrenContent: string, childrenCutOff: boolean }> => {
+	const { maxDepth, currentDepth } = options; // Remove maxItemsPerDir from destructuring
+	// Get maxItemsPerDir separately and make sure we use it
+	// For first level (currentDepth = 0), always use Infinity regardless of what was passed
+	const maxItemsPerDir = currentDepth === 0 ?
+		Infinity :
+		(options.maxItemsPerDir ?? DEFAULT_MAX_ITEMS_PER_DIR);
+	const nextDepth = currentDepth + 1;
+
 	let childrenContent = '';
 	let childrenCutOff = false;
+	let remainingChars = maxChars;
 
-	for (let i = 0; i < children.length; i++) {
-		const child = children[i];
-		const isLast = i === children.length - 1;
+	// Check if we've reached max depth
+	if (nextDepth > maxDepth) {
+		return { childrenContent: '', childrenCutOff: true };
+	}
+
+	// Apply maxItemsPerDir limit - only process the specified number of items
+	const itemsToProcess = maxItemsPerDir === Infinity ? children : children.slice(0, maxItemsPerDir);
+	const hasMoreItems = children.length > itemsToProcess.length;
+
+	for (let i = 0; i < itemsToProcess.length; i++) {
+		// Check if we've reached the file limit
+		if (fileCount.count >= MAX_FILES_TOTAL) {
+			childrenCutOff = true;
+			break;
+		}
+
+		const child = itemsToProcess[i];
+		const isLast = (i === itemsToProcess.length - 1) && !hasMoreItems;
 
 		// Create the tree branch symbols
 		const branchSymbol = isLast ? '└── ' : '├── ';
 		const childLine = `${parentPrefix}${branchSymbol}${child.name}${child.isDirectory ? '/' : ''}${child.isSymbolicLink ? ' (symbolic link)' : ''}\n`;
 
 		// Check if adding this line would exceed the limit
-		if (childrenContent.length + childLine.length > maxChars) {
+		if (childLine.length > remainingChars) {
 			childrenCutOff = true;
 			break;
 		}
+
 		childrenContent += childLine;
+		remainingChars -= childLine.length;
+		fileCount.count++;
 
 		const nextLevelPrefix = parentPrefix + (isLast ? '    ' : '│   ');
 
-
-		// if gitignored, just say the number of children
-		if (child.isDirectory && child.isGitIgnoredDirectory && child.isGitIgnoredDirectory.numChildren > 0) {
-			childrenContent += `${nextLevelPrefix}└── ... (${child.isGitIgnoredDirectory.numChildren} children) ...\n`
-		}
+		// Skip processing children for git ignored directories
+		const isGitIgnoredDirectory = child.isDirectory && shouldExcludeDirectory(child);
 
 		// Create the prefix for the next level (continuation line or space)
-		else if (child.children && child.children.length > 0) {
+		if (child.isDirectory && !isGitIgnoredDirectory) {
+			// Fetch children with Modified sort order to show recently modified first
+			const eChildren = await child.fetchChildren(SortOrder.Modified);
 
-			const {
-				childrenContent: grandChildrenContent,
-				childrenCutOff: grandChildrenCutOff
-			} = renderChildren(
-				child.children,
-				maxChars,
-				nextLevelPrefix
-			);
+			if (eChildren && eChildren.length > 0) {
+				const {
+					childrenContent: grandChildrenContent,
+					childrenCutOff: grandChildrenCutOff
+				} = await renderChildrenCombined(
+					eChildren,
+					remainingChars,
+					nextLevelPrefix,
+					explorerService,
+					fileCount,
+					{ maxDepth, currentDepth: nextDepth, maxItemsPerDir }
+				);
 
-			// If adding grandchildren content would exceed the limit
-			if (childrenContent.length + grandChildrenContent.length > maxChars) {
-				childrenCutOff = true;
-				break;
-			}
+				if (grandChildrenContent.length > 0) {
+					childrenContent += grandChildrenContent;
+					remainingChars -= grandChildrenContent.length;
+				}
 
-			childrenContent += grandChildrenContent;
-
-			if (grandChildrenCutOff) {
-				childrenCutOff = true;
-				break;
+				if (grandChildrenCutOff) {
+					childrenCutOff = true;
+				}
 			}
 		}
+	}
+
+	// Add a message if we truncated the items due to maxItemsPerDir
+	if (hasMoreItems) {
+		const remainingCount = children.length - itemsToProcess.length;
+		const truncatedLine = `${parentPrefix}└── (${remainingCount} more items not shown...)\n`;
+
+		if (truncatedLine.length <= remainingChars) {
+			childrenContent += truncatedLine;
+			remainingChars -= truncatedLine.length;
+		}
+		childrenCutOff = true;
 	}
 
 	return { childrenContent, childrenCutOff };
@@ -270,23 +325,54 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 		super();
 	}
 
-	async getDirectoryStrTool(uri: URI) {
+	async getDirectoryStrTool(uri: URI, options?: { maxItemsPerDir?: number }) {
 		const eRoot = this.explorerService.findClosest(uri)
 		if (!eRoot) throw new Error(`There was a problem reading the URI: ${uri.fsPath}.`)
 
-		const dirTree = await computeDirectoryTree(eRoot, this.explorerService);
-		const { content, wasCutOff } = stringifyDirectoryTree(dirTree, MAX_CHARS_TOTAL_TOOL);
+		const maxItemsPerDir = options?.maxItemsPerDir ?? START_MAX_ITEMS_PER_DIR; // Use START_MAX_ITEMS_PER_DIR
 
-		return {
-			str: `Directory of ${uri.fsPath}:\n${content}`,
-			wasCutOff,
+		// First try with START_MAX_DEPTH
+		const { content: initialContent, wasCutOff: initialCutOff } = await computeAndStringifyDirectoryTree(
+			eRoot,
+			this.explorerService,
+			MAX_DIRSTR_CHARS_TOTAL_TOOL,
+			{ count: 0 },
+			{ maxDepth: START_MAX_DEPTH, currentDepth: 0, maxItemsPerDir }
+		);
+
+		// If cut off, try again with DEFAULT_MAX_DEPTH and DEFAULT_MAX_ITEMS_PER_DIR
+		let content, wasCutOff;
+		if (initialCutOff) {
+			const result = await computeAndStringifyDirectoryTree(
+				eRoot,
+				this.explorerService,
+				MAX_DIRSTR_CHARS_TOTAL_TOOL,
+				{ count: 0 },
+				{ maxDepth: DEFAULT_MAX_DEPTH, currentDepth: 0, maxItemsPerDir: DEFAULT_MAX_ITEMS_PER_DIR }
+			);
+			content = result.content;
+			wasCutOff = result.wasCutOff;
+		} else {
+			content = initialContent;
+			wasCutOff = initialCutOff;
 		}
+
+		let c = content.substring(0, MAX_DIRSTR_CHARS_TOTAL_TOOL)
+		c = `Directory of ${uri.fsPath}:\n${content}`
+		if (wasCutOff) c = `${c}\n...Result was truncated...`
+
+		return c
 	}
 
-	async getAllDirectoriesStr() {
+	async getAllDirectoriesStr({ cutOffMessage, maxItemsPerDir }: { cutOffMessage: string, maxItemsPerDir?: number }) {
 		let str: string = '';
 		let cutOff = false;
 		const folders = this.workspaceContextService.getWorkspace().folders;
+		if (folders.length === 0)
+			return '(NO WORKSPACE OPEN)';
+
+		// Use START_MAX_ITEMS_PER_DIR if not specified
+		const startMaxItemsPerDir = maxItemsPerDir ?? START_MAX_ITEMS_PER_DIR;
 
 		for (let i = 0; i < folders.length; i += 1) {
 			if (i > 0) str += '\n';
@@ -299,18 +385,45 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			const eRoot = this.explorerService.findClosestRoot(rootURI);
 			if (!eRoot) continue;
 
-			// Use our new approach with direct explorer service
-			const dirTree = await computeDirectoryTree(eRoot, this.explorerService);
-			console.log('dirtree', dirTree)
-			const { content, wasCutOff } = stringifyDirectoryTree(dirTree, MAX_CHARS_TOTAL_BEGINNING - str.length);
+			// First try with START_MAX_DEPTH and startMaxItemsPerDir
+			const { content: initialContent, wasCutOff: initialCutOff } = await computeAndStringifyDirectoryTree(
+				eRoot,
+				this.explorerService,
+				MAX_DIRSTR_CHARS_TOTAL_BEGINNING - str.length,
+				{ count: 0 },
+				{ maxDepth: START_MAX_DEPTH, currentDepth: 0, maxItemsPerDir: startMaxItemsPerDir }
+			);
+
+			// If cut off, try again with DEFAULT_MAX_DEPTH and DEFAULT_MAX_ITEMS_PER_DIR
+			let content, wasCutOff;
+			if (initialCutOff) {
+				const result = await computeAndStringifyDirectoryTree(
+					eRoot,
+					this.explorerService,
+					MAX_DIRSTR_CHARS_TOTAL_BEGINNING - str.length,
+					{ count: 0 },
+					{ maxDepth: DEFAULT_MAX_DEPTH, currentDepth: 0, maxItemsPerDir: DEFAULT_MAX_ITEMS_PER_DIR }
+				);
+				content = result.content;
+				wasCutOff = result.wasCutOff;
+			} else {
+				content = initialContent;
+				wasCutOff = initialCutOff;
+			}
+
 			str += content;
 			if (wasCutOff) {
 				cutOff = true;
 				break;
 			}
 		}
+		console.log('cutoff!!!!!!!', str, cutOffMessage)
 
-		return { wasCutOff: cutOff, str };
+		if (cutOff) {
+			return `${str}\n${cutOffMessage}`
+		}
+
+		return str
 	}
 }
 

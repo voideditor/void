@@ -11,7 +11,7 @@ import { Widget } from '../../../../base/browser/ui/widget.js';
 import { IOverlayWidget, ICodeEditor, OverlayWidgetPositionPreference } from '../../../../editor/browser/editorBrowser.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { mountVoidCommandBar } from './react/out/void-command-bar-tsx/index.js'
+import { mountVoidCommandBar } from './react/out/void-editor-widgets-tsx/index.js'
 import { deepClone } from '../../../../base/common/objects.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IEditCodeService } from './editCodeServiceInterface.js';

@@ -3,26 +3,24 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName } from '../../../../common/voidSettingsTypes.js'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { VoidButton, VoidCheckBox, VoidCustomDropdownBox, VoidInputBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
+import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
-import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
-import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
-import { isWindows, isLinux, isMacintosh } from '../../../../../../../base/common/platform.js'
+import { X, RefreshCw, Loader2, Check, } from 'lucide-react'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
-import { IconX } from '../sidebar-tsx/SidebarChat.js'
+import { IconLoading } from '../sidebar-tsx/SidebarChat.js'
+
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
-	return <div className='flex items-center text-void-fg-3 px-3 py-0.5 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
+	return <div className='flex items-center text-void-fg-3 px-3 py-0.5 rounded-sm overflow-hidden gap-2'>
 		{leftButton ? leftButton : null}
 		<span>
 			{text}
@@ -98,58 +96,136 @@ const RefreshableModels = () => {
 
 
 
-const AddModelMenu = ({ onSubmit, onClose }: { onSubmit: () => void, onClose: () => void }) => {
+export const AnimatedCheckmarkButton = ({ text, className }: { text?: string, className?: string }) => {
+	const [dashOffset, setDashOffset] = useState(40);
+
+	useEffect(() => {
+		const startTime = performance.now();
+		const duration = 500; // 500ms animation
+
+		const animate = (currentTime: number) => {
+			const elapsed = currentTime - startTime;
+			const progress = Math.min(elapsed / duration, 1);
+			const newOffset = 40 - (progress * 40);
+
+			setDashOffset(newOffset);
+
+			if (progress < 1) {
+				requestAnimationFrame(animate);
+			}
+		};
+
+		const animationId = requestAnimationFrame(animate);
+		return () => cancelAnimationFrame(animationId);
+	}, []);
+
+	return <div
+		className={`flex items-center gap-1.5 w-fit
+			${className ? className : `px-2 py-0.5 text-xs text-white bg-[#0e70c0] rounded-sm`}
+		`}
+	>
+		<svg className="size-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path
+				d="M5 13l4 4L19 7"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				style={{
+					strokeDasharray: 40,
+					strokeDashoffset: dashOffset
+				}}
+			/>
+		</svg>
+		{text}
+	</div>
+}
+
+
+const AddButton = ({ disabled, text = 'Add', ...props }: { disabled?: boolean, text?: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+
+	return <button
+		disabled={disabled}
+		className={`bg-[#0e70c0] px-3 py-1 text-white rounded-sm ${!disabled ? 'hover:bg-[#1177cb] cursor-pointer' : 'opacity-50 cursor-not-allowed bg-opacity-70'}`}
+		{...props}
+	>{text}</button>
+
+}
+
+
+// shows a providerName dropdown if no `providerName` is given
+export const AddModelInputBox = ({ providerName: permanentProviderName, className, compact }: { providerName?: ProviderName, className?: string, compact?: boolean }) => {
 
 	const accessor = useAccessor()
 	const settingsStateService = accessor.get('IVoidSettingsService')
 
 	const settingsState = useSettingsState()
 
+	const [isOpen, setIsOpen] = useState(false)
+	const [showCheckmark, setShowCheckmark] = useState(false)
+
 	// const providerNameRef = useRef<ProviderName | null>(null)
-	const [providerName, setProviderName] = useState<ProviderName | null>(null)
+	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName>('anthropic')
 
-	const modelNameRef = useRef<HTMLTextAreaElement | null>(null)
+	const providerName = permanentProviderName ?? userChosenProviderName;
 
+	const [modelName, setModelName] = useState<string>('')
 	const [errorString, setErrorString] = useState('')
+
+	const numModels = settingsState.settingsOfProvider[providerName].models.length
+
+	if (showCheckmark) {
+		return <AnimatedCheckmarkButton text='Added' className={`bg-[#0e70c0] text-white px-3 py-1 rounded-sm ${className}`} />
+	}
+
+	if (!isOpen) {
+		return <div
+			className={`text-void-fg-4 flex flex-nowrap text-nowrap items-center hover:brightness-110 cursor-pointer ${className}`}
+			onClick={() => setIsOpen(true)}
+
+		>
+			<div>
+				{numModels > 0 ? `Add a different model?` : `Add a model`}
+			</div>
+		</div>
+	}
 
 
 	return <>
-		<div className='flex items-center gap-4'>
+		<form className={`flex items-center gap-2 ${className}`}>
 
-			{/* provider */}
-			<VoidCustomDropdownBox
-				options={providerNames}
-				selectedOption={providerName}
-				onChangeOption={(pn) => setProviderName(pn)}
-				getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
-				getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
-				getOptionsEqual={(a, b) => a === b}
-				className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root
-					py-[4px] px-[6px]
-				`}
-				arrowTouchesText={false}
-			/>
-			{/* <_VoidSelectBox
-					onCreateInstance={useCallback(() => { providerNameRef.current = providerOptions[0].value }, [providerOptions])} // initialize state
-					onChangeSelection={useCallback((providerName: ProviderName) => { providerNameRef.current = providerName }, [])}
-					options={providerOptions}
-				/> */}
+			{/* X button
+			<button onClick={() => { setIsOpen(false) }} className='text-void-fg-4'><X className='size-4' /></button> */}
 
-			{/* model */}
-			<div className='max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'>
-				<VoidInputBox2
-					placeholder='Model Name'
-					className='mt-[2px] px-[6px] h-full w-full'
-					ref={modelNameRef}
-					multiline={false}
+			{/* provider input */}
+			{!permanentProviderName &&
+				<VoidCustomDropdownBox
+					options={providerNames}
+					selectedOption={providerName}
+					onChangeOption={(pn) => setUserChosenProviderName(pn)}
+					getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
+					getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
+					getOptionsEqual={(a, b) => a === b}
+					// className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root py-[4px] px-[6px]`}
+					className={`max-w-32 mx-2 w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1 py-1 px-2 rounded`}
+					arrowTouchesText={false}
 				/>
-			</div>
+			}
 
-			{/* button */}
-			<VoidButton
-				onClick={() => {
-					const modelName = modelNameRef.current?.value
+			{/* model input */}
+			<VoidSimpleInputBox
+				value={modelName}
+				onChangeValue={setModelName}
+				placeholder='Model Name'
+				compact={compact}
+				className={'max-w-32'}
+			/>
 
+			{/* add button */}
+			<AddButton
+				type='submit'
+				disabled={!modelName}
+				onClick={(e) => {
 					if (providerName === null) {
 						setErrorString('Please select a provider.')
 						return
@@ -160,17 +236,24 @@ const AddModelMenu = ({ onSubmit, onClose }: { onSubmit: () => void, onClose: ()
 					}
 					// if model already exists here
 					if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
-						setErrorString(`This model already exists under ${providerName}.`)
+						// setErrorString(`This model already exists under ${providerName}.`)
+						setErrorString(`This model already exists.`)
 						return
 					}
 
 					settingsStateService.addModel(providerName, modelName)
-					onSubmit()
+					setShowCheckmark(true)
+					setTimeout(() => {
+						setShowCheckmark(false)
+						setIsOpen(false)
+					}, 1500)
+					setErrorString('')
+					setModelName('')
 				}}
-			>Add model</VoidButton>
+			/>
 
-			<button onClick={onClose} className='ml-auto'><X className='size-4' /></button>
-		</div>
+
+		</form>
 
 		{!errorString ? null : <div className='text-red-500 truncate whitespace-nowrap mt-1'>
 			{errorString}
@@ -178,17 +261,6 @@ const AddModelMenu = ({ onSubmit, onClose }: { onSubmit: () => void, onClose: ()
 
 	</>
 
-}
-
-const AddModelMenuFull = () => {
-	const [open, setOpen] = useState(false)
-
-	return <div className='hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 my-4 px-3 rounded-sm overflow-hidden'>
-		{open ?
-			<AddModelMenu onSubmit={() => setOpen(false)} onClose={() => setOpen(false)} />
-			: <VoidButton onClick={() => setOpen(true)}>Add Model</VoidButton>
-		}
-	</div>
 }
 
 
@@ -200,7 +272,7 @@ export const ModelDump = () => {
 	const settingsState = useSettingsState()
 
 	// a dump of all the enabled providers' models
-	const modelDump: (VoidModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
+	const modelDump: (VoidStatefulModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
 	for (let providerName of providerNames) {
 		const providerSettings = settingsState.settingsOfProvider[providerName]
 		// if (!providerSettings.enabled) continue
@@ -218,7 +290,16 @@ export const ModelDump = () => {
 
 			const isNewProviderName = (i > 0 ? modelDump[i - 1] : undefined)?.providerName !== providerName
 
+			const providerTitle = displayInfoOfProviderName(providerName).title
+
 			const disabled = !providerEnabled
+			const value = disabled ? false : !isHidden
+
+			const tooltipName = (
+				disabled ? `Add ${providerTitle} to enable`
+					: value === true ? 'Enabled'
+						: 'Disabled'
+			)
 
 			return <div key={`${modelName}${providerName}`}
 				className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate
@@ -226,18 +307,29 @@ export const ModelDump = () => {
 			>
 				{/* left part is width:full */}
 				<div className={`flex-grow flex items-center gap-4`}>
-					<span className='w-full max-w-32'>{isNewProviderName ? displayInfoOfProviderName(providerName).title : ''}</span>
+					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
 					<span className='w-fit truncate'>{modelName}</span>
 				</div>
 				{/* right part is anything that fits */}
-				<div className='flex items-center gap-4'>
+				<div className='flex items-center gap-4'
+					data-tooltip-id='void-tooltip'
+					data-tooltip-place='top'
+					data-tooltip-content={disabled? `${displayInfoOfProviderName(providerName).title} is disabled`
+					: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
+
+					}
+				>
 					<span className='opacity-50 truncate'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
 
 					<VoidSwitch
-						value={disabled ? false : !isHidden}
+						value={value}
 						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}
 						disabled={disabled}
 						size='sm'
+
+						data-tooltip-id='void-tooltip'
+						data-tooltip-place='right'
+						data-tooltip-content={tooltipName}
 					/>
 
 					<div className={`w-5 flex items-center justify-center`}>
@@ -277,6 +369,7 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 				// placeholder={`${providerTitle} ${settingTitle} (${placeholder})`}
 				placeholder={`${settingTitle} (${placeholder})`}
 				passwordBlur={isPasswordField}
+				compact={true}
 			/>
 			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-sm'>
 				<ChatMarkdownRender string={subTextMd} chatMessageLocation={undefined} />
@@ -286,7 +379,52 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 	</ErrorBoundary>
 }
 
-const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
+// const OldSettingsForProvider = ({ providerName, showProviderTitle }: { providerName: ProviderName, showProviderTitle: boolean }) => {
+// 	const voidSettingsState = useSettingsState()
+
+// 	const needsModel = isProviderNameDisabled(providerName, voidSettingsState) === 'addModel'
+
+// 	// const accessor = useAccessor()
+// 	// const voidSettingsService = accessor.get('IVoidSettingsService')
+
+// 	// const { enabled } = voidSettingsState.settingsOfProvider[providerName]
+// 	const settingNames = customSettingNamesOfProvider(providerName)
+
+// 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
+
+// 	return <div className='my-4'>
+
+// 		<div className='flex items-center w-full gap-4'>
+// 			{showProviderTitle && <h3 className='text-xl truncate'>{providerTitle}</h3>}
+
+// 			{/* enable provider switch */}
+// 			{/* <VoidSwitch
+// 				value={!!enabled}
+// 				onChange={
+// 					useCallback(() => {
+// 						const enabledRef = voidSettingsService.state.settingsOfProvider[providerName].enabled
+// 						voidSettingsService.setSettingOfProvider(providerName, 'enabled', !enabledRef)
+// 					}, [voidSettingsService, providerName])}
+// 				size='sm+'
+// 			/> */}
+// 		</div>
+
+// 		<div className='px-0'>
+// 			{/* settings besides models (e.g. api key) */}
+// 			{settingNames.map((settingName, i) => {
+// 				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
+// 			})}
+
+// 			{needsModel ?
+// 				providerName === 'ollama' ?
+// 					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
+// 					: <WarningBox text={`Please add a model for ${providerTitle} (Models section).`} />
+// 				: null}
+// 		</div>
+// 	</div >
+// }
+
+export const SettingsForProvider = ({ providerName, showProviderTitle, showProviderSuggestions }: { providerName: ProviderName, showProviderTitle: boolean, showProviderSuggestions: boolean }) => {
 	const voidSettingsState = useSettingsState()
 
 	const needsModel = isProviderNameDisabled(providerName, voidSettingsState) === 'addModel'
@@ -299,10 +437,10 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 
 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
 
-	return <div className='my-4'>
+	return <div>
 
 		<div className='flex items-center w-full gap-4'>
-			<h3 className='text-xl truncate'>{providerTitle}</h3>
+			{showProviderTitle && <h3 className='text-xl truncate'>{providerTitle}</h3>}
 
 			{/* enable provider switch */}
 			{/* <VoidSwitch
@@ -322,7 +460,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
 			})}
 
-			{needsModel ?
+			{showProviderSuggestions && needsModel ?
 				providerName === 'ollama' ?
 					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
 					: <WarningBox text={`Please add a model for ${providerTitle} (Models section).`} />
@@ -335,7 +473,7 @@ const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) =
 export const VoidProviderSettings = ({ providerNames }: { providerNames: ProviderName[] }) => {
 	return <>
 		{providerNames.map(providerName =>
-			<SettingsForProvider key={providerName} providerName={providerName} />
+			<SettingsForProvider key={providerName} providerName={providerName} showProviderTitle={true} showProviderSuggestions={true} />
 		)}
 	</>
 }
@@ -408,6 +546,29 @@ const FastApplyMethodDropdown = () => {
 }
 
 
+export const ollamaSetupInstructions = <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm list-decimal select-text'>
+	<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
+	<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
+	<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
+	<div className=' pl-6'><ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} /></div>
+	<div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>
+</div>
+
+
+const RedoOnboardingButton = ({ className }: { className?: string }) => {
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	return <div
+		className={`text-void-fg-4 flex flex-nowrap text-nowrap items-center hover:brightness-110 cursor-pointer ${className}`}
+		onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', false) }}
+	>
+		See onboarding screen?
+	</div>
+
+}
+
+
+
 export const FeaturesTab = () => {
 	const voidSettingsState = useSettingsState()
 	const accessor = useAccessor()
@@ -418,7 +579,8 @@ export const FeaturesTab = () => {
 		<h2 className={`text-3xl mb-2`}>Models</h2>
 		<ErrorBoundary>
 			<ModelDump />
-			<AddModelMenuFull />
+			<AddModelInputBox className='mt-4' compact />
+			<RedoOnboardingButton className='mt-2 mb-4' />
 			<AutoDetectLocalModelsToggle />
 			<RefreshableModels />
 		</ErrorBoundary>
@@ -429,13 +591,9 @@ export const FeaturesTab = () => {
 		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
 		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
 		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
-		<div className='pl-4 prose-ol:list-decimal opacity-80'>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></span>
-			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender string={`3. Run \`ollama run llama3.1:8b\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} chatMessageLocation={undefined} /></span>
-			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} chatMessageLocation={undefined} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></span>
-			{/* TODO we should create UI for downloading models without user going into terminal */}
+
+		<div className='opacity-80 mb-4'>
+			{ollamaSetupInstructions}
 		</div>
 
 		<ErrorBoundary>
@@ -530,11 +688,38 @@ export const FeaturesTab = () => {
 							/>
 							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Auto-approve'}</span>
 						</div>
+
+						{/* Tool Lint Errors Switch */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<VoidSwitch
+								size='xs'
+								value={voidSettingsState.globalSettings.includeToolLintErrors}
+								onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
+							/>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.includeToolLintErrors ? 'Include after-edit lint errors' : `Don't include lint errors`}</span>
+						</div>
 					</div>
 				</div>
 
+
+
 				<div className='w-full'>
+					<h4 className={`text-base`}>Editor</h4>
+					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of suggestions and widgets in the code editor.`}</div>
+
+					<div className='my-2'>
+						{/* Auto Accept Switch */}
+						<div className='flex items-center gap-x-2 my-2'>
+							<VoidSwitch
+								size='xs'
+								value={voidSettingsState.globalSettings.showInlineSuggestions}
+								onChange={(newVal) => voidSettingsService.setGlobalSetting('showInlineSuggestions', newVal)}
+							/>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.showInlineSuggestions ? 'Show suggestions on select' : 'Show suggestions on select'}</span>
+						</div>
+					</div>
 				</div>
+
 
 			</div>
 
@@ -547,41 +732,91 @@ export const FeaturesTab = () => {
 }
 
 
-
+type TransferEditorType = 'VS Code' | 'Cursor' | 'Windsurf'
 // https://github.com/VSCodium/vscodium/blob/master/docs/index.md#migrating-from-visual-studio-code-to-vscodium
 // https://code.visualstudio.com/docs/editor/extension-marketplace#_where-are-extensions-installed
 type TransferFilesInfo = { from: URI, to: URI }[]
-const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): TransferFilesInfo => {
+const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEditor: TransferEditorType = 'VS Code'): TransferFilesInfo => {
 	if (os === null)
 		throw new Error(`One-click switch is not possible in this environment.`)
 	if (os === 'mac') {
 		const homeDir = env['HOME']
 		if (!homeDir) throw new Error(`$HOME not found`)
-		return [{
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'settings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'keybindings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-		}]
+
+		if (fromEditor === 'VS Code') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Cursor') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Cursor', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Cursor', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.cursor', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Windsurf') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Windsurf', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Windsurf', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.windsurf', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		}
 	}
 
 	if (os === 'linux') {
 		const homeDir = env['HOME']
 		if (!homeDir) throw new Error(`variable for $HOME location not found`)
-		return [{
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'settings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'keybindings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-		}]
+
+		if (fromEditor === 'VS Code') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Cursor') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Cursor', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Cursor', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.cursor', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Windsurf') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Windsurf', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Windsurf', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.windsurf', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+			}]
+		}
 	}
 
 	if (os === 'windows') {
@@ -590,73 +825,115 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): Transfe
 		const userprofile = env['USERPROFILE']
 		if (!userprofile) throw new Error(`variable for %USERPROFILE% location not found`)
 
-		return [{
-			from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'settings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'keybindings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.vscode', 'extensions'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
-		}]
+		if (fromEditor === 'VS Code') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.vscode', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Cursor') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Cursor', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Cursor', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.cursor', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+			}]
+		} else if (fromEditor === 'Windsurf') {
+			return [{
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Windsurf', 'User', 'settings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Windsurf', 'User', 'keybindings.json'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
+			}, {
+				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.windsurf', 'extensions'),
+				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+			}]
+		}
 	}
 
-	throw new Error(`os '${os}' not recognized`)
+	throw new Error(`os '${os}' not recognized or editor type '${fromEditor}' not supported for this OS`)
 }
 
 
-let transferTheseFiles: TransferFilesInfo = []
-let transferError: string | null = null
-
-try { transferTheseFiles = transferTheseFilesOfOS(os) }
-catch (e) { transferError = e + '' }
-
-const OneClickSwitchButton = () => {
+export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }: { fromEditor?: TransferEditorType, className?: string }) => {
 	const accessor = useAccessor()
 	const fileService = accessor.get('IFileService')
 
-	const [state, setState] = useState<{ type: 'done', error?: string } | { type: | 'loading' | 'justfinished' }>({ type: 'done' })
+	const [transferState, setTransferState] = useState<{ type: 'done', error?: string } | { type: | 'loading' | 'justfinished' }>({ type: 'done' })
+
+	let transferTheseFiles: TransferFilesInfo = [];
+	let editorError: string | null = null;
+
+	try {
+		transferTheseFiles = transferTheseFilesOfOS(os, fromEditor)
+	} catch (e) {
+		editorError = e + ''
+	}
 
 	if (transferTheseFiles.length === 0)
 		return <>
-			<WarningBox text={transferError ?? `One-click switch not available.`} />
+			<WarningBox text={editorError ?? `Transfer from ${fromEditor} not available.`} />
 		</>
 
-
-
 	const onClick = async () => {
+		if (transferState.type !== 'done') return
 
-		if (state.type !== 'done') return
-
-		setState({ type: 'loading' })
+		setTransferState({ type: 'loading' })
 
 		let errAcc = ''
 		for (let { from, to } of transferTheseFiles) {
 			console.log('transferring', from, to)
-			// not sure if this can fail, just wrapping it with try/catch for now
-			try { await fileService.copy(from, to, true) }
-			catch (e) { errAcc += e + '\n' }
+			// Check if the source file exists before attempting to copy
+			try {
+				const exists = await fileService.exists(from)
+				if (exists) {
+					// Ensure the destination directory exists
+					const toParent = URI.joinPath(to, '..')
+					const toParentExists = await fileService.exists(toParent)
+					if (!toParentExists) {
+						await fileService.createFolder(toParent)
+					}
+					await fileService.copy(from, to, true)
+				} else {
+					console.log(`Skipping file that doesn't exist: ${from.toString()}`)
+				}
+			}
+			catch (e) {
+				console.error('Error copying file:', e)
+				errAcc += `Error copying ${from.toString()}: ${e}\n`
+			}
 		}
+
+		// Even if some files were missing, consider it a success if no actual errors occurred
 		const hadError = !!errAcc
 		if (hadError) {
-			setState({ type: 'done', error: errAcc })
+			setTransferState({ type: 'done', error: errAcc })
 		}
 		else {
-			setState({ type: 'justfinished' })
-			setTimeout(() => { setState({ type: 'done' }); }, 3000)
+			setTransferState({ type: 'justfinished' })
+			setTimeout(() => { setTransferState({ type: 'done' }); }, 3000)
 		}
 	}
 
 	return <>
-		<VoidButton disabled={state.type !== 'done'} onClick={onClick}>
-			{state.type === 'done' ? 'Transfer my Settings'
-				: state.type === 'loading' ? 'Transferring...'
-					: state.type === 'justfinished' ? 'Success!'
+		<VoidButtonBgDarken className={`max-w-48 p-4 ${className}`} disabled={transferState.type !== 'done'} onClick={onClick}>
+			{transferState.type === 'done' ? `Transfer from ${fromEditor}`
+				: transferState.type === 'loading' ? <span className='text-nowrap flex flex-nowrap'>Transferring<IconLoading /></span>
+					: transferState.type === 'justfinished' ? <AnimatedCheckmarkButton text='Settings Transferred' className='bg-none' />
 						: null
 			}
-		</VoidButton>
-		{state.type === 'done' && state.error ? <WarningBox text={state.error} /> : null}
+		</VoidButtonBgDarken>
+		{transferState.type === 'done' && transferState.error ? <WarningBox text={transferState.error} /> : null}
 	</>
 }
 
@@ -668,46 +945,49 @@ const GeneralTab = () => {
 	const nativeHostService = accessor.get('INativeHostService')
 
 	return <>
-
-
 		<div className=''>
 			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Transfer your settings from VS Code to Void in one click.`}</h4>
-			<OneClickSwitchButton />
+			<h4 className={`text-void-fg-3 mb-4`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
+
+			<div className='flex flex-col gap-4'>
+				<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
+				<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
+				<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
+			</div>
 		</div>
 
 
 
 		<div className='mt-12'>
 			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
+			<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
 			<div className='my-4'>
-				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
 					General Settings
-				</VoidButton>
+				</VoidButtonBgDarken>
 			</div>
 			<div className='my-4'>
-				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
+				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
 					Keyboard Settings
-				</VoidButton>
+				</VoidButtonBgDarken>
 			</div>
 			<div className='my-4'>
-				<VoidButton onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
 					Theme Settings
-				</VoidButton>
+				</VoidButtonBgDarken>
 			</div>
 			<div className='my-4'>
-				<VoidButton onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
 					Open Logs
-				</VoidButton>
+				</VoidButtonBgDarken>
 			</div>
 		</div>
 
 
-		<div className='mt-12'>
+		<div className='mt-12 max-w-[600px]'>
 			<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
-			<h4 className={`text-void-fg-3 mb-2`}>{`Instructions to include on all AI requests.`}</h4>
+			<h4 className={`text-void-fg-3 mb-4`}>{`Instructions to include on all AI requests.`}</h4>
 			<AIInstructionsBox />
 		</div>
 
@@ -722,11 +1002,8 @@ export const Settings = () => {
 
 	const [tab, setTab] = useState<TabName>('models')
 
-	const containerRef = useRef<HTMLDivElement | null>(null)
-	useScrollbarStyles(containerRef)
-
 	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
-		<div ref={containerRef} className='overflow-y-auto w-full h-full px-10 py-10 select-none'>
+		<div className='overflow-y-auto w-full h-full px-10 py-10 select-none'>
 
 			<div className='max-w-5xl mx-auto'>
 
@@ -770,3 +1047,4 @@ export const Settings = () => {
 
 	</div>
 }
+

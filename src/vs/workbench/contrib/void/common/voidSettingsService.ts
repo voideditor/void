@@ -11,9 +11,9 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { getModelCapabilities } from './modelCapabilities.js';
+import { defaultProviderSettings, getModelCapabilities } from './modelCapabilities.js';
 import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, defaultProviderSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode } from './voidSettingsTypes.js';
 
 
 // name is the name in the dropdown
@@ -71,10 +71,10 @@ export interface IVoidSettingsService {
 
 
 
-const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], options: { existingModels: VoidModelInfo[] }) => {
+const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], options: { existingModels: VoidStatefulModelInfo[] }) => {
 	const { existingModels } = options
 
-	const existingModelsMap: Record<string, VoidModelInfo> = {}
+	const existingModelsMap: Record<string, VoidStatefulModelInfo> = {}
 	for (const existingModel of existingModels) {
 		existingModelsMap[existingModel.modelName] = existingModel
 	}
@@ -95,7 +95,7 @@ const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], opt
 
 export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter: (o: ModelSelection, opts: { chatMode: ChatMode }) => boolean; emptyMessage: null | { message: string, priority: 'always' | 'fallback' } } } = {
 	'Autocomplete': { filter: (o) => getModelCapabilities(o.providerName, o.modelName).supportsFIM, emptyMessage: { message: 'No models support FIM', priority: 'always' } },
-	'Chat': { filter: (o, { chatMode }) => chatMode === 'normal' ? true : !!getModelCapabilities(o.providerName, o.modelName).supportsTools, emptyMessage: { message: 'No models support tool use', priority: 'fallback' } },
+	'Chat': { filter: o => true, emptyMessage: null, },
 	'Ctrl+K': { filter: o => true, emptyMessage: null, },
 	'Apply': { filter: o => true, emptyMessage: null, },
 }
@@ -211,7 +211,15 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 	async readAndInitializeState() {
-		const readS = await this._readState();
+		let readS: VoidSettingsState
+		try {
+			readS = await this._readState();
+			// 1.0.3 addition, remove when enough users have had this code run
+			if (readS.globalSettings.includeToolLintErrors === undefined) readS.globalSettings.includeToolLintErrors = true
+		}
+		catch (e) {
+			readS = defaultState()
+		}
 
 		// the stored data structure might be outdated, so we need to update it here
 		const finalState = readS
@@ -363,7 +371,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const modelIdx = models.findIndex(m => m.modelName === modelName)
 		if (modelIdx === -1) return
 		const newIsHidden = !models[modelIdx].isHidden
-		const newModels: VoidModelInfo[] = [
+		const newModels: VoidStatefulModelInfo[] = [
 			...models.slice(0, modelIdx),
 			{ ...models[modelIdx], isHidden: newIsHidden },
 			...models.slice(modelIdx + 1, Infinity)

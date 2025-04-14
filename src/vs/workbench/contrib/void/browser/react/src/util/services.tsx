@@ -47,6 +47,7 @@ import { IWorkspaceContextService } from '../../../../../../../platform/workspac
 import { IVoidCommandBarService } from '../../../voidCommandBarService.js'
 import { INativeHostService } from '../../../../../../../platform/native/common/native.js';
 import { IEditCodeService } from '../../../editCodeServiceInterface.js'
+import { IToolsService } from '../../../toolsService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -215,6 +216,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 
 		IVoidCommandBarService: accessor.get(IVoidCommandBarService),
 		INativeHostService: accessor.get(INativeHostService),
+		IToolsService: accessor.get(IToolsService),
 
 	} as const
 	return reactAccessor
@@ -350,9 +352,9 @@ export const useCommandBarURIListener = (listener: (uri: URI) => void) => {
 export const useCommandBarState = () => {
 	const accessor = useAccessor()
 	const commandBarService = accessor.get('IVoidCommandBarService')
-	const [s, ss] = useState({ state: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
+	const [s, ss] = useState({ stateOfURI: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
 	const listener = useCallback(() => {
-		ss({ state: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
+		ss({ stateOfURI: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
 	}, [commandBarService])
 	useCommandBarURIListener(listener)
 

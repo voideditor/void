@@ -24,12 +24,12 @@ import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { localize2 } from '../../../../nls.js';
 import { StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
-import { findStagingSelectionIndex, IChatThreadService } from './chatThreadService.js';
+import { IChatThreadService } from './chatThreadService.js';
 
 // ---------- Register commands and keybindings ----------
 
 
-export const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
+const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
 	if (!currentSelections) return null
 
 	for (let i = 0; i < currentSelections.length; i += 1) {

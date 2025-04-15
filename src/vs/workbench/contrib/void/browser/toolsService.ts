@@ -276,8 +276,8 @@ export class ToolsService implements IToolsService {
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
 				const fileContents = contents.slice(fromIdx, toIdx + 1) // paginate
 				const hasNextPage = (contents.length - 1) - toIdx >= 1
-
-				return { result: { fileContents, hasNextPage } }
+				const totalFileLen = contents.length
+				return { result: { fileContents, totalFileLen, hasNextPage } }
 			},
 
 			ls_dir: async ({ rootURI, pageNumber }) => {
@@ -400,7 +400,7 @@ export class ToolsService implements IToolsService {
 		// given to the LLM after the call
 		this.stringOfResult = {
 			read_file: (params, result) => {
-				return result.fileContents + nextPageStr(result.hasNextPage)
+				return `${result.fileContents}${nextPageStr(result.hasNextPage)}${result.hasNextPage ? `This file has ${result.totalFileLen} characters, paginated ${MAX_FILE_CHARS_PAGE} at a time.` : ''}`
 			},
 			ls_dir: (params, result) => {
 				const dirTreeStr = stringifyDirectoryTree1Deep(params, result)

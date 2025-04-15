@@ -263,8 +263,9 @@ const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, 
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			}
 			else {
-				const toolCall = openAIToolToRawToolCallObj(toolName, toolParamsStr, toolId) ?? undefined
-				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, toolCall: toolCall });
+				const toolCall = openAIToolToRawToolCallObj(toolName, toolParamsStr, toolId)
+				const toolCallObj = toolCall ? { toolCall } : {}
+				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
 			}
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
@@ -448,8 +449,9 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 	stream.on('finalMessage', (response) => {
 		const anthropicReasoning = response.content.filter(c => c.type === 'thinking' || c.type === 'redacted_thinking')
 		const tools = response.content.filter(c => c.type === 'tool_use')
-		const toolCall = tools[0] ? anthropicToolToRawToolCallObj(tools[0]) ?? undefined : undefined
-		onFinalMessage({ fullText, fullReasoning, anthropicReasoning, toolCall, })
+		const toolCall = tools[0] && anthropicToolToRawToolCallObj(tools[0])
+		const toolCallObj = toolCall ? { toolCall } : {}
+		onFinalMessage({ fullText, fullReasoning, anthropicReasoning, ...toolCallObj })
 	})
 	// on error
 	stream.on('error', (error) => {

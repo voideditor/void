@@ -400,7 +400,6 @@ const VoidOnboardingContent = () => {
 		private: ['ollama', 'vLLM', 'openAICompatible'],
 		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM'],
 		all: providerNames,
-		// TODO allow user to redo onboarding
 	}
 
 
@@ -426,7 +425,7 @@ const VoidOnboardingContent = () => {
 	// cannot be md
 	const basicDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
 		smart: "Models with the best performance on benchmarks.",
-		private: "Host on your computer or network for full privacy.",
+		private: "Host on your computer or local network for full data privacy.",
 		cheap: "Free and affordable options.",
 		all: "",
 	}
@@ -439,20 +438,10 @@ const VoidOnboardingContent = () => {
 		all: "",
 	}
 
-	// set the selected provider name appropriately
+	// set the selected provider name to be the zeroth option when the user changes the page
 	useEffect(() => {
-		if (wantToUseOption && providerNamesOfWantToUseOption[wantToUseOption].length > 0) {
-			setSelectedProviderName(providerNamesOfWantToUseOption[wantToUseOption][0]);
-		} else {
-			setSelectedProviderName(null);
-		}
+		setSelectedProviderName(providerNamesOfWantToUseOption[wantToUseOption][0]);
 	}, [wantToUseOption]);
-
-	// set wantToUseOption to smart when page changes
-	useEffect(() => {
-		setWantToUseOption(wantToUseOption);
-	}, [pageIndex]);
-
 
 	// reset the page to page 0 if the user redos onboarding
 	useEffect(() => {
@@ -562,75 +551,33 @@ const VoidOnboardingContent = () => {
 
 
 
-					{/* Provider Buttons - Pre-render all sets and use CSS to hide/show */}
-					<div className="mb-2 w-full">
-						{/* Smart providers - only visible when wantToUseOption is 'smart' */}
-						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'smart' ? 'flex' : 'none' }}>
-							{providerNamesOfWantToUseOption.smart.map((providerName) => {
-								const isSelected = selectedProviderName === providerName
-								return (
-									<button
-										key={`smart-${providerName}`}
-										onClick={() => setSelectedProviderName(providerName)}
-										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full
-											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-									>
-										{displayInfoOfProviderName(providerName).title}
-									</button>
-								)
-							})}
-						</div>
-
-						{/* Private providers - only visible when wantToUseOption is 'private' */}
-						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'private' ? 'flex' : 'none' }}>
-							{providerNamesOfWantToUseOption.private.map((providerName) => {
-								const isSelected = selectedProviderName === providerName
-								return (
-									<button
-										key={`private-${providerName}`}
-										onClick={() => setSelectedProviderName(providerName)}
-										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full
-											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-									>
-										{displayInfoOfProviderName(providerName).title}
-									</button>
-								)
-							})}
-						</div>
-
-						{/* Cheap providers - only visible when wantToUseOption is 'cheap' */}
-						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'cheap' ? 'flex' : 'none' }}>
-							{providerNamesOfWantToUseOption.cheap.map((providerName) => {
-								const isSelected = selectedProviderName === providerName
-								return (
-									<button
-										key={`cheap-${providerName}`}
-										onClick={() => setSelectedProviderName(providerName)}
-										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full
-											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-									>
-										{displayInfoOfProviderName(providerName).title}
-									</button>
-								)
-							})}
-						</div>
-
-						{/* All providers - only visible when wantToUseOption is 'all' */}
-						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'all' ? 'flex' : 'none' }}>
-							{providerNames.map((providerName) => {
-								const isSelected = selectedProviderName === providerName
-								return (
-									<button
-										key={`all-${providerName}`}
-										onClick={() => setSelectedProviderName(providerName)}
-										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full
-											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-									>
-										{displayInfoOfProviderName(providerName).title}
-									</button>
-								)
-							})}
-						</div>
+					{/* Provider Buttons */}
+					<div
+						className="mb-2 w-full"
+					>
+						{/* Provider options - mapped for each wantToUseOption type */}
+						{(['smart', 'private', 'cheap', 'all'] as WantToUseOption[]).map((option) => (
+							<div
+								key={option}
+								className={`flex flex-wrap items-center w-full
+									${wantToUseOption === option ? 'flex' : 'hidden opacity-0 pointer-events-none'}
+								`}
+							>
+								{(option === 'all' ? providerNames : providerNamesOfWantToUseOption[option]).map((providerName) => {
+									const isSelected = selectedProviderName === providerName
+									return (
+										<button
+											key={providerName}
+											onClick={() => setSelectedProviderName(providerName)}
+											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+												${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+										>
+											{displayInfoOfProviderName(providerName).title}
+										</button>
+									)
+								})}
+							</div>
+						))}
 					</div>
 
 					{/* Description */}

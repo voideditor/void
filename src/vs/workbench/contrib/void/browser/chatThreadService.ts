@@ -35,6 +35,32 @@ import { truncate } from '../../../../base/common/strings.js';
 import { THREAD_STORAGE_KEY } from '../common/storageKeys.js';
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
 
+export const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
+	if (!currentSelections) return null
+
+	for (let i = 0; i < currentSelections.length; i += 1) {
+		const s = currentSelections[i]
+
+		if (s.uri.fsPath !== newSelection.uri.fsPath) continue
+
+		if (s.type === 'File' && newSelection.type === 'File') {
+			return i
+		}
+		if (s.type === 'CodeSelection' && newSelection.type === 'CodeSelection') {
+			if (s.uri.fsPath !== newSelection.uri.fsPath) continue
+			// if there's any collision return true
+			const [oldStart, oldEnd] = s.range
+			const [newStart, newEnd] = newSelection.range
+			if (oldStart !== newStart || oldEnd !== newEnd) continue
+			return i
+		}
+		if (s.type === 'Folder' && newSelection.type === 'Folder') {
+			return i
+		}
+	}
+	return null
+}
+
 
 /*
 
@@ -281,14 +307,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 
 		const oldStagingSelections = this.getCurrentThreadState().stagingSelections || [];
-		const fileIsAlreadyHere = oldStagingSelections.some(s => s.type === 'File' && s.uri.fsPath === newStagingSelection.uri.fsPath)
-		if (fileIsAlreadyHere) return
 
-		// remove all old selectons that are marked as `wasAddedAsCurrentFile`, and add new selection
-		const newStagingSelections: StagingSelectionItem[] = [
-			...oldStagingSelections.filter(s => !s.state?.wasAddedAsCurrentFile),
-			newStagingSelection
-		]
+		// remove all old selectons that are marked as `wasAddedAsCurrentFile`
+		const newStagingSelections: StagingSelectionItem[] = oldStagingSelections.filter(s => s.state && !s.state.wasAddedAsCurrentFile)
+
+		const fileIsAlreadyHere = oldStagingSelections.some(s => s.type === 'File' && s.uri.fsPath === newStagingSelection.uri.fsPath)
+
+		if (!fileIsAlreadyHere) {
+			newStagingSelections.push(newStagingSelection)
+		}
+
 		this.setCurrentThreadState({ stagingSelections: newStagingSelections });
 
 	}

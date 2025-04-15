@@ -256,7 +256,12 @@ const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, 
 					fullReasoningSoFar += newReasoning
 				}
 
-				onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
+				onText({
+					fullText: fullTextSoFar,
+					fullReasoning: fullReasoningSoFar,
+					toolCall: isAToolName(toolName) ? { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId } : undefined,
+				})
+
 			}
 			// on final
 			if (!fullTextSoFar && !fullReasoningSoFar && !toolName) {
@@ -402,6 +407,14 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 	let fullToolName = ''
 	let fullToolParams = ''
 
+
+	const runOnText = () => {
+		onText({
+			fullText,
+			fullReasoning,
+			toolCall: isAToolName(fullToolName) ? { name: fullToolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' } : undefined,
+		})
+	}
 	// there are no events for tool_use, it comes in at the end
 	stream.on('streamEvent', e => {
 		// start block
@@ -409,22 +422,22 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 			if (e.content_block.type === 'text') {
 				if (fullText) fullText += '\n\n' // starting a 2nd text block
 				fullText += e.content_block.text
-				onText({ fullText, fullReasoning, })
+				runOnText()
 			}
 			else if (e.content_block.type === 'thinking') {
 				if (fullReasoning) fullReasoning += '\n\n' // starting a 2nd reasoning block
 				fullReasoning += e.content_block.thinking
-				onText({ fullText, fullReasoning, })
+				runOnText()
 			}
 			else if (e.content_block.type === 'redacted_thinking') {
 				console.log('delta', e.content_block.type)
 				if (fullReasoning) fullReasoning += '\n\n' // starting a 2nd reasoning block
 				fullReasoning += '[redacted_thinking]'
-				onText({ fullText, fullReasoning, })
+				runOnText()
 			}
 			else if (e.content_block.type === 'tool_use') {
 				fullToolName += e.content_block.name ?? '' // anthropic gives us the tool name in the start block
-				onText({ fullText, fullReasoning, })
+				runOnText()
 			}
 		}
 
@@ -432,15 +445,15 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 		else if (e.type === 'content_block_delta') {
 			if (e.delta.type === 'text_delta') {
 				fullText += e.delta.text
-				onText({ fullText, fullReasoning, })
+				runOnText()
 			}
 			else if (e.delta.type === 'thinking_delta') {
 				fullReasoning += e.delta.thinking
-				onText({ fullText, fullReasoning, })
+				runOnText()
 			}
 			else if (e.delta.type === 'input_json_delta') { // tool use
 				fullToolParams += e.delta.partial_json ?? '' // anthropic gives us the partial delta (string) here - https://docs.anthropic.com/en/api/messages-streaming
-				onText({ fullText, fullReasoning, })
+				runOnText()
 			}
 		}
 	})

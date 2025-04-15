@@ -322,12 +322,12 @@ export const ApplyButtonsHTML = ({ codeStr, applyBoxId, reapplyIcon, uri }: { co
 			<IconShell1
 				Icon={X}
 				onClick={onReject}
-				{...tooltipPropsForApplyBlock({ tooltipName: 'Reject file' })}
+				{...tooltipPropsForApplyBlock({ tooltipName: 'Remove' })}
 			/>
 			<IconShell1
 				Icon={Check}
 				onClick={onAccept}
-				{...tooltipPropsForApplyBlock({ tooltipName: 'Accept file' })}
+				{...tooltipPropsForApplyBlock({ tooltipName: 'Keep' })}
 			/>
 		</>
 	}

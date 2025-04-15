@@ -115,7 +115,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'mistral') {
 		return {
 			// title: 'Mistral API',
-			title: 'Mistral API',
+			title: 'Mistral',
 		}
 	}
 

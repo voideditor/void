@@ -11,7 +11,6 @@ import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js
 
 export const sendLLMMessage = ({
 	messagesType,
-	aiInstructions,
 	messages: messages_,
 	onText: onText_,
 	onFinalMessage: onFinalMessage_,
@@ -22,6 +21,7 @@ export const sendLLMMessage = ({
 	modelSelection,
 	modelSelectionOptions,
 	chatMode,
+	separateSystemMessage,
 }: SendLLMMessageParams,
 
 	metricsService: IMetricsService
@@ -108,12 +108,12 @@ export const sendLLMMessage = ({
 		}
 		const { sendFIM, sendChat } = implementation
 		if (messagesType === 'chatMessages') {
-			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, aiInstructions, chatMode })
+			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage, chatMode })
 			return
 		}
 		if (messagesType === 'FIMMessage') {
 			if (sendFIM) {
-				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, aiInstructions })
+				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage })
 				return
 			}
 			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })

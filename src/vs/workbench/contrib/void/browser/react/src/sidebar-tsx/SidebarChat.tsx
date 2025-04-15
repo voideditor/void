@@ -29,6 +29,7 @@ import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg
 import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 import { error } from 'console';
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
+import { MAX_FILE_CHARS_PAGE } from '../../../toolsService.js';
 
 
 
@@ -1298,7 +1299,7 @@ const ToolRequestAcceptRejectButtons = () => {
 		</div>
 	)
 
-	return <div className="flex gap-2 my-1 items-center">
+	return <div className="flex gap-2 mx-4 items-center">
 		{approveButton}
 		{cancelButton}
 		{autoApproveToggle}
@@ -1434,17 +1435,17 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
 			if (toolMessage.params.startLine !== null || toolMessage.params.endLine !== null) {
-				const start = toolMessage.params.startLine === null ? `start` : `${toolMessage.params.startLine}`
-				const end = toolMessage.params.endLine === null ? `end` : `${toolMessage.params.endLine}`
+				const start = toolMessage.params.startLine === null ? `1` : `${toolMessage.params.startLine}`
+				const end = toolMessage.params.endLine === null ? `` : `${toolMessage.params.endLine}`
 				const addStr = `(${start}-${end})`
-				componentParams.title += ` ${addStr}`
+				componentParams.desc1 += ` ${addStr}`
 			}
 
 			if (toolMessage.type === 'success') {
 				const { params, result } = toolMessage
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
 				if (result.hasNextPage && params.pageNumber === 1)  // first page
-					componentParams.desc2 = '(more content available)'
+					componentParams.desc2 = `(first ${Math.round(MAX_FILE_CHARS_PAGE) / 1000}k)`
 				else if (params.pageNumber > 1) // subsequent pages
 					componentParams.desc2 = `(part ${params.pageNumber})`
 			}
@@ -2492,7 +2493,6 @@ export const SidebarChat = () => {
 				role: 'assistant',
 				displayContent: displayContentSoFar ?? '',
 				reasoning: reasoningSoFar ?? '',
-				toolCall: toolCallSoFar,
 				anthropicReasoning: null,
 			}}
 			messageIdx={streamingChatIdx}

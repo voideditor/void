@@ -130,6 +130,7 @@ export type VoidStaticModelInfo = { // not stateful
 	}
 
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated'; // separated = anthropic where "system" is a special paramete
+	specialToolFormat?: 'openai-style' | 'anthropic-style', // null defaults to XML
 	supportsFIM: boolean;
 
 	reasoningCapabilities: false | {
@@ -377,6 +378,7 @@ const anthropicModelOptions = {
 		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
 		downloadable: false,
 		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
 		reasoningCapabilities: {
 			supportsReasoning: true,
@@ -385,6 +387,7 @@ const anthropicModelOptions = {
 			reasoningMaxOutputTokens: 64_000, // can bump it to 128_000 with beta mode output-128k-2025-02-19
 			reasoningBudgetSlider: { type: 'slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
 		},
+
 	},
 	'claude-3-5-sonnet-20241022': {
 		contextWindow: 200_000,
@@ -392,6 +395,7 @@ const anthropicModelOptions = {
 		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
 		downloadable: false,
 		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
 		reasoningCapabilities: false,
 	},
@@ -401,6 +405,7 @@ const anthropicModelOptions = {
 		cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
 		downloadable: false,
 		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
 		reasoningCapabilities: false,
 	},
@@ -410,6 +415,7 @@ const anthropicModelOptions = {
 		cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
 		downloadable: false,
 		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
 		reasoningCapabilities: false,
 	},
@@ -418,6 +424,7 @@ const anthropicModelOptions = {
 		downloadable: false,
 		maxOutputTokens: 4_096,
 		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
 		reasoningCapabilities: false,
 	}
@@ -457,6 +464,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 2.00, output: 8.00, cache_read: 0.50 },
 		downloadable: false,
 		supportsFIM: false,
+		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
 		reasoningCapabilities: false,
 	},
@@ -466,6 +474,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 0.40, output: 1.60, cache_read: 0.10 },
 		downloadable: false,
 		supportsFIM: false,
+		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
 		reasoningCapabilities: false,
 	},
@@ -475,6 +484,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 0.10, output: 0.40, cache_read: 0.03 },
 		downloadable: false,
 		supportsFIM: false,
+		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
 		reasoningCapabilities: false,
 	},
@@ -502,6 +512,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 2.50, cache_read: 1.25, output: 10.00, },
 		downloadable: false,
 		supportsFIM: false,
+		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
@@ -520,6 +531,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		cost: { input: 0.15, cache_read: 0.075, output: 0.60, },
 		downloadable: false,
 		supportsFIM: false,
+		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'system-role', // ??
 		reasoningCapabilities: false,
 	},
@@ -550,6 +562,15 @@ const xAIModelOptions = {
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
+	// 'grok-3': {
+	// 	contextWindow: 1_000_000,
+	// 	maxOutputTokens: null,
+	// 	cost: {},
+	// 	downloadable: false,
+	// 	supportsFIM: false,
+	// 	supportsSystemMessage: 'system-role',
+	// 	reasoningCapabilities: {canIOReasoning:false, canTurnOffReasoning:true,},
+	// }
 } as const satisfies { [s: string]: VoidStaticModelInfo }
 
 const xAISettings: VoidStaticProviderInfo = {
@@ -1031,6 +1052,14 @@ export const getIsReasoningEnabledState = (
 	return isReasoningEnabled
 }
 
+
+export const getMaxOutputTokens = (providerName: ProviderName, modelName: string, opts: { isReasoningEnabled: boolean }) => {
+	const {
+		reasoningCapabilities,
+		maxOutputTokens
+	} = getModelCapabilities(providerName, modelName)
+	return opts.isReasoningEnabled && reasoningCapabilities ? reasoningCapabilities.reasoningMaxOutputTokens : maxOutputTokens
+}
 
 // used to force reasoning state (complex) into something simple we can just read from when sending a message
 export const getSendableReasoningInfo = (

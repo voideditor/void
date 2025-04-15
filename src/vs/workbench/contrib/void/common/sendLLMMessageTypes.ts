@@ -27,16 +27,39 @@ export const getErrorMessage: (error: unknown) => string = (error) => {
 }
 
 
-export type LLMChatMessage = {
-	role: 'system';
-	content: string;
+
+export type AnthropicLLMChatMessage = {
+	role: 'assistant',
+	content: string | (AnthropicReasoning | { type: 'text'; text: string }
+		| { type: 'tool_use'; name: string; input: Record<string, any>; id: string; }
+	)[];
 } | {
-	role: 'user';
+	role: 'user',
+	content: string | (
+		{ type: 'text'; text: string; } | { type: 'tool_result'; tool_use_id: string; content: string; }
+	)[]
+}
+export type OpenAILLMChatMessage = {
+	role: 'system' | 'user' | 'developer';
 	content: string;
 } | {
 	role: 'assistant',
-	content: string; // text content
-	anthropicReasoning: AnthropicReasoning[] | null;
+	content: string | (AnthropicReasoning | { type: 'text'; text: string })[];
+	tool_calls?: { type: 'function'; id: string; function: { name: string; arguments: string; } }[];
+} | {
+	role: 'tool',
+	content: string;
+	tool_call_id: string;
+}
+export type LLMChatMessage = AnthropicLLMChatMessage | OpenAILLMChatMessage
+
+
+
+
+export type LLMFIMMessage = {
+	prefix: string;
+	suffix: string;
+	stopTokens: string[];
 }
 
 
@@ -47,9 +70,9 @@ export type RawToolCallObj = {
 	name: ToolName;
 	rawParams: RawToolParamsObj;
 	doneParams: ToolParamName[];
+	id: string;
 	isDone: boolean;
 };
-
 
 export type AnthropicReasoning = ({ type: 'thinking'; thinking: any; signature: string; } | { type: 'redacted_thinking', data: any })
 
@@ -60,23 +83,18 @@ export type OnAbort = () => void
 export type AbortRef = { current: (() => void) | null }
 
 
-export type LLMFIMMessage = {
-	prefix: string;
-	suffix: string;
-	stopTokens: string[];
-}
-
+// service types
 type SendLLMType = {
 	messagesType: 'chatMessages';
-	messages: LLMChatMessage[];
+	messages: LLMChatMessage[]; // the type of raw chat messages that we send to Anthropic, OAI, etc
+	separateSystemMessage: string | undefined;
 	chatMode: ChatMode | null;
 } | {
 	messagesType: 'FIMMessage';
 	messages: LLMFIMMessage;
+	separateSystemMessage?: undefined;
 	chatMode?: undefined;
 }
-
-// service types
 export type ServiceSendLLMMessageParams = {
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
@@ -94,8 +112,6 @@ export type SendLLMMessageParams = {
 	onError: OnError;
 	logging: { loggingName: string, loggingExtras?: { [k: string]: any } };
 	abortRef: AbortRef;
-
-	aiInstructions: string;
 
 	modelSelection: ModelSelection;
 	modelSelectionOptions: ModelSelectionOptions | undefined;

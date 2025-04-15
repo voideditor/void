@@ -29,6 +29,32 @@ import { IChatThreadService } from './chatThreadService.js';
 // ---------- Register commands and keybindings ----------
 
 
+const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
+	if (!currentSelections) return null
+
+	for (let i = 0; i < currentSelections.length; i += 1) {
+		const s = currentSelections[i]
+
+		if (s.uri.fsPath !== newSelection.uri.fsPath) continue
+
+		if (s.type === 'File' && newSelection.type === 'File') {
+			return i
+		}
+		if (s.type === 'CodeSelection' && newSelection.type === 'CodeSelection') {
+			if (s.uri.fsPath !== newSelection.uri.fsPath) continue
+			// if there's any collision return true
+			const [oldStart, oldEnd] = s.range
+			const [newStart, newEnd] = newSelection.range
+			if (oldStart !== newStart || oldEnd !== newEnd) continue
+			return i
+		}
+		if (s.type === 'Folder' && newSelection.type === 'Folder') {
+			return i
+		}
+	}
+	return null
+}
+
 export const roundRangeToLines = (range: IRange | null | undefined, options: { emptySelectionBehavior: 'null' | 'line' }) => {
 	if (!range)
 		return null
@@ -63,31 +89,6 @@ export const roundRangeToLines = (range: IRange | null | undefined, options: { e
 // }
 
 
-const findStagingItemToReplace = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): [number, StagingSelectionItem] | null => {
-	if (!currentSelections) return null
-
-	for (let i = 0; i < currentSelections.length; i += 1) {
-		const s = currentSelections[i]
-
-		if (s.uri.fsPath !== newSelection.uri.fsPath) continue
-
-		if (s.type === 'File' && newSelection.type === 'File') {
-			return [i, s] as const
-		}
-		if (s.type === 'CodeSelection' && newSelection.type === 'CodeSelection') {
-			if (s.uri.fsPath !== newSelection.uri.fsPath) continue
-			// if there's any collision return true
-			const [oldStart, oldEnd] = s.range
-			const [newStart, newEnd] = newSelection.range
-			if (oldStart !== newStart || oldEnd !== newEnd) continue
-			return [i, s] as const
-		}
-		if (s.type === 'Folder' && newSelection.type === 'Folder') {
-			return [i, s] as const
-		}
-	}
-	return null
-}
 
 const VOID_OPEN_SIDEBAR_ACTION_ID = 'void.sidebar.open'
 registerAction2(class extends Action2 {
@@ -132,7 +133,7 @@ registerAction2(class extends Action2 {
 		}
 
 
-		const selection: StagingSelectionItem = !selectionRange || (selectionRange.startLineNumber > selectionRange.endLineNumber) ? {
+		const newSelection: StagingSelectionItem = !selectionRange || (selectionRange.startLineNumber > selectionRange.endLineNumber) ? {
 			type: 'File',
 			uri: model.uri,
 			language: model.getLanguageId(),
@@ -163,21 +164,17 @@ registerAction2(class extends Action2 {
 		}
 
 		// if matches with existing selection, overwrite (since text may change)
-		const replaceRes = findStagingItemToReplace(selections, selection)
-		if (replaceRes) {
-			const [idx, newSel] = replaceRes
-
-			if (idx !== undefined && idx !== -1) {
-				setSelections([
-					...selections!.slice(0, idx),
-					newSel,
-					...selections!.slice(idx + 1, Infinity)
-				])
-			}
+		const idx = findStagingSelectionIndex(selections, newSelection)
+		if (idx !== null && idx !== -1) {
+			setSelections([
+				...selections!.slice(0, idx),
+				newSelection,
+				...selections!.slice(idx + 1, Infinity)
+			])
 		}
 		// if no match, add it
 		else {
-			setSelections([...(selections ?? []), selection])
+			setSelections([...(selections ?? []), newSelection])
 		}
 
 	}

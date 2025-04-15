@@ -13,7 +13,6 @@ import { generateUuid } from '../../../../base/common/uuid.js';
 import { Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
-// import { INotificationService } from '../../notification/common/notification.js';
 
 // calls channel to implement features
 export const ILLMMessageService = createDecorator<ILLMMessageService>('llmMessageService');
@@ -98,6 +97,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			return null
 		}
 
+		const { settingsOfProvider, } = this.voidSettingsService.state
 
 		// add state for request id
 		const requestId = generateUuid();
@@ -106,13 +106,9 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this.llmMessageHooks.onError[requestId] = onError
 		this.llmMessageHooks.onAbort[requestId] = onAbort // used internally only
 
-		const { aiInstructions } = this.voidSettingsService.state.globalSettings
-		const { settingsOfProvider, } = this.voidSettingsService.state
-
 		// params will be stripped of all its functions over the IPC channel
 		this.channel.call('sendLLMMessage', {
 			...proxyParams,
-			aiInstructions,
 			requestId,
 			settingsOfProvider,
 			modelSelection,

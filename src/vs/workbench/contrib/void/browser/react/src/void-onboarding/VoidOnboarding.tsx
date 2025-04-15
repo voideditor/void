@@ -37,10 +37,11 @@ export const VoidOnboarding = () => {
 
 const FADE_DURATION_MS = 2000
 
-
-const FadeIn = ({ children, className, delayMs = 0, ...props }: { children: React.ReactNode, delayMs?: number, className?: string } & React.HTMLAttributes<HTMLDivElement>) => {
+const FadeIn = ({ children, className, delayMs = 0, durationMs, ...props }: { children: React.ReactNode, delayMs?: number, durationMs?: number, className?: string } & React.HTMLAttributes<HTMLDivElement>) => {
 
 	const [opacity, setOpacity] = useState(0)
+
+	const effectiveDurationMs = durationMs ?? FADE_DURATION_MS
 
 	useEffect(() => {
 
@@ -53,7 +54,7 @@ const FadeIn = ({ children, className, delayMs = 0, ...props }: { children: Reac
 
 
 	return (
-		<div className={className} style={{ opacity, transition: `opacity ${FADE_DURATION_MS}ms ease-in-out` }} {...props}>
+		<div className={className} style={{ opacity, transition: `opacity ${effectiveDurationMs}ms ease-in-out` }} {...props}>
 			{children}
 		</div>
 	)
@@ -461,19 +462,7 @@ const VoidOnboardingContent = () => {
 	}, [setPageIndex, voidSettingsState.globalSettings.isOnboardingComplete])
 
 
-	// TODO add a description next to the skip button saying (you can always restart the onboarding in Settings)
 	const contentOfIdx: { [pageIndex: number]: React.ReactNode } = {
-		// 0: <OnboardingPageShell
-		// 	top={
-		// 		<div className='bg-green-600 h-6 w-32' />
-		// 	}
-		// 	content={
-		// 		<div className='bg-red-600 h-[10000px] w-32' />
-		// 	}
-		// 	bottom={
-		// 		<div className='bg-blue-600 h-6 w-32' />
-		// 	}
-		// />,
 		0: <OnboardingPageShell
 			content={
 				<>
@@ -493,7 +482,7 @@ const VoidOnboardingContent = () => {
 
 			hasMaxWidth={false}
 			top={<></>}
-			content={<FadeIn className='flex flex-col items-center -translate-y-[20vh]'>
+			content={<div className='flex flex-col items-center -translate-y-[20vh]'>
 				{/* <div className="text-5xl text-center mb-8">AI Preferences</div> */}
 
 				<div className="text-4xl text-void-fg-2 mb-8 text-center">What are you looking for in an AI model?</div>
@@ -535,7 +524,7 @@ const VoidOnboardingContent = () => {
 				</div>
 
 
-			</FadeIn>}
+			</div>}
 		/>,
 		2: <OnboardingPageShell
 			top={
@@ -591,7 +580,7 @@ const VoidOnboardingContent = () => {
 								)
 							})}
 						</div>
-						
+
 						{/* Private providers - only visible when wantToUseOption is 'private' */}
 						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'private' ? 'flex' : 'none' }}>
 							{providerNamesOfWantToUseOption.private.map((providerName) => {
@@ -608,7 +597,7 @@ const VoidOnboardingContent = () => {
 								)
 							})}
 						</div>
-						
+
 						{/* Cheap providers - only visible when wantToUseOption is 'cheap' */}
 						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'cheap' ? 'flex' : 'none' }}>
 							{providerNamesOfWantToUseOption.cheap.map((providerName) => {
@@ -625,7 +614,7 @@ const VoidOnboardingContent = () => {
 								)
 							})}
 						</div>
-						
+
 						{/* All providers - only visible when wantToUseOption is 'all' */}
 						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'all' ? 'flex' : 'none' }}>
 							{providerNames.map((providerName) => {
@@ -684,7 +673,10 @@ const VoidOnboardingContent = () => {
 			}
 
 			bottom={
-				prevAndNextButtons
+				<FadeIn delayMs={50} durationMs={10}>
+					{prevAndNextButtons}
+				</FadeIn>
+
 			}
 
 		/>,

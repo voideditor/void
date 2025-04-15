@@ -57,7 +57,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 	const [didComputeCodespanLink, setDidComputeCodespanLink] = useState<boolean>(false)
 
 	let link = undefined
-	if (rawText.endsWith("`")) { // if codespan was completed
+	if (rawText.endsWith('`')) { // if codespan was completed
 
 		// get link from cache
 		link = chatThreadService.getCodespanLink({ codespanStr: text, messageIdx, threadId })
@@ -120,11 +120,11 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		return null;
 	}
 
-	if (t.type === "space") {
+	if (t.type === 'space') {
 		return <span>{t.raw}</span>
 	}
 
-	if (t.type === "code") {
+	if (t.type === 'code') {
 		const [firstLine, remainingContents] = separateOutFirstLine(t.text)
 		const firstLineIsURI = isValidUri(firstLine) && !codeURI
 		const contents = firstLineIsURI ? (remainingContents?.trimStart() || '') : t.text // exclude first-line URI from contents
@@ -152,7 +152,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		}
 
 		if (options.isApplyEnabled && chatMessageLocation) {
-			const isCodeblockClosed = t.raw.trimEnd().endsWith('```') // user should only be able to Apply when the code has been closed (t.raw ends with "```")
+			const isCodeblockClosed = t.raw.trimEnd().endsWith('```') // user should only be able to Apply when the code has been closed (t.raw ends with '```')
 
 			const applyBoxId = getApplyBoxId({
 				threadId: chatMessageLocation.threadId,
@@ -179,7 +179,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		/>
 	}
 
-	if (t.type === "heading") {
+	if (t.type === 'heading') {
 
 		const HeadingTag = `h${t.depth}` as keyof JSX.IntrinsicElements
 
@@ -188,7 +188,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		</HeadingTag>
 	}
 
-	if (t.type === "table") {
+	if (t.type === 'table') {
 		return (
 			<div>
 				<table>
@@ -217,14 +217,14 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		)
 		// return (
 		// 	<div>
-		// 		<table className={"min-w-full border border-void-bg-2"}>
+		// 		<table className={'min-w-full border border-void-bg-2'}>
 		// 			<thead>
-		// 				<tr className="bg-void-bg-1">
+		// 				<tr className='bg-void-bg-1'>
 		// 					{t.header.map((cell: any, index: number) => (
 		// 						<th
 		// 							key={index}
-		// 							className="px-4 py-2 border border-void-bg-2 font-semibold"
-		// 							style={{ textAlign: t.align[index] || "left" }}
+		// 							className='px-4 py-2 border border-void-bg-2 font-semibold'
+		// 							style={{ textAlign: t.align[index] || 'left' }}
 		// 						>
 		// 							{cell.raw}
 		// 						</th>
@@ -237,8 +237,8 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		// 						{row.map((cell: any, cellIndex: number) => (
 		// 							<td
 		// 								key={cellIndex}
-		// 								className={"px-4 py-2 border border-void-bg-2"}
-		// 								style={{ textAlign: t.align[cellIndex] || "left" }}
+		// 								className={'px-4 py-2 border border-void-bg-2'}
+		// 								style={{ textAlign: t.align[cellIndex] || 'left' }}
 		// 							>
 		// 								{cell.raw}
 		// 							</td>
@@ -251,32 +251,32 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		// )
 	}
 
-	if (t.type === "hr") {
+	if (t.type === 'hr') {
 		return <hr />
 	}
 
-	if (t.type === "blockquote") {
+	if (t.type === 'blockquote') {
 		return <blockquote>{t.text}</blockquote>
 	}
 
 	if (t.type === 'list_item') {
 		return <li>
-			<input type="checkbox" checked={t.checked} readOnly />
+			<input type='checkbox' checked={t.checked} readOnly />
 			<span>
 				<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} inPTag={true} codeURI={codeURI} {...options} />
 			</span>
 		</li>
 	}
 
-	if (t.type === "list") {
-		const ListTag = t.ordered ? "ol" : "ul"
+	if (t.type === 'list') {
+		const ListTag = t.ordered ? 'ol' : 'ul'
 
 		return (
 			<ListTag start={t.start ? t.start : undefined}>
 				{t.items.map((item, index) => (
 					<li key={index}>
 						{item.task && (
-							<input type="checkbox" checked={item.checked} readOnly />
+							<input type='checkbox' checked={item.checked} readOnly />
 						)}
 						<span>
 							<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={item.text} inPTag={true} {...options} />
@@ -287,7 +287,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		)
 	}
 
-	if (t.type === "paragraph") {
+	if (t.type === 'paragraph') {
 		const contents = <>
 			{t.tokens.map((token, index) => (
 				<RenderToken key={index}
@@ -304,15 +304,15 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		return <p>{contents}</p>
 	}
 
-	if (t.type === "text" || t.type === "escape") {
+	if (t.type === 'text' || t.type === 'escape' || t.type === 'html') {
 		return <span>{t.raw}</span>
 	}
 
-	if (t.type === "def") {
+	if (t.type === 'def') {
 		return <></> // Definitions are typically not rendered
 	}
 
-	if (t.type === "link") {
+	if (t.type === 'link') {
 		return (
 			<a
 				onClick={() => { window.open(t.href) }}
@@ -325,7 +325,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		)
 	}
 
-	if (t.type === "image") {
+	if (t.type === 'image') {
 		return <img
 			src={t.href}
 			alt={t.text}
@@ -334,16 +334,16 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		/>
 	}
 
-	if (t.type === "strong") {
+	if (t.type === 'strong') {
 		return <strong>{t.text}</strong>
 	}
 
-	if (t.type === "em") {
+	if (t.type === 'em') {
 		return <em>{t.text}</em>
 	}
 
 	// inline code
-	if (t.type === "codespan" || t.type === "html") {
+	if (t.type === 'codespan') {
 
 		if (options.isLinkDetectionEnabled && chatMessageLocation) {
 			return <CodespanWithLink
@@ -357,18 +357,18 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		return <Codespan text={t.text} />
 	}
 
-	if (t.type === "br") {
+	if (t.type === 'br') {
 		return <br />
 	}
 
 	// strikethrough
-	if (t.type === "del") {
+	if (t.type === 'del') {
 		return <del>{t.text}</del>
 	}
 	// default
 	return (
-		<div className="bg-orange-50 rounded-sm overflow-hidden p-2">
-			<span className="text-sm text-orange-500">Unknown token rendered...</span>
+		<div className='bg-orange-50 rounded-sm overflow-hidden p-2'>
+			<span className='text-sm text-orange-500'>Unknown token rendered...</span>
 		</div>
 	)
 }

@@ -475,7 +475,6 @@ const VoidOnboardingContent = () => {
 		// 	}
 		// />,
 		0: <OnboardingPageShell
-			key={0}
 			content={
 				<>
 					<div className="text-5xl font-light text-center">Welcome to Void</div>
@@ -491,11 +490,10 @@ const VoidOnboardingContent = () => {
 			}
 		/>,
 		1: <OnboardingPageShell
-			key={1}
 
 			hasMaxWidth={false}
 			top={<></>}
-			content={<FadeIn className='flex flex-col items-center -translate-y-16'>
+			content={<FadeIn className='flex flex-col items-center -translate-y-[20vh]'>
 				{/* <div className="text-5xl text-center mb-8">AI Preferences</div> */}
 
 				<div className="text-4xl text-void-fg-2 mb-8 text-center">What are you looking for in an AI model?</div>
@@ -540,9 +538,6 @@ const VoidOnboardingContent = () => {
 			</FadeIn>}
 		/>,
 		2: <OnboardingPageShell
-			key={2}
-
-
 			top={
 				<>
 					{/* Title */}
@@ -551,7 +546,9 @@ const VoidOnboardingContent = () => {
 
 					{/* Preference Selector */}
 
-					<div className="mb-6 w-fit mx-auto flex items-center overflow-hidden bg-zinc-700/5 dark:bg-zinc-300/5 rounded-md">
+					<div
+						className="mb-6 w-fit mx-auto flex items-center overflow-hidden bg-zinc-700/5 dark:bg-zinc-300/5 rounded-md"
+					>
 						{[
 							{ id: 'smart', label: 'Intelligent' },
 							{ id: 'private', label: 'Private' },
@@ -576,28 +573,75 @@ const VoidOnboardingContent = () => {
 
 
 
-					{/* Provider Buttons */}
-					<div
-						key={wantToUseOption}
-						className="mb-2 flex flex-wrap items-center w-full"
-					>
-
-						{(wantToUseOption === 'all' ? providerNames : providerNamesOfWantToUseOption[wantToUseOption]).map((providerName) => {
-							const isSelected = selectedProviderName === providerName
-
-							return (
-								<button
-									key={providerName}
-									onClick={() => setSelectedProviderName(providerName)}
-									className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-colors duration-150
-											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}
-										`}
-								>
-									{displayInfoOfProviderName(providerName).title}
-								</button>
-							)
-						})}
-
+					{/* Provider Buttons - Pre-render all sets and use CSS to hide/show */}
+					<div className="mb-2 w-full">
+						{/* Smart providers - only visible when wantToUseOption is 'smart' */}
+						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'smart' ? 'flex' : 'none' }}>
+							{providerNamesOfWantToUseOption.smart.map((providerName) => {
+								const isSelected = selectedProviderName === providerName
+								return (
+									<button
+										key={`smart-${providerName}`}
+										onClick={() => setSelectedProviderName(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								)
+							})}
+						</div>
+						
+						{/* Private providers - only visible when wantToUseOption is 'private' */}
+						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'private' ? 'flex' : 'none' }}>
+							{providerNamesOfWantToUseOption.private.map((providerName) => {
+								const isSelected = selectedProviderName === providerName
+								return (
+									<button
+										key={`private-${providerName}`}
+										onClick={() => setSelectedProviderName(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								)
+							})}
+						</div>
+						
+						{/* Cheap providers - only visible when wantToUseOption is 'cheap' */}
+						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'cheap' ? 'flex' : 'none' }}>
+							{providerNamesOfWantToUseOption.cheap.map((providerName) => {
+								const isSelected = selectedProviderName === providerName
+								return (
+									<button
+										key={`cheap-${providerName}`}
+										onClick={() => setSelectedProviderName(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								)
+							})}
+						</div>
+						
+						{/* All providers - only visible when wantToUseOption is 'all' */}
+						<div className="flex flex-wrap items-center w-full" style={{ display: wantToUseOption === 'all' ? 'flex' : 'none' }}>
+							{providerNames.map((providerName) => {
+								const isSelected = selectedProviderName === providerName
+								return (
+									<button
+										key={`all-${providerName}`}
+										onClick={() => setSelectedProviderName(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								)
+							})}
+						</div>
 					</div>
 
 					{/* Description */}
@@ -659,7 +703,6 @@ const VoidOnboardingContent = () => {
 		// 	{prevAndNextButtons}
 		// </div>,
 		3: <OnboardingPageShell
-			key={3}
 
 			content={
 				<div>
@@ -676,7 +719,6 @@ const VoidOnboardingContent = () => {
 			bottom={prevAndNextButtons}
 		/>,
 		4: <OnboardingPageShell
-			key={4}
 
 			content={
 				<>

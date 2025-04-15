@@ -34,11 +34,8 @@ mkdir -pv "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
 
 # Exclude create-appimage.sh and appimagetool-x86_64.AppImage from being copied
 echo "Copying files excluding create-appimage.sh and appimagetool-x86_64.AppImage..."
-for file in ./*; do
-    if [[ "$file" != "./create-appimage.sh" && "$file" != "./appimagetool-x86_64.AppImage" ]]; then
-        cp -rv "$file" "$APP_DIR/usr/bin/"
-    fi
-done
+
+cp -v ./void "$APP_DIR/usr/bin/"
 
 # Copy the icon to required locations
 cp -v ./void.png "$APP_DIR/void.png"

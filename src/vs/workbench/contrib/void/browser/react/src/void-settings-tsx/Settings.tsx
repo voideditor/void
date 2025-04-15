@@ -121,7 +121,7 @@ export const AnimatedCheckmarkButton = ({ text, className }: { text?: string, cl
 
 	return <div
 		className={`flex items-center gap-1.5 w-fit
-			${className ? className : `px-2 py-0.5 text-xs text-white bg-[#0e70c0] rounded-sm`}
+			${className ? className : `px-2 py-0.5 text-xs text-zinc-900 bg-zinc-100 rounded-sm`}
 		`}
 	>
 		<svg className="size-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -146,7 +146,7 @@ const AddButton = ({ disabled, text = 'Add', ...props }: { disabled?: boolean, t
 
 	return <button
 		disabled={disabled}
-		className={`bg-[#0e70c0] px-3 py-1 text-white rounded-sm ${!disabled ? 'hover:bg-[#1177cb] cursor-pointer' : 'opacity-50 cursor-not-allowed bg-opacity-70'}`}
+		className={`bg-[#0e70c0] px-3 py-1 text-white dark:text-black rounded-sm ${!disabled ? 'hover:bg-[#1177cb] cursor-pointer' : 'opacity-50 cursor-not-allowed bg-opacity-70'}`}
 		{...props}
 	>{text}</button>
 
@@ -175,7 +175,7 @@ export const AddModelInputBox = ({ providerName: permanentProviderName, classNam
 	const numModels = settingsState.settingsOfProvider[providerName].models.length
 
 	if (showCheckmark) {
-		return <AnimatedCheckmarkButton text='Added' className={`bg-[#0e70c0] text-white px-3 py-1 rounded-sm ${className}`} />
+		return <AnimatedCheckmarkButton text='Added' className={`bg-[#0e70c0] text-white dark:text-black px-3 py-1 rounded-sm ${className}`} />
 	}
 
 	if (!isOpen) {

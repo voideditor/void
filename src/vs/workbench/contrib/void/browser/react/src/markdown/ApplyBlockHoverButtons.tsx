@@ -162,7 +162,6 @@ export const useApplyButtonState = ({ applyBoxId, uri }: { applyBoxId: string, u
 		)
 		if (shouldUpdate) {
 			rerender(c => c + 1)
-			console.log('rerendering....')
 		}
 	}, [applyBoxId, uri]))
 
@@ -322,12 +321,12 @@ export const ApplyButtonsHTML = ({ codeStr, applyBoxId, reapplyIcon, uri }: { co
 			<IconShell1
 				Icon={X}
 				onClick={onReject}
-				{...tooltipPropsForApplyBlock({ tooltipName: 'Reject file' })}
+				{...tooltipPropsForApplyBlock({ tooltipName: 'Remove' })}
 			/>
 			<IconShell1
 				Icon={Check}
 				onClick={onAccept}
-				{...tooltipPropsForApplyBlock({ tooltipName: 'Accept file' })}
+				{...tooltipPropsForApplyBlock({ tooltipName: 'Keep' })}
 			/>
 		</>
 	}

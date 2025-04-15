@@ -25,6 +25,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { localize2 } from '../../../../nls.js';
 import { StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
 import { IChatThreadService } from './chatThreadService.js';
+import { getActiveWindow } from '../../../../base/browser/dom.js';
 
 // ---------- Register commands and keybindings ----------
 
@@ -225,9 +226,13 @@ registerAction2(class extends Action2 {
 		metricsService.capture('Chat Navigation', { type: 'New Chat' })
 
 		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		stateService.fireFocusChat()
 		const chatThreadService = accessor.get(IChatThreadService)
 		chatThreadService.openNewThread()
+
+		// focus
+		stateService.fireFocusChat()
+		const window = getActiveWindow()
+		window.requestAnimationFrame(() => stateService.fireFocusChat())
 	}
 })
 

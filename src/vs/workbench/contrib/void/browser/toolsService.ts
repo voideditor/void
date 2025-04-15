@@ -34,7 +34,7 @@ type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awai
 
 
 // pagination info
-export const MAX_FILE_CHARS_PAGE = 50_000
+export const MAX_FILE_CHARS_PAGE = Infinity
 export const MAX_CHILDREN_URIs_PAGE = 500
 export const MAX_TERMINAL_CHARS_PAGE = 20_000
 export const TERMINAL_TIMEOUT_TIME = 5 // seconds
@@ -163,8 +163,11 @@ export class ToolsService implements IToolsService {
 				const uri = validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
-				const startLine = validateNumber(startLineUnknown, { default: null })
-				const endLine = validateNumber(endLineUnknown, { default: null })
+				let startLine = validateNumber(startLineUnknown, { default: null })
+				let endLine = validateNumber(endLineUnknown, { default: null })
+
+				if (startLine !== null && startLine < 1) startLine = null
+				if (endLine !== null && endLine < 1) endLine = null
 
 				return { uri, startLine, endLine, pageNumber }
 			},
@@ -194,7 +197,7 @@ export class ToolsService implements IToolsService {
 				return { queryStr, searchInFolder, pageNumber }
 
 			},
-			search_files: (params: RawToolParamsObj) => {
+			search_for_files: (params: RawToolParamsObj) => {
 				const {
 					query: queryUnknown,
 					search_in_folder: searchInFolderUnknown,
@@ -308,7 +311,7 @@ export class ToolsService implements IToolsService {
 				return { result: { uris, hasNextPage } }
 			},
 
-			search_files: async ({ queryStr, isRegex, searchInFolder, pageNumber }) => {
+			search_for_files: async ({ queryStr, isRegex, searchInFolder, pageNumber }) => {
 				const searchFolders = searchInFolder === null ?
 					workspaceContextService.getWorkspace().folders.map(f => f.uri)
 					: [searchInFolder]
@@ -400,7 +403,7 @@ export class ToolsService implements IToolsService {
 		// given to the LLM after the call
 		this.stringOfResult = {
 			read_file: (params, result) => {
-				return `${result.fileContents}${nextPageStr(result.hasNextPage)}${result.hasNextPage ? `This file has ${result.totalFileLen} characters, paginated ${MAX_FILE_CHARS_PAGE} at a time.` : ''}`
+				return `${params.uri.fsPath}\n\`\`\`\n${result.fileContents}\n\`\`\`${nextPageStr(result.hasNextPage)}`
 			},
 			ls_dir: (params, result) => {
 				const dirTreeStr = stringifyDirectoryTree1Deep(params, result)
@@ -412,7 +415,7 @@ export class ToolsService implements IToolsService {
 			search_pathnames_only: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
-			search_files: (params, result) => {
+			search_for_files: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
 			read_lint_errors: (params, result) => {

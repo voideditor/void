@@ -74,8 +74,8 @@ export const voidTools = {
 		description: `Returns full contents of a given file.`,
 		params: {
 			...uriParam('file'),
-			start_line: { description: 'Optional. Default is 1. Start reading on this line.' },
-			end_line: { description: 'Optional. Default is Infinity. Stop reading after this line.' },
+			start_line: { description: 'Optional. Only fill this in if you already know the line numbers you need to search. Defaults to 1.' },
+			end_line: { description: 'Optional. Only fill this in if you already know the line numbers you need to search. Defaults to Infinity.' },
 			...paginationParam,
 		},
 	},
@@ -84,7 +84,7 @@ export const voidTools = {
 		name: 'ls_dir',
 		description: `Lists all files and folders in the given URI.`,
 		params: {
-			...uriParam('folder'),
+			uri: { description: `Optional. The FULL path to the ${'folder'}. Leave this as empty or "" to search all folders.` },
 			...paginationParam,
 		},
 	},
@@ -106,19 +106,19 @@ export const voidTools = {
 		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.`,
 		params: {
 			query: { description: `Your query for the search.` },
-			search_in_folder: { description: 'Optional. Only search files in this given folder glob.' },
+			search_in_folder: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
 			...paginationParam,
 		},
 	},
 
 
 
-	search_files: {
-		name: 'search_files',
-		description: `Returns all pathnames that match a given query (searches ONLY file contents). The query can be any substring or glob. You can follow this with read_file to view result contents.`,
+	search_for_files: {
+		name: 'search_for_files',
+		description: `Returns a list of file names whose content matches the given query. The query can be any substring or regex.`,
 		params: {
 			query: { description: `Your query for the search.` },
-			search_in_folder: { description: 'Optional. Only search files in this given folder glob.' },
+			search_in_folder: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
 			is_regex: { description: 'Optional. Default is false. Whether query is a regex.' },
 			...paginationParam,
 		},
@@ -158,10 +158,9 @@ export const voidTools = {
 			...uriParam('file'),
 			change_description: {
 				description: `\
-A brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing. \
-NEVER re-write the whole file. Instead, use comments like  "// ... existing code ...". Bias towards writing as little as possible. \
-Your description will be handed to a smaller model to make the change, so it must be clear and concise. \
 Your description MUST be wrapped in triple backticks. \
+A code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing. \
+NEVER re-write the whole file. Bias towards writing as little as possible. \
 Here's an example of a good description:\n${editToolDescriptionExample}`
 			}
 		},
@@ -345,7 +344,6 @@ ${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
 	ansStrs.push(fsInfo)
 	if (toolDefinitions) ansStrs.push(toolDefinitions)
 	ansStrs.push(importantDetails)
-	ansStrs.push('Now, please assist the user with their query.')
 
 	const fullSystemMsgStr = ansStrs
 		.join('\n\n\n')
@@ -464,13 +462,13 @@ Output SEARCH/REPLACE blocks to edit the file according to the desired change. Y
 
 Directions:
 1. Your OUTPUT should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
-2. The "ORIGINAL" code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. This includes whitespace, comments, and other details.
-3. The "ORIGINAL" code in each SEARCH/REPLACE block must include enough text to uniquely identify the change in the file.
+2. The "ORIGINAL" code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. The original code must NOT includes any new whitespace, comments, or any other modifications from the original code.
+3. The "ORIGINAL" code in each SEARCH/REPLACE block must include enough text to uniquely identify the change in the file, but please bias towards writing as little as possible.
 4. The "ORIGINAL" code in each SEARCH/REPLACE block must be disjoint from all other blocks.
 
 The SEARCH/REPLACE blocks you generate will be applied immediately, and so they **MUST** produce a file that the user can run IMMEDIATELY.
 - Make sure you add all necessary imports.
-- Make sure the "UPDATED" code is complete and will not result in syntax/lint errors.
+- Make sure the "UPDATED" code is ready for production as-is, and fix any relevant lint errors.
 
 Follow coding conventions of the user (spaces, semilcolons, comments, etc). If the user spaces or formats things a certain way, CONTINUE formatting it that way, even if you prefer otherwise.
 

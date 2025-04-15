@@ -1235,7 +1235,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			_removeStylesFns: new Set(),
 		}
 
-		console.log('FIRING START STREAMING IN DIFFZONE!!!')
 		const diffZone = this._addDiffArea(adding)
 		this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })

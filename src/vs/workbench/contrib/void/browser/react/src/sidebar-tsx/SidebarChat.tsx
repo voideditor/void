@@ -2492,7 +2492,6 @@ export const SidebarChat = () => {
 				role: 'assistant',
 				displayContent: displayContentSoFar ?? '',
 				reasoning: reasoningSoFar ?? '',
-				toolCall: toolCallSoFar,
 				anthropicReasoning: null,
 			}}
 			messageIdx={streamingChatIdx}

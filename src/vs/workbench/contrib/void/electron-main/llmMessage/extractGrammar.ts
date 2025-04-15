@@ -3,6 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { generateUuid } from '../../../../../base/common/uuid.js'
 import { endsWithAnyPrefixOf, SurroundingsRemover } from '../../common/helpers/extractCodeFromResult.js'
 import { availableTools, InternalToolInfo, ToolName, ToolParamName } from '../../common/prompt/prompts.js'
 import { OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js'
@@ -160,7 +161,7 @@ const findIndexOfAny = (fullText: string, matches: string[]) => {
 
 
 type ToolOfToolName = { [toolName: string]: InternalToolInfo | undefined }
-const parseXMLPrefixToToolCall = (toolName: ToolName, str: string, toolOfToolName: ToolOfToolName): RawToolCallObj => {
+const parseXMLPrefixToToolCall = (toolName: ToolName, toolId: string, str: string, toolOfToolName: ToolOfToolName): RawToolCallObj => {
 	const paramsObj: RawToolParamsObj = {}
 	const doneParams: ToolParamName[] = []
 	let isDone = false
@@ -179,7 +180,8 @@ const parseXMLPrefixToToolCall = (toolName: ToolName, str: string, toolOfToolNam
 			name: toolName,
 			rawParams: paramsObj,
 			doneParams: doneParams,
-			isDone: isDone
+			isDone: isDone,
+			id: toolId,
 		}
 		return ans
 	}
@@ -255,14 +257,18 @@ const parseXMLPrefixToToolCall = (toolName: ToolName, str: string, toolOfToolNam
 }
 
 export const extractToolsWrapper = (
-	onText: OnText, onFinalMessage: OnFinalMessage, chatMode: ChatMode
+	onText: OnText, onFinalMessage: OnFinalMessage, chatMode: ChatMode | null
 ): { newOnText: OnText, newOnFinalMessage: OnFinalMessage } => {
+
+	if (!chatMode) return { newOnText: onText, newOnFinalMessage: onFinalMessage }
 	const tools = availableTools(chatMode)
 	if (!tools) return { newOnText: onText, newOnFinalMessage: onFinalMessage }
 
 	const toolOfToolName: ToolOfToolName = {}
 	const toolOpenTags = tools.map(t => `<${t.name}>`)
 	for (const t of tools) { toolOfToolName[t.name] = t }
+
+	const toolId = generateUuid()
 
 	// detect <availableTools[0]></availableTools[0]>, etc
 	let fullText = '';
@@ -315,13 +321,11 @@ export const extractToolsWrapper = (
 		if (foundOpenTag !== null) {
 			latestToolCall = parseXMLPrefixToToolCall(
 				foundOpenTag.toolName,
+				toolId,
 				trueFullText.substring(foundOpenTag.idx, Infinity),
 				toolOfToolName,
 			)
-
 		}
-
-
 
 		onText({
 			...params,

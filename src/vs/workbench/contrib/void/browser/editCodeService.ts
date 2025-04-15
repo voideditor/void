@@ -47,6 +47,7 @@ import { IVoidModelService } from '../common/voidModelService.js';
 import { deepClone } from '../../../../base/common/objects.js';
 import { acceptBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../common/helpers/colors.js';
 import { DiffArea, Diff, CtrlKZone, VoidFileSnapshot, DiffAreaSnapshotEntry, diffAreaSnapshotKeys, DiffZone, TrackingZone, ComputedDiff } from '../common/editCodeServiceTypes.js';
+import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -202,6 +203,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		// @IFileService private readonly _fileService: IFileService,
 		@IVoidModelService private readonly _voidModelService: IVoidModelService,
+		@IConvertToLLMMessageService private readonly _convertToLLMMessageService: IConvertToLLMMessageService,
 	) {
 		super();
 
@@ -1267,6 +1269,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	private _initializeWriteoverStream(opts: StartApplyingOpts): [DiffZone, Promise<void>] | undefined {
 
 		const { from, } = opts
+		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
+
 
 		const uri = this._getURIBeforeStartApplying(opts)
 		if (!uri) return
@@ -1300,12 +1306,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const originalCode = startRange === 'fullFile' ? originalFileCode : originalFileCode.split('\n').slice((startRange[0] - 1), (startRange[1] - 1) + 1).join('\n')
 		const language = model.getLanguageId()
 		let messages: LLMChatMessage[]
+		let separateSystemMessage: string | undefined
 		if (from === 'ClickApply') {
-			const userContent = rewriteCode_userMessage({ originalCode, applyStr: opts.applyStr, language })
-			messages = [
-				{ role: 'system', content: rewriteCode_systemMessage, },
-				{ role: 'user', content: userContent, }
-			]
+			const { messages: a, separateSystemMessage: b } = this._convertToLLMMessageService.prepareLLMSimpleMessages({
+				systemMessage: rewriteCode_systemMessage,
+				simpleMessages: [{ role: 'user', content: rewriteCode_userMessage({ originalCode, applyStr: opts.applyStr, language }), }],
+				featureName,
+				modelSelection,
+			})
+			messages = a
+			separateSystemMessage = b
 		}
 		else if (from === 'QuickEdit') {
 			if (!ctrlKZoneIfQuickEdit) return
@@ -1316,11 +1326,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const endLine = startRange === 'fullFile' ? model.getLineCount() : startRange[1]
 			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: originalFileCode, startLine, endLine })
 			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, fimTags: quickEditFIMTags, language })
-			// type: 'messages',
-			messages = [
-				{ role: 'system', content: ctrlKStream_systemMessage({ quickEditFIMTags: quickEditFIMTags }), },
-				{ role: 'user', content: userContent, }
-			]
+
+			const { messages: a, separateSystemMessage: b } = this._convertToLLMMessageService.prepareLLMSimpleMessages({
+				systemMessage: ctrlKStream_systemMessage({ quickEditFIMTags: quickEditFIMTags }),
+				simpleMessages: [{ role: 'user', content: userContent, }],
+				featureName,
+				modelSelection,
+			})
+			messages = a
+			separateSystemMessage = b
+
 		}
 		else { throw new Error(`featureName ${from} is invalid`) }
 
@@ -1384,10 +1399,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const latestStreamLocationMutable: StreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
 
-		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
-		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
-
 		// allowed to throw errors - this is called inside a promise that handles everything
 		const runWriteover = async () => {
 			let shouldSendAnotherMessage = true
@@ -1410,6 +1421,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					separateSystemMessage,
 					chatMode: null, // not chat
 					onText: (params) => {
 						const { fullText: fullText_ } = params
@@ -1485,6 +1497,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): [DiffZone, Promise<void>] | undefined {
 		const { from, applyStr, } = opts
+		const featureName: FeatureName = 'Apply'
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
 		const uri = this._getURIBeforeStartApplying(opts)
 		if (!uri) return
@@ -1498,10 +1513,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		// build messages - ask LLM to generate search/replace block text
 		const originalFileCode = model.getValue(EndOfLinePreference.LF)
 		const userMessageContent = searchReplace_userMessage({ originalCode: originalFileCode, applyStr: applyStr })
-		const messages: LLMChatMessage[] = [
-			{ role: 'system', content: searchReplace_systemMessage },
-			{ role: 'user', content: userMessageContent },
-		]
+
+		const { messages, separateSystemMessage: separateSystemMessage } = this._convertToLLMMessageService.prepareLLMSimpleMessages({
+			systemMessage: searchReplace_systemMessage,
+			simpleMessages: [{ role: 'user', content: userMessageContent, }],
+			featureName,
+			modelSelection,
+		})
 
 		// if URI is already streaming, return (should never happen, caller is responsible for checking)
 		if (this._uriIsStreaming(uri)) return
@@ -1593,10 +1611,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const addedTrackingZoneOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
 		diffZone._streamState.line = 1
 
-		const featureName: FeatureName = 'Apply'
-		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
-
 		const N_RETRIES = 2
 
 		// allowed to throw errors - this is called inside a promise that handles everything
@@ -1628,6 +1642,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					separateSystemMessage,
 					chatMode: null, // not chat
 					onText: (params) => {
 						const { fullText } = params
@@ -1682,7 +1697,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 									console.log('---------')
 									const content = errContentOfInvalidStr(originalBounds, block.orig, blockNum, blocks)
 									messages.push(
-										{ role: 'assistant', content: fullText, anthropicReasoning: null }, // latest output
+										{ role: 'assistant', content: fullText }, // latest output
 										{ role: 'user', content: content } // user explanation of what's wrong
 									)
 

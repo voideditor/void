@@ -6,7 +6,7 @@
 import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { os } from '../helpers/systemInfo.js';
-import { RawToolCallObj } from '../sendLLMMessageTypes.js';
+import { RawToolParamsObj } from '../sendLLMMessageTypes.js';
 import { toolNamesThatRequireApproval } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { ChatMode } from '../voidSettingsTypes.js';
@@ -218,12 +218,11 @@ Format:
 	}).join('\n\n')}`
 }
 
-export const toolCallXMLStr = (toolCall: RawToolCallObj) => {
-	const t = toolCall
-	const params = Object.keys(t.rawParams).map(paramName => `<${paramName}>${t.rawParams[paramName as ToolParamName]}</${paramName}>`).join('\n')
+export const toolCallXMLStr = (toolName: ToolName, toolParams: RawToolParamsObj) => {
+	const params = Object.keys(toolParams).map(paramName => `<${paramName}>${toolParams[paramName as ToolParamName]}</${paramName}>`).join('\n')
 	return `\
-<${toolCall.name}>${!params ? '' : `\n${params}`}
-</${toolCall.name}>`
+<${toolName}>${!params ? '' : `\n${params}`}
+</${toolName}>`
 		.replace('\t', '  ')
 }
 
@@ -231,7 +230,7 @@ export const toolCallXMLStr = (toolCall: RawToolCallObj) => {
 // - You are allowed to call multiple tools by specifying them consecutively. However, there should be NO text or writing between tool calls or after them.
 const systemToolsXMLPrompt = (chatMode: ChatMode) => {
 	const tools = availableTools(chatMode)
-	if (!tools || tools.length === 0) return ''
+	if (!tools || tools.length === 0) return null
 
 	const toolXMLDefinitions = (`\
 Available tools:
@@ -255,7 +254,7 @@ ${toolCallXMLGuidelines}`
 // ======================================================== chat (normal, gather, agent) ========================================================
 
 
-export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, directoryStr, chatMode: mode }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, runningTerminalIds: string[], chatMode: ChatMode }) => {
+export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, directoryStr, chatMode: mode, includeXMLToolDefinitions }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, runningTerminalIds: string[], chatMode: ChatMode, includeXMLToolDefinitions: boolean }) => {
 	const header = (`You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} whose job is \
 ${mode === 'agent' ? `to help the user develop, run, and make changes to their codebase.`
 			: mode === 'gather' ? `to search, understand, and reference files in the user's codebase.`
@@ -289,7 +288,7 @@ ${directoryStr}
 </files_overview>`)
 
 
-	const toolDefinitions = systemToolsXMLPrompt(mode)
+	const toolDefinitions = includeXMLToolDefinitions ? systemToolsXMLPrompt(mode) : null
 
 	const details: string[] = []
 

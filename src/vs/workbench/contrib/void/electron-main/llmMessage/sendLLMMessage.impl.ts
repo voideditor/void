@@ -10,15 +10,13 @@ import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
 
 
-import { LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
+import { AnthropicLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
 import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
-import { prepareFIMMessage, prepareMessages } from './preprocessLLMMessages.js';
-import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings } from '../../common/modelCapabilities.js';
+import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getMaxOutputTokens } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractToolsWrapper } from './extractGrammar.js';
 
 
 type InternalCommonMessageParams = {
-	aiInstructions: string;
 	onText: OnText;
 	onFinalMessage: OnFinalMessage;
 	onError: OnError;
@@ -29,8 +27,8 @@ type InternalCommonMessageParams = {
 	_setAborter: (aborter: () => void) => void;
 }
 
-type SendChatParams_Internal = InternalCommonMessageParams & { messages: LLMChatMessage[]; chatMode: ChatMode | null; }
-type SendFIMParams_Internal = InternalCommonMessageParams & { messages: LLMFIMMessage; }
+type SendChatParams_Internal = InternalCommonMessageParams & { messages: LLMChatMessage[]; separateSystemMessage: string | undefined; chatMode: ChatMode | null; }
+type SendFIMParams_Internal = InternalCommonMessageParams & { messages: LLMFIMMessage; separateSystemMessage: string | undefined; }
 export type ListParams_Internal<ModelResponse> = ModelListParams<ModelResponse>
 
 
@@ -96,7 +94,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 }
 
 
-const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, }: SendFIMParams_Internal) => {
+const _sendOpenAICompatibleFIM = ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -106,16 +104,14 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 		return
 	}
 
-	const messages = prepareFIMMessage({ messages: messages_, aiInstructions, })
-
 	const openai = newOpenAICompatibleSDK({ providerName, settingsOfProvider })
 	openai.completions
 		.create({
 			model: modelName,
-			prompt: messages.prefix,
-			suffix: messages.suffix,
-			stop: messages.stopTokens,
-			max_tokens: messages.maxTokens,
+			prompt: prefix,
+			suffix: suffix,
+			stop: stopTokens,
+			max_tokens: 300,
 		})
 		.then(async response => {
 			const fullText = response.choices[0]?.text
@@ -130,12 +126,10 @@ const _sendOpenAICompatibleFIM = ({ messages: messages_, onFinalMessage, onError
 
 
 
-const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, aiInstructions, chatMode }: SendChatParams_Internal) => {
+const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, chatMode, separateSystemMessage }: SendChatParams_Internal) => {
 	const {
 		modelName,
-		supportsSystemMessage,
-		contextWindow,
-		maxOutputTokens,
+		specialToolFormat,
 		reasoningCapabilities,
 	} = getModelCapabilities(providerName, modelName_)
 
@@ -146,15 +140,11 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
-	// max tokens
-	const maxTokens = reasoningInfo?.isReasoningEnabled && reasoningCapabilities ? reasoningCapabilities.reasoningMaxOutputTokens : maxOutputTokens
-
 	// instance
-	const { messages } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsAnthropicReasoningSignature: false, contextWindow, maxOutputTokens: maxTokens })
 	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
-		messages: messages,
+		messages: messages as any,
 		stream: true,
 		// max_completion_tokens: maxTokens,
 	}
@@ -168,8 +158,8 @@ const _sendOpenAICompatibleChat = ({ messages: messages_, onText, onFinalMessage
 		onFinalMessage = newOnFinalMessage
 	}
 
-	// manually parse out tool results
-	if (chatMode) {
+	// manually parse out tool results if XML
+	if (!specialToolFormat) {
 		const { newOnText, newOnFinalMessage } = extractToolsWrapper(onText, onFinalMessage, chatMode)
 		onText = newOnText
 		onFinalMessage = newOnFinalMessage
@@ -252,13 +242,10 @@ const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_,
 
 
 // ------------ ANTHROPIC ------------
-const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, aiInstructions, chatMode }: SendChatParams_Internal) => {
+const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, separateSystemMessage, chatMode }: SendChatParams_Internal) => {
 	const {
 		modelName,
-		supportsSystemMessage,
-		contextWindow,
-		maxOutputTokens,
-		reasoningCapabilities,
+		specialToolFormat,
 	} = getModelCapabilities(providerName, modelName_)
 
 	const thisConfig = settingsOfProvider.anthropic
@@ -269,25 +256,24 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
 	// anthropic-specific - max tokens
-	const maxTokens = reasoningInfo?.isReasoningEnabled && reasoningCapabilities ? reasoningCapabilities.reasoningMaxOutputTokens : maxOutputTokens
+	const maxTokens = getMaxOutputTokens(providerName, modelName_, { isReasoningEnabled: !!reasoningInfo?.isReasoningEnabled })
 
 	// instance
-	const { messages, separateSystemMessageStr } = prepareMessages({ messages: messages_, aiInstructions, supportsSystemMessage, supportsAnthropicReasoningSignature: true, contextWindow, maxOutputTokens: maxTokens })
 	const anthropic = new Anthropic({
 		apiKey: thisConfig.apiKey,
 		dangerouslyAllowBrowser: true
 	});
 
 	const stream = anthropic.messages.stream({
-		system: separateSystemMessageStr,
-		messages: messages,
+		system: separateSystemMessage ?? undefined,
+		messages: messages as AnthropicLLMChatMessage[],
 		model: modelName,
 		max_tokens: maxTokens ?? 4_096, // anthropic requires this
 		...includeInPayload,
 	})
 
 	// manually parse out tool results
-	if (chatMode) {
+	if (!specialToolFormat) {
 		const { newOnText, newOnFinalMessage } = extractToolsWrapper(onText, onFinalMessage, chatMode)
 		onText = newOnText
 		onFinalMessage = newOnFinalMessage
@@ -360,7 +346,7 @@ const sendAnthropicChat = ({ messages: messages_, providerName, onText, onFinalM
 
 // ------------ MISTRAL ------------
 // https://docs.mistral.ai/api/#tag/fim
-const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, aiInstructions, modelSelectionOptions }: SendFIMParams_Internal) => {
+const sendMistralFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -369,7 +355,6 @@ const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settings
 			onError({ message: `Model ${modelName_} (${modelName}) does not support FIM.`, fullError: null })
 		return
 	}
-	const messages = prepareFIMMessage({ messages: messages_, aiInstructions })
 
 	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
 	fimComplete(mistral,
@@ -378,7 +363,7 @@ const sendMistralFIM = ({ messages: messages_, onFinalMessage, onError, settings
 			prompt: messages.prefix,
 			suffix: messages.suffix,
 			stream: false,
-			maxTokens: messages.maxTokens,
+			maxTokens: 300,
 			stop: messages.stopTokens,
 		})
 		.then(async response => {
@@ -426,11 +411,9 @@ const ollamaList = async ({ onSuccess: onSuccess_, onError: onError_, settingsOf
 	}
 }
 
-const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsOfProvider, modelName, aiInstructions, _setAborter }: SendFIMParams_Internal) => {
+const sendOllamaFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter }: SendFIMParams_Internal) => {
 	const thisConfig = settingsOfProvider.ollama
 	const ollama = newOllamaSDK({ endpoint: thisConfig.endpoint })
-
-	const messages = prepareFIMMessage({ messages: messages_, aiInstructions, })
 
 	let fullText = ''
 	ollama.generate({
@@ -439,7 +422,7 @@ const sendOllamaFIM = ({ messages: messages_, onFinalMessage, onError, settingsO
 		suffix: messages.suffix,
 		options: {
 			stop: messages.stopTokens,
-			num_predict: messages.maxTokens, // max tokens
+			num_predict: 300, // max tokens
 			// repeat_penalty: 1,
 		},
 		raw: true,

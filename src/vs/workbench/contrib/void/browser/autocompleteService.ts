@@ -20,6 +20,7 @@ import { ILLMMessageService } from '../common/sendLLMMessageService.js';
 import { isWindows } from '../../../../base/common/platform.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';
+import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
 // import { IContextGatheringService } from './contextGatheringService.js';
 
 
@@ -791,18 +792,21 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		const featureName: FeatureName = 'Autocomplete'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
-
+		const aiInstructions = this._settingsService.state.globalSettings.aiInstructions
 
 		// set parameters of `newAutocompletion` appropriately
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
 				messagesType: 'FIMMessage',
-				messages: {
-					prefix: llmPrefix,
-					suffix: llmSuffix,
-					stopTokens: stopTokens,
-				},
+				messages: this._convertToLLMMessageService.prepareFIMMessage({
+					messages: {
+						prefix: llmPrefix,
+						suffix: llmSuffix,
+						stopTokens: stopTokens,
+					},
+					aiInstructions
+				}),
 				modelSelection,
 				modelSelectionOptions,
 				logging: { loggingName: 'Autocomplete' },
@@ -890,6 +894,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		@IEditorService private readonly _editorService: IEditorService,
 		@IModelService private readonly _modelService: IModelService,
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
+		@IConvertToLLMMessageService private readonly _convertToLLMMessageService: IConvertToLLMMessageService
 		// @IContextGatheringService private readonly _contextGatheringService: IContextGatheringService,
 	) {
 		super()

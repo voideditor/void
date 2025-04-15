@@ -1298,7 +1298,7 @@ const ToolRequestAcceptRejectButtons = () => {
 		</div>
 	)
 
-	return <div className="flex gap-2 my-1 items-center">
+	return <div className="flex gap-2 mx-4 items-center">
 		{approveButton}
 		{cancelButton}
 		{autoApproveToggle}

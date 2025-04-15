@@ -192,7 +192,9 @@ const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, 
 
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
-	const nativeToolsObj = potentialTools ? { tools: potentialTools } as const : {}
+	const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?
+		{ tools: potentialTools } as const
+		: {}
 
 	// instance
 	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
@@ -374,7 +376,9 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 
 	// tools
 	const potentialTools = chatMode !== null ? anthropicTools(chatMode) : null
-	const nativeToolsObj = potentialTools ? { tools: potentialTools, tool_choice: { type: 'auto' } } as const : {}
+	const nativeToolsObj = potentialTools && specialToolFormat === 'anthropic-style' ?
+		{ tools: potentialTools, tool_choice: { type: 'auto' } } as const
+		: {}
 
 
 	// instance

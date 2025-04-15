@@ -707,7 +707,7 @@ export const FeaturesTab = () => {
 								value={voidSettingsState.globalSettings.includeToolLintErrors}
 								onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
 							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Don't fix lint errors`}</span>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
 						</div>
 					</div>
 				</div>

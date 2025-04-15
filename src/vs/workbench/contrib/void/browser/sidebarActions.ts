@@ -29,6 +29,32 @@ import { findStagingSelectionIndex, IChatThreadService } from './chatThreadServi
 // ---------- Register commands and keybindings ----------
 
 
+export const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
+	if (!currentSelections) return null
+
+	for (let i = 0; i < currentSelections.length; i += 1) {
+		const s = currentSelections[i]
+
+		if (s.uri.fsPath !== newSelection.uri.fsPath) continue
+
+		if (s.type === 'File' && newSelection.type === 'File') {
+			return i
+		}
+		if (s.type === 'CodeSelection' && newSelection.type === 'CodeSelection') {
+			if (s.uri.fsPath !== newSelection.uri.fsPath) continue
+			// if there's any collision return true
+			const [oldStart, oldEnd] = s.range
+			const [newStart, newEnd] = newSelection.range
+			if (oldStart !== newStart || oldEnd !== newEnd) continue
+			return i
+		}
+		if (s.type === 'Folder' && newSelection.type === 'Folder') {
+			return i
+		}
+	}
+	return null
+}
+
 export const roundRangeToLines = (range: IRange | null | undefined, options: { emptySelectionBehavior: 'null' | 'line' }) => {
 	if (!range)
 		return null

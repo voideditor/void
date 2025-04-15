@@ -1172,7 +1172,7 @@ const titleOfToolName = {
 	'ls_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
 	'get_dir_structure': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
 	'search_pathnames_only': { done: 'Searched by file name', proposed: 'Search by file name', running: loadingTitleWrapper('Searching by file name') },
-	'search_files': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
+	'search_for_files': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
 	'create_file_or_folder': { done: `Created`, proposed: `Create`, running: loadingTitleWrapper(`Creating`) },
 	'delete_file_or_folder': { done: `Deleted`, proposed: `Delete`, running: loadingTitleWrapper(`Deleting`) },
 	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
@@ -1206,8 +1206,8 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 	} else if (toolName === 'search_pathnames_only') {
 		const toolParams = _toolParams as ToolCallParams['search_pathnames_only']
 		return `"${toolParams.queryStr}"`;
-	} else if (toolName === 'search_files') {
-		const toolParams = _toolParams as ToolCallParams['search_files']
+	} else if (toolName === 'search_for_files') {
+		const toolParams = _toolParams as ToolCallParams['search_for_files']
 		return `"${toolParams.queryStr}"`;
 	} else if (toolName === 'create_file_or_folder') {
 		const toolParams = _toolParams as ToolCallParams['create_file_or_folder']
@@ -1354,31 +1354,31 @@ const LintErrorChildren = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => {
 }
 
 const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => {
-    if (lintErrors.length === 0) return null;
-    const [isOpen, setIsOpen] = useState(false);
-    return (
-        <div className="w-full px-2 mt-0.5">
-            <div
-                className={`flex items-center cursor-pointer select-none transition-colors duration-150 pl-0 py-0.5 rounded group`}
-                onClick={() => setIsOpen(o => !o)}
-                style={{background: 'none'}}
-            >
-                <ChevronRight
-                    className={`mr-1 h-4 w-4 flex-shrink-0 transition-transform duration-100 text-void-fg-4 group-hover:text-void-fg-3 ${isOpen ? 'rotate-90' : ''}`}
-                />
-                <span className="font-medium text-void-fg-4 group-hover:text-void-fg-3 text-xs">Lint errors</span>
-            </div>
-            <div
-                className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100 py-1' : 'max-h-0 opacity-0'} text-xs pl-5`}
-            >
-                <div className="flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap text-void-fg-4 opacity-90 border-l-2 border-void-warning px-2 py-0.5">
-                {lintErrors.map((error, i) => (
-                    <div key={i} className="">Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
-                ))}
-                </div>
-            </div>
-        </div>
-    );
+	if (lintErrors.length === 0) return null;
+	const [isOpen, setIsOpen] = useState(false);
+	return (
+		<div className="w-full px-2 mt-0.5">
+			<div
+				className={`flex items-center cursor-pointer select-none transition-colors duration-150 pl-0 py-0.5 rounded group`}
+				onClick={() => setIsOpen(o => !o)}
+				style={{ background: 'none' }}
+			>
+				<ChevronRight
+					className={`mr-1 h-4 w-4 flex-shrink-0 transition-transform duration-100 text-void-fg-4 group-hover:text-void-fg-3 ${isOpen ? 'rotate-90' : ''}`}
+				/>
+				<span className="font-medium text-void-fg-4 group-hover:text-void-fg-3 text-xs">Lint errors</span>
+			</div>
+			<div
+				className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100 py-1' : 'max-h-0 opacity-0'} text-xs pl-5`}
+			>
+				<div className="flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap text-void-fg-4 opacity-90 border-l-2 border-void-warning px-2 py-0.5">
+					{lintErrors.map((error, i) => (
+						<div key={i} className="">Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
+					))}
+				</div>
+			</div>
+		</div>
+	);
 }
 
 
@@ -1605,7 +1605,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'search_files': {
+	'search_for_files': {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
@@ -1934,27 +1934,29 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 const Checkpoint = ({ message, threadId, messageIdx, isCheckpointGhost, threadIsRunning }: { message: CheckpointEntry, threadId: string; messageIdx: number, isCheckpointGhost: boolean, threadIsRunning: boolean }) => {
 	const accessor = useAccessor()
 	const chatThreadService = accessor.get('IChatThreadService')
+	const [showCheckpointIcon, setShowCheckpointIcon] = React.useState(false); // add icon state
 
 	return <div
-            className={`flex items-center justify-center px-2 `}
-        >
-            <div
+		className={`flex items-center justify-center px-2 `}
+	>
+		<div
 			className={`
                     text-xs
                     text-void-fg-3
                     cursor-pointer select-none
                     ${isCheckpointGhost ? 'opacity-50' : 'opacity-100'}
-				`}
+                `}
+			style={{ position: 'relative', display: 'inline-block' }} // allow absolute icon
 			onClick={() => {
 				if (threadIsRunning) return
 				chatThreadService.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
 			}}
-            >
+		>
                     Checkpoint
-            </div>
-        </div>
-
+		</div>
+	</div>
 }
+
 
 type ChatBubbleMode = 'display' | 'edit'
 type ChatBubbleProps = {
@@ -2354,30 +2356,30 @@ const CommandBarInChat = () => {
 
 const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) => {
 
-    const uri = URI.file(toolCallSoFar.rawParams.uri ?? 'unknown')
+	const uri = URI.file(toolCallSoFar.rawParams.uri ?? 'unknown')
 
-    const title = titleOfToolName['edit_file'].proposed
+	const title = titleOfToolName['edit_file'].proposed
 
-    const uriDone = toolCallSoFar.doneParams.includes('uri')
-    const desc1 = <span className='flex items-center'>
-        {uriDone ?
-            getBasename(toolCallSoFar.rawParams['uri'] ?? 'unknown')
-            : `Generating`}
-        <IconLoading />
-    </span>
+	const uriDone = toolCallSoFar.doneParams.includes('uri')
+	const desc1 = <span className='flex items-center'>
+		{uriDone ?
+			getBasename(toolCallSoFar.rawParams['uri'] ?? 'unknown')
+			: `Generating`}
+		<IconLoading />
+	</span>
 
 	// If URI has not been specified
 	return <ToolHeaderWrapper
-            title={title}
-            desc1={desc1}
-            desc2={<JumpToFileButton uri={uri} />}
+		title={title}
+		desc1={desc1}
+		desc2={<JumpToFileButton uri={uri} />}
 	>
 		<EditToolChildren
 			uri={uri}
 			changeDescription={toolCallSoFar.rawParams.change_description ?? ''}
 		/>
 		<IconLoading />
-        </ToolHeaderWrapper>
+	</ToolHeaderWrapper>
 
 
 

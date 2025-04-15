@@ -27,7 +27,7 @@ export type ToolCallParams = {
 	'ls_dir': { rootURI: URI, pageNumber: number },
 	'get_dir_structure': { rootURI: URI },
 	'search_pathnames_only': { queryStr: string, searchInFolder: string | null, pageNumber: number },
-	'search_files': { queryStr: string, isRegex: boolean, searchInFolder: URI | null, pageNumber: number },
+	'search_for_files': { queryStr: string, isRegex: boolean, searchInFolder: URI | null, pageNumber: number },
 	'read_lint_errors': { uri: URI },
 	// ---
 	'edit_file': { uri: URI, changeDescription: string },
@@ -43,7 +43,7 @@ export type ToolResultType = {
 	'ls_dir': { children: ShallowDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
 	'get_dir_structure': { str: string, },
 	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },
-	'search_files': { uris: URI[], hasNextPage: boolean },
+	'search_for_files': { uris: URI[], hasNextPage: boolean },
 	'read_lint_errors': { lintErrors: LintErrorItem[] | null },
 	// ---
 	'edit_file': Promise<{ lintErrors: LintErrorItem[] | null }>,

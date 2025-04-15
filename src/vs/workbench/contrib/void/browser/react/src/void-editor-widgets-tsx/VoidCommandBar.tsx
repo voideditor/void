@@ -245,12 +245,12 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	// </button>
 
 	const acceptAllButton = <AcceptAllButtonWrapper
-		text={'Accept File'}
+		text={'Keep Changes'}
 		onClick={onAcceptAll}
 	/>
 
 	const rejectAllButton = <RejectAllButtonWrapper
-		text={'Reject File'}
+		text={'Reject All'}
 		onClick={onRejectAll}
 	/>
 

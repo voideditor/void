@@ -417,7 +417,6 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 				break;
 			}
 		}
-		console.log('cutoff!!!!!!!', str, cutOffMessage)
 
 		if (cutOff) {
 			return `${str}\n${cutOffMessage}`

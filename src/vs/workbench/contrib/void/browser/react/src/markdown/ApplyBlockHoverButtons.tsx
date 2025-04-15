@@ -162,7 +162,6 @@ export const useApplyButtonState = ({ applyBoxId, uri }: { applyBoxId: string, u
 		)
 		if (shouldUpdate) {
 			rerender(c => c + 1)
-			console.log('rerendering....')
 		}
 	}, [applyBoxId, uri]))
 

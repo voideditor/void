@@ -1437,14 +1437,14 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				const start = toolMessage.params.startLine === null ? `start` : `${toolMessage.params.startLine}`
 				const end = toolMessage.params.endLine === null ? `end` : `${toolMessage.params.endLine}`
 				const addStr = `(${start}-${end})`
-				componentParams.title += ` ${addStr}`
+				componentParams.desc1 += ` ${addStr}`
 			}
 
 			if (toolMessage.type === 'success') {
 				const { params, result } = toolMessage
 				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
 				if (result.hasNextPage && params.pageNumber === 1)  // first page
-					componentParams.desc2 = '(more content available)'
+					componentParams.desc2 = '(truncated)'
 				else if (params.pageNumber > 1) // subsequent pages
 					componentParams.desc2 = `(part ${params.pageNumber})`
 			}

@@ -10,10 +10,11 @@ import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
 
 
-import { AnthropicLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText } from '../../common/sendLLMMessageTypes.js';
+import { AnthropicLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
 import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getMaxOutputTokens } from '../../common/modelCapabilities.js';
-import { extractReasoningWrapper, extractToolsWrapper } from './extractGrammar.js';
+import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
+import { availableTools, InternalToolInfo, isAToolName, ToolParamName, voidTools } from '../../common/prompt/prompts.js';
 
 
 type InternalCommonMessageParams = {
@@ -124,6 +125,55 @@ const _sendOpenAICompatibleFIM = ({ messages: { prefix, suffix, stopTokens }, on
 }
 
 
+const toOpenAICompatibleTool = (toolInfo: InternalToolInfo) => {
+	const { name, description, params } = toolInfo
+	return {
+		type: 'function',
+		function: {
+			name: name,
+			// strict: true, // strict mode - https://platform.openai.com/docs/guides/function-calling?api-mode=chat
+			description: description,
+			parameters: {
+				type: 'object',
+				properties: params,
+				// required: Object.keys(params), // in strict mode, all params are required and additionalProperties is false
+				// additionalProperties: false,
+			},
+		}
+	} satisfies OpenAI.Chat.Completions.ChatCompletionTool
+}
+
+const openAITools = (chatMode: ChatMode) => {
+	const allowedTools = availableTools(chatMode)
+	if (!allowedTools || Object.keys(allowedTools).length === 0) return null
+
+	const openAITools: OpenAI.Chat.Completions.ChatCompletionTool[] = []
+	for (const t in allowedTools ?? {}) {
+		openAITools.push(toOpenAICompatibleTool(allowedTools[t]))
+	}
+	return openAITools
+}
+
+const openAIToolToRawToolCallObj = (name: string, toolParamsStr: string, id: string): RawToolCallObj | null => {
+	if (!isAToolName(name)) return null
+	const rawParams: RawToolParamsObj = {}
+	let input: unknown
+	try {
+		input = JSON.parse(toolParamsStr)
+	}
+	catch (e) {
+		return null
+	}
+	if (input === null) return null
+	if (typeof input !== 'object') return null
+	for (const paramName in voidTools[name].params) {
+		rawParams[paramName as ToolParamName] = (input as any)[paramName]
+	}
+	return { id, name, rawParams, doneParams: Object.keys(rawParams) as ToolParamName[], isDone: true }
+}
+
+
+// ------------ OPENAI-COMPATIBLE ------------
 
 
 const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, chatMode, separateSystemMessage }: SendChatParams_Internal) => {
@@ -140,12 +190,17 @@ const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, 
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
+	// tools
+	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
+	const nativeToolsObj = potentialTools ? { tools: potentialTools } as const : {}
+
 	// instance
 	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
 		messages: messages as any,
 		stream: true,
+		...nativeToolsObj,
 		// max_completion_tokens: maxTokens,
 	}
 
@@ -160,13 +215,17 @@ const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, 
 
 	// manually parse out tool results if XML
 	if (!specialToolFormat) {
-		const { newOnText, newOnFinalMessage } = extractToolsWrapper(onText, onFinalMessage, chatMode)
+		const { newOnText, newOnFinalMessage } = extractXMLToolsWrapper(onText, onFinalMessage, chatMode)
 		onText = newOnText
 		onFinalMessage = newOnFinalMessage
 	}
 
 	let fullReasoningSoFar = ''
 	let fullTextSoFar = ''
+
+	let toolName = ''
+	let toolId = ''
+	let toolParamsStr = ''
 
 	openai.chat.completions
 		.create(options)
@@ -177,6 +236,17 @@ const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, 
 				// message
 				const newText = chunk.choices[0]?.delta?.content ?? ''
 				fullTextSoFar += newText
+
+				// tool call
+				for (const tool of chunk.choices[0]?.delta?.tool_calls ?? []) {
+					const index = tool.index
+					if (index !== 0) continue
+
+					toolName += tool.function?.name ?? ''
+					toolParamsStr += tool.function?.arguments ?? '';
+					toolId += tool.id ?? ''
+				}
+
 
 				// reasoning
 				let newReasoning = ''
@@ -189,11 +259,12 @@ const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, 
 				onText({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar })
 			}
 			// on final
-			if (!fullTextSoFar && !fullReasoningSoFar) {
+			if (!fullTextSoFar && !fullReasoningSoFar && !toolName) {
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			}
 			else {
-				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null });
+				const toolCall = openAIToolToRawToolCallObj(toolName, toolParamsStr, toolId) ?? undefined
+				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, toolCall: toolCall });
 			}
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
@@ -241,6 +312,43 @@ const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_,
 
 
 
+// ------------ ANTHROPIC (HELPERS) ------------
+const toAnthropicTool = (toolInfo: InternalToolInfo) => {
+	const { name, description, params } = toolInfo
+	return {
+		name: name,
+		description: description,
+		input_schema: {
+			type: 'object',
+			properties: params,
+			// required: Object.keys(params),
+		},
+	} satisfies Anthropic.Messages.Tool
+}
+
+const anthropicTools = (chatMode: ChatMode) => {
+	const allowedTools = availableTools(chatMode)
+	if (!allowedTools || Object.keys(allowedTools).length === 0) return null
+
+	const anthropicTools: Anthropic.Messages.ToolUnion[] = []
+	for (const t in allowedTools ?? {}) {
+		anthropicTools.push(toAnthropicTool(allowedTools[t]))
+	}
+	return anthropicTools
+}
+
+const anthropicToolToRawToolCallObj = (toolBlock: Anthropic.Messages.ToolUseBlock): RawToolCallObj | null => {
+	const { id, name, input } = toolBlock
+	if (!isAToolName(name)) return null
+	const rawParams: RawToolParamsObj = {}
+	if (input === null) return null
+	if (typeof input !== 'object') return null
+	for (const paramName in voidTools[name].params) {
+		rawParams[paramName as ToolParamName] = (input as any)[paramName]
+	}
+	return { id, name, rawParams, doneParams: Object.keys(rawParams) as ToolParamName[], isDone: true }
+}
+
 // ------------ ANTHROPIC ------------
 const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, separateSystemMessage, chatMode }: SendChatParams_Internal) => {
 	const {
@@ -258,6 +366,11 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 	// anthropic-specific - max tokens
 	const maxTokens = getMaxOutputTokens(providerName, modelName_, { isReasoningEnabled: !!reasoningInfo?.isReasoningEnabled })
 
+	// tools
+	const potentialTools = chatMode !== null ? anthropicTools(chatMode) : null
+	const nativeToolsObj = potentialTools ? { tools: potentialTools, tool_choice: { type: 'auto' } } as const : {}
+
+
 	// instance
 	const anthropic = new Anthropic({
 		apiKey: thisConfig.apiKey,
@@ -270,11 +383,13 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 		model: modelName,
 		max_tokens: maxTokens ?? 4_096, // anthropic requires this
 		...includeInPayload,
+		...nativeToolsObj,
+
 	})
 
 	// manually parse out tool results
 	if (!specialToolFormat) {
-		const { newOnText, newOnFinalMessage } = extractToolsWrapper(onText, onFinalMessage, chatMode)
+		const { newOnText, newOnFinalMessage } = extractXMLToolsWrapper(onText, onFinalMessage, chatMode)
 		onText = newOnText
 		onFinalMessage = newOnFinalMessage
 	}
@@ -283,8 +398,8 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 	let fullText = ''
 	let fullReasoning = ''
 
-	// let fullToolName = ''
-	// let fullToolParams = ''
+	let fullToolName = ''
+	let fullToolParams = ''
 
 	// there are no events for tool_use, it comes in at the end
 	stream.on('streamEvent', e => {
@@ -306,10 +421,10 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 				fullReasoning += '[redacted_thinking]'
 				onText({ fullText, fullReasoning, })
 			}
-			// else if (e.content_block.type === 'tool_use') {
-			// 	fullToolName += e.content_block.name ?? '' // anthropic gives us the tool name in the start block
-			// 	onText({ fullText, fullReasoning, })
-			// }
+			else if (e.content_block.type === 'tool_use') {
+				fullToolName += e.content_block.name ?? '' // anthropic gives us the tool name in the start block
+				onText({ fullText, fullReasoning, })
+			}
 		}
 
 		// delta
@@ -322,17 +437,19 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 				fullReasoning += e.delta.thinking
 				onText({ fullText, fullReasoning, })
 			}
-			// else if (e.delta.type === 'input_json_delta') { // tool use
-			// 	fullToolParams += e.delta.partial_json ?? '' // anthropic gives us the partial delta (string) here - https://docs.anthropic.com/en/api/messages-streaming
-			// 	onText({ fullText, fullReasoning, })
-			// }
+			else if (e.delta.type === 'input_json_delta') { // tool use
+				fullToolParams += e.delta.partial_json ?? '' // anthropic gives us the partial delta (string) here - https://docs.anthropic.com/en/api/messages-streaming
+				onText({ fullText, fullReasoning, })
+			}
 		}
 	})
 
 	// on done - (or when error/fail) - this is called AFTER last streamEvent
 	stream.on('finalMessage', (response) => {
 		const anthropicReasoning = response.content.filter(c => c.type === 'thinking' || c.type === 'redacted_thinking')
-		onFinalMessage({ fullText, fullReasoning, anthropicReasoning })
+		const tools = response.content.filter(c => c.type === 'tool_use')
+		const toolCall = tools[0] ? anthropicToolToRawToolCallObj(tools[0]) ?? undefined : undefined
+		onFinalMessage({ fullText, fullReasoning, anthropicReasoning, toolCall, })
 	})
 	// on error
 	stream.on('error', (error) => {

@@ -135,7 +135,7 @@ export const extractReasoningWrapper = (
 }
 
 
-// =============== tools ===============
+// =============== tools (XML) ===============
 
 
 
@@ -256,7 +256,7 @@ const parseXMLPrefixToToolCall = (toolName: ToolName, toolId: string, str: strin
 	}
 }
 
-export const extractToolsWrapper = (
+export const extractXMLToolsWrapper = (
 	onText: OnText, onFinalMessage: OnFinalMessage, chatMode: ChatMode | null
 ): { newOnText: OnText, newOnFinalMessage: OnFinalMessage } => {
 

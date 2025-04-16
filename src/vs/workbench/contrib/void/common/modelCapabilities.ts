@@ -359,6 +359,9 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 	if (lower.includes('o1') && lower.includes('mini')) return toFallback(openAIModelOptions['o1-mini'])
 	if (lower.includes('o1')) return toFallback(openAIModelOptions['o1'])
 	if (lower.includes('o3') && lower.includes('mini')) return toFallback(openAIModelOptions['o3-mini'])
+	if (lower.includes('o3')) return toFallback(openAIModelOptions['o3'])
+	if (lower.includes('o4') && lower.includes('mini')) return toFallback(openAIModelOptions['o4-mini'])
+
 
 	if (Object.keys(openSourceModelOptions_assumingOAICompat).map(k => k.toLowerCase()).includes(lower))
 		return toFallback(openSourceModelOptions_assumingOAICompat[lower as keyof typeof openSourceModelOptions_assumingOAICompat])

@@ -498,6 +498,19 @@ const VoidOnboardingContent = () => {
 	</div>
 
 
+	const lastPagePrevAndNextButtons = <div className="max-w-[600px] w-full mx-auto flex flex-col items-end">
+		<div className="flex items-center gap-2">
+			<PreviousButton
+				onClick={() => { setPageIndex(pageIndex - 1) }}
+			/>
+			<PrimaryActionButton
+				onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
+				ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
+			>Enter the Void</PrimaryActionButton>
+		</div>
+	</div>
+
+
 	// cannot be md
 	const basicDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
 		smart: "Models with the best performance on benchmarks.",
@@ -793,29 +806,29 @@ const VoidOnboardingContent = () => {
 					</div>
 				</div>
 			}
-			bottom={prevAndNextButtons}
+			bottom={lastPagePrevAndNextButtons}
+		// bottom={prevAndNextButtons}
 		/>,
-		4: <OnboardingPageShell
-			content={
-				<>
-					{/* <div className="text-5xl font-light text-center">Jump in</div> */}
-					<div
-						className='flex justify-center'
-					>
-						<PrimaryActionButton
-							onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
-							ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' :'xl'}
-							className='text-4xl'
-						>Enter the Void</PrimaryActionButton>
-					</div>
-				</>
-			}
-			bottom={
-				<PreviousButton
-					onClick={() => { setPageIndex(pageIndex - 1) }}
-				/>
-			}
-		/>,
+		// 4: <OnboardingPageShell
+		// 	content={
+		// 		<>
+		// 			<div
+		// 				className='flex justify-center'
+		// 			>
+		// 				<PrimaryActionButton
+		// 					onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
+		// 					ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
+		// 					className='text-4xl'
+		// 				>Enter the Void</PrimaryActionButton>
+		// 			</div>
+		// 		</>
+		// 	}
+		// 	bottom={
+		// 		<PreviousButton
+		// 			onClick={() => { setPageIndex(pageIndex - 1) }}
+		// 		/>
+		// 	}
+		// />,
 	}
 
 

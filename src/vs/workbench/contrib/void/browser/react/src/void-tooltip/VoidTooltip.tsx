@@ -102,8 +102,7 @@ export const VoidTooltip = () => {
 				id="void-tooltip-ollama-settings"
 				border='1px solid rgba(100,100,100,.2)'
 				opacity={1}
-				openOnClick
-				openEvents={{ mouseover: true }}
+				openEvents={{ mouseover: true, click: true, focus: true }}
 				place='right'
 				style={{ pointerEvents: 'all', userSelect: 'text', fontSize: 11 }}
 			>

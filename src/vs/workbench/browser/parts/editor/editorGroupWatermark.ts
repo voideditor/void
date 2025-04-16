@@ -185,19 +185,20 @@ export class EditorGroupWatermark extends Disposable {
 			// Void - if the workbench is empty, show open
 			if (this.contextService.getWorkbenchState() === WorkbenchState.EMPTY) {
 
-				// Create a flex container for buttons
+				// Create a flex container for buttons with vertical direction
 				const buttonContainer = $('div');
 				buttonContainer.style.display = 'flex';
-				buttonContainer.style.justifyContent = 'center';
+				buttonContainer.style.flexDirection = 'column'; // Change to column for vertical stacking
+				buttonContainer.style.alignItems = 'center'; // Center the buttons horizontally
+				buttonContainer.style.gap = '8px'; // Reduce gap between buttons from 16px to 8px
 				buttonContainer.style.marginBottom = '16px';
 				voidIconBox.appendChild(buttonContainer);
 
 				// Open a folder
 				const openFolderButton = h('button')
 				openFolderButton.root.classList.add('void-openfolder-button')
-				openFolderButton.root.style.display = 'inline-block'
-				openFolderButton.root.style.marginRight = '8px'
-				openFolderButton.root.style.width = '124px'
+				openFolderButton.root.style.display = 'block'
+				openFolderButton.root.style.width = '124px' // Set width to 124px as requested
 				openFolderButton.root.textContent = 'Open a folder'
 				openFolderButton.root.onclick = () => {
 					this.commandService.executeCommand(isMacintosh && isNative ? OpenFileFolderAction.ID : OpenFolderAction.ID)
@@ -212,10 +213,9 @@ export class EditorGroupWatermark extends Disposable {
 				// Open SSH button
 				const openSSHButton = h('button')
 				openSSHButton.root.classList.add('void-openssh-button')
-				openSSHButton.root.style.display = 'inline-block'
-				openSSHButton.root.style.marginLeft = '8px'
+				openSSHButton.root.style.display = 'block'
 				openSSHButton.root.style.backgroundColor = '#5a5a5a' // Made darker than the default gray
-				openSSHButton.root.style.width = '124px'
+				openSSHButton.root.style.width = '124px' // Set width to 124px as requested
 				openSSHButton.root.textContent = 'Open SSH'
 				openSSHButton.root.onclick = () => {
 					this.viewsService.openViewContainer(REMOTE_EXPLORER_VIEWLET_ID);

@@ -26,7 +26,6 @@
 
 /* Renamed from void-watermark-button to void-openfolder-button */
 .void-openfolder-button {
-    margin: 8px 0;
     padding: 8px 20px;
     background-color: #3b82f6;
     color: white;
@@ -46,7 +45,6 @@
 
 /* Added for Open SSH button with slightly darker color */
 .void-openssh-button {
-    margin: 8px 0;
     padding: 8px 20px;
     background-color: #656565; /* Slightly darker than the #5a5a5a in the TS file */
     color: white;

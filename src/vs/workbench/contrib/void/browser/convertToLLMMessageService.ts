@@ -13,6 +13,8 @@ import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ChatMode, FeatureName, ModelSelection } from '../common/voidSettingsTypes.js';
 import { IDirectoryStrService } from './directoryStrService.js';
 import { ITerminalToolService } from './terminalToolService.js';
+import { IVoidModelService } from '../common/voidModelService.js';
+import { URI } from '../../../../base/common/uri.js';
 
 
 
@@ -412,9 +414,9 @@ const prepareMessages = ({
 
 export interface IConvertToLLMMessageService {
 	readonly _serviceBrand: undefined;
-	prepareLLMSimpleMessages: (opts: { simpleMessages: SimpleLLMMessage[], systemMessage: string, modelSelection: ModelSelection | null, featureName: FeatureName }) => { messages: LLMChatMessage[], separateSystemMessage: string | undefined };
+	prepareLLMSimpleMessages: (opts: { simpleMessages: SimpleLLMMessage[], systemMessage: string, modelSelection: ModelSelection | null, featureName: FeatureName }) => { messages: LLMChatMessage[], separateSystemMessage: string | undefined }
 	prepareLLMChatMessages: (opts: { chatMessages: ChatMessage[], chatMode: ChatMode, modelSelection: ModelSelection | null }) => Promise<{ messages: LLMChatMessage[], separateSystemMessage: string | undefined }>
-	prepareFIMMessage(opts: { messages: LLMFIMMessage, aiInstructions: string, }): { prefix: string, suffix: string, stopTokens: string[] }
+	prepareFIMMessage(opts: { messages: LLMFIMMessage, }): { prefix: string, suffix: string, stopTokens: string[] }
 
 }
 
@@ -431,8 +433,33 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
+		@IVoidModelService private readonly voidModelService: IVoidModelService,
 	) {
 		super()
+	}
+
+	// Read .voidinstructions files from workspace folders
+	private _getVoidInstructionsFileContents(): string {
+		const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
+		let voidInstructions = '';
+		for (const folder of workspaceFolders) {
+			const uri = URI.joinPath(folder.uri, '.voidinstructions')
+			const { model } = this.voidModelService.getModel(uri)
+			if (!model) continue
+			voidInstructions += model.getValue() + '\n\n';
+		}
+		return voidInstructions.trim();
+	}
+
+	// Get combined AI instructions from settings and .voidinstructions files
+	private _getCombinedAIInstructions(): string {
+		const globalAIInstructions = this.voidSettingsService.state.globalSettings.aiInstructions;
+		const voidInstructionsFileContent = this._getVoidInstructionsFileContents();
+
+		const ans: string[] = []
+		if (globalAIInstructions) ans.push(globalAIInstructions)
+		if (voidInstructionsFileContent) ans.push(voidInstructionsFileContent)
+		return ans.join('\n\n')
 	}
 
 
@@ -502,7 +529,9 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		} = getModelCapabilities(providerName, modelName)
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]
-		const aiInstructions = this.voidSettingsService.state.globalSettings.aiInstructions
+
+		// Get combined AI instructions
+		const aiInstructions = this._getCombinedAIInstructions();
 
 		const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions)
 		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled })
@@ -518,7 +547,6 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			maxOutputTokens,
 		})
 		return { messages, separateSystemMessage };
-
 	}
 	prepareLLMChatMessages: IConvertToLLMMessageService['prepareLLMChatMessages'] = async ({ chatMessages, chatMode, modelSelection }) => {
 		if (modelSelection === null) return { messages: [], separateSystemMessage: undefined }
@@ -531,7 +559,9 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		const systemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection['Chat'][modelSelection.providerName]?.[modelSelection.modelName]
-		const aiInstructions = this.voidSettingsService.state.globalSettings.aiInstructions
+
+		// Get combined AI instructions
+		const aiInstructions = this._getCombinedAIInstructions();
 
 		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions)
 		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled })
@@ -548,19 +578,20 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			maxOutputTokens,
 		})
 		return { messages, separateSystemMessage };
-
 	}
 
 
 	// --- FIM ---
 
-	prepareFIMMessage: IConvertToLLMMessageService['prepareFIMMessage'] = ({ messages, aiInstructions }) => {
+	prepareFIMMessage: IConvertToLLMMessageService['prepareFIMMessage'] = ({ messages }) => {
+		// Get combined AI instructions with the provided aiInstructions as the base
+		const combinedInstructions = this._getCombinedAIInstructions();
 
 		let prefix = `\
-${!aiInstructions ? '' : `\
+${!combinedInstructions ? '' : `\
 // Instructions:
 // Do not output an explanation. Try to avoid outputting comments. Only output the middle code.
-${aiInstructions.split('\n').map(line => `//${line}`).join('\n')}`}
+${combinedInstructions.split('\n').map(line => `//${line}`).join('\n')}`}
 
 ${messages.prefix}`
 
@@ -573,7 +604,6 @@ ${messages.prefix}`
 }
 
 
-// pick one and delete the other:
 registerSingleton(IConvertToLLMMessageService, ConvertToLLMMessageService, InstantiationType.Eager);
 
 

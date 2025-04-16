@@ -25,8 +25,6 @@ import { Position } from '../../../../editor/common/core/position.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { shorten } from '../../../../base/common/labels.js';
 import { IVoidModelService } from '../common/voidModelService.js';
-import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { findLast, findLastIdx } from '../../../../base/common/arraysFind.js';
 import { IEditCodeService } from './editCodeServiceInterface.js';
 import { VoidFileSnapshot } from '../common/editCodeServiceTypes.js';
@@ -246,8 +244,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		@ILanguageFeaturesService private readonly _languageFeaturesService: ILanguageFeaturesService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
-		@IEditorService private readonly _editorService: IEditorService,
-		@ICodeEditorService private readonly _codeEditorService: ICodeEditorService,
 		@IEditCodeService private readonly _editCodeService: IEditCodeService,
 		@INotificationService private readonly _notificationService: INotificationService,
 		@IConvertToLLMMessageService private readonly _convertToLLMMessagesService: IConvertToLLMMessageService,
@@ -266,9 +262,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// always be in a thread
 		this.openNewThread()
 
-		// when the user changes files, automatically add the new file as a stagingSelection
-		this._register(this._editorService.onDidActiveEditorChange(() => this._addCurrentFileAsStagingSelectionDuringFileChange()));
-
 
 		// keep track of user-modified files
 		// const disposablesOfModelId: { [modelId: string]: IDisposable[] } = {}
@@ -284,40 +277,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// 	if (!(e.id in disposablesOfModelId)) return
 		// 	disposablesOfModelId[e.id].forEach(d => d.dispose())
 		// }))
-
-	}
-
-
-	// add the current file to the thread being edited
-	private _addCurrentFileAsStagingSelectionDuringFileChange() {
-		const newModel = this._codeEditorService.getActiveCodeEditor()?.getModel() ?? null
-		if (!newModel) { return }
-
-		const isCurrentlyFocusing = this.isCurrentlyFocusingMessage()
-		if (isCurrentlyFocusing) return
-
-		// only add if the user hasn't sent a message yet
-		if (this.getCurrentThread().messages.length !== 0) return
-
-		const newStagingSelection: StagingSelectionItem = {
-			type: 'File',
-			uri: newModel.uri,
-			language: newModel.getLanguageId(),
-			state: { wasAddedAsCurrentFile: true }
-		}
-
-		const oldStagingSelections = this.getCurrentThreadState().stagingSelections || [];
-
-		// remove all old selectons that are marked as `wasAddedAsCurrentFile`
-		const newStagingSelections: StagingSelectionItem[] = oldStagingSelections.filter(s => s.state && !s.state.wasAddedAsCurrentFile)
-
-		const fileIsAlreadyHere = oldStagingSelections.some(s => s.type === 'File' && s.uri.fsPath === newStagingSelection.uri.fsPath)
-
-		if (!fileIsAlreadyHere) {
-			newStagingSelections.push(newStagingSelection)
-		}
-
-		this.setCurrentThreadState({ stagingSelections: newStagingSelections });
 
 	}
 
@@ -1386,21 +1345,6 @@ We only need to do it for files that were edited since `from`, ie files between 
 				// switch to the thread
 				this.switchToThread(threadId)
 
-				// add the current file as a staging selection
-				const model = this._codeEditorService.getActiveCodeEditor()?.getModel()
-				if (model) {
-					this._setThreadState(this.state.currentThreadId, {
-						stagingSelections: [{
-							type: 'File',
-							uri: model.uri,
-							language: model.getLanguageId(),
-							state: {
-								wasAddedAsCurrentFile: true
-							}
-						}]
-					})
-				}
-				return;
 			}
 		}
 		// otherwise, start a new thread

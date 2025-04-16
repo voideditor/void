@@ -550,12 +550,10 @@ export const ollamaSetupInstructions = <div className='prose-p:my-0 prose-ol:lis
 	<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
 	<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
 	<div
-		className='pl-6 flex items-center'><ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} />
-		<span
-			data-tooltip-id='void-tooltip'
-			data-tooltip-content='Try qwen2.5-coder:1.5b for autocomplete or llama3.1 for chat.'
-			data-tooltip-place='right'
-		>*</span>
+		className='pl-6 flex items-center w-fit'
+		data-tooltip-id='void-tooltip-ollama-settings'
+	>
+		<ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} />
 	</div>
 	<div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>
 </div>

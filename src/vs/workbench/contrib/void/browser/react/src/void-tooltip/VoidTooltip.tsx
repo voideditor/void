@@ -3,6 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import '../styles.css'
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
 import { useIsDark } from '../util/services.js';
@@ -44,7 +45,7 @@ export const VoidTooltip = () => {
 		<>
 			<style>
 				{`
-				#void-tooltip, #void-tooltip-orange, #void-tooltip-green {
+				#void-tooltip, #void-tooltip-orange, #void-tooltip-green, #void-tooltip-ollama-settings {
 					font-size: 12px;
 					padding: 0px 8px;
 					border-radius: 6px;
@@ -64,6 +65,11 @@ export const VoidTooltip = () => {
 				#void-tooltip-green {
 					background-color: #228B22;
 					color: white;
+				}
+
+				#void-tooltip-ollama-settings {
+					background-color: var(--vscode-editor-background);
+					color: var(--vscode-input-foreground);
 				}
 
 				.react-tooltip-arrow {
@@ -92,6 +98,29 @@ export const VoidTooltip = () => {
 				opacity={1}
 				delayShow={50}
 			/>
+			<Tooltip
+				id="void-tooltip-ollama-settings"
+				border='1px solid rgba(100,100,100,.2)'
+				opacity={1}
+				openOnClick
+				openEvents={{ mouseover: true }}
+				place='right'
+				style={{ pointerEvents: 'all', userSelect: 'text', fontSize: 11 }}
+			>
+				<div style={{ padding: '8px 10px' }}>
+					<div style={{ opacity: 0.8, textAlign: 'center', fontWeight: 'bold', marginBottom: 8 }}>
+						Good starter models
+					</div>
+					<div style={{ marginBottom: 4 }}>
+						<span style={{ opacity: 0.8 }}>For chat:{` `}</span>
+						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>llama3.1</span>
+					</div>
+					<div>
+						<span style={{ opacity: 0.8 }}>For autocomplete:{` `}</span>
+						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>qwen2.5-coder:1.5b</span>
+					</div>
+				</div>
+			</Tooltip>
 		</>
 	);
 };

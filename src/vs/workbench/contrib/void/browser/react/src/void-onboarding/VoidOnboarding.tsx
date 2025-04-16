@@ -510,7 +510,7 @@ const VoidOnboardingContent = () => {
 			content={<div className='flex flex-col items-center -translate-y-[20vh]'>
 				{/* <div className="text-5xl text-center mb-8">AI Preferences</div> */}
 
-				<div className="text-4xl text-void-fg-2 mb-8 text-center">What are you looking for in an AI model?</div>
+				<div className="text-4xl text-void-fg-2 mb-8 text-center">Model Preferences</div>
 
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[800px] mx-auto mt-8">
@@ -520,7 +520,7 @@ const VoidOnboardingContent = () => {
 					>
 						<div className="flex items-center mb-3">
 							<Brain size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Intelligence</div>
+							<div className="text-lg font-medium text-void-fg-1">Intelligent</div>
 						</div>
 						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['smart']}</div>
 					</button>
@@ -531,7 +531,7 @@ const VoidOnboardingContent = () => {
 					>
 						<div className="flex items-center mb-3">
 							<Lock size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Privacy</div>
+							<div className="text-lg font-medium text-void-fg-1">Private</div>
 						</div>
 						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['private']}</div>
 					</button>
@@ -542,7 +542,7 @@ const VoidOnboardingContent = () => {
 					>
 						<div className="flex items-center mb-3">
 							<DollarSign size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Affordability</div>
+							<div className="text-lg font-medium text-void-fg-1">Affordable</div>
 						</div>
 						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['cheap']}</div>
 					</button>

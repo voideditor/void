@@ -258,6 +258,22 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			this._realignAllDiffAreasLines(uri, change.text, change.range)
 		}
 		this._refreshStylesAndDiffsInURI(uri)
+
+		// if diffarea has no diffs after a user edit, delete it
+		const diffAreasToDelete: DiffZone[] = []
+		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] ?? []) {
+			const diffArea = this.diffAreaOfId[diffareaid] ?? null
+			const shouldDelete = diffArea?.type === 'DiffZone' && Object.keys(diffArea._diffOfId).length === 0
+			if (shouldDelete) {
+				diffAreasToDelete.push(diffArea)
+			}
+		}
+		if (diffAreasToDelete.length !== 0) {
+			const { onFinishEdit } = this._addToHistory(uri)
+			diffAreasToDelete.forEach(da => this._deleteDiffZone(da))
+			onFinishEdit()
+		}
+
 	}
 
 

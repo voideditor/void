@@ -664,57 +664,60 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 			{isOpen && (
 				<div
 					ref={refs.setFloating}
-					className="z-10 bg-void-bg-1 border-void-border-1 border overflow-hidden rounded shadow-lg"
+					className="z-10 bg-void-bg-1 border-void-border-3 border rounded shadow-lg"
 					style={{
 						position: strategy,
 						top: y ?? 0,
 						left: x ?? 0,
-						width: matchInputWidth
+						width: (matchInputWidth
 							? (refs.reference.current instanceof HTMLElement ? refs.reference.current.offsetWidth : 0)
 							: Math.max(
 								(refs.reference.current instanceof HTMLElement ? refs.reference.current.offsetWidth : 0),
 								(measureRef.current instanceof HTMLElement ? measureRef.current.offsetWidth : 0)
-							),
+							))
 					}}
-				>
-					{options.map((option) => {
-						const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
-						const optionName = getOptionDropdownName(option);
-						const optionDetail = getOptionDropdownDetail?.(option) || '';
+					onWheel={(e) => e.stopPropagation()}
+				><div className='overflow-auto max-h-80'>
 
-						return (
-							<div
-								key={optionName}
-								className={`flex items-center px-2 py-1 cursor-pointer whitespace-nowrap
+						{options.map((option) => {
+							const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
+							const optionName = getOptionDropdownName(option);
+							const optionDetail = getOptionDropdownDetail?.(option) || '';
+
+							return (
+								<div
+									key={optionName}
+									className={`flex items-center px-2 py-1 pr-4 cursor-pointer whitespace-nowrap
 									transition-all duration-100
-									bg-void-bg-1
-									${thisOptionIsSelected ? 'bg-void-bg-2' : 'hover:bg-void-bg-2'}
+									${thisOptionIsSelected ? 'bg-void-bg-2' : 'bg-void-bg-2-alt hover:bg-void-bg-2'}
 								`}
-								onClick={() => {
-									onChangeOption(option);
-									setIsOpen(false);
-								}}
-							>
-								<div className="w-4 flex justify-center flex-shrink-0">
-									{thisOptionIsSelected && (
-										<svg className="size-3" viewBox="0 0 12 12" fill="none">
-											<path
-												d="M10 3L4.5 8.5L2 6"
-												stroke="currentColor"
-												strokeWidth="1.5"
-												strokeLinecap="round"
-												strokeLinejoin="round"
-											/>
-										</svg>
-									)}
+									onClick={() => {
+										onChangeOption(option);
+										setIsOpen(false);
+									}}
+								>
+									<div className="w-4 flex justify-center flex-shrink-0">
+										{thisOptionIsSelected && (
+											<svg className="size-3" viewBox="0 0 12 12" fill="none">
+												<path
+													d="M10 3L4.5 8.5L2 6"
+													stroke="currentColor"
+													strokeWidth="1.5"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+												/>
+											</svg>
+										)}
+									</div>
+									<span className="flex justify-between w-full">
+										<span>{optionName}</span>
+										<span className='text-void-fg-4 opacity-60'>{optionDetail}</span>
+									</span>
 								</div>
-								<span className="flex justify-between w-full">
-									<span>{optionName}</span>
-									<span className='text-void-fg-4 opacity-60'>{optionDetail}</span>
-								</span>
-							</div>
-						);
-					})}
+							);
+						})}
+					</div>
+
 				</div>
 			)}
 		</div>

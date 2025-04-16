@@ -349,36 +349,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 
-	editUserMessageAndStreamResponse: IChatThreadService['editUserMessageAndStreamResponse'] = async ({ userMessage, messageIdx, threadId }) => {
-
-		const thread = this.state.allThreads[threadId]
-		if (!thread) return // should never happen
-
-		if (thread.messages?.[messageIdx]?.role !== 'user') {
-			throw new Error(`Error: editing a message with role !=='user'`)
-		}
-
-		// get prev and curr selections before clearing the message
-		const currSelns = thread.messages[messageIdx].state.stagingSelections || [] // staging selections for the edited message
-
-		// clear messages up to the index
-		const slicedMessages = thread.messages.slice(0, messageIdx)
-		this._setState({
-			allThreads: {
-				...this.state.allThreads,
-				[thread.id]: {
-					...thread,
-					messages: slicedMessages
-				}
-			}
-		}, true)
-
-		// re-add the message and stream it
-		this.addUserMessageAndStreamResponse({ userMessage, _chatSelections: currSelns, threadId })
-
-	}
-
-
 	private _currentModelSelectionProps = () => {
 		// these settings should not change throughout the loop (eg anthropic breaks if you change its thinking mode and it's using tools)
 		const featureName: FeatureName = 'Chat'
@@ -883,7 +853,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const [_, toIdx] = c
 		if (toIdx === fromIdx) return
 
-		// console.log(`going from ${fromIdx} to ${toIdx}`)
+		console.log(`going from ${fromIdx} to ${toIdx}`)
 
 		// update the user's checkpoint
 		this._addUserModificationsToCurrCheckpoint({ threadId })
@@ -895,15 +865,14 @@ A,B,C are all files.
 x means a checkpoint where the file changed.
 
 A B C D E F G H I
-x x x x x x x x x
-| | | | | | | | |
-x | | | | | | | x
----x-|-|-|-x-|-x-|-----     <-- to
- x | | | | | x
-   | | x x |
-   | |   | |
--------x-|---x-x-------     <-- from
-	 x
+  x x x x x   x           <-- you can't always go up to find the "before" version; sometimes you need to go down
+  | | | | |   | x
+--x-|-|-|-x---x-|-----     <-- to
+	| | | | x   x
+	| | x x |
+	| |   | |
+----x-|---x-x-------     <-- from
+	  x
 
 We need to revert anything that happened between to+1 and from.
 **We do this by finding the last x from 0...`to` for each file and applying those contents.**
@@ -911,9 +880,19 @@ We only need to do it for files that were edited since `to`, ie files between to
 */
 		if (toIdx < fromIdx) {
 			const { lastIdxOfURI } = this._getCheckpointsBetween({ threadId, loIdx: toIdx + 1, hiIdx: fromIdx })
+
+			const idxes = function* () {
+				for (let k = toIdx; k >= 0; k -= 1) { // first go up
+					yield k
+				}
+				for (let k = toIdx + 1; k < thread.messages.length; k += 1) { // then go down
+					yield k
+				}
+			}
+
 			for (const fsPath in lastIdxOfURI) {
-				// apply lowest down content for each uri (or original if not found)
-				for (let k = toIdx; k >= 0; k -= 1) {
+				// find the first instance of this file starting at toIdx (go up to latest file; if there is none, go down)
+				for (const k of idxes()) {
 					const message = thread.messages[k]
 					if (message.role !== 'checkpoint') continue
 					const res = this._getCheckpointInfo(message, fsPath, { includeUserModifiedChanges: jumpToUserModified })
@@ -929,16 +908,16 @@ We only need to do it for files that were edited since `to`, ie files between to
 		/*
 if redoing
 
-A B C D E F G H I
-x x x x x x x x x
-| | | | | | | | |
-x | | | | | | | x
----x-|-|-|-x-|-x-|-----     <-- from
- x | | | | | x
-   | | x x |
-   | |   | |
--------x-|---x-x-------     <-- to
-	 x
+A B C D E F G H I J
+  x x x x x   x     x
+  | | | | |   | x x x
+--x-|-|-|-x---x-|-|---     <-- from
+	| | | | x   x
+	| | x x |
+	| |   | |
+----x-|---x-x-----|---     <-- to
+	  x           x
+
 
 We need to apply latest change for anything that happened between from+1 and to.
 We only need to do it for files that were edited since `from`, ie files between from+1...to.
@@ -954,7 +933,6 @@ We only need to do it for files that were edited since `from`, ie files between 
 					if (!res) continue
 					const { voidFileSnapshot } = res
 					if (!voidFileSnapshot) continue
-
 					this._editCodeService.restoreVoidFileSnapshot(URI.file(fsPath), voidFileSnapshot)
 					break
 				}
@@ -1003,10 +981,14 @@ We only need to do it for files that were edited since `from`, ie files between 
 		})
 	}
 
-	async addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: StagingSelectionItem[], threadId: string }) {
+	dismissStreamError(threadId: string): void {
+		this._setStreamState(threadId, { error: undefined }, 'merge')
+	}
+
+
+	private async _addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: StagingSelectionItem[], threadId: string }) {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
-
 
 		const llmCancelToken = this.streamState[threadId]?.streamingToken // currently streaming LLM on this thread
 		if (llmCancelToken === undefined && this.streamState[threadId]?.isRunning === 'LLM') {
@@ -1016,13 +998,10 @@ We only need to do it for files that were edited since `from`, ie files between 
 		// stop it (this simply resolves the promise to free up space)
 		if (llmCancelToken !== undefined) this._llmMessageService.abort(llmCancelToken)
 
-
-
 		// add dummy before this message to keep checkpoint before user message idea consistent
 		if (thread.messages.length === 0) {
 			this._addUserCheckpoint({ threadId })
 		}
-
 
 		const { chatMode } = this._settingsService.state.globalSettings
 
@@ -1043,11 +1022,61 @@ We only need to do it for files that were edited since `from`, ie files between 
 		)
 	}
 
-	dismissStreamError(threadId: string): void {
-		this._setStreamState(threadId, { error: undefined }, 'merge')
+
+	async addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId }: { userMessage: string, _chatSelections?: StagingSelectionItem[], threadId: string }) {
+		const thread = this.state.allThreads[threadId];
+		if (!thread) return
+
+		// if there's a current checkpoint, delete all messages after it
+		if (thread.state.currCheckpointIdx !== null) {
+			const checkpointIdx = thread.state.currCheckpointIdx;
+			const newMessages = thread.messages.slice(0, checkpointIdx + 1);
+
+			// Update the thread with truncated messages
+			const newThreads = {
+				...this.state.allThreads,
+				[threadId]: {
+					...thread,
+					lastModified: new Date().toISOString(),
+					messages: newMessages,
+				}
+			};
+			this._storeAllThreads(newThreads);
+			this._setState({ allThreads: newThreads }, true);
+		}
+
+		// Now call the original method to add the user message and stream the response
+		await this._addUserMessageAndStreamResponse({ userMessage, _chatSelections, threadId });
+
 	}
 
+	editUserMessageAndStreamResponse: IChatThreadService['editUserMessageAndStreamResponse'] = async ({ userMessage, messageIdx, threadId }) => {
 
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return // should never happen
+
+		if (thread.messages?.[messageIdx]?.role !== 'user') {
+			throw new Error(`Error: editing a message with role !=='user'`)
+		}
+
+		// get prev and curr selections before clearing the message
+		const currSelns = thread.messages[messageIdx].state.stagingSelections || [] // staging selections for the edited message
+
+		// clear messages up to the index
+		const slicedMessages = thread.messages.slice(0, messageIdx)
+		this._setState({
+			allThreads: {
+				...this.state.allThreads,
+				[thread.id]: {
+					...thread,
+					messages: slicedMessages
+				}
+			}
+		}, true)
+
+		// re-add the message and stream it
+		this._addUserMessageAndStreamResponse({ userMessage, _chatSelections: currSelns, threadId })
+	}
 
 	// ---------- the rest ----------
 

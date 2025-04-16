@@ -1949,10 +1949,14 @@ const Checkpoint = ({ message, threadId, messageIdx, isCheckpointGhost, threadIs
 			style={{ position: 'relative', display: 'inline-block' }} // allow absolute icon
 			onClick={() => {
 				if (threadIsRunning) return
-				chatThreadService.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
+				chatThreadService.jumpToCheckpointBeforeMessageIdx({
+					threadId,
+					messageIdx,
+					jumpToUserModified: messageIdx === (chatThreadService.state.allThreads[threadId]?.messages.length ?? 0) - 1
+				})
 			}}
 		>
-                    Checkpoint
+			Checkpoint
 		</div>
 	</div>
 }

@@ -44,37 +44,6 @@ const ModelSelectBox = ({ options, featureName, className }: { options: ModelOpt
 		matchInputWidth={false}
 	/>
 }
-// const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], featureName: FeatureName }) => {
-// 	const accessor = useAccessor()
-
-// 	const voidSettingsService = accessor.get('IVoidSettingsService')
-
-// 	let weChangedText = false
-
-// 	return <VoidSelectBox
-// 		className='@@[&_select]:!void-text-xs text-void-fg-3'
-// 		options={options}
-// 		onChangeSelection={useCallback((newVal: ModelSelection) => {
-// 			if (weChangedText) return
-// 			voidSettingsService.setModelSelectionOfFeature(featureName, newVal)
-// 		}, [voidSettingsService, featureName])}
-// 		// we are responsible for setting the initial state here. always sync instance when state changes.
-// 		onCreateInstance={useCallback((instance: SelectBox) => {
-// 			const syncInstance = () => {
-// 				const modelsListRef = voidSettingsService.state._modelOptions // as a ref
-// 				const settingsAtProvider = voidSettingsService.state.modelSelectionOfFeature[featureName]
-// 				const selectionIdx = settingsAtProvider === null ? -1 : modelsListRef.findIndex(v => modelSelectionsEqual(v.value, settingsAtProvider))
-// 				weChangedText = true
-// 				instance.select(selectionIdx === -1 ? 0 : selectionIdx)
-// 				weChangedText = false
-// 			}
-// 			syncInstance()
-// 			const disposable = voidSettingsService.onDidChangeState(syncInstance)
-// 			return [disposable]
-// 		}, [voidSettingsService, featureName])}
-// 	/>
-// }
-
 
 
 const MemoizedModelDropdown = ({ featureName, className }: { featureName: FeatureName, className: string }) => {

@@ -624,7 +624,7 @@ export const FeaturesTab = () => {
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
 					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>
 						<span>
-							Experimental. Only works with FIM models.
+							Experimental.{' '}
 						</span>
 						<span
 							className='hover:brightness-110'
@@ -632,7 +632,7 @@ export const FeaturesTab = () => {
 							data-tooltip-content='We recommend using qwen2.5-coder:1.5b with Ollama.'
 							data-tooltip-class-name='void-max-w-[20px]'
 						>
-							*
+							Only works with FIM models.*
 						</span>
 					</div>
 

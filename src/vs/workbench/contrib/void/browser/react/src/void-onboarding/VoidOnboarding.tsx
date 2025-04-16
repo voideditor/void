@@ -392,8 +392,32 @@ const VoidOnboardingContent = () => {
 	// page 1 state
 	const [wantToUseOption, setWantToUseOption] = useState<WantToUseOption>('smart')
 
-	// page 2 state
-	const [selectedProviderName, setSelectedProviderName] = useState<ProviderName | null>(null)
+	// Replace the single selectedProviderName with four separate states
+	// page 2 state - each tab gets its own state
+	const [selectedIntelligentProvider, setSelectedIntelligentProvider] = useState<ProviderName>('anthropic');
+	const [selectedPrivateProvider, setSelectedPrivateProvider] = useState<ProviderName>('ollama');
+	const [selectedAffordableProvider, setSelectedAffordableProvider] = useState<ProviderName>('gemini');
+	const [selectedAllProvider, setSelectedAllProvider] = useState<ProviderName>('anthropic');
+
+	// Helper function to get the current selected provider based on active tab
+	const getSelectedProvider = (): ProviderName => {
+		switch (wantToUseOption) {
+			case 'smart': return selectedIntelligentProvider;
+			case 'private': return selectedPrivateProvider;
+			case 'cheap': return selectedAffordableProvider;
+			case 'all': return selectedAllProvider;
+		}
+	}
+
+	// Helper function to set the selected provider for the current tab
+	const setSelectedProvider = (provider: ProviderName) => {
+		switch (wantToUseOption) {
+			case 'smart': setSelectedIntelligentProvider(provider); break;
+			case 'private': setSelectedPrivateProvider(provider); break;
+			case 'cheap': setSelectedAffordableProvider(provider); break;
+			case 'all': setSelectedAllProvider(provider); break;
+		}
+	}
 
 	const providerNamesOfWantToUseOption: { [wantToUseOption in WantToUseOption]: ProviderName[] } = {
 		smart: ['anthropic', 'openAI', 'gemini', 'openRouter'],
@@ -403,6 +427,7 @@ const VoidOnboardingContent = () => {
 	}
 
 
+	const selectedProviderName = getSelectedProvider();
 	const didFillInProviderSettings = selectedProviderName && voidSettingsState.settingsOfProvider[selectedProviderName]._didFillInProviderSettings
 	const isApiKeyLongEnoughIfApiKeyExists = selectedProviderName && voidSettingsState.settingsOfProvider[selectedProviderName].apiKey ? voidSettingsState.settingsOfProvider[selectedProviderName].apiKey.length > 15 : true
 	const isAtLeastOneModel = selectedProviderName && voidSettingsState.settingsOfProvider[selectedProviderName].models.length >= 1
@@ -438,10 +463,21 @@ const VoidOnboardingContent = () => {
 		all: "",
 	}
 
-	// set the selected provider name to be the zeroth option when the user changes the page
+	// Modified: initialize separate provider states on initial render instead of watching wantToUseOption changes
 	useEffect(() => {
-		setSelectedProviderName(providerNamesOfWantToUseOption[wantToUseOption][0]);
-	}, [wantToUseOption]);
+		if (selectedIntelligentProvider === undefined) {
+			setSelectedIntelligentProvider(providerNamesOfWantToUseOption['smart'][0]);
+		}
+		if (selectedPrivateProvider === undefined) {
+			setSelectedPrivateProvider(providerNamesOfWantToUseOption['private'][0]);
+		}
+		if (selectedAffordableProvider === undefined) {
+			setSelectedAffordableProvider(providerNamesOfWantToUseOption['cheap'][0]);
+		}
+		if (selectedAllProvider === undefined) {
+			setSelectedAllProvider(providerNamesOfWantToUseOption['all'][0]);
+		}
+	}, []);
 
 	// reset the page to page 0 if the user redos onboarding
 	useEffect(() => {
@@ -551,33 +587,75 @@ const VoidOnboardingContent = () => {
 
 
 
-					{/* Provider Buttons */}
-					<div
-						className="mb-2 w-full"
-					>
-						{/* Provider options - mapped for each wantToUseOption type */}
-						{(['smart', 'private', 'cheap', 'all'] as WantToUseOption[]).map((option) => (
-							<div
-								key={option}
-								className={`flex flex-wrap items-center w-full
-									${wantToUseOption === option ? 'flex' : 'hidden opacity-0 pointer-events-none'}
-								`}
-							>
-								{(option === 'all' ? providerNames : providerNamesOfWantToUseOption[option]).map((providerName) => {
-									const isSelected = selectedProviderName === providerName
-									return (
-										<button
-											key={providerName}
-											onClick={() => setSelectedProviderName(providerName)}
-											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
-												${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-										>
-											{displayInfoOfProviderName(providerName).title}
-										</button>
-									)
-								})}
-							</div>
-						))}
+					{/* Provider Buttons - Modified to use separate components for each tab */}
+					<div className="mb-2 w-full">
+						{/* Intelligent tab */}
+						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'smart' ? 'flex' : 'hidden'}`}>
+							{providerNamesOfWantToUseOption['smart'].map((providerName) => {
+								const isSelected = selectedIntelligentProvider === providerName;
+								return (
+									<button
+										key={providerName}
+										onClick={() => setSelectedIntelligentProvider(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								);
+							})}
+						</div>
+
+						{/* Private tab */}
+						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'private' ? 'flex' : 'hidden'}`}>
+							{providerNamesOfWantToUseOption['private'].map((providerName) => {
+								const isSelected = selectedPrivateProvider === providerName;
+								return (
+									<button
+										key={providerName}
+										onClick={() => setSelectedPrivateProvider(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								);
+							})}
+						</div>
+
+						{/* Affordable tab */}
+						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'cheap' ? 'flex' : 'hidden'}`}>
+							{providerNamesOfWantToUseOption['cheap'].map((providerName) => {
+								const isSelected = selectedAffordableProvider === providerName;
+								return (
+									<button
+										key={providerName}
+										onClick={() => setSelectedAffordableProvider(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								);
+							})}
+						</div>
+
+						{/* All tab */}
+						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'all' ? 'flex' : 'hidden'}`}>
+							{providerNames.map((providerName) => {
+								const isSelected = selectedAllProvider === providerName;
+								return (
+									<button
+										key={providerName}
+										onClick={() => setSelectedAllProvider(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								);
+							})}
+						</div>
 					</div>
 
 					{/* Description */}

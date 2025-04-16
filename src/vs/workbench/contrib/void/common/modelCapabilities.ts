@@ -54,7 +54,8 @@ export const defaultModelsOfProvider = {
 		'gpt-4.1',
 		'gpt-4.1-mini',
 		'gpt-4.1-nano',
-		'o3-mini',
+		'o3',
+		'o4-mini',
 		// 'o1',
 		// 'o1-mini',
 		// 'gpt-4o',
@@ -458,6 +459,26 @@ const anthropicSettings: VoidStaticProviderInfo = {
 
 // ---------------- OPENAI ----------------
 const openAIModelOptions = { // https://platform.openai.com/docs/pricing
+	'o3': {
+		contextWindow: 1_047_576,
+		maxOutputTokens: 32_768,
+		cost: { input: 10.00, output: 40.00, cache_read: 2.50 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: false,
+	},
+	'o4-mini': {
+		contextWindow: 1_047_576,
+		maxOutputTokens: 32_768,
+		cost: { input: 1.10, output: 4.40, cache_read: 0.275 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: false,
+	},
 	'gpt-4.1': {
 		contextWindow: 1_047_576,
 		maxOutputTokens: 32_768,

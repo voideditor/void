@@ -3,13 +3,14 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
-import { Brain, Check, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
+import { Brain, Check, ChevronRight, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
 import { displayInfoOfProviderName, ProviderName, providerNames, refreshableProviderNames } from '../../../../common/voidSettingsTypes.js';
 import { getModelCapabilities, ollamaRecommendedModels } from '../../../../common/modelCapabilities.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { AddModelInputBox, AnimatedCheckmarkButton, ollamaSetupInstructions, OneClickSwitchButton, SettingsForProvider } from '../void-settings-tsx/Settings.js';
+import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js';
 
 const OVERRIDE_VALUE = false
 
@@ -34,6 +35,30 @@ export const VoidOnboarding = () => {
 	)
 }
 
+const VoidIcon = () => {
+	const accessor = useAccessor()
+	const themeService = accessor.get('IThemeService')
+
+	const divRef = useRef<HTMLDivElement | null>(null)
+
+	useEffect(() => {
+		// void icon style
+		const updateTheme = () => {
+			const theme = themeService.getColorTheme().type
+			const isDark = theme === ColorScheme.DARK || theme === ColorScheme.HIGH_CONTRAST_DARK
+			if (divRef.current) {
+				divRef.current.style.maxWidth = '220px'
+				divRef.current.style.opacity = '50%'
+				divRef.current.style.filter = isDark ? '' : 'invert(1)' //brightness(.5)
+			}
+		}
+		updateTheme()
+		const d = themeService.onDidColorThemeChange(updateTheme)
+		return () => d.dispose()
+	}, [])
+
+	return <div ref={divRef} className='@@void-void-icon' />
+}
 
 const FADE_DURATION_MS = 2000
 
@@ -109,7 +134,7 @@ const NextButton = ({ onClick, ...props }: { onClick: () => void } & React.Butto
 			className="px-6 py-2 bg-zinc-100 enabled:hover:bg-zinc-100 disabled:bg-zinc-100/40 disabled:cursor-not-allowed rounded text-black duration-600 transition-all"
 			{...props.disabled && {
 				'data-tooltip-id': 'void-tooltip',
-				'data-tooltip-content': 'Disabled (Please enter all required fields or choose another provider)',
+				'data-tooltip-content': 'Please enter all required fields or choose another provider',
 				'data-tooltip-place': 'top',
 			}}
 			{...props}
@@ -144,7 +169,7 @@ const OnboardingPageShell = ({ top, bottom, content, hasMaxWidth = true, classNa
 		<div className={`min-h-full text-lg flex flex-col gap-4 w-full mx-auto ${hasMaxWidth ? 'max-w-[600px]' : ''} ${className}`}>
 			{top && <FadeIn className='w-full mb-auto pt-16'>{top}</FadeIn>}
 			{content && <FadeIn className='w-full my-auto'>{content}</FadeIn>}
-			{bottom && <div className='w-full mt-auto pb-8'>{bottom}</div>}
+			{bottom && <div className='w-full pb-8'>{bottom}</div>}
 		</div>
 	)
 }
@@ -157,7 +182,7 @@ const OllamaDownloadOrRemoveModelButton = ({ modelName, isModelInstalled, sizeGb
 		href={`https://ollama.com/library/${modelName}`}
 		target="_blank"
 		rel="noopener noreferrer"
-		className="flex items-center text-void-fg-2 hover:text-void-fg-1"
+		className="flex items-center justify-center text-void-fg-2 hover:text-void-fg-1"
 	>
 		<ExternalLink className="w-3.5 h-3.5" />
 	</a>
@@ -353,7 +378,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 						<td className="py-2 px-3"><YesNoText val={!!true} /></td>
 						<td className="py-2 px-3"><YesNoText val={!!supportsFIM} /></td>
 						{/* <td className="py-2 px-3"><YesNoText val={!!reasoningCapabilities} /></td> */}
-						{isDetectableLocally && <td className="py-2 px-3">{!!isDownloaded ? <Check className="w-4 h-4" /> : <></>}</td>}
+						{isDetectableLocally && <td className="py-2 px-3 flex items-center justify-center">{!!isDownloaded ? <Check className="w-4 h-4" /> : <></>}</td>}
 						{providerName === 'ollama' && <th className="py-2 px-3">
 							<OllamaDownloadOrRemoveModelButton modelName={modelName} isModelInstalled={infoOfModelName[modelName].isDownloaded} sizeGb={downloadable && downloadable.sizeGb} />
 						</th>}
@@ -374,6 +399,57 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 	</table>
 }
 
+
+
+const PrimaryActionButton = ({ children, className, ringSize, ...props }: { children: React.ReactNode, ringSize?: undefined | 'xl' | 'screen' } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+
+
+	return (
+		<button
+			type='button'
+			className={`
+				flex items-center justify-center
+
+				text-white dark:text-black
+				bg-black/90 dark:bg-white/90
+
+				${ringSize === 'xl' ? `
+					gap-2 px-16 py-8
+					hover:ring-8 active:ring-8
+					transition-all duration-300 ease-in-out
+					`
+					: ringSize === 'screen' ? `
+					gap-2 px-16 py-8
+					ring-[3000px]
+					transition-all duration-1000 ease-in-out
+					`: ringSize === undefined ? `
+					gap-1 px-4 py-2
+					hover:ring-2 active:ring-2
+					transition-all duration-300 ease-in-out
+				`: ''}
+
+				hover:ring-black/90 dark:hover:ring-white/90
+				active:ring-black/90 dark:active:ring-white/90
+
+				rounded-lg
+				group
+				${className}
+			`}
+			{...props}
+		>
+			{children}
+			<ChevronRight
+				className={`
+					transition-all duration-300 ease-in-out
+
+					transform
+					group-hover:translate-x-1
+					group-active:translate-x-1
+				`}
+			/>
+		</button>
+	)
+}
 
 
 type WantToUseOption = 'smart' | 'private' | 'cheap' | 'all'
@@ -447,6 +523,19 @@ const VoidOnboardingContent = () => {
 	</div>
 
 
+	const lastPagePrevAndNextButtons = <div className="max-w-[600px] w-full mx-auto flex flex-col items-end">
+		<div className="flex items-center gap-2">
+			<PreviousButton
+				onClick={() => { setPageIndex(pageIndex - 1) }}
+			/>
+			<PrimaryActionButton
+				onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
+				ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
+			>Enter the Void</PrimaryActionButton>
+		</div>
+	</div>
+
+
 	// cannot be md
 	const basicDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
 		smart: "Models with the best performance on benchmarks.",
@@ -459,7 +548,7 @@ const VoidOnboardingContent = () => {
 	const detailedDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
 		smart: "Most intelligent and best for agent mode.",
 		private: "Private-hosted so your data never leaves your computer or network. [Email us](mailto:founders@voideditor.com) for help setting up at your company.",
-		cheap: "Great deals like Gemini 2.5 Pro or self-host a model with Ollama or vLLM for free.",
+		cheap: "Use great deals like Gemini 2.5 Pro, or self-host a model with Ollama or vLLM for free.",
 		all: "",
 	}
 
@@ -490,17 +579,26 @@ const VoidOnboardingContent = () => {
 	const contentOfIdx: { [pageIndex: number]: React.ReactNode } = {
 		0: <OnboardingPageShell
 			content={
-				<>
+				<div className='flex flex-col items-center gap-8'>
 					<div className="text-5xl font-light text-center">Welcome to Void</div>
+
+					{/* Slice of Void image */}
+					<div className='max-w-md w-full h-[30vh] mx-auto flex items-center justify-center'>
+						<VoidIcon />
+					</div>
+
+
 					<FadeIn
-						delayMs={1500}
-						className="text-center"
-						onClick={() => { setPageIndex(pageIndex + 1) }}
+						delayMs={1000}
 					>
-						Get Started
+						<PrimaryActionButton
+							onClick={() => { setPageIndex(pageIndex + 1) }}
+						>
+							Get Started
+						</PrimaryActionButton>
 					</FadeIn>
 
-				</>
+				</div>
 			}
 		/>,
 		1: <OnboardingPageShell
@@ -516,7 +614,7 @@ const VoidOnboardingContent = () => {
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[800px] mx-auto mt-8">
 					<button
 						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:border-void-border-1 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
 							<Brain size={24} className="text-void-fg-2 mr-2" />
@@ -527,7 +625,7 @@ const VoidOnboardingContent = () => {
 
 					<button
 						onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:border-void-border-1 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
 							<Lock size={24} className="text-void-fg-2 mr-2" />
@@ -538,7 +636,7 @@ const VoidOnboardingContent = () => {
 
 					<button
 						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:border-void-border-1 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
 							<DollarSign size={24} className="text-void-fg-2 mr-2" />
@@ -550,6 +648,11 @@ const VoidOnboardingContent = () => {
 
 
 			</div>}
+			bottom={
+				<div className='mx-auto w-full max-w-[800px]'>
+					<PreviousButton onClick={() => { setPageIndex(pageIndex - 1) }} />
+				</div>
+			}
 		/>,
 		2: <OnboardingPageShell
 			top={
@@ -665,7 +768,7 @@ const VoidOnboardingContent = () => {
 
 
 					{/* ModelsTable and ProviderFields */}
-					{selectedProviderName && <div className='mt-4'>
+					{selectedProviderName && <div className='mt-4 w-fit mx-auto'>
 
 
 						{/* Models Table */}
@@ -673,12 +776,13 @@ const VoidOnboardingContent = () => {
 
 
 						{/* Add provider section - simplified styling */}
-						<div className='mb-5 mt-8'>
+						<div className='mb-5 mt-8 mx-auto'>
 							<div className=''>
 								Add {displayInfoOfProviderName(selectedProviderName).title}
 
-
-								{selectedProviderName === 'ollama' ? ollamaSetupInstructions : ''}
+								<div className='my-4'>
+									{selectedProviderName === 'ollama' ? ollamaSetupInstructions : ''}
+								</div>
 
 							</div>
 
@@ -733,35 +837,33 @@ const VoidOnboardingContent = () => {
 					</div>
 				</div>
 			}
-			bottom={prevAndNextButtons}
+			bottom={lastPagePrevAndNextButtons}
+		// bottom={prevAndNextButtons}
 		/>,
-		4: <OnboardingPageShell
-
-			content={
-				<>
-					<div className="text-5xl font-light text-center">Jump in</div>
-					<div
-						className="text-center"
-						onClick={() => {
-							// TODO make a fadeout effect
-							voidSettingsService.setGlobalSetting('isOnboardingComplete', true)
-						}}
-
-					>
-						Enter the Void
-					</div>
-				</>
-			}
-			bottom={
-				<PreviousButton
-					onClick={() => { setPageIndex(pageIndex - 1) }}
-				/>
-			}
-		/>,
+		// 4: <OnboardingPageShell
+		// 	content={
+		// 		<>
+		// 			<div
+		// 				className='flex justify-center'
+		// 			>
+		// 				<PrimaryActionButton
+		// 					onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
+		// 					ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
+		// 					className='text-4xl'
+		// 				>Enter the Void</PrimaryActionButton>
+		// 			</div>
+		// 		</>
+		// 	}
+		// 	bottom={
+		// 		<PreviousButton
+		// 			onClick={() => { setPageIndex(pageIndex - 1) }}
+		// 		/>
+		// 	}
+		// />,
 	}
 
 
-	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-auto flex flex-col items-center justify-around">
+	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-scroll flex flex-col items-center justify-around">
 		{contentOfIdx[pageIndex]}
 	</div>
 

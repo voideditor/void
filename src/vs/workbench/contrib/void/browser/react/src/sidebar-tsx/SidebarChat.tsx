@@ -29,6 +29,7 @@ import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg
 import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 import { MAX_FILE_CHARS_PAGE } from '../../../toolsService.js';
+import ErrorBoundary from './ErrorBoundary.js';
 
 
 
@@ -2483,7 +2484,7 @@ export const SidebarChat = () => {
 	const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? undefined  // if not exist, treat like checkpoint is last message (infinity)
 
 	const previousMessagesHTML = useMemo(() => {
-		const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
+		// const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
 		// tool request shows up as Editing... if in progress
 		return previousMessages.map((message, i) => {
 			return <ChatBubble
@@ -2620,14 +2621,20 @@ export const SidebarChat = () => {
 		<div ref={sidebarRef} className='w-full h-full flex flex-col overflow-hidden'>
 			{/* History selector */}
 			<div className={`w-full ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}>
-				<SidebarThreadSelector />
+				<ErrorBoundary>
+					<SidebarThreadSelector />
+				</ErrorBoundary>
 			</div>
 
 			<div className='flex-1 flex flex-col overflow-hidden'>
 				<div className={`flex-1 overflow-hidden ${previousMessages.length === 0 ? 'h-0 max-h-0 pb-2' : ''}`}>
-					{messagesHTML}
+					<ErrorBoundary>
+						{messagesHTML}
+					</ErrorBoundary>
 				</div>
-				{inputForm}
+				<ErrorBoundary>
+					{inputForm}
+				</ErrorBoundary>
 			</div>
 		</div>
 	)

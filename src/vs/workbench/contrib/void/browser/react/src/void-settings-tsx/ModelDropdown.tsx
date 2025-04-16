@@ -12,6 +12,7 @@ import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
 import { VOID_OPEN_SETTINGS_ACTION_ID, VOID_TOGGLE_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
 import { modelFilterOfFeatureName, ModelOption } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { WarningBox } from './WarningBox.js'
+import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 
 const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
 	if (m1.length !== m2.length) return false
@@ -92,5 +93,7 @@ export const ModelDropdown = ({ featureName, className }: { featureName: Feature
 							: 'Provider required'
 		} />
 
-	return <MemoizedModelDropdown featureName={featureName} className={className} />
+	return <ErrorBoundary>
+		<MemoizedModelDropdown featureName={featureName} className={className} />
+	</ErrorBoundary>
 }

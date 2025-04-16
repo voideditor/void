@@ -362,8 +362,6 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 
 registerSingleton(IVoidCommandBarService, VoidCommandBarService, InstantiationType.Delayed); // delayed is needed here :(
 
-// registerWorkbenchContribution2(VoidCommandBarService.ID, VoidCommandBarService, WorkbenchPhase.BlockRestore);
-
 
 export type VoidCommandBarProps = {
 	uri: URI | null;

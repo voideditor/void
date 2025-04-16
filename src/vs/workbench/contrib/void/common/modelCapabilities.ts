@@ -783,12 +783,21 @@ const groqSettings: VoidStaticProviderInfo = {
 }
 
 const ollamaModelOptions = {
-	'qwen2.5-coder:3b': {
+	'qwen2.5-coder:1.5b': {
 		contextWindow: 32_000,
 		maxOutputTokens: null,
 		cost: { input: 0, output: 0 },
 		downloadable: { sizeGb: 1.9 },
 		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'llama3.1': {
+		contextWindow: 128_000,
+		maxOutputTokens: null,
+		cost: { input: 0, output: 0 },
+		downloadable: { sizeGb: 4.9 },
+		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
@@ -822,7 +831,7 @@ const ollamaModelOptions = {
 
 } as const satisfies Record<string, VoidStaticModelInfo>
 
-export const ollamaRecommendedModels = ['qwen2.5-coder:3b', 'qwq', 'deepseek-r1'] as const satisfies (keyof typeof ollamaModelOptions)[]
+export const ollamaRecommendedModels = ['qwen2.5-coder:1.5b', 'llama3.1', 'qwq', 'deepseek-r1'] as const satisfies (keyof typeof ollamaModelOptions)[]
 
 
 

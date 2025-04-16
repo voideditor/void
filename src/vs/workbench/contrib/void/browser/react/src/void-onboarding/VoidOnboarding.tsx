@@ -144,7 +144,7 @@ const OnboardingPageShell = ({ top, bottom, content, hasMaxWidth = true, classNa
 		<div className={`min-h-full text-lg flex flex-col gap-4 w-full mx-auto ${hasMaxWidth ? 'max-w-[600px]' : ''} ${className}`}>
 			{top && <FadeIn className='w-full mb-auto pt-16'>{top}</FadeIn>}
 			{content && <FadeIn className='w-full my-auto'>{content}</FadeIn>}
-			{bottom && <div className='w-full mt-auto pb-8'>{bottom}</div>}
+			{bottom && <div className='w-full pb-8'>{bottom}</div>}
 		</div>
 	)
 }
@@ -376,35 +376,50 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 
 
 
-const PrimaryActionButton = ({ children, className, ...props }: { children: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+const PrimaryActionButton = ({ children, className, ringSize, ...props }: { children: React.ReactNode, ringSize?: undefined | 'xl' | 'screen' } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+
+
 	return (
 		<button
 			type='button'
-			className="
+			className={`
 				flex items-center justify-center
-				gap-1 px-4 py-2
 
 				text-white dark:text-black
 				bg-black/90 dark:bg-white/90
-				hover:ring-2 hover:ring-black/90 dark:hover:ring-white/90
-				active:ring-2 active:ring-black/90 dark:active:ring-white/90
 
-				transition-all duration-300 ease-in-out
+				${ringSize === 'xl' ? `
+					gap-2 px-16 py-8
+					hover:ring-8 active:ring-8
+					transition-all duration-300 ease-in-out
+					`
+					: ringSize === 'screen' ? `
+					gap-2 px-16 py-8
+					ring-[3000px]
+					transition-all duration-1000 ease-in-out
+					`: ringSize === undefined ? `
+					gap-1 px-4 py-2
+					hover:ring-2 active:ring-2
+					transition-all duration-300 ease-in-out
+				`: ''}
+
+				hover:ring-black/90 dark:hover:ring-white/90
+				active:ring-black/90 dark:active:ring-white/90
 
 				rounded-lg
 				group
-			"
+			`}
 			{...props}
 		>
 			{children}
 			<ChevronRight
-				className="
+				className={`
 					transition-all duration-300 ease-in-out
 
 					transform
 					group-hover:translate-x-1
 					group-active:translate-x-1
-				"
+				`}
 			/>
 		</button>
 	)
@@ -529,13 +544,13 @@ const VoidOnboardingContent = () => {
 					<div className="text-5xl font-light text-center">Welcome to Void</div>
 
 					{/* Slice of Void image */}
-					<div className='max-w-md w-full h-64 mx-auto'>
+					<div className='max-w-md w-full h-[30vh] mx-auto'>
 						<div className="slice-of-void-image" />
 					</div>
 
 
 					<FadeIn
-						delayMs={2000}
+						delayMs={1000}
 					>
 						<PrimaryActionButton
 							onClick={() => { setPageIndex(pageIndex + 1) }}
@@ -560,7 +575,7 @@ const VoidOnboardingContent = () => {
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[800px] mx-auto mt-8">
 					<button
 						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:border-void-border-1 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:bg-zinc-200/10 dark:hover:bg-zinc-700/50 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
 							<Brain size={24} className="text-void-fg-2 mr-2" />
@@ -571,7 +586,7 @@ const VoidOnboardingContent = () => {
 
 					<button
 						onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:border-void-border-1 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:bg-zinc-200/10 dark:hover:bg-zinc-700/50 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
 							<Lock size={24} className="text-void-fg-2 mr-2" />
@@ -582,7 +597,7 @@ const VoidOnboardingContent = () => {
 
 					<button
 						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:border-void-border-1 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:bg-zinc-200/10 dark:hover:bg-zinc-700/50 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
 							<DollarSign size={24} className="text-void-fg-2 mr-2" />
@@ -788,6 +803,7 @@ const VoidOnboardingContent = () => {
 					>
 						<PrimaryActionButton
 							onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
+							ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' :'xl'}
 						>Enter the Void</PrimaryActionButton>
 					</div>
 				</>

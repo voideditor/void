@@ -1364,12 +1364,12 @@ const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => 
 				style={{ background: 'none' }}
 			>
 				<ChevronRight
-					className={`mr-1 h-4 w-4 flex-shrink-0 transition-transform duration-100 text-void-fg-4 group-hover:text-void-fg-3 ${isOpen ? 'rotate-90' : ''}`}
+					className={`mr-1 h-3 w-3 flex-shrink-0 transition-transform duration-100 text-void-fg-4 group-hover:text-void-fg-3 ${isOpen ? 'rotate-90' : ''}`}
 				/>
 				<span className="font-medium text-void-fg-4 group-hover:text-void-fg-3 text-xs">Lint errors</span>
 			</div>
 			<div
-				className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100 py-1' : 'max-h-0 opacity-0'} text-xs pl-5`}
+				className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100' : 'max-h-0 opacity-0'} text-xs pl-4`}
 			>
 				<div className="flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap text-void-fg-4 opacity-90 border-l-2 border-void-warning px-2 py-0.5">
 					{lintErrors.map((error, i) => (
@@ -1949,10 +1949,14 @@ const Checkpoint = ({ message, threadId, messageIdx, isCheckpointGhost, threadIs
 			style={{ position: 'relative', display: 'inline-block' }} // allow absolute icon
 			onClick={() => {
 				if (threadIsRunning) return
-				chatThreadService.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
+				chatThreadService.jumpToCheckpointBeforeMessageIdx({
+					threadId,
+					messageIdx,
+					jumpToUserModified: messageIdx === (chatThreadService.state.allThreads[threadId]?.messages.length ?? 0) - 1
+				})
 			}}
 		>
-                    Checkpoint
+			Checkpoint
 		</div>
 	</div>
 }

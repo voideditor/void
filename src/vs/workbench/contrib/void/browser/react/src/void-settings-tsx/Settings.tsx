@@ -121,7 +121,7 @@ export const AnimatedCheckmarkButton = ({ text, className }: { text?: string, cl
 
 	return <div
 		className={`flex items-center gap-1.5 w-fit
-			${className ? className : `px-2 py-0.5 text-xs text-white bg-[#0e70c0] rounded-sm`}
+			${className ? className : `px-2 py-0.5 text-xs text-zinc-900 bg-zinc-100 rounded-sm`}
 		`}
 	>
 		<svg className="size-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -146,7 +146,7 @@ const AddButton = ({ disabled, text = 'Add', ...props }: { disabled?: boolean, t
 
 	return <button
 		disabled={disabled}
-		className={`bg-[#0e70c0] px-3 py-1 text-white rounded-sm ${!disabled ? 'hover:bg-[#1177cb] cursor-pointer' : 'opacity-50 cursor-not-allowed bg-opacity-70'}`}
+		className={`bg-[#0e70c0] px-3 py-1 text-white dark:text-black rounded-sm ${!disabled ? 'hover:bg-[#1177cb] cursor-pointer' : 'opacity-50 cursor-not-allowed bg-opacity-70'}`}
 		{...props}
 	>{text}</button>
 
@@ -175,7 +175,7 @@ export const AddModelInputBox = ({ providerName: permanentProviderName, classNam
 	const numModels = settingsState.settingsOfProvider[providerName].models.length
 
 	if (showCheckmark) {
-		return <AnimatedCheckmarkButton text='Added' className={`bg-[#0e70c0] text-white px-3 py-1 rounded-sm ${className}`} />
+		return <AnimatedCheckmarkButton text='Added' className={`bg-[#0e70c0] text-white dark:text-black px-3 py-1 rounded-sm ${className}`} />
 	}
 
 	if (!isOpen) {
@@ -549,7 +549,12 @@ export const ollamaSetupInstructions = <div className='prose-p:my-0 prose-ol:lis
 	<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
 	<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
 	<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
-	<div className=' pl-6'><ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} /></div>
+	<div
+		className='pl-6 flex items-center w-fit'
+		data-tooltip-id='void-tooltip-ollama-settings'
+	>
+		<ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} />
+	</div>
 	<div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>
 </div>
 
@@ -617,7 +622,7 @@ export const FeaturesTab = () => {
 					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
 					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>
 						<span>
-							Experimental. Only works with FIM models.
+							Experimental.{' '}
 						</span>
 						<span
 							className='hover:brightness-110'
@@ -625,7 +630,7 @@ export const FeaturesTab = () => {
 							data-tooltip-content='We recommend using qwen2.5-coder:1.5b with Ollama.'
 							data-tooltip-class-name='void-max-w-[20px]'
 						>
-							*
+							Only works with FIM models.*
 						</span>
 					</div>
 
@@ -707,7 +712,7 @@ export const FeaturesTab = () => {
 								value={voidSettingsState.globalSettings.includeToolLintErrors}
 								onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
 							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Don't fix lint errors`}</span>
+							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
 						</div>
 					</div>
 				</div>

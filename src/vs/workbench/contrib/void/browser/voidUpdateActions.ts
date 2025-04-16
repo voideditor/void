@@ -99,7 +99,7 @@ const notifyUpdate = (res: VoidCheckUpdateRespose & { message: string }, notifSe
 			secondary: [{
 				id: 'void.updater.close',
 				enabled: true,
-				label: `Keep Void outdated`,
+				label: `Keep current version`,
 				tooltip: '',
 				class: undefined,
 				run: () => {

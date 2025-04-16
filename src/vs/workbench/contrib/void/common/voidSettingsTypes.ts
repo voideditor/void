@@ -70,7 +70,8 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'deepseek') {
 		return {
-			title: 'DeepSeek.com API',
+			// title: 'DeepSeek.com API',
+			title: 'DeepSeek',
 		}
 	}
 	else if (providerName === 'openRouter') {
@@ -95,22 +96,26 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'gemini') {
 		return {
-			title: 'Gemini API',
+			// title: 'Gemini API',
+			title: 'Gemini',
 		}
 	}
 	else if (providerName === 'groq') {
 		return {
-			title: 'Groq.com API',
+			// title: 'Groq.com API',
+			title: 'Groq',
 		}
 	}
 	else if (providerName === 'xAI') {
 		return {
-			title: 'Grok (xAI)',
+			// title: 'Grok (xAI)',
+			title: 'xAI',
 		}
 	}
 	else if (providerName === 'mistral') {
 		return {
-			title: 'Mistral API',
+			// title: 'Mistral API',
+			title: 'Mistral',
 		}
 	}
 

@@ -5,13 +5,13 @@
 
 import { useEffect, useState } from 'react';
 import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
-import { Check, ExternalLink, X } from 'lucide-react';
+import { Brain, Check, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
 import { displayInfoOfProviderName, ProviderName, providerNames, refreshableProviderNames } from '../../../../common/voidSettingsTypes.js';
 import { getModelCapabilities, ollamaRecommendedModels } from '../../../../common/modelCapabilities.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { AddModelInputBox, AnimatedCheckmarkButton, ollamaSetupInstructions, OneClickSwitchButton, SettingsForProvider } from '../void-settings-tsx/Settings.js';
 
-const OVERRIDE_VALUE = true
+const OVERRIDE_VALUE = false
 
 export const VoidOnboarding = () => {
 
@@ -24,7 +24,6 @@ export const VoidOnboarding = () => {
 		<div className={`@@void-scope ${isDark ? 'dark' : ''}`}>
 			<div
 				className={`
-					hidden
 					bg-void-bg-3 fixed top-0 right-0 bottom-0 left-0 width-full h-full z-[99999]
 					transition-all duration-1000 ${isOnboardingComplete ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}
 				`}
@@ -38,10 +37,11 @@ export const VoidOnboarding = () => {
 
 const FADE_DURATION_MS = 2000
 
-
-const FadeIn = ({ children, className, delayMs = 0, ...props }: { children: React.ReactNode, delayMs?: number, className?: string } & React.HTMLAttributes<HTMLDivElement>) => {
+const FadeIn = ({ children, className, delayMs = 0, durationMs, ...props }: { children: React.ReactNode, delayMs?: number, durationMs?: number, className?: string } & React.HTMLAttributes<HTMLDivElement>) => {
 
 	const [opacity, setOpacity] = useState(0)
+
+	const effectiveDurationMs = durationMs ?? FADE_DURATION_MS
 
 	useEffect(() => {
 
@@ -54,7 +54,7 @@ const FadeIn = ({ children, className, delayMs = 0, ...props }: { children: Reac
 
 
 	return (
-		<div className={className} style={{ opacity, transition: `opacity ${FADE_DURATION_MS}ms ease-in-out` }} {...props}>
+		<div className={className} style={{ opacity, transition: `opacity ${effectiveDurationMs}ms ease-in-out` }} {...props}>
 			{children}
 		</div>
 	)
@@ -102,15 +102,14 @@ const FadeIn = ({ children, className, delayMs = 0, ...props }: { children: Reac
 // 		content
 // 		prev/next
 
-
 const NextButton = ({ onClick, ...props }: { onClick: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
 	return (
 		<button
 			onClick={onClick}
-			className="px-6 py-2 bg-[#0e70c0] enabled:hover:bg-[#1177cb] disabled:opacity-50 disabled:cursor-not-allowed rounded text-white duration-300 transition-all"
+			className="px-6 py-2 bg-zinc-100 enabled:hover:bg-zinc-100 disabled:bg-zinc-100/40 disabled:cursor-not-allowed rounded text-black duration-600 transition-all"
 			{...props.disabled && {
 				'data-tooltip-id': 'void-tooltip',
-				'data-tooltip-content': 'Disabled (Please enter all required fields or choose another Provider)',
+				'data-tooltip-content': 'Disabled (Please enter all required fields or choose another provider)',
 				'data-tooltip-place': 'top',
 			}}
 			{...props}
@@ -120,23 +119,11 @@ const NextButton = ({ onClick, ...props }: { onClick: () => void } & React.Butto
 	)
 }
 
-const SkipButton = ({ onClick, ...props }: { onClick: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
-	return (
-		<button
-			onClick={onClick}
-			className="px-6 py-2 rounded bg-void-bg-2 hover:bg-void-bg-3 text-void-fg-2 duration-300 transition-all"
-			{...props}
-		>
-			Skip
-		</button>
-	)
-}
-
 const PreviousButton = ({ onClick, ...props }: { onClick: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
 	return (
 		<button
 			onClick={onClick}
-			className="px-6 py-2 rounded text-void-fg-3 opacity-80 hover:brightness-110 duration-300 transition-all"
+			className="px-6 py-2 rounded text-void-fg-3 opacity-80 hover:brightness-115 duration-600 transition-all"
 			{...props}
 		>
 			Back
@@ -154,10 +141,10 @@ const OnboardingPageShell = ({ top, bottom, content, hasMaxWidth = true, classNa
 	className?: string,
 }) => {
 	return (
-		<div className={`min-h-full flex flex-col gap-4 w-full mx-auto ${hasMaxWidth ? 'max-w-[600px]' : ''} ${className}`}>
-			<FadeIn className='w-full pt-16'>{top}</FadeIn>
-			<FadeIn className='w-full my-auto'>{content}</FadeIn>
-			<div className='w-full pb-8'>{bottom}</div>
+		<div className={`min-h-full text-lg flex flex-col gap-4 w-full mx-auto ${hasMaxWidth ? 'max-w-[600px]' : ''} ${className}`}>
+			{top && <FadeIn className='w-full mb-auto pt-16'>{top}</FadeIn>}
+			{content && <FadeIn className='w-full my-auto'>{content}</FadeIn>}
+			{bottom && <div className='w-full mt-auto pb-8'>{bottom}</div>}
 		</div>
 	)
 }
@@ -252,9 +239,9 @@ const YesNoText = ({ val }: { val: boolean | null }) => {
 
 	return <div
 		className={
-			val === true ? "text text-green-500"
-				: val === false ? 'text-red-500'
-					: "text text-yellow-500"
+			val === true ? "text text-emerald-500"
+				: val === false ? 'text-rose-600'
+					: "text text-amber-300"
 		}
 	>
 		{
@@ -344,7 +331,6 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 				} = capabilities
 
 				// TODO update this when tools work
-				const supportsTools = !!!((capabilities as unknown as any).supportsTools)
 
 				const removeModelButton = <button
 					className="absolute -left-1 top-1/2 transform -translate-y-1/2 -translate-x-full text-void-fg-3 hover:text-void-fg-1 text-xs"
@@ -364,7 +350,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 						<td className="py-2 px-3">${cost.output ?? ''}</td>
 						<td className="py-2 px-3">{contextWindow ? abbreviateNumber(contextWindow) : ''}</td>
 						<td className="py-2 px-3"><YesNoText val={true} /></td>
-						<td className="py-2 px-3"><YesNoText val={!!supportsTools} /></td>
+						<td className="py-2 px-3"><YesNoText val={!!true} /></td>
 						<td className="py-2 px-3"><YesNoText val={!!supportsFIM} /></td>
 						{/* <td className="py-2 px-3"><YesNoText val={!!reasoningCapabilities} /></td> */}
 						{isDetectableLocally && <td className="py-2 px-3">{!!isDownloaded ? <Check className="w-4 h-4" /> : <></>}</td>}
@@ -406,18 +392,42 @@ const VoidOnboardingContent = () => {
 	// page 1 state
 	const [wantToUseOption, setWantToUseOption] = useState<WantToUseOption>('smart')
 
-	// page 2 state
-	const [selectedProviderName, setSelectedProviderName] = useState<ProviderName | null>(null)
+	// Replace the single selectedProviderName with four separate states
+	// page 2 state - each tab gets its own state
+	const [selectedIntelligentProvider, setSelectedIntelligentProvider] = useState<ProviderName>('anthropic');
+	const [selectedPrivateProvider, setSelectedPrivateProvider] = useState<ProviderName>('ollama');
+	const [selectedAffordableProvider, setSelectedAffordableProvider] = useState<ProviderName>('gemini');
+	const [selectedAllProvider, setSelectedAllProvider] = useState<ProviderName>('anthropic');
+
+	// Helper function to get the current selected provider based on active tab
+	const getSelectedProvider = (): ProviderName => {
+		switch (wantToUseOption) {
+			case 'smart': return selectedIntelligentProvider;
+			case 'private': return selectedPrivateProvider;
+			case 'cheap': return selectedAffordableProvider;
+			case 'all': return selectedAllProvider;
+		}
+	}
+
+	// Helper function to set the selected provider for the current tab
+	const setSelectedProvider = (provider: ProviderName) => {
+		switch (wantToUseOption) {
+			case 'smart': setSelectedIntelligentProvider(provider); break;
+			case 'private': setSelectedPrivateProvider(provider); break;
+			case 'cheap': setSelectedAffordableProvider(provider); break;
+			case 'all': setSelectedAllProvider(provider); break;
+		}
+	}
 
 	const providerNamesOfWantToUseOption: { [wantToUseOption in WantToUseOption]: ProviderName[] } = {
 		smart: ['anthropic', 'openAI', 'gemini', 'openRouter'],
 		private: ['ollama', 'vLLM', 'openAICompatible'],
 		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM'],
 		all: providerNames,
-		// TODO allow user to redo onboarding
 	}
 
 
+	const selectedProviderName = getSelectedProvider();
 	const didFillInProviderSettings = selectedProviderName && voidSettingsState.settingsOfProvider[selectedProviderName]._didFillInProviderSettings
 	const isApiKeyLongEnoughIfApiKeyExists = selectedProviderName && voidSettingsState.settingsOfProvider[selectedProviderName].apiKey ? voidSettingsState.settingsOfProvider[selectedProviderName].apiKey.length > 15 : true
 	const isAtLeastOneModel = selectedProviderName && voidSettingsState.settingsOfProvider[selectedProviderName].models.length >= 1
@@ -425,7 +435,7 @@ const VoidOnboardingContent = () => {
 	const didFillInSelectedProviderSettings = !!(didFillInProviderSettings && isApiKeyLongEnoughIfApiKeyExists && isAtLeastOneModel)
 
 	const prevAndNextButtons = <div className="max-w-[600px] w-full mx-auto flex flex-col items-end">
-		<div className="flex items-center gap-4">
+		<div className="flex items-center gap-2">
 			<PreviousButton
 				onClick={() => { setPageIndex(pageIndex - 1) }}
 			/>
@@ -440,8 +450,8 @@ const VoidOnboardingContent = () => {
 	// cannot be md
 	const basicDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
 		smart: "Models with the best performance on benchmarks.",
-		private: "Fully private and hosted on your computer/network.",
-		cheap: "Free and low-cost options.",
+		private: "Host on your computer or local network for full data privacy.",
+		cheap: "Free and affordable options.",
 		all: "",
 	}
 
@@ -453,20 +463,21 @@ const VoidOnboardingContent = () => {
 		all: "",
 	}
 
-	// set the selected provider name appropriately
+	// Modified: initialize separate provider states on initial render instead of watching wantToUseOption changes
 	useEffect(() => {
-		if (wantToUseOption && providerNamesOfWantToUseOption[wantToUseOption].length > 0) {
-			setSelectedProviderName(providerNamesOfWantToUseOption[wantToUseOption][0]);
-		} else {
-			setSelectedProviderName(null);
+		if (selectedIntelligentProvider === undefined) {
+			setSelectedIntelligentProvider(providerNamesOfWantToUseOption['smart'][0]);
 		}
-	}, [wantToUseOption]);
-
-	// set wantToUseOption to smart when page changes
-	useEffect(() => {
-		setWantToUseOption(wantToUseOption);
-	}, [pageIndex]);
-
+		if (selectedPrivateProvider === undefined) {
+			setSelectedPrivateProvider(providerNamesOfWantToUseOption['private'][0]);
+		}
+		if (selectedAffordableProvider === undefined) {
+			setSelectedAffordableProvider(providerNamesOfWantToUseOption['cheap'][0]);
+		}
+		if (selectedAllProvider === undefined) {
+			setSelectedAllProvider(providerNamesOfWantToUseOption['all'][0]);
+		}
+	}, []);
 
 	// reset the page to page 0 if the user redos onboarding
 	useEffect(() => {
@@ -476,168 +487,175 @@ const VoidOnboardingContent = () => {
 	}, [setPageIndex, voidSettingsState.globalSettings.isOnboardingComplete])
 
 
-	// TODO add a description next to the skip button saying (you can always restart the onboarding in Settings)
 	const contentOfIdx: { [pageIndex: number]: React.ReactNode } = {
-		// 0: <OnboardingPageShell
-		// 	top={
-		// 		<div className='bg-green-600 h-6 w-32' />
-		// 	}
-		// 	content={
-		// 		<div className='bg-red-600 h-[10000px] w-32' />
-		// 	}
-		// 	bottom={
-		// 		<div className='bg-blue-600 h-6 w-32' />
-		// 	}
-		// />,
 		0: <OnboardingPageShell
-			top={
-				<div className="text-5xl font-light text-center">Welcome to Void</div>
-			}
 			content={
-				<FadeIn
-					delayMs={500}
-					className="text-center"
-					onClick={() => { setPageIndex(pageIndex + 1) }}
-				>
-					Get Started
-				</FadeIn>
-			}
-			bottom={
-				''
+				<>
+					<div className="text-5xl font-light text-center">Welcome to Void</div>
+					<FadeIn
+						delayMs={1500}
+						className="text-center"
+						onClick={() => { setPageIndex(pageIndex + 1) }}
+					>
+						Get Started
+					</FadeIn>
+
+				</>
 			}
 		/>,
 		1: <OnboardingPageShell
+
 			hasMaxWidth={false}
-			top={
-				<FadeIn className='flex flex-col items-center'>
-					<div className="text-5xl font-light text-center">AI Preferences</div>
+			top={<></>}
+			content={<div className='flex flex-col items-center -translate-y-[20vh]'>
+				{/* <div className="text-5xl text-center mb-8">AI Preferences</div> */}
 
-					<div className="mt-[10%] text-base text-void-fg-2 mb-8 text-center">What are you looking for in an AI model?</div>
+				<div className="text-4xl text-void-fg-2 mb-8 text-center">Model Preferences</div>
 
-					<div className="flex justify-center w-full md:flex-nowrap md:max-w-[80%] max-w-[90%] gap-4">
-						<div
-							onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
-							className="w-full max-w-[250px] h-full relative p-6 aspect-[8/7] border border-void-border-1 rounded-md group flex flex-col items-center justify-center cursor-pointer"
-						>
-							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
-							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
-							<span className="text-5xl mb-4 relative z-10">🧠</span>
-							<h3 className="text-xl font-medium mb-3 relative z-10">Intelligence</h3>
-							<p className="text-center text-root text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['smart']}</p>
+
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[800px] mx-auto mt-8">
+					<button
+						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:border-void-border-1 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+					>
+						<div className="flex items-center mb-3">
+							<Brain size={24} className="text-void-fg-2 mr-2" />
+							<div className="text-lg font-medium text-void-fg-1">Intelligent</div>
 						</div>
+						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['smart']}</div>
+					</button>
 
-						<div
-							onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
-							className="w-full max-w-[250px] h-full relative p-6 aspect-[8/7] border border-void-border-1 rounded-md group flex flex-col items-center justify-center cursor-pointer"
-						>
-							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
-							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
-							<span className="text-5xl mb-4 relative z-10">🔒</span>
-							<h3 className="text-xl font-medium mb-3 relative z-10">Privacy</h3>
-							<p className="text-center text-root text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['private']}</p>
+					<button
+						onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:border-void-border-1 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+					>
+						<div className="flex items-center mb-3">
+							<Lock size={24} className="text-void-fg-2 mr-2" />
+							<div className="text-lg font-medium text-void-fg-1">Private</div>
 						</div>
+						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['private']}</div>
+					</button>
 
-						<div
-							onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
-							className="w-full max-w-[250px] h-full relative p-6 aspect-[8/7] border border-void-border-1 rounded-md group flex flex-col items-center justify-center cursor-pointer"
-						>
-							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/15 via-[#0e70c0]/5 to-transparent dark:from-[#0e70c0]/20 dark:via-[#0e70c0]/10 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-100"></div>
-							<div className="absolute inset-0 bg-gradient-to-br from-[#0e70c0]/25 via-[#0e70c0]/10 to-[#0e70c0]/5 dark:from-[#0e70c0]/30 dark:via-[#0e70c0]/15 dark:to-[#0e70c0]/5 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"></div>
-							<span className="text-5xl mb-4 relative z-10">💵</span>
-							<h3 className="text-xl font-medium mb-3 relative z-10">Affordability</h3>
-							<p className="text-center text-root text-void-fg-2 relative z-10">{basicDescOfWantToUseOption['cheap']}</p>
+					<button
+						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:border-void-border-1 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+					>
+						<div className="flex items-center mb-3">
+							<DollarSign size={24} className="text-void-fg-2 mr-2" />
+							<div className="text-lg font-medium text-void-fg-1">Affordable</div>
 						</div>
-					</div>
+						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['cheap']}</div>
+					</button>
+				</div>
 
-				</FadeIn>
-			}
-			content={<></>}
+
+			</div>}
 		/>,
 		2: <OnboardingPageShell
 			top={
-				<div className='flex flex-col items-center'>
+				<>
 					{/* Title */}
-					<div className="text-5xl font-light text-center">Choose a Provider</div>
+
+					<div className="text-5xl font-light text-center mt-[10vh] mb-6">Choose a Provider</div>
 
 					{/* Preference Selector */}
-					<div className="mt-6 mb-6 mx-auto flex items-center overflow-hidden bg-zinc-700/5 dark:bg-zinc-300/5 rounded-md">
-						<button
-							onClick={() => {
-								setWantToUseOption('smart');
-							}}
-							className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors
-								${wantToUseOption === 'smart'
-									? 'bg-zinc-700/10 dark:bg-zinc-300/10 text-white font-medium'
+
+					<div
+						className="mb-6 w-fit mx-auto flex items-center overflow-hidden bg-zinc-700/5 dark:bg-zinc-300/5 rounded-md"
+					>
+						{[
+							{ id: 'smart', label: 'Intelligent' },
+							{ id: 'private', label: 'Private' },
+							{ id: 'cheap', label: 'Affordable' },
+							{ id: 'all', label: 'All' }
+						].map(option => (
+							<button
+								key={option.id}
+								onClick={() => setWantToUseOption(option.id as WantToUseOption)}
+								className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors ${wantToUseOption === option.id
+									? 'dark:text-white text-black font-medium'
 									: 'text-void-fg-3 hover:text-void-fg-2'
-								}
-							`}
-						>
-							Intelligent
-						</button>
-						<button
-							onClick={() => {
-								setWantToUseOption('private');
-							}}
-							className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors
-								${wantToUseOption === 'private'
-									? 'bg-zinc-700/10 dark:bg-zinc-300/10 text-white font-medium'
-									: 'text-void-fg-3 hover:text-void-fg-2'
-								}
-							`}
-						>
-							Private
-						</button>
-						<button
-							onClick={() => {
-								setWantToUseOption('cheap');
-							}}
-							className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors
-								${wantToUseOption === 'cheap'
-									? 'bg-zinc-700/10 dark:bg-zinc-300/10 text-white font-medium'
-									: 'text-void-fg-3 hover:text-void-fg-2'
-								}
-							`}
-						>
-							Low-Cost
-						</button>
-						<button
-							onClick={() => {
-								setWantToUseOption('all')
-							}}
-							className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors
-								${wantToUseOption === 'all'
-									? 'bg-zinc-700/10 dark:bg-zinc-300/10 text-white font-medium'
-									: 'text-void-fg-3 hover:text-void-fg-2'
-								}
-							`}
-						>
-							All
-						</button>
+									}`}
+								data-tooltip-id='void-tooltip'
+								data-tooltip-content={`${option.label} providers`}
+								data-tooltip-place='bottom'
+							>
+								{option.label}
+							</button>
+						))}
 					</div>
 
 
-					{/* Provider Buttons */}
-					<div
-						key={wantToUseOption}
-						className="mb-2 flex flex-wrap items-center w-full"
-					>
 
-						{(wantToUseOption === 'all' ? providerNames : providerNamesOfWantToUseOption[wantToUseOption]).map((providerName) => {
-							const isSelected = selectedProviderName === providerName
+					{/* Provider Buttons - Modified to use separate components for each tab */}
+					<div className="mb-2 w-full">
+						{/* Intelligent tab */}
+						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'smart' ? 'flex' : 'hidden'}`}>
+							{providerNamesOfWantToUseOption['smart'].map((providerName) => {
+								const isSelected = selectedIntelligentProvider === providerName;
+								return (
+									<button
+										key={providerName}
+										onClick={() => setSelectedIntelligentProvider(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								);
+							})}
+						</div>
 
-							return (
-								<button
-									key={providerName}
-									onClick={() => setSelectedProviderName(providerName)}
-									className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-colors duration-150 border
-											${isSelected ? 'bg-[#0e70c0] text-white shadow-sm border-[#0e70c0]/80' : 'bg-[#0e70c0]/10 text-void-fg-3 hover:bg-[#0e70c0]/30 border-[#0e70c0]/20'}
-										`}
-								>
-									{displayInfoOfProviderName(providerName).title}
-								</button>
-							)
-						})}
+						{/* Private tab */}
+						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'private' ? 'flex' : 'hidden'}`}>
+							{providerNamesOfWantToUseOption['private'].map((providerName) => {
+								const isSelected = selectedPrivateProvider === providerName;
+								return (
+									<button
+										key={providerName}
+										onClick={() => setSelectedPrivateProvider(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								);
+							})}
+						</div>
 
+						{/* Affordable tab */}
+						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'cheap' ? 'flex' : 'hidden'}`}>
+							{providerNamesOfWantToUseOption['cheap'].map((providerName) => {
+								const isSelected = selectedAffordableProvider === providerName;
+								return (
+									<button
+										key={providerName}
+										onClick={() => setSelectedAffordableProvider(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								);
+							})}
+						</div>
+
+						{/* All tab */}
+						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'all' ? 'flex' : 'hidden'}`}>
+							{providerNames.map((providerName) => {
+								const isSelected = selectedAllProvider === providerName;
+								return (
+									<button
+										key={providerName}
+										onClick={() => setSelectedAllProvider(providerName)}
+										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
+									>
+										{displayInfoOfProviderName(providerName).title}
+									</button>
+								);
+							})}
+						</div>
 					</div>
 
 					{/* Description */}
@@ -672,17 +690,18 @@ const VoidOnboardingContent = () => {
 							{!didFillInProviderSettings ? <p className="text-xs text-void-fg-3 mt-2">Please fill in all fields to continue</p>
 								: !isAtLeastOneModel ? <p className="text-xs text-void-fg-3 mt-2">Please add a model to continue</p>
 									: !isApiKeyLongEnoughIfApiKeyExists ? <p className="text-xs text-void-fg-3 mt-2">Please enter a valid API key</p>
-										: <div className="mt-2"><AnimatedCheckmarkButton text='Added' /></div>}
+										: <AnimatedCheckmarkButton className='text-xs text-void-fg-3 mt-2' text='Added' />}
 						</div>
 
 					</div>}
-
-				</div>
-
+				</>
 			}
 
 			bottom={
-				prevAndNextButtons
+				<FadeIn delayMs={50} durationMs={10}>
+					{prevAndNextButtons}
+				</FadeIn>
+
 			}
 
 		/>,
@@ -701,7 +720,8 @@ const VoidOnboardingContent = () => {
 		// 	{prevAndNextButtons}
 		// </div>,
 		3: <OnboardingPageShell
-			top={
+
+			content={
 				<div>
 					<div className="text-5xl font-light text-center">Settings and Themes</div>
 
@@ -716,20 +736,21 @@ const VoidOnboardingContent = () => {
 			bottom={prevAndNextButtons}
 		/>,
 		4: <OnboardingPageShell
-			top={
-				<div className="text-5xl font-light text-center">Jump in</div>
-			}
-			content={
-				<div
-					className="text-center"
-					onClick={() => {
-						// TODO make a fadeout effect
-						voidSettingsService.setGlobalSetting('isOnboardingComplete', true)
-					}}
 
-				>
-					Enter the Void
-				</div>
+			content={
+				<>
+					<div className="text-5xl font-light text-center">Jump in</div>
+					<div
+						className="text-center"
+						onClick={() => {
+							// TODO make a fadeout effect
+							voidSettingsService.setGlobalSetting('isOnboardingComplete', true)
+						}}
+
+					>
+						Enter the Void
+					</div>
+				</>
 			}
 			bottom={
 				<PreviousButton

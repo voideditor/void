@@ -258,6 +258,22 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			this._realignAllDiffAreasLines(uri, change.text, change.range)
 		}
 		this._refreshStylesAndDiffsInURI(uri)
+
+		// if diffarea has no diffs after a user edit, delete it
+		const diffAreasToDelete: DiffZone[] = []
+		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] ?? []) {
+			const diffArea = this.diffAreaOfId[diffareaid] ?? null
+			const shouldDelete = diffArea?.type === 'DiffZone' && Object.keys(diffArea._diffOfId).length === 0
+			if (shouldDelete) {
+				diffAreasToDelete.push(diffArea)
+			}
+		}
+		if (diffAreasToDelete.length !== 0) {
+			const { onFinishEdit } = this._addToHistory(uri)
+			diffAreasToDelete.forEach(da => this._deleteDiffZone(da))
+			onFinishEdit()
+		}
+
 	}
 
 
@@ -1562,20 +1578,22 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 
-		const errContentOfInvalidStr = (str: string & ReturnType<typeof findTextInCode>, blockOrig: string, blockNum: number, blocks: ExtractedSearchReplaceBlock[]) => {
+		const errContentOfInvalidStr = (str: 'Not found' | 'Not unique' | 'Has overlap', blockOrig: string) => {
 
 			const descStr = str === `Not found` ?
 				`The most recent ORIGINAL code could not be found in the file, so you were interrupted. The text in ORIGINAL must EXACTLY match lines of code. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
 				: str === `Not unique` ?
 					`The most recent ORIGINAL code shows up multiple times in the file, so you were interrupted. You might want to expand the ORIGINAL excerpt so it's unique. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
-					: ``
+					: str === 'Has overlap' ?
+						`The most recent ORIGINAL code has overlap with another ORIGINAL code block that you outputted. Do NOT output any overlapping edits. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
+						: ``
 
 			// string of <<<<< ORIGINAL >>>>> REPLACE blocks so far so LLM can understand what it currently has
 			// const blocksSoFarStr = blocks.slice(0, blockNum).map(block => `${ORIGINAL}\n${block.orig}\n${DIVIDER}\n${block.final}\n${FINAL}`).join('\n')
 			// const soFarStr = blocksSoFarStr ? `These are the Search/Replace blocks that have been applied so far:${tripleTick[0]}\n${blocksSoFarStr}\n${tripleTick[1]}` : ''
 			// const continueMsg = soFarStr ? `${soFarStr}Please continue outputting SEARCH/REPLACE blocks starting where this leaves off.` : ''
 			// const errMsg = `${descStr}${continueMsg ? `\n${continueMsg}` : ''}`
-			const soFarStr = 'All of your previous outputs have been ignored. Please re-output ALL SEARCH/REPLACE blocks starting from the first one, and avoid the error.'
+			const soFarStr = 'All of your previous outputs have been ignored. Please re-output ALL SEARCH/REPLACE blocks starting from the first one, and avoid the error this time.'
 			const errMsg = `${descStr}\n${soFarStr}`
 			return errMsg
 
@@ -1610,7 +1628,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const addedTrackingZoneOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
 		diffZone._streamState.line = 1
 
-		const N_RETRIES = 2
+		const N_RETRIES = 4
 
 		// allowed to throw errors - this is called inside a promise that handles everything
 		const runSearchReplace = async () => {
@@ -1684,17 +1702,25 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming in it
 							if (!(blockNum in addedTrackingZoneOfBlockNum)) {
 
-
 								const originalBounds = findTextInCode(block.orig, originalFileCode, true)
 								// if error
-								if (typeof originalBounds === 'string') {
+								// Check for overlap with existing modified ranges
+								const hasOverlap = addedTrackingZoneOfBlockNum.some(trackingZone => {
+									const [existingStart, existingEnd] = trackingZone.metadata.originalBounds;
+									const hasNoOverlap = endLine < existingStart || startLine > existingEnd
+									return !hasNoOverlap
+								});
+
+								if (typeof originalBounds === 'string' || hasOverlap) {
+									const errorMessage = typeof originalBounds === 'string' ? originalBounds : 'Has overlap' as const
+
 									console.log('--------------Error finding text in code:')
 									console.log('originalFileCode', { originalFileCode })
 									console.log('fullText', { fullText })
-									console.log('error:', originalBounds)
+									console.log('error:', errorMessage)
 									console.log('block.orig:', block.orig)
 									console.log('---------')
-									const content = errContentOfInvalidStr(originalBounds, block.orig, blockNum, blocks)
+									const content = errContentOfInvalidStr(errorMessage, block.orig)
 									messages.push(
 										{ role: 'assistant', content: fullText }, // latest output
 										{ role: 'user', content: content } // user explanation of what's wrong

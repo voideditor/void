@@ -7,7 +7,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ChatMessage } from '../common/chatThreadServiceTypes.js';
 import { getIsReasoningEnabledState, getMaxOutputTokens, getModelCapabilities } from '../common/modelCapabilities.js';
-import { toolCallXMLStr, chat_systemMessage, ToolName } from '../common/prompt/prompts.js';
+import { reParsedToolXMLString, chat_systemMessage, ToolName } from '../common/prompt/prompts.js';
 import { AnthropicLLMChatMessage, AnthropicReasoning, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ChatMode, FeatureName, ModelSelection } from '../common/voidSettingsTypes.js';
@@ -143,11 +143,17 @@ const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsA
 		// add anthropic reasoning
 		if (currMsg.role === 'assistant') {
 			if (currMsg.anthropicReasoning && supportsAnthropicReasoning) {
-
 				const content = currMsg.content
 				newMessages[i] = {
 					role: 'assistant',
 					content: content ? [...currMsg.anthropicReasoning, { type: 'text' as const, text: content }] : currMsg.anthropicReasoning
+				}
+			}
+			else {
+				newMessages[i] = {
+					role: 'assistant',
+					content: currMsg.content,
+					// strip away anthropicReasoning
 				}
 			}
 			continue
@@ -199,7 +205,7 @@ const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthrop
 			// alternatively, could just hold onto the original output, but this way requires less piping raw strings everywhere
 			let content: LLMChatMessage['content'] = c.content
 			if (next?.role === 'tool') {
-				content = `${content}\n\n${toolCallXMLStr(next.name, next.rawParams)}`
+				content = `${content}\n\n${reParsedToolXMLString(next.name, next.rawParams)}`
 			}
 
 			// anthropic reasoning
@@ -442,7 +448,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 				`...Directories string cut off, use tools to read more...`
 				: `...Directories string cut off, ask user for more if necessary...`
 		})
-		const includeXMLToolDefinitions = specialToolFormat === undefined
+		const includeXMLToolDefinitions = !specialToolFormat
 
 		const runningTerminalIds = this.terminalToolService.listTerminalIds()
 		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, runningTerminalIds, chatMode, includeXMLToolDefinitions })

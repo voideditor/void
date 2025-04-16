@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
-import { Brain, Check, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
+import { Brain, Check, ChevronRight, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
 import { displayInfoOfProviderName, ProviderName, providerNames, refreshableProviderNames } from '../../../../common/voidSettingsTypes.js';
 import { getModelCapabilities, ollamaRecommendedModels } from '../../../../common/modelCapabilities.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
@@ -376,6 +376,42 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 
 
 
+const PrimaryActionButton = ({ children, className, ...props }: { children: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+	return (
+		<button
+			type='button'
+			className="
+				flex items-center justify-center
+				gap-1 px-4 py-2
+
+				text-white dark:text-black
+				bg-black/90 dark:bg-white/90
+				hover:ring-2 hover:ring-black/90 dark:hover:ring-white/90
+				active:ring-2 active:ring-black/90 dark:active:ring-white/90
+
+				transition-all duration-300
+
+				rounded-lg
+				shadow-md hover:shadow-lg
+				group
+			"
+			{...props}
+		>
+			{children}
+			<ChevronRight
+				className="
+					transition-all duration-300
+
+					transform
+					group-hover:translate-x-1
+					group-active:translate-x-1
+				"
+			/>
+		</button>
+	)
+}
+
+
 type WantToUseOption = 'smart' | 'private' | 'cheap' | 'all'
 
 const VoidOnboardingContent = () => {
@@ -494,10 +530,11 @@ const VoidOnboardingContent = () => {
 					<div className="text-5xl font-light text-center">Welcome to Void</div>
 					<FadeIn
 						delayMs={1500}
-						className="text-center"
-						onClick={() => { setPageIndex(pageIndex + 1) }}
+						className='flex justify-center'
 					>
-						Get Started
+						<PrimaryActionButton
+							onClick={() => { setPageIndex(pageIndex + 1) }}
+						>Get Started</PrimaryActionButton>
 					</FadeIn>
 
 				</>
@@ -736,19 +773,15 @@ const VoidOnboardingContent = () => {
 			bottom={prevAndNextButtons}
 		/>,
 		4: <OnboardingPageShell
-
 			content={
 				<>
-					<div className="text-5xl font-light text-center">Jump in</div>
+					{/* <div className="text-5xl font-light text-center">Jump in</div> */}
 					<div
-						className="text-center"
-						onClick={() => {
-							// TODO make a fadeout effect
-							voidSettingsService.setGlobalSetting('isOnboardingComplete', true)
-						}}
-
+						className='flex justify-center'
 					>
-						Enter the Void
+						<PrimaryActionButton
+							onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
+						>Enter the Void</PrimaryActionButton>
 					</div>
 				</>
 			}

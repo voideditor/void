@@ -2483,7 +2483,7 @@ export const SidebarChat = () => {
 	const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? undefined  // if not exist, treat like checkpoint is last message (infinity)
 
 	const previousMessagesHTML = useMemo(() => {
-		const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
+		// const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
 		// tool request shows up as Editing... if in progress
 		return previousMessages.map((message, i) => {
 			return <ChatBubble

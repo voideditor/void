@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
- .monaco-editor .void-sweepIdxBG {
+.monaco-editor .void-sweepIdxBG {
 	background-color: var(--vscode-void-sweepIdxBG);
 }
 
@@ -24,47 +24,65 @@
 }
 
 .void-watermark-button {
-    margin: 8px 0;
-    padding: 8px 20px;
-    background-color: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    outline: none !important;
+	margin: 8px 0;
+	padding: 8px 20px;
+	background-color: #3b82f6;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	outline: none !important;
 	box-shadow: none !important;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
 }
+
 .void-watermark-button:hover {
-    background-color: #2563eb;
+	background-color: #2563eb;
 }
+
 .void-watermark-button:active {
-    background-color: #2563eb;
+	background-color: #2563eb;
 }
 
 
 
 
 .void-settings-watermark-button {
-    margin: 8px 0;
-    padding: 8px 20px;
-    background-color: var(--vscode-input-background);
+	margin: 8px 0;
+	padding: 8px 20px;
+	background-color: var(--vscode-input-background);
 	color: var(--vscode-input-foreground);
-    border: none;
-    border-radius: 4px;
-    outline: none !important;
+	border: none;
+	border-radius: 4px;
+	outline: none !important;
 	box-shadow: none !important;
-    cursor: pointer;
-    transition: all 0.2s ease;
+	cursor: pointer;
+	transition: all 0.2s ease;
 }
+
 .void-settings-watermark-button:hover {
 	filter: brightness(1.1);
 }
+
 .void-settings-watermark-button:active {
 	filter: brightness(1.1);
 }
 
-
+.void-slice-of-void-image {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	object-position: center;
+	max-width: 100%;
+	max-height: 100%;
+	/* Has no shadow */
+	background-image: url('../../../../../../../scripts/appimage/void.png');
+	/* Has shadow */
+	/* background-image: url('../../../../browser/parts/editor/media/slice_of_void.png'); */
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+}
 
 
 .void-link {
@@ -72,6 +90,7 @@
 	cursor: pointer;
 	transition: all 0.2s ease;
 }
+
 .void-link:hover {
 	opacity: 80%;
 }
@@ -86,7 +105,8 @@
 .void-scope,
 .void-scope * {
 	scrollbar-width: thin !important;
-	scrollbar-color: var(--void-bg-1) var(--void-bg-3) !important; /* For Firefox */
+	scrollbar-color: var(--void-bg-1) var(--void-bg-3) !important;
+	/* For Firefox */
 }
 
 .void-scope::-webkit-scrollbar,
@@ -133,13 +153,16 @@
 	background-color: var(--vscode-editor-background);
 	--scrollbar-vertical-width: 14px;
 	--scrollbar-horizontal-height: 6px;
-	overflow: auto; /* Ensure scrollbars are shown when needed */
+	overflow: auto;
+	/* Ensure scrollbars are shown when needed */
 }
 
 .void-scrollable-element,
 .void-scrollable-element * {
-	scrollbar-width: thin !important; /* For Firefox */
-	scrollbar-color: var(--void-bg-1) var(--void-bg-3) !important; /* For Firefox */
+	scrollbar-width: thin !important;
+	/* For Firefox */
+	scrollbar-color: var(--void-bg-1) var(--void-bg-3) !important;
+	/* For Firefox */
 }
 
 .void-scrollable-element::-webkit-scrollbar,

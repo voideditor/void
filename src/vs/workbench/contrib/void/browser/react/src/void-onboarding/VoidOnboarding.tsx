@@ -109,7 +109,7 @@ const NextButton = ({ onClick, ...props }: { onClick: () => void } & React.Butto
 			className="px-6 py-2 bg-zinc-100 enabled:hover:bg-zinc-100 disabled:bg-zinc-100/40 disabled:cursor-not-allowed rounded text-black duration-600 transition-all"
 			{...props.disabled && {
 				'data-tooltip-id': 'void-tooltip',
-				'data-tooltip-content': 'Disabled (Please enter all required fields or choose another provider)',
+				'data-tooltip-content': 'Please enter all required fields or choose another provider',
 				'data-tooltip-place': 'top',
 			}}
 			{...props}
@@ -389,10 +389,9 @@ const PrimaryActionButton = ({ children, className, ...props }: { children: Reac
 				hover:ring-2 hover:ring-black/90 dark:hover:ring-white/90
 				active:ring-2 active:ring-black/90 dark:active:ring-white/90
 
-				transition-all duration-300
+				transition-all duration-300 ease-in-out
 
 				rounded-lg
-				shadow-md hover:shadow-lg
 				group
 			"
 			{...props}
@@ -400,7 +399,7 @@ const PrimaryActionButton = ({ children, className, ...props }: { children: Reac
 			{children}
 			<ChevronRight
 				className="
-					transition-all duration-300
+					transition-all duration-300 ease-in-out
 
 					transform
 					group-hover:translate-x-1
@@ -526,18 +525,26 @@ const VoidOnboardingContent = () => {
 	const contentOfIdx: { [pageIndex: number]: React.ReactNode } = {
 		0: <OnboardingPageShell
 			content={
-				<>
+				<div className='flex flex-col items-center gap-8'>
 					<div className="text-5xl font-light text-center">Welcome to Void</div>
+
+					{/* Slice of Void image */}
+					<div className='max-w-md w-full h-64 mx-auto'>
+						<div className="slice-of-void-image" />
+					</div>
+
+
 					<FadeIn
-						delayMs={1500}
-						className='flex justify-center'
+						delayMs={2000}
 					>
 						<PrimaryActionButton
 							onClick={() => { setPageIndex(pageIndex + 1) }}
-						>Get Started</PrimaryActionButton>
+						>
+							Get Started
+						</PrimaryActionButton>
 					</FadeIn>
 
-				</>
+				</div>
 			}
 		/>,
 		1: <OnboardingPageShell
@@ -794,7 +801,7 @@ const VoidOnboardingContent = () => {
 	}
 
 
-	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-auto flex flex-col items-center justify-around">
+	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-scroll flex flex-col items-center justify-around">
 		{contentOfIdx[pageIndex]}
 	</div>
 

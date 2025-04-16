@@ -3,13 +3,14 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
 import { Brain, Check, ChevronRight, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
 import { displayInfoOfProviderName, ProviderName, providerNames, refreshableProviderNames } from '../../../../common/voidSettingsTypes.js';
 import { getModelCapabilities, ollamaRecommendedModels } from '../../../../common/modelCapabilities.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { AddModelInputBox, AnimatedCheckmarkButton, ollamaSetupInstructions, OneClickSwitchButton, SettingsForProvider } from '../void-settings-tsx/Settings.js';
+import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js';
 
 const OVERRIDE_VALUE = false
 
@@ -34,6 +35,30 @@ export const VoidOnboarding = () => {
 	)
 }
 
+const VoidIcon = () => {
+	const accessor = useAccessor()
+	const themeService = accessor.get('IThemeService')
+
+	const divRef = useRef<HTMLDivElement | null>(null)
+
+	useEffect(() => {
+		// void icon style
+		const updateTheme = () => {
+			const theme = themeService.getColorTheme().type
+			const isDark = theme === ColorScheme.DARK || theme === ColorScheme.HIGH_CONTRAST_DARK
+			if (divRef.current) {
+				divRef.current.style.maxWidth = '220px'
+				divRef.current.style.opacity = '50%'
+				divRef.current.style.filter = isDark ? '' : 'invert(1)' //brightness(.5)
+			}
+		}
+		updateTheme()
+		const d = themeService.onDidColorThemeChange(updateTheme)
+		return () => d.dispose()
+	}, [])
+
+	return <div ref={divRef} className='@@void-void-icon' />
+}
 
 const FADE_DURATION_MS = 2000
 
@@ -558,8 +583,8 @@ const VoidOnboardingContent = () => {
 					<div className="text-5xl font-light text-center">Welcome to Void</div>
 
 					{/* Slice of Void image */}
-					<div className='max-w-md w-full h-[30vh] mx-auto'>
-						<div className="@@void-void-icon" />
+					<div className='max-w-md w-full h-[30vh] mx-auto flex items-center justify-center'>
+						<VoidIcon />
 					</div>
 
 
@@ -589,7 +614,7 @@ const VoidOnboardingContent = () => {
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[800px] mx-auto mt-8">
 					<button
 						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:bg-zinc-200/10 dark:hover:bg-zinc-700/50 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
 							<Brain size={24} className="text-void-fg-2 mr-2" />
@@ -600,7 +625,7 @@ const VoidOnboardingContent = () => {
 
 					<button
 						onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:bg-zinc-200/10 dark:hover:bg-zinc-700/50 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
 							<Lock size={24} className="text-void-fg-2 mr-2" />
@@ -611,7 +636,7 @@ const VoidOnboardingContent = () => {
 
 					<button
 						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:bg-zinc-200/10 dark:hover:bg-zinc-700/50 transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
+						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
 							<DollarSign size={24} className="text-void-fg-2 mr-2" />

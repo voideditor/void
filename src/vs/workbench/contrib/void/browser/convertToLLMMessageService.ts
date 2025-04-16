@@ -143,11 +143,17 @@ const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsA
 		// add anthropic reasoning
 		if (currMsg.role === 'assistant') {
 			if (currMsg.anthropicReasoning && supportsAnthropicReasoning) {
-
 				const content = currMsg.content
 				newMessages[i] = {
 					role: 'assistant',
 					content: content ? [...currMsg.anthropicReasoning, { type: 'text' as const, text: content }] : currMsg.anthropicReasoning
+				}
+			}
+			else {
+				newMessages[i] = {
+					role: 'assistant',
+					content: currMsg.content,
+					// strip away anthropicReasoning
 				}
 			}
 			continue

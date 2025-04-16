@@ -752,7 +752,7 @@ const VoidOnboardingContent = () => {
 
 						{/* Add provider section - simplified styling */}
 						<div className='mb-5 mt-8'>
-							<div className=''>
+							<div className='my-4'>
 								Add {displayInfoOfProviderName(selectedProviderName).title}
 
 

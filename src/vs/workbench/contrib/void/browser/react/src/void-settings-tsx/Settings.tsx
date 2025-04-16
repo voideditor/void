@@ -551,7 +551,7 @@ export const ollamaSetupInstructions = <div className='prose-p:my-0 prose-ol:lis
 	<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
 	<div
 		className='pl-6 flex items-center w-fit'
-		// data-tooltip-id='void-tooltip-ollama-settings'
+		data-tooltip-id='void-tooltip-ollama-settings'
 	>
 		<ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} />
 	</div>

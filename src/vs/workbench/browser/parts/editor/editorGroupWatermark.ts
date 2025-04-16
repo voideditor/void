@@ -199,7 +199,7 @@ export class EditorGroupWatermark extends Disposable {
 				openFolderButton.root.classList.add('void-openfolder-button')
 				openFolderButton.root.style.display = 'block'
 				openFolderButton.root.style.width = '124px' // Set width to 124px as requested
-				openFolderButton.root.textContent = 'Open a folder'
+				openFolderButton.root.textContent = 'Open Folder'
 				openFolderButton.root.onclick = () => {
 					this.commandService.executeCommand(isMacintosh && isNative ? OpenFileFolderAction.ID : OpenFolderAction.ID)
 					// if (this.contextKeyService.contextMatchesRules(ContextKeyExpr.and(WorkbenchStateContext.isEqualTo('workspace')))) {

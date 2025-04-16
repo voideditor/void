@@ -792,7 +792,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		const featureName: FeatureName = 'Autocomplete'
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
-		const aiInstructions = this._settingsService.state.globalSettings.aiInstructions
 
 		// set parameters of `newAutocompletion` appropriately
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
@@ -804,8 +803,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 						prefix: llmPrefix,
 						suffix: llmSuffix,
 						stopTokens: stopTokens,
-					},
-					aiInstructions
+					}
 				}),
 				modelSelection,
 				modelSelectionOptions,

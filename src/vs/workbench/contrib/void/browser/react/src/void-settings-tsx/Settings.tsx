@@ -831,9 +831,9 @@ export const Settings = () => {
 
 				<h2 className={`text-3xl mt-12`}>Feature Options</h2>
 				{/* L1 */}
-				<ErrorBoundary>
 
-					<div className='flex items-start justify-around my-4 gap-x-8'>
+				<div className='flex items-start justify-around my-4 gap-x-8'>
+					<ErrorBoundary>
 						{/* FIM */}
 						<div className='w-full'>
 							<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
@@ -853,23 +853,32 @@ export const Settings = () => {
 
 							<div className='my-2'>
 								{/* Enable Switch */}
-								<div className='flex items-center gap-x-2 my-2'>
-									<VoidSwitch
-										size='xs'
-										value={settingsState.globalSettings.enableAutocomplete}
-										onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
-									/>
-									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
-								</div>
+								<ErrorBoundary>
+									<div className='flex items-center gap-x-2 my-2'>
+										<VoidSwitch
+											size='xs'
+											value={settingsState.globalSettings.enableAutocomplete}
+											onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
+										/>
+										<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
+									</div>
+								</ErrorBoundary>
+
 								{/* Model Dropdown */}
-								<div className={`my-2 ${!settingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}`}>
-									<ModelDropdown featureName={'Autocomplete'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
-								</div>
+								<ErrorBoundary>
+									<div className={`my-2 ${!settingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}`}>
+										<ModelDropdown featureName={'Autocomplete'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+									</div>
+								</ErrorBoundary>
+
 							</div>
 
 						</div>
+					</ErrorBoundary>
 
-						{/* Apply */}
+					{/* Apply */}
+					<ErrorBoundary>
+
 						<div className='w-full'>
 							<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
 							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control the behavior of the Apply button and the Edit tool.</div>
@@ -900,23 +909,25 @@ export const Settings = () => {
 							</div>
 
 						</div>
+					</ErrorBoundary>
 
-					</div>
-				</ErrorBoundary>
+				</div>
+
 
 
 				{/* L2 */}
-				<ErrorBoundary>
 
-					<div className='flex items-start justify-around my-4 gap-x-8'>
+				<div className='flex items-start justify-around my-4 gap-x-8'>
 
-						{/* Tools Section */}
-						<div className='w-full'>
-							<h4 className={`text-base`}>Tools</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
+					{/* Tools Section */}
+					<div className='w-full'>
+						<h4 className={`text-base`}>Tools</h4>
+						<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
 
-							<div className='my-2'>
-								{/* Auto Accept Switch */}
+						<div className='my-2'>
+							{/* Auto Accept Switch */}
+							<ErrorBoundary>
+
 								<div className='flex items-center gap-x-2 my-2'>
 									<VoidSwitch
 										size='xs'
@@ -925,8 +936,11 @@ export const Settings = () => {
 									/>
 									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Auto-approve'}</span>
 								</div>
+							</ErrorBoundary>
 
-								{/* Tool Lint Errors Switch */}
+							{/* Tool Lint Errors Switch */}
+							<ErrorBoundary>
+
 								<div className='flex items-center gap-x-2 my-2'>
 									<VoidSwitch
 										size='xs'
@@ -935,17 +949,19 @@ export const Settings = () => {
 									/>
 									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
 								</div>
-							</div>
+							</ErrorBoundary>
 						</div>
+					</div>
 
 
 
-						<div className='w-full'>
-							<h4 className={`text-base`}>Editor</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of suggestions and widgets in the code editor.`}</div>
+					<div className='w-full'>
+						<h4 className={`text-base`}>Editor</h4>
+						<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of suggestions and widgets in the code editor.`}</div>
 
-							<div className='my-2'>
-								{/* Auto Accept Switch */}
+						<div className='my-2'>
+							{/* Auto Accept Switch */}
+							<ErrorBoundary>
 								<div className='flex items-center gap-x-2 my-2'>
 									<VoidSwitch
 										size='xs'
@@ -954,57 +970,64 @@ export const Settings = () => {
 									/>
 									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.showInlineSuggestions ? 'Show suggestions on select' : 'Show suggestions on select'}</span>
 								</div>
-							</div>
+							</ErrorBoundary>
 						</div>
 					</div>
-				</ErrorBoundary>
+				</div>
 
 
 				{/* General section (formerly GeneralTab) */}
 				<div className='mt-12'>
-					<h2 className={`text-3xl mb-2 mt-12`}>One-Click Switch</h2>
-					<h4 className={`text-void-fg-3 mb-4`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
+					<ErrorBoundary>
+						<h2 className={`text-3xl mb-2 mt-12`}>One-Click Switch</h2>
+						<h4 className={`text-void-fg-3 mb-4`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
 
-					<div className='flex flex-col gap-4'>
-						<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
-						<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
-						<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
-					</div>
+						<div className='flex flex-col gap-4'>
+							<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
+							<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
+							<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
+						</div>
+					</ErrorBoundary>
 				</div>
 
 
 
 				<div className='mt-12'>
+
 					<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
 					<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
-					<div className='my-4'>
-						<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
-							General Settings
-						</VoidButtonBgDarken>
-					</div>
-					<div className='my-4'>
-						<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
-							Keyboard Settings
-						</VoidButtonBgDarken>
-					</div>
-					<div className='my-4'>
-						<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
-							Theme Settings
-						</VoidButtonBgDarken>
-					</div>
-					<div className='my-4'>
-						<VoidButtonBgDarken className='px-4 py-2' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
-							Open Logs
-						</VoidButtonBgDarken>
-					</div>
+					<ErrorBoundary>
+						<div className='my-4'>
+							<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+								General Settings
+							</VoidButtonBgDarken>
+						</div>
+						<div className='my-4'>
+							<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
+								Keyboard Settings
+							</VoidButtonBgDarken>
+						</div>
+						<div className='my-4'>
+							<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+								Theme Settings
+							</VoidButtonBgDarken>
+						</div>
+						<div className='my-4'>
+							<VoidButtonBgDarken className='px-4 py-2' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+								Open Logs
+							</VoidButtonBgDarken>
+						</div>
+					</ErrorBoundary>
 				</div>
 
 
 				<div className='mt-12 max-w-[600px]'>
 					<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
 					<h4 className={`text-void-fg-3 mb-4`}>{`Instructions to include on all AI requests.`}</h4>
-					<AIInstructionsBox />
+					<ErrorBoundary>
+						<AIInstructionsBox />
+					</ErrorBoundary>
 				</div>
 			</div>
 		</div>

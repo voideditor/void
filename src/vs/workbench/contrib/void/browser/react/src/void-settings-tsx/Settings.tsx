@@ -572,182 +572,6 @@ const RedoOnboardingButton = ({ className }: { className?: string }) => {
 }
 
 
-
-export const FeaturesTab = () => {
-	const voidSettingsState = useSettingsState()
-	const accessor = useAccessor()
-	const voidSettingsService = accessor.get('IVoidSettingsService')
-
-
-	return <>
-		<h2 className={`text-3xl mb-2`}>Models</h2>
-		<ErrorBoundary>
-			<ModelDump />
-			<AddModelInputBox className='mt-4' compact />
-			<RedoOnboardingButton className='mt-2 mb-4' />
-			<AutoDetectLocalModelsToggle />
-			<RefreshableModels />
-		</ErrorBoundary>
-
-
-		<h2 className={`text-3xl mb-2 mt-12`}>Local Providers</h2>
-		{/* <h3 className={`opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
-		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
-		{/* <h3 className={`mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
-		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
-
-		<div className='opacity-80 mb-4'>
-			{ollamaSetupInstructions}
-		</div>
-
-		<ErrorBoundary>
-			<VoidProviderSettings providerNames={localProviderNames} />
-		</ErrorBoundary>
-
-		<h2 className={`text-3xl mb-2 mt-12`}>Providers</h2>
-		<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
-		{/* <h3 className={`opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3> */}
-		<ErrorBoundary>
-			<VoidProviderSettings providerNames={nonlocalProviderNames} />
-		</ErrorBoundary>
-
-
-
-		<h2 className={`text-3xl mt-12`}>Feature Options</h2>
-		<ErrorBoundary>
-			{/* L1 */}
-			<div className='flex items-start justify-around mt-4 my-4 gap-x-8'>
-				{/* FIM */}
-				<div className='w-full'>
-					<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
-					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>
-						<span>
-							Experimental.{' '}
-						</span>
-						<span
-							className='hover:brightness-110'
-							data-tooltip-id='void-tooltip'
-							data-tooltip-content='We recommend using qwen2.5-coder:1.5b with Ollama.'
-							data-tooltip-class-name='void-max-w-[20px]'
-						>
-							Only works with FIM models.*
-						</span>
-					</div>
-
-					<div className='my-2'>
-						{/* Enable Switch */}
-						<div className='flex items-center gap-x-2 my-2'>
-							<VoidSwitch
-								size='xs'
-								value={voidSettingsState.globalSettings.enableAutocomplete}
-								onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
-							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
-						</div>
-						{/* Model Dropdown */}
-						<div className={`my-2 ${!voidSettingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}`}>
-							<ModelDropdown featureName={'Autocomplete'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
-						</div>
-					</div>
-
-				</div>
-
-				{/* Apply */}
-				<div className='w-full'>
-					<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control the behavior of the Apply button and the Edit tool.</div>
-
-					<div className='my-2'>
-						{/* Sync to Chat Switch */}
-						<div className='flex items-center gap-x-2 my-2'>
-							<VoidSwitch
-								size='xs'
-								value={voidSettingsState.globalSettings.syncApplyToChat}
-								onChange={(newVal) => voidSettingsService.setGlobalSetting('syncApplyToChat', newVal)}
-							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.syncApplyToChat ? 'Same as Chat model' : 'Different model'}</span>
-						</div>
-
-						{/* Model Dropdown */}
-						<div className={`my-2 ${voidSettingsState.globalSettings.syncApplyToChat ? 'hidden' : ''}`}>
-							<ModelDropdown featureName={'Apply'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
-						</div>
-					</div>
-
-
-					<div className='my-2'>
-						{/* Fast Apply Method Dropdown */}
-						<div className='flex items-center gap-x-2 my-2'>
-							<FastApplyMethodDropdown />
-						</div>
-					</div>
-
-				</div>
-
-			</div>
-
-			{/* L2 */}
-			<div className='flex items-start justify-around my-4 gap-x-8'>
-
-				{/* Tools Section */}
-				<div className='w-full'>
-					<h4 className={`text-base`}>Tools</h4>
-					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
-
-					<div className='my-2'>
-						{/* Auto Accept Switch */}
-						<div className='flex items-center gap-x-2 my-2'>
-							<VoidSwitch
-								size='xs'
-								value={voidSettingsState.globalSettings.autoApprove}
-								onChange={(newVal) => voidSettingsService.setGlobalSetting('autoApprove', newVal)}
-							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Auto-approve'}</span>
-						</div>
-
-						{/* Tool Lint Errors Switch */}
-						<div className='flex items-center gap-x-2 my-2'>
-							<VoidSwitch
-								size='xs'
-								value={voidSettingsState.globalSettings.includeToolLintErrors}
-								onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
-							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
-						</div>
-					</div>
-				</div>
-
-
-
-				<div className='w-full'>
-					<h4 className={`text-base`}>Editor</h4>
-					<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of suggestions and widgets in the code editor.`}</div>
-
-					<div className='my-2'>
-						{/* Auto Accept Switch */}
-						<div className='flex items-center gap-x-2 my-2'>
-							<VoidSwitch
-								size='xs'
-								value={voidSettingsState.globalSettings.showInlineSuggestions}
-								onChange={(newVal) => voidSettingsService.setGlobalSetting('showInlineSuggestions', newVal)}
-							/>
-							<span className='text-void-fg-3 text-xs pointer-events-none'>{voidSettingsState.globalSettings.showInlineSuggestions ? 'Show suggestions on select' : 'Show suggestions on select'}</span>
-						</div>
-					</div>
-				</div>
-
-
-			</div>
-
-
-			<div className='py-8' />
-
-		</ErrorBoundary>
-
-	</>
-}
-
-
 type TransferEditorType = 'VS Code' | 'Cursor' | 'Windsurf'
 // https://github.com/VSCodium/vscodium/blob/master/docs/index.md#migrating-from-visual-studio-code-to-vscodium
 // https://code.visualstudio.com/docs/editor/extension-marketplace#_where-are-extensions-installed
@@ -954,113 +778,236 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 }
 
 
-const GeneralTab = () => {
-	const accessor = useAccessor()
-	const commandService = accessor.get('ICommandService')
-	const environmentService = accessor.get('IEnvironmentService')
-	const nativeHostService = accessor.get('INativeHostService')
-
-	return <>
-		<div className=''>
-			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
-			<h4 className={`text-void-fg-3 mb-4`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
-
-			<div className='flex flex-col gap-4'>
-				<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
-				<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
-				<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
-			</div>
-		</div>
-
-
-
-		<div className='mt-12'>
-			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
-			<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
-
-			<div className='my-4'>
-				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
-					General Settings
-				</VoidButtonBgDarken>
-			</div>
-			<div className='my-4'>
-				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
-					Keyboard Settings
-				</VoidButtonBgDarken>
-			</div>
-			<div className='my-4'>
-				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
-					Theme Settings
-				</VoidButtonBgDarken>
-			</div>
-			<div className='my-4'>
-				<VoidButtonBgDarken className='px-4 py-2' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
-					Open Logs
-				</VoidButtonBgDarken>
-			</div>
-		</div>
-
-
-		<div className='mt-12 max-w-[600px]'>
-			<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
-			<h4 className={`text-void-fg-3 mb-4`}>{`Instructions to include on all AI requests.`}</h4>
-			<AIInstructionsBox />
-		</div>
-
-
-	</>
-}
-
 // full settings
 
 export const Settings = () => {
 	const isDark = useIsDark()
-
-	const [tab, setTab] = useState<TabName>('models')
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
+	const environmentService = accessor.get('IEnvironmentService')
+	const nativeHostService = accessor.get('INativeHostService')
+	const settingsState = useSettingsState()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
 
 	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
 		<div className='overflow-y-auto w-full h-full px-10 py-10 select-none'>
 
-			<div className='max-w-5xl mx-auto'>
+			<div className='max-w-xl mx-auto'>
 
 				<h1 className='text-2xl w-full'>{`Void's Settings`}</h1>
 
 				{/* separator */}
 				<div className='w-full h-[1px] my-4' />
 
-				<div className='flex items-stretch'>
+				{/* Models section (formerly FeaturesTab) */}
+				<ErrorBoundary>
+					<h2 className={`text-3xl mb-2`}>Models</h2>
+					<ModelDump />
+					<AddModelInputBox className='mt-4' compact />
+					<RedoOnboardingButton className='mt-2 mb-4' />
+					<AutoDetectLocalModelsToggle />
+					<RefreshableModels />
+				</ErrorBoundary>
 
-					{/* tabs */}
-					<div className='flex flex-col w-full max-w-32'>
-						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
-							onClick={() => { setTab('models') }}
-						>Models</button>
-						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'general' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
-							onClick={() => { setTab('general') }}
-						>General</button>
+
+				<h2 className={`text-3xl mb-2 mt-12`}>Local Providers</h2>
+				<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
+
+				<div className='opacity-80 mb-4'>
+					{ollamaSetupInstructions}
+				</div>
+
+				<ErrorBoundary>
+					<VoidProviderSettings providerNames={localProviderNames} />
+				</ErrorBoundary>
+
+				<h2 className={`text-3xl mb-2 mt-12`}>Providers</h2>
+				<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
+				<ErrorBoundary>
+					<VoidProviderSettings providerNames={nonlocalProviderNames} />
+				</ErrorBoundary>
+
+
+
+				<h2 className={`text-3xl mt-12`}>Feature Options</h2>
+				{/* L1 */}
+				<ErrorBoundary>
+
+					<div className='flex items-start justify-around my-4 gap-x-8'>
+						{/* FIM */}
+						<div className='w-full'>
+							<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
+							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>
+								<span>
+									Experimental.{' '}
+								</span>
+								<span
+									className='hover:brightness-110'
+									data-tooltip-id='void-tooltip'
+									data-tooltip-content='We recommend using qwen2.5-coder:1.5b with Ollama.'
+									data-tooltip-class-name='void-max-w-[20px]'
+								>
+									Only works with FIM models.*
+								</span>
+							</div>
+
+							<div className='my-2'>
+								{/* Enable Switch */}
+								<div className='flex items-center gap-x-2 my-2'>
+									<VoidSwitch
+										size='xs'
+										value={settingsState.globalSettings.enableAutocomplete}
+										onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
+									/>
+									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
+								</div>
+								{/* Model Dropdown */}
+								<div className={`my-2 ${!settingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}`}>
+									<ModelDropdown featureName={'Autocomplete'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+								</div>
+							</div>
+
+						</div>
+
+						{/* Apply */}
+						<div className='w-full'>
+							<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
+							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control the behavior of the Apply button and the Edit tool.</div>
+
+							<div className='my-2'>
+								{/* Sync to Chat Switch */}
+								<div className='flex items-center gap-x-2 my-2'>
+									<VoidSwitch
+										size='xs'
+										value={settingsState.globalSettings.syncApplyToChat}
+										onChange={(newVal) => voidSettingsService.setGlobalSetting('syncApplyToChat', newVal)}
+									/>
+									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.syncApplyToChat ? 'Same as Chat model' : 'Different model'}</span>
+								</div>
+
+								{/* Model Dropdown */}
+								<div className={`my-2 ${settingsState.globalSettings.syncApplyToChat ? 'hidden' : ''}`}>
+									<ModelDropdown featureName={'Apply'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+								</div>
+							</div>
+
+
+							<div className='my-2'>
+								{/* Fast Apply Method Dropdown */}
+								<div className='flex items-center gap-x-2 my-2'>
+									<FastApplyMethodDropdown />
+								</div>
+							</div>
+
+						</div>
+
 					</div>
-
-					{/* separator */}
-					<div className='w-[1px] mx-4' />
+				</ErrorBoundary>
 
 
-					{/* content */}
-					<div className='w-full min-w-[550px]'>
+				{/* L2 */}
+				<ErrorBoundary>
 
-						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
-							<FeaturesTab />
+					<div className='flex items-start justify-around my-4 gap-x-8'>
+
+						{/* Tools Section */}
+						<div className='w-full'>
+							<h4 className={`text-base`}>Tools</h4>
+							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
+
+							<div className='my-2'>
+								{/* Auto Accept Switch */}
+								<div className='flex items-center gap-x-2 my-2'>
+									<VoidSwitch
+										size='xs'
+										value={settingsState.globalSettings.autoApprove}
+										onChange={(newVal) => voidSettingsService.setGlobalSetting('autoApprove', newVal)}
+									/>
+									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Auto-approve'}</span>
+								</div>
+
+								{/* Tool Lint Errors Switch */}
+								<div className='flex items-center gap-x-2 my-2'>
+									<VoidSwitch
+										size='xs'
+										value={settingsState.globalSettings.includeToolLintErrors}
+										onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
+									/>
+									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
+								</div>
+							</div>
 						</div>
 
-						<div className={`${tab !== 'general' ? 'hidden' : ''}`}>
-							<GeneralTab />
-						</div>
 
+
+						<div className='w-full'>
+							<h4 className={`text-base`}>Editor</h4>
+							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of suggestions and widgets in the code editor.`}</div>
+
+							<div className='my-2'>
+								{/* Auto Accept Switch */}
+								<div className='flex items-center gap-x-2 my-2'>
+									<VoidSwitch
+										size='xs'
+										value={settingsState.globalSettings.showInlineSuggestions}
+										onChange={(newVal) => voidSettingsService.setGlobalSetting('showInlineSuggestions', newVal)}
+									/>
+									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.showInlineSuggestions ? 'Show suggestions on select' : 'Show suggestions on select'}</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</ErrorBoundary>
+
+
+				{/* General section (formerly GeneralTab) */}
+				<div className='mt-12'>
+					<h2 className={`text-3xl mb-2 mt-12`}>One-Click Switch</h2>
+					<h4 className={`text-void-fg-3 mb-4`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
+
+					<div className='flex flex-col gap-4'>
+						<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
+						<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
+						<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
 					</div>
 				</div>
 
+
+
+				<div className='mt-12'>
+					<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
+					<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
+
+					<div className='my-4'>
+						<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+							General Settings
+						</VoidButtonBgDarken>
+					</div>
+					<div className='my-4'>
+						<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
+							Keyboard Settings
+						</VoidButtonBgDarken>
+					</div>
+					<div className='my-4'>
+						<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+							Theme Settings
+						</VoidButtonBgDarken>
+					</div>
+					<div className='my-4'>
+						<VoidButtonBgDarken className='px-4 py-2' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+							Open Logs
+						</VoidButtonBgDarken>
+					</div>
+				</div>
+
+
+				<div className='mt-12 max-w-[600px]'>
+					<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
+					<h4 className={`text-void-fg-3 mb-4`}>{`Instructions to include on all AI requests.`}</h4>
+					<AIInstructionsBox />
+				</div>
 			</div>
 		</div>
-
 	</div>
 }
 

@@ -22,10 +22,12 @@ import { ColorScheme } from '../../web.api.js';
 import { OpenFileFolderAction, OpenFolderAction } from '../../actions/workspaceActions.js';
 import { IWindowOpenable } from '../../../../platform/window/common/window.js';
 import { splitRecentLabel } from '../../../../base/common/labels.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
 
 /* eslint-disable */ // Void
 import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../contrib/void/browser/voidSettingsPane.js';
+import { VIEWLET_ID as REMOTE_EXPLORER_VIEWLET_ID } from '../../../contrib/remote/browser/remoteExplorer.js';
 /* eslint-enable */
 
 // interface WatermarkEntry {
@@ -98,6 +100,7 @@ export class EditorGroupWatermark extends Disposable {
 		@ICommandService private readonly commandService: ICommandService,
 		@IHostService private readonly hostService: IHostService,
 		@ILabelService private readonly labelService: ILabelService,
+		@IViewsService private readonly viewsService: IViewsService,
 	) {
 		super();
 
@@ -182,13 +185,19 @@ export class EditorGroupWatermark extends Disposable {
 			// Void - if the workbench is empty, show open
 			if (this.contextService.getWorkbenchState() === WorkbenchState.EMPTY) {
 
+				// Create a flex container for buttons
+				const buttonContainer = $('div');
+				buttonContainer.style.display = 'flex';
+				buttonContainer.style.justifyContent = 'center';
+				buttonContainer.style.marginBottom = '16px';
+				voidIconBox.appendChild(buttonContainer);
+
 				// Open a folder
 				const openFolderButton = h('button')
-				openFolderButton.root.classList.add('void-watermark-button')
-				openFolderButton.root.style.display = 'block'
-				openFolderButton.root.style.marginLeft = 'auto'
-				openFolderButton.root.style.marginRight = 'auto'
-				openFolderButton.root.style.marginBottom = '16px'
+				openFolderButton.root.classList.add('void-openfolder-button')
+				openFolderButton.root.style.display = 'inline-block'
+				openFolderButton.root.style.marginRight = '8px'
+				openFolderButton.root.style.width = '124px'
 				openFolderButton.root.textContent = 'Open a folder'
 				openFolderButton.root.onclick = () => {
 					this.commandService.executeCommand(isMacintosh && isNative ? OpenFileFolderAction.ID : OpenFolderAction.ID)
@@ -198,7 +207,20 @@ export class EditorGroupWatermark extends Disposable {
 					// 	this.commandService.executeCommand(isMacintosh ? 'workbench.action.files.openFileFolder' : 'workbench.action.files.openFolder');
 					// }
 				}
-				voidIconBox.appendChild(openFolderButton.root);
+				buttonContainer.appendChild(openFolderButton.root);
+
+				// Open SSH button
+				const openSSHButton = h('button')
+				openSSHButton.root.classList.add('void-openssh-button')
+				openSSHButton.root.style.display = 'inline-block'
+				openSSHButton.root.style.marginLeft = '8px'
+				openSSHButton.root.style.backgroundColor = '#5a5a5a' // Made darker than the default gray
+				openSSHButton.root.style.width = '124px'
+				openSSHButton.root.textContent = 'Open SSH'
+				openSSHButton.root.onclick = () => {
+					this.viewsService.openViewContainer(REMOTE_EXPLORER_VIEWLET_ID);
+				}
+				buttonContainer.appendChild(openSSHButton.root);
 
 
 				// Recents
@@ -244,6 +266,9 @@ export class EditorGroupWatermark extends Disposable {
 
 							const dirSpan = $('span');
 							dirSpan.style.paddingLeft = '4px';
+							dirSpan.style.whiteSpace = 'nowrap';
+							dirSpan.style.overflow = 'hidden';
+							dirSpan.style.maxWidth = '300px';
 							dirSpan.innerText = parentPath;
 							dirSpan.title = fullPath;
 

@@ -293,8 +293,8 @@ ${directoryStr}
 
 	if (mode === 'agent' || mode === 'gather') {
 		details.push(`Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.`)
-		details.push('Only use ONE tool call at a time, and always wait for the result before proceeding.') // XML
 		details.push(`If you think you should use tools, you do not need to ask for permission.`)
+		details.push('Only use ONE tool call at a time.')
 		details.push(`NEVER say something like "I'm going to use \`tool_name\`". Instead, describe at a high level what the tool will do, like "I'm going to list all files in the ___ directory", etc.`)
 		details.push(`Many tools only work if the user has a workspace open.`)
 	}

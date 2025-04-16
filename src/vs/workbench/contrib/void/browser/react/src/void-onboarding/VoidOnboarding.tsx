@@ -157,7 +157,7 @@ const OllamaDownloadOrRemoveModelButton = ({ modelName, isModelInstalled, sizeGb
 		href={`https://ollama.com/library/${modelName}`}
 		target="_blank"
 		rel="noopener noreferrer"
-		className="flex items-center text-void-fg-2 hover:text-void-fg-1"
+		className="flex items-center justify-center text-void-fg-2 hover:text-void-fg-1"
 	>
 		<ExternalLink className="w-3.5 h-3.5" />
 	</a>
@@ -353,7 +353,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 						<td className="py-2 px-3"><YesNoText val={!!true} /></td>
 						<td className="py-2 px-3"><YesNoText val={!!supportsFIM} /></td>
 						{/* <td className="py-2 px-3"><YesNoText val={!!reasoningCapabilities} /></td> */}
-						{isDetectableLocally && <td className="py-2 px-3">{!!isDownloaded ? <Check className="w-4 h-4" /> : <></>}</td>}
+						{isDetectableLocally && <td className="py-2 px-3 flex items-center justify-center">{!!isDownloaded ? <Check className="w-4 h-4" /> : <></>}</td>}
 						{providerName === 'ollama' && <th className="py-2 px-3">
 							<OllamaDownloadOrRemoveModelButton modelName={modelName} isModelInstalled={infoOfModelName[modelName].isDownloaded} sizeGb={downloadable && downloadable.sizeGb} />
 						</th>}
@@ -523,7 +523,7 @@ const VoidOnboardingContent = () => {
 	const detailedDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
 		smart: "Most intelligent and best for agent mode.",
 		private: "Private-hosted so your data never leaves your computer or network. [Email us](mailto:founders@voideditor.com) for help setting up at your company.",
-		cheap: "Great deals like Gemini 2.5 Pro or self-host a model with Ollama or vLLM for free.",
+		cheap: "Use great deals like Gemini 2.5 Pro, or self-host a model with Ollama or vLLM for free.",
 		all: "",
 	}
 

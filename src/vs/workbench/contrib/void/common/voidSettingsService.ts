@@ -245,6 +245,10 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		}
 
 		// the stored data structure might be outdated, so we need to update it here
+		readS = {
+			...readS,
+			settingsOfProvider: { ...defaultSettingsOfProvider, ...readS.settingsOfProvider } // we added mistral
+		}
 		this.state = readS
 		this.state = _stateWithUpdatedDefaultModels(this.state)
 		this.state = _validatedModelState(this.state);

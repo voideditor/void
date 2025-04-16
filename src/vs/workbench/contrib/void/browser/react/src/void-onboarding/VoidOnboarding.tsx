@@ -743,7 +743,7 @@ const VoidOnboardingContent = () => {
 
 
 					{/* ModelsTable and ProviderFields */}
-					{selectedProviderName && <div className='mt-4'>
+					{selectedProviderName && <div className='mt-4 w-fit mx-auto'>
 
 
 						{/* Models Table */}
@@ -751,7 +751,7 @@ const VoidOnboardingContent = () => {
 
 
 						{/* Add provider section - simplified styling */}
-						<div className='mb-5 mt-8'>
+						<div className='mb-5 mt-8 mx-auto'>
 							<div className=''>
 								Add {displayInfoOfProviderName(selectedProviderName).title}
 

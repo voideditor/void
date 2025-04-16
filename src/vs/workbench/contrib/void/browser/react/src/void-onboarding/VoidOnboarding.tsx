@@ -408,6 +408,7 @@ const PrimaryActionButton = ({ children, className, ringSize, ...props }: { chil
 
 				rounded-lg
 				group
+				${className}
 			`}
 			{...props}
 		>
@@ -804,6 +805,7 @@ const VoidOnboardingContent = () => {
 						<PrimaryActionButton
 							onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
 							ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' :'xl'}
+							className='text-4xl'
 						>Enter the Void</PrimaryActionButton>
 					</div>
 				</>

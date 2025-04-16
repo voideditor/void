@@ -250,7 +250,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			settingsOfProvider: {
 				...defaultSettingsOfProvider,
 				...readS.settingsOfProvider,
-				mistral: {
+				mistral: { // we added mistral
 					...defaultSettingsOfProvider.mistral,
 					...readS.settingsOfProvider.mistral,
 				},

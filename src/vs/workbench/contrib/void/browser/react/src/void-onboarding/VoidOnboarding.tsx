@@ -752,11 +752,12 @@ const VoidOnboardingContent = () => {
 
 						{/* Add provider section - simplified styling */}
 						<div className='mb-5 mt-8'>
-							<div className='my-4'>
+							<div className=''>
 								Add {displayInfoOfProviderName(selectedProviderName).title}
 
-
-								{selectedProviderName === 'ollama' ? ollamaSetupInstructions : ''}
+								<div className='my-4'>
+									{selectedProviderName === 'ollama' ? ollamaSetupInstructions : ''}
+								</div>
 
 							</div>
 

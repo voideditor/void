@@ -623,6 +623,11 @@ const VoidOnboardingContent = () => {
 
 
 			</div>}
+			bottom={
+				<div className='mx-auto w-full max-w-[800px]'>
+					<PreviousButton onClick={() => { setPageIndex(pageIndex - 1) }} />
+				</div>
+			}
 		/>,
 		2: <OnboardingPageShell
 			top={

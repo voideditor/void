@@ -50,6 +50,7 @@
 }
 
 /* light */
+.void-void-icon,
 .monaco-workbench .part.editor > .content .editor-group-container > .editor-group-watermark > .letterpress {
 	width: 100%;
 	max-height: 100%;
@@ -60,14 +61,17 @@
 	background-repeat: no-repeat;
 }
 
+.void-void-icon,
 .monaco-workbench.vs-dark .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress {
 	background-image: url('./void_cube_noshadow.png'); /* // Void */
 }
 
+.void-void-icon,
 .monaco-workbench.hc-light .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress {
 	background-image: url('./void_cube_noshadow.png'); /* // Void */
 }
 
+.void-void-icon,
 .monaco-workbench.hc-black .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress {
 	background-image: url('./void_cube_noshadow.png'); /* // Void */
 }

@@ -3,12 +3,14 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+// disable foreign import complaints
+/* eslint-disable */
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
-
+/* eslint-enable */
 
 import { AnthropicLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
 import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
@@ -192,7 +194,9 @@ const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, 
 
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
-	const nativeToolsObj = potentialTools ? { tools: potentialTools } as const : {}
+	const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?
+		{ tools: potentialTools } as const
+		: {}
 
 	// instance
 	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
@@ -374,7 +378,9 @@ const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onE
 
 	// tools
 	const potentialTools = chatMode !== null ? anthropicTools(chatMode) : null
-	const nativeToolsObj = potentialTools ? { tools: potentialTools, tool_choice: { type: 'auto' } } as const : {}
+	const nativeToolsObj = potentialTools && specialToolFormat === 'anthropic-style' ?
+		{ tools: potentialTools, tool_choice: { type: 'auto' } } as const
+		: {}
 
 
 	// instance

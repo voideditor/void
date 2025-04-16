@@ -29,6 +29,7 @@ import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg
 import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 import { MAX_FILE_CHARS_PAGE } from '../../../toolsService.js';
+import ErrorBoundary from './ErrorBoundary.js';
 
 
 
@@ -1364,12 +1365,12 @@ const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => 
 				style={{ background: 'none' }}
 			>
 				<ChevronRight
-					className={`mr-1 h-4 w-4 flex-shrink-0 transition-transform duration-100 text-void-fg-4 group-hover:text-void-fg-3 ${isOpen ? 'rotate-90' : ''}`}
+					className={`mr-1 h-3 w-3 flex-shrink-0 transition-transform duration-100 text-void-fg-4 group-hover:text-void-fg-3 ${isOpen ? 'rotate-90' : ''}`}
 				/>
 				<span className="font-medium text-void-fg-4 group-hover:text-void-fg-3 text-xs">Lint errors</span>
 			</div>
 			<div
-				className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100 py-1' : 'max-h-0 opacity-0'} text-xs pl-5`}
+				className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100' : 'max-h-0 opacity-0'} text-xs pl-4`}
 			>
 				<div className="flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap text-void-fg-4 opacity-90 border-l-2 border-void-warning px-2 py-0.5">
 					{lintErrors.map((error, i) => (
@@ -1949,10 +1950,14 @@ const Checkpoint = ({ message, threadId, messageIdx, isCheckpointGhost, threadIs
 			style={{ position: 'relative', display: 'inline-block' }} // allow absolute icon
 			onClick={() => {
 				if (threadIsRunning) return
-				chatThreadService.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
+				chatThreadService.jumpToCheckpointBeforeMessageIdx({
+					threadId,
+					messageIdx,
+					jumpToUserModified: messageIdx === (chatThreadService.state.allThreads[threadId]?.messages.length ?? 0) - 1
+				})
 			}}
 		>
-                    Checkpoint
+			Checkpoint
 		</div>
 	</div>
 }
@@ -2479,7 +2484,7 @@ export const SidebarChat = () => {
 	const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? undefined  // if not exist, treat like checkpoint is last message (infinity)
 
 	const previousMessagesHTML = useMemo(() => {
-		const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
+		// const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
 		// tool request shows up as Editing... if in progress
 		return previousMessages.map((message, i) => {
 			return <ChatBubble
@@ -2616,14 +2621,20 @@ export const SidebarChat = () => {
 		<div ref={sidebarRef} className='w-full h-full flex flex-col overflow-hidden'>
 			{/* History selector */}
 			<div className={`w-full ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}>
-				<SidebarThreadSelector />
+				<ErrorBoundary>
+					<SidebarThreadSelector />
+				</ErrorBoundary>
 			</div>
 
 			<div className='flex-1 flex flex-col overflow-hidden'>
 				<div className={`flex-1 overflow-hidden ${previousMessages.length === 0 ? 'h-0 max-h-0 pb-2' : ''}`}>
-					{messagesHTML}
+					<ErrorBoundary>
+						{messagesHTML}
+					</ErrorBoundary>
 				</div>
-				{inputForm}
+				<ErrorBoundary>
+					{inputForm}
+				</ErrorBoundary>
 			</div>
 		</div>
 	)

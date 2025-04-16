@@ -205,7 +205,7 @@ export const availableTools = (chatMode: ChatMode) => {
 	return tools
 }
 
-const availableXMLToolsStr = (tools: InternalToolInfo[]) => {
+const toolCallDefinitionsXMLString = (tools: InternalToolInfo[]) => {
 	return `${tools.map((t, i) => {
 		const params = Object.keys(t.params).map(paramName => `<${paramName}>${t.params[paramName].description}</${paramName}>`).join('\n')
 		return `\
@@ -217,7 +217,7 @@ Format:
 	}).join('\n\n')}`
 }
 
-export const toolCallXMLStr = (toolName: ToolName, toolParams: RawToolParamsObj) => {
+export const reParsedToolXMLString = (toolName: ToolName, toolParams: RawToolParamsObj) => {
 	const params = Object.keys(toolParams).map(paramName => `<${paramName}>${toolParams[paramName as ToolParamName]}</${paramName}>`).join('\n')
 	return `\
 <${toolName}>${!params ? '' : `\n${params}`}
@@ -234,12 +234,12 @@ const systemToolsXMLPrompt = (chatMode: ChatMode) => {
 	const toolXMLDefinitions = (`\
 Available tools:
 
-${availableXMLToolsStr(tools)}`)
+${toolCallDefinitionsXMLString(tools)}`)
 
 	const toolCallXMLGuidelines = (`\
 Tool calling details:
-- Once you write a tool call, you must STOP and WAIT for the result.
-- To call a tool, write its name and parameters in one of the XML formats specified above at the BOTTOM of your response.
+- To call a tool, write its name and parameters in one of the XML formats specified above.
+- After you write the tool call, you must STOP and WAIT for the result.
 - All parameters are REQUIRED unless noted otherwise.
 - You are only allowed to output ONE tool call, and it must be at the END of your response.
 - Your tool call will be executed immediately, and the results will appear in the following user message.`)
@@ -341,9 +341,9 @@ ${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
 	const ansStrs: string[] = []
 	ansStrs.push(header)
 	ansStrs.push(sysInfo)
-	ansStrs.push(fsInfo)
 	if (toolDefinitions) ansStrs.push(toolDefinitions)
 	ansStrs.push(importantDetails)
+	ansStrs.push(fsInfo)
 
 	const fullSystemMsgStr = ansStrs
 		.join('\n\n\n')

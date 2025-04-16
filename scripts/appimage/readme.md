@@ -1,3 +1,16 @@
+
+
+# README
+
+This is a community-made AppImage creation script.
+
+There are some reported bugs with it.
+
+To generate an AppImage yourself, feel free to look at
+stable-linux.yml in the separate `void-builder/` repo,
+which runs a GitHub Action that builds the AppImage you see on our website.
+
+
 # Void AppImage Creation Script
 
 This script automates the process of creating an AppImage for the  Void Editor using Docker. It works on macOS and Linux platforms.

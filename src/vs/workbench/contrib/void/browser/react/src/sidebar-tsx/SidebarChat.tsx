@@ -2126,6 +2126,7 @@ const CommandBarInChat = () => {
 	const commandService = accessor.get('ICommandService')
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const chatThreadsState = useChatThreadsState()
+	const commandBarState = useCommandBarState()
 	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
 
 	const settingsState = useSettingsState()
@@ -2183,7 +2184,12 @@ const CommandBarInChat = () => {
 	}, [fileDetailsOpenedState, setFileDetailsOpenedState, numFilesChanged])
 
 
-	const isFinishedMakingThreadChanges = numFilesChanged !== 0 && (chatThreadsStreamState ? !chatThreadsStreamState.isRunning : true)
+	const isFinishedMakingThreadChanges = (
+		// there are changed files
+		commandBarState.sortedURIs.length !== 0
+		// none of the files are streaming
+		&& commandBarState.sortedURIs.every(uri => !commandBarState.stateOfURI[uri.fsPath]?.isStreaming)
+	)
 
 	// ======== status of agent ========
 	// This icon answers the question "is the LLM doing work on this thread?"

@@ -1876,9 +1876,10 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				const { command } = params
 				const { terminalId, resolveReason, result: terminalResult } = result
 
-				componentParams.desc2 = <JumpToTerminalButton
-					onClick={() => { terminalToolsService.openTerminal(terminalId) }}
-				/>
+				// it's unclear that this is a button and not an icon.
+				// componentParams.desc2 = <JumpToTerminalButton
+				// 	onClick={() => { terminalToolsService.openTerminal(terminalId) }}
+				// />
 
 				const additionalDetailsStr = resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `\nError: exit code ${resolveReason.exitCode}` : null)
 					: resolveReason.type === 'bgtask' ? null :
@@ -1893,12 +1894,12 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 							<span className="text-void-fg-1 font-sans">{`Ran command: `}</span>
 							<span className="font-mono">{command}</span>
 						</div>
-						<div>
+						{(terminalResult + additionalDetailsStr).length && <div>
 							<span>{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}</span>
-							<span>{`Result: `}</span>
-							<span className="text-void-fg-1 font-mono">{terminalResult}</span>
-							<span className="text-void-fg-1 font-mono">{additionalDetailsStr}</span>
-						</div>
+							<span className='text-void-fg-1'>{`Result: `}</span>
+							<span className="font-mono">{terminalResult}</span>
+							<span className="font-mono">{additionalDetailsStr}</span>
+						</div>}
 					</div>
 				</ToolChildrenWrapper>
 

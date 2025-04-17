@@ -1127,16 +1127,18 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 		}
 
 		{/* assistant message */}
-		<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-			<ProseWrapper>
-				<ChatMarkdownRender
-					string={chatMessage.displayContent || ''}
-					chatMessageLocation={chatMessageLocation}
-					isApplyEnabled={true}
-					isLinkDetectionEnabled={true}
-				/>
-			</ProseWrapper>
-		</div>
+		{chatMessage.displayContent &&
+			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
+				<ProseWrapper>
+					<ChatMarkdownRender
+						string={chatMessage.displayContent || ''}
+						chatMessageLocation={chatMessageLocation}
+						isApplyEnabled={true}
+						isLinkDetectionEnabled={true}
+					/>
+				</ProseWrapper>
+			</div>
+		}
 	</>
 
 }

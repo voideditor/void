@@ -17,7 +17,7 @@ export type ShallowDirectoryItem = {
 
 
 
-const toolNamesWithApproval = ['create_file_or_folder', 'delete_file_or_folder', 'edit_file', 'run_terminal_command'] as const satisfies readonly ToolName[]
+const toolNamesWithApproval = ['create_file_or_folder', 'delete_file_or_folder', 'edit_file', 'command_tool'] as const satisfies readonly ToolName[]
 export type ToolNameWithApproval = typeof toolNamesWithApproval[number]
 export const toolNamesThatRequireApproval = new Set<ToolName>(toolNamesWithApproval)
 
@@ -33,7 +33,7 @@ export type ToolCallParams = {
 	'edit_file': { uri: URI, changeDescription: string },
 	'create_file_or_folder': { uri: URI, isFolder: boolean },
 	'delete_file_or_folder': { uri: URI, isRecursive: boolean, isFolder: boolean },
-	'run_terminal_command': { command: string, proposedTerminalId: string, waitForCompletion: boolean },
+	'command_tool': { command: string, proposedTerminalId: string, waitForCompletion: boolean },
 }
 
 
@@ -49,6 +49,6 @@ export type ToolResultType = {
 	'edit_file': Promise<{ lintErrors: LintErrorItem[] | null }>,
 	'create_file_or_folder': {},
 	'delete_file_or_folder': {},
-	'run_terminal_command': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: TerminalResolveReason; },
+	'command_tool': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: TerminalResolveReason; },
 }
 

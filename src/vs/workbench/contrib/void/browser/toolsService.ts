@@ -248,7 +248,7 @@ export class ToolsService implements IToolsService {
 				return { uri, changeDescription }
 			},
 
-			run_terminal_command: (params: RawToolParamsObj) => {
+			command_tool: (params: RawToolParamsObj) => {
 				const { command: commandUnknown, terminal_id: terminalIdUnknown, wait_for_completion: waitForCompletionUnknown } = params
 				const command = validateStr('command', commandUnknown)
 				const proposedTerminalId = validateProposedTerminalId(terminalIdUnknown)
@@ -385,7 +385,7 @@ export class ToolsService implements IToolsService {
 
 				return { result: lintErrorsPromise, interruptTool }
 			},
-			run_terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
+			command_tool: async ({ command, proposedTerminalId, waitForCompletion }) => {
 				const { terminalId, didCreateTerminal, result, resolveReason } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
 				return { result: { terminalId, didCreateTerminal, result, resolveReason } }
 			},
@@ -439,7 +439,7 @@ export class ToolsService implements IToolsService {
 
 				return `Change successfully made to ${params.uri.fsPath}.${lintErrsString}`
 			},
-			run_terminal_command: (params, result) => {
+			command_tool: (params, result) => {
 				const {
 					terminalId,
 					didCreateTerminal,

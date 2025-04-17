@@ -1177,7 +1177,7 @@ const titleOfToolName = {
 	'create_file_or_folder': { done: `Created`, proposed: `Create`, running: loadingTitleWrapper(`Creating`) },
 	'delete_file_or_folder': { done: `Deleted`, proposed: `Delete`, running: loadingTitleWrapper(`Deleting`) },
 	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
-	'run_terminal_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
+	'command_tool': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
 	'read_lint_errors': { done: `Read lint errors`, proposed: 'Read lint errors', running: loadingTitleWrapper('Reading lint errors') },
 } as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
 
@@ -1219,8 +1219,8 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 	} else if (toolName === 'edit_file') {
 		const toolParams = _toolParams as ToolCallParams['edit_file']
 		return getBasename(toolParams.uri.fsPath);
-	} else if (toolName === 'run_terminal_command') {
-		const toolParams = _toolParams as ToolCallParams['run_terminal_command']
+	} else if (toolName === 'command_tool') {
+		const toolParams = _toolParams as ToolCallParams['command_tool']
 		return `"${toolParams.command}"`;
 	} else {
 		return ''
@@ -1858,7 +1858,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'run_terminal_command': {
+	'command_tool': {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')

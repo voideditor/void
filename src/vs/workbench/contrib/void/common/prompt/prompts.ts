@@ -166,11 +166,11 @@ Here's an example of a good description:\n${editToolDescriptionExample}`
 		},
 	},
 
-	run_terminal_command: {
-		name: 'run_terminal_command',
-		description: `Executes a terminal command.`,
+	command_tool: {
+		name: 'command_tool',
+		description: `Runs a terminal command. You can use this tool to run any command: sed, grep, etc. We just prefer you edit with the edit tool, not this tool if possible.`,
 		params: {
-			command: { description: 'The terminal command to execute. If working with tools like git that can paginate, you should pipe to cat so results are not truncated.' },
+			command: { description: 'The terminal command to run.' },
 			wait_for_completion: { description: `Optional. Default is true. Make this value false when you want a command to run without waiting for it to complete.` },
 			terminal_id: { description: 'Optional. The ID of the terminal instance that should execute the command (if not provided, defaults to the preferred terminal ID). The primary purpose of this is to let you open a new terminal for testing or background processes (e.g. running a dev server for the user in a separate terminal). Must be an integer >= 1.' },
 		},

@@ -17,10 +17,10 @@ import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { ChatMode, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
+import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
-import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag } from 'lucide-react';
+import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
 import { LintErrorItem, ToolCallParams, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
@@ -1127,16 +1127,18 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 		}
 
 		{/* assistant message */}
-		<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-			<ProseWrapper>
-				<ChatMarkdownRender
-					string={chatMessage.displayContent || ''}
-					chatMessageLocation={chatMessageLocation}
-					isApplyEnabled={true}
-					isLinkDetectionEnabled={true}
-				/>
-			</ProseWrapper>
-		</div>
+		{chatMessage.displayContent &&
+			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
+				<ProseWrapper>
+					<ChatMarkdownRender
+						string={chatMessage.displayContent || ''}
+						chatMessageLocation={chatMessageLocation}
+						isApplyEnabled={true}
+						isLinkDetectionEnabled={true}
+					/>
+				</ProseWrapper>
+			</div>
+		}
 	</>
 
 }
@@ -1177,7 +1179,7 @@ const titleOfToolName = {
 	'create_file_or_folder': { done: `Created`, proposed: `Create`, running: loadingTitleWrapper(`Creating`) },
 	'delete_file_or_folder': { done: `Deleted`, proposed: `Delete`, running: loadingTitleWrapper(`Deleting`) },
 	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
-	'run_terminal_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
+	'command_tool': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
 	'read_lint_errors': { done: `Read lint errors`, proposed: 'Read lint errors', running: loadingTitleWrapper('Reading lint errors') },
 } as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
 
@@ -1219,8 +1221,8 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 	} else if (toolName === 'edit_file') {
 		const toolParams = _toolParams as ToolCallParams['edit_file']
 		return getBasename(toolParams.uri.fsPath);
-	} else if (toolName === 'run_terminal_command') {
-		const toolParams = _toolParams as ToolCallParams['run_terminal_command']
+	} else if (toolName === 'command_tool') {
+		const toolParams = _toolParams as ToolCallParams['command_tool']
 		return `"${toolParams.command}"`;
 	} else {
 		return ''
@@ -1390,7 +1392,7 @@ const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr }: { applyBoxId: strin
 
 		<StatusIndicatorForApplyButton applyBoxId={applyBoxId} uri={uri} />
 		<JumpToFileButton uri={uri} />
-		{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} />}
+		{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} toolTipName='Copy' />}
 		<ApplyButtonsHTML applyBoxId={applyBoxId} uri={uri} codeStr={codeStr} reapplyIcon={true} />
 	</div>
 }
@@ -1578,11 +1580,12 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
 			if (toolMessage.type === 'success') {
-				const { params, result } = toolMessage
+				const { params, result, rawParams } = toolMessage
 				componentParams.numResults = result.uris.length
 				componentParams.hasNextPage = result.hasNextPage
 				componentParams.children = result.uris.length === 0 ? undefined
 					: <ToolChildrenWrapper>
+						{rawParams.search_in_folder ? `Search in ${rawParams.search_in_folder}` : null}
 						{result.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
 							className='w-full overflow-auto'
@@ -1622,11 +1625,12 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
 			if (toolMessage.type === 'success') {
-				const { params, result } = toolMessage
+				const { params, result, rawParams } = toolMessage
 				componentParams.numResults = result.uris.length
 				componentParams.hasNextPage = result.hasNextPage
 				componentParams.children = result.uris.length === 0 ? undefined
 					: <ToolChildrenWrapper>
+						{rawParams.search_in_folder ? `Search in ${rawParams.search_in_folder}` : null}
 						{result.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
 							className='w-full overflow-auto'
@@ -1856,7 +1860,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'run_terminal_command': {
+	'command_tool': {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
@@ -1874,9 +1878,10 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				const { command } = params
 				const { terminalId, resolveReason, result: terminalResult } = result
 
-				componentParams.desc2 = <JumpToTerminalButton
-					onClick={() => { terminalToolsService.openTerminal(terminalId) }}
-				/>
+				// it's unclear that this is a button and not an icon.
+				// componentParams.desc2 = <JumpToTerminalButton
+				// 	onClick={() => { terminalToolsService.openTerminal(terminalId) }}
+				// />
 
 				const additionalDetailsStr = resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `\nError: exit code ${resolveReason.exitCode}` : null)
 					: resolveReason.type === 'bgtask' ? null :
@@ -1891,12 +1896,12 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 							<span className="text-void-fg-1 font-sans">{`Ran command: `}</span>
 							<span className="font-mono">{command}</span>
 						</div>
-						<div>
+						{(terminalResult + additionalDetailsStr).length && <div>
 							<span>{resolveReason.type === 'bgtask' ? 'Result so far:\n' : null}</span>
-							<span>{`Result: `}</span>
-							<span className="text-void-fg-1 font-mono">{terminalResult}</span>
-							<span className="text-void-fg-1 font-mono">{additionalDetailsStr}</span>
-						</div>
+							<span className='text-void-fg-1'>{`Result: `}</span>
+							<span className="font-mono">{terminalResult}</span>
+							<span className="font-mono">{additionalDetailsStr}</span>
+						</div>}
 					</div>
 				</ToolChildrenWrapper>
 
@@ -2121,8 +2126,48 @@ const CommandBarInChat = () => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const commandService = accessor.get('ICommandService')
+	const chatThreadsService = accessor.get('IChatThreadService')
 	const chatThreadsState = useChatThreadsState()
+	const commandBarState = useCommandBarState()
 	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
+
+	const settingsState = useSettingsState()
+	const convertService = accessor.get('IConvertToLLMMessageService')
+
+
+
+	const currentThread = chatThreadsService.getCurrentThread()
+	const chatMode = settingsState.globalSettings.chatMode
+	const modelSelection = settingsState.modelSelectionOfFeature?.Chat ?? null
+
+	const copyChatButton = <CopyButton
+		codeStr={async () => {
+			const { messages } = await convertService.prepareLLMChatMessages({
+				chatMessages: currentThread.messages,
+				chatMode,
+				modelSelection,
+			})
+			return JSON.stringify(messages, null, 2)
+		}}
+		toolTipName={modelSelection === null ? 'Copy As Messages Payload' : `Copy As ${displayInfoOfProviderName(modelSelection.providerName).title} Payload`}
+	/>
+
+	const copyChatButton2 = <CopyButton
+		codeStr={async () => {
+			return JSON.stringify(currentThread.messages, null, 2)
+		}}
+		toolTipName={`Copy As Void Chat`}
+	/>
+
+	// (
+	// 	<IconShell1
+	// 		Icon={CopyIcon}
+	// 		onClick={copyChatToClipboard}
+	// 		data-tooltip-id='void-tooltip'
+	// 		data-tooltip-place='top'
+	// 		data-tooltip-content='Copy chat JSON'
+	// 	/>
+	// )
 
 	const [fileDetailsOpenedState, setFileDetailsOpenedState] = useState<'auto-opened' | 'auto-closed' | 'user-opened' | 'user-closed'>('auto-closed');
 	const isFileDetailsOpened = fileDetailsOpenedState === 'auto-opened' || fileDetailsOpenedState === 'user-opened';
@@ -2141,7 +2186,12 @@ const CommandBarInChat = () => {
 	}, [fileDetailsOpenedState, setFileDetailsOpenedState, numFilesChanged])
 
 
-	const isFinishedMakingThreadChanges = numFilesChanged !== 0 && (chatThreadsStreamState ? !chatThreadsStreamState.isRunning : true)
+	const isFinishedMakingThreadChanges = (
+		// there are changed files
+		commandBarState.sortedURIs.length !== 0
+		// none of the files are streaming
+		&& commandBarState.sortedURIs.every(uri => !commandBarState.stateOfURI[uri.fsPath]?.isStreaming)
+	)
 
 	// ======== status of agent ========
 	// This icon answers the question "is the LLM doing work on this thread?"
@@ -2487,7 +2537,7 @@ export const SidebarChat = () => {
 		// const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
 		// tool request shows up as Editing... if in progress
 		return previousMessages.map((message, i) => {
-			return <ChatBubble
+			return <ErrorBoundary><ChatBubble
 				key={getChatBubbleId(threadId, i)}
 				currCheckpointIdx={currCheckpointIdx}
 				chatMessage={message}
@@ -2496,13 +2546,13 @@ export const SidebarChat = () => {
 				chatIsRunning={isRunning}
 				threadId={threadId}
 				_scrollToBottom={() => scrollToBottom(scrollContainerRef)}
-			/>
+			/></ErrorBoundary>
 		})
 	}, [previousMessages, threadId, currCheckpointIdx, isRunning])
 
 	const streamingChatIdx = previousMessagesHTML.length
 	const currStreamingMessageHTML = reasoningSoFar || displayContentSoFar || isRunning ?
-		<ChatBubble
+		<ErrorBoundary><ChatBubble
 			key={getChatBubbleId(threadId, streamingChatIdx)}
 			currCheckpointIdx={currCheckpointIdx}
 			chatMessage={{
@@ -2517,7 +2567,7 @@ export const SidebarChat = () => {
 
 			threadId={threadId}
 			_scrollToBottom={null}
-		/> : null
+		/></ErrorBoundary> : null
 
 
 	// the tool currently being generated

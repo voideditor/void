@@ -34,7 +34,7 @@ type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awai
 
 
 // pagination info
-export const MAX_FILE_CHARS_PAGE = Infinity
+export const MAX_FILE_CHARS_PAGE = 500_000
 export const MAX_CHILDREN_URIs_PAGE = 500
 export const MAX_TERMINAL_CHARS_PAGE = 20_000
 export const TERMINAL_TIMEOUT_TIME = 5 // seconds
@@ -248,7 +248,7 @@ export class ToolsService implements IToolsService {
 				return { uri, changeDescription }
 			},
 
-			run_terminal_command: (params: RawToolParamsObj) => {
+			command_tool: (params: RawToolParamsObj) => {
 				const { command: commandUnknown, terminal_id: terminalIdUnknown, wait_for_completion: waitForCompletionUnknown } = params
 				const command = validateStr('command', commandUnknown)
 				const proposedTerminalId = validateProposedTerminalId(terminalIdUnknown)
@@ -385,7 +385,7 @@ export class ToolsService implements IToolsService {
 
 				return { result: lintErrorsPromise, interruptTool }
 			},
-			run_terminal_command: async ({ command, proposedTerminalId, waitForCompletion }) => {
+			command_tool: async ({ command, proposedTerminalId, waitForCompletion }) => {
 				const { terminalId, didCreateTerminal, result, resolveReason } = await this.terminalToolService.runCommand(command, proposedTerminalId, waitForCompletion)
 				return { result: { terminalId, didCreateTerminal, result, resolveReason } }
 			},
@@ -398,6 +398,7 @@ export class ToolsService implements IToolsService {
 			return lintErrors
 				.map((e, i) => `Error ${i + 1}:\nLines Affected: ${e.startLineNumber}-${e.endLineNumber}\nError message:${e.message}`)
 				.join('\n\n')
+				.substring(0, MAX_FILE_CHARS_PAGE)
 		}
 
 		// given to the LLM after the call
@@ -439,7 +440,7 @@ export class ToolsService implements IToolsService {
 
 				return `Change successfully made to ${params.uri.fsPath}.${lintErrsString}`
 			},
-			run_terminal_command: (params, result) => {
+			command_tool: (params, result) => {
 				const {
 					terminalId,
 					didCreateTerminal,
@@ -475,6 +476,7 @@ export class ToolsService implements IToolsService {
 		const lintErrors = this.markerService
 			.read({ resource: uri })
 			.filter(l => l.severity === MarkerSeverity.Error || l.severity === MarkerSeverity.Warning)
+			.slice(0, 100)
 			.map(l => ({
 				code: typeof l.code === 'string' ? l.code : l.code?.value || '',
 				message: (l.severity === MarkerSeverity.Error ? '(error) ' : '(warning) ') + l.message,

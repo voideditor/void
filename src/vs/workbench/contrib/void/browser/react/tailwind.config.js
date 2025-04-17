@@ -53,6 +53,7 @@ module.exports = {
 				'void-bg-1-alt': 'var(--void-bg-1-alt)',
 				'void-bg-2': 'var(--void-bg-2)',
 				'void-bg-2-alt': 'var(--void-bg-2-alt)',
+				'void-bg-2-hover': 'var(--void-bg-2-hover)',
 				'void-bg-3': 'var(--void-bg-3)',
 
 

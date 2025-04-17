@@ -689,7 +689,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 									key={optionName}
 									className={`flex items-center px-2 py-1 pr-4 cursor-pointer whitespace-nowrap
 									transition-all duration-100
-									${thisOptionIsSelected ? 'bg-void-bg-2' : 'bg-void-bg-2-alt hover:bg-void-bg-2'}
+									${thisOptionIsSelected ? 'bg-void-bg-2-hover' : 'bg-void-bg-2 hover:bg-void-bg-2-hover'}
 								`}
 									onClick={() => {
 										onChangeOption(option);

@@ -2535,7 +2535,7 @@ export const SidebarChat = () => {
 		// const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
 		// tool request shows up as Editing... if in progress
 		return previousMessages.map((message, i) => {
-			return <ChatBubble
+			return <ErrorBoundary><ChatBubble
 				key={getChatBubbleId(threadId, i)}
 				currCheckpointIdx={currCheckpointIdx}
 				chatMessage={message}
@@ -2544,13 +2544,13 @@ export const SidebarChat = () => {
 				chatIsRunning={isRunning}
 				threadId={threadId}
 				_scrollToBottom={() => scrollToBottom(scrollContainerRef)}
-			/>
+			/></ErrorBoundary>
 		})
 	}, [previousMessages, threadId, currCheckpointIdx, isRunning])
 
 	const streamingChatIdx = previousMessagesHTML.length
 	const currStreamingMessageHTML = reasoningSoFar || displayContentSoFar || isRunning ?
-		<ChatBubble
+		<ErrorBoundary><ChatBubble
 			key={getChatBubbleId(threadId, streamingChatIdx)}
 			currCheckpointIdx={currCheckpointIdx}
 			chatMessage={{
@@ -2565,7 +2565,7 @@ export const SidebarChat = () => {
 
 			threadId={threadId}
 			_scrollToBottom={null}
-		/> : null
+		/></ErrorBoundary> : null
 
 
 	// the tool currently being generated

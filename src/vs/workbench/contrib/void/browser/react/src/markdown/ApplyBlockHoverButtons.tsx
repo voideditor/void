@@ -69,7 +69,7 @@ export const IconShell1 = ({ onClick, Icon, disabled, className, ...props }: Ico
 
 const COPY_FEEDBACK_TIMEOUT = 1500 // amount of time to say 'Copied!'
 
-export const CopyButton = ({ codeStr }: { codeStr: string }) => {
+export const CopyButton = ({ codeStr, toolTipName }: { codeStr: string | (() => Promise<string> | string), toolTipName: string }) => {
 	const accessor = useAccessor()
 
 	const metricsService = accessor.get('IMetricsService')
@@ -83,8 +83,8 @@ export const CopyButton = ({ codeStr }: { codeStr: string }) => {
 		}, COPY_FEEDBACK_TIMEOUT)
 	}, [copyButtonText])
 
-	const onCopy = useCallback(() => {
-		clipboardService.writeText(codeStr)
+	const onCopy = useCallback(async () => {
+		clipboardService.writeText(typeof codeStr === 'string' ? codeStr : await codeStr())
 			.then(() => { setCopyButtonText(CopyButtonText.Copied) })
 			.catch(() => { setCopyButtonText(CopyButtonText.Error) })
 		metricsService.capture('Copy Code', { length: codeStr.length }) // capture the length only
@@ -93,7 +93,7 @@ export const CopyButton = ({ codeStr }: { codeStr: string }) => {
 	return <IconShell1
 		Icon={copyButtonText === CopyButtonText.Copied ? Check : copyButtonText === CopyButtonText.Error ? X : Copy}
 		onClick={onCopy}
-		{...tooltipPropsForApplyBlock({ tooltipName: 'Copy' })}
+		{...tooltipPropsForApplyBlock({ tooltipName: toolTipName })}
 	/>
 }
 
@@ -374,7 +374,7 @@ export const BlockCodeApplyWrapper = ({
 			</div>
 			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>
 				<JumpToFileButton uri={uri} />
-				{currStreamState === 'idle-no-changes' && <CopyButton codeStr={initValue} />}
+				{currStreamState === 'idle-no-changes' && <CopyButton codeStr={initValue} toolTipName='Copy' />}
 				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={initValue} reapplyIcon={false} />
 			</div>
 		</div>

@@ -17,10 +17,10 @@ import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { SidebarThreadSelector } from './SidebarThreadSelector.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-import { ChatMode, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
+import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
-import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag } from 'lucide-react';
+import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
 import { LintErrorItem, ToolCallParams, ToolNameWithApproval } from '../../../../common/toolsServiceTypes.js';
 import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
@@ -1390,7 +1390,7 @@ const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr }: { applyBoxId: strin
 
 		<StatusIndicatorForApplyButton applyBoxId={applyBoxId} uri={uri} />
 		<JumpToFileButton uri={uri} />
-		{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} />}
+		{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} toolTipName='Copy' />}
 		<ApplyButtonsHTML applyBoxId={applyBoxId} uri={uri} codeStr={codeStr} reapplyIcon={true} />
 	</div>
 }
@@ -1578,11 +1578,12 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
 			if (toolMessage.type === 'success') {
-				const { params, result } = toolMessage
+				const { params, result, rawParams } = toolMessage
 				componentParams.numResults = result.uris.length
 				componentParams.hasNextPage = result.hasNextPage
 				componentParams.children = result.uris.length === 0 ? undefined
 					: <ToolChildrenWrapper>
+						{rawParams.search_in_folder ? `Search in ${rawParams.search_in_folder}` : null}
 						{result.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
 							className='w-full overflow-auto'
@@ -1622,11 +1623,12 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
 			if (toolMessage.type === 'success') {
-				const { params, result } = toolMessage
+				const { params, result, rawParams } = toolMessage
 				componentParams.numResults = result.uris.length
 				componentParams.hasNextPage = result.hasNextPage
 				componentParams.children = result.uris.length === 0 ? undefined
 					: <ToolChildrenWrapper>
+						{rawParams.search_in_folder ? `Search in ${rawParams.search_in_folder}` : null}
 						{result.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
 							className='w-full overflow-auto'
@@ -2121,8 +2123,47 @@ const CommandBarInChat = () => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const commandService = accessor.get('ICommandService')
+	const chatThreadsService = accessor.get('IChatThreadService')
 	const chatThreadsState = useChatThreadsState()
 	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
+
+	const settingsState = useSettingsState()
+	const convertService = accessor.get('IConvertToLLMMessageService')
+
+
+
+	const currentThread = chatThreadsService.getCurrentThread()
+	const chatMode = settingsState.globalSettings.chatMode
+	const modelSelection = settingsState.modelSelectionOfFeature?.Chat ?? null
+
+	const copyChatButton = <CopyButton
+		codeStr={async () => {
+			const { messages } = await convertService.prepareLLMChatMessages({
+				chatMessages: currentThread.messages,
+				chatMode,
+				modelSelection,
+			})
+			return JSON.stringify(messages, null, 2)
+		}}
+		toolTipName={modelSelection === null ? 'Copy As Messages Payload' : `Copy As ${displayInfoOfProviderName(modelSelection.providerName).title} Payload`}
+	/>
+
+	const copyChatButton2 = <CopyButton
+		codeStr={async () => {
+			return JSON.stringify(currentThread.messages, null, 2)
+		}}
+		toolTipName={`Copy As Void Chat`}
+	/>
+
+	// (
+	// 	<IconShell1
+	// 		Icon={CopyIcon}
+	// 		onClick={copyChatToClipboard}
+	// 		data-tooltip-id='void-tooltip'
+	// 		data-tooltip-place='top'
+	// 		data-tooltip-content='Copy chat JSON'
+	// 	/>
+	// )
 
 	const [fileDetailsOpenedState, setFileDetailsOpenedState] = useState<'auto-opened' | 'auto-closed' | 'user-opened' | 'user-closed'>('auto-closed');
 	const isFileDetailsOpened = fileDetailsOpenedState === 'auto-opened' || fileDetailsOpenedState === 'user-opened';

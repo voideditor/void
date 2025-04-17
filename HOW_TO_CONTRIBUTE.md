@@ -52,25 +52,27 @@ First, run `npm install -g node-gyp`. Then:
 
 ### d. Building Void
 
-To build Void, open `void/` inside VSCode. Then open your terminal and run:
+1. Clone the Void repository inside a fresh folder with `git clone https://github.com/voideditor/void`. Make sure that your folder path does not include spaces: this may generate errors during `npm install`.
+2. You can build Void from VSCOde: open `void/` inside VSCode. Then open the terminal inside VSCode and run:
 
-1. `npm install` to install all dependencies.
-2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`).
-3. Build Void.
-	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
-   - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
-   - This step can take ~5 min. The build is done when you see two check marks (one of the items will continue spinning indefinitely - it compiles our React code).
-4. Run Void.
-   - Run `./scripts/code.sh` (Mac/Linux).
-   - Run `./scripts/code.bat` (Windows).
-6. Nice-to-knows.
-   - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
-   - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
-	- You can kill any of the build scripts by pressing `Ctrl+D` in VSCode terminal. If you press `Ctrl+C` the script will close but will keep running in the background (to open all background scripts, just re-build).
+	1. `npm install` to install all dependencies.
+	2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`).
+	3. Build Void.
+		 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
+	   - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
+	   - This step can take ~5 min. The build is done when you see two check marks (one of the items will continue spinning indefinitely - it compiles our React code).
+	4. Run Void.
+	   - Run `./scripts/code.sh` (Mac/Linux).
+	   - Run `./scripts/code.bat` (Windows).
+	6. Nice-to-knows.
+	   - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
+	   - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
+		- You can kill any of the build scripts by pressing `Ctrl+D` in VSCode terminal. If you press `Ctrl+C` the script will close but will keep running in the background (to open all background scripts, just re-build).
 
 #### Building Void from Terminal
 
-Alternatively, if you want to build Void from the terminal, instead of pressing <kbd>Cmd+Shift+B</kbd> you can run `npm run watch`. The build is done when you see something like this:
+Alternatively, you can build Void from the terminal, instead of pressing <kbd>Cmd+Shift+B</kbd> you can simply run `npm run watch`. 
+The build is done when you see something like this:
 
 ```
 [watch-extensions] [00:37:39] Finished compilation extensions with 0 errors after 19303 ms
@@ -84,6 +86,7 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 #### Common Fixes
 
 - Make sure you followed the prerequisite steps.
+- Make sure that the folder path does not include any "space". For example, `/home/user/New Folder/void` may generate errors during `npm install`. Simply remove the space: For example `/home/user/NewFolder/void`
 - Make sure you have Node version `20.18.2` (the version in `.nvmrc`)!
 - If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
 - If you see missing styles, wait a few seconds and then reload.

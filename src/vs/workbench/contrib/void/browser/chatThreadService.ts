@@ -91,7 +91,7 @@ const defaultMessageState: UserMessageState = {
 
 // a 'thread' means a chat message history
 
-type ThreadType = {
+export type ThreadType = {
 	id: string; // store the id here too
 	createdAt: string; // ISO string
 	lastModified: string; // ISO string
@@ -177,6 +177,7 @@ export interface IChatThreadService {
 
 	getCurrentThread(): ThreadType;
 	openNewThread(): void;
+	deleteThread(threadId: string): void;
 	switchToThread(threadId: string): void;
 
 	// exposed getters/setters
@@ -1386,6 +1387,19 @@ We only need to do it for files that were edited since `from`, ie files between 
 		}
 		this._storeAllThreads(newThreads)
 		this._setState({ allThreads: newThreads, currentThreadId: newThread.id }, true)
+	}
+
+
+	deleteThread(threadId: string): void {
+		const { allThreads: currentThreads } = this.state
+
+		// delete the thread
+		const newThreads = { ...currentThreads };
+		delete newThreads[threadId];
+
+		// store the updated threads
+		this._storeAllThreads(newThreads);
+		this._setState({ ...this.state, allThreads: newThreads }, true)
 	}
 
 

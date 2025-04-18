@@ -14,7 +14,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
-import { SidebarThreadSelector } from './SidebarThreadSelector.js';
+import { OldSidebarThreadSelector, PastThreadsList } from './SidebarThreadSelector.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
@@ -2631,61 +2631,101 @@ export const SidebarChat = () => {
 		}
 	}, [onSubmit, onAbort, isRunning])
 
-	const inputForm = <div key={'input' + chatThreadsState.currentThreadId}>
-		<div className='px-4'>
-			{previousMessages.length > 0 &&
-				<CommandBarInChat />
-			}
-		</div>
-		<div
-			className='px-2 pb-2'
-		>
-			<VoidChatArea
-				featureName='Chat'
-				onSubmit={onSubmit}
-				onAbort={onAbort}
-				isStreaming={!!isRunning}
-				isDisabled={isDisabled}
-				showSelections={true}
-				showProspectiveSelections={previousMessagesHTML.length === 0}
-				selections={selections}
-				setSelections={setSelections}
-				onClickAnywhere={() => { textAreaRef.current?.focus() }}
-			>
-				<VoidInputBox2
-					className={`min-h-[81px] px-0.5 py-0.5`}
-					placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
-					onChangeText={onChangeText}
-					onKeyDown={onKeyDown}
-					onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}
-					ref={textAreaRef}
-					fnsRef={textAreaFnsRef}
-					multiline={true}
-				/>
 
-			</VoidChatArea>
+
+
+	const inputChatArea = <VoidChatArea
+		featureName='Chat'
+		onSubmit={onSubmit}
+		onAbort={onAbort}
+		isStreaming={!!isRunning}
+		isDisabled={isDisabled}
+		showSelections={true}
+		showProspectiveSelections={previousMessagesHTML.length === 0}
+		selections={selections}
+		setSelections={setSelections}
+		onClickAnywhere={() => { textAreaRef.current?.focus() }}
+	>
+		<VoidInputBox2
+			className={`min-h-[81px] px-0.5 py-0.5`}
+			placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
+			onChangeText={onChangeText}
+			onKeyDown={onKeyDown}
+			onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}
+			ref={textAreaRef}
+			fnsRef={textAreaFnsRef}
+			multiline={true}
+		/>
+
+	</VoidChatArea>
+
+
+	const isLandingPage = previousMessages.length === 0
+
+
+	const threadPageInput = <div key={'input' + chatThreadsState.currentThreadId}>
+		<div className='px-4'>
+			<CommandBarInChat />
+		</div>
+		<div className='px-2 pb-2'>
+			{inputChatArea}
 		</div>
 	</div>
 
-	return (
-		<div ref={sidebarRef} className='w-full h-full flex flex-col overflow-hidden'>
-			{/* History selector */}
-			<div className={`w-full ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}>
-				<ErrorBoundary>
-					<SidebarThreadSelector />
-				</ErrorBoundary>
-			</div>
-
-			<div className='flex-1 flex flex-col overflow-hidden'>
-				<div className={`flex-1 overflow-hidden ${previousMessages.length === 0 ? 'h-0 max-h-0 pb-2' : ''}`}>
-					<ErrorBoundary>
-						{messagesHTML}
-					</ErrorBoundary>
-				</div>
-				<ErrorBoundary>
-					{inputForm}
-				</ErrorBoundary>
-			</div>
+	const landingPageInput = <div>
+		<div className='pt-8'>
+			{inputChatArea}
 		</div>
+	</div>
+
+	const landingPageContent = <div
+		ref={sidebarRef}
+		className='w-full h-full max-h-full flex flex-col overflow-auto px-4'
+	>
+		<ErrorBoundary>
+			{landingPageInput}
+		</ErrorBoundary>
+		<ErrorBoundary>
+
+			<div className='pt-8 mb-2 text-void-fg-1 text-root'>Previous Threads</div>
+			<PastThreadsList />
+
+		</ErrorBoundary>
+	</div>
+
+
+	// const threadPageContent = <div>
+	// 	{/* Thread content */}
+	// 	<div className='flex flex-col overflow-hidden'>
+	// 		<div className={`overflow-hidden ${previousMessages.length === 0 ? 'h-0 max-h-0 pb-2' : ''}`}>
+	// 			<ErrorBoundary>
+	// 				{messagesHTML}
+	// 			</ErrorBoundary>
+	// 		</div>
+	// 		<ErrorBoundary>
+	// 			{inputForm}
+	// 		</ErrorBoundary>
+	// 	</div>
+	// </div>
+	const threadPageContent = <div
+		ref={sidebarRef}
+		className='w-full h-full flex flex-col overflow-hidden'
+	>
+
+		<ErrorBoundary>
+			{messagesHTML}
+		</ErrorBoundary>
+		<ErrorBoundary>
+			{threadPageInput}
+		</ErrorBoundary>
+	</div>
+
+
+	return (isLandingPage ?
+		landingPageContent
+		: threadPageContent
 	)
 }
+
+
+

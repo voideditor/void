@@ -457,8 +457,9 @@ ${DIVIDER}
 ${FINAL}
 ${tripleTick[1]}
 
-You will be given the original file \`ORIGINAL_FILE\` and a description of a change \`CHANGE\` to make.
+You will be given the original file \`ORIGINAL_FILE\` and a diff to apply to the file, \`CHANGE\`.
 Output SEARCH/REPLACE blocks to edit the file according to the desired change. You may output multiple SEARCH/REPLACE blocks.
+Be sure to output a change for every single item that changed from the original file to the given change, including comments.
 
 Directions:
 1. Your OUTPUT should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.

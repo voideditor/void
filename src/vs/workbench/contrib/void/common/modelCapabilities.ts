@@ -640,7 +640,6 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash': {

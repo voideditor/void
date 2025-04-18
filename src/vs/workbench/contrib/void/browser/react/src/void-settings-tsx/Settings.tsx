@@ -286,7 +286,7 @@ export const ModelDump = () => {
 
 	return <div className=''>
 		{modelDump.map((m, i) => {
-			const { isHidden, isDefault, isAutodetected, modelName, providerName, providerEnabled } = m
+			const { isHidden, type, modelName, providerName, providerEnabled } = m
 
 			const isNewProviderName = (i > 0 ? modelDump[i - 1] : undefined)?.providerName !== providerName
 
@@ -318,7 +318,7 @@ export const ModelDump = () => {
 				// 	: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
 				// }
 				>
-					<span className='opacity-50 truncate'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
+					<span className='opacity-50 truncate'>{type === 'autodetected' ? '(detected locally)' : type === 'default' ? '' : '(custom model)'}</span>
 
 					<VoidSwitch
 						value={value}
@@ -332,7 +332,7 @@ export const ModelDump = () => {
 					/>
 
 					<div className={`w-5 flex items-center justify-center`}>
-						{isDefault ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
+						{type === 'default' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
 					</div>
 				</div>
 			</div>
@@ -692,7 +692,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.cursor', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
-			}] 
+			}]
 		} else if (fromEditor === 'Windsurf') {
 			return [{
 				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Windsurf', 'User', 'settings.json'),

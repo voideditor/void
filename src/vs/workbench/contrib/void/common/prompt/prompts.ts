@@ -447,7 +447,8 @@ export const DIVIDER = `=======`
 export const FINAL = `>>>>>>> UPDATED`
 
 export const searchReplace_systemMessage = `\
-You are a coding assistant that takes in a high-level code description of a change to make, and outputs SEARCH/REPLACE code blocks which implement the change EXACTLY as described.
+You are a coding assistant that takes in a diff describing of a change to make, and outputs SEARCH/REPLACE code blocks which implement the change.
+The diff will be labeled \`DIFF\` and the original file will be labeled \`ORIGINAL_FILE\`.
 
 Format your SEARCH/REPLACE blocks as follows:
 ${tripleTick[0]}
@@ -458,9 +459,9 @@ ${DIVIDER}
 ${FINAL}
 ${tripleTick[1]}
 
-1. The change to make will be labeled \`CHANGE\` and the original file will be labeled \`ORIGINAL_FILE\`.
+1. Every single item written in \`CHANGE\` should show up in the final result, except for comments explicitly saying things like "// ... existing code". Make sure to include ALL other comments (even descriptive ones), code, whitespace, etc. in the final result.
 
-2. Your SEARCH/REPLACE block(s) must implement the change EXACTLY. Do not introduce (or omit) any new comments, spaces, or whitespace.
+2. Your SEARCH/REPLACE block(s) must implement the change EXACTLY. You should use comments like "// ... existing code" as reference points, and everything else in the change should be written verbatim.
 
 3. You are allowed to output multiple SEARCH/REPLACE blocks.
 
@@ -473,6 +474,13 @@ ${tripleTick[1]}
 7. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.
 
 ## EXAMPLE 1
+DIFF
+${tripleTick[0]}
+// ... existing code
+let x = 6.5
+// ... existing code
+${tripleTick[1]}
+
 ORIGINAL_FILE
 ${tripleTick[0]}
 let w = 5
@@ -480,14 +488,6 @@ let x = 6
 let y = 7
 let z = 8
 ${tripleTick[1]}
-
-CHANGE
-${tripleTick[0]}
-// ... existing code
-let x = 6.5
-// ... existing code
-${tripleTick[1]}
-
 
 ## ACCEPTED OUTPUT
 ${tripleTick[0]}
@@ -500,7 +500,7 @@ ${tripleTick[1]}
 `
 
 export const searchReplace_userMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
-CHANGE
+DIFF
 ${applyStr}
 
 ORIGINAL_FILE

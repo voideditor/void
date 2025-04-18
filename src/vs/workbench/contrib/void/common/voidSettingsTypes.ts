@@ -30,9 +30,8 @@ export const customSettingNamesOfProvider = (providerName: ProviderName) => {
 
 export type VoidStatefulModelInfo = { // <-- STATEFUL
 	modelName: string,
-	isDefault: boolean, // whether or not it's a default for its provider
+	type: 'default' | 'autodetected' | 'custom';
 	isHidden: boolean, // whether or not the user is hiding it (switched off)
-	isAutodetected?: boolean, // whether the model was autodetected by polling
 }  // TODO!!! eventually we'd want to let the user change supportsFIM, etc on the model themselves
 
 
@@ -238,8 +237,7 @@ const modelInfoOfDefaultModelNames = (defaultModelNames: string[]): { models: Vo
 	return {
 		models: defaultModelNames.map((modelName, i) => ({
 			modelName,
-			isDefault: true,
-			isAutodetected: false,
+			type: 'default',
 			isHidden: defaultModelNames.length >= 10, // hide all models if there are a ton of them, and make user enable them individually
 		}))
 	}

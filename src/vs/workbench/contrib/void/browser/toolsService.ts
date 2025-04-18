@@ -263,7 +263,7 @@ export class ToolsService implements IToolsService {
 			read_file: async ({ uri, startLine, endLine, pageNumber }) => {
 				await voidModelService.initializeModel(uri)
 				const { model } = await voidModelService.getModelSafe(uri)
-				if (model === null) { throw new Error(`Contents were empty. There may have been an error, or the file may not exist.`) }
+				if (model === null) { throw new Error(`No contents; File does not exist.`) }
 
 				let contents: string
 				if (startLine === null && endLine === null) {

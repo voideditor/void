@@ -664,7 +664,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 			{isOpen && (
 				<div
 					ref={refs.setFloating}
-					className="z-10 bg-void-bg-1 border-void-border-3 border rounded shadow-lg"
+					className="z-[100] bg-void-bg-1 border-void-border-3 border rounded shadow-lg"
 					style={{
 						position: strategy,
 						top: y ?? 0,

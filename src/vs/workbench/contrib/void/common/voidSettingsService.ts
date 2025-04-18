@@ -71,24 +71,22 @@ export interface IVoidSettingsService {
 
 
 
-const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], options: { existingModels: VoidStatefulModelInfo[], didAutoDetect: boolean }) => {
-	const { existingModels, didAutoDetect } = options
+const _modelsWithSwappedInNewModels = (options: { existingModels: VoidStatefulModelInfo[], models: string[], type: 'autodetected' | 'default' }) => {
+	const { existingModels, models, type } = options
 
 	const existingModelsMap: Record<string, VoidStatefulModelInfo> = {}
 	for (const existingModel of existingModels) {
 		existingModelsMap[existingModel.modelName] = existingModel
 	}
 
-	const newDefaultModels = defaultModelNames.map((modelName, i) => ({
-		modelName,
-		isDefault: true,
-		isAutodetected: didAutoDetect,
-		isHidden: !!existingModelsMap[modelName]?.isHidden,
-	}))
+	const newDefaultModels = models.map((modelName, i) => ({ modelName, type, isHidden: !!existingModelsMap[modelName]?.isHidden, }))
 
 	return [
-		...newDefaultModels, // swap out all the default models for the new default models
-		...existingModels.filter(m => !m.isDefault), // keep any non-default (custom) models
+		...newDefaultModels, // swap out all the models of this type for the new models of this type
+		...existingModels.filter(m => {
+			const keep = m.type !== type
+			return keep
+		})
 	]
 }
 
@@ -101,7 +99,7 @@ export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter:
 }
 
 
-const _stateWithUpdatedDefaultModels = (state: VoidSettingsState): VoidSettingsState => {
+const _stateWithMergedDefaultModels = (state: VoidSettingsState): VoidSettingsState => {
 	let newSettingsOfProvider = state.settingsOfProvider
 
 	// recompute default models
@@ -109,7 +107,7 @@ const _stateWithUpdatedDefaultModels = (state: VoidSettingsState): VoidSettingsS
 		const defaultModels = defaultSettingsOfProvider[providerName]?.models ?? []
 		const currentModels = newSettingsOfProvider[providerName]?.models ?? []
 		const defaultModelNames = defaultModels.map(m => m.modelName)
-		const newModels = _updatedModelsAfterDefaultModelsChange(defaultModelNames, { existingModels: currentModels, didAutoDetect: false })
+		const newModels = _modelsWithSwappedInNewModels({ existingModels: currentModels, models: defaultModelNames, type: 'default' })
 		newSettingsOfProvider = {
 			...newSettingsOfProvider,
 			[providerName]: {
@@ -257,18 +255,19 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 					...defaultSettingsOfProvider[providerName],
 					...readS.settingsOfProvider[providerName],
 				} as any
+
+				// conversion from 1.0.3 to 1.2.5 (can remove this when enough people update)
+				for (const m of readS.settingsOfProvider[providerName].models) {
+					if (!m.type) {
+						const old = (m as { isAutodetected?: boolean; isDefault?: boolean })
+						if (old.isAutodetected)
+							m.type = 'autodetected'
+						else if (old.isDefault)
+							m.type = 'default'
+						else m.type = 'custom'
+					}
+				}
 			}
-			// readS = {
-			// 	...readS,
-			// 	settingsOfProvider: {
-			// 		...defaultSettingsOfProvider,
-			// 		...readS.settingsOfProvider,
-			// 		mistral: { // we added mistral
-			// 			...defaultSettingsOfProvider.mistral,
-			// 			...readS.settingsOfProvider.mistral,
-			// 		},
-			// 	} // we added mistral
-			// }
 		}
 
 		catch (e) {
@@ -276,7 +275,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		}
 
 		this.state = readS
-		this.state = _stateWithUpdatedDefaultModels(this.state)
+		this.state = _stateWithMergedDefaultModels(this.state)
 		this.state = _validatedModelState(this.state);
 
 
@@ -409,7 +408,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const { models } = this.state.settingsOfProvider[providerName]
 		const oldModelNames = models.map(m => m.modelName)
 
-		const newModels = _updatedModelsAfterDefaultModelsChange(autodetectedModelNames, { existingModels: models, didAutoDetect: true })
+		const newModels = _modelsWithSwappedInNewModels({ existingModels: models, models: autodetectedModelNames, type: 'autodetected' })
 		this.setSettingOfProvider(providerName, 'models', newModels)
 
 		// if the models changed, log it
@@ -443,7 +442,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		if (existingIdx !== -1) return // if exists, do nothing
 		const newModels = [
 			...models,
-			{ modelName, isDefault: false, isHidden: false }
+			{ modelName, type: 'custom', isHidden: false } as const
 		]
 		this.setSettingOfProvider(providerName, 'models', newModels)
 

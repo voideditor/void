@@ -190,7 +190,7 @@ type VoidStaticProviderInfo = { // doesn't change (not stateful)
 
 
 const modelOptionsDefaults: VoidStaticModelInfo = {
-	contextWindow: 32_000,
+	contextWindow: 16_000,
 	maxOutputTokens: 4_096,
 	cost: { input: 0, output: 0 },
 	downloadable: false,

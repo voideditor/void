@@ -8,7 +8,7 @@
 
 import { IServerChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, MainSendLLMMessageParams, AbortRef, SendLLMMessageParams, MainLLMMessageAbortParams, ModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, OllamaModelResponse, VLLMModelResponse, MainModelListParams, } from '../common/sendLLMMessageTypes.js';
+import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, MainSendLLMMessageParams, AbortRef, SendLLMMessageParams, MainLLMMessageAbortParams, ModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, OllamaModelResponse, OpenaiCompatibleModelResponse, MainModelListParams, } from '../common/sendLLMMessageTypes.js';
 import { sendLLMMessage } from './llmMessage/sendLLMMessage.js'
 import { IMetricsService } from '../common/metricsService.js';
 import { sendLLMMessageToProviderImplementation } from './llmMessage/sendLLMMessage.impl.js';
@@ -34,12 +34,12 @@ export class LLMMessageChannel implements IServerChannel {
 			success: new Emitter<EventModelListOnSuccessParams<OllamaModelResponse>>(),
 			error: new Emitter<EventModelListOnErrorParams<OllamaModelResponse>>(),
 		},
-		vLLM: {
-			success: new Emitter<EventModelListOnSuccessParams<VLLMModelResponse>>(),
-			error: new Emitter<EventModelListOnErrorParams<VLLMModelResponse>>(),
-		}
+		openaiCompat: {
+			success: new Emitter<EventModelListOnSuccessParams<OpenaiCompatibleModelResponse>>(),
+			error: new Emitter<EventModelListOnErrorParams<OpenaiCompatibleModelResponse>>(),
+		},
 	} satisfies {
-		[providerName: string]: {
+		[providerName in 'ollama' | 'openaiCompat']: {
 			success: Emitter<EventModelListOnSuccessParams<any>>,
 			error: Emitter<EventModelListOnErrorParams<any>>,
 		}
@@ -59,8 +59,8 @@ export class LLMMessageChannel implements IServerChannel {
 		// list
 		else if (event === 'onSuccess_list_ollama') return this.listEmitters.ollama.success.event;
 		else if (event === 'onError_list_ollama') return this.listEmitters.ollama.error.event;
-		else if (event === 'onSuccess_list_vLLM') return this.listEmitters.vLLM.success.event;
-		else if (event === 'onError_list_vLLM') return this.listEmitters.vLLM.error.event;
+		else if (event === 'onSuccess_list_openAICompatible') return this.listEmitters.openaiCompat.success.event;
+		else if (event === 'onError_list_openAICompatible') return this.listEmitters.openaiCompat.error.event;
 
 		else throw new Error(`Event not found: ${event}`);
 	}
@@ -77,8 +77,8 @@ export class LLMMessageChannel implements IServerChannel {
 			else if (command === 'ollamaList') {
 				this._callOllamaList(params)
 			}
-			else if (command === 'vLLMList') {
-				this._callVLLMList(params)
+			else if (command === 'openAICompatibleList') {
+				this._callOpenAICompatibleList(params)
 			}
 			else {
 				throw new Error(`Void sendLLM: command "${command}" not recognized.`)
@@ -131,15 +131,15 @@ export class LLMMessageChannel implements IServerChannel {
 		sendLLMMessageToProviderImplementation.ollama.list(mainThreadParams)
 	}
 
-	_callVLLMList = (params: MainModelListParams<VLLMModelResponse>) => {
-		const { requestId } = params
-		const emitters = this.listEmitters.vLLM
-		const mainThreadParams: ModelListParams<VLLMModelResponse> = {
+	_callOpenAICompatibleList = (params: MainModelListParams<OpenaiCompatibleModelResponse>) => {
+		const { requestId, providerName } = params
+		const emitters = this.listEmitters.openaiCompat
+		const mainThreadParams: ModelListParams<OpenaiCompatibleModelResponse> = {
 			...params,
 			onSuccess: (p) => { emitters.success.fire({ requestId, ...p }); },
 			onError: (p) => { emitters.error.fire({ requestId, ...p }); },
 		}
-		sendLLMMessageToProviderImplementation.vLLM.list(mainThreadParams)
+		sendLLMMessageToProviderImplementation[providerName].list(mainThreadParams)
 	}
 
 

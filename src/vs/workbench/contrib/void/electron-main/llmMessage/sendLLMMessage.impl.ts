@@ -684,7 +684,7 @@ export const sendLLMMessageToProviderImplementation = {
 	lmStudio: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null, // lmStudio has no suffix parameter in /completions
-		list: null,
+		list: (params) => _openaiCompatibleList(params),
 	},
 	liteLLM: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),

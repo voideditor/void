@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { ToolName, ToolParamName } from './prompt/prompts.js'
-import { ChatMode, ModelSelection, ModelSelectionOptions, ProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
+import { ChatMode, ModelSelection, ModelSelectionOptions, ProviderName, RefreshableProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
 export const errorDetails = (fullError: Error | null): string | null => {
@@ -162,15 +162,12 @@ export type OllamaModelResponse = {
 	size_vram: number;
 }
 
-type OpenaiCompatibleModelResponse = {
+export type OpenaiCompatibleModelResponse = {
 	id: string;
 	created: number;
 	object: 'model';
 	owned_by: string;
 }
-
-export type VLLMModelResponse = OpenaiCompatibleModelResponse
-export type LMStudioModelResponse = OpenaiCompatibleModelResponse
 
 
 
@@ -184,12 +181,13 @@ export type ModelListParams<ModelResponse> = {
 
 // params to the service
 export type ServiceModelListParams<modelResponse> = {
+	providerName: RefreshableProviderName;
 	onSuccess: (param: { models: modelResponse[] }) => void;
 	onError: (param: { error: any }) => void;
 }
 
 type BlockedMainModelListParams = 'onSuccess' | 'onError'
-export type MainModelListParams<modelResponse> = Omit<ModelListParams<modelResponse>, BlockedMainModelListParams> & { requestId: string }
+export type MainModelListParams<modelResponse> = Omit<ModelListParams<modelResponse>, BlockedMainModelListParams> & { providerName: RefreshableProviderName, requestId: string }
 
 export type EventModelListOnSuccessParams<modelResponse> = Parameters<ModelListParams<modelResponse>['onSuccess']>[0] & { requestId: string }
 export type EventModelListOnErrorParams<modelResponse> = Parameters<ModelListParams<modelResponse>['onError']>[0] & { requestId: string }

@@ -150,7 +150,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 										providerName === 'xAI' ? 'xai-key...' :
 											providerName === 'mistral' ? 'api-key...' :
 												providerName === 'googleVertex' ? 'AIzaSy...' :
-													'',
+													providerName === 'microsoftAzure' ? 'key-...' :
+														'',
 
 			isPasswordField: true,
 		}

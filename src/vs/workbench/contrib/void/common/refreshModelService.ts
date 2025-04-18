@@ -8,7 +8,7 @@ import { ILLMMessageService } from './sendLLMMessageService.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { RefreshableProviderName, refreshableProviderNames, SettingsOfProvider } from './voidSettingsTypes.js';
-import { LMStudioModelResponse, OllamaModelResponse, VLLMModelResponse } from './sendLLMMessageTypes.js';
+import { OllamaModelResponse, OpenaiCompatibleModelResponse } from './sendLLMMessageTypes.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 
@@ -162,19 +162,18 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 			}
 		}
 		const listFn = providerName === 'ollama' ? this.llmMessageService.ollamaList
-			: providerName === 'vLLM' ? this.llmMessageService.vLLMList
-				: () => { }
+			: this.llmMessageService.openAICompatibleList
 
 		listFn({
+			providerName,
 			onSuccess: ({ models }) => {
-
 				// set the models to the detected models
 				this.voidSettingsService.setAutodetectedModels(
 					providerName,
 					models.map(model => {
 						if (providerName === 'ollama') return (model as OllamaModelResponse).name;
-						else if (providerName === 'vLLM') return (model as VLLMModelResponse).id;
-						else if (providerName === 'lmStudio') return (model as LMStudioModelResponse).id;
+						else if (providerName === 'vLLM') return (model as OpenaiCompatibleModelResponse).id;
+						else if (providerName === 'lmStudio') return (model as OpenaiCompatibleModelResponse).id;
 						else throw new Error('refreshMode fn: unknown provider', providerName);
 					}),
 					{ enableProviderOnSuccess: options.enableProviderOnSuccess, hideRefresh: options.doNotFire }

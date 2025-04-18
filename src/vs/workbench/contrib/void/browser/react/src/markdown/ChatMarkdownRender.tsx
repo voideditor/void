@@ -189,24 +189,25 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 	}
 
 	if (t.type === 'table') {
+
 		return (
 			<div>
 				<table>
 					<thead>
 						<tr>
-							{t.header.map((cell: any, index: number) => (
-								<th key={index}>
-									{cell.raw}
+							{t.header.map((h, hIdx: number) => (
+								<th key={hIdx}>
+									{h.text}
 								</th>
 							))}
 						</tr>
 					</thead>
 					<tbody>
-						{t.rows.map((row: any[], rowIndex: number) => (
-							<tr key={rowIndex}>
-								{row.map((cell: any, cellIndex: number) => (
-									<td key={cellIndex} >
-										{cell.raw}
+						{t.rows.map((row, rowIdx: number) => (
+							<tr key={rowIdx}>
+								{row.map((r, rIdx: number) => (
+									<td key={rIdx} >
+										{r.text}
 									</td>
 								))}
 							</tr>

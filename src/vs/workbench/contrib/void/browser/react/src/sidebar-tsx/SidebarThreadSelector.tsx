@@ -308,7 +308,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx }: { pas
 	return <div
 		key={pastThread.id}
 		className={`
-			py-1 px-2 rounded text-sm bg-zinc-800/5 hover:bg-zinc-800/10 dark:bg-zinc-200/5 dark:hover:bg-zinc-200/10 cursor-pointer
+			py-1 px-2 rounded text-sm bg-zinc-700/5 hover:bg-zinc-700/10 dark:bg-zinc-300/5 dark:hover:bg-zinc-300/10 cursor-pointer opacity-80
 		`}
 		onClick={() => {
 			chatThreadsService.switchToThread(pastThread.id);

@@ -539,6 +539,7 @@ const sendMistralFIM = ({ messages, onFinalMessage, onError, settingsOfProvider,
 			stop: messages.stopTokens,
 		})
 		.then(async response => {
+			// unfortunately, _setAborter() does not exist
 			let content = response?.ok ? response.value.choices?.[0]?.message?.content ?? '' : '';
 			const fullText = typeof content === 'string' ? content
 				: content.map(chunk => (chunk.type === 'text' ? chunk.text : '')).join('')

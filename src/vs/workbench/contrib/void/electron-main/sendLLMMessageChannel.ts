@@ -90,7 +90,7 @@ export class LLMMessageChannel implements IServerChannel {
 	}
 
 	// the only place sendLLMMessage is actually called
-	private async _callSendLLMMessage(params: MainSendLLMMessageParams) {
+	private _callSendLLMMessage(params: MainSendLLMMessageParams) {
 		const { requestId } = params;
 
 		if (!(requestId in this._infoOfRunningRequest))
@@ -98,9 +98,16 @@ export class LLMMessageChannel implements IServerChannel {
 
 		const mainThreadParams: SendLLMMessageParams = {
 			...params,
-			onText: (p) => { this.llmMessageEmitters.onText.fire({ requestId, ...p }); },
-			onFinalMessage: (p) => { this.llmMessageEmitters.onFinalMessage.fire({ requestId, ...p }); },
-			onError: (p) => { console.log('sendLLM: firing err'); this.llmMessageEmitters.onError.fire({ requestId, ...p }); },
+			onText: (p) => {
+				this.llmMessageEmitters.onText.fire({ requestId, ...p });
+			},
+			onFinalMessage: (p) => {
+				this.llmMessageEmitters.onFinalMessage.fire({ requestId, ...p });
+			},
+			onError: (p) => {
+				console.log('sendLLM: firing err');
+				this.llmMessageEmitters.onError.fire({ requestId, ...p });
+			},
 			abortRef: this._infoOfRunningRequest[requestId].abortRef,
 		}
 		const p = sendLLMMessage(mainThreadParams, this.metricsService);

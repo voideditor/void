@@ -908,13 +908,13 @@ const vLLMSettings: VoidStaticProviderInfo = {
 }
 
 const lmStudioSettings: VoidStaticProviderInfo = {
-	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
+	providerReasoningIOSettings: { output: { needsManualParse: true }, },
 	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: {}, // TODO
 }
 
-const liteLLMSettings: VoidStaticProviderInfo = {
-	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
+const liteLLMSettings: VoidStaticProviderInfo = { // https://docs.litellm.ai/docs/reasoning_content
+	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' } },
 	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: {}, // TODO
 }

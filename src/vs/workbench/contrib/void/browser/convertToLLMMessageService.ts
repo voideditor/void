@@ -440,15 +440,21 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 
 	// Read .voidrules files from workspace folders
 	private _getVoidRulesFileContents(): string {
-		const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
-		let voidRules = '';
-		for (const folder of workspaceFolders) {
-			const uri = URI.joinPath(folder.uri, '.voidrules')
-			const { model } = this.voidModelService.getModel(uri)
-			if (!model) continue
-			voidRules += model.getValue() + '\n\n';
+		try {
+			const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
+			let voidRules = '';
+			for (const folder of workspaceFolders) {
+				const uri = URI.joinPath(folder.uri, '.voidrules')
+				const { model } = this.voidModelService.getModel(uri)
+				if (!model) continue
+				voidRules += model.getValue() + '\n\n';
+			}
+			return voidRules.trim();
 		}
-		return voidRules.trim();
+		catch (e) {
+			console.log('Could not read .voidrules, continuing...')
+			return ''
+		}
 	}
 
 	// Get combined AI instructions from settings and .voidrules files

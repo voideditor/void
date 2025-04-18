@@ -25,7 +25,7 @@ export class LLMMessageChannel implements IServerChannel {
 	}
 
 	// aborters for above
-	private readonly abortRefOfRequestId: Record<string, AbortRef> = {}
+	private readonly _infoOfRunningRequest: Record<string, { waitForSend: Promise<void> | undefined, abortRef: AbortRef }> = {}
 
 
 	// list
@@ -72,7 +72,7 @@ export class LLMMessageChannel implements IServerChannel {
 				this._callSendLLMMessage(params)
 			}
 			else if (command === 'abort') {
-				this._callAbort(params)
+				await this._callAbort(params)
 			}
 			else if (command === 'ollamaList') {
 				this._callOllamaList(params)
@@ -93,24 +93,27 @@ export class LLMMessageChannel implements IServerChannel {
 	private async _callSendLLMMessage(params: MainSendLLMMessageParams) {
 		const { requestId } = params;
 
-		if (!(requestId in this.abortRefOfRequestId))
-			this.abortRefOfRequestId[requestId] = { current: null }
+		if (!(requestId in this._infoOfRunningRequest))
+			this._infoOfRunningRequest[requestId] = { waitForSend: undefined, abortRef: { current: null } }
 
 		const mainThreadParams: SendLLMMessageParams = {
 			...params,
 			onText: (p) => { this.llmMessageEmitters.onText.fire({ requestId, ...p }); },
 			onFinalMessage: (p) => { this.llmMessageEmitters.onFinalMessage.fire({ requestId, ...p }); },
 			onError: (p) => { console.log('sendLLM: firing err'); this.llmMessageEmitters.onError.fire({ requestId, ...p }); },
-			abortRef: this.abortRefOfRequestId[requestId],
+			abortRef: this._infoOfRunningRequest[requestId].abortRef,
 		}
-		sendLLMMessage(mainThreadParams, this.metricsService);
+		const p = sendLLMMessage(mainThreadParams, this.metricsService);
+		this._infoOfRunningRequest[requestId].waitForSend = p
 	}
 
-	private _callAbort(params: MainLLMMessageAbortParams) {
+	private async _callAbort(params: MainLLMMessageAbortParams) {
 		const { requestId } = params;
-		if (!(requestId in this.abortRefOfRequestId)) return
-		this.abortRefOfRequestId[requestId].current?.()
-		delete this.abortRefOfRequestId[requestId]
+		if (!(requestId in this._infoOfRunningRequest)) return
+		const { waitForSend, abortRef } = this._infoOfRunningRequest[requestId]
+		await waitForSend // wait for the send to finish so we know abortRef was set
+		abortRef?.current?.()
+		delete this._infoOfRunningRequest[requestId]
 	}
 
 

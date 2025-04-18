@@ -709,7 +709,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 											</svg>
 										)}
 									</div>
-									<span className="flex justify-between w-full">
+									<span className="flex justify-between items-center w-full gap-x-1">
 										<span>{optionName}</span>
 										<span className='text-void-fg-4 opacity-60'>{optionDetail}</span>
 									</span>

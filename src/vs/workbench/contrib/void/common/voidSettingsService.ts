@@ -245,17 +245,36 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		}
 
 		// the stored data structure might be outdated, so we need to update it here
-		readS = {
-			...readS,
-			settingsOfProvider: {
+		try {
+			readS = {
+				...readS,
 				...defaultSettingsOfProvider,
 				...readS.settingsOfProvider,
-				mistral: { // we added mistral
-					...defaultSettingsOfProvider.mistral,
-					...readS.settingsOfProvider.mistral,
-				},
-			} // we added mistral
+			}
+
+			for (const providerName of providerNames) {
+				readS.settingsOfProvider[providerName] = {
+					...defaultSettingsOfProvider[providerName],
+					...readS.settingsOfProvider[providerName],
+				} as any
+			}
+			// readS = {
+			// 	...readS,
+			// 	settingsOfProvider: {
+			// 		...defaultSettingsOfProvider,
+			// 		...readS.settingsOfProvider,
+			// 		mistral: { // we added mistral
+			// 			...defaultSettingsOfProvider.mistral,
+			// 			...readS.settingsOfProvider.mistral,
+			// 		},
+			// 	} // we added mistral
+			// }
 		}
+
+		catch (e) {
+			readS = defaultState()
+		}
+
 		this.state = readS
 		this.state = _stateWithUpdatedDefaultModels(this.state)
 		this.state = _validatedModelState(this.state);
@@ -263,6 +282,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		this._resolver();
 		this._onDidChangeState.fire();
+
 	}
 
 

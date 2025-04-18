@@ -43,7 +43,22 @@ export const defaultProviderSettings = {
 	},
 	mistral: {
 		apiKey: '',
-	}
+	},
+	lmStudio: {
+		endpoint: 'http://localhost:1234',
+	},
+	liteLLM: { // https://docs.litellm.ai/docs/providers/openai_compatible
+		endpoint: '',
+	},
+	googleVertex: { // google https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
+		region: 'us-west2',
+		project: '',
+	},
+	microsoftAzure: { // microsoft Azure Foundry
+		project: '', // really 'resource'
+		apiKey: '',
+		azureApiVersion: '2024-05-01-preview',
+	},
 } as const
 
 
@@ -84,6 +99,8 @@ export const defaultModelsOfProvider = {
 	],
 	vLLM: [ // autodetected
 	],
+	lmStudio: [], // autodetected
+
 	openRouter: [ // https://openrouter.ai/models
 		// 'anthropic/claude-3.7-sonnet:thinking',
 		'anthropic/claude-3.7-sonnet',
@@ -112,6 +129,11 @@ export const defaultModelsOfProvider = {
 		'ministral-8b-latest',
 	],
 	openAICompatible: [], // fallback
+	googleVertex: [],
+	microsoftAzure: [],
+	liteLLM: [],
+
+
 } as const satisfies Record<ProviderName, string[]>
 
 
@@ -618,6 +640,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash': {
@@ -806,6 +829,25 @@ const groqSettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => { return null }
 }
 
+
+// ---------------- GOOGLE VERTEX ----------------
+const googleVertexModelOptions = {
+} as const satisfies Record<string, VoidStaticModelInfo>
+const googleVertexSettings: VoidStaticProviderInfo = {
+	modelOptions: googleVertexModelOptions,
+	modelOptionsFallback: (modelName) => { return null }
+}
+
+// ---------------- MICROSOFT AZURE ----------------
+const microsoftAzureModelOptions = {
+} as const satisfies Record<string, VoidStaticModelInfo>
+const microsoftAzureSettings: VoidStaticProviderInfo = {
+	modelOptions: microsoftAzureModelOptions,
+	modelOptionsFallback: (modelName) => { return null }
+}
+
+
+// ---------------- VLLM, OLLAMA, OPENAICOMPAT (self-hosted / local) ----------------
 const ollamaModelOptions = {
 	'qwen2.5-coder:1.5b': {
 		contextWindow: 32_000,
@@ -858,11 +900,20 @@ const ollamaModelOptions = {
 export const ollamaRecommendedModels = ['qwen2.5-coder:1.5b', 'llama3.1', 'qwq', 'deepseek-r1'] as const satisfies (keyof typeof ollamaModelOptions)[]
 
 
-
-// ---------------- VLLM, OLLAMA, OPENAICOMPAT (self-hosted / local) ----------------
-
 const vLLMSettings: VoidStaticProviderInfo = {
 	// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
+	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptions: {}, // TODO
+}
+
+const lmStudioSettings: VoidStaticProviderInfo = {
+	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptions: {}, // TODO
+}
+
+const liteLLMSettings: VoidStaticProviderInfo = {
 	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
 	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: {}, // TODO
@@ -1027,9 +1078,12 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
 	mistral: mistralSettings,
-	// googleVertex: {},
-	// microsoftAzure: {},
-	// openHands: {},
+
+	liteLLM: liteLLMSettings,
+	lmStudio: lmStudioSettings,
+
+	googleVertex: googleVertexSettings,
+	microsoftAzure: microsoftAzureSettings,
 } as const
 
 

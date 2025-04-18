@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames } from '../../../../common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -344,9 +344,9 @@ export const ModelDump = () => {
 
 // providers
 
-const ProviderSetting = ({ providerName, settingName }: { providerName: ProviderName, settingName: SettingName }) => {
+const ProviderSetting = ({ providerName, settingName, subTextMd }: { providerName: ProviderName, settingName: SettingName, subTextMd: React.ReactNode }) => {
 
-	const { title: settingTitle, placeholder, isPasswordField, subTextMd } = displayInfoOfSettingName(providerName, settingName)
+	const { title: settingTitle, placeholder, isPasswordField } = displayInfoOfSettingName(providerName, settingName)
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
@@ -370,10 +370,9 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 				passwordBlur={isPasswordField}
 				compact={true}
 			/>
-			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-sm'>
-				<ChatMarkdownRender string={subTextMd} chatMessageLocation={undefined} />
+			{!subTextMd ? null : <div className='py-1 px-3 opacity-50 text-sm'>
+				{subTextMd}
 			</div>}
-
 		</div>
 	</ErrorBoundary>
 }
@@ -456,7 +455,14 @@ export const SettingsForProvider = ({ providerName, showProviderTitle, showProvi
 		<div className='px-0'>
 			{/* settings besides models (e.g. api key) */}
 			{settingNames.map((settingName, i) => {
-				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
+
+				return <ProviderSetting
+					key={settingName}
+					providerName={providerName}
+					settingName={settingName}
+					subTextMd={i !== settingNames.length - 1 ? null
+						: <ChatMarkdownRender string={subTextMdOfProviderName(providerName)} chatMessageLocation={undefined} />}
+				/>
 			})}
 
 			{showProviderSuggestions && needsModel ?

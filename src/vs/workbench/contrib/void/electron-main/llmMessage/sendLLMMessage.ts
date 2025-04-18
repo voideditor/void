@@ -9,7 +9,7 @@ import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';
 
 
-export const sendLLMMessage = ({
+export const sendLLMMessage = async ({
 	messagesType,
 	messages: messages_,
 	onText: onText_,
@@ -108,12 +108,12 @@ export const sendLLMMessage = ({
 		}
 		const { sendFIM, sendChat } = implementation
 		if (messagesType === 'chatMessages') {
-			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage, chatMode })
+			await sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage, chatMode })
 			return
 		}
 		if (messagesType === 'FIMMessage') {
 			if (sendFIM) {
-				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage })
+				await sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage })
 				return
 			}
 			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })

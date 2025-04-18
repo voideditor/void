@@ -170,6 +170,7 @@ type OpenaiCompatibleModelResponse = {
 }
 
 export type VLLMModelResponse = OpenaiCompatibleModelResponse
+export type LMStudioModelResponse = OpenaiCompatibleModelResponse
 
 
 

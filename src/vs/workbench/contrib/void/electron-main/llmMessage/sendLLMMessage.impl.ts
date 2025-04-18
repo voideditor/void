@@ -10,6 +10,7 @@ import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
+import { GoogleAuth } from 'google-auth-library'
 /* eslint-enable */
 
 import { AnthropicLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
@@ -17,6 +18,8 @@ import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, ProviderNam
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getMaxOutputTokens } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
 import { availableTools, InternalToolInfo, isAToolName, ToolParamName, voidTools } from '../../common/prompt/prompts.js';
+
+
 
 
 type InternalCommonMessageParams = {
@@ -39,7 +42,16 @@ const invalidApiKeyMessage = (providerName: ProviderName) => `Invalid ${displayI
 
 // ------------ OPENAI-COMPATIBLE (HELPERS) ------------
 
-const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPayload }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName, includeInPayload?: { [s: string]: any } }) => {
+const getGoogleApiKey = async () => {
+	// module‑level singleton
+	const auth = new GoogleAuth({ scopes: `https://www.googleapis.com/auth/cloud-platform` });
+	const key = await auth.getAccessToken()
+	if (!key) throw new Error(`Google API failed to generate a key.`)
+	return key
+}
+
+
+const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includeInPayload }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName, includeInPayload?: { [s: string]: any } }) => {
 	const commonPayloadOpts: ClientOptions = {
 		dangerouslyAllowBrowser: true,
 		...includeInPayload,
@@ -53,6 +65,14 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
 	}
 	else if (providerName === 'vLLM') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
+	}
+	else if (providerName === 'liteLLM') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
+	}
+	else if (providerName === 'lmStudio') {
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
 	}
@@ -70,8 +90,22 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 	}
 	else if (providerName === 'gemini') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return new OpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
+	else if (providerName === 'googleVertex') {
+		// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
+		const apiKey = await getGoogleApiKey()
+		const thisConfig = settingsOfProvider[providerName]
+		const baseURL = `https://${thisConfig.region}-aiplatform.googleapis.com/v1/projects/${thisConfig.project}/locations/${thisConfig.region}/endpoints/${'openapi'}`
+		return new OpenAI({ baseURL: baseURL, apiKey: apiKey, ...commonPayloadOpts })
+	}
+	else if (providerName === 'microsoftAzure') {
+		// https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP
+		const thisConfig = settingsOfProvider[providerName]
+		const baseURL = `https://${thisConfig.project}.services.ai.azure.com/api/models/chat/completions??api-version=${thisConfig.azureApiVersion}`
+		return new OpenAI({ baseURL: baseURL, apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
+
 	else if (providerName === 'deepseek') {
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
@@ -97,7 +131,7 @@ const newOpenAICompatibleSDK = ({ settingsOfProvider, providerName, includeInPay
 }
 
 
-const _sendOpenAICompatibleFIM = ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, }: SendFIMParams_Internal) => {
+const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, }: SendFIMParams_Internal) => {
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -107,7 +141,7 @@ const _sendOpenAICompatibleFIM = ({ messages: { prefix, suffix, stopTokens }, on
 		return
 	}
 
-	const openai = newOpenAICompatibleSDK({ providerName, settingsOfProvider })
+	const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider })
 	openai.completions
 		.create({
 			model: modelName,
@@ -178,7 +212,7 @@ const openAIToolToRawToolCallObj = (name: string, toolParamsStr: string, id: str
 // ------------ OPENAI-COMPATIBLE ------------
 
 
-const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, chatMode, separateSystemMessage }: SendChatParams_Internal) => {
+const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, chatMode, separateSystemMessage }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		specialToolFormat,
@@ -199,7 +233,7 @@ const _sendOpenAICompatibleChat = ({ messages, onText, onFinalMessage, onError, 
 		: {}
 
 	// instance
-	const openai: OpenAI = newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
+	const openai: OpenAI = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
 		messages: messages as any,
@@ -300,7 +334,7 @@ const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_,
 		onError_({ error })
 	}
 	try {
-		const openai = newOpenAICompatibleSDK({ providerName, settingsOfProvider })
+		const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider })
 		openai.models.list()
 			.then(async (response) => {
 				const models: OpenAIModel[] = []
@@ -360,7 +394,7 @@ const anthropicToolToRawToolCallObj = (toolBlock: Anthropic.Messages.ToolUseBloc
 }
 
 // ------------ ANTHROPIC ------------
-const sendAnthropicChat = ({ messages, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, separateSystemMessage, chatMode }: SendChatParams_Internal) => {
+const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, separateSystemMessage, chatMode }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		specialToolFormat,
@@ -584,7 +618,7 @@ const sendOllamaFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, 
 
 type CallFnOfProvider = {
 	[providerName in ProviderName]: {
-		sendChat: (params: SendChatParams_Internal) => void;
+		sendChat: (params: SendChatParams_Internal) => Promise<void>;
 		sendFIM: ((params: SendFIMParams_Internal) => void) | null;
 		list: ((params: ListParams_Internal<any>) => void) | null;
 	}
@@ -642,6 +676,27 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 	groq: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
+		list: null,
+	},
+
+	lmStudio: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null, // lmStudio has no suffix parameter in /completions
+		list: null,
+	},
+	liteLLM: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
+		list: null,
+	},
+	googleVertex: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
+		list: null,
+	},
+	microsoftAzure: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
 		list: null,

@@ -330,6 +330,7 @@ Here's an example of a good edit suggestion:
 ${fileNameEditExample}.`)
 	}
 
+	details.push(`NEVER write the FULL PATH of a file when speaking with the user. Just write the file name ONLY.`)
 	details.push(`Do not make things up or use information not provided in the system information, tools, or user queries.`)
 	details.push(`Today's date is ${new Date().toDateString()}.`)
 
@@ -459,9 +460,9 @@ ${tripleTick[1]}
 
 1. The change to make will be labeled \`CHANGE\` and the original file will be labeled \`ORIGINAL_FILE\`.
 
-2. You are allowed to output multiple SEARCH/REPLACE blocks.
+2. Your SEARCH/REPLACE block(s) must implement the change EXACTLY. Do not introduce (or omit) any new comments, spaces, or whitespace.
 
-3. Your SEARCH/REPLACE block(s) must implement the change EXACTLY. Do not introduce (or omit) any new comments, spaces, or whitespace.
+3. You are allowed to output multiple SEARCH/REPLACE blocks.
 
 4. Your output should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
 

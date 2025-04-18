@@ -295,12 +295,13 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx }: { pas
 
 	const numMessages = pastThread.messages.filter((msg) => msg.role === 'assistant' || msg.role === 'user').length;
 
-	const dateHTML = <span
-		className='inline-flex items-center'
-		data-tooltip-id='void-tooltip'
-		data-tooltip-content={`Last modified ${formatTime(new Date(pastThread.lastModified))}`}
-		data-tooltip-place='top'
+	const optionsHTML = <span
+		className='gap-1 inline-flex items-center'
+		// data-tooltip-id='void-tooltip'
+		// data-tooltip-content={`Last modified ${formatTime(new Date(pastThread.lastModified))}`}
+		// data-tooltip-place='top'
 	>
+		{/* <span>{numMessages}</span> */}
 		{formatDate(new Date(pastThread.lastModified))}
 	</span>
 
@@ -315,10 +316,6 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx }: { pas
 		}}
 		onMouseEnter={() => setHoveredIdx(idx)}
 		onMouseLeave={() => setHoveredIdx(null)}
-		data-tooltip-id='void-tooltip'
-		data-tooltip-content={`${numMessages} messages`}
-		data-tooltip-place='top'
-		data-tooltip-delay-show={500}
 	>
 		<div className="flex items-center justify-between gap-1">
 			<span className="flex items-center gap-2 min-w-0 overflow-hidden">
@@ -328,7 +325,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx }: { pas
 			<div className="flex items-center gap-2 opacity-60">
 				{idx === hoveredIdx ?
 					<TrashButton threadId={pastThread.id} />
-					: dateHTML
+					: optionsHTML
 				}
 			</div>
 		</div>

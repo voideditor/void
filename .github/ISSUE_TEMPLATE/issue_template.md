@@ -6,4 +6,4 @@ title: For VSCode-related issues, please start the title with `[App]`. Otherwise
 
 1. Press `Cmd+Shift+P` in Void, and type `Help: About`. Paste the information here!
 
-2. We prefer concise descriptions :) Link to any related issues/PRs with #number.
+2. Describe what you're thinking here! We prefer concise descriptions :)

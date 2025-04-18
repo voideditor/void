@@ -913,12 +913,6 @@ const lmStudioSettings: VoidStaticProviderInfo = {
 	modelOptions: {}, // TODO
 }
 
-const liteLLMSettings: VoidStaticProviderInfo = { // https://docs.litellm.ai/docs/reasoning_content
-	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' } },
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
-	modelOptions: {}, // TODO
-}
-
 const ollamaSettings: VoidStaticProviderInfo = {
 	// reasoning: we need to filter out reasoning <think> tags manually
 	providerReasoningIOSettings: { output: { needsManualParse: true }, },
@@ -930,6 +924,12 @@ const openaiCompatible: VoidStaticProviderInfo = {
 	// reasoning: we have no idea what endpoint they used, so we can't consistently parse out reasoning
 	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
 	modelOptions: {},
+}
+
+const liteLLMSettings: VoidStaticProviderInfo = { // https://docs.litellm.ai/docs/reasoning_content
+	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' } },
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptions: {}, // TODO
 }
 
 

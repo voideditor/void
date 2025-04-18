@@ -327,7 +327,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 
 	async getDirectoryStrTool(uri: URI, options?: { maxItemsPerDir?: number }) {
 		const eRoot = this.explorerService.findClosest(uri)
-		if (!eRoot) throw new Error(`There was a problem reading the URI: ${uri.fsPath}.`)
+		if (!eRoot) throw new Error(`The folder ${uri.fsPath} does not exist.`)
 
 		const maxItemsPerDir = options?.maxItemsPerDir ?? START_MAX_ITEMS_PER_DIR; // Use START_MAX_ITEMS_PER_DIR
 

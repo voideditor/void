@@ -1,6 +1,6 @@
 ---
-name: Pull Request
-about: Submit a pull request to Void
+name: Issue Report
+about: Submit an issue to Void
 title: ''
 labels: ''
 assignees: ''
@@ -16,7 +16,7 @@ assignees: ''
     (Paste OS Information Here)
     ```
 
-**Pull Request Title Convention:**
+**Issue Title Convention:**
 
 *   For **new features** or feature requests, please start the title with `[Feature]`. Example: `[Feature] Add user login functionality`
 *   For **bugs**, please start the title with `[Bug]`. Example: `[Bug] Fix alignment issue on settings page`

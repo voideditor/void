@@ -2685,12 +2685,13 @@ export const SidebarChat = () => {
 		<ErrorBoundary>
 			{landingPageInput}
 		</ErrorBoundary>
-		<ErrorBoundary>
 
-			<div className='pt-8 mb-2 text-void-fg-1 text-root'>Previous Threads</div>
-			<PastThreadsList />
-
-		</ErrorBoundary>
+		{Object.values(chatThreadsState.allThreads).length > 0 && // show if there are threads
+			<ErrorBoundary>
+				<div className='pt-8 mb-2 text-void-fg-1 text-root'>Previous Threads</div>
+				<PastThreadsList />
+			</ErrorBoundary>
+		}
 	</div>
 
 

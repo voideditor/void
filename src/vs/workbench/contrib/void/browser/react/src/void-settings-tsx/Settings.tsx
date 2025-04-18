@@ -1025,11 +1025,11 @@ export const Settings = () => {
 				<div className='mt-12 max-w-[600px]'>
 					<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
 					<h4 className={`text-void-fg-3 mb-4`}>
-							<ChatMarkdownRender inPTag={true} string={`
+						<ChatMarkdownRender inPTag={true} string={`
 System instructions to include with all AI requests.
-Alternatively, place a \`.voidinstructions\` file in the root of your workspace.
+Alternatively, place a \`.voidrules\` file in the root of your workspace.
 								`} chatMessageLocation={undefined} />
-						</h4>
+					</h4>
 					<ErrorBoundary>
 						<AIInstructionsBox />
 					</ErrorBoundary>

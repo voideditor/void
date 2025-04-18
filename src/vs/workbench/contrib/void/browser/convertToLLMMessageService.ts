@@ -438,27 +438,27 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		super()
 	}
 
-	// Read .voidinstructions files from workspace folders
-	private _getVoidInstructionsFileContents(): string {
+	// Read .voidrules files from workspace folders
+	private _getVoidRulesFileContents(): string {
 		const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
-		let voidInstructions = '';
+		let voidRules = '';
 		for (const folder of workspaceFolders) {
-			const uri = URI.joinPath(folder.uri, '.voidinstructions')
+			const uri = URI.joinPath(folder.uri, '.voidrules')
 			const { model } = this.voidModelService.getModel(uri)
 			if (!model) continue
-			voidInstructions += model.getValue() + '\n\n';
+			voidRules += model.getValue() + '\n\n';
 		}
-		return voidInstructions.trim();
+		return voidRules.trim();
 	}
 
-	// Get combined AI instructions from settings and .voidinstructions files
+	// Get combined AI instructions from settings and .voidrules files
 	private _getCombinedAIInstructions(): string {
 		const globalAIInstructions = this.voidSettingsService.state.globalSettings.aiInstructions;
-		const voidInstructionsFileContent = this._getVoidInstructionsFileContents();
+		const voidRulesFileContent = this._getVoidRulesFileContents();
 
 		const ans: string[] = []
 		if (globalAIInstructions) ans.push(globalAIInstructions)
-		if (voidInstructionsFileContent) ans.push(voidInstructionsFileContent)
+		if (voidRulesFileContent) ans.push(voidRulesFileContent)
 		return ans.join('\n\n')
 	}
 

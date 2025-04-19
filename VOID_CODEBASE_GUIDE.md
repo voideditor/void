@@ -12,12 +12,14 @@ The purpose of this document is to explain how Void's codebase works. If you wan
 
 
 
+
+
 ## Void Codebase Guide
 
 ### VSCode Rundown
 Here's a VSCode rundown if you're just getting started with Void. You can also see Microsoft's [wiki](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) for some pictures. VSCode is an Electron app. Electron runs two processes: a **main** process (for internals) and a **browser** process (browser means HTML in general, not just "web browser").
 <p align="center" >
-<img src="https://github.com/user-attachments/assets/11be1b68-09d3-4b4f-8476-981317fd388d" alt="Credit - https://github.com/microsoft/vscode/wiki/Source-Code-Organization" width="500px">
+<img src="https://github.com/user-attachments/assets/eef80306-2bfe-4cac-ba15-6156f65ab3bb" alt="Credit - https://github.com/microsoft/vscode/wiki/Source-Code-Organization" width="700px">
 </p>
 
 - Code in a  `browser/` folder always lives on the browser process, and it can use `window` and other browser items.
@@ -44,9 +46,9 @@ Here is some important terminology you should know if you're working inside VSCo
 
 
 
-- VSCode is organized into "Services". A service is just a class that mounts a single time (in computer science theory this is called a "singleton"). You can register services with `registerSingleton` so that you can easily use them in any constructor with `@<Service>`. See _dummyContrib for an example we put together on how to register them. The registration is the same every time.
+- VSCode is organized into "**Services**". A service is just a class that mounts a single time (in computer science theory this is called a "singleton"). You can register services with `registerSingleton` so that you can easily use them in any constructor with `@<Service>`. See _dummyContrib for an example we put together on how to register them. The registration is the same every time.
 
-- "Actions" are functions you register on VSCode so that either you or the user can call them later. They're also called "Commands".
+- "**Actions**" are functions you register on VSCode so that either you or the user can call them later. They're also called "**Commands**".
 	- You can run actions as a user by pressing Cmd+Shift+P (opens the command pallete), or you can run them internally by using the commandService to call them by ID. We use actions to register keybinding listeners like Cmd+L, Cmd+K, etc. The nice thing about actions is the user can change the keybindings.
 
 

@@ -332,7 +332,7 @@ export const ModelDump = () => {
 					/>
 
 					<div className={`w-5 flex items-center justify-center`}>
-						{type === 'default' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
+						{type === 'default' || type === 'autodetected' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
 					</div>
 				</div>
 			</div>

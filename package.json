@@ -107,6 +107,7 @@
     "cross-spawn": "^7.0.6",
     "diff": "^7.0.0",
     "eslint-plugin-react": "^7.37.4",
+    "fast-json-stable-stringify": "^2.1.0",
     "google-auth-library": "^9.15.1",
     "groq-sdk": "^0.15.0",
     "http-proxy-agent": "^7.0.0",

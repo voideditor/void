@@ -29,6 +29,7 @@ import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg
 import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 import { MAX_FILE_CHARS_PAGE } from '../../../toolsService.js';
+import jsonStringify from 'fast-json-stable-stringify'
 import ErrorBoundary from './ErrorBoundary.js';
 
 
@@ -141,9 +142,6 @@ export const IconLoading = ({ className = '' }: { className?: string }) => {
 	return <div className={`${className}`}>{loadingText}</div>;
 
 }
-
-
-const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-${messageIdx}`;
 
 
 
@@ -554,8 +552,7 @@ export const SelectedFiles = (
 			{allSelections.map((selection, i) => {
 
 				const isThisSelectionProspective = i > selections.length - 1
-
-				const thisKey = `${isThisSelectionProspective}-${i}-${selections.length}`
+				const thisKey = jsonStringify(selection)
 
 				return <div // container for summarybox and code
 					key={thisKey}
@@ -1979,7 +1976,13 @@ type ChatBubbleProps = {
 	_scrollToBottom: (() => void) | null,
 }
 
-const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, messageIdx, chatIsRunning, _scrollToBottom }: ChatBubbleProps) => {
+const ChatBubble = (props: ChatBubbleProps) => {
+	return <ErrorBoundary>
+		<_ChatBubble {...props} />
+	</ErrorBoundary>
+}
+
+const _ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, messageIdx, chatIsRunning, _scrollToBottom }: ChatBubbleProps) => {
 	const role = chatMessage.role
 
 	const isCheckpointGhost = messageIdx > (currCheckpointIdx ?? Infinity) && !chatIsRunning // whether to show as gray (if chat is running, for good measure just dont show any ghosts)
@@ -2001,33 +2004,6 @@ const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, mes
 			isCommitted={isCommitted}
 		/>
 	}
-	// else if (role === 'tool_request') {
-	// 	const ToolRequestWrapper = toolNameToComponent[chatMessage.name]?.requestWrapper as RequestWrapper<ToolName>
-	// 	const toolRequestState = (
-	// 		chatIsRunning === 'awaiting_user' ? 'awaiting_user'
-	// 			: chatIsRunning === 'tool' ? 'running'
-	// 				: chatIsRunning === 'message' ? null
-	// 					: null
-	// 	)
-	// 	if (ToolRequestWrapper && canAcceptReject) { // if it's the last message
-	// 		return <>
-	// 			{toolRequestState !== null &&
-	// 				<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-	// 					<ToolRequestWrapper
-	// 						toolRequestState={toolRequestState}
-	// 						toolRequest={chatMessage}
-	// 						messageIdx={messageIdx}
-	// 						threadId={threadId}
-	// 					/>
-	// 				</div>}
-	// 			{chatIsRunning === 'awaiting_user' &&
-	// 				<div className={`${isCheckpointGhost ? 'opacity-50 pointer-events-none' : ''}`}>
-	// 					<ToolRequestAcceptRejectButtons />
-	// 				</div>}
-	// 		</>
-	// 	}
-	// 	return null
-	// }
 	else if (role === 'tool') {
 
 		if (chatMessage.type === 'invalid_params') {
@@ -2537,8 +2513,8 @@ export const SidebarChat = () => {
 		// const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
 		// tool request shows up as Editing... if in progress
 		return previousMessages.map((message, i) => {
-			return <ErrorBoundary><ChatBubble
-				key={getChatBubbleId(threadId, i)}
+			return <ChatBubble
+				key={i}
 				currCheckpointIdx={currCheckpointIdx}
 				chatMessage={message}
 				messageIdx={i}
@@ -2546,14 +2522,14 @@ export const SidebarChat = () => {
 				chatIsRunning={isRunning}
 				threadId={threadId}
 				_scrollToBottom={() => scrollToBottom(scrollContainerRef)}
-			/></ErrorBoundary>
+			/>
 		})
 	}, [previousMessages, threadId, currCheckpointIdx, isRunning])
 
 	const streamingChatIdx = previousMessagesHTML.length
 	const currStreamingMessageHTML = reasoningSoFar || displayContentSoFar || isRunning ?
-		<ErrorBoundary><ChatBubble
-			key={getChatBubbleId(threadId, streamingChatIdx)}
+		<ChatBubble
+			key={'curr-streaming-msg'}
 			currCheckpointIdx={currCheckpointIdx}
 			chatMessage={{
 				role: 'assistant',
@@ -2567,13 +2543,13 @@ export const SidebarChat = () => {
 
 			threadId={threadId}
 			_scrollToBottom={null}
-		/></ErrorBoundary> : null
+		/> : null
 
 
 	// the tool currently being generated
 	const generatingTool = toolIsGenerating ?
 		toolCallSoFar.name === 'edit_file' ? <EditToolSoFar
-			key={getChatBubbleId(threadId, streamingChatIdx + 1)}
+			key={'curr-streaming-tool'}
 			toolCallSoFar={toolCallSoFar}
 		/>
 			: null
@@ -2722,9 +2698,13 @@ export const SidebarChat = () => {
 	</div>
 
 
-	return (isLandingPage ?
-		landingPageContent
-		: threadPageContent
+	return (
+		<Fragment key={threadId} // force rerender when change thread
+		>
+			{isLandingPage ?
+				landingPageContent
+				: threadPageContent}
+		</Fragment>
 	)
 }
 

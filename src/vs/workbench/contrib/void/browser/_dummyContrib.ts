@@ -59,6 +59,6 @@ class DummyService extends Disposable implements IWorkbenchContribution, IDummyS
 
 
 // pick one and delete the other:
-registerSingleton(IDummyService, DummyService, InstantiationType.Eager);
+registerSingleton(IDummyService, DummyService, InstantiationType.Eager); // lazily loaded, even if Eager
 
-registerWorkbenchContribution2(DummyService.ID, DummyService, WorkbenchPhase.BlockRestore);
+registerWorkbenchContribution2(DummyService.ID, DummyService, WorkbenchPhase.BlockRestore); // mounts on start

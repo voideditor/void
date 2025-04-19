@@ -82,7 +82,7 @@ The `editCodeService` file runs Apply. The same exact code is also used when the
 Here is some important terminology:
 - A **DiffZone** is a {startLine, endLine} region in which we compute and show **Diffs** (red/green areas). We refresh all Diffs in each DiffZone when any changes are made to a file (e.g. the user types), so the red/green areas shown always accurate. Diffs are computed by comparing the original content of the DiffZone (stored at creation) with the current file's content in the new DiffZone region.
 - A **DiffArea** is a generalization that just tracks line numbers like a DiffZone, but doesn't have Diffs (red/green areas) inside.
-- The only type of zone that can "stream" is a DiffZone. Each DiffZone has an llmCancelToken if it's streaming.
+- The only type of DiffArea that can "stream" is a DiffZone. Each DiffZone has an llmCancelToken if it's streaming.
 - When you click Apply, we create a **DiffZone** over that the full file so that any changes that the LLM makes will show up in red/green. We then stream the change.
 - When an LLM calls Edit, it's really calling Apply.
 - When you submit Cmd+K, it's the same as Apply except we create a smaller DiffZone (not on the whole file).

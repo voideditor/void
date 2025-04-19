@@ -34,7 +34,7 @@ Here's a VSCode rundown if you're just getting started with Void. You can also s
 
 ### Terminology
 
-Here is some important terminology you should know if you're working inside VSCode:
+Here's some terminology you might want to know about when working inside VSCode:
 - An **Editor** is the thing that you type your code in. If you have 10 tabs open, that's just one editor! Editors contain tabs (or "models").
 - A **Model** is an internal representation of a file's contents. It's shared between editors (for example, if you press `Cmd+\` to make a new editor, then the model of a file like `A.ts` is shared between them. Two editors, one model. That's how changes sync.).
 - Each model has a **URI** it represents, like `/Users/.../my_file.txt`. (A URI or "resource" is generally just a path).
@@ -130,7 +130,7 @@ If you want to know how our build pipeline works, see our build repo [here](http
 
 
 
-## VSCode Codebase Guide (Not Void)
+## VSCode Codebase Guide
 
 The Void team put together this list of links to get up and running with VSCode's sourcecode, the foundation of Void. We hope it's helpful!
 

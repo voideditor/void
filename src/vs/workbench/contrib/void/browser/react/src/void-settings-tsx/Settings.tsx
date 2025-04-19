@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames } from '../../../../common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -286,7 +286,7 @@ export const ModelDump = () => {
 
 	return <div className=''>
 		{modelDump.map((m, i) => {
-			const { isHidden, isDefault, isAutodetected, modelName, providerName, providerEnabled } = m
+			const { isHidden, type, modelName, providerName, providerEnabled } = m
 
 			const isNewProviderName = (i > 0 ? modelDump[i - 1] : undefined)?.providerName !== providerName
 
@@ -318,7 +318,7 @@ export const ModelDump = () => {
 				// 	: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
 				// }
 				>
-					<span className='opacity-50 truncate'>{isAutodetected ? '(detected locally)' : isDefault ? '' : '(custom model)'}</span>
+					<span className='opacity-50 truncate'>{type === 'autodetected' ? '(detected locally)' : type === 'default' ? '' : '(custom model)'}</span>
 
 					<VoidSwitch
 						value={value}
@@ -332,7 +332,7 @@ export const ModelDump = () => {
 					/>
 
 					<div className={`w-5 flex items-center justify-center`}>
-						{isDefault ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
+						{type === 'default' || type === 'autodetected' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
 					</div>
 				</div>
 			</div>
@@ -344,9 +344,9 @@ export const ModelDump = () => {
 
 // providers
 
-const ProviderSetting = ({ providerName, settingName }: { providerName: ProviderName, settingName: SettingName }) => {
+const ProviderSetting = ({ providerName, settingName, subTextMd }: { providerName: ProviderName, settingName: SettingName, subTextMd: React.ReactNode }) => {
 
-	const { title: settingTitle, placeholder, isPasswordField, subTextMd } = displayInfoOfSettingName(providerName, settingName)
+	const { title: settingTitle, placeholder, isPasswordField } = displayInfoOfSettingName(providerName, settingName)
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
@@ -370,10 +370,9 @@ const ProviderSetting = ({ providerName, settingName }: { providerName: Provider
 				passwordBlur={isPasswordField}
 				compact={true}
 			/>
-			{subTextMd === undefined ? null : <div className='py-1 px-3 opacity-50 text-sm'>
-				<ChatMarkdownRender string={subTextMd} chatMessageLocation={undefined} />
+			{!subTextMd ? null : <div className='py-1 px-3 opacity-50 text-sm'>
+				{subTextMd}
 			</div>}
-
 		</div>
 	</ErrorBoundary>
 }
@@ -456,7 +455,14 @@ export const SettingsForProvider = ({ providerName, showProviderTitle, showProvi
 		<div className='px-0'>
 			{/* settings besides models (e.g. api key) */}
 			{settingNames.map((settingName, i) => {
-				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
+
+				return <ProviderSetting
+					key={settingName}
+					providerName={providerName}
+					settingName={settingName}
+					subTextMd={i !== settingNames.length - 1 ? null
+						: <ChatMarkdownRender string={subTextMdOfProviderName(providerName)} chatMessageLocation={undefined} />}
+				/>
 			})}
 
 			{showProviderSuggestions && needsModel ?
@@ -1025,11 +1031,11 @@ export const Settings = () => {
 				<div className='mt-12 max-w-[600px]'>
 					<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
 					<h4 className={`text-void-fg-3 mb-4`}>
-							<ChatMarkdownRender inPTag={true} string={`
+						<ChatMarkdownRender inPTag={true} string={`
 System instructions to include with all AI requests.
-Alternatively, place a \`.voidinstructions\` file in the root of your workspace.
+Alternatively, place a \`.voidrules\` file in the root of your workspace.
 								`} chatMessageLocation={undefined} />
-						</h4>
+					</h4>
 					<ErrorBoundary>
 						<AIInstructionsBox />
 					</ErrorBoundary>

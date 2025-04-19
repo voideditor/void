@@ -14,7 +14,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
-import { SidebarThreadSelector } from './SidebarThreadSelector.js';
+import { OldSidebarThreadSelector, PastThreadsList } from './SidebarThreadSelector.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
@@ -29,6 +29,7 @@ import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg
 import { ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 import { MAX_FILE_CHARS_PAGE } from '../../../toolsService.js';
+import jsonStringify from 'fast-json-stable-stringify'
 import ErrorBoundary from './ErrorBoundary.js';
 
 
@@ -141,9 +142,6 @@ export const IconLoading = ({ className = '' }: { className?: string }) => {
 	return <div className={`${className}`}>{loadingText}</div>;
 
 }
-
-
-const getChatBubbleId = (threadId: string, messageIdx: number) => `${threadId}-${messageIdx}`;
 
 
 
@@ -554,8 +552,7 @@ export const SelectedFiles = (
 			{allSelections.map((selection, i) => {
 
 				const isThisSelectionProspective = i > selections.length - 1
-
-				const thisKey = `${isThisSelectionProspective}-${i}-${selections.length}`
+				const thisKey = jsonStringify(selection)
 
 				return <div // container for summarybox and code
 					key={thisKey}
@@ -1979,7 +1976,13 @@ type ChatBubbleProps = {
 	_scrollToBottom: (() => void) | null,
 }
 
-const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, messageIdx, chatIsRunning, _scrollToBottom }: ChatBubbleProps) => {
+const ChatBubble = (props: ChatBubbleProps) => {
+	return <ErrorBoundary>
+		<_ChatBubble {...props} />
+	</ErrorBoundary>
+}
+
+const _ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, messageIdx, chatIsRunning, _scrollToBottom }: ChatBubbleProps) => {
 	const role = chatMessage.role
 
 	const isCheckpointGhost = messageIdx > (currCheckpointIdx ?? Infinity) && !chatIsRunning // whether to show as gray (if chat is running, for good measure just dont show any ghosts)
@@ -2001,33 +2004,6 @@ const ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, mes
 			isCommitted={isCommitted}
 		/>
 	}
-	// else if (role === 'tool_request') {
-	// 	const ToolRequestWrapper = toolNameToComponent[chatMessage.name]?.requestWrapper as RequestWrapper<ToolName>
-	// 	const toolRequestState = (
-	// 		chatIsRunning === 'awaiting_user' ? 'awaiting_user'
-	// 			: chatIsRunning === 'tool' ? 'running'
-	// 				: chatIsRunning === 'message' ? null
-	// 					: null
-	// 	)
-	// 	if (ToolRequestWrapper && canAcceptReject) { // if it's the last message
-	// 		return <>
-	// 			{toolRequestState !== null &&
-	// 				<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-	// 					<ToolRequestWrapper
-	// 						toolRequestState={toolRequestState}
-	// 						toolRequest={chatMessage}
-	// 						messageIdx={messageIdx}
-	// 						threadId={threadId}
-	// 					/>
-	// 				</div>}
-	// 			{chatIsRunning === 'awaiting_user' &&
-	// 				<div className={`${isCheckpointGhost ? 'opacity-50 pointer-events-none' : ''}`}>
-	// 					<ToolRequestAcceptRejectButtons />
-	// 				</div>}
-	// 		</>
-	// 	}
-	// 	return null
-	// }
 	else if (role === 'tool') {
 
 		if (chatMessage.type === 'invalid_params') {
@@ -2537,8 +2513,8 @@ export const SidebarChat = () => {
 		// const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
 		// tool request shows up as Editing... if in progress
 		return previousMessages.map((message, i) => {
-			return <ErrorBoundary><ChatBubble
-				key={getChatBubbleId(threadId, i)}
+			return <ChatBubble
+				key={i}
 				currCheckpointIdx={currCheckpointIdx}
 				chatMessage={message}
 				messageIdx={i}
@@ -2546,14 +2522,14 @@ export const SidebarChat = () => {
 				chatIsRunning={isRunning}
 				threadId={threadId}
 				_scrollToBottom={() => scrollToBottom(scrollContainerRef)}
-			/></ErrorBoundary>
+			/>
 		})
 	}, [previousMessages, threadId, currCheckpointIdx, isRunning])
 
 	const streamingChatIdx = previousMessagesHTML.length
 	const currStreamingMessageHTML = reasoningSoFar || displayContentSoFar || isRunning ?
-		<ErrorBoundary><ChatBubble
-			key={getChatBubbleId(threadId, streamingChatIdx)}
+		<ChatBubble
+			key={'curr-streaming-msg'}
 			currCheckpointIdx={currCheckpointIdx}
 			chatMessage={{
 				role: 'assistant',
@@ -2567,13 +2543,13 @@ export const SidebarChat = () => {
 
 			threadId={threadId}
 			_scrollToBottom={null}
-		/></ErrorBoundary> : null
+		/> : null
 
 
 	// the tool currently being generated
 	const generatingTool = toolIsGenerating ?
 		toolCallSoFar.name === 'edit_file' ? <EditToolSoFar
-			key={getChatBubbleId(threadId, streamingChatIdx + 1)}
+			key={'curr-streaming-tool'}
 			toolCallSoFar={toolCallSoFar}
 		/>
 			: null
@@ -2631,61 +2607,106 @@ export const SidebarChat = () => {
 		}
 	}, [onSubmit, onAbort, isRunning])
 
-	const inputForm = <div key={'input' + chatThreadsState.currentThreadId}>
-		<div className='px-4'>
-			{previousMessages.length > 0 &&
-				<CommandBarInChat />
-			}
-		</div>
-		<div
-			className='px-2 pb-2'
-		>
-			<VoidChatArea
-				featureName='Chat'
-				onSubmit={onSubmit}
-				onAbort={onAbort}
-				isStreaming={!!isRunning}
-				isDisabled={isDisabled}
-				showSelections={true}
-				showProspectiveSelections={previousMessagesHTML.length === 0}
-				selections={selections}
-				setSelections={setSelections}
-				onClickAnywhere={() => { textAreaRef.current?.focus() }}
-			>
-				<VoidInputBox2
-					className={`min-h-[81px] px-0.5 py-0.5`}
-					placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
-					onChangeText={onChangeText}
-					onKeyDown={onKeyDown}
-					onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}
-					ref={textAreaRef}
-					fnsRef={textAreaFnsRef}
-					multiline={true}
-				/>
 
-			</VoidChatArea>
+
+
+	const inputChatArea = <VoidChatArea
+		featureName='Chat'
+		onSubmit={onSubmit}
+		onAbort={onAbort}
+		isStreaming={!!isRunning}
+		isDisabled={isDisabled}
+		showSelections={true}
+		showProspectiveSelections={previousMessagesHTML.length === 0}
+		selections={selections}
+		setSelections={setSelections}
+		onClickAnywhere={() => { textAreaRef.current?.focus() }}
+	>
+		<VoidInputBox2
+			className={`min-h-[81px] px-0.5 py-0.5`}
+			placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
+			onChangeText={onChangeText}
+			onKeyDown={onKeyDown}
+			onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}
+			ref={textAreaRef}
+			fnsRef={textAreaFnsRef}
+			multiline={true}
+		/>
+
+	</VoidChatArea>
+
+
+	const isLandingPage = previousMessages.length === 0
+
+
+	const threadPageInput = <div key={'input' + chatThreadsState.currentThreadId}>
+		<div className='px-4'>
+			<CommandBarInChat />
+		</div>
+		<div className='px-2 pb-2'>
+			{inputChatArea}
 		</div>
 	</div>
 
-	return (
-		<div ref={sidebarRef} className='w-full h-full flex flex-col overflow-hidden'>
-			{/* History selector */}
-			<div className={`w-full ${isHistoryOpen ? '' : 'hidden'} ring-2 ring-widget-shadow ring-inset z-10`}>
-				<ErrorBoundary>
-					<SidebarThreadSelector />
-				</ErrorBoundary>
-			</div>
-
-			<div className='flex-1 flex flex-col overflow-hidden'>
-				<div className={`flex-1 overflow-hidden ${previousMessages.length === 0 ? 'h-0 max-h-0 pb-2' : ''}`}>
-					<ErrorBoundary>
-						{messagesHTML}
-					</ErrorBoundary>
-				</div>
-				<ErrorBoundary>
-					{inputForm}
-				</ErrorBoundary>
-			</div>
+	const landingPageInput = <div>
+		<div className='pt-8'>
+			{inputChatArea}
 		</div>
+	</div>
+
+	const landingPageContent = <div
+		ref={sidebarRef}
+		className='w-full h-full max-h-full flex flex-col overflow-auto px-4'
+	>
+		<ErrorBoundary>
+			{landingPageInput}
+		</ErrorBoundary>
+
+		{Object.values(chatThreadsState.allThreads).length > 0 && // show if there are threads
+			<ErrorBoundary>
+				<div className='pt-8 mb-2 text-void-fg-1 text-root'>Previous Threads</div>
+				<PastThreadsList />
+			</ErrorBoundary>
+		}
+	</div>
+
+
+	// const threadPageContent = <div>
+	// 	{/* Thread content */}
+	// 	<div className='flex flex-col overflow-hidden'>
+	// 		<div className={`overflow-hidden ${previousMessages.length === 0 ? 'h-0 max-h-0 pb-2' : ''}`}>
+	// 			<ErrorBoundary>
+	// 				{messagesHTML}
+	// 			</ErrorBoundary>
+	// 		</div>
+	// 		<ErrorBoundary>
+	// 			{inputForm}
+	// 		</ErrorBoundary>
+	// 	</div>
+	// </div>
+	const threadPageContent = <div
+		ref={sidebarRef}
+		className='w-full h-full flex flex-col overflow-hidden'
+	>
+
+		<ErrorBoundary>
+			{messagesHTML}
+		</ErrorBoundary>
+		<ErrorBoundary>
+			{threadPageInput}
+		</ErrorBoundary>
+	</div>
+
+
+	return (
+		<Fragment key={threadId} // force rerender when change thread
+		>
+			{isLandingPage ?
+				landingPageContent
+				: threadPageContent}
+		</Fragment>
 	)
 }
+
+
+

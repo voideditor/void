@@ -330,6 +330,7 @@ Here's an example of a good edit suggestion:
 ${fileNameEditExample}.`)
 	}
 
+	details.push(`NEVER write the FULL PATH of a file when speaking with the user. Just write the file name ONLY.`)
 	details.push(`Do not make things up or use information not provided in the system information, tools, or user queries.`)
 	details.push(`Today's date is ${new Date().toDateString()}.`)
 
@@ -446,9 +447,10 @@ export const DIVIDER = `=======`
 export const FINAL = `>>>>>>> UPDATED`
 
 export const searchReplace_systemMessage = `\
-You are a coding assistant that generates SEARCH/REPLACE code blocks that will be used to edit a file.
+You are a coding assistant that takes in a diff describing of a change to make, and outputs SEARCH/REPLACE code blocks which implement the change.
+The diff will be labeled \`DIFF\` and the original file will be labeled \`ORIGINAL_FILE\`.
 
-A SEARCH/REPLACE block describes the code before and after a change. Here is the format:
+Format your SEARCH/REPLACE blocks as follows:
 ${tripleTick[0]}
 ${ORIGINAL}
 // ... original code goes here
@@ -457,23 +459,28 @@ ${DIVIDER}
 ${FINAL}
 ${tripleTick[1]}
 
-You will be given the original file \`ORIGINAL_FILE\` and a diff to apply to the file, \`CHANGE\`.
-Output SEARCH/REPLACE blocks to edit the file according to the desired change. You may output multiple SEARCH/REPLACE blocks.
-Be sure to output a change for every single item that changed from the original file to the given change, including comments.
+1. Every single item written in \`CHANGE\` should show up in the final result, except for comments explicitly saying things like "// ... existing code". Make sure to include ALL other comments (even descriptive ones), code, whitespace, etc. in the final result.
 
-Directions:
-1. Your OUTPUT should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
-2. The "ORIGINAL" code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. The original code must NOT includes any new whitespace, comments, or any other modifications from the original code.
-3. The "ORIGINAL" code in each SEARCH/REPLACE block must include enough text to uniquely identify the change in the file, but please bias towards writing as little as possible.
-4. The "ORIGINAL" code in each SEARCH/REPLACE block must be disjoint from all other blocks.
+2. Your SEARCH/REPLACE block(s) must implement the change EXACTLY. You should use comments like "// ... existing code" as reference points, and everything else in the change should be written verbatim.
 
-The SEARCH/REPLACE blocks you generate will be applied immediately, and so they **MUST** produce a file that the user can run IMMEDIATELY.
-- Make sure you add all necessary imports.
-- Make sure the "UPDATED" code is ready for production as-is, and fix any relevant lint errors.
+3. You are allowed to output multiple SEARCH/REPLACE blocks.
 
-Follow coding conventions of the user (spaces, semilcolons, comments, etc). If the user spaces or formats things a certain way, CONTINUE formatting it that way, even if you prefer otherwise.
+4. Your output should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
+
+5. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace, comments, or modifications from the original code.
+
+6. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However; bias towards writing as little as possible.
+
+7. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.
 
 ## EXAMPLE 1
+DIFF
+${tripleTick[0]}
+// ... existing code
+let x = 6.5
+// ... existing code
+${tripleTick[1]}
+
 ORIGINAL_FILE
 ${tripleTick[0]}
 let w = 5
@@ -481,15 +488,6 @@ let x = 6
 let y = 7
 let z = 8
 ${tripleTick[1]}
-
-CHANGE
-Make x equal to 6.5, not 6.
-${tripleTick[0]}
-// ... existing code
-let x = 6.5
-// ... existing code
-${tripleTick[1]}
-
 
 ## ACCEPTED OUTPUT
 ${tripleTick[0]}
@@ -502,11 +500,14 @@ ${tripleTick[1]}
 `
 
 export const searchReplace_userMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
-ORIGINAL_FILE
-${originalCode}
+DIFF
+${applyStr}
 
-CHANGE
-${applyStr}`
+ORIGINAL_FILE
+${tripleTick[0]}
+${originalCode}
+${tripleTick[1]}
+`
 
 
 

@@ -202,7 +202,19 @@ registerAction2(class extends Action2 {
 })
 
 
+const openNewThreadAndFireFocus = (accessor: ServicesAccessor) => {
 
+	const stateService = accessor.get(ISidebarStateService)
+	stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
+	const chatThreadService = accessor.get(IChatThreadService)
+	chatThreadService.openNewThread()
+
+	// focus
+	stateService.fireFocusChat()
+	const window = getActiveWindow()
+	window.requestAnimationFrame(() => stateService.fireFocusChat())
+
+}
 
 
 // New chat menu button
@@ -213,6 +225,25 @@ registerAction2(class extends Action2 {
 			title: 'New Chat',
 			icon: { id: 'add' },
 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }],
+
+		});
+	}
+	async run(accessor: ServicesAccessor): Promise<void> {
+
+		const metricsService = accessor.get(IMetricsService)
+		metricsService.capture('Chat Navigation', { type: 'New Chat' })
+
+		openNewThreadAndFireFocus(accessor)
+
+	}
+})
+
+// New chat keybind
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'void.newChatKeybindAction',
+			title: 'New Chat Keybind',
 			keybinding: {
 				primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyL,
 				weight: KeybindingWeight.VoidExtension,
@@ -220,19 +251,16 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(ISidebarStateService)
+
 		const metricsService = accessor.get(IMetricsService)
+		const commandService = accessor.get(ICommandService)
+		metricsService.capture('Chat Navigation', { type: 'New Chat Keybind' })
 
-		metricsService.capture('Chat Navigation', { type: 'New Chat' })
+		openNewThreadAndFireFocus(accessor)
 
-		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		const chatThreadService = accessor.get(IChatThreadService)
-		chatThreadService.openNewThread()
+		// add user's selection to chat
+		await commandService.executeCommand(VOID_CTRL_L_ACTION_ID)
 
-		// focus
-		stateService.fireFocusChat()
-		const window = getActiveWindow()
-		window.requestAnimationFrame(() => stateService.fireFocusChat())
 	}
 })
 
@@ -247,13 +275,27 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
+
+		// do not do anything if there are no messages (without this it clears all of the user's selections if the button is pressed)
+		// TODO the history button should be disabled in this case so we can remove this logic
+		const thread = accessor.get(IChatThreadService).getCurrentThread()
+		if (thread.messages.length === 0) {
+			return;
+		}
+
 		const stateService = accessor.get(ISidebarStateService)
 		const metricsService = accessor.get(IMetricsService)
 
+
 		metricsService.capture('Chat Navigation', { type: 'History' })
 
+		openNewThreadAndFireFocus(accessor)
+
+		// doesnt do anything right now
 		stateService.setState({ isHistoryOpen: !stateService.state.isHistoryOpen, currentTab: 'chat' })
 		stateService.fireBlurChat()
+
+
 	}
 })
 

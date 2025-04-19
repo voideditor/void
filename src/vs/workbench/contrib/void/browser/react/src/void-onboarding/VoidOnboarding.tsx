@@ -307,7 +307,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 
 	voidSettingsState.settingsOfProvider[providerName].models.forEach(m => {
 		infoOfModelName[m.modelName] = {
-			showAsDefault: m.isDefault,
+			showAsDefault: m.type === 'default',
 			isDownloaded: true
 		}
 	})
@@ -367,7 +367,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 
 
 				return (
-					<tr key={modelName} className="border-b border-void-border-1 hover:bg-void-bg-3/50">
+					<tr key={`${modelName}${providerName}`} className="border-b border-void-border-1 hover:bg-void-bg-3/50">
 						<td className="py-2 px-3 relative">
 							{!showAsDefault && removeModelButton}
 							{modelName}
@@ -497,7 +497,7 @@ const VoidOnboardingContent = () => {
 
 	const providerNamesOfWantToUseOption: { [wantToUseOption in WantToUseOption]: ProviderName[] } = {
 		smart: ['anthropic', 'openAI', 'gemini', 'openRouter'],
-		private: ['ollama', 'vLLM', 'openAICompatible'],
+		private: ['ollama', 'vLLM', 'openAICompatible', 'lmStudio'],
 		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM'],
 		all: providerNames,
 	}

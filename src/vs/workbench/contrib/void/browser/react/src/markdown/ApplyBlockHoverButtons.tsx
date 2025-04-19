@@ -37,7 +37,7 @@ export const IconShell1 = ({ onClick, Icon, disabled, className, ...props }: Ico
             size-[18px]
 			p-[2px]
             flex items-center justify-center
-            text-sm bg-void-bg-3 text-void-fg-3
+            text-sm text-void-fg-3
             hover:brightness-110
             disabled:opacity-50 disabled:cursor-not-allowed
 			${className}

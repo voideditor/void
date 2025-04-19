@@ -664,7 +664,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 			{isOpen && (
 				<div
 					ref={refs.setFloating}
-					className="z-10 bg-void-bg-1 border-void-border-3 border rounded shadow-lg"
+					className="z-[100] bg-void-bg-1 border-void-border-3 border rounded shadow-lg"
 					style={{
 						position: strategy,
 						top: y ?? 0,
@@ -689,7 +689,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 									key={optionName}
 									className={`flex items-center px-2 py-1 pr-4 cursor-pointer whitespace-nowrap
 									transition-all duration-100
-									${thisOptionIsSelected ? 'bg-void-bg-2-hover' : 'bg-void-bg-2 hover:bg-void-bg-2-hover'}
+									${thisOptionIsSelected ? 'bg-void-bg-2-hover' : 'bg-void-bg-2-alt hover:bg-void-bg-2-hover'}
 								`}
 									onClick={() => {
 										onChangeOption(option);
@@ -709,7 +709,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 											</svg>
 										)}
 									</div>
-									<span className="flex justify-between w-full">
+									<span className="flex justify-between items-center w-full gap-x-1">
 										<span>{optionName}</span>
 										<span className='text-void-fg-4 opacity-60'>{optionDetail}</span>
 									</span>

@@ -4,11 +4,31 @@ The Void codebase is not as intimidating as it seems!
 
 Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
 
-The purpose of this document is to explain how Void's codebase works. If you want build instructions, see [Contributing](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
+The purpose of this document is to explain how Void's codebase works. If you want build instructions instead, see [Contributing](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
+
+
+
 
 
 
 ## Void Codebase Guide
+
+### VSCode Rundown
+Here's a VSCode rundown if you're just getting started with Void. You can also see Microsoft's [wiki](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) for some pictures. VSCode is an Electron app. Electron runs two processes: a **main** process (for internals) and a **browser** process (browser means HTML in general, not just "web browser").
+<p align="center" >
+<img src="https://raw.githubusercontent.com/wiki/microsoft/vscode/images/organization/environments.png" alt="Credit - https://github.com/microsoft/vscode/wiki/Source-Code-Organization" width="400px">
+</p>
+
+- It's most common to use `browser/` and `electron-main/`.
+- Code in a  `browser/` folder always lives on the browser process, and it can use `window` and other browser items.
+- Code in an `electron-main/` folder always lives on the main process, and it can import `node_modules`.
+- Code in `common/` can be used by either process, but doesn't get any special imports.
+- The browser environment is not allowed to import `node_modules`. We came up with two workarounds:
+  1. Bundle the raw node_module code to the browser - we're doing this for React.
+  2. Implement the code on `electron-main/` and set up a channel between main/browser - we're doing this for sendLLMMessage.
+
+
+
 
 ### Terminology
 
@@ -18,33 +38,17 @@ Here is some important terminology you should know if you're working inside VSCo
 - Each model has a **URI** it represents, like `/Users/.../my_file.txt`. (A URI or "resource" is generally just a path).
 - The **Workbench** is the wrapper that contains all the editors, the terminal, the file system tree, etc.
 - Usually you use the `ITextModel` type for models and the `ICodeEditor` type for editors. There aren't that many other types.
+<p align="center" >
+<img src="https://github.com/user-attachments/assets/6521c228-dc96-4cf5-a673-6b9ca78b9b06" alt="Credit - https://code.visualstudio.com/docs/getstarted/userinterface" width="400px">
+</p>
 
 
 
-### VSCode Rundown
-Here's a VSCode rundown if you're just getting started with Void (just read what's necessary):
+- VSCode is organized into "Services". A service is just a class that mounts a single time (in computer science theory this is called a "singleton"). You can register services with `registerSingleton` so that you can easily use them in any constructor with `@<Service>`. See _dummyContrib for an example we put together on how to register them. The registration is the same every time.
 
-- VSCode is (and therefore Void is) an Electron app. Electron runs two processes: a **main** process (for internals) and a **browser** process (browser means HTML in general, not just "web browser").
-- Code in a  `browser/` folder always lives on the browser process, and it can use `window` and other browser items.
-- Code in an `electron-main/` folder always lives on the main process, and it can import `node_modules`.
-- Code in `common/` can be used by either process, but doesn't get any special imports.
-- The browser environment is not allowed to import `node_modules`, but there are two workarounds:
-  1. Bundle the raw node_module code to the browser - we're doing this for React.
-  2. Implement the code on `electron-main/` and set up a channel between main/browser - we're doing this for sendLLMMessage.
+- "Actions" are functions you register on VSCode so that either you or the user can call them later. They're also called "Commands".
+	- You can run actions as a user by pressing Cmd+Shift+P (opens the command pallete), or you can run them internally by using the commandService to call them by ID. We use actions to register keybinding listeners like Cmd+L, Cmd+K, etc. The nice thing about actions is the user can change the keybindings.
 
-
-
-VSCode is organized into "Services". A service is just a class that mounts a single time (in computer science theory this is called a "singleton"). You can register services with `registerSingleton` so that you can easily use them in any constructor with `@<Service>`. See _dummyContrib for an example we put together on how to register them. The registration is the same every time.
-
-Services are always lazily created, even if you register them as Eager. If you want something that always runs on Void's mount, you should use a "workbench contribution". See _dummyContrib for this. Very similar to a Service, just registered slightly differently.
-
-Actions or "commands" are functions you register on VSCode so that either you or the user can call them later. You can run actions as a user by pressing Cmd+Shift+P (opens the command pallete), or you can run them internally by using the commandService to call them by ID. We use actions to register keybinding listeners like Cmd+L, Cmd+K, etc. The nice thing about actions is the user can change the keybindings.
-
-
-See [here](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) for a decent VSCode guide with even more info.
-
-
-Each section below contains an overview of a core part of Void's sourcecode. You might want to scroll to find the item that's relevant to you.
 
 ### Internal LLM Message Pipeline
 

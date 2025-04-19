@@ -80,7 +80,7 @@ This is what allows Void to quickly apply code even on 1000-line files. It's the
 The `editCodeService` file runs Apply. The same exact code is also used when the LLM calls the Edit tool, and when you submit Cmd+K. Just different versions of Fast/Slow Apply mode. 
 
 Here is some important terminology:
-- A **DiffZone** is a {startLine, endLine} region in which we show Diffs (red/green areas). We update it when the user types, so it's always accurate.
+- A **DiffZone** is a {startLine, endLine} region in which we show **Diffs** (red/green areas). We update it when the user types, so it's always accurate.
 - A **DiffArea** is a generalization that tracks line numbers like a DiffZone.
 - The only type of zone that can "stream" is a DiffZone. Each DiffZone has an llmCancelToken if it's streaming.
 - When you click Apply, we create a **DiffZone** over that the full file so that any changes that the LLM makes will show up in red/green. We then stream the change.

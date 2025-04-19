@@ -11,15 +11,15 @@ The purpose of this document is to explain how Void's codebase works. If you wan
 
 
 
+
 ## Void Codebase Guide
 
 ### VSCode Rundown
 Here's a VSCode rundown if you're just getting started with Void. You can also see Microsoft's [wiki](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) for some pictures. VSCode is an Electron app. Electron runs two processes: a **main** process (for internals) and a **browser** process (browser means HTML in general, not just "web browser").
 <p align="center" >
-<img src="https://raw.githubusercontent.com/wiki/microsoft/vscode/images/organization/environments.png" alt="Credit - https://github.com/microsoft/vscode/wiki/Source-Code-Organization" width="400px">
+<img src="https://github.com/user-attachments/assets/11be1b68-09d3-4b4f-8476-981317fd388d" alt="Credit - https://github.com/microsoft/vscode/wiki/Source-Code-Organization" width="500px">
 </p>
 
-- It's most common to use `browser/` and `electron-main/`.
 - Code in a  `browser/` folder always lives on the browser process, and it can use `window` and other browser items.
 - Code in an `electron-main/` folder always lives on the main process, and it can import `node_modules`.
 - Code in `common/` can be used by either process, but doesn't get any special imports.

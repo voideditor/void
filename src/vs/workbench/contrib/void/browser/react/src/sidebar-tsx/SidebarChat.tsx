@@ -20,7 +20,7 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
-import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info } from 'lucide-react';
+import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
 import { approvalTypeOfToolName, LintErrorItem, ToolApprovalType, toolApprovalTypes, ToolCallParams } from '../../../../common/toolsServiceTypes.js';
 import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
@@ -734,7 +734,8 @@ const ToolHeaderWrapper = ({
 							{...desc1Info ? {
 								'data-tooltip-id': 'void-tooltip',
 								'data-tooltip-content': desc1Info,
-								'data-tooltip-place': 'top-end',
+								'data-tooltip-place': 'top',
+								'data-tooltip-delay-show': 1000,
 							} : {}}
 						>{desc1}</span>
 					</div>
@@ -742,12 +743,20 @@ const ToolHeaderWrapper = ({
 					{/* right */}
 					<div className="flex items-center gap-x-2 flex-shrink-0">
 
+						{info && <CircleEllipsis
+							className='ml-2 text-void-fg-4 opacity-80 flex-shrink-0 stroke-1'
+							size={14}
+							data-tooltip-id='void-tooltip'
+							data-tooltip-content={info}
+							data-tooltip-place='top-end'
+							data-tooltip-delay-show={1000}
+						/>}
 
 						{isError && <AlertTriangle
 							className='text-void-warning opacity-90 flex-shrink-0'
 							size={14}
 							data-tooltip-id='void-tooltip'
-							data-tooltip-content={'Error applying'}
+							data-tooltip-content={'Error running tool'}
 							data-tooltip-place='top'
 						/>}
 						{isRejected && <Ban
@@ -765,13 +774,6 @@ const ToolHeaderWrapper = ({
 								{`${numResults}${hasNextPage ? '+' : ''} result${numResults !== 1 ? 's' : ''}`}
 							</span>
 						)}
-						{info && <Info
-							className='text-void-bg-1 flex-shrink-0'
-							size={14}
-							data-tooltip-id='void-tooltip'
-							data-tooltip-content={info}
-							data-tooltip-place='top-end'
-						/>}
 					</div>
 				</div>
 			</div>
@@ -1591,7 +1593,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (params.uri) {
 				const rel = getRelative(params.uri, accessor)
-				if (rel) componentParams.info = `Only in ${rel}`
+				if (rel) componentParams.info = `Only search in ${rel}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1639,7 +1641,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (params.uri) {
 				const rel = getRelative(params.uri, accessor)
-				if (rel) componentParams.info = `Only in ${rel}`
+				if (rel) componentParams.info = `Only search in ${rel}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1691,7 +1693,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
 
 			if (params.includePattern)
-				componentParams.info = `Only in ${params.includePattern}`
+				componentParams.info = `Only search in ${params.includePattern}`
 
 			if (toolMessage.type === 'success') {
 				const { result, rawParams } = toolMessage
@@ -1740,7 +1742,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (params.searchInFolder) {
 				const rel = getRelative(params.searchInFolder, accessor)
-				if (rel) componentParams.desc1Info = `Only in ${rel}`
+				if (rel) componentParams.info = `Only search in ${rel}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1917,8 +1919,6 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
-
-			componentParams.info = getRelative(params.uri, accessor) // full path
 
 			if (toolMessage.type === 'running_now' || toolMessage.type === 'tool_request') {
 				componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>

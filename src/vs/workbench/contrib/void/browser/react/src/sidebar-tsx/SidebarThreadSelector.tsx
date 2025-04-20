@@ -7,8 +7,8 @@ import { useMemo, useState } from 'react';
 import { CopyButton, IconShell1 } from '../markdown/ApplyBlockHoverButtons.js';
 import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useFullChatThreadsStreamState, useSettingsState } from '../util/services.js';
 import { IconX } from './SidebarChat.js';
-import { Check, LoaderCircle, Trash2, X } from 'lucide-react';
-import { ThreadType } from '../../../chatThreadService.js';
+import { Check, LoaderCircle, MessageCircleQuestion, Trash2, UserCheck, X } from 'lucide-react';
+import { IsRunningType, ThreadType } from '../../../chatThreadService.js';
 
 
 export const OldSidebarThreadSelector = () => {
@@ -155,9 +155,10 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 
 	const streamState = useFullChatThreadsStreamState()
 
-	const runningThreadIds = new Set<string>()
+	const runningThreadIds: { [threadId: string]: IsRunningType | undefined } = {}
 	for (const threadId in streamState) {
-		if (streamState[threadId]?.isRunning) { runningThreadIds.add(threadId) }
+		const isRunning = streamState[threadId]?.isRunning
+		if (isRunning) { runningThreadIds[threadId] = isRunning }
 	}
 
 	if (!allThreads) {
@@ -190,7 +191,7 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 							idx={i}
 							hoveredIdx={hoveredIdx}
 							setHoveredIdx={setHoveredIdx}
-							isRunning={runningThreadIds.has(pastThread.id)}
+							isRunning={runningThreadIds[pastThread.id]}
 						/>
 					);
 				})
@@ -289,7 +290,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	idx: number,
 	hoveredIdx: number | null,
 	setHoveredIdx: (idx: number | null) => void,
-	isRunning: boolean,
+	isRunning: IsRunningType | undefined,
 }
 
 ) => {
@@ -361,7 +362,11 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 		<div className="flex items-center justify-between gap-1">
 			<span className="flex items-center gap-2 min-w-0 overflow-hidden">
 				{/* spinner */}
-				{isRunning ? <LoaderCircle className="animate-spin bg-void-stroke-1" size={14} /> : null}
+				{isRunning === 'LLM' || isRunning === 'tool' ? <LoaderCircle className="animate-spin bg-void-stroke-1 flex-shrink-0 flex-grow-0" size={14} />
+					:
+					isRunning === 'awaiting_user' ? <MessageCircleQuestion className="bg-void-stroke-1 flex-shrink-0 flex-grow-0" size={14} />
+						:
+						null}
 				{/* name */}
 				<span className="truncate overflow-hidden text-ellipsis">{firstMsg}</span>
 			</span>

@@ -18,7 +18,7 @@ export interface ITerminalToolService {
 	readonly _serviceBrand: undefined;
 
 	listTerminalIds(): string[];
-	runCommand(command: string, bgTerminalId: string | null): Promise<{ result: string, resolveReason: TerminalResolveReason }>;
+	runCommand(command: string, bgTerminalId: string | null): Promise<{ terminalId: string, resPromise: Promise<{ result: string, resolveReason: TerminalResolveReason }> }>;
 	focusTerminal(terminalId: string): Promise<void>
 	terminalExists(terminalId: string): boolean
 
@@ -178,76 +178,82 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		}
 
 
-		// focus the terminal about to run
-		this.terminalService.setActiveInstance(terminal)
-		await this.terminalService.focusActiveInstance()
+		const waitForResult = async () => {
+			// focus the terminal about to run
+			this.terminalService.setActiveInstance(terminal)
+			await this.terminalService.focusActiveInstance()
 
-		let result: string = ''
-		let resolveReason: TerminalResolveReason | undefined = undefined
-
-
-		// create this before we send so that  we don't miss events on terminal
-		const waitUntilDone = new Promise<void>((res, rej) => {
-			const d2 = terminal.onData(async newData => {
-				if (resolveReason) return
-				result += newData
-				// onDone
-				const isDone = isCommandComplete(result)
-				if (isDone) {
-					resolveReason = { type: 'done', exitCode: isDone.exitCode }
-					res()
-					return
-				}
-			})
-			disposables.push(d2)
-		})
+			let result: string = ''
+			let resolveReason: TerminalResolveReason | undefined = undefined
 
 
-		// send the command here
-		await terminal.sendText(command, true)
-
-
-		// inactivity-based timeout
-		const waitUntilInactive = new Promise<void>(res => {
-			let globalTimeoutId: ReturnType<typeof setTimeout>;
-			const resetTimer = () => {
-				clearTimeout(globalTimeoutId);
-				globalTimeoutId = setTimeout(() => {
+			// create this before we send so that  we don't miss events on terminal
+			const waitUntilDone = new Promise<void>((res, rej) => {
+				const d2 = terminal.onData(async newData => {
 					if (resolveReason) return
+					result += newData
+					// onDone
+					const isDone = isCommandComplete(result)
+					if (isDone) {
+						resolveReason = { type: 'done', exitCode: isDone.exitCode }
+						res()
+						return
+					}
+				})
+				disposables.push(d2)
+			})
 
-					resolveReason = { type: 'timeout' };
-					res();
-				}, MAX_TERMINAL_INACTIVE_TIME * 1000);
-			};
 
-			const dTimeout = terminal.onData(() => { resetTimer(); });
-			disposables.push(dTimeout, toDisposable(() => clearTimeout(globalTimeoutId)));
-			resetTimer();
-		});
+			// send the command here
+			await terminal.sendText(command, true)
 
-		// wait for result
-		await Promise.any([waitUntilDone, waitUntilInactive,])
+			// inactivity-based timeout
+			const waitUntilInactive = new Promise<void>(res => {
+				let globalTimeoutId: ReturnType<typeof setTimeout>;
+				const resetTimer = () => {
+					clearTimeout(globalTimeoutId);
+					globalTimeoutId = setTimeout(() => {
+						if (resolveReason) return
 
-		disposables.forEach(d => d.dispose())
-		if (!isBG) {
-			await this.killTerminal(terminalId)
+						resolveReason = { type: 'timeout' };
+						res();
+					}, MAX_TERMINAL_INACTIVE_TIME * 1000);
+				};
+
+				const dTimeout = terminal.onData(() => { resetTimer(); });
+				disposables.push(dTimeout, toDisposable(() => clearTimeout(globalTimeoutId)));
+				resetTimer();
+			});
+
+			// wait for result
+			await Promise.any([waitUntilDone, waitUntilInactive,])
+
+			disposables.forEach(d => d.dispose())
+			if (!isBG) {
+				await this.killTerminal(terminalId)
+			}
+
+			if (!resolveReason) throw new Error('Unexpected internal error: Promise.any should have resolved with a reason.')
+
+			result = removeAnsiEscapeCodes(result)
+				.split('\n').slice(1, -1) // remove first and last line (first = command, last = andrewpareles/void %)
+				.join('\n')
+
+			if (result.length > MAX_TERMINAL_CHARS) {
+				const half = MAX_TERMINAL_CHARS / 2
+				result = result.slice(0, half)
+					+ '\n...\n'
+					+ result.slice(result.length - half, Infinity)
+			}
+
+			return { result, resolveReason }
+
 		}
+		const resPromise = waitForResult()
 
-		if (!resolveReason) throw new Error('Unexpected internal error: Promise.any should have resolved with a reason.')
-
-		result = removeAnsiEscapeCodes(result)
-			.split('\n').slice(1, -1) // remove first and last line (first = command, last = andrewpareles/void %)
-			.join('\n')
-
-		if (result.length > MAX_TERMINAL_CHARS) {
-			const half = MAX_TERMINAL_CHARS / 2
-			result = result.slice(0, half)
-				+ '\n...\n'
-				+ result.slice(result.length - half, Infinity)
-		}
-
-		return { result, resolveReason }
+		return { terminalId, resPromise }
 	}
+
 
 }
 

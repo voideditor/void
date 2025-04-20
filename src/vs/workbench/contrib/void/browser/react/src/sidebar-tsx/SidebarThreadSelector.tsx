@@ -3,11 +3,11 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { useState } from 'react';
-import { IconShell1 } from '../markdown/ApplyBlockHoverButtons.js';
-import { useAccessor, useChatThreadsState } from '../util/services.js';
+import { useMemo, useState } from 'react';
+import { CopyButton, IconShell1 } from '../markdown/ApplyBlockHoverButtons.js';
+import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useFullChatThreadsStreamState, useSettingsState } from '../util/services.js';
 import { IconX } from './SidebarChat.js';
-import { Check, Trash2, X } from 'lucide-react';
+import { Check, LoaderCircle, Trash2, X } from 'lucide-react';
 import { ThreadType } from '../../../chatThreadService.js';
 
 
@@ -153,6 +153,13 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 	const threadsState = useChatThreadsState()
 	const { allThreads } = threadsState
 
+	const streamState = useFullChatThreadsStreamState()
+
+	const runningThreadIds = new Set<string>()
+	for (const threadId in streamState) {
+		if (streamState[threadId]?.isRunning) { runningThreadIds.add(threadId) }
+	}
+
 	if (!allThreads) {
 		return <div key="error" className="p-1">{`Error accessing chat history.`}</div>;
 	}
@@ -183,6 +190,7 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 							idx={i}
 							hoveredIdx={hoveredIdx}
 							setHoveredIdx={setHoveredIdx}
+							isRunning={runningThreadIds.has(pastThread.id)}
 						/>
 					);
 				})
@@ -276,12 +284,45 @@ const TrashButton = ({ threadId }: { threadId: string }) => {
 	)
 }
 
-const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx }: { pastThread: ThreadType, idx: number, hoveredIdx: number | null, setHoveredIdx: (idx: number | null) => void }) => {
+const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunning }: {
+	pastThread: ThreadType,
+	idx: number,
+	hoveredIdx: number | null,
+	setHoveredIdx: (idx: number | null) => void,
+	isRunning: boolean,
+}
+
+) => {
 
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const sidebarStateService = accessor.get('ISidebarStateService')
+
+	// const settingsState = useSettingsState()
+	// const convertService = accessor.get('IConvertToLLMMessageService')
+	// const chatMode = settingsState.globalSettings.chatMode
+	// const modelSelection = settingsState.modelSelectionOfFeature?.Chat ?? null
+	// const copyChatButton = <CopyButton
+	// 	codeStr={async () => {
+	// 		const { messages } = await convertService.prepareLLMChatMessages({
+	// 			chatMessages: currentThread.messages,
+	// 			chatMode,
+	// 			modelSelection,
+	// 		})
+	// 		return JSON.stringify(messages, null, 2)
+	// 	}}
+	// 	toolTipName={modelSelection === null ? 'Copy As Messages Payload' : `Copy As ${displayInfoOfProviderName(modelSelection.providerName).title} Payload`}
+	// />
+
+
+	// const currentThread = chatThreadsService.getCurrentThread()
+	// const copyChatButton2 = <CopyButton
+	// 	codeStr={async () => {
+	// 		return JSON.stringify(currentThread.messages, null, 2)
+	// 	}}
+	// 	toolTipName={`Copy As Void Chat`}
+	// />
 
 	let firstMsg = null;
 	const firstUserMsgIdx = pastThread.messages.findIndex((msg) => msg.role === 'user');
@@ -319,13 +360,21 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx }: { pas
 	>
 		<div className="flex items-center justify-between gap-1">
 			<span className="flex items-center gap-2 min-w-0 overflow-hidden">
+				{/* spinner */}
+				{isRunning ? <LoaderCircle className="animate-spin bg-void-stroke-1" size={14} /> : null}
+				{/* name */}
 				<span className="truncate overflow-hidden text-ellipsis">{firstMsg}</span>
 			</span>
 
 			<div className="flex items-center gap-2 opacity-60">
 				{idx === hoveredIdx ?
-					<TrashButton threadId={pastThread.id} />
-					: detailsHTML
+					<>
+						{/* trash icon */}
+						<TrashButton threadId={pastThread.id} />
+					</>
+					: <>
+						{detailsHTML}
+					</>
 				}
 			</div>
 		</div>

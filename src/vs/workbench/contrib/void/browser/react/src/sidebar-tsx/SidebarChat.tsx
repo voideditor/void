@@ -6,7 +6,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState } from '../util/services.js';
+import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState, useFullChatThreadsStreamState } from '../util/services.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
@@ -2131,7 +2131,13 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 const Checkpoint = ({ message, threadId, messageIdx, isCheckpointGhost, threadIsRunning }: { message: CheckpointEntry, threadId: string; messageIdx: number, isCheckpointGhost: boolean, threadIsRunning: boolean }) => {
 	const accessor = useAccessor()
 	const chatThreadService = accessor.get('IChatThreadService')
-	const [showCheckpointIcon, setShowCheckpointIcon] = React.useState(false); // add icon state
+	const streamState = useFullChatThreadsStreamState()
+
+	const isRunning = useChatThreadsStreamState(threadId)?.isRunning
+	const isDisabled = useMemo(() => {
+		if (isRunning) return true
+		return !!Object.keys(streamState).find((threadId2) => streamState[threadId2]?.isRunning)
+	}, [isRunning, streamState])
 
 	return <div
 		className={`flex items-center justify-center px-2 `}
@@ -2140,18 +2146,25 @@ const Checkpoint = ({ message, threadId, messageIdx, isCheckpointGhost, threadIs
 			className={`
                     text-xs
                     text-void-fg-3
-                    cursor-pointer select-none
+                    select-none
                     ${isCheckpointGhost ? 'opacity-50' : 'opacity-100'}
+					${isDisabled ? 'cursor-default' : 'cursor-pointer'}
                 `}
 			style={{ position: 'relative', display: 'inline-block' }} // allow absolute icon
 			onClick={() => {
 				if (threadIsRunning) return
+				if (isDisabled) return
 				chatThreadService.jumpToCheckpointBeforeMessageIdx({
 					threadId,
 					messageIdx,
 					jumpToUserModified: messageIdx === (chatThreadService.state.allThreads[threadId]?.messages.length ?? 0) - 1
 				})
 			}}
+			{...isDisabled ? {
+				'data-tooltip-id': 'void-tooltip',
+				'data-tooltip-content': `Disabled ${isRunning ? 'when running' : 'because another thread is running'}`,
+				'data-tooltip-place': 'left',
+			} : {}}
 		>
 			Checkpoint
 		</div>
@@ -2296,38 +2309,9 @@ const CommandBarInChat = () => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const commandService = accessor.get('ICommandService')
-	const chatThreadsService = accessor.get('IChatThreadService')
 	const chatThreadsState = useChatThreadsState()
 	const commandBarState = useCommandBarState()
 	const chatThreadsStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
-
-	const settingsState = useSettingsState()
-	const convertService = accessor.get('IConvertToLLMMessageService')
-
-
-
-	const currentThread = chatThreadsService.getCurrentThread()
-	const chatMode = settingsState.globalSettings.chatMode
-	const modelSelection = settingsState.modelSelectionOfFeature?.Chat ?? null
-
-	const copyChatButton = <CopyButton
-		codeStr={async () => {
-			const { messages } = await convertService.prepareLLMChatMessages({
-				chatMessages: currentThread.messages,
-				chatMode,
-				modelSelection,
-			})
-			return JSON.stringify(messages, null, 2)
-		}}
-		toolTipName={modelSelection === null ? 'Copy As Messages Payload' : `Copy As ${displayInfoOfProviderName(modelSelection.providerName).title} Payload`}
-	/>
-
-	const copyChatButton2 = <CopyButton
-		codeStr={async () => {
-			return JSON.stringify(currentThread.messages, null, 2)
-		}}
-		toolTipName={`Copy As Void Chat`}
-	/>
 
 	// (
 	// 	<IconShell1

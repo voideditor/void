@@ -27,7 +27,7 @@ import { IVoidSettingsService } from '../common/voidSettingsService.js'
 
 
 type ValidateParams = { [T in ToolName]: (p: RawToolParamsObj) => ToolCallParams[T] }
-type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T], interruptTool?: () => void }> }
+type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T] | Promise<ToolResultType[T]>, interruptTool?: () => void }> }
 type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awaited<ToolResultType[T]>) => string }
 
 
@@ -388,8 +388,11 @@ export class ToolsService implements IToolsService {
 			},
 			// ---
 			run_terminal: async ({ command, bgTerminalId }) => {
-				const { result, resolveReason } = await this.terminalToolService.runCommand(command, bgTerminalId)
-				return { result: { result, resolveReason } }
+				const { terminalId, resPromise } = await this.terminalToolService.runCommand(command, bgTerminalId)
+				const interruptTool = () => {
+					this.terminalToolService.killTerminal(terminalId)
+				}
+				return { result: resPromise, interruptTool }
 			},
 			open_bg_terminal: async () => {
 				// Open a new background terminal without waiting for completion

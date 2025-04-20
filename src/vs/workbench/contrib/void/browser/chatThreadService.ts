@@ -345,6 +345,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			else throw new Error(`setStreamState`)
 		}
 
+		console.log('changeStreamState', threadId, state)
 		this._onDidChangeStreamState.fire({ threadId })
 	}
 
@@ -1202,7 +1203,8 @@ We only need to do it for files that were edited since `from`, ie files between 
 			let uris: URI[] = []
 			try {
 				const { result } = await this._toolsService.callTool['search_pathnames_only']({ query: target, includePattern: null, pageNumber: 0 })
-				uris = result.uris
+				const { uris: uris_ } = await result
+				uris = uris_
 			} catch (e) {
 				return null
 			}

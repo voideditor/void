@@ -214,22 +214,22 @@ Here's an example of a good description:\n${editToolDescriptionExample}`
 		},
 	},
 
-	run_terminal: {
-		name: 'run_terminal',
+	run_command: {
+		name: 'run_command',
 		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor like vim, you might need to pipe to cat to get all results.`,
 		params: {
 			command: { description: 'The terminal command to run.' },
-			bg_terminal_id: { description: 'Optional. This only applies to terminals that have been opened with open_bg_terminal. Runs the command in the terminal with the specified ID.' },
+			bg_terminal_id: { description: 'Optional. This only applies to terminals that have been opened with open_persistent_terminal. Runs the command in the terminal with the specified ID.' },
 		},
 	},
 
-	open_bg_terminal: {
-		name: 'open_bg_terminal',
+	open_persistent_terminal: {
+		name: 'open_persistent_terminal',
 		description: `Use this tool when you want to run a terminal command indefinitely, like a dev server (eg \`npm run dev\`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.`,
 		params: {}
 	},
-	kill_bg_terminal: {
-		name: 'kill_bg_terminal',
+	kill_persistent_terminal: {
+		name: 'kill_persistent_terminal',
 		description: `Closes a BG terminal with the given ID.`,
 		params: { terminal_id: { description: `The terminal ID to interrupt and close.` } }
 	}
@@ -518,9 +518,9 @@ ${DIVIDER}
 ${FINAL}
 ${tripleTick[1]}
 
-1. Every single item written in \`CHANGE\` should show up in the final result, except for comments explicitly saying things like "// ... existing code". Make sure to include ALL other comments (even descriptive ones), code, whitespace, etc. in the final result.
+1. Your SEARCH/REPLACE block(s) must implement the change EXACTLY.
 
-2. Your SEARCH/REPLACE block(s) must implement the change EXACTLY. You should use comments like "// ... existing code" as reference points, and everything else in the change should be written verbatim.
+2. Assume any comments in the diff are PART OF THE CHANGE. Include them in the output.
 
 3. You are allowed to output multiple SEARCH/REPLACE blocks.
 

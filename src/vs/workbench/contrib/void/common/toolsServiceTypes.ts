@@ -20,7 +20,7 @@ export const approvalTypeOfToolName: Partial<{ [T in ToolName]?: 'edits' | 'term
 	'create_file_or_folder': 'edits',
 	'delete_file_or_folder': 'edits',
 	'edit_file': 'edits',
-	'run_terminal': 'terminal',
+	'run_command': 'terminal',
 }
 
 
@@ -46,9 +46,9 @@ export type ToolCallParams = {
 	'create_file_or_folder': { uri: URI, isFolder: boolean },
 	'delete_file_or_folder': { uri: URI, isRecursive: boolean, isFolder: boolean },
 	// ---
-	'run_terminal': { command: string; bgTerminalId: string | null },
-	'open_bg_terminal': {},
-	'kill_bg_terminal': { terminalId: string },
+	'run_command': { command: string; bgTerminalId: string | null },
+	'open_persistent_terminal': {},
+	'kill_persistent_terminal': { terminalId: string },
 }
 
 // RESULT OF TOOL CALL
@@ -65,8 +65,8 @@ export type ToolResultType = {
 	'create_file_or_folder': {},
 	'delete_file_or_folder': {},
 	// ---
-	'run_terminal': { result: string; resolveReason: TerminalResolveReason; },
-	'open_bg_terminal': { terminalId: string },
-	'kill_bg_terminal': {},
+	'run_command': { result: string; resolveReason: TerminalResolveReason; },
+	'open_persistent_terminal': { terminalId: string },
+	'kill_persistent_terminal': {},
 }
 

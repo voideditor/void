@@ -202,6 +202,10 @@ export interface IChatThreadService {
 	getCurrentFocusedMessageIdx(): number | undefined;
 	isCurrentlyFocusingMessage(): boolean;
 	setCurrentlyFocusedMessageIdx(messageIdx: number | undefined): void;
+
+	dangerousSetState: (newState: ThreadsState) => void;
+	resetState: () => void;
+
 	// // current thread's staging selections
 	// closeCurrentStagingSelectionsInMessage(opts: { messageIdx: number }): void;
 	// closeCurrentStagingSelectionsInThread(): void;
@@ -292,6 +296,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	}
 
+
+	dangerousSetState = (newState: ThreadsState) => {
+		this.state = newState
+		this._onDidChangeCurrentThread.fire()
+	}
+	resetState = () => {
+		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // see constructor
+		this.openNewThread()
+		this._onDidChangeCurrentThread.fire()
+	}
 
 	// !!! this is important for properly restoring URIs from storage
 	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough
@@ -499,7 +513,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			if (approvalType) {
 				const autoApprove = this._settingsService.state.globalSettings.autoApprove[approvalType]
 				// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)
-				this._addMessageToThread(threadId, { role: 'tool', type: 'tool_request', content: '(never)', result: null, name: toolName, params: toolParams, id: toolId, rawParams: opts.unvalidatedToolParams })
+				this._addMessageToThread(threadId, { role: 'tool', type: 'tool_request', content: '(Awaiting user permission...)', result: null, name: toolName, params: toolParams, id: toolId, rawParams: opts.unvalidatedToolParams })
 				if (!autoApprove) {
 					return { awaitingUserApproval: true }
 				}
@@ -679,8 +693,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					// stop if interrupted. we don't have to do this for llmMessage because we have a stream token for it and onAbort gets called, but we don't have the equivalent for tools.
 					// just detect tool interruption which is the same as chat interruption right now
 					if (interrupted) { return }
+					if (aborted) { return }
 
 					if (awaitingUserApproval) {
+						console.log('awaiting...')
 						isRunningWhenEnd = 'awaiting_user'
 					}
 					else {
@@ -690,7 +706,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			} // end while (attempts)
 		} // end while (send message)
-
 
 		// if awaiting user approval, keep isRunning true, else end isRunning
 		this._setStreamState(threadId, { isRunning: isRunningWhenEnd }, 'merge')

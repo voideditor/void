@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
@@ -17,7 +17,7 @@ import { WarningBox } from './WarningBox.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
 import { IconLoading } from '../sidebar-tsx/SidebarChat.js'
 import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js'
-
+import Severity from '../../../../../../../base/common/severity.js'
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
@@ -166,14 +166,14 @@ export const AddModelInputBox = ({ providerName: permanentProviderName, classNam
 	const [showCheckmark, setShowCheckmark] = useState(false)
 
 	// const providerNameRef = useRef<ProviderName | null>(null)
-	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName>('anthropic')
+	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName | null>(null)
 
 	const providerName = permanentProviderName ?? userChosenProviderName;
 
 	const [modelName, setModelName] = useState<string>('')
 	const [errorString, setErrorString] = useState('')
 
-	const numModels = settingsState.settingsOfProvider[providerName].models.length
+	const numModels = providerName === null ? 0 : settingsState.settingsOfProvider[providerName].models.length
 
 	if (showCheckmark) {
 		return <AnimatedCheckmarkButton text='Added' className={`bg-[#0e70c0] text-white dark:text-black px-3 py-1 rounded-sm ${className}`} />
@@ -199,59 +199,66 @@ export const AddModelInputBox = ({ providerName: permanentProviderName, classNam
 			<button onClick={() => { setIsOpen(false) }} className='text-void-fg-4'><X className='size-4' /></button> */}
 
 			{/* provider input */}
-			{!permanentProviderName &&
-				<VoidCustomDropdownBox
-					options={providerNames}
-					selectedOption={providerName}
-					onChangeOption={(pn) => setUserChosenProviderName(pn)}
-					getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
-					getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
-					getOptionsEqual={(a, b) => a === b}
-					// className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root py-[4px] px-[6px]`}
-					className={`max-w-32 mx-2 w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1 py-1 px-2 rounded`}
-					arrowTouchesText={false}
-				/>
-			}
+			<ErrorBoundary>
+				{!permanentProviderName &&
+					<VoidCustomDropdownBox
+						options={providerNames}
+						selectedOption={providerName}
+						onChangeOption={(pn) => setUserChosenProviderName(pn)}
+						getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
+						getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
+						getOptionsEqual={(a, b) => a === b}
+						// className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root py-[4px] px-[6px]`}
+						className={`max-w-32 mx-2 w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1 py-1 px-2 rounded`}
+						arrowTouchesText={false}
+					/>
+				}
+			</ErrorBoundary>
+
 
 			{/* model input */}
-			<VoidSimpleInputBox
-				value={modelName}
-				onChangeValue={setModelName}
-				placeholder='Model Name'
-				compact={compact}
-				className={'max-w-32'}
-			/>
+			<ErrorBoundary>
+				<VoidSimpleInputBox
+					value={modelName}
+					onChangeValue={setModelName}
+					placeholder='Model Name'
+					compact={compact}
+					className={'max-w-32'}
+				/>
+			</ErrorBoundary>
 
 			{/* add button */}
-			<AddButton
-				type='submit'
-				disabled={!modelName}
-				onClick={(e) => {
-					if (providerName === null) {
-						setErrorString('Please select a provider.')
-						return
-					}
-					if (!modelName) {
-						setErrorString('Please enter a model name.')
-						return
-					}
-					// if model already exists here
-					if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
-						// setErrorString(`This model already exists under ${providerName}.`)
-						setErrorString(`This model already exists.`)
-						return
-					}
+			<ErrorBoundary>
+				<AddButton
+					type='submit'
+					disabled={!modelName}
+					onClick={(e) => {
+						if (providerName === null) {
+							setErrorString('Please select a provider.')
+							return
+						}
+						if (!modelName) {
+							setErrorString('Please enter a model name.')
+							return
+						}
+						// if model already exists here
+						if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
+							// setErrorString(`This model already exists under ${providerName}.`)
+							setErrorString(`This model already exists.`)
+							return
+						}
 
-					settingsStateService.addModel(providerName, modelName)
-					setShowCheckmark(true)
-					setTimeout(() => {
-						setShowCheckmark(false)
-						setIsOpen(false)
-					}, 1500)
-					setErrorString('')
-					setModelName('')
-				}}
-			/>
+						settingsStateService.addModel(providerName, modelName)
+						setShowCheckmark(true)
+						setTimeout(() => {
+							setShowCheckmark(false)
+							setIsOpen(false)
+						}, 1500)
+						setErrorString('')
+						setModelName('')
+					}}
+				/>
+			</ErrorBoundary>
 
 
 		</form>
@@ -552,18 +559,20 @@ const FastApplyMethodDropdown = () => {
 }
 
 
-export const ollamaSetupInstructions = <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm list-decimal select-text'>
-	<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
-	<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
-	<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
-	<div
-		className='pl-6 flex items-center w-fit'
-		data-tooltip-id='void-tooltip-ollama-settings'
-	>
-		<ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} />
+export const OllamaSetupInstructions = () => {
+	return <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm list-decimal select-text'>
+		<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
+		<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
+		<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
+		<div
+			className='pl-6 flex items-center w-fit'
+			data-tooltip-id='void-tooltip-ollama-settings'
+		>
+			<ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} />
+		</div>
+		<div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>
 	</div>
-	<div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>
-</div>
+}
 
 
 const RedoOnboardingButton = ({ className }: { className?: string }) => {
@@ -823,6 +832,70 @@ export const Settings = () => {
 	const nativeHostService = accessor.get('INativeHostService')
 	const settingsState = useSettingsState()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const chatThreadsService = accessor.get('IChatThreadService')
+	const notificationService = accessor.get('INotificationService')
+
+	const onDownload = (t: 'Chats' | 'Settings') => {
+		let dataStr: string
+		let downloadName: string
+		if (t === 'Chats') {
+			dataStr = JSON.stringify(voidSettingsService.state, null, 2)
+			downloadName = 'void-chats.json'
+		}
+		else if (t === 'Settings') {
+			dataStr = JSON.stringify(chatThreadsService.state, null, 2)
+			downloadName = 'void-settings.json'
+		}
+		else {
+			dataStr = ''
+			downloadName = ''
+		}
+
+		const blob = new Blob([dataStr], { type: 'application/json' })
+		const url = URL.createObjectURL(blob)
+		const a = document.createElement('a')
+		a.href = url
+		a.download = downloadName
+		a.click()
+		URL.revokeObjectURL(url)
+	}
+
+
+	// Add file input refs
+	const fileInputSettingsRef = useRef<HTMLInputElement>(null)
+	const fileInputChatsRef = useRef<HTMLInputElement>(null)
+
+	const [s, ss] = useState(0)
+
+	const handleUpload = (t: 'Chats' | 'Settings') => (e: React.ChangeEvent<HTMLInputElement>,) => {
+		const files = e.target.files
+		if (!files) return;
+		const file = files[0]
+		if (!file) return
+
+		const reader = new FileReader();
+		reader.onload = () => {
+			try {
+				const json = JSON.parse(reader.result as string);
+
+				if (t === 'Chats') {
+					chatThreadsService.dangerousSetState(json as any)
+				}
+				else if (t === 'Settings') {
+					voidSettingsService.dangerousSetState(json as any)
+				}
+
+				notificationService.info(`${t} imported successfully!`)
+			} catch (err) {
+				notificationService.notify({ message: `Failed to import ${t}`, source: err + '', severity: Severity.Error, })
+			}
+		};
+		reader.readAsText(file);
+		e.target.value = '';
+
+		ss(s => s + 1)
+	}
+
 
 	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
 		<div className='overflow-y-auto w-full h-full px-10 py-10 select-none'>
@@ -833,6 +906,34 @@ export const Settings = () => {
 
 				{/* separator */}
 				<div className='w-full h-[1px] my-4' />
+
+				{/* Download & Upload Settings and Chats */}
+				<div className='flex gap-2 mb-6'>
+					<input key={2 * s} ref={fileInputSettingsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Settings')} />
+					<VoidButtonBgDarken className='px-4 py-2' onClick={() => { fileInputSettingsRef.current?.click() }}>
+						Upload Settings
+					</VoidButtonBgDarken>
+					<VoidButtonBgDarken className='px-4 py-2' onClick={() => onDownload('Settings')}>
+						Download Settings
+					</VoidButtonBgDarken>
+
+
+					<input key={2 * s + 1} ref={fileInputChatsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Chats')} />
+					<VoidButtonBgDarken className='px-4 py-2' onClick={() => { fileInputChatsRef.current?.click() }}>
+						Upload Chats
+					</VoidButtonBgDarken>
+					<VoidButtonBgDarken className='px-4 py-2' onClick={() => onDownload('Chats')}>
+						Download Chats
+					</VoidButtonBgDarken>
+
+
+					<VoidButtonBgDarken className='px-4 py-2' onClick={() => { voidSettingsService.resetState() }}>
+						Reset Settings
+					</VoidButtonBgDarken>
+					<VoidButtonBgDarken className='px-4 py-2' onClick={() => { chatThreadsService.resetState() }}>
+						Reset Chats
+					</VoidButtonBgDarken>
+				</div>
 
 				{/* Models section (formerly FeaturesTab) */}
 				<ErrorBoundary>
@@ -849,7 +950,7 @@ export const Settings = () => {
 				<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
 
 				<div className='opacity-80 mb-4'>
-					{ollamaSetupInstructions}
+					<OllamaSetupInstructions />
 				</div>
 
 				<ErrorBoundary>

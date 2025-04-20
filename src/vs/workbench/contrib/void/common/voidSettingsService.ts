@@ -62,6 +62,9 @@ export interface IVoidSettingsService {
 	setOptionsOfModelSelection: SetOptionsOfModelSelection;
 	setGlobalSetting: SetGlobalSettingFn;
 
+	dangerousSetState(newState: VoidSettingsState): Promise<void>;
+	resetState(): Promise<void>;
+
 	setAutodetectedModels(providerName: ProviderName, modelNames: string[], logging: object): void;
 	toggleModelHidden(providerName: ProviderName, modelName: string): void;
 	addModel(providerName: ProviderName, modelName: string): void;
@@ -230,6 +233,22 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		this.readAndInitializeState()
 	}
+
+
+
+
+	dangerousSetState = async (newState: VoidSettingsState) => {
+		this.state = _validatedModelState(newState)
+		await this._storeState()
+		this._onDidChangeState.fire()
+		this._onUpdate_syncApplyToChat()
+	}
+	async resetState() {
+		await this.dangerousSetState(defaultState())
+	}
+
+
+
 
 	async readAndInitializeState() {
 		let readS: VoidSettingsState

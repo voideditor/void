@@ -1228,9 +1228,9 @@ const titleOfToolName = {
 	'create_file_or_folder': { done: `Created`, proposed: `Create`, running: loadingTitleWrapper(`Creating`) },
 	'delete_file_or_folder': { done: `Deleted`, proposed: `Delete`, running: loadingTitleWrapper(`Deleting`) },
 	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
-	'run_terminal': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
-	'open_bg_terminal': { done: `Opened terminal`, proposed: 'Open terminal', running: loadingTitleWrapper('Opening terminal') },
-	'kill_bg_terminal': { done: `Killed terminal`, proposed: 'Kill terminal', running: loadingTitleWrapper('Killing terminal') },
+	'run_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
+	'open_persistent_terminal': { done: `Opened terminal`, proposed: 'Open terminal', running: loadingTitleWrapper('Opening terminal') },
+	'kill_persistent_terminal': { done: `Killed terminal`, proposed: 'Kill terminal', running: loadingTitleWrapper('Killing terminal') },
 	'read_lint_errors': { done: `Read lint errors`, proposed: 'Read lint errors', running: loadingTitleWrapper('Reading lint errors') },
 	'search_in_file': { done: 'Searched in file', proposed: 'Search in file', running: loadingTitleWrapper('Searching in file') },
 } as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
@@ -1310,19 +1310,19 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 				desc1Info: getRelative(toolParams.uri, accessor),
 			}
 		},
-		'run_terminal': () => {
-			const toolParams = _toolParams as ToolCallParams['run_terminal']
+		'run_command': () => {
+			const toolParams = _toolParams as ToolCallParams['run_command']
 			return {
 				desc1: `"${toolParams.command}"`,
 				desc1Info: toolParams.bgTerminalId
 			}
 		},
-		'open_bg_terminal': () => {
-			const toolParams = _toolParams as ToolCallParams['open_bg_terminal']
+		'open_persistent_terminal': () => {
+			const toolParams = _toolParams as ToolCallParams['open_persistent_terminal']
 			return { desc1: '' }
 		},
-		'kill_bg_terminal': () => {
-			const toolParams = _toolParams as ToolCallParams['kill_bg_terminal']
+		'kill_persistent_terminal': () => {
+			const toolParams = _toolParams as ToolCallParams['kill_persistent_terminal']
 			return { desc1: toolParams.terminalId }
 		},
 		'get_dir_tree': () => {
@@ -2045,7 +2045,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 	// ---
 
-	'run_terminal': {
+	'run_command': {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
@@ -2091,26 +2091,16 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 					componentParams.desc2 = `(terminal ${params.bgTerminalId})`
 
 			}
-			else if (toolMessage.type === 'rejected' || toolMessage.type === 'tool_error') {
-				if (params) {
-					const { bgTerminalId, command } = params
-					if (bgTerminalId) {
-						componentParams.desc2 = '(persistent terminal)'
-						if (terminalToolsService.terminalExists(bgTerminalId))
-							componentParams.onClick = () => terminalToolsService.focusTerminal(bgTerminalId)
-					}
-				}
-				if (toolMessage.type === 'tool_error') {
-					const { result } = toolMessage
-					componentParams.children = <ToolChildrenWrapper>{result}</ToolChildrenWrapper>
-				}
-			}
-			else if (toolMessage.type === 'running_now' || toolMessage.type === 'tool_request') {
-				const { bgTerminalId } = toolMessage.params
+			else if (toolMessage.type === 'rejected' || toolMessage.type === 'tool_error' || toolMessage.type === 'running_now' || toolMessage.type === 'tool_request') {
+				const { bgTerminalId, command } = params
 				if (bgTerminalId) {
 					componentParams.desc2 = '(persistent terminal)'
 					if (terminalToolsService.terminalExists(bgTerminalId))
 						componentParams.onClick = () => terminalToolsService.focusTerminal(bgTerminalId)
+				}
+				if (toolMessage.type === 'tool_error') {
+					const { result } = toolMessage
+					componentParams.children = <ToolChildrenWrapper>{result}</ToolChildrenWrapper>
 				}
 			}
 
@@ -2118,9 +2108,10 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 		}
 	},
 
-	'open_bg_terminal': {
+	'open_persistent_terminal': {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
+			const terminalToolsService = accessor.get('ITerminalToolService')
 
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
 			const title = getTitle(toolMessage)
@@ -2136,6 +2127,12 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
+				const { terminalId } = result
+				if (terminalId) {
+					componentParams.desc2 = `(terminal ${terminalId})`
+					if (terminalToolsService.terminalExists(terminalId))
+						componentParams.onClick = () => terminalToolsService.focusTerminal(terminalId)
+				}
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
@@ -2149,7 +2146,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			return <ToolHeaderWrapper {...componentParams} />
 		},
 	},
-	'kill_bg_terminal': {
+	'kill_persistent_terminal': {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')

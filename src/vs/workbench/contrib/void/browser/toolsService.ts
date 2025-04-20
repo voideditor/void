@@ -250,17 +250,17 @@ export class ToolsService implements IToolsService {
 
 			// ---
 
-			run_terminal: (params: RawToolParamsObj) => {
+			run_command: (params: RawToolParamsObj) => {
 				const { command: commandUnknown, terminal_id: terminalIdUnknown } = params;
 				const command = validateStr('command', commandUnknown);
 				const proposedTerminalId = terminalIdUnknown ? validateProposedTerminalId(terminalIdUnknown) : null;
 				return { command, bgTerminalId: proposedTerminalId };
 			},
-			open_bg_terminal: (_params: RawToolParamsObj) => {
+			open_persistent_terminal: (_params: RawToolParamsObj) => {
 				// No parameters needed; will open a new background terminal
 				return {};
 			},
-			kill_bg_terminal: (params: RawToolParamsObj) => {
+			kill_persistent_terminal: (params: RawToolParamsObj) => {
 				const { terminal_id: terminalIdUnknown } = params;
 				const terminalId = validateProposedTerminalId(terminalIdUnknown);
 				return { terminalId };
@@ -414,19 +414,19 @@ export class ToolsService implements IToolsService {
 				return { result: lintErrorsPromise, interruptTool }
 			},
 			// ---
-			run_terminal: async ({ command, bgTerminalId }) => {
+			run_command: async ({ command, bgTerminalId }) => {
 				const { terminalId, resPromise } = await this.terminalToolService.runCommand(command, bgTerminalId)
 				const interruptTool = () => {
 					this.terminalToolService.killTerminal(terminalId)
 				}
 				return { result: resPromise, interruptTool }
 			},
-			open_bg_terminal: async () => {
+			open_persistent_terminal: async () => {
 				// Open a new background terminal without waiting for completion
 				const terminalId = await this.terminalToolService.createTerminal()
 				return { result: { terminalId } }
 			},
-			kill_bg_terminal: async ({ terminalId }) => {
+			kill_persistent_terminal: async ({ terminalId }) => {
 				// Close the background terminal by sending exit
 				await this.terminalToolService.killTerminal(terminalId)
 				return { result: {} }
@@ -492,7 +492,7 @@ export class ToolsService implements IToolsService {
 
 				return `Change successfully made to ${params.uri.fsPath}.${lintErrsString}`
 			},
-			run_terminal: (params, result) => {
+			run_command: (params, result) => {
 				const {
 					resolveReason,
 					result: result_,
@@ -520,11 +520,11 @@ export class ToolsService implements IToolsService {
 
 				throw new Error(`Unexpected internal error: Terminal command did not resolve with a valid reason.`)
 			},
-			open_bg_terminal: (_params, result) => {
+			open_persistent_terminal: (_params, result) => {
 				const { terminalId } = result;
 				return `Successfully created background terminal with ID ${terminalId}`;
 			},
-			kill_bg_terminal: (params, _result) => {
+			kill_persistent_terminal: (params, _result) => {
 				return `Successfully closed terminal ${params.terminalId}.`;
 			},
 

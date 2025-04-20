@@ -195,14 +195,23 @@ export class ToolsService implements IToolsService {
 					is_regex: isRegexUnknown,
 					page_number: pageNumberUnknown
 				} = params
-
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
-
 				const searchInFolder = validateOptionalURI(searchInFolderUnknown)
 				const isRegex = validateBoolean(isRegexUnknown, { default: false })
-
-				return { query: queryStr, searchInFolder, isRegex, pageNumber }
+				return {
+					query: queryStr,
+					isRegex,
+					searchInFolder,
+					pageNumber
+				}
+			},
+			search_in_file: (params: RawToolParamsObj) => {
+				const { uri: uriStr, query: queryUnknown, is_regex: isRegexUnknown } = params;
+				const uri = validateURI(uriStr);
+				const query = validateStr('query', queryUnknown);
+				const isRegex = validateBoolean(isRegexUnknown, { default: false });
+				return { uri, query, isRegex };
 			},
 
 			read_lint_errors: (params: RawToolParamsObj) => {
@@ -333,6 +342,24 @@ export class ToolsService implements IToolsService {
 				const hasNextPage = (data.results.length - 1) - toIdx >= 1
 				return { result: { queryStr, uris, hasNextPage } }
 			},
+			search_in_file: async ({ uri, query, isRegex }) => {
+				await voidModelService.initializeModel(uri);
+				const { model } = await voidModelService.getModelSafe(uri);
+				if (model === null) { throw new Error(`No contents; File does not exist.`); }
+				const contents = model.getValue(EndOfLinePreference.LF);
+				const contentOfLine = contents.split('\n');
+				const totalLines = contentOfLine.length;
+				const regex = isRegex ? new RegExp(query) : null;
+				const lines: number[] = []
+				for (let i = 0; i < totalLines; i++) {
+					const line = contentOfLine[i];
+					if ((isRegex && regex!.test(line)) || (!isRegex && line.includes(query))) {
+						const matchLine = i + 1;
+						lines.push(matchLine);
+					}
+				}
+				return { result: { lines } };
+			},
 
 			read_lint_errors: async ({ uri }) => {
 				await timeout(1000)
@@ -434,6 +461,15 @@ export class ToolsService implements IToolsService {
 			},
 			search_for_files: (params, result) => {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
+			},
+			search_in_file: (params, result) => {
+				const { model } = voidModelService.getModel(params.uri)
+				if (!model) return '<Error getting string of result>'
+				const lines = result.lines.map(n => {
+					const lineContent = model.getValueInRange({ startLineNumber: n, startColumn: 1, endLineNumber: n, endColumn: Number.MAX_SAFE_INTEGER }, EndOfLinePreference.LF)
+					return `Line ${n}:\n\`\`\`\n${lineContent}\n\`\`\``
+				}).join('\n\n');
+				return lines;
 			},
 			read_lint_errors: (params, result) => {
 				return result.lintErrors ?

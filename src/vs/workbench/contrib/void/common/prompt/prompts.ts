@@ -111,8 +111,8 @@ export const voidTools = {
 		description: `Returns full contents of a given file.`,
 		params: {
 			...uriParam('file'),
-			start_line: { description: 'Optional. Only fill this in if you already know the line numbers you need to search. Defaults to 1.' },
-			end_line: { description: 'Optional. Only fill this in if you already know the line numbers you need to search. Defaults to Infinity.' },
+			start_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to 1.' },
+			end_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to Infinity.' },
 			...paginationParam,
 		},
 	},
@@ -156,9 +156,20 @@ export const voidTools = {
 		params: {
 			query: { description: `Your query for the search.` },
 			search_in_folder: { description: 'Optional. Leave as blank by default. ONLY fill this in if your previous search with the same query was truncated. Searches descendants of this folder only.' },
-			is_regex: { description: 'Optional. Default is false. Whether query is a regex.' },
+			is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' },
 			...paginationParam,
 		},
+	},
+
+	// add new search_in_file tool
+	search_in_file: {
+		name: 'search_in_file',
+		description: `Returns an array of all the start line numbers where the content appears in the file.`,
+		params: {
+			...uriParam('file'),
+			query: { description: 'The string or regex to search for in the file.' },
+			is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' }
+		}
 	},
 
 	read_lint_errors: {

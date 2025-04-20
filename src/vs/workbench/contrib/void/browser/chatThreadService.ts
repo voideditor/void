@@ -33,8 +33,13 @@ import { truncate } from '../../../../base/common/strings.js';
 import { THREAD_STORAGE_KEY } from '../common/storageKeys.js';
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
 import { timeout } from '../../../../base/common/async.js';
+import { deepClone } from '../../../../base/common/objects.js';
 
+
+// related to retrying when LLM message has error
 const CHAT_RETRIES = 3
+const RETRY_DELAY = 2500
+
 
 export const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
 	if (!currentSelections) return null
@@ -180,8 +185,11 @@ export interface IChatThreadService {
 
 	getCurrentThread(): ThreadType;
 	openNewThread(): void;
-	deleteThread(threadId: string): void;
 	switchToThread(threadId: string): void;
+
+	// thread selector
+	deleteThread(threadId: string): void;
+	duplicateThread(threadId: string): void;
 
 	// exposed getters/setters
 	// these all apply to current thread
@@ -345,7 +353,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			else throw new Error(`setStreamState`)
 		}
 
-		console.log('changeStreamState', threadId, state)
 		this._onDidChangeStreamState.fire({ threadId })
 	}
 
@@ -369,7 +376,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		if (!messages) return false
 		const lastMsg = messages[messages.length - 1]
 		if (!lastMsg) return false
-		if (lastMsg.role === 'tool' && (lastMsg.type === 'running_now' || lastMsg.type === 'tool_request')) {
+
+		if (lastMsg.role === 'tool' && lastMsg.type !== 'invalid_params') {
 			this._editMessageInThread(threadId, messages.length - 1, tool)
 			return true
 		}
@@ -386,9 +394,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		if (!thread) return // should never happen
 
 		const lastMsg = thread.messages[thread.messages.length - 1]
-		if (!(
-			lastMsg.role === 'tool' && (lastMsg.type === 'tool_request')
-		)) return // should never happen
+		if (!(lastMsg.role === 'tool' && lastMsg.type === 'tool_request')) return // should never happen
 
 		const callThisToolFirst: ToolMessage<ToolName> = lastMsg
 
@@ -404,7 +410,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const lastMsg = thread.messages[thread.messages.length - 1]
 
 		let params: ToolCallParams[ToolName]
-		if (lastMsg.role === 'tool' && (lastMsg.type === 'running_now' || lastMsg.type === 'tool_request')) {
+		if (lastMsg.role === 'tool' && lastMsg.type !== 'invalid_params') {
 			params = lastMsg.params
 		}
 		else return
@@ -585,12 +591,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			isRunningWhenEnd = undefined
 			nMessagesSent += 1
 
-			let resMessageIsDonePromise: (toolCall?: RawToolCallObj | undefined) => void // resolves when user approves this tool use (or if tool doesn't require approval)
-			const messageIsDonePromise = new Promise<RawToolCallObj | undefined>((res, rej) => { resMessageIsDonePromise = res })
-
-			// send llm message
-			this._setStreamState(threadId, { isRunning: 'LLM' }, 'merge')
-
 			const chatMessages = this.state.allThreads[threadId]?.messages ?? []
 			const { messages, separateSystemMessage } = await this._convertToLLMMessagesService.prepareLLMChatMessages({
 				chatMessages,
@@ -598,14 +598,17 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				chatMode
 			})
 
-
 			let aborted = false
-
 			let shouldRetry = true
 			let nAttempts = 0
-
 			while (shouldRetry) {
 				shouldRetry = false
+
+				let resMessageIsDonePromise: (toolCall?: RawToolCallObj | undefined) => void // resolves when user approves this tool use (or if tool doesn't require approval)
+				const messageIsDonePromise = new Promise<RawToolCallObj | undefined>((res, rej) => { resMessageIsDonePromise = res })
+
+				// send llm message
+				this._setStreamState(threadId, { isRunning: 'LLM' }, 'merge')
 
 				const llmCancelToken = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
@@ -632,7 +635,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 							nAttempts += 1
 							shouldRetry = true
 							this._setStreamState(threadId, { displayContentSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolCallSoFar: undefined }, 'merge')
-							timeout(2500).then(() => { resMessageIsDonePromise() })
+							timeout(RETRY_DELAY).then(() => { resMessageIsDonePromise() })
 						}
 						else {
 							// const toolCallSoFar = this.streamState[threadId]?.toolCallSoFar
@@ -659,13 +662,14 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				}
 				this._setStreamState(threadId, { streamingToken: llmCancelToken }, 'merge') // new stream token for the new message
 				const toolCall = await messageIsDonePromise // wait for message to complete
+				this._setStreamState(threadId, { streamingToken: undefined }, 'merge') // streaming message is done
+
 				if (shouldRetry) {
 					continue
 				}
 				if (aborted) {
 					return
 				}
-				this._setStreamState(threadId, { streamingToken: undefined }, 'merge') // streaming message is done
 
 				// call tool if there is one
 				const tool: RawToolCallObj | undefined = toolCall
@@ -884,7 +888,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const [_, toIdx] = c
 		if (toIdx === fromIdx) return
 
-		console.log(`going from ${fromIdx} to ${toIdx}`)
+		// console.log(`going from ${fromIdx} to ${toIdx}`)
 
 		// update the user's checkpoint
 		this._addUserModificationsToCurrCheckpoint({ threadId })
@@ -1431,6 +1435,22 @@ We only need to do it for files that were edited since `from`, ie files between 
 		// store the updated threads
 		this._storeAllThreads(newThreads);
 		this._setState({ ...this.state, allThreads: newThreads }, true)
+	}
+
+	duplicateThread(threadId: string) {
+		const { allThreads: currentThreads } = this.state
+		const threadToDuplicate = currentThreads[threadId]
+		if (!threadToDuplicate) return
+		const newThread = {
+			...deepClone(threadToDuplicate),
+			id: generateUuid(),
+		}
+		const newThreads = {
+			...currentThreads,
+			[newThread.id]: newThread,
+		}
+		this._storeAllThreads(newThreads)
+		this._setState({ allThreads: newThreads }, true)
 	}
 
 

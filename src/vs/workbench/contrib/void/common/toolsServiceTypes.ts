@@ -39,6 +39,7 @@ export type ToolCallParams = {
 	'get_dir_tree': { uri: URI },
 	'search_pathnames_only': { query: string, includePattern: string | null, pageNumber: number },
 	'search_for_files': { query: string, isRegex: boolean, searchInFolder: URI | null, pageNumber: number },
+	'search_in_file': { uri: URI, query: string, isRegex: boolean },
 	'read_lint_errors': { uri: URI },
 	// ---
 	'edit_file': { uri: URI, changeDescription: string },
@@ -57,6 +58,7 @@ export type ToolResultType = {
 	'get_dir_tree': { str: string, },
 	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },
 	'search_for_files': { uris: URI[], hasNextPage: boolean },
+	'search_in_file': { lines: number[]; },
 	'read_lint_errors': { lintErrors: LintErrorItem[] | null },
 	// ---
 	'edit_file': Promise<{ lintErrors: LintErrorItem[] | null }>,

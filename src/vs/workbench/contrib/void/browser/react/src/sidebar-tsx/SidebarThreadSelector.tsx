@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { CopyButton, IconShell1 } from '../markdown/ApplyBlockHoverButtons.js';
 import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useFullChatThreadsStreamState, useSettingsState } from '../util/services.js';
 import { IconX } from './SidebarChat.js';
-import { Check, LoaderCircle, MessageCircleQuestion, Trash2, UserCheck, X } from 'lucide-react';
+import { Check, Copy, Icon, LoaderCircle, MessageCircleQuestion, Trash2, UserCheck, X } from 'lucide-react';
 import { IsRunningType, ThreadType } from '../../../chatThreadService.js';
 
 
@@ -247,6 +247,21 @@ const formatTime = (date: Date) => {
 };
 
 
+const DuplicateButton = ({ threadId }: { threadId: string }) => {
+	const accessor = useAccessor()
+	const chatThreadsService = accessor.get('IChatThreadService')
+	return <IconShell1
+		Icon={Copy}
+		className='size-[11px]'
+		onClick={() => { chatThreadsService.duplicateThread(threadId); }}
+		data-tooltip-id='void-tooltip'
+		data-tooltip-place='top'
+		data-tooltip-content='Duplicate thread'
+	>
+	</IconShell1>
+
+}
+
 const TrashButton = ({ threadId }: { threadId: string }) => {
 
 	const accessor = useAccessor()
@@ -374,6 +389,9 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 			<div className="flex items-center gap-2 opacity-60">
 				{idx === hoveredIdx ?
 					<>
+						{/* trash icon */}
+						<DuplicateButton threadId={pastThread.id} />
+
 						{/* trash icon */}
 						<TrashButton threadId={pastThread.id} />
 					</>

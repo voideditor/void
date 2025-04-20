@@ -1232,6 +1232,7 @@ const titleOfToolName = {
 	'open_bg_terminal': { done: `Opened terminal`, proposed: 'Open terminal', running: loadingTitleWrapper('Opening terminal') },
 	'kill_bg_terminal': { done: `Killed terminal`, proposed: 'Kill terminal', running: loadingTitleWrapper('Killing terminal') },
 	'read_lint_errors': { done: `Read lint errors`, proposed: 'Read lint errors', running: loadingTitleWrapper('Reading lint errors') },
+	'search_in_file': { done: 'Searched in file', proposed: 'Search in file', running: loadingTitleWrapper('Searching in file') },
 } as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
 
 const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'type'>): React.ReactNode => {
@@ -1280,6 +1281,13 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 			return {
 				desc1: `"${toolParams.query}"`,
 			}
+		},
+		'search_in_file': () => {
+			const toolParams = _toolParams as ToolCallParams['search_in_file'];
+			return {
+				desc1: `"${toolParams.query}"`,
+				desc1Info: getRelative(toolParams.uri, accessor),
+			};
 		},
 		'create_file_or_folder': () => {
 			const toolParams = _toolParams as ToolCallParams['create_file_or_folder']
@@ -1692,8 +1700,9 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
 
-			if (params.includePattern)
+			if (params.includePattern) {
 				componentParams.info = `Only search in ${params.includePattern}`
+			}
 
 			if (toolMessage.type === 'success') {
 				const { result, rawParams } = toolMessage
@@ -1740,9 +1749,16 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
 
-			if (params.searchInFolder) {
-				const rel = getRelative(params.searchInFolder, accessor)
-				if (rel) componentParams.info = `Only search in ${rel}`
+			if (params.searchInFolder || params.isRegex) {
+				let info: string[] = []
+				if (params.searchInFolder) {
+					const rel = getRelative(params.searchInFolder, accessor)
+					if (rel) info.push(`Only search in ${rel}`)
+				}
+				if (params.isRegex) {
+					info.push(`Treat as regex`)
+				}
+				componentParams.info = info.join('; ')
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1771,6 +1787,46 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				</ToolChildrenWrapper>
 			}
 			return <ToolHeaderWrapper {...componentParams} />
+		}
+	},
+
+	'search_in_file': {
+		resultWrapper: ({ toolMessage }) => {
+			const accessor = useAccessor();
+			const toolsService = accessor.get('IToolsService');
+			const title = getTitle(toolMessage);
+			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor);
+			const icon = null;
+
+			if (toolMessage.type === 'tool_request' || toolMessage.type === 'rejected' || toolMessage.type === 'running_now') return null;
+
+			const isError = toolMessage.type === 'tool_error';
+			const { rawParams, params } = toolMessage;
+			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon };
+			if (params.isRegex) componentParams.info = 'Treat as regex'
+
+			if (toolMessage.type === 'success') {
+				const { result } = toolMessage; // result is array of snippets
+				componentParams.numResults = result.lines.length;
+				componentParams.children = result.lines.length === 0 ? undefined :
+					<ToolChildrenWrapper>
+						<CodeChildren>
+							<pre className='font-mono whitespace-pre'>
+								{toolsService.stringOfResult['search_in_file'](params, result)}
+							</pre>
+						</CodeChildren>
+					</ToolChildrenWrapper>
+			}
+			else {
+				const { result } = toolMessage;
+				componentParams.children = <ToolChildrenWrapper>
+					<CodeChildren>
+						{result}
+					</CodeChildren>
+				</ToolChildrenWrapper>;
+			}
+
+			return <ToolHeaderWrapper {...componentParams} />;
 		}
 	},
 
@@ -2163,7 +2219,7 @@ const Checkpoint = ({ message, threadId, messageIdx, isCheckpointGhost, threadIs
 			{...isDisabled ? {
 				'data-tooltip-id': 'void-tooltip',
 				'data-tooltip-content': `Disabled ${isRunning ? 'when running' : 'because another thread is running'}`,
-				'data-tooltip-place': 'left',
+				'data-tooltip-place': 'top',
 			} : {}}
 		>
 			Checkpoint

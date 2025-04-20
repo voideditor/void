@@ -452,7 +452,6 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			return voidRules.trim();
 		}
 		catch (e) {
-			console.log('Could not read .voidrules, continuing...')
 			return ''
 		}
 	}

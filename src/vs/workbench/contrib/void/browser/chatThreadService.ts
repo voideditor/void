@@ -16,7 +16,7 @@ import { getErrorMessage, RawToolCallObj, RawToolParamsObj } from '../common/sen
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { ToolCallParams, ToolResultType, toolNamesThatRequireApproval } from '../common/toolsServiceTypes.js';
+import { approvalTypeOfToolName, ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js';
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
@@ -486,9 +486,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
 
 			// 2. if tool requires approval, break from the loop, awaiting approval
-			const toolRequiresApproval = toolNamesThatRequireApproval.has(toolName)
-			if (toolRequiresApproval) {
-				const autoApprove = this._settingsService.state.globalSettings.autoApprove
+
+
+			const approvalType = approvalTypeOfToolName[toolName]
+			if (approvalType) {
+				const autoApprove = this._settingsService.state.globalSettings.autoApprove[approvalType]
 				// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)
 				this._addMessageToThread(threadId, { role: 'tool', type: 'tool_request', content: '(never)', result: null, name: toolName, params: toolParams, id: toolId, rawParams: opts.unvalidatedToolParams })
 				if (!autoApprove) {
@@ -1199,7 +1201,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			// else search codebase for `target`
 			let uris: URI[] = []
 			try {
-				const { result } = await this._toolsService.callTool['search_pathnames_only']({ queryStr: target, searchInFolder: null, pageNumber: 0 })
+				const { result } = await this._toolsService.callTool['search_pathnames_only']({ query: target, includePattern: null, pageNumber: 0 })
 				uris = result.uris
 			} catch (e) {
 				return null

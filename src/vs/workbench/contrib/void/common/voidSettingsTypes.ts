@@ -5,6 +5,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { defaultModelsOfProvider, defaultProviderSettings } from './modelCapabilities.js';
+import { ToolApprovalType } from './toolsServiceTypes.js';
 import { VoidSettingsState } from './voidSettingsService.js'
 
 
@@ -425,7 +426,7 @@ export type GlobalSettings = {
 	syncApplyToChat: boolean;
 	enableFastApply: boolean;
 	chatMode: ChatMode;
-	autoApprove: boolean;
+	autoApprove: { [approvalType in ToolApprovalType]?: boolean };
 	showInlineSuggestions: boolean;
 	includeToolLintErrors: boolean;
 	isOnboardingComplete: boolean;
@@ -438,7 +439,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	syncApplyToChat: true,
 	enableFastApply: true,
 	chatMode: 'agent',
-	autoApprove: false,
+	autoApprove: {},
 	showInlineSuggestions: true,
 	includeToolLintErrors: true,
 	isOnboardingComplete: false,

@@ -7,7 +7,7 @@ import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { os } from '../helpers/systemInfo.js';
 import { RawToolParamsObj } from '../sendLLMMessageTypes.js';
-import { toolNamesThatRequireApproval } from '../toolsServiceTypes.js';
+import { approvalTypeOfToolName, ToolResultType } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { ChatMode } from '../voidSettingsTypes.js';
 
@@ -19,6 +19,14 @@ export const MAX_DIRSTR_CHARS_TOTAL_BEGINNING = 20_000
 export const MAX_DIRSTR_CHARS_TOTAL_TOOL = 20_000
 export const MAX_DIRSTR_RESULTS_TOTAL_BEGINNING = 100
 export const MAX_DIRSTR_RESULTS_TOTAL_TOOL = 100
+
+// tool info
+export const MAX_FILE_CHARS_PAGE = 500_000
+export const MAX_CHILDREN_URIs_PAGE = 500
+
+// terminal tool info
+export const MAX_TERMINAL_CHARS = 100_000
+export const MAX_TERMINAL_INACTIVE_TIME = 8 // seconds
 
 
 // Maximum character limits for prefix and suffix context
@@ -66,7 +74,36 @@ const paginationParam = {
 } as const
 
 
+
+
+// export type SnakeCase<S extends string> =
+// 	// exact acronym URI
+// 	S extends 'URI' ? 'uri'
+// 	// suffix URI: e.g. 'rootURI' -> snakeCase('root') + '_uri'
+// 	: S extends `${infer Prefix}URI` ? `${SnakeCase<Prefix>}_uri`
+// 	// default: for each char, prefix '_' on uppercase letters
+// 	: S extends `${infer C}${infer Rest}`
+// 	? `${C extends Lowercase<C> ? C : `_${Lowercase<C>}`}${SnakeCase<Rest>}`
+// 	: S;
+
+// export type SnakeCaseKeys<T extends Record<string, any>> = {
+// 	[K in keyof T as SnakeCase<Extract<K, string>>]: T[K]
+// };
+
+
+
 export const voidTools = {
+	// export const voidTools
+	// : {
+	// 	[T in keyof ToolCallParams]: {
+	// 		name: string;
+	// 		description: string;
+	// 		params: {
+	// 			[paramName in keyof SnakeCaseKeys<ToolCallParams[T]>]: { description: string }
+	// 		}
+	// 	}
+	// }
+	//  = {
 	// --- context-gathering (read/search/list) ---
 
 	read_file: {
@@ -89,8 +126,8 @@ export const voidTools = {
 		},
 	},
 
-	get_dir_structure: {
-		name: 'get_dir_structure',
+	get_dir_tree: {
+		name: 'get_dir_tree',
 		description: `This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder. `,
 		params: {
 			...uriParam('folder')
@@ -106,7 +143,7 @@ export const voidTools = {
 		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.`,
 		params: {
 			query: { description: `Your query for the search.` },
-			search_in_folder: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
+			include_pattern: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
 			...paginationParam,
 		},
 	},
@@ -118,7 +155,7 @@ export const voidTools = {
 		description: `Returns a list of file names whose content matches the given query. The query can be any substring or regex.`,
 		params: {
 			query: { description: `Your query for the search.` },
-			search_in_folder: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
+			search_in_folder: { description: 'Optional. Leave as blank by default. ONLY fill this in if your previous search with the same query was truncated. Searches descendants of this folder only.' },
 			is_regex: { description: 'Optional. Default is false. Whether query is a regex.' },
 			...paginationParam,
 		},
@@ -166,23 +203,34 @@ Here's an example of a good description:\n${editToolDescriptionExample}`
 		},
 	},
 
-	command_tool: {
-		name: 'command_tool',
-		description: `Runs a terminal command. You can use this tool to run any command: sed, grep, etc. We just prefer you edit with the edit tool, not this tool if possible.`,
+	run_terminal: {
+		name: 'run_terminal',
+		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor like vim, you might need to pipe to cat to get all results.`,
 		params: {
 			command: { description: 'The terminal command to run.' },
-			wait_for_completion: { description: `Optional. Default is true. Make this value false when you want a command to run without waiting for it to complete.` },
-			terminal_id: { description: 'Optional. The ID of the terminal instance that should execute the command (if not provided, defaults to the preferred terminal ID). The primary purpose of this is to let you open a new terminal for testing or background processes (e.g. running a dev server for the user in a separate terminal). Must be an integer >= 1.' },
+			bg_terminal_id: { description: 'Optional. This only applies to terminals that have been opened with open_bg_terminal. Runs the command in the terminal with the specified ID.' },
 		},
 	},
+
+	open_bg_terminal: {
+		name: 'open_bg_terminal',
+		description: `Use this tool when you want to run a terminal command indefinitely, like a dev server (eg \`npm run dev\`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.`,
+		params: {}
+	},
+	kill_bg_terminal: {
+		name: 'kill_bg_terminal',
+		description: `Closes a BG terminal with the given ID.`,
+		params: { terminal_id: { description: `The terminal ID to interrupt and close.` } }
+	}
+
 
 	// go_to_definition
 	// go_to_usages
 
-} satisfies { [name: string]: InternalToolInfo }
+} satisfies { [T in keyof ToolResultType]: InternalToolInfo }
 
 
-export type ToolName = keyof typeof voidTools
+export type ToolName = keyof ToolResultType
 export const toolNames = Object.keys(voidTools) as ToolName[]
 
 type ToolParamNameOfTool<T extends ToolName> = keyof (typeof voidTools)[T]['params']
@@ -197,7 +245,7 @@ export const isAToolName = (toolName: string): toolName is ToolName => {
 
 export const availableTools = (chatMode: ChatMode) => {
 	const toolNames: ToolName[] | undefined = chatMode === 'normal' ? undefined
-		: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !toolNamesThatRequireApproval.has(toolName))
+		: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !(toolName in approvalTypeOfToolName))
 			: chatMode === 'agent' ? Object.keys(voidTools) as ToolName[]
 				: undefined
 

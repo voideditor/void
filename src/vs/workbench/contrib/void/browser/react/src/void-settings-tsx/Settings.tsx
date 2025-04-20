@@ -16,6 +16,7 @@ import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
 import { IconLoading } from '../sidebar-tsx/SidebarChat.js'
+import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js'
 
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
@@ -711,6 +712,34 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 }
 
 
+
+
+export const ToolApprovalTypeSwitch = ({ approvalType, size, desc }: { approvalType: ToolApprovalType, size: "xxs" | "xs" | "sm" | "sm+" | "md", desc: string }) => {
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
+	const metricsService = accessor.get('IMetricsService')
+
+	const onToggleAutoApprove = useCallback((approvalType: ToolApprovalType, newValue: boolean) => {
+		voidSettingsService.setGlobalSetting('autoApprove', {
+			...voidSettingsService.state.globalSettings.autoApprove,
+			[approvalType]: newValue
+		})
+		metricsService.capture('Tool Auto-Accept Toggle', { enabled: newValue })
+	}, [voidSettingsService, metricsService])
+
+	return <>
+		<VoidSwitch
+			size={size}
+			value={voidSettingsState.globalSettings.autoApprove[approvalType] ?? false}
+			onChange={(newVal) => onToggleAutoApprove(approvalType, newVal)}
+		/>
+		<span className="text-void-fg-3 text-xs">{desc}</span>
+	</>
+}
+
+
+
 export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }: { fromEditor?: TransferEditorType, className?: string }) => {
 	const accessor = useAccessor()
 	const fileService = accessor.get('IFileService')
@@ -933,15 +962,12 @@ export const Settings = () => {
 						<div className='my-2'>
 							{/* Auto Accept Switch */}
 							<ErrorBoundary>
+								{[...toolApprovalTypes].map((approvalType) => {
+									return <div key={approvalType} className="flex items-center gap-x-2 my-2">
+										<ToolApprovalTypeSwitch size='xs' approvalType={approvalType} desc={`Auto-approve ${approvalType}`} />
+									</div>
+								})}
 
-								<div className='flex items-center gap-x-2 my-2'>
-									<VoidSwitch
-										size='xs'
-										value={settingsState.globalSettings.autoApprove}
-										onChange={(newVal) => voidSettingsService.setGlobalSetting('autoApprove', newVal)}
-									/>
-									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.autoApprove ? 'Auto-approve' : 'Auto-approve'}</span>
-								</div>
 							</ErrorBoundary>
 
 							{/* Tool Lint Errors Switch */}

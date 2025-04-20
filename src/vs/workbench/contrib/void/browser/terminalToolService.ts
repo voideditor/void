@@ -3,14 +3,14 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
+import { Disposable, IDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { removeAnsiEscapeCodes } from '../../../../base/common/strings.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
+import { TerminalExitReason, TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
 import { ITerminalService, ITerminalInstance } from '../../../../workbench/contrib/terminal/browser/terminal.js';
+import { MAX_TERMINAL_CHARS, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js';
 import { TerminalResolveReason } from '../common/toolsServiceTypes.js';
-import { MAX_TERMINAL_CHARS_PAGE, TERMINAL_BG_WAIT_TIME, TERMINAL_TIMEOUT_TIME } from './toolsService.js';
 
 
 
@@ -18,9 +18,12 @@ export interface ITerminalToolService {
 	readonly _serviceBrand: undefined;
 
 	listTerminalIds(): string[];
-	runCommand(command: string, proposedTerminalId: string, waitForCompletion: boolean): Promise<{ terminalId: string, didCreateTerminal: boolean, result: string, resolveReason: TerminalResolveReason }>;
-	openTerminal(terminalId: string): Promise<void>
+	runCommand(command: string, bgTerminalId: string | null): Promise<{ result: string, resolveReason: TerminalResolveReason }>;
+	focusTerminal(terminalId: string): Promise<void>
 	terminalExists(terminalId: string): boolean
+
+	createTerminal(): Promise<string>
+	killTerminal(terminalId: string): Promise<void>
 }
 
 export const ITerminalToolService = createDecorator<ITerminalToolService>('TerminalToolService');
@@ -103,12 +106,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		throw new Error('This should never be reached by pigeonhole principle');
 	}
 
-
-
-	private async _getOrCreateTerminal(proposedTerminalId: string) {
-		// if terminal ID exists, return it
-		if (proposedTerminalId in this.terminalInstanceOfId) return { terminalId: proposedTerminalId, didCreateTerminal: false }
-
+	async createTerminal() {
 		// create new terminal and return its ID
 		const terminalId = this.getValidNewTerminalId();
 		const terminal = await this.terminalService.createTerminal({
@@ -127,13 +125,21 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			})
 			disposables.push(d)
 		})
-		const waitForTimeout = new Promise<void>(res => { setTimeout(() => { res() }, 1000) })
+		const waitForTimeout = new Promise<void>(res => { setTimeout(() => { res() }, 5000) })
 
 		await Promise.any([waitForMount, waitForTimeout,])
 		disposables.forEach(d => d.dispose())
 
 		this.terminalInstanceOfId[terminalId] = terminal
-		return { terminalId, didCreateTerminal: true }
+		return terminalId
+	}
+
+	async killTerminal(terminalId: string) {
+		const terminal = this.terminalInstanceOfId[terminalId]
+		if (!terminal) throw new Error(`Kill Terminal: Terminal with ID ${terminalId} did not exist.`);
+		terminal.dispose(TerminalExitReason.Extension)
+		delete this.terminalInstanceOfId[terminalId]
+		return
 	}
 
 	terminalExists(terminalId: string): boolean {
@@ -141,7 +147,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 	}
 
 
-	openTerminal: ITerminalToolService['openTerminal'] = async (terminalId) => {
+	focusTerminal: ITerminalToolService['focusTerminal'] = async (terminalId) => {
 		if (!terminalId) return
 		const terminal = this.terminalInstanceOfId[terminalId]
 		if (!terminal) return // should never happen
@@ -151,11 +157,26 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 
 
-	runCommand: ITerminalToolService['runCommand'] = async (command, proposedTerminalId, waitForCompletion) => {
+
+	runCommand: ITerminalToolService['runCommand'] = async (command, bgTerminalId) => {
 		await this.terminalService.whenConnected;
-		const { terminalId, didCreateTerminal } = await this._getOrCreateTerminal(proposedTerminalId)
-		const terminal = this.terminalInstanceOfId[terminalId];
-		if (!terminal) throw new Error(`Unexpected internal error: Terminal with ID ${terminalId} did not exist.`);
+
+		let terminal: ITerminalInstance
+		const disposables: IDisposable[] = []
+
+		const isBG = bgTerminalId !== null
+		let terminalId: string
+		if (isBG) { // BG process
+			terminal = this.terminalInstanceOfId[bgTerminalId];
+			if (!terminal) throw new Error(`Unexpected internal error: Terminal with ID ${bgTerminalId} did not exist.`);
+			terminalId = bgTerminalId
+		}
+		else {
+			terminalId = await this.createTerminal()
+			terminal = this.terminalInstanceOfId[terminalId]
+			if (!terminal) throw new Error(`Unexpected error: Terminal could not be created.`)
+		}
+
 
 		// focus the terminal about to run
 		this.terminalService.setActiveInstance(terminal)
@@ -164,23 +185,12 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		let result: string = ''
 		let resolveReason: TerminalResolveReason | undefined = undefined
 
-		const disposables: IDisposable[] = []
 
+		// create this before we send so that  we don't miss events on terminal
 		const waitUntilDone = new Promise<void>((res, rej) => {
 			const d2 = terminal.onData(async newData => {
 				if (resolveReason) return
-
 				result += newData
-
-				// onPageFull
-				if (result.length > MAX_TERMINAL_CHARS_PAGE) {
-					result = result.substring(0, MAX_TERMINAL_CHARS_PAGE)
-					await terminal.sendText('\x03', true) // interrupt the terminal with Ctrl+C
-					resolveReason = { type: 'toofull' }
-					res()
-					return
-				}
-
 				// onDone
 				const isDone = isCommandComplete(result)
 				if (isDone) {
@@ -196,35 +206,48 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		// send the command here
 		await terminal.sendText(command, true)
 
-		// timeout promise
-		const waitUntilTimeout = new Promise<void>((res, rej) => {
-			setTimeout(async () => {
-				if (resolveReason) return
-				await terminal.sendText('\x03', true) // interrupt the terminal with Ctrl+C
-				resolveReason = { type: waitForCompletion ? 'timeout' : 'bgtask' }
-				res()
-				return
-			}, (waitForCompletion ? TERMINAL_TIMEOUT_TIME : TERMINAL_BG_WAIT_TIME) * 1000)
-		})
 
-		await Promise.any([
-			waitUntilDone,
-			waitUntilTimeout,
-		])
+		// inactivity-based timeout
+		const waitUntilInactive = new Promise<void>(res => {
+			let globalTimeoutId: ReturnType<typeof setTimeout>;
+			const resetTimer = () => {
+				clearTimeout(globalTimeoutId);
+				globalTimeoutId = setTimeout(() => {
+					if (resolveReason) return
+
+					resolveReason = { type: 'timeout' };
+					res();
+				}, MAX_TERMINAL_INACTIVE_TIME * 1000);
+			};
+
+			const dTimeout = terminal.onData(() => { resetTimer(); });
+			disposables.push(dTimeout, toDisposable(() => clearTimeout(globalTimeoutId)));
+			resetTimer();
+		});
+
+		// wait for result
+		await Promise.any([waitUntilDone, waitUntilInactive,])
 
 		disposables.forEach(d => d.dispose())
+		if (!isBG) {
+			await this.killTerminal(terminalId)
+		}
 
 		if (!resolveReason) throw new Error('Unexpected internal error: Promise.any should have resolved with a reason.')
-
 
 		result = removeAnsiEscapeCodes(result)
 			.split('\n').slice(1, -1) // remove first and last line (first = command, last = andrewpareles/void %)
 			.join('\n')
 
-		return { terminalId, didCreateTerminal, result, resolveReason }
+		if (result.length > MAX_TERMINAL_CHARS) {
+			const half = MAX_TERMINAL_CHARS / 2
+			result = result.slice(0, half)
+				+ '\n...\n'
+				+ result.slice(result.length - half, Infinity)
+		}
+
+		return { result, resolveReason }
 	}
-
-
 
 }
 

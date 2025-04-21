@@ -42,7 +42,7 @@ export type ToolCallParams = {
 	'search_in_file': { uri: URI, query: string, isRegex: boolean },
 	'read_lint_errors': { uri: URI },
 	// ---
-	'edit_file': { uri: URI, changeDescription: string },
+	'edit_file': { uri: URI, changeDiff: string },
 	'create_file_or_folder': { uri: URI, isFolder: boolean },
 	'delete_file_or_folder': { uri: URI, isRecursive: boolean, isFolder: boolean },
 	// ---

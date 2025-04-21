@@ -242,10 +242,10 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit_file: (params: RawToolParamsObj) => {
-				const { uri: uriStr, change_description: changeDescriptionUnknown } = params
+				const { uri: uriStr, change_diff: changeDiffUnknown } = params
 				const uri = validateURI(uriStr)
-				const changeDescription = validateStr('changeDescription', changeDescriptionUnknown)
-				return { uri, changeDescription }
+				const changeDiff = validateStr('changeDiff', changeDiffUnknown)
+				return { uri, changeDiff }
 			},
 
 			// ---
@@ -383,14 +383,14 @@ export class ToolsService implements IToolsService {
 				return { result: {} }
 			},
 
-			edit_file: async ({ uri, changeDescription }) => {
+			edit_file: async ({ uri, changeDiff }) => {
 				await voidModelService.initializeModel(uri)
 				if (this.commandBarService.getStreamState(uri) === 'streaming') {
-					throw new Error(`Another LLM is currently making changes to this file. Please stop streaming for now and resume later.`)
+					throw new Error(`Another LLM is currently making changes to this file. Please stop streaming for now and ask the user to resume later.`)
 				}
 				const opts = {
 					uri,
-					applyStr: changeDescription,
+					applyStr: changeDiff,
 					from: 'ClickApply',
 					startBehavior: 'keep-conflicts',
 				} as const

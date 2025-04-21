@@ -295,7 +295,7 @@ const TrashButton = ({ threadId }: { threadId: string }) => {
 			onClick={() => { setIsTrashPressed(true); }}
 			data-tooltip-id='void-tooltip'
 			data-tooltip-place='top'
-			data-tooltip-content='Delete thread?'
+			data-tooltip-content='Delete thread'
 		/>
 	)
 }
@@ -386,7 +386,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 				<span className="truncate overflow-hidden text-ellipsis">{firstMsg}</span>
 			</span>
 
-			<div className="flex items-center gap-2 opacity-60">
+			<div className="flex items-center gap-x-1 opacity-60">
 				{idx === hoveredIdx ?
 					<>
 						{/* trash icon */}

@@ -1447,10 +1447,10 @@ export const ListableToolItem = ({ name, onClick, isSmall, className, showDot }:
 
 
 
-const EditToolChildren = ({ uri, changeDescription }: { uri: URI | undefined, changeDescription: string }) => {
+const EditToolChildren = ({ uri, changeDiff }: { uri: URI | undefined, changeDiff: string }) => {
 	return <div className='!select-text cursor-auto'>
 		<SmallProseWrapper>
-			<ChatMarkdownRender string={changeDescription} codeURI={uri} chatMessageLocation={undefined} />
+			<ChatMarkdownRender string={changeDiff} codeURI={uri} chatMessageLocation={undefined} />
 		</SmallProseWrapper>
 	</div>
 }
@@ -1980,7 +1980,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
 					<EditToolChildren
 						uri={params.uri}
-						changeDescription={params.changeDescription}
+						changeDiff={params.changeDiff}
 					/>
 				</ToolChildrenWrapper>
 				componentParams.desc2 = <JumpToFileButton uri={params.uri} />
@@ -1997,7 +1997,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 					componentParams.desc2 = <EditToolHeaderButtons
 						applyBoxId={applyBoxId}
 						uri={params.uri}
-						codeStr={params.changeDescription}
+						codeStr={params.changeDiff}
 					/>
 				}
 
@@ -2010,7 +2010,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 					componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
 						<EditToolChildren
 							uri={params.uri}
-							changeDescription={params.changeDescription}
+							changeDiff={params.changeDiff}
 						/>
 					</ToolChildrenWrapper>
 				}
@@ -2027,7 +2027,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 							{/* content */}
 							<EditToolChildren
 								uri={params.uri}
-								changeDescription={params.changeDescription}
+								changeDiff={params.changeDiff}
 							/>
 						</ToolChildrenWrapper>
 					}
@@ -2638,7 +2638,7 @@ const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) =>
 	>
 		<EditToolChildren
 			uri={uri}
-			changeDescription={toolCallSoFar.rawParams.change_description ?? ''}
+			changeDiff={toolCallSoFar.rawParams.change_diff ?? ''}
 		/>
 		<IconLoading />
 	</ToolHeaderWrapper>

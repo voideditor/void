@@ -153,6 +153,36 @@ const AddButton = ({ disabled, text = 'Add', ...props }: { disabled?: boolean, t
 
 }
 
+// ConfirmButton prompts for a second click to confirm an action, cancels if clicking outside
+const ConfirmButton = ({ children, onConfirm, className }: { children: React.ReactNode, onConfirm: () => void, className?: string }) => {
+	const [confirm, setConfirm] = useState(false);
+	const ref = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!confirm) return;
+		const handleClickOutside = (e: MouseEvent) => {
+			if (ref.current && !ref.current.contains(e.target as Node)) {
+				setConfirm(false);
+			}
+		};
+		document.addEventListener('click', handleClickOutside);
+		return () => document.removeEventListener('click', handleClickOutside);
+	}, [confirm]);
+	return (
+		<div ref={ref} className={`inline-block`}>
+			<VoidButtonBgDarken className={className} onClick={() => {
+				if (!confirm) {
+					setConfirm(true);
+				} else {
+					onConfirm();
+					setConfirm(false);
+				}
+			}}>
+				{confirm ? `Confirm Reset` : children}
+			</VoidButtonBgDarken>
+		</div>
+	);
+};
+
 
 // shows a providerName dropdown if no `providerName` is given
 export const AddModelInputBox = ({ providerName: permanentProviderName, className, compact }: { providerName?: ProviderName, className?: string, compact?: boolean }) => {
@@ -907,33 +937,7 @@ export const Settings = () => {
 				{/* separator */}
 				<div className='w-full h-[1px] my-4' />
 
-				{/* Download & Upload Settings and Chats */}
-				<div className='flex gap-2 mb-6'>
-					<input key={2 * s} ref={fileInputSettingsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Settings')} />
-					<VoidButtonBgDarken className='px-4 py-2' onClick={() => { fileInputSettingsRef.current?.click() }}>
-						Upload Settings
-					</VoidButtonBgDarken>
-					<VoidButtonBgDarken className='px-4 py-2' onClick={() => onDownload('Settings')}>
-						Download Settings
-					</VoidButtonBgDarken>
-
-
-					<input key={2 * s + 1} ref={fileInputChatsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Chats')} />
-					<VoidButtonBgDarken className='px-4 py-2' onClick={() => { fileInputChatsRef.current?.click() }}>
-						Upload Chats
-					</VoidButtonBgDarken>
-					<VoidButtonBgDarken className='px-4 py-2' onClick={() => onDownload('Chats')}>
-						Download Chats
-					</VoidButtonBgDarken>
-
-
-					<VoidButtonBgDarken className='px-4 py-2' onClick={() => { voidSettingsService.resetState() }}>
-						Reset Settings
-					</VoidButtonBgDarken>
-					<VoidButtonBgDarken className='px-4 py-2' onClick={() => { chatThreadsService.resetState() }}>
-						Reset Chats
-					</VoidButtonBgDarken>
-				</div>
+				{/* Models section (formerly FeaturesTab) */}
 
 				{/* Models section (formerly FeaturesTab) */}
 				<ErrorBoundary>
@@ -1112,15 +1116,50 @@ export const Settings = () => {
 				{/* General section (formerly GeneralTab) */}
 				<div className='mt-12'>
 					<ErrorBoundary>
-						<h2 className={`text-3xl mb-2 mt-12`}>One-Click Switch</h2>
-						<h4 className={`text-void-fg-3 mb-4`}>{`Transfer your settings from another editor to Void in one click.`}</h4>
+						<h2 className='text-3xl mb-2 mt-12'>One-Click Switch</h2>
+						<h4 className='text-void-fg-3 mb-4'>{`Transfer your settings from another editor to Void in one click.`}</h4>
 
-						<div className='flex flex-col gap-4'>
+						<div className='flex flex-col gap-2'>
 							<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
 							<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
 							<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
 						</div>
 					</ErrorBoundary>
+				</div>
+
+				{/* Import/Export section, as its own block right after One-Click Switch */}
+				<div className='mt-12'>
+					<h2 className='text-3xl mb-2'>Import/Export</h2>
+					<div className='flex gap-8'>
+						{/* Settings Subcategory */}
+						<div className='flex flex-col gap-2 max-w-48 w-full'>
+							<h3 className='text-xl mb-2'>Settings</h3>
+							<input key={2 * s} ref={fileInputSettingsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Settings')} />
+							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputSettingsRef.current?.click() }}>
+								Import Settings
+							</VoidButtonBgDarken>
+							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Settings')}>
+								Export Settings
+							</VoidButtonBgDarken>
+							<ConfirmButton className='px-4 py-1 w-full' onConfirm={() => { voidSettingsService.resetState(); }}>
+								Reset Settings
+							</ConfirmButton>
+						</div>
+						{/* Chats Subcategory */}
+						<div className='flex flex-col gap-2 w-full max-w-48'>
+							<h3 className='text-xl mb-2'>Chat</h3>
+							<input key={2 * s + 1} ref={fileInputChatsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Chats')} />
+							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputChatsRef.current?.click() }}>
+								Import Chats
+							</VoidButtonBgDarken>
+							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Chats')}>
+								Export Chats
+							</VoidButtonBgDarken>
+							<ConfirmButton className='px-4 py-1 w-full' onConfirm={() => { chatThreadsService.resetState(); }}>
+								Reset Chats
+							</ConfirmButton>
+						</div>
+					</div>
 				</div>
 
 
@@ -1131,23 +1170,17 @@ export const Settings = () => {
 					<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
 					<ErrorBoundary>
-						<div className='my-4'>
-							<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+						<div className='flex flex-col gap-2 justify-center max-w-48 w-full'>
+							<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
 								General Settings
 							</VoidButtonBgDarken>
-						</div>
-						<div className='my-4'>
-							<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
+							<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
 								Keyboard Settings
 							</VoidButtonBgDarken>
-						</div>
-						<div className='my-4'>
-							<VoidButtonBgDarken className='px-4 py-2' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+							<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
 								Theme Settings
 							</VoidButtonBgDarken>
-						</div>
-						<div className='my-4'>
-							<VoidButtonBgDarken className='px-4 py-2' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+							<VoidButtonBgDarken className='px-4 py-1' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
 								Open Logs
 							</VoidButtonBgDarken>
 						</div>

@@ -641,15 +641,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						resMessageIsDonePromise(toolCall) // resolve with tool calls
 
 					},
-					onError: (error) => {
+					onError: async (error) => {
 						const messageSoFar = this.streamState[threadId]?.displayContentSoFar ?? ''
 						const reasoningSoFar = this.streamState[threadId]?.reasoningSoFar ?? ''
 
+						this._setStreamState(threadId, { displayContentSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolCallSoFar: undefined }, 'merge')
 						if (nAttempts < CHAT_RETRIES) {
 							nAttempts += 1
 							shouldRetry = true
-							this._setStreamState(threadId, { displayContentSoFar: undefined, reasoningSoFar: undefined, streamingToken: undefined, toolCallSoFar: undefined }, 'merge')
-							timeout(RETRY_DELAY).then(() => { resMessageIsDonePromise() })
+							await timeout(RETRY_DELAY)
+							resMessageIsDonePromise()
 						}
 						else {
 							// const toolCallSoFar = this.streamState[threadId]?.toolCallSoFar
@@ -661,9 +662,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					},
 					onAbort: () => {
 						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
+						aborted = true
 						resMessageIsDonePromise()
 						this._metricsService.capture('Agent Loop Done (Aborted)', { nMessagesSent, chatMode })
-						aborted = true
 					},
 				})
 
@@ -678,12 +679,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				const toolCall = await messageIsDonePromise // wait for message to complete
 				this._setStreamState(threadId, { streamingToken: undefined }, 'merge') // streaming message is done
 
-				if (shouldRetry) {
-					continue
-				}
-				if (aborted) {
-					return
-				}
+				// this is a complete hack to make it so if an error loop was aborted, we stop (because onAbort does not get called if error happens instantly)
+				// maybe we should remove all the abort stuff and just make it so that we only go by state?
+				if (!this.streamState[threadId]?.isRunning) { return }
+
+				if (aborted) { return }
+				if (shouldRetry) { continue }
 
 				// call tool if there is one
 				const tool: RawToolCallObj | undefined = toolCall
@@ -692,8 +693,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 					// stop if interrupted. we don't have to do this for llmMessage because we have a stream token for it and onAbort gets called, but we don't have the equivalent for tools.
 					// just detect tool interruption which is the same as chat interruption right now
-					if (interrupted) { return }
+					if (!this.streamState[threadId]?.isRunning) { return }
 					if (aborted) { return }
+					if (interrupted) { return }
 
 					if (awaitingUserApproval) {
 						console.log('awaiting...')
@@ -1419,14 +1421,13 @@ We only need to do it for files that were edited since `from`, ie files between 
 	openNewThread() {
 		// if a thread with 0 messages already exists, switch to it
 		const { allThreads: currentThreads } = this.state
-		for (const threadId in currentThreads) {
-			if (currentThreads[threadId]!.messages.length === 0) {
-
-				// switch to the thread
-				this.switchToThread(threadId)
-
-			}
-		}
+        for (const threadId in currentThreads) {
+            if (currentThreads[threadId]!.messages.length === 0) {
+                // switch to the existing empty thread and exit
+                this.switchToThread(threadId)
+                return
+            }
+        }
 		// otherwise, start a new thread
 		const newThread = newThreadObject()
 

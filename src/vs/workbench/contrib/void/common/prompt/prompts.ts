@@ -204,12 +204,14 @@ export const voidTools = {
 		description: `Edits the contents of a file given the file's URI and a description.`,
 		params: {
 			...uriParam('file'),
-			change_description: {
+			change_diff: {
 				description: `\
-Your description MUST be wrapped in triple backticks. \
-A code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing. \
-NEVER re-write the whole file. Bias towards writing as little as possible. \
-Here's an example of a good description:\n${editToolDescriptionExample}`
+A code diff describing the change to make to the file. \
+Your DIFF is the only context that will be given to another LLM to apply the change, so it must be accurate and complete. \
+Your DIFF MUST be wrapped in triple backticks. \
+NEVER re-write the whole file. Always bias towards writing as little as possible. \
+Use comments like "// ... existing code ..." to condense your writing. \
+Here's an example of a good output:\n${editToolDescriptionExample}`
 			}
 		},
 	},
@@ -506,7 +508,7 @@ export const DIVIDER = `=======`
 export const FINAL = `>>>>>>> UPDATED`
 
 export const searchReplace_systemMessage = `\
-You are a coding assistant that takes in a diff describing of a change to make, and outputs SEARCH/REPLACE code blocks which implement the change.
+You are a coding assistant that takes in a diff, and outputs SEARCH/REPLACE code blocks to implement the change(s) in the diff.
 The diff will be labeled \`DIFF\` and the original file will be labeled \`ORIGINAL_FILE\`.
 
 Format your SEARCH/REPLACE blocks as follows:
@@ -518,11 +520,11 @@ ${DIVIDER}
 ${FINAL}
 ${tripleTick[1]}
 
-1. Your SEARCH/REPLACE block(s) must implement the change EXACTLY.
+1. Your SEARCH/REPLACE block(s) must implement the diff EXACTLY. Do NOT leave anything out.
 
-2. Assume any comments in the diff are PART OF THE CHANGE. Include them in the output.
+2. You are allowed to output multiple SEARCH/REPLACE blocks to implement the change.
 
-3. You are allowed to output multiple SEARCH/REPLACE blocks.
+3. Assume any comments in the diff are PART OF THE CHANGE. Include them in the output.
 
 4. Your output should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
 

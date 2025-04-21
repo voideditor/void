@@ -805,7 +805,28 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 		setTransferState({ type: 'loading' })
 
 		let errAcc = ''
-		for (let { from, to } of transferTheseFiles) {
+		// Define extensions to skip when transferring
+		const extensionBlacklist = [
+			// ignore extensions
+			'ms-vscode-remote.remote-ssh',
+			'ms-vscode-remote.remote-wsl',
+			// ignore other AI copilots that could conflict with Void keybindings
+			'sourcegraph.cody-ai',
+			'continue.continue',
+			'codeium.codeium',
+			'saoudrizwan.claude-dev', // cline
+			'rooveterinaryinc.roo-cline', // roo
+		];
+		for (const { from, to } of transferTheseFiles) {
+			try {
+				// find a blacklisted item
+				const isBlacklisted = extensionBlacklist.find(blacklistItem => {
+					return from.fsPath?.includes(blacklistItem)
+				})
+				if (isBlacklisted) continue
+
+			} catch { }
+
 			console.log('transferring', from, to)
 			// Check if the source file exists before attempting to copy
 			try {

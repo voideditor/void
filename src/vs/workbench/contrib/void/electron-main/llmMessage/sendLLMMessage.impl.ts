@@ -10,7 +10,7 @@ import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
-import { GoogleAuth } from 'google-auth-library'
+// import { GoogleAuth } from 'google-auth-library'
 /* eslint-enable */
 
 import { AnthropicLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
@@ -42,13 +42,13 @@ const invalidApiKeyMessage = (providerName: ProviderName) => `Invalid ${displayI
 
 // ------------ OPENAI-COMPATIBLE (HELPERS) ------------
 
-const getGoogleApiKey = async () => {
-	// module‑level singleton
-	const auth = new GoogleAuth({ scopes: `https://www.googleapis.com/auth/cloud-platform` });
-	const key = await auth.getAccessToken()
-	if (!key) throw new Error(`Google API failed to generate a key.`)
-	return key
-}
+// const getGoogleApiKey = async () => {
+// 	// module‑level singleton
+// 	const auth = new GoogleAuth({ scopes: `https://www.googleapis.com/auth/cloud-platform` });
+// 	const key = await auth.getAccessToken()
+// 	if (!key) throw new Error(`Google API failed to generate a key.`)
+// 	return key
+// }
 
 
 const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includeInPayload }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName, includeInPayload?: { [s: string]: any } }) => {
@@ -92,13 +92,12 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
-	else if (providerName === 'googleVertex') {
-		// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
-		const apiKey = await getGoogleApiKey()
-		const thisConfig = settingsOfProvider[providerName]
-		const baseURL = `https://${thisConfig.region}-aiplatform.googleapis.com/v1/projects/${thisConfig.project}/locations/${thisConfig.region}/endpoints/${'openapi'}`
-		return new OpenAI({ baseURL: baseURL, apiKey: apiKey, ...commonPayloadOpts })
-	}
+	// else if (providerName === 'googleVertex') {
+	// 	// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
+	// 	const thisConfig = settingsOfProvider[providerName]
+	// 	const baseURL = `https://${thisConfig.region}-aiplatform.googleapis.com/v1/projects/${thisConfig.project}/locations/${thisConfig.region}/endpoints/${'openapi'}`
+	// 	return new OpenAI({ baseURL: baseURL, apiKey: apiKey, ...commonPayloadOpts })
+	// }
 	else if (providerName === 'microsoftAzure') {
 		// https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP
 		const thisConfig = settingsOfProvider[providerName]
@@ -692,11 +691,11 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
-	googleVertex: {
-		sendChat: (params) => _sendOpenAICompatibleChat(params),
-		sendFIM: null,
-		list: null,
-	},
+	// googleVertex: {
+	// 	sendChat: (params) => _sendOpenAICompatibleChat(params),
+	// 	sendFIM: null,
+	// 	list: null,
+	// },
 	microsoftAzure: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,

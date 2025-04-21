@@ -28,7 +28,6 @@ import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { MAX_FILE_CHARS_PAGE, MAX_TERMINAL_INACTIVE_TIME, ToolName, toolNames } from '../../../../common/prompt/prompts.js';
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
-import jsonStringify from 'fast-json-stable-stringify'
 import ErrorBoundary from './ErrorBoundary.js';
 import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
 
@@ -571,7 +570,11 @@ export const SelectedFiles = (
 			{allSelections.map((selection, i) => {
 
 				const isThisSelectionProspective = i > selections.length - 1
-				const thisKey = jsonStringify(selection)
+
+				const thisKey = selection.type === 'CodeSelection' ? selection.type + selection.language + selection.range + selection.state.wasAddedAsCurrentFile + selection.uri.fsPath
+					: selection.type === 'File' ? selection.type + selection.language + selection.state.wasAddedAsCurrentFile + selection.uri.fsPath
+						: selection.type === 'Folder' ? selection.type + selection.language + selection.state + selection.uri.fsPath
+							: i
 
 				return <div // container for summarybox and code
 					key={thisKey}

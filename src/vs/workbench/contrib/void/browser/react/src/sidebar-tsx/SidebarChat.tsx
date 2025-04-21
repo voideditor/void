@@ -20,7 +20,7 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
-import { AlertTriangle, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis } from 'lucide-react';
+import { AlertTriangle, File, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis, Folder, ALargeSmall, TypeOutline, Text } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
 import { approvalTypeOfToolName, LintErrorItem, ToolApprovalType, toolApprovalTypes, ToolCallParams } from '../../../../common/toolsServiceTypes.js';
 import { ApplyButtonsHTML, CopyButton, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyButtonState } from '../markdown/ApplyBlockHoverButtons.js';
@@ -492,12 +492,12 @@ export const getFolderName = (pathStr: string) => {
 	return lastTwo.join('/') + '/'
 }
 
-export const getBasename = (pathStr: string) => {
+export const getBasename = (pathStr: string, parts: number = 1) => {
 	// 'unixify' path
 	pathStr = pathStr.replace(/[/\\]+/g, '/') // replace any / or \ or \\ with /
-	const parts = pathStr.split('/') // split on /
-	if (parts.length === 0) return pathStr
-	return parts[parts.length - 1]
+	const allParts = pathStr.split('/') // split on /
+	if (allParts.length === 0) return pathStr
+	return allParts.slice(-parts).join('/')
 }
 
 export const SelectedFiles = (
@@ -576,6 +576,13 @@ export const SelectedFiles = (
 						: selection.type === 'Folder' ? selection.type + selection.language + selection.state + selection.uri.fsPath
 							: i
 
+				const SelectionIcon = (
+					selection.type === 'File' ? File
+						: selection.type === 'Folder' ? Folder
+							: selection.type === 'CodeSelection' ? Text
+								: (undefined as never)
+				)
+
 				return <div // container for summarybox and code
 					key={thisKey}
 					className={`flex flex-col space-y-[1px]`}
@@ -583,7 +590,7 @@ export const SelectedFiles = (
 					{/* summarybox */}
 					<div
 						className={`
-							flex items-center gap-0.5 relative
+							flex items-center gap-1 relative
 							px-1
 							w-fit h-fit
 							select-none
@@ -631,13 +638,15 @@ export const SelectedFiles = (
 							}
 						}}
 					>
+						{<SelectionIcon size={10} />}
+
 						{ // file name and range
 							getBasename(selection.uri.fsPath)
 							+ (selection.type === 'CodeSelection' ? ` (${selection.range[0]}-${selection.range[1]})` : '')
 						}
 
 						{selection.type === 'File' && selection.state.wasAddedAsCurrentFile && messageIdx === undefined && currentURI?.fsPath === selection.uri.fsPath ?
-							<span className={`text-[8px] ml-0.5 'void-opacity-60 text-void-fg-4`}>
+							<span className={`text-[8px] 'void-opacity-60 text-void-fg-4`}>
 								{`(Current File)`}
 							</span>
 							: null
@@ -972,6 +981,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			setSelections={setStagingSelections}
 		>
 			<VoidInputBox2
+				enableAtToMention
 				ref={setTextAreaRef}
 				className='min-h-[81px] max-h-[500px] px-0.5'
 				placeholder="Edit your message..."
@@ -2857,8 +2867,9 @@ export const SidebarChat = () => {
 		onClickAnywhere={() => { textAreaRef.current?.focus() }}
 	>
 		<VoidInputBox2
+			enableAtToMention
 			className={`min-h-[81px] px-0.5 py-0.5`}
-			placeholder={`${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
+			placeholder={`@ to mention, ${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
 			onChangeText={onChangeText}
 			onKeyDown={onKeyDown}
 			onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}

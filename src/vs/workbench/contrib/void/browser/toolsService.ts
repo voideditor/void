@@ -308,6 +308,7 @@ export class ToolsService implements IToolsService {
 				const query = queryBuilder.file(workspaceContextService.getWorkspace().folders.map(f => f.uri), {
 					filePattern: queryStr,
 					includePattern: includePattern ?? undefined,
+					sortByScore: true, // makes results 10x better
 				})
 				const data = await searchService.fileSearch(query, CancellationToken.None)
 

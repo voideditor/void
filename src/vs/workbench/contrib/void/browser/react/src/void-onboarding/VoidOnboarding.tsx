@@ -465,6 +465,7 @@ const VoidOnboardingContent = () => {
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidMetricsService = accessor.get('IMetricsService')
 
 	const voidSettingsState = useSettingsState()
 
@@ -480,6 +481,7 @@ const VoidOnboardingContent = () => {
 	const [selectedPrivateProvider, setSelectedPrivateProvider] = useState<ProviderName>('ollama');
 	const [selectedAffordableProvider, setSelectedAffordableProvider] = useState<ProviderName>('gemini');
 	const [selectedAllProvider, setSelectedAllProvider] = useState<ProviderName>('anthropic');
+	const [didDoubleClickSkip, setDidDoubleClickSkip] = useState(false)
 
 	// Helper function to get the current selected provider based on active tab
 	const getSelectedProvider = (): ProviderName => {
@@ -535,7 +537,10 @@ const VoidOnboardingContent = () => {
 				onClick={() => { setPageIndex(pageIndex - 1) }}
 			/>
 			<PrimaryActionButton
-				onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
+				onClick={() => {
+					voidSettingsService.setGlobalSetting('isOnboardingComplete', true);
+					voidMetricsService.capture('Completed Onboarding', { selectedProviderName, wantToUseOption })
+				}}
 				ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
 			>Enter the Void</PrimaryActionButton>
 		</div>
@@ -618,15 +623,16 @@ const VoidOnboardingContent = () => {
 
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[800px] mx-auto mt-8">
+
 					<button
-						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
+						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
 						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
-							<Brain size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Intelligent</div>
+							<DollarSign size={24} className="text-void-fg-2 mr-2" />
+							<div className="text-lg font-medium text-void-fg-1">Affordable</div>
 						</div>
-						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['smart']}</div>
+						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['cheap']}</div>
 					</button>
 
 					<button
@@ -641,14 +647,14 @@ const VoidOnboardingContent = () => {
 					</button>
 
 					<button
-						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
+						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
 						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
-							<DollarSign size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Affordable</div>
+							<Brain size={24} className="text-void-fg-2 mr-2" />
+							<div className="text-lg font-medium text-void-fg-1">Intelligent</div>
 						</div>
-						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['cheap']}</div>
+						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['smart']}</div>
 					</button>
 				</div>
 

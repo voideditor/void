@@ -41,7 +41,7 @@ const CHAT_RETRIES = 3
 const RETRY_DELAY = 2500
 
 
-export const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
+const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
 	if (!currentSelections) return null
 
 	for (let i = 0; i < currentSelections.length; i += 1) {
@@ -202,6 +202,8 @@ export interface IChatThreadService {
 	getCurrentFocusedMessageIdx(): number | undefined;
 	isCurrentlyFocusingMessage(): boolean;
 	setCurrentlyFocusedMessageIdx(messageIdx: number | undefined): void;
+
+	addNewStagingSelection(newSelection: StagingSelectionItem): void;
 
 	dangerousSetState: (newState: ThreadsState) => void;
 	resetState: () => void;
@@ -1516,6 +1518,39 @@ We only need to do it for files that were edited since `from`, ie files between 
 		// if (messageIdx !== undefined)
 		// 	this.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
 	}
+
+
+	addNewStagingSelection(newSelection: StagingSelectionItem): void {
+
+		const focusedMessageIdx = this.getCurrentFocusedMessageIdx()
+
+		// set the selections to the proper value
+		let selections: StagingSelectionItem[] = []
+		let setSelections = (s: StagingSelectionItem[]) => { }
+
+		if (focusedMessageIdx === undefined) {
+			selections = this.getCurrentThreadState().stagingSelections
+			setSelections = (s: StagingSelectionItem[]) => this.setCurrentThreadState({ stagingSelections: s })
+		} else {
+			selections = this.getCurrentMessageState(focusedMessageIdx).stagingSelections
+			setSelections = (s) => this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: s })
+		}
+
+		// if matches with existing selection, overwrite (since text may change)
+		const idx = findStagingSelectionIndex(selections, newSelection)
+		if (idx !== null && idx !== -1) {
+			setSelections([
+				...selections!.slice(0, idx),
+				newSelection,
+				...selections!.slice(idx + 1, Infinity)
+			])
+		}
+		// if no match, add it
+		else {
+			setSelections([...(selections ?? []), newSelection])
+		}
+	}
+
 
 	// set message.state
 	private _setCurrentMessageState(state: Partial<UserMessageState>, messageIdx: number): void {

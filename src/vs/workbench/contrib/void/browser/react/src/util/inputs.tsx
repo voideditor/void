@@ -467,7 +467,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			rows={1}
 			placeholder={placeholder}
 		/>
-		<div>{`idx ${optionIdx}`}</div>
+		{/* <div>{`idx ${optionIdx}`}</div> */}
 		{isMenuOpen && (
 			<div
 				ref={refs.setFloating}

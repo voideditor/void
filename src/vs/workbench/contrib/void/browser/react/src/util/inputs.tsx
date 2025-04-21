@@ -363,7 +363,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 		// The most reliable way to simulate typing is to use execCommand
 		// which will trigger all the appropriate native events
-		document.execCommand('insertText', false, text);
+		document.execCommand('insertText', false, text + ' '); // add space after too
 
 		// React's onChange relies on a SyntheticEvent system
 		// The best way to ensure it runs is to call callbacks directly

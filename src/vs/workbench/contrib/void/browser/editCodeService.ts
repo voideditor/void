@@ -31,14 +31,11 @@ import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
 import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from '../common/helpers/extractCodeFromResult.js';
-import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
-import { isMacintosh } from '../../../../base/common/platform.js';
+import { INotificationService, } from '../../../../platform/notification/common/notification.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { Emitter } from '../../../../base/common/event.js';
-import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
-import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { LLMChatMessage, OnError, errorDetails } from '../common/sendLLMMessageTypes.js';
+import { LLMChatMessage } from '../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts, CallBeforeStartApplyingOpts, } from './editCodeServiceInterface.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
@@ -48,6 +45,8 @@ import { deepClone } from '../../../../base/common/objects.js';
 import { acceptBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../common/helpers/colors.js';
 import { DiffArea, Diff, CtrlKZone, VoidFileSnapshot, DiffAreaSnapshotEntry, diffAreaSnapshotKeys, DiffZone, TrackingZone, ComputedDiff } from '../common/editCodeServiceTypes.js';
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
+// import { isMacintosh } from '../../../../base/common/platform.js';
+// import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 
 const configOfBG = (color: Color) => {
 	return { dark: color, light: color, hcDark: color, hcLight: color, }
@@ -199,7 +198,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		@IConsistentEditorItemService private readonly _consistentEditorItemService: IConsistentEditorItemService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
 		@INotificationService private readonly _notificationService: INotificationService,
-		@ICommandService private readonly _commandService: ICommandService,
+		// @ICommandService private readonly _commandService: ICommandService,
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
 		// @IFileService private readonly _fileService: IFileService,
 		@IVoidModelService private readonly _voidModelService: IVoidModelService,
@@ -279,24 +278,24 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 
-	private _notifyError = (e: Parameters<OnError>[0]) => {
-		const details = errorDetails(e.fullError)
-		this._notificationService.notify({
-			severity: Severity.Warning,
-			message: `Void Error: ${e.message}`,
-			actions: {
-				secondary: [{
-					id: 'void.onerror.opensettings',
-					enabled: true,
-					label: `Open Void's settings`,
-					tooltip: '',
-					class: undefined,
-					run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
-				}]
-			},
-			source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}\n\nIf this persists, feel free to [report](https://github.com/voideditor/void/issues/new) it.` : undefined
-		})
-	}
+	// private _notifyError = (e: Parameters<OnError>[0]) => {
+	// 	const details = errorDetails(e.fullError)
+	// 	this._notificationService.notify({
+	// 		severity: Severity.Warning,
+	// 		message: `Void Error: ${e.message}`,
+	// 		actions: {
+	// 			secondary: [{
+	// 				id: 'void.onerror.opensettings',
+	// 				enabled: true,
+	// 				label: `Open Void's settings`,
+	// 				tooltip: '',
+	// 				class: undefined,
+	// 				run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
+	// 			}]
+	// 		},
+	// 		source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}\n\nIf this persists, feel free to [report](https://github.com/voideditor/void/issues/new) it.` : undefined
+	// 	})
+	// }
 
 
 
@@ -1393,7 +1392,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		// throws
 		const onError = (e: { message: string; fullError: Error | null; }) => {
-			this._notifyError(e)
+			// this._notifyError(e)
 			onDone()
 			this._undoHistory(uri)
 			throw e.fullError
@@ -1612,7 +1611,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 
 		const onError = (e: { message: string; fullError: Error | null; }) => {
-			this._notifyError(e)
+			// this._notifyError(e)
 			onDone()
 			this._undoHistory(uri)
 			throw e.fullError || new Error(e.message) // throw error h

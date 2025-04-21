@@ -50,10 +50,10 @@ export const defaultProviderSettings = {
 	liteLLM: { // https://docs.litellm.ai/docs/providers/openai_compatible
 		endpoint: '',
 	},
-	googleVertex: { // google https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
-		region: 'us-west2',
-		project: '',
-	},
+	// googleVertex: { // google https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
+	// 	region: 'us-west2',
+	// 	project: '',
+	// },
 	microsoftAzure: { // microsoft Azure Foundry
 		project: '', // really 'resource'
 		apiKey: '',
@@ -129,7 +129,7 @@ export const defaultModelsOfProvider = {
 		'ministral-8b-latest',
 	],
 	openAICompatible: [], // fallback
-	googleVertex: [],
+	// googleVertex: [],
 	microsoftAzure: [],
 	liteLLM: [],
 
@@ -830,12 +830,12 @@ const groqSettings: VoidStaticProviderInfo = {
 
 
 // ---------------- GOOGLE VERTEX ----------------
-const googleVertexModelOptions = {
-} as const satisfies Record<string, VoidStaticModelInfo>
-const googleVertexSettings: VoidStaticProviderInfo = {
-	modelOptions: googleVertexModelOptions,
-	modelOptionsFallback: (modelName) => { return null }
-}
+// const googleVertexModelOptions = {
+// } as const satisfies Record<string, VoidStaticModelInfo>
+// const googleVertexSettings: VoidStaticProviderInfo = {
+// 	modelOptions: googleVertexModelOptions,
+// 	modelOptionsFallback: (modelName) => { return null }
+// }
 
 // ---------------- MICROSOFT AZURE ----------------
 const microsoftAzureModelOptions = {
@@ -1081,7 +1081,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	liteLLM: liteLLMSettings,
 	lmStudio: lmStudioSettings,
 
-	googleVertex: googleVertexSettings,
+	// googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
 } as const
 

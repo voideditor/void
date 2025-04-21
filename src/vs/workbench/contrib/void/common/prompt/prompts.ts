@@ -7,7 +7,7 @@ import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { os } from '../helpers/systemInfo.js';
 import { RawToolParamsObj } from '../sendLLMMessageTypes.js';
-import { toolNamesThatRequireApproval } from '../toolsServiceTypes.js';
+import { approvalTypeOfToolName, ToolResultType } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { ChatMode } from '../voidSettingsTypes.js';
 
@@ -19,6 +19,14 @@ export const MAX_DIRSTR_CHARS_TOTAL_BEGINNING = 20_000
 export const MAX_DIRSTR_CHARS_TOTAL_TOOL = 20_000
 export const MAX_DIRSTR_RESULTS_TOTAL_BEGINNING = 100
 export const MAX_DIRSTR_RESULTS_TOTAL_TOOL = 100
+
+// tool info
+export const MAX_FILE_CHARS_PAGE = 500_000
+export const MAX_CHILDREN_URIs_PAGE = 500
+
+// terminal tool info
+export const MAX_TERMINAL_CHARS = 100_000
+export const MAX_TERMINAL_INACTIVE_TIME = 8 // seconds
 
 
 // Maximum character limits for prefix and suffix context
@@ -66,7 +74,36 @@ const paginationParam = {
 } as const
 
 
+
+
+// export type SnakeCase<S extends string> =
+// 	// exact acronym URI
+// 	S extends 'URI' ? 'uri'
+// 	// suffix URI: e.g. 'rootURI' -> snakeCase('root') + '_uri'
+// 	: S extends `${infer Prefix}URI` ? `${SnakeCase<Prefix>}_uri`
+// 	// default: for each char, prefix '_' on uppercase letters
+// 	: S extends `${infer C}${infer Rest}`
+// 	? `${C extends Lowercase<C> ? C : `_${Lowercase<C>}`}${SnakeCase<Rest>}`
+// 	: S;
+
+// export type SnakeCaseKeys<T extends Record<string, any>> = {
+// 	[K in keyof T as SnakeCase<Extract<K, string>>]: T[K]
+// };
+
+
+
 export const voidTools = {
+	// export const voidTools
+	// : {
+	// 	[T in keyof ToolCallParams]: {
+	// 		name: string;
+	// 		description: string;
+	// 		params: {
+	// 			[paramName in keyof SnakeCaseKeys<ToolCallParams[T]>]: { description: string }
+	// 		}
+	// 	}
+	// }
+	//  = {
 	// --- context-gathering (read/search/list) ---
 
 	read_file: {
@@ -74,8 +111,8 @@ export const voidTools = {
 		description: `Returns full contents of a given file.`,
 		params: {
 			...uriParam('file'),
-			start_line: { description: 'Optional. Only fill this in if you already know the line numbers you need to search. Defaults to 1.' },
-			end_line: { description: 'Optional. Only fill this in if you already know the line numbers you need to search. Defaults to Infinity.' },
+			start_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to 1.' },
+			end_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to Infinity.' },
 			...paginationParam,
 		},
 	},
@@ -89,8 +126,8 @@ export const voidTools = {
 		},
 	},
 
-	get_dir_structure: {
-		name: 'get_dir_structure',
+	get_dir_tree: {
+		name: 'get_dir_tree',
 		description: `This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder. `,
 		params: {
 			...uriParam('folder')
@@ -106,7 +143,7 @@ export const voidTools = {
 		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.`,
 		params: {
 			query: { description: `Your query for the search.` },
-			search_in_folder: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
+			include_pattern: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
 			...paginationParam,
 		},
 	},
@@ -118,10 +155,21 @@ export const voidTools = {
 		description: `Returns a list of file names whose content matches the given query. The query can be any substring or regex.`,
 		params: {
 			query: { description: `Your query for the search.` },
-			search_in_folder: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
-			is_regex: { description: 'Optional. Default is false. Whether query is a regex.' },
+			search_in_folder: { description: 'Optional. Leave as blank by default. ONLY fill this in if your previous search with the same query was truncated. Searches descendants of this folder only.' },
+			is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' },
 			...paginationParam,
 		},
+	},
+
+	// add new search_in_file tool
+	search_in_file: {
+		name: 'search_in_file',
+		description: `Returns an array of all the start line numbers where the content appears in the file.`,
+		params: {
+			...uriParam('file'),
+			query: { description: 'The string or regex to search for in the file.' },
+			is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' }
+		}
 	},
 
 	read_lint_errors: {
@@ -156,33 +204,46 @@ export const voidTools = {
 		description: `Edits the contents of a file given the file's URI and a description.`,
 		params: {
 			...uriParam('file'),
-			change_description: {
+			change_diff: {
 				description: `\
-Your description MUST be wrapped in triple backticks. \
-A code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing. \
-NEVER re-write the whole file. Bias towards writing as little as possible. \
-Here's an example of a good description:\n${editToolDescriptionExample}`
+A code diff describing the change to make to the file. \
+Your DIFF is the only context that will be given to another LLM to apply the change, so it must be accurate and complete. \
+Your DIFF MUST be wrapped in triple backticks. \
+NEVER re-write the whole file. Always bias towards writing as little as possible. \
+Use comments like "// ... existing code ..." to condense your writing. \
+Here's an example of a good output:\n${editToolDescriptionExample}`
 			}
 		},
 	},
 
-	command_tool: {
-		name: 'command_tool',
-		description: `Runs a terminal command. You can use this tool to run any command: sed, grep, etc. We just prefer you edit with the edit tool, not this tool if possible.`,
+	run_command: {
+		name: 'run_command',
+		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`,
 		params: {
 			command: { description: 'The terminal command to run.' },
-			wait_for_completion: { description: `Optional. Default is true. Make this value false when you want a command to run without waiting for it to complete.` },
-			terminal_id: { description: 'Optional. The ID of the terminal instance that should execute the command (if not provided, defaults to the preferred terminal ID). The primary purpose of this is to let you open a new terminal for testing or background processes (e.g. running a dev server for the user in a separate terminal). Must be an integer >= 1.' },
+			bg_terminal_id: { description: 'Optional. This only applies to terminals that have been opened with open_persistent_terminal. Runs the command in the terminal with the specified ID.' },
 		},
 	},
+
+	open_persistent_terminal: {
+		name: 'open_persistent_terminal',
+		description: `Use this tool when you want to run a terminal command indefinitely, like a dev server (eg \`npm run dev\`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.`,
+		params: {}
+	},
+	kill_persistent_terminal: {
+		name: 'kill_persistent_terminal',
+		description: `Closes a BG terminal with the given ID.`,
+		params: { terminal_id: { description: `The terminal ID to interrupt and close.` } }
+	}
+
 
 	// go_to_definition
 	// go_to_usages
 
-} satisfies { [name: string]: InternalToolInfo }
+} satisfies { [T in keyof ToolResultType]: InternalToolInfo }
 
 
-export type ToolName = keyof typeof voidTools
+export type ToolName = keyof ToolResultType
 export const toolNames = Object.keys(voidTools) as ToolName[]
 
 type ToolParamNameOfTool<T extends ToolName> = keyof (typeof voidTools)[T]['params']
@@ -197,7 +258,7 @@ export const isAToolName = (toolName: string): toolName is ToolName => {
 
 export const availableTools = (chatMode: ChatMode) => {
 	const toolNames: ToolName[] | undefined = chatMode === 'normal' ? undefined
-		: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !toolNamesThatRequireApproval.has(toolName))
+		: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !(toolName in approvalTypeOfToolName))
 			: chatMode === 'agent' ? Object.keys(voidTools) as ToolName[]
 				: undefined
 
@@ -447,7 +508,7 @@ export const DIVIDER = `=======`
 export const FINAL = `>>>>>>> UPDATED`
 
 export const searchReplace_systemMessage = `\
-You are a coding assistant that takes in a diff describing of a change to make, and outputs SEARCH/REPLACE code blocks which implement the change.
+You are a coding assistant that takes in a diff, and outputs SEARCH/REPLACE code blocks to implement the change(s) in the diff.
 The diff will be labeled \`DIFF\` and the original file will be labeled \`ORIGINAL_FILE\`.
 
 Format your SEARCH/REPLACE blocks as follows:
@@ -459,11 +520,11 @@ ${DIVIDER}
 ${FINAL}
 ${tripleTick[1]}
 
-1. Every single item written in \`CHANGE\` should show up in the final result, except for comments explicitly saying things like "// ... existing code". Make sure to include ALL other comments (even descriptive ones), code, whitespace, etc. in the final result.
+1. Your SEARCH/REPLACE block(s) must implement the diff EXACTLY. Do NOT leave anything out.
 
-2. Your SEARCH/REPLACE block(s) must implement the change EXACTLY. You should use comments like "// ... existing code" as reference points, and everything else in the change should be written verbatim.
+2. You are allowed to output multiple SEARCH/REPLACE blocks to implement the change.
 
-3. You are allowed to output multiple SEARCH/REPLACE blocks.
+3. Assume any comments in the diff are PART OF THE CHANGE. Include them in the output.
 
 4. Your output should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
 

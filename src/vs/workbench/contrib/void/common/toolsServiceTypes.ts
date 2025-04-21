@@ -3,7 +3,7 @@ import { ToolName } from './prompt/prompts.js';
 
 
 
-export type TerminalResolveReason = { type: 'toofull' | 'timeout' | 'bgtask' } | { type: 'done', exitCode: number }
+export type TerminalResolveReason = { type: 'timeout' } | { type: 'done', exitCode: number }
 
 export type LintErrorItem = { code: string, message: string, startLineNumber: number, endLineNumber: number }
 
@@ -16,39 +16,57 @@ export type ShallowDirectoryItem = {
 }
 
 
+export const approvalTypeOfToolName: Partial<{ [T in ToolName]?: 'edits' | 'terminal' }> = {
+	'create_file_or_folder': 'edits',
+	'delete_file_or_folder': 'edits',
+	'edit_file': 'edits',
+	'run_command': 'terminal',
+}
 
-const toolNamesWithApproval = ['create_file_or_folder', 'delete_file_or_folder', 'edit_file', 'command_tool'] as const satisfies readonly ToolName[]
-export type ToolNameWithApproval = typeof toolNamesWithApproval[number]
-export const toolNamesThatRequireApproval = new Set<ToolName>(toolNamesWithApproval)
+
+
+// {{add: define new type for approval types}}
+export type ToolApprovalType = NonNullable<(typeof approvalTypeOfToolName)[keyof typeof approvalTypeOfToolName]>;
+
+export const toolApprovalTypes = new Set<ToolApprovalType>(
+	Object.values(approvalTypeOfToolName).filter((v): v is ToolApprovalType => v !== undefined)
+)
 
 // PARAMS OF TOOL CALL
 export type ToolCallParams = {
 	'read_file': { uri: URI, startLine: number | null, endLine: number | null, pageNumber: number },
-	'ls_dir': { rootURI: URI, pageNumber: number },
-	'get_dir_structure': { rootURI: URI },
-	'search_pathnames_only': { queryStr: string, searchInFolder: string | null, pageNumber: number },
-	'search_for_files': { queryStr: string, isRegex: boolean, searchInFolder: URI | null, pageNumber: number },
+	'ls_dir': { uri: URI, pageNumber: number },
+	'get_dir_tree': { uri: URI },
+	'search_pathnames_only': { query: string, includePattern: string | null, pageNumber: number },
+	'search_for_files': { query: string, isRegex: boolean, searchInFolder: URI | null, pageNumber: number },
+	'search_in_file': { uri: URI, query: string, isRegex: boolean },
 	'read_lint_errors': { uri: URI },
 	// ---
-	'edit_file': { uri: URI, changeDescription: string },
+	'edit_file': { uri: URI, changeDiff: string },
 	'create_file_or_folder': { uri: URI, isFolder: boolean },
 	'delete_file_or_folder': { uri: URI, isRecursive: boolean, isFolder: boolean },
-	'command_tool': { command: string, proposedTerminalId: string, waitForCompletion: boolean },
+	// ---
+	'run_command': { command: string; bgTerminalId: string | null },
+	'open_persistent_terminal': {},
+	'kill_persistent_terminal': { terminalId: string },
 }
-
 
 // RESULT OF TOOL CALL
 export type ToolResultType = {
 	'read_file': { fileContents: string, totalFileLen: number, hasNextPage: boolean },
 	'ls_dir': { children: ShallowDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
-	'get_dir_structure': { str: string, },
+	'get_dir_tree': { str: string, },
 	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },
 	'search_for_files': { uris: URI[], hasNextPage: boolean },
+	'search_in_file': { lines: number[]; },
 	'read_lint_errors': { lintErrors: LintErrorItem[] | null },
 	// ---
 	'edit_file': Promise<{ lintErrors: LintErrorItem[] | null }>,
 	'create_file_or_folder': {},
 	'delete_file_or_folder': {},
-	'command_tool': { terminalId: string, didCreateTerminal: boolean, result: string; resolveReason: TerminalResolveReason; },
+	// ---
+	'run_command': { result: string; resolveReason: TerminalResolveReason; },
+	'open_persistent_terminal': { terminalId: string },
+	'kill_persistent_terminal': {},
 }
 

@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { ErrorDisplay } from './ErrorDisplay.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 
 interface Props {

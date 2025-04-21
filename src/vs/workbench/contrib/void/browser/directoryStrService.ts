@@ -10,11 +10,10 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { ShallowDirectoryItem, ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js';
-import { MAX_CHILDREN_URIs_PAGE } from './toolsService.js';
 import { IExplorerService } from '../../files/browser/files.js';
 import { SortOrder } from '../../files/common/files.js';
 import { ExplorerItem } from '../../files/common/explorerModel.js';
-import { MAX_DIRSTR_CHARS_TOTAL_BEGINNING, MAX_DIRSTR_CHARS_TOTAL_TOOL } from '../common/prompt/prompts.js';
+import { MAX_CHILDREN_URIs_PAGE, MAX_DIRSTR_CHARS_TOTAL_BEGINNING, MAX_DIRSTR_CHARS_TOTAL_TOOL } from '../common/prompt/prompts.js';
 
 
 const MAX_FILES_TOTAL = 300;
@@ -111,14 +110,14 @@ export const computeDirectoryTree1Deep = async (
 
 export const stringifyDirectoryTree1Deep = (params: ToolCallParams['ls_dir'], result: ToolResultType['ls_dir']): string => {
 	if (!result.children) {
-		return `Error: ${params.rootURI} is not a directory`;
+		return `Error: ${params.uri} is not a directory`;
 	}
 
 	let output = '';
 	const entries = result.children;
 
 	if (!result.hasPrevPage) { // is first page
-		output += `${params.rootURI.fsPath}\n`;
+		output += `${params.uri.fsPath}\n`;
 	}
 
 	for (let i = 0; i < entries.length; i++) {
@@ -419,7 +418,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 		}
 
 		if (cutOff) {
-			return `${str}\n${cutOffMessage}`
+			return `${str.trimEnd()}\n${cutOffMessage}`
 		}
 
 		return str

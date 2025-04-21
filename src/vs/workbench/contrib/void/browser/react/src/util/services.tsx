@@ -304,6 +304,16 @@ export const useChatThreadsStreamState = (threadId: string) => {
 	return s
 }
 
+export const useFullChatThreadsStreamState = () => {
+	const [s, ss] = useState(chatThreadsStreamState)
+	useEffect(() => {
+		ss(chatThreadsStreamState)
+		const listener = () => { ss(chatThreadsStreamState) }
+		chatThreadsStreamStateListeners.add(listener)
+		return () => { chatThreadsStreamStateListeners.delete(listener) }
+	}, [ss])
+	return s
+}
 
 
 

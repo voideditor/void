@@ -48,6 +48,80 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 	return <div ref={containerRef} className={className === undefined ? `w-full` : className}>{children}</div>
 }
 
+type GenerateNextOptions = (newPathText: string) => Option[]
+
+type Option = {
+	name: string,
+	displayName: string,
+} & (
+		| { nextOptions: Option[], generateNextOptions?: undefined }
+		| { nextOptions?: undefined, generateNextOptions: GenerateNextOptions }
+		| { nextOptions?: undefined, generateNextOptions?: undefined }
+	)
+
+
+const getOptionsAtPath = (accessor: ReturnType<typeof useAccessor>, path: string[], newPathText: string) => {
+
+
+	const allOptions: Option[] = [
+		{
+			name: 'files',
+			displayName: 'files',
+			generateNextOptions: () => [
+				{ name: 'a.txt', displayName: 'a.txt', },
+				{ name: 'b.txt', displayName: 'b.txt', },
+				{ name: 'c.txt', displayName: 'c.txt', },
+				{ name: 'd.txt', displayName: 'd.txt', },
+				{ name: 'e.txt', displayName: 'e.txt', },
+				{ name: 'f.txt', displayName: 'f.txt', },
+				{ name: 'g.txt', displayName: 'g.txt', },
+				{ name: '!a.txt', displayName: '!a.txt', },
+				{ name: '!b.txt', displayName: '!b.txt', },
+				{ name: '!c.txt', displayName: '!c.txt', },
+				{ name: '!d.txt', displayName: '!d.txt', },
+				{ name: '!e.txt', displayName: '!e.txt', },
+				{ name: '!f.txt', displayName: '!f.txt', },
+				{ name: '!g.txt', displayName: '!g.txt', },
+			]
+		},
+		{
+			name: 'folders',
+			displayName: 'folders',
+			nextOptions: [
+				{ name: 'FOLDER', displayName: 'FOLDER', },
+			]
+		},
+	]
+
+	// follow the path in the optionsTree (until the last path element)
+
+	let nextOptionsAtPath = allOptions
+	let generateNextOptionsAtPath: GenerateNextOptions | undefined = undefined
+
+	for (const pn of path) {
+
+		const selectedOption = nextOptionsAtPath.find(o => o.name.toLowerCase() === pn.toLowerCase())
+
+		if (!selectedOption) return;
+
+		nextOptionsAtPath = selectedOption.nextOptions! // assume nextOptions exists until we hit the very last option (the path will never contain the last possible option)
+		generateNextOptionsAtPath = selectedOption.generateNextOptions
+
+	}
+
+
+	if (generateNextOptionsAtPath) {
+		nextOptionsAtPath = generateNextOptionsAtPath(newPathText)
+	}
+
+	const optionsAtPath = nextOptionsAtPath.filter(o => o.name.includes(newPathText))
+
+
+	return optionsAtPath
+
+}
+
+
 
 export type TextAreaFns = { setValue: (v: string) => void, enable: () => void, disable: () => void }
 type InputBox2Props = {
@@ -64,8 +138,235 @@ type InputBox2Props = {
 }
 export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, className, onKeyDown, onFocus, onBlur, onChangeText }, ref) {
 
+
 	// mirrors whatever is in ref
+	const accessor = useAccessor()
+	const toolsService = accessor.get('IToolsService')
+
+
+
+
+
+
+
+
+
+
+
+
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+	const selectedOptionRef = useRef<HTMLDivElement>(null);
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+	const [path, setPath] = useState<string[]>([]);
+	const [optionIdx, setOptionIdx] = useState<number>(0);
+	const [options, setOptions] = useState<Option[]>([]);
+	const [newPathText, setNewPathText] = useState<string>('');
+
+
+	const insertTextAtCursor = (text: string) => {
+		const textarea = textAreaRef.current;
+		if (!textarea) return;
+
+		// Focus the textarea first
+		textarea.focus();
+
+		// The most reliable way to simulate typing is to use execCommand
+		// which will trigger all the appropriate native events
+		document.execCommand('insertText', false, text);
+
+		// React's onChange relies on a SyntheticEvent system
+		// The best way to ensure it runs is to call callbacks directly
+		if (onChangeText) {
+			onChangeText(textarea.value);
+		}
+		adjustHeight();
+	};
+
+
+
+	const onSelectOption = () => {
+
+		if (!options.length) { return; }
+
+		const option = options[optionIdx];
+		const newPath = [...path, option.name]
+		const isLastOption = !option.generateNextOptions && !option.nextOptions
+
+		setPath(newPath)
+		setNewPathText('')
+		setOptionIdx(0)
+		if (isLastOption) {
+			setIsMenuOpen(false)
+			insertTextAtCursor(`TODO-${option.displayName}`)
+		}
+		else {
+			setOptions(getOptionsAtPath(accessor, newPath, '') || [])
+		}
+	}
+
+	const onRemoveOption = () => {
+		const newPath = [...path.slice(0, path.length - 1)]
+		setPath(newPath)
+		setNewPathText('')
+		setOptionIdx(0)
+		setOptions(getOptionsAtPath(accessor, newPath, '') || [])
+	}
+
+	const onOpenOptionMenu = () => {
+		setPath([])
+		setNewPathText('')
+		setIsMenuOpen(true);
+		setOptionIdx(0);
+		setOptions(getOptionsAtPath(accessor, [], '') || []);
+	}
+	const onCloseOptionMenu = () => {
+		setIsMenuOpen(false);
+	}
+
+	const onNavigateUp = () => {
+		if (options.length === 0) return;
+		setOptionIdx((prevIdx) => (prevIdx - 1 + options.length) % options.length);
+	}
+	const onNavigateDown = () => {
+		if (options.length === 0) return;
+		setOptionIdx((prevIdx) => (prevIdx + 1) % options.length);
+	}
+
+	const onPathTextChange = (newStr: string) => {
+		setNewPathText(newStr);
+		setOptions(getOptionsAtPath(accessor, path, newStr) || []);
+
+	}
+
+	const onMenuKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === 'ArrowUp') {
+			onNavigateUp();
+		} else if (e.key === 'ArrowDown') {
+			onNavigateDown();
+		} else if (e.key === 'ArrowLeft') {
+			onSelectOption();
+		} else if (e.key === 'ArrowRight') {
+			onSelectOption();
+		} else if (e.key === 'Enter') {
+			onSelectOption();
+		} else if (e.key === 'Escape') {
+			onCloseOptionMenu()
+		} else if (e.key === 'Backspace') {
+
+			if (!newPathText) { // No text remaining
+				if (path.length === 0) {
+					onCloseOptionMenu()
+				} else {
+					onRemoveOption();
+				}
+			}
+			else if (e.altKey || e.ctrlKey || e.metaKey) { // Ctrl+Backspace
+				onPathTextChange('')
+			}
+			else { // Backspace
+				onPathTextChange(newPathText.slice(0, -1))
+			}
+		} else if (e.key.length === 1) {
+			if (e.altKey || e.ctrlKey || e.metaKey) { // Ctrl+letter
+				// do nothing
+			}
+			else { // letter
+				onPathTextChange(newPathText + e.key)
+			}
+		}
+
+		e.preventDefault();
+		e.stopPropagation();
+
+	};
+
+	// scroll the selected optionIdx into view on optionIdx and newPathText changes
+	useEffect(() => {
+		if (isMenuOpen && selectedOptionRef.current) {
+			selectedOptionRef.current.scrollIntoView({
+				behavior: 'instant',
+				block: 'nearest',
+				inline: 'nearest',
+			});
+		}
+	}, [optionIdx, isMenuOpen, newPathText, selectedOptionRef]);
+
+
+
+	const measureRef = useRef<HTMLDivElement>(null);
+	const gapPx = 2
+	const offsetPx = 2
+	const {
+		x,
+		y,
+		strategy,
+		refs,
+		middlewareData,
+		update
+	} = useFloating({
+		open: isMenuOpen,
+		onOpenChange: setIsMenuOpen,
+		placement: 'top',
+
+		middleware: [
+			offset({ mainAxis: gapPx, crossAxis: offsetPx }),
+			flip({
+				boundary: document.body,
+				padding: 8
+			}),
+			shift({
+				boundary: document.body,
+				padding: 8,
+			}),
+			size({
+				apply({ availableHeight, elements, rects }) {
+					const maxHeight = Math.min(availableHeight)
+
+					Object.assign(elements.floating.style, {
+						maxHeight: `${maxHeight}px`,
+						overflowY: 'auto',
+						// Ensure the width isn't constrained by the parent
+						width: `${Math.max(
+							rects.reference.width,
+							measureRef.current?.offsetWidth ?? 0
+						)}px`
+					});
+				},
+				padding: 8,
+				// Use viewport as boundary instead of any parent element
+				boundary: document.body,
+			}),
+		],
+		whileElementsMounted: autoUpdate,
+		strategy: 'fixed',
+	});
+	useEffect(() => {
+		if (!isMenuOpen) return;
+
+		const handleClickOutside = (event: MouseEvent) => {
+			const target = event.target as Node;
+			const floating = refs.floating.current;
+			const reference = refs.reference.current;
+
+			// Check if reference is an HTML element before using contains
+			const isReferenceHTMLElement = reference && 'contains' in reference;
+
+			if (
+				floating &&
+				(!isReferenceHTMLElement || !reference.contains(target)) &&
+				!floating.contains(target)
+			) {
+				setIsMenuOpen(false);
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, [isMenuOpen, refs.floating, refs.reference]);
+
+
+
 	const [isEnabled, setEnabled] = useState(true)
 
 	const adjustHeight = useCallback(() => {
@@ -104,18 +405,20 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 
 
-	return (
+	return <>
 		<textarea
 			autoFocus={false}
 			ref={useCallback((r: HTMLTextAreaElement | null) => {
 				if (fnsRef)
 					fnsRef.current = fns
 
+				refs.setReference(r)
+
 				textAreaRef.current = r
 				if (typeof ref === 'function') ref(r)
 				else if (ref) ref.current = r
 				adjustHeight()
-			}, [fnsRef, fns, setEnabled, adjustHeight, ref])}
+			}, [fnsRef, fns, setEnabled, adjustHeight, ref, refs])}
 
 			onFocus={onFocus}
 			onBlur={onBlur}
@@ -130,7 +433,16 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				// inputBorder: asCssVariable(inputBorder),
 			}}
 
-			onChange={useCallback(() => {
+			onInput={useCallback((event: React.FormEvent<HTMLTextAreaElement>) => {
+				const latestChange = (event.nativeEvent as InputEvent).data;
+
+				if (latestChange === '@') {
+					onOpenOptionMenu()
+				}
+
+			}, [onOpenOptionMenu, accessor])}
+
+			onChange={useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
 				const r = textAreaRef.current
 				if (!r) return
 				onChangeText?.(r.value)
@@ -138,18 +450,75 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			}, [onChangeText, adjustHeight])}
 
 			onKeyDown={useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+
+				if (isMenuOpen) {
+					onMenuKeyDown(e)
+					return;
+				}
+
 				if (e.key === 'Enter') {
 					// Shift + Enter when multiline = newline
 					const shouldAddNewline = e.shiftKey && multiline
 					if (!shouldAddNewline) e.preventDefault(); // prevent newline from being created
 				}
 				onKeyDown?.(e)
-			}, [onKeyDown, multiline])}
+			}, [onKeyDown, onMenuKeyDown, multiline])}
 
 			rows={1}
 			placeholder={placeholder}
 		/>
-	)
+		<div>{`idx ${optionIdx}`}</div>
+		{isMenuOpen && (
+			<div
+				ref={refs.setFloating}
+				className="z-[100] bg-void-bg-1 border-void-border-3 border rounded shadow-lg"
+				style={{
+					position: strategy,
+					top: y ?? 0,
+					left: x ?? 0,
+					width: refs.reference.current instanceof HTMLElement ? refs.reference.current.offsetWidth : 0
+				}}
+				onWheel={(e) => e.stopPropagation()}
+			>
+				<div className="py-1">
+					{/* Path navigation breadcrumbs */}
+					<div className="px-2 py-1 text-void-fg-3 text-sm border-b border-void-border-3">
+						{[...path, newPathText].join(' > ')}
+					</div>
+
+					{/* Options list */}
+					{options.length === 0 ? (
+						<div className="px-3 py-2 text-void-fg-3">No options available</div>
+					) : (
+						options.map((o, oIdx) => (
+							<div
+								ref={oIdx === optionIdx ? selectedOptionRef : null}
+
+								key={o.name}
+								className={`px-3 py-1.5 cursor-pointer bg-void-bg-2 ${oIdx === optionIdx ? 'bg-void-bg-2-hover' : ''}`}
+								onClick={() => { onSelectOption(); }}
+							>
+								<div className="flex items-center">
+									<span className="text-void-fg-1">{o.displayName}</span>
+									{o.nextOptions || o.generateNextOptions ? (
+										<svg className="ml-2 h-3 w-3 text-void-fg-3" viewBox="0 0 12 12" fill="none">
+											<path
+												d="M4.5 2.5L8 6L4.5 9.5"
+												stroke="currentColor"
+												strokeWidth="1.5"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+											/>
+										</svg>
+									) : null}
+								</div>
+							</div>
+						))
+					)}
+				</div>
+			</div>
+		)}
+	</>
 
 })
 

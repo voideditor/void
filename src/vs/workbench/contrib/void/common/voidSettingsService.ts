@@ -62,6 +62,9 @@ export interface IVoidSettingsService {
 	setOptionsOfModelSelection: SetOptionsOfModelSelection;
 	setGlobalSetting: SetGlobalSettingFn;
 
+	dangerousSetState(newState: VoidSettingsState): Promise<void>;
+	resetState(): Promise<void>;
+
 	setAutodetectedModels(providerName: ProviderName, modelNames: string[], logging: object): void;
 	toggleModelHidden(providerName: ProviderName, modelName: string): void;
 	addModel(providerName: ProviderName, modelName: string): void;
@@ -231,12 +234,31 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		this.readAndInitializeState()
 	}
 
+
+
+
+	dangerousSetState = async (newState: VoidSettingsState) => {
+		this.state = _validatedModelState(newState)
+		await this._storeState()
+		this._onDidChangeState.fire()
+		this._onUpdate_syncApplyToChat()
+	}
+	async resetState() {
+		await this.dangerousSetState(defaultState())
+	}
+
+
+
+
 	async readAndInitializeState() {
 		let readS: VoidSettingsState
 		try {
 			readS = await this._readState();
 			// 1.0.3 addition, remove when enough users have had this code run
 			if (readS.globalSettings.includeToolLintErrors === undefined) readS.globalSettings.includeToolLintErrors = true
+
+			// autoapprove is now an obj not a boolean (1.2.5)
+			if (typeof readS.globalSettings.autoApprove === 'boolean') readS.globalSettings.autoApprove = {}
 		}
 		catch (e) {
 			readS = defaultState()

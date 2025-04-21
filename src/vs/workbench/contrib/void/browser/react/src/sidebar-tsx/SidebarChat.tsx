@@ -756,12 +756,11 @@ const ToolHeaderWrapper = ({
 					<div className="flex items-center gap-x-2 flex-shrink-0">
 
 						{info && <CircleEllipsis
-							className='ml-2 text-void-fg-4 opacity-80 flex-shrink-0 stroke-1'
+							className='ml-2 text-void-fg-4 opacity-60 flex-shrink-0'
 							size={14}
 							data-tooltip-id='void-tooltip'
 							data-tooltip-content={info}
 							data-tooltip-place='top-end'
-							data-tooltip-delay-show={1000}
 						/>}
 
 						{isError && <AlertTriangle
@@ -2594,7 +2593,7 @@ const CommandBarInChat = () => {
 				<div
 					className={`
 						select-none
-						flex w-full rounded-t-lg bg-void-bg-3
+						flex w-full rounded-t-lg bg-void-bg-1
 						text-void-fg-3 text-xs text-nowrap
 
 						overflow-hidden transition-all duration-200 ease-in-out
@@ -2608,7 +2607,7 @@ const CommandBarInChat = () => {
 			<div
 				className={`
 					select-none
-					flex w-full rounded-t-lg bg-void-bg-3
+					flex w-full rounded-t-lg bg-void-bg-1
 					text-void-fg-3 text-xs text-nowrap
 					border-t border-l border-r border-zinc-300/10
 

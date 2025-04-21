@@ -1422,7 +1422,7 @@ const ToolRequestAcceptRejectButtons = ({ toolName }: { toolName: ToolName }) =>
 		<ToolApprovalTypeSwitch size='xs' approvalType={approvalType} desc='Auto-approve' />
 	</div> : null
 
-	return <div className="flex gap-2 items-center">
+	return <div className="flex gap-2 mx-0.5 items-center">
 		{approveButton}
 		{cancelButton}
 		{approvalToggle}

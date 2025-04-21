@@ -131,16 +131,25 @@ const FadeIn = ({ children, className, delayMs = 0, durationMs, ...props }: { ch
 // 		prev/next
 
 const NextButton = ({ onClick, ...props }: { onClick: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+
+	// Create a new props object without the disabled attribute
+	const { disabled, ...buttonProps } = props;
+
 	return (
 		<button
-			onClick={onClick}
-			className="px-6 py-2 bg-zinc-100 enabled:hover:bg-zinc-100 disabled:bg-zinc-100/40 disabled:cursor-not-allowed rounded text-black duration-600 transition-all"
-			{...props.disabled && {
+			onClick={disabled ? undefined : onClick}
+			onDoubleClick={onClick}
+			className={`px-6 py-2 bg-zinc-100 ${disabled
+				? 'bg-zinc-100/40 cursor-not-allowed'
+				: 'hover:bg-zinc-100'
+				} rounded text-black duration-600 transition-all
+			`}
+			{...disabled && {
 				'data-tooltip-id': 'void-tooltip',
-				'data-tooltip-content': 'Please enter all required fields or choose another provider',
-				'data-tooltip-place': 'top',
+				"data-tooltip-content": 'Please enter all required fields or choose another provider', // (double-click to proceed anyway, can come back in Settings)
+				"data-tooltip-place": 'top',
 			}}
-			{...props}
+			{...buttonProps}
 		>
 			Next
 		</button>
@@ -481,7 +490,6 @@ const VoidOnboardingContent = () => {
 	const [selectedPrivateProvider, setSelectedPrivateProvider] = useState<ProviderName>('ollama');
 	const [selectedAffordableProvider, setSelectedAffordableProvider] = useState<ProviderName>('gemini');
 	const [selectedAllProvider, setSelectedAllProvider] = useState<ProviderName>('anthropic');
-	const [didDoubleClickSkip, setDidDoubleClickSkip] = useState(false)
 
 	// Helper function to get the current selected provider based on active tab
 	const getSelectedProvider = (): ProviderName => {

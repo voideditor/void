@@ -1422,7 +1422,7 @@ const ToolRequestAcceptRejectButtons = ({ toolName }: { toolName: ToolName }) =>
 		<ToolApprovalTypeSwitch size='xs' approvalType={approvalType} desc='Auto-approve' />
 	</div> : null
 
-	return <div className="flex gap-2 mx-4 items-center">
+	return <div className="flex gap-2 items-center">
 		{approveButton}
 		{cancelButton}
 		{approvalToggle}
@@ -2714,15 +2714,15 @@ export const SidebarChat = () => {
 	const sidebarRef = useRef<HTMLDivElement>(null)
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
-	const onSubmit = useCallback(async () => {
+	const onSubmit = useCallback(async (_forceSubmit?: string) => {
 
-		if (isDisabled) return
+		if (isDisabled && !_forceSubmit) return
 		if (isRunning) return
 
 		const threadId = chatThreadsService.state.currentThreadId
 
 		// send message to LLM
-		const userMessage = textAreaRef.current?.value ?? ''
+		const userMessage = _forceSubmit || textAreaRef.current?.value || ''
 
 		try {
 			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, threadId })
@@ -2884,6 +2884,26 @@ export const SidebarChat = () => {
 	const isLandingPage = previousMessages.length === 0
 
 
+	const initiallySuggestedPromptsHTML = <div className='flex flex-col gap-2 w-full text-nowrap text-void-fg-3 select-none'>
+		{[
+			'Summarize my codebase',
+			'How do types work in Rust?',
+			'Create a .voidrules file for me'
+		].map((text, index) => (
+			<div
+				key={index}
+				className='py-1 px-2 rounded text-sm bg-zinc-700/5 hover:bg-zinc-700/10 dark:bg-zinc-300/5 dark:hover:bg-zinc-300/10 cursor-pointer opacity-80 hover:opacity-100'
+				onClick={() => onSubmit(text)}
+			>
+				{text}
+			</div>
+		))}
+	</div>
+
+
+	console.log('!!!', Object.keys(chatThreadsState.allThreads).length)
+
+
 	const threadPageInput = <div key={'input' + chatThreadsState.currentThreadId}>
 		<div className='px-4'>
 			<CommandBarInChat />
@@ -2907,10 +2927,15 @@ export const SidebarChat = () => {
 			{landingPageInput}
 		</ErrorBoundary>
 
-		{Object.values(chatThreadsState.allThreads).length > 0 && // show if there are threads
+		{Object.keys(chatThreadsState.allThreads).length > 1 ? // show if there are threads
 			<ErrorBoundary>
 				<div className='pt-8 mb-2 text-void-fg-1 text-root'>Previous Threads</div>
 				<PastThreadsList />
+			</ErrorBoundary>
+			:
+			<ErrorBoundary>
+				<div className='pt-8 mb-2 text-void-fg-1 text-root'>Suggestions</div>
+				{initiallySuggestedPromptsHTML}
 			</ErrorBoundary>
 		}
 	</div>

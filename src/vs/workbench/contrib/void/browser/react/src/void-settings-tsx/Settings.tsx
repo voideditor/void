@@ -869,11 +869,13 @@ export const Settings = () => {
 		let dataStr: string
 		let downloadName: string
 		if (t === 'Chats') {
-			dataStr = JSON.stringify(voidSettingsService.state, null, 2)
+			// Export chat threads
+			dataStr = JSON.stringify(chatThreadsService.state, null, 2)
 			downloadName = 'void-chats.json'
 		}
 		else if (t === 'Settings') {
-			dataStr = JSON.stringify(chatThreadsService.state, null, 2)
+			// Export user settings
+			dataStr = JSON.stringify(voidSettingsService.state, null, 2)
 			downloadName = 'void-settings.json'
 		}
 		else {

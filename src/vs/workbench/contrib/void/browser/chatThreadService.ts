@@ -542,6 +542,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			if (interrupted) { return { interrupted: true } } // the tool result is added where we interrupt, not here
 		}
 		catch (error) {
+			delete this._currentlyRunningToolInterruptor[threadId]
 			if (interrupted) { return { interrupted: true } } // the tool result is added where we interrupt, not here
 
 
@@ -561,6 +562,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// 5. add to history and keep going
 		this._updateLatestTool(threadId, { role: 'tool', type: 'success', params: toolParams, result: toolResult, name: toolName, content: toolResultStr, id: toolId, rawParams: opts.unvalidatedToolParams })
+		delete this._currentlyRunningToolInterruptor[threadId]
 
 		return {}
 	};
@@ -1043,8 +1045,8 @@ We only need to do it for files that were edited since `from`, ie files between 
 		if (!thread) return // should never happen
 
 		const llmCancelToken = this.streamState[threadId]?.streamingToken // currently streaming LLM on this thread
-		if (llmCancelToken === undefined && this.streamState[threadId]?.isRunning === 'LLM') {
-			// if about to call the other LLM, just wait for it by stopping right now
+		if (llmCancelToken === undefined && this.streamState[threadId]?.isRunning) {
+			// if about to call the other LLM, just wait for and stop now
 			return
 		}
 		// stop it (this simply resolves the promise to free up space)
@@ -1421,13 +1423,13 @@ We only need to do it for files that were edited since `from`, ie files between 
 	openNewThread() {
 		// if a thread with 0 messages already exists, switch to it
 		const { allThreads: currentThreads } = this.state
-        for (const threadId in currentThreads) {
-            if (currentThreads[threadId]!.messages.length === 0) {
-                // switch to the existing empty thread and exit
-                this.switchToThread(threadId)
-                return
-            }
-        }
+		for (const threadId in currentThreads) {
+			if (currentThreads[threadId]!.messages.length === 0) {
+				// switch to the existing empty thread and exit
+				this.switchToThread(threadId)
+				return
+			}
+		}
 		// otherwise, start a new thread
 		const newThread = newThreadObject()
 

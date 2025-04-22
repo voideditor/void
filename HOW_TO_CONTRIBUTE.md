@@ -42,7 +42,7 @@ Go to the "Individual Components" tab and select:
 
 Finally, click Install.
 
-### c. Build Prerequisites - Linux
+### c. Linux - Build Prerequisites
 
 First, run `npm install -g node-gyp`. Then:
 
@@ -50,12 +50,12 @@ First, run `npm install -g node-gyp`. Then:
 - Red Hat (Fedora, etc): `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
 - Others: see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
-### d. Building Void
+### d. Building Void from Visual Studio Code
 
 To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
 1. `npm install` to install all dependencies.
-2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`).
+2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`). If you get an error, try running it with `NODE_OPTIONS="--max-old-space-size=8192`, for example `NODE_OPTIONS="--max-old-space-size=8192" npm run buildreact`.
 3. Build Void.
 	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
    - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
@@ -70,7 +70,11 @@ To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
 #### Building Void from Terminal
 
-Alternatively, if you want to build Void from the terminal, instead of pressing <kbd>Cmd+Shift+B</kbd> you can run `npm run watch`. The build is done when you see something like this:
+Alternatively, if you want to build Void from the terminal, you can follow these steps.
+1. Clone this repo with `git clone https://github.com/voideditor/void/`.
+2. Go inside the "void" folder with `cd void` and then run `npm install`. This will install all dependencies. It can take a few minutes.
+3. Now run `npm run buildreact`). If you get an error, try running it with `NODE_OPTIONS="--max-old-space-size=8192`, for example `NODE_OPTIONS="--max-old-space-size=8192" npm run buildreact`.
+The build is done when you see something like this:
 
 ```
 [watch-extensions] [00:37:39] Finished compilation extensions with 0 errors after 19303 ms
@@ -78,6 +82,10 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 [watch-client    ] [00:38:07] Starting compilation...
 [watch-client    ] [00:38:07] Finished compilation with 0 errors after 5 ms
 ```
+
+5. Now you can run void by simply typing the following commands (the first time you run, it can take several minutes to load):
+   - Mac/Linux: Run `./scripts/code.sh` .
+   - Windows: Run `./scripts/code.bat`.
 
 
 

@@ -63,6 +63,17 @@ To build Void, open `void/` inside VSCode. Then open your terminal and run:
 4. Run Void.
    - Run `./scripts/code.sh` (Mac/Linux).
    - Run `./scripts/code.bat` (Windows).
+5. On Linux, If you get this error with code.sh :
+
+```
+[366157:0422/132119.648030:FATAL:setuid_sandbox_host.cc(163)] The SUID sandbox helper binary was found, but is not configured correctly. Rather than run without sandboxing I'm aborting now. You need to make sure that /home/user/Applications/void/void/.build/electron/chrome-sandbox is owned by root and has mode 4755.
+Trace/breakpoint trap (core dumped)
+```
+
+Simply run
+`sudo chown root:root .build/electron/chrome-sandbox && sudo chmod 4755 .build/electron/chrome-sandbox`
+and then run again `./scripts/code.sh` - it should fix the problem and launch Void in a few seconds.
+
 6. Nice-to-knows.
    - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
    - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
@@ -86,7 +97,14 @@ The build is done when you see something like this:
 5. Now you can run void by simply typing the following commands (the first time you run, it can take several minutes to load):
    - Mac/Linux: Run `./scripts/code.sh` .
    - Windows: Run `./scripts/code.bat`.
-
+6. If you get this error when running code.sh on Linux:
+```
+[366157:0422/132119.648030:FATAL:setuid_sandbox_host.cc(163)] The SUID sandbox helper binary was found, but is not configured correctly. Rather than run without sandboxing I'm aborting now. You need to make sure that /home/user/Applications/void/void/.build/electron/chrome-sandbox is owned by root and has mode 4755.
+Trace/breakpoint trap (core dumped)
+```
+Simply run
+`sudo chown root:root .build/electron/chrome-sandbox && sudo chmod 4755 .build/electron/chrome-sandbox`
+and then run again `./scripts/code.sh` - it should fix the problem and launch Void in a few seconds.
 
 
 #### Common Fixes

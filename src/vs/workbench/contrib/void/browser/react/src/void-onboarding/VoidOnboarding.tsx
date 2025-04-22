@@ -590,7 +590,7 @@ const VoidOnboardingContent = () => {
 
 					{/* Slice of Void image */}
 					<div className='max-w-md w-full h-[30vh] mx-auto flex items-center justify-center'>
-						<VoidIcon />
+						{/* <VoidIcon /> */}
 					</div>
 
 

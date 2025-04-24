@@ -221,7 +221,7 @@ Here's an example of a good output:\n${editToolDescriptionExample}`
 		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`,
 		params: {
 			command: { description: 'The terminal command to run.' },
-			bg_terminal_id: { description: 'Optional. This only applies to terminals that have been opened with open_persistent_terminal. Runs the command in the terminal with the specified ID.' },
+			persistent_terminal_id: { description: 'Optional. Runs the command in the persistent terminal that you created with open_persistent_terminal.' },
 		},
 	},
 
@@ -232,8 +232,8 @@ Here's an example of a good output:\n${editToolDescriptionExample}`
 	},
 	kill_persistent_terminal: {
 		name: 'kill_persistent_terminal',
-		description: `Closes a BG terminal with the given ID.`,
-		params: { terminal_id: { description: `The terminal ID to interrupt and close.` } }
+		description: `Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.`,
+		params: { persistent_terminal_id: { description: `The ID of the persistent terminal.` } }
 	}
 
 

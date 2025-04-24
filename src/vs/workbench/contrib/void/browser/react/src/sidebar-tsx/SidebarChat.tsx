@@ -30,6 +30,7 @@ import { MAX_FILE_CHARS_PAGE, MAX_TERMINAL_INACTIVE_TIME, ToolName, toolNames } 
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 import ErrorBoundary from './ErrorBoundary.js';
 import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
+import { terminalNameOfId } from '../../../terminalToolService.js';
 
 
 
@@ -683,6 +684,7 @@ type ToolHeaderParams = {
 	children?: React.ReactNode;
 	bottomChildren?: React.ReactNode;
 	onClick?: () => void;
+	desc2OnClick?: () => void;
 	isOpen?: boolean;
 	className?: string;
 }
@@ -700,6 +702,7 @@ const ToolHeaderWrapper = ({
 	bottomChildren,
 	isError,
 	onClick,
+	desc2OnClick,
 	isOpen,
 	isRejected,
 	className, // applies to the main content
@@ -769,7 +772,7 @@ const ToolHeaderWrapper = ({
 							data-tooltip-content={'Canceled'}
 							data-tooltip-place='top'
 						/>}
-						{desc2 && <span className="text-void-fg-4 text-xs">
+						{desc2 && <span className="text-void-fg-4 text-xs" onClick={desc2OnClick}>
 							{desc2}
 						</span>}
 						{numResults !== undefined && (
@@ -1317,7 +1320,7 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 			const toolParams = _toolParams as ToolCallParams['run_command']
 			return {
 				desc1: `"${toolParams.command}"`,
-				desc1Info: toolParams.bgTerminalId
+				desc1Info: toolParams.persistentTerminalId
 			}
 		},
 		'open_persistent_terminal': () => {
@@ -1326,7 +1329,7 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 		},
 		'kill_persistent_terminal': () => {
 			const toolParams = _toolParams as ToolCallParams['kill_persistent_terminal']
-			return { desc1: toolParams.terminalId }
+			return { desc1: toolParams.persistentTerminalId }
 		},
 		'get_dir_tree': () => {
 			const toolParams = _toolParams as ToolCallParams['get_dir_tree']
@@ -2053,6 +2056,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
+			const toolsService = accessor.get('IToolsService')
 			const isError = toolMessage.type === 'tool_error'
 			const title = getTitle(toolMessage)
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
@@ -2062,19 +2066,21 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
+			const { command, persistentTerminalId } = params
+			if (persistentTerminalId) {
+				componentParams.desc2 = terminalNameOfId(persistentTerminalId)
+				componentParams.desc2OnClick = () => terminalToolsService.focusTerminal(persistentTerminalId)
+			}
+
+
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
-				const { command } = params
-				const { resolveReason, result: terminalResult } = result
 
 				// it's unclear that this is a button and not an icon.
 				// componentParams.desc2 = <JumpToTerminalButton
 				// 	onClick={() => { terminalToolsService.openTerminal(terminalId) }}
 				// />
-
-				const additionalDetailsStr = resolveReason.type === 'done' ? (resolveReason.exitCode !== 0 ? `\nError: exit code ${resolveReason.exitCode}` : null)
-					: resolveReason.type === 'timeout' ? `\n(timed out)`
-						: null
+				const msg = toolsService.stringOfResult['run_command'](params, result)
 
 				componentParams.children = <ToolChildrenWrapper className='whitespace-pre text-nowrap overflow-auto text-sm'>
 					<div className='!select-text cursor-auto'>
@@ -2082,25 +2088,14 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 							<span className="text-void-fg-1 font-sans">{`Ran command: `}</span>
 							<span className="font-mono">{command}</span>
 						</div>
-						{(terminalResult + additionalDetailsStr).length && <div>
+						{msg.length && <div>
 							<span className='text-void-fg-1'>{`Result: `}</span>
-							<span className="font-mono">{terminalResult}</span>
-							<span className="font-mono">{additionalDetailsStr}</span>
+							<span className="font-mono">{msg}</span>
 						</div>}
 					</div>
 				</ToolChildrenWrapper>
-
-				if (params.bgTerminalId)
-					componentParams.desc2 = `(terminal ${params.bgTerminalId})`
-
 			}
 			else if (toolMessage.type === 'rejected' || toolMessage.type === 'tool_error' || toolMessage.type === 'running_now' || toolMessage.type === 'tool_request') {
-				const { bgTerminalId, command } = params
-				if (bgTerminalId) {
-					componentParams.desc2 = '(persistent terminal)'
-					if (terminalToolsService.terminalExists(bgTerminalId))
-						componentParams.onClick = () => terminalToolsService.focusTerminal(bgTerminalId)
-				}
 				if (toolMessage.type === 'tool_error') {
 					const { result } = toolMessage
 					componentParams.children = <ToolChildrenWrapper>{result}</ToolChildrenWrapper>
@@ -2130,12 +2125,9 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
-				const { terminalId } = result
-				if (terminalId) {
-					componentParams.desc2 = `(terminal ${terminalId})`
-					if (terminalToolsService.terminalExists(terminalId))
-						componentParams.onClick = () => terminalToolsService.focusTerminal(terminalId)
-				}
+				const { persistentTerminalId } = result
+				componentParams.desc1 = terminalNameOfId(persistentTerminalId)
+				componentParams.onClick = () => terminalToolsService.focusTerminal(persistentTerminalId)
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
@@ -2153,6 +2145,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
+			const terminalToolsService = accessor.get('ITerminalToolService')
 
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
 			const title = getTitle(toolMessage)
@@ -2167,7 +2160,9 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
 
 			if (toolMessage.type === 'success') {
-				const { result } = toolMessage
+				const { persistentTerminalId } = params
+				componentParams.desc1 = terminalNameOfId(persistentTerminalId)
+				componentParams.onClick = () => terminalToolsService.focusTerminal(persistentTerminalId)
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage

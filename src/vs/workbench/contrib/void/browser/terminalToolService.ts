@@ -9,7 +9,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { TerminalExitReason, TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
 import { ITerminalService, ITerminalInstance } from '../../../../workbench/contrib/terminal/browser/terminal.js';
-import { MAX_TERMINAL_CHARS, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js';
+import { MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_CHARS, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js';
 import { TerminalResolveReason } from '../common/toolsServiceTypes.js';
 
 
@@ -39,11 +39,11 @@ function isCommandComplete(output: string) {
 }
 
 
-const nameOfId = (id: string) => {
+export const terminalNameOfId = (id: string) => {
 	if (id === '1') return 'Void Agent'
 	return `Void Agent (${id})`
 }
-const idOfName = (name: string) => {
+export const idOfTerminalName = (name: string) => {
 	if (name === 'Void Agent') return '1'
 
 	const match = name.match(/Void Agent \((\d+)\)/)
@@ -66,7 +66,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		const initializeTerminal = (terminal: ITerminalInstance) => {
 			// when exit, remove
 			const d = terminal.onExit(() => {
-				const terminalId = idOfName(terminal.title)
+				const terminalId = idOfTerminalName(terminal.title)
 				if (terminalId !== null && (terminalId in this.terminalInstanceOfId)) delete this.terminalInstanceOfId[terminalId]
 				d.dispose()
 			})
@@ -75,7 +75,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 		// initialize any terminals that are already open
 		for (const terminal of terminalService.instances) {
-			const proposedTerminalId = idOfName(terminal.title)
+			const proposedTerminalId = idOfTerminalName(terminal.title)
 			if (proposedTerminalId) this.terminalInstanceOfId[proposedTerminalId] = terminal
 
 			initializeTerminal(terminal)
@@ -111,7 +111,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		const terminalId = this.getValidNewTerminalId();
 		const terminal = await this.terminalService.createTerminal({
 			location: TerminalLocation.Panel,
-			config: { name: nameOfId(terminalId), title: nameOfId(terminalId) },
+			config: { name: terminalNameOfId(terminalId), title: terminalNameOfId(terminalId) },
 		})
 
 
@@ -207,26 +207,34 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			// send the command here
 			await terminal.sendText(command, true)
 
-			// inactivity-based timeout
-			const waitUntilInactive = new Promise<void>(res => {
-				let globalTimeoutId: ReturnType<typeof setTimeout>;
-				const resetTimer = () => {
-					clearTimeout(globalTimeoutId);
-					globalTimeoutId = setTimeout(() => {
-						if (resolveReason) return
-
+			const waitUntilInterrupt = isBG ?
+				// timeout after X seconds
+				new Promise<void>((res) => {
+					setTimeout(() => {
 						resolveReason = { type: 'timeout' };
-						res();
-					}, MAX_TERMINAL_INACTIVE_TIME * 1000);
-				};
+						res()
+					}, MAX_TERMINAL_BG_COMMAND_TIME * 1000)
+				})
+				// inactivity-based timeout
+				: new Promise<void>(res => {
+					let globalTimeoutId: ReturnType<typeof setTimeout>;
+					const resetTimer = () => {
+						clearTimeout(globalTimeoutId);
+						globalTimeoutId = setTimeout(() => {
+							if (resolveReason) return
 
-				const dTimeout = terminal.onData(() => { resetTimer(); });
-				disposables.push(dTimeout, toDisposable(() => clearTimeout(globalTimeoutId)));
-				resetTimer();
-			});
+							resolveReason = { type: 'timeout' };
+							res();
+						}, MAX_TERMINAL_INACTIVE_TIME * 1000);
+					};
+
+					const dTimeout = terminal.onData(() => { resetTimer(); });
+					disposables.push(dTimeout, toDisposable(() => clearTimeout(globalTimeoutId)));
+					resetTimer();
+				})
 
 			// wait for result
-			await Promise.any([waitUntilDone, waitUntilInactive,])
+			await Promise.any([waitUntilDone, waitUntilInterrupt])
 
 			disposables.forEach(d => d.dispose())
 			if (!isBG) {

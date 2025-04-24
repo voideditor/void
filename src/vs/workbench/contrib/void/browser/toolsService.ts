@@ -17,7 +17,7 @@ import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree
 import { IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js'
 import { timeout } from '../../../../base/common/async.js'
 import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
-import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_INACTIVE_TIME, ToolName } from '../common/prompt/prompts.js'
+import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_INACTIVE_TIME, ToolName } from '../common/prompt/prompts.js'
 import { IVoidSettingsService } from '../common/voidSettingsService.js'
 
 
@@ -507,7 +507,7 @@ export class ToolsService implements IToolsService {
 				// bg command
 				if (persistentTerminalId !== null) {
 					if (resolveReason.type === 'timeout') {
-						return `Terminal command is running in the background in terminal ${persistentTerminalId}. Here were the outputs after ${MAX_TERMINAL_INACTIVE_TIME} seconds:\n${result_}`
+						return `Terminal command is running in terminal ${persistentTerminalId}. Here are the current outputs (after ${MAX_TERMINAL_BG_COMMAND_TIME} seconds):\n${result_}`
 					}
 				}
 				// normal command
@@ -521,10 +521,10 @@ export class ToolsService implements IToolsService {
 			},
 			open_persistent_terminal: (_params, result) => {
 				const { persistentTerminalId } = result;
-				return `Successfully created background terminal with ID ${persistentTerminalId}`;
+				return `Successfully created persistent terminal. persistentTerminalId="${persistentTerminalId}"`;
 			},
 			kill_persistent_terminal: (params, _result) => {
-				return `Successfully closed terminal ${params.persistentTerminalId}.`;
+				return `Successfully closed terminal "${params.persistentTerminalId}".`;
 			},
 
 		}

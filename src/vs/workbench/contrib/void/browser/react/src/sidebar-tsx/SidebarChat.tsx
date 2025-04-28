@@ -1857,7 +1857,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 					if (rel) info.push(`Only searches in ${rel}`)
 				}
 				if (params.isRegex) {
-					info.push(`Uses regex search`)
+					info.push(`Uses regex in search`)
 				}
 				componentParams.info = info.join('; ')
 			}

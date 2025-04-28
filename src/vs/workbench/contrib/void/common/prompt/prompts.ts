@@ -33,6 +33,85 @@ export const MAX_TERMINAL_INACTIVE_TIME = 8 // seconds
 export const MAX_PREFIX_SUFFIX_CHARS = 20_000
 
 
+
+export const ORIGINAL = `<<<<<<< ORIGINAL`
+export const DIVIDER = `=======`
+export const FINAL = `>>>>>>> UPDATED`
+
+
+
+const searchReplaceBlockTemplate = `\
+${tripleTick[0]}
+${ORIGINAL}
+// ... original code goes here
+${DIVIDER}
+// ... final code goes here
+${FINAL}
+${tripleTick[1]}`
+
+
+
+
+const createSearchReplaceBlocks_systemMessage = `\
+You are a coding assistant that takes in a diff, and outputs SEARCH/REPLACE code blocks to implement the change(s) in the diff.
+The diff will be labeled \`DIFF\` and the original file will be labeled \`ORIGINAL_FILE\`.
+
+Format your SEARCH/REPLACE blocks as follows:
+${searchReplaceBlockTemplate}
+
+1. Your SEARCH/REPLACE block(s) must implement the diff EXACTLY. Do NOT leave anything out.
+
+2. You are allowed to output multiple SEARCH/REPLACE blocks to implement the change.
+
+3. Assume any comments in the diff are PART OF THE CHANGE. Include them in the output.
+
+4. Your output should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
+
+5. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace, comments, or modifications from the original code.
+
+6. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However; bias towards writing as little as possible.
+
+7. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.
+
+## EXAMPLE 1
+DIFF
+${tripleTick[0]}
+// ... existing code
+let x = 6.5
+// ... existing code
+${tripleTick[1]}
+
+ORIGINAL_FILE
+${tripleTick[0]}
+let w = 5
+let x = 6
+let y = 7
+let z = 8
+${tripleTick[1]}
+
+ACCEPTED OUTPUT
+${tripleTick[0]}
+${ORIGINAL}
+let x = 6
+${DIVIDER}
+let x = 6.5
+${FINAL}
+${tripleTick[1]}`
+
+
+const replaceTool_description = `\
+Output a single string of SEARCH/REPLACE block(s) here. Your string should be wrapped in triple backticks. Here's how to format your SEARCH/REPLACE blocks:
+${searchReplaceBlockTemplate}
+
+1. You are allowed to output multiple SEARCH/REPLACE blocks to implement your desired change. Just write them sequentially.
+
+2. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace, comments, or modifications from the original code.
+
+3. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However; bias towards writing as little as possible.
+
+4. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.`
+
+
 // ======================================================== tools ========================================================
 const changesExampleContent = `\
 // ... existing code ...
@@ -43,10 +122,10 @@ const changesExampleContent = `\
 // {{change 3}}
 // ... existing code ...`
 
-const editToolDescriptionExample = `\
-${tripleTick[0]}
-${changesExampleContent}
-${tripleTick[1]}`
+// const editToolDescriptionExample = `\
+// ${tripleTick[0]}
+// ${changesExampleContent}
+// ${tripleTick[1]}`
 
 const fileNameEditExample = `${tripleTick[0]}typescript
 /Users/username/Dekstop/my_project/app.ts
@@ -199,26 +278,18 @@ export const voidTools = {
 		},
 	},
 
-	edit_file: { // APPLY TOOL
-		name: 'edit_file',
-		description: `Edits the contents of a file given the file's URI and a description.`,
+	replace_in_file: { // APPLY TOOL
+		name: 'replace_in_file',
+		description: `Edit the contents of a file. You must provide the file's URI as well as SEARCH/REPLACE block(s) that will be used to apply the edit.`,
 		params: {
 			...uriParam('file'),
-			change_diff: {
-				description: `\
-A code diff describing the change to make to the file. \
-Your DIFF is the only context that will be given to another LLM to apply the change, so it must be accurate and complete. \
-Your DIFF MUST be wrapped in triple backticks. \
-NEVER re-write the whole file. Always bias towards writing as little as possible. \
-Use comments like "// ... existing code ..." to condense your writing. \
-Here's an example of a good output:\n${editToolDescriptionExample}`
-			}
+			search_replace_blocks: { description: replaceTool_description }
 		},
 	},
 
 	run_command: {
 		name: 'run_command',
-		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`,
+		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use replace_in_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`,
 		params: {
 			command: { description: 'The terminal command to run.' },
 			bg_terminal_id: { description: 'Optional. This only applies to terminals that have been opened with open_persistent_terminal. Runs the command in the terminal with the specified ID.' },
@@ -502,74 +573,17 @@ Please finish writing the new file by applying the change to the original file. 
 
 // ======================================================== apply (fast apply - search/replace) ========================================================
 
+export const searchReplaceGivenDescription_systemMessage = createSearchReplaceBlocks_systemMessage
 
 
-export const ORIGINAL = `<<<<<<< ORIGINAL`
-export const DIVIDER = `=======`
-export const FINAL = `>>>>>>> UPDATED`
-
-export const searchReplace_systemMessage = `\
-You are a coding assistant that takes in a diff, and outputs SEARCH/REPLACE code blocks to implement the change(s) in the diff.
-The diff will be labeled \`DIFF\` and the original file will be labeled \`ORIGINAL_FILE\`.
-
-Format your SEARCH/REPLACE blocks as follows:
-${tripleTick[0]}
-${ORIGINAL}
-// ... original code goes here
-${DIVIDER}
-// ... final code goes here
-${FINAL}
-${tripleTick[1]}
-
-1. Your SEARCH/REPLACE block(s) must implement the diff EXACTLY. Do NOT leave anything out.
-
-2. You are allowed to output multiple SEARCH/REPLACE blocks to implement the change.
-
-3. Assume any comments in the diff are PART OF THE CHANGE. Include them in the output.
-
-4. Your output should consist ONLY of SEARCH/REPLACE blocks. Do NOT output any text or explanations before or after this.
-
-5. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace, comments, or modifications from the original code.
-
-6. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However; bias towards writing as little as possible.
-
-7. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.
-
-## EXAMPLE 1
-DIFF
-${tripleTick[0]}
-// ... existing code
-let x = 6.5
-// ... existing code
-${tripleTick[1]}
-
-ORIGINAL_FILE
-${tripleTick[0]}
-let w = 5
-let x = 6
-let y = 7
-let z = 8
-${tripleTick[1]}
-
-## ACCEPTED OUTPUT
-${tripleTick[0]}
-${ORIGINAL}
-let x = 6
-${DIVIDER}
-let x = 6.5
-${FINAL}
-${tripleTick[1]}
-`
-
-export const searchReplace_userMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
+export const searchReplaceGivenDescription_userMessage = ({ originalCode, applyStr }: { originalCode: string, applyStr: string }) => `\
 DIFF
 ${applyStr}
 
 ORIGINAL_FILE
 ${tripleTick[0]}
 ${originalCode}
-${tripleTick[1]}
-`
+${tripleTick[1]}`
 
 
 

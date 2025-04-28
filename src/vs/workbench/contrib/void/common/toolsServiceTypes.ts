@@ -19,7 +19,7 @@ export type ShallowDirectoryItem = {
 export const approvalTypeOfToolName: Partial<{ [T in ToolName]?: 'edits' | 'terminal' }> = {
 	'create_file_or_folder': 'edits',
 	'delete_file_or_folder': 'edits',
-	'edit_file': 'edits',
+	'replace_in_file': 'edits',
 	'run_command': 'terminal',
 }
 
@@ -42,7 +42,7 @@ export type ToolCallParams = {
 	'search_in_file': { uri: URI, query: string, isRegex: boolean },
 	'read_lint_errors': { uri: URI },
 	// ---
-	'edit_file': { uri: URI, changeDiff: string },
+	'replace_in_file': { uri: URI, searchReplaceBlocks: string },
 	'create_file_or_folder': { uri: URI, isFolder: boolean },
 	'delete_file_or_folder': { uri: URI, isRecursive: boolean, isFolder: boolean },
 	// ---
@@ -61,7 +61,7 @@ export type ToolResultType = {
 	'search_in_file': { lines: number[]; },
 	'read_lint_errors': { lintErrors: LintErrorItem[] | null },
 	// ---
-	'edit_file': Promise<{ lintErrors: LintErrorItem[] | null }>,
+	'replace_in_file': Promise<{ lintErrors: LintErrorItem[] | null }>,
 	'create_file_or_folder': {},
 	'delete_file_or_folder': {},
 	// ---

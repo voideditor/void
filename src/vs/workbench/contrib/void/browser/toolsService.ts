@@ -11,7 +11,6 @@ import { ITerminalToolService } from './terminalToolService.js'
 import { LintErrorItem, ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js'
 import { IVoidModelService } from '../common/voidModelService.js'
 import { EndOfLinePreference } from '../../../../editor/common/model.js'
-import { basename } from '../../../../base/common/path.js'
 import { IVoidCommandBarService } from './voidCommandBarService.js'
 import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree1Deep } from './directoryStrService.js'
 import { IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js'
@@ -37,6 +36,7 @@ const isFalsy = (u: unknown) => {
 }
 
 const validateStr = (argName: string, value: unknown) => {
+	if (value === null) return `Invalid LLM output: ${argName} was null.`
 	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string, but it's a ${typeof value}. Value: ${value}.`)
 	return value
 }
@@ -241,11 +241,12 @@ export class ToolsService implements IToolsService {
 				return { uri, isRecursive, isFolder }
 			},
 
-			edit_file: (params: RawToolParamsObj) => {
-				const { uri: uriStr, change_diff: changeDiffUnknown } = params
+			replace_in_file: (params: RawToolParamsObj) => {
+				const { uri: uriStr, search_replace_blocks: searchReplaceBlocksUnknown } = params
 				const uri = validateURI(uriStr)
-				const changeDiff = validateStr('changeDiff', changeDiffUnknown)
-				return { uri, changeDiff }
+				const searchReplaceBlocks = validateStr('searchReplaceBlocks', searchReplaceBlocksUnknown)
+				console.log('params!!!', uri, searchReplaceBlocks, 'nnnnn', searchReplaceBlocksUnknown)
+				return { uri, searchReplaceBlocks }
 			},
 
 			// ---
@@ -383,36 +384,22 @@ export class ToolsService implements IToolsService {
 				await fileService.del(uri, { recursive: isRecursive })
 				return { result: {} }
 			},
-
-			edit_file: async ({ uri, changeDiff }) => {
+			replace_in_file: async ({ uri, searchReplaceBlocks }) => {
 				await voidModelService.initializeModel(uri)
 				if (this.commandBarService.getStreamState(uri) === 'streaming') {
 					throw new Error(`Another LLM is currently making changes to this file. Please stop streaming for now and ask the user to resume later.`)
 				}
-				const opts = {
-					uri,
-					applyStr: changeDiff,
-					from: 'ClickApply',
-					startBehavior: 'keep-conflicts',
-				} as const
-
-				await editCodeService.callBeforeStartApplying(opts)
-				const res = editCodeService.startApplying(opts)
-				if (!res) throw new Error(`The Apply model did not start running on ${basename(uri.fsPath)}. Please try again.`)
-				const [diffZoneURI, applyDonePromise] = res
-
-				const interruptTool = () => { // must reject the applyPromiseDone promise
-					editCodeService.interruptURIStreaming({ uri: diffZoneURI })
-				}
+				console.log('aaaa', searchReplaceBlocks)
+				editCodeService.instantlyApplySearchReplaceBlocks({ uri, searchReplaceBlocks })
 
 				// at end, get lint errors
-				const lintErrorsPromise = applyDonePromise.then(async () => {
+				const lintErrorsPromise = Promise.resolve().then(async () => {
 					await timeout(2000)
 					const { lintErrors } = this._getLintErrors(uri)
 					return { lintErrors }
 				})
 
-				return { result: lintErrorsPromise, interruptTool }
+				return { result: lintErrorsPromise }
 			},
 			// ---
 			run_command: async ({ command, bgTerminalId }) => {
@@ -484,7 +471,7 @@ export class ToolsService implements IToolsService {
 			delete_file_or_folder: (params, result) => {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
-			edit_file: (params, result) => {
+			replace_in_file: (params, result) => {
 				const lintErrsString = (
 					this.voidSettingsService.state.globalSettings.includeToolLintErrors ?
 						(result.lintErrors ? ` Lint errors found after change:\n${stringifyLintErrors(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.`

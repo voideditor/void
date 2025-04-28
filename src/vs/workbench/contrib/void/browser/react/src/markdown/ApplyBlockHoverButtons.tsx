@@ -231,7 +231,7 @@ export const StatusIndicatorForApplyButton = ({ applyBoxId, uri }: { applyBoxId:
 }
 
 
-export const ApplyButtonsHTML = ({ codeStr, applyBoxId, reapplyIcon, uri }: { codeStr: string, applyBoxId: string, reapplyIcon: boolean, uri: URI | 'current' }) => {
+export const ApplyButtonsHTML = ({ codeStr, applyBoxId, uri }: { codeStr: string, applyBoxId: string, uri: URI | 'current' }) => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
@@ -287,12 +287,6 @@ export const ApplyButtonsHTML = ({ codeStr, applyBoxId, reapplyIcon, uri }: { co
 		if (uri) editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false })
 	}, [applyBoxId, editCodeService])
 
-	// const onReapply = useCallback(() => {
-	// 	onReject()
-	// 	onClickSubmit()
-	// }, [onReject, onClickSubmit])
-
-
 	if (currStreamState === 'streaming') {
 		return <IconShell1
 
@@ -306,18 +300,14 @@ export const ApplyButtonsHTML = ({ codeStr, applyBoxId, reapplyIcon, uri }: { co
 	if (currStreamState === 'idle-no-changes') {
 
 		return <IconShell1
-			Icon={reapplyIcon ? RotateCw : Play}
+			Icon={Play}
 			onClick={onClickSubmit}
-			{...tooltipPropsForApplyBlock({ tooltipName: reapplyIcon ? 'Reapply' : 'Apply' })}
+			{...tooltipPropsForApplyBlock({ tooltipName: 'Apply' })}
 		/>
 	}
 
 	if (currStreamState === 'idle-has-changes') {
 		return <>
-			{/* <IconShell1
-				Icon={RotateCw}
-				onClick={onReapply}
-			/> */}
 			<IconShell1
 				Icon={X}
 				onClick={onReject}
@@ -375,7 +365,7 @@ export const BlockCodeApplyWrapper = ({
 			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>
 				<JumpToFileButton uri={uri} />
 				{currStreamState === 'idle-no-changes' && <CopyButton codeStr={initValue} toolTipName='Copy' />}
-				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={initValue} reapplyIcon={false} />
+				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={initValue} />
 			</div>
 		</div>
 

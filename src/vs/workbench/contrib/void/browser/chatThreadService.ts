@@ -506,7 +506,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				return {}
 			}
 			// once validated, add checkpoint for edit
-			if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
+			if (toolName === 'replace_in_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['replace_in_file']).uri }) }
 
 			// 2. if tool requires approval, break from the loop, awaiting approval
 

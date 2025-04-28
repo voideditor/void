@@ -1165,7 +1165,30 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	public instantlyApplySearchReplaceBlocks({ uri, searchReplaceBlocks }: { uri: URI, searchReplaceBlocks: string }) {
+		// start diffzone
+		const res = this._startStreamingDiffZone({
+			uri,
+			streamRequestIdRef: { current: null },
+			startBehavior: 'keep-conflicts',
+			linkedCtrlKZone: null,
+			onWillUndo: () => { },
+		})
+		if (!res) return
+		const { diffZone, onFinishEdit } = res
+
+
+		const onDone = () => {
+			diffZone._streamState = { isStreaming: false, }
+			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._refreshStylesAndDiffsInURI(uri)
+			onFinishEdit()
+		}
+
+
 		this._instantlyApplySRBlocks(uri, searchReplaceBlocks)
+
+
+		onDone()
 	}
 
 

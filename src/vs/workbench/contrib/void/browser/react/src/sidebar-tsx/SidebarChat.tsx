@@ -1243,7 +1243,7 @@ const titleOfToolName = {
 	'search_for_files': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
 	'create_file_or_folder': { done: `Created`, proposed: `Create`, running: loadingTitleWrapper(`Creating`) },
 	'delete_file_or_folder': { done: `Deleted`, proposed: `Delete`, running: loadingTitleWrapper(`Deleting`) },
-	'replace_in_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
+	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
 	'run_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
 	'open_persistent_terminal': { done: `Opened terminal`, proposed: 'Open terminal', running: loadingTitleWrapper('Opening terminal') },
 	'kill_persistent_terminal': { done: `Killed terminal`, proposed: 'Kill terminal', running: loadingTitleWrapper('Killing terminal') },
@@ -1319,8 +1319,8 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 				desc1Info: getRelative(toolParams.uri, accessor),
 			}
 		},
-		'replace_in_file': () => {
-			const toolParams = _toolParams as ToolCallParams['replace_in_file']
+		'edit_file': () => {
+			const toolParams = _toolParams as ToolCallParams['edit_file']
 			return {
 				desc1: getBasename(toolParams.uri.fsPath),
 				desc1Info: getRelative(toolParams.uri, accessor),
@@ -1977,7 +1977,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'replace_in_file': {
+	'edit_file': {
 		resultWrapper: ({ toolMessage, messageIdx, threadId }) => {
 			const accessor = useAccessor()
 			const isError = toolMessage.type === 'tool_error'
@@ -2633,9 +2633,9 @@ const CommandBarInChat = () => {
 
 const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) => {
 
-	const uri = URI.file(toolCallSoFar.rawParams.uri ?? 'unknown')
+	const uri = toolCallSoFar.rawParams.uri ? URI.file(toolCallSoFar.rawParams.uri) : undefined
 
-	const title = titleOfToolName['replace_in_file'].proposed
+	const title = titleOfToolName['edit_file'].proposed
 
 	const uriDone = toolCallSoFar.doneParams.includes('uri')
 	const desc1 = <span className='flex items-center'>
@@ -2649,7 +2649,7 @@ const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) =>
 	return <ToolHeaderWrapper
 		title={title}
 		desc1={desc1}
-		desc2={<JumpToFileButton uri={uri} />}
+		desc2={uri && <JumpToFileButton uri={uri} />}
 	>
 		<EditToolChildren
 			uri={uri}
@@ -2703,7 +2703,7 @@ export const SidebarChat = () => {
 	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
 
 	// this is just if it's currently being generated, NOT if it's currently running
-	const toolIsGenerating = toolCallSoFar && !toolCallSoFar.isDone && toolCallSoFar.name === 'replace_in_file' // show loading for slow tools (right now just edit)
+	const toolIsGenerating = toolCallSoFar && !toolCallSoFar.isDone && toolCallSoFar.name === 'edit_file' // show loading for slow tools (right now just edit)
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -2794,7 +2794,7 @@ export const SidebarChat = () => {
 
 	// the tool currently being generated
 	const generatingTool = toolIsGenerating ?
-		toolCallSoFar.name === 'replace_in_file' ? <EditToolSoFar
+		toolCallSoFar.name === 'edit_file' ? <EditToolSoFar
 			key={'curr-streaming-tool'}
 			toolCallSoFar={toolCallSoFar}
 		/>

@@ -241,11 +241,10 @@ export class ToolsService implements IToolsService {
 				return { uri, isRecursive, isFolder }
 			},
 
-			replace_in_file: (params: RawToolParamsObj) => {
+			edit_file: (params: RawToolParamsObj) => {
 				const { uri: uriStr, search_replace_blocks: searchReplaceBlocksUnknown } = params
 				const uri = validateURI(uriStr)
 				const searchReplaceBlocks = validateStr('searchReplaceBlocks', searchReplaceBlocksUnknown)
-				console.log('params!!!', uri, searchReplaceBlocks, 'nnnnn', searchReplaceBlocksUnknown)
 				return { uri, searchReplaceBlocks }
 			},
 
@@ -384,7 +383,7 @@ export class ToolsService implements IToolsService {
 				await fileService.del(uri, { recursive: isRecursive })
 				return { result: {} }
 			},
-			replace_in_file: async ({ uri, searchReplaceBlocks }) => {
+			edit_file: async ({ uri, searchReplaceBlocks }) => {
 				await voidModelService.initializeModel(uri)
 				if (this.commandBarService.getStreamState(uri) === 'streaming') {
 					throw new Error(`Another LLM is currently making changes to this file. Please stop streaming for now and ask the user to resume later.`)
@@ -471,7 +470,7 @@ export class ToolsService implements IToolsService {
 			delete_file_or_folder: (params, result) => {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
-			replace_in_file: (params, result) => {
+			edit_file: (params, result) => {
 				const lintErrsString = (
 					this.voidSettingsService.state.globalSettings.includeToolLintErrors ?
 						(result.lintErrors ? ` Lint errors found after change:\n${stringifyLintErrors(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.`

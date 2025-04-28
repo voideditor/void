@@ -43,10 +43,16 @@ export const FINAL = `>>>>>>> UPDATED`
 const searchReplaceBlockTemplate = `\
 ${tripleTick[0]}
 ${ORIGINAL}
-// ... original code goes here
+// ... original code 1 goes here
 ${DIVIDER}
-// ... final code goes here
+// ... final code 1 goes here
 ${FINAL}
+${ORIGINAL}
+// ... original code 2 goes here
+${DIVIDER}
+// ... final code 2 goes here
+${FINAL}
+...
 ${tripleTick[1]}`
 
 
@@ -69,7 +75,7 @@ ${searchReplaceBlockTemplate}
 
 5. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace, comments, or modifications from the original code.
 
-6. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However; bias towards writing as little as possible.
+6. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However, bias towards writing as little as possible.
 
 7. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.
 
@@ -100,14 +106,15 @@ ${tripleTick[1]}`
 
 
 const replaceTool_description = `\
-Output a single string of SEARCH/REPLACE block(s) here. Your string should be wrapped in triple backticks. Here's how to format your SEARCH/REPLACE blocks:
+Output a string of SEARCH/REPLACE block(s) to implement your desired change.
+You are encouraged to output multiple changes at once. Here's how to format your blocks:
 ${searchReplaceBlockTemplate}
 
-1. You are allowed to output multiple SEARCH/REPLACE blocks to implement your desired change. Just write them sequentially.
+1. Don't forget to wrap your output in triple backticks.
 
-2. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace, comments, or modifications from the original code.
+2. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace or comments from the original code.
 
-3. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However; bias towards writing as little as possible.
+3. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However, bias towards writing as little as possible.
 
 4. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.`
 
@@ -278,8 +285,8 @@ export const voidTools = {
 		},
 	},
 
-	replace_in_file: { // APPLY TOOL
-		name: 'replace_in_file',
+	edit_file: { // APPLY TOOL
+		name: 'edit_file',
 		description: `Edit the contents of a file. You must provide the file's URI as well as SEARCH/REPLACE block(s) that will be used to apply the edit.`,
 		params: {
 			...uriParam('file'),
@@ -289,7 +296,7 @@ export const voidTools = {
 
 	run_command: {
 		name: 'run_command',
-		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use replace_in_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`,
+		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`,
 		params: {
 			command: { description: 'The terminal command to run.' },
 			bg_terminal_id: { description: 'Optional. This only applies to terminals that have been opened with open_persistent_terminal. Runs the command in the terminal with the specified ID.' },

@@ -653,15 +653,19 @@ export const SelectedFiles = (
 						}
 
 						{type === 'staging' && !isThisSelectionProspective ? // X button
-							<IconX
-								className='cursor-pointer z-1 stroke-[2]'
+							<div // box for making it easier to click
+								className='cursor-pointer z-1 self-stretch flex items-center justify-center'
 								onClick={(e) => {
 									e.stopPropagation(); // don't open/close selection
 									if (type !== 'staging') return;
 									setSelections([...selections.slice(0, i), ...selections.slice(i + 1)])
 								}}
-								size={10}
-							/>
+							>
+								<IconX
+									className='stroke-[2]'
+									size={10}
+								/>
+							</div>
 							: <></>
 						}
 					</div>
@@ -2592,7 +2596,7 @@ const CommandBarInChat = () => {
 				<div
 					className={`
 						select-none
-						flex w-full rounded-t-lg bg-void-bg-1
+						flex w-full rounded-t-lg bg-void-bg-3
 						text-void-fg-3 text-xs text-nowrap
 
 						overflow-hidden transition-all duration-200 ease-in-out
@@ -2606,7 +2610,7 @@ const CommandBarInChat = () => {
 			<div
 				className={`
 					select-none
-					flex w-full rounded-t-lg bg-void-bg-1
+					flex w-full rounded-t-lg bg-void-bg-3
 					text-void-fg-3 text-xs text-nowrap
 					border-t border-l border-r border-zinc-300/10
 
@@ -2867,7 +2871,7 @@ export const SidebarChat = () => {
 		<VoidInputBox2
 			enableAtToMention
 			className={`min-h-[81px] px-0.5 py-0.5`}
-			placeholder={`@ to mention, ${keybindingString ? `${keybindingString} to add a file. ` : ''}Enter instructions...`}
+			placeholder={`@ to mention, ${keybindingString ? `${keybindingString} to add a selection. ` : ''}Enter instructions...`}
 			onChangeText={onChangeText}
 			onKeyDown={onKeyDown}
 			onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}

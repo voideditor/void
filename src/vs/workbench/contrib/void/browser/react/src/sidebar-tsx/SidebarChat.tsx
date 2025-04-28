@@ -1702,7 +1702,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (params.uri) {
 				const rel = getRelative(params.uri, accessor)
-				if (rel) componentParams.info = `Only searches in ${rel}`
+				if (rel) componentParams.info = `Searches inside ${rel}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1750,7 +1750,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (params.uri) {
 				const rel = getRelative(params.uri, accessor)
-				if (rel) componentParams.info = `Only searches in ${rel}`
+				if (rel) componentParams.info = `Searches inside ${rel}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1802,7 +1802,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
 
 			if (params.includePattern) {
-				componentParams.info = `Only searches in ${params.includePattern}`
+				componentParams.info = `Searches inside ${params.includePattern}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1854,10 +1854,10 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				let info: string[] = []
 				if (params.searchInFolder) {
 					const rel = getRelative(params.searchInFolder, accessor)
-					if (rel) info.push(`Only searches in ${rel}`)
+					if (rel) info.push(`Searches inside ${rel}`)
 				}
 				if (params.isRegex) {
-					info.push(`Uses regex`)
+					info.push(`Uses regex search`)
 				}
 				componentParams.info = info.join('; ')
 			}
@@ -1904,7 +1904,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const isError = toolMessage.type === 'tool_error';
 			const { rawParams, params } = toolMessage;
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon };
-			if (params.isRegex) componentParams.info = 'Uses regex'
+			if (params.isRegex) componentParams.info = 'Uses regex search'
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage; // result is array of snippets

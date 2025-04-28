@@ -137,6 +137,7 @@ export type IsRunningType =
 	| 'LLM' // the LLM is currently streaming
 	| 'tool' // whether a tool is currently running
 	| 'awaiting_user' // awaiting user call
+	| 'idle' // nothing is running now, but the chat should still appear like it's going (used in-between calls)
 	| undefined
 
 export type ThreadStreamState = {
@@ -170,6 +171,12 @@ export type ThreadStreamState = {
 		interrupt: Promise<() => void>;
 	} | {
 		isRunning: 'awaiting_user';
+		error?: undefined;
+		llmInfo?: undefined;
+		toolInfo?: undefined;
+		interrupt?: undefined;
+	} | {
+		isRunning: 'idle';
 		error?: undefined;
 		llmInfo?: undefined;
 		toolInfo?: undefined;
@@ -625,7 +632,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const { chatMode } = this._settingsService.state.globalSettings // should not change as we loop even if user changes it, so it goes here
 
 		// not running at start, clear state
-		this._setStreamState(threadId, undefined)
+		this._setStreamState(threadId, { isRunning: 'idle' })
 
 		let nMessagesSent = 0
 		let shouldSendAnotherMessage = true
@@ -652,20 +659,20 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				chatMode
 			})
 
-			let aborted = false
-			let shouldRetry = true
+			let shouldRetryLLM = true
 			let nAttempts = 0
-			while (shouldRetry) {
+			while (shouldRetryLLM) {
 				if (this.streamState[threadId]?.isRunning) {
 					// if already streaming, stop
 					console.log('returning...', this.streamState[threadId])
 					return
 				}
-				shouldRetry = false
+				shouldRetryLLM = false
 
 				let resMessageIsDonePromise: (toolCall?: RawToolCallObj | undefined) => void // resolves when user approves this tool use (or if tool doesn't require approval)
 				const messageIsDonePromise = new Promise<RawToolCallObj | undefined>((res, rej) => { resMessageIsDonePromise = res })
 
+				let aborted = false
 				const llmCancelToken = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
 					chatMode,
@@ -691,7 +698,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 						if (nAttempts < CHAT_RETRIES) {
 							nAttempts += 1
-							shouldRetry = true
+							shouldRetryLLM = true
 							this._setStreamState(threadId, undefined) // clear later so can be interrupted
 							resMessageIsDonePromise()
 						}
@@ -707,7 +714,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					onAbort: () => {
 						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
 						aborted = true
-						this._setStreamState(threadId, undefined)
+						this._setStreamState(threadId, { isRunning: 'idle' })
 						resMessageIsDonePromise()
 						this._metricsService.capture('Agent Loop Done (Aborted)', { nMessagesSent, chatMode })
 					},
@@ -721,27 +728,31 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 				this._setStreamState(threadId, { isRunning: 'LLM', llmInfo: { displayContentSoFar: '', reasoningSoFar: '', toolCallSoFar: null }, interrupt: Promise.resolve(() => this._llmMessageService.abort(llmCancelToken)) })
 				const toolCall = await messageIsDonePromise // wait for message to complete
-				// ending _setStreamStates are all handled above before resMessageIsDonePromise()
 
-				if (aborted) { return }
-				if (shouldRetry) {
+				if (aborted) {
+					this._setStreamState(threadId, undefined)
+					return
+				}
+				if (shouldRetryLLM) {
+					this._setStreamState(threadId, { isRunning: 'idle' })
 					await timeout(RETRY_DELAY)
 					continue
 				}
+				this._setStreamState(threadId, { isRunning: 'idle' })
 
 				// call tool if there is one
-				const tool: RawToolCallObj | undefined = toolCall
-				if (!tool) continue // skip the next part if no tool
+				if (toolCall) {
+					const { awaitingUserApproval, interrupted } = await this._runToolCall(threadId, toolCall.name, toolCall.id, { preapproved: false, unvalidatedToolParams: toolCall.rawParams })
 
-				const { awaitingUserApproval, interrupted } = await this._runToolCall(threadId, tool.name, tool.id, { preapproved: false, unvalidatedToolParams: tool.rawParams })
+					if (interrupted) {
+						this._setStreamState(threadId, undefined)
+						return
+					}
+					this._setStreamState(threadId, { isRunning: 'idle' })
 
-				this._setStreamState(threadId, undefined)
-
-				if (aborted) { return }
-				if (interrupted) { return }
-
-				if (awaitingUserApproval) { isRunningWhenEnd = 'awaiting_user' }
-				else { shouldSendAnotherMessage = true }
+					if (awaitingUserApproval) { isRunningWhenEnd = 'awaiting_user' }
+					else { shouldSendAnotherMessage = true }
+				}
 
 			} // end while (attempts)
 		} // end while (send message)

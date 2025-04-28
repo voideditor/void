@@ -504,7 +504,7 @@ export class ToolsService implements IToolsService {
 				}
 				// normal command
 				if (resolveReason.type === 'timeout') {
-					return `${result_}\nTerminal command ran, but was interrupted by Void after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity and did not necessarily finish successfully.`
+					return `${result_}\nTerminal command ran, but was interrupted by Void after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity and did not necessarily finish successfully. To try with more time, open a persistent terminal and run the command there.`
 				}
 				throw new Error(`Unexpected internal error: Terminal command did not resolve with a valid reason.`)
 			},

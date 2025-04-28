@@ -12,6 +12,7 @@ import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { AddModelInputBox, AnimatedCheckmarkButton, OllamaSetupInstructions, OneClickSwitchButton, SettingsForProvider } from '../void-settings-tsx/Settings.js';
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js';
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js';
+import { isLinux } from '../../../../../../../base/common/platform.js';
 
 const OVERRIDE_VALUE = false
 
@@ -590,7 +591,7 @@ const VoidOnboardingContent = () => {
 
 					{/* Slice of Void image */}
 					<div className='max-w-md w-full h-[30vh] mx-auto flex items-center justify-center'>
-						{/* <VoidIcon /> */}
+						{!isLinux && <VoidIcon />}
 					</div>
 
 

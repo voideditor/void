@@ -384,6 +384,8 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 						null}
 				{/* name */}
 				<span className="truncate overflow-hidden text-ellipsis">{firstMsg}</span>
+
+				<span className='opacity-60'>{`(${numMessages})`}</span>
 			</span>
 
 			<div className="flex items-center gap-x-1 opacity-60">

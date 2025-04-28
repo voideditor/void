@@ -1702,7 +1702,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (params.uri) {
 				const rel = getRelative(params.uri, accessor)
-				if (rel) componentParams.info = `Only search in ${rel}`
+				if (rel) componentParams.info = `Only searches in ${rel}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1750,7 +1750,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (params.uri) {
 				const rel = getRelative(params.uri, accessor)
-				if (rel) componentParams.info = `Only search in ${rel}`
+				if (rel) componentParams.info = `Only searches in ${rel}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1802,7 +1802,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
 
 			if (params.includePattern) {
-				componentParams.info = `Only search in ${params.includePattern}`
+				componentParams.info = `Only searches in ${params.includePattern}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1854,10 +1854,10 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				let info: string[] = []
 				if (params.searchInFolder) {
 					const rel = getRelative(params.searchInFolder, accessor)
-					if (rel) info.push(`Only search in ${rel}`)
+					if (rel) info.push(`Only searches in ${rel}`)
 				}
 				if (params.isRegex) {
-					info.push(`Treat as regex`)
+					info.push(`Uses regex search`)
 				}
 				componentParams.info = info.join('; ')
 			}

@@ -799,7 +799,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// 	if (fsPath in lastIdxOfURI) continue // if already visisted, don't visit again
 		// 	const { model } = this._voidModelService.getModelFromFsPath(fsPath)
 		// 	if (!model) continue
-		// 	currStrOfFsPath[fsPath] = model.getValue()
+		// 	currStrOfFsPath[fsPath] = model.getValue(EndOfLinePreference.LF)
 		// }
 
 		return { voidFileSnapshotOfURI }

@@ -15,6 +15,7 @@ import { IDirectoryStrService } from './directoryStrService.js';
 import { ITerminalToolService } from './terminalToolService.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { URI } from '../../../../base/common/uri.js';
+import { EndOfLinePreference } from '../../../../editor/common/model.js';
 
 
 
@@ -447,7 +448,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 				const uri = URI.joinPath(folder.uri, '.voidrules')
 				const { model } = this.voidModelService.getModel(uri)
 				if (!model) continue
-				voidRules += model.getValue() + '\n\n';
+				voidRules += model.getValue(EndOfLinePreference.LF) + '\n\n';
 			}
 			return voidRules.trim();
 		}

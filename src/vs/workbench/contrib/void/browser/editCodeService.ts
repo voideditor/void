@@ -1848,7 +1848,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
 
 							// console.log('---------adding-------')
-							// console.log('CURRENT TEXT!!!', { current: model?.getValue() })
+							// console.log('CURRENT TEXT!!!', { current: model?.getValue(EndOfLinePreference.LF) })
 							// console.log('block', deepClone(block))
 							// console.log('origBounds', originalBounds)
 							// console.log('start end', startLine, endLine)

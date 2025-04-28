@@ -4,15 +4,15 @@ This is the official guide on how to contribute to Void. We want to make it as e
 
 There are a few ways to contribute:
 
-- 💫 Complete items on the [Roadmap](https://github.com/orgs/voideditor-test/projects/2).
+- 💫 Complete items on the [Roadmap](https://github.com/orgs/voideditor/projects/2).
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
-- 🪴 Start new Issues - see [Issues](https://github.com/voideditor-test/void/issues).
+- 🪴 Start new Issues - see [Issues](https://github.com/voideditor/void/issues).
 
 
 
 ### Codebase Guide
 
-We [highly recommend reading this](https://github.com/voideditor-test/void/blob/main/VOID_CODEBASE_GUIDE.md) guide that we put together on Void's sourcecode if you'd like to contribute!
+We [highly recommend reading this](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md) guide that we put together on Void's sourcecode if you'd like to contribute!
 
 The repo is not as intimidating as it first seems if you read the guide!
 
@@ -87,7 +87,7 @@ Alternatively, if you want to build Void from the terminal, instead of pressing 
 - Make sure you have Node version `20.18.2` (the version in `.nvmrc`)!
 - If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
 - If you see missing styles, wait a few seconds and then reload.
-- If you have any questions, feel free to [submit an issue](https://github.com/voideditor-test/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+- If you have any questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
 - If you get errors like `npm error libtool:   error: unrecognised option: '-static'`, make sure you have GNU libtool instead of BSD libtool (BSD is the default in macos)
 
 
@@ -119,7 +119,7 @@ workspace/
 ```
 
 ### Distributing
-Void's maintainers distribute Void on our website and in releases. Our build pipeline is a fork of VSCodium, and it works by running GitHub Actions which create the downloadables. The build repo with more instructions lives [here](https://github.com/voideditor-test/void-builder).
+Void's maintainers distribute Void on our website and in releases. Our build pipeline is a fork of VSCodium, and it works by running GitHub Actions which create the downloadables. The build repo with more instructions lives [here](https://github.com/voideditor/void-builder).
 
 ## Pull Request Guidelines
 

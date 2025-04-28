@@ -36,8 +36,8 @@ const isFalsy = (u: unknown) => {
 }
 
 const validateStr = (argName: string, value: unknown) => {
-	if (value === null) return `Invalid LLM output: ${argName} was null.`
-	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string, but it's a ${typeof value}. Value: ${value}.`)
+	if (value === null) throw new Error(`Invalid LLM output: ${argName} was null.`)
+	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string, but it's a(n) ${typeof value}. Value: ${JSON.stringify(value)}.`)
 	return value
 }
 
@@ -45,7 +45,8 @@ const validateStr = (argName: string, value: unknown) => {
 // We are NOT checking to make sure in workspace
 // TODO!!!! check to make sure folder/file exists
 const validateURI = (uriStr: unknown) => {
-	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a ${typeof uriStr}. Value: ${uriStr}.`)
+	if (uriStr === null) throw new Error(`Invalid LLM output: uri was null.`)
+	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a(n) ${typeof uriStr}. Value: ${uriStr}.`)
 	const uri = URI.file(uriStr)
 	return uri
 }
@@ -241,6 +242,13 @@ export class ToolsService implements IToolsService {
 				return { uri, isRecursive, isFolder }
 			},
 
+			rewrite_file: (params: RawToolParamsObj) => {
+				const { uri: uriStr, new_content: newContentUnknown } = params
+				const uri = validateURI(uriStr)
+				const newContent = validateStr('newContent', newContentUnknown)
+				return { uri, newContent }
+			},
+
 			edit_file: (params: RawToolParamsObj) => {
 				const { uri: uriStr, search_replace_blocks: searchReplaceBlocksUnknown } = params
 				const uri = validateURI(uriStr)
@@ -383,6 +391,22 @@ export class ToolsService implements IToolsService {
 				await fileService.del(uri, { recursive: isRecursive })
 				return { result: {} }
 			},
+
+			rewrite_file: async ({ uri, newContent }) => {
+				await voidModelService.initializeModel(uri)
+				if (this.commandBarService.getStreamState(uri) === 'streaming') {
+					throw new Error(`Another LLM is currently making changes to this file. Please stop streaming for now and ask the user to resume later.`)
+				}
+				editCodeService.instantlyApplyNewContent({ uri, newContent })
+				// at end, get lint errors
+				const lintErrorsPromise = Promise.resolve().then(async () => {
+					await timeout(2000)
+					const { lintErrors } = this._getLintErrors(uri)
+					return { lintErrors }
+				})
+				return { result: lintErrorsPromise }
+			},
+
 			edit_file: async ({ uri, searchReplaceBlocks }) => {
 				await voidModelService.initializeModel(uri)
 				if (this.commandBarService.getStreamState(uri) === 'streaming') {
@@ -471,6 +495,15 @@ export class ToolsService implements IToolsService {
 				return `URI ${params.uri.fsPath} successfully deleted.`
 			},
 			edit_file: (params, result) => {
+				const lintErrsString = (
+					this.voidSettingsService.state.globalSettings.includeToolLintErrors ?
+						(result.lintErrors ? ` Lint errors found after change:\n${stringifyLintErrors(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.`
+							: ` No lint errors found.`)
+						: '')
+
+				return `Change successfully made to ${params.uri.fsPath}.${lintErrsString}`
+			},
+			rewrite_file: (params, result) => {
 				const lintErrsString = (
 					this.voidSettingsService.state.globalSettings.includeToolLintErrors ?
 						(result.lintErrors ? ` Lint errors found after change:\n${stringifyLintErrors(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.`

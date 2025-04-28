@@ -1192,6 +1192,31 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
+	public instantlyApplyNewContent({ uri, newContent }: { uri: URI, newContent: string }) {
+		// start diffzone
+		const res = this._startStreamingDiffZone({
+			uri,
+			streamRequestIdRef: { current: null },
+			startBehavior: 'keep-conflicts',
+			linkedCtrlKZone: null,
+			onWillUndo: () => { },
+		})
+		if (!res) return
+		const { diffZone, onFinishEdit } = res
+
+
+		const onDone = () => {
+			diffZone._streamState = { isStreaming: false, }
+			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._refreshStylesAndDiffsInURI(uri)
+			onFinishEdit()
+		}
+
+		this._writeURIText(uri, newContent, 'wholeFileRange', { shouldRealignDiffAreas: false })
+		onDone()
+	}
+
+
 	private _findOverlappingDiffArea({ startLine, endLine, uri, filter }: { startLine: number, endLine: number, uri: URI, filter?: (diffArea: DiffArea) => boolean }): DiffArea | null {
 		// check if there's overlap with any other diffAreas and return early if there is
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {

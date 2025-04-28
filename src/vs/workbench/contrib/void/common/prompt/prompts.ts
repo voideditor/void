@@ -106,17 +106,18 @@ ${tripleTick[1]}`
 
 
 const replaceTool_description = `\
-Output a string of SEARCH/REPLACE block(s) to implement your desired change.
-You are encouraged to output multiple changes at once. Here's how to format your blocks:
+A string of SEARCH/REPLACE block(s) to apply to the given file.
+You are encouraged to output multiple changes in this string when possible. For example:
 ${searchReplaceBlockTemplate}
 
-1. Don't forget to wrap your output in triple backticks.
+Guidelines:
+1. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace or comments from the original code.
 
-2. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace or comments from the original code.
+2. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However, bias towards writing as little as possible.
 
-3. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However, bias towards writing as little as possible.
+3. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.
 
-4. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.`
+4. This field is a STRING (not an array). You should wrap the string in triple backticks.`
 
 
 // ======================================================== tools ========================================================
@@ -285,14 +286,24 @@ export const voidTools = {
 		},
 	},
 
-	edit_file: { // APPLY TOOL
+	edit_file: {
 		name: 'edit_file',
-		description: `Edit the contents of a file. You must provide the file's URI as well as SEARCH/REPLACE block(s) that will be used to apply the edit.`,
+		description: `Edit the contents of a file. You must provide the file's URI as well as a SINGLE string of SEARCH/REPLACE block(s) that will be used to apply the edit.`,
 		params: {
 			...uriParam('file'),
 			search_replace_blocks: { description: replaceTool_description }
 		},
 	},
+
+	rewrite_file: {
+		name: 'rewrite_file',
+		description: `Edits a file, deleting all the old contents and replacing them with your new contents. Use this tool if you want to edit a file you just created.`,
+		params: {
+			...uriParam('file'),
+			new_content: { description: `The new contents of the file.` }
+		},
+	},
+
 
 	run_command: {
 		name: 'run_command',

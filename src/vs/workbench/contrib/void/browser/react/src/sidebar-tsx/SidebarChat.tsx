@@ -808,6 +808,84 @@ const ToolHeaderWrapper = ({
 
 
 
+const EditTool = ({ toolMessage, threadId, messageIdx, content }: Parameters<ResultWrapper<'edit_file' | 'rewrite_file'>>[0] & { content: string }) => {
+	const accessor = useAccessor()
+	const isError = toolMessage.type === 'tool_error'
+	const isRejected = toolMessage.type === 'rejected'
+
+	const title = getTitle(toolMessage)
+
+	const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
+	const icon = null
+
+	const { rawParams, params } = toolMessage
+	const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
+
+	if (toolMessage.type === 'running_now' || toolMessage.type === 'tool_request') {
+		componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
+			<EditToolChildren
+				uri={params.uri}
+				code={content}
+			/>
+		</ToolChildrenWrapper>
+		componentParams.desc2 = <JumpToFileButton uri={params.uri} />
+	}
+	else if (toolMessage.type === 'success' || toolMessage.type === 'rejected' || toolMessage.type === 'tool_error') {
+		// add apply box
+		if (params) {
+			const applyBoxId = getApplyBoxId({
+				threadId: threadId,
+				messageIdx: messageIdx,
+				tokenIdx: 'N/A',
+			})
+
+			componentParams.desc2 = <EditToolHeaderButtons
+				applyBoxId={applyBoxId}
+				uri={params.uri}
+				codeStr={content}
+			/>
+		}
+
+		// add children
+		if (toolMessage.type !== 'tool_error') {
+			const { result } = toolMessage
+
+			componentParams.bottomChildren = <EditToolLintErrors lintErrors={result?.lintErrors || []} />
+
+			componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
+				<EditToolChildren
+					uri={params.uri}
+					code={content}
+				/>
+			</ToolChildrenWrapper>
+		}
+		else {
+			// error
+			const { result } = toolMessage
+			if (params) {
+				componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
+					{/* error */}
+					<CodeChildren>
+						{result}
+					</CodeChildren>
+
+					{/* content */}
+					<EditToolChildren
+						uri={params.uri}
+						code={content}
+					/>
+				</ToolChildrenWrapper>
+			}
+			else {
+				componentParams.children = <CodeChildren>
+					{result}
+				</CodeChildren>
+			}
+		}
+	}
+
+	return <ToolHeaderWrapper {...componentParams} />
+}
 
 const SimplifiedToolHeader = ({
 	title,
@@ -1243,6 +1321,7 @@ const titleOfToolName = {
 	'search_for_files': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
 	'create_file_or_folder': { done: `Created`, proposed: `Create`, running: loadingTitleWrapper(`Creating`) },
 	'delete_file_or_folder': { done: `Deleted`, proposed: `Delete`, running: loadingTitleWrapper(`Deleting`) },
+	'rewrite_file': { done: `Rewrote file`, proposed: 'Rewrite file', running: loadingTitleWrapper('Rewriting file') },
 	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
 	'run_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
 	'open_persistent_terminal': { done: `Opened terminal`, proposed: 'Open terminal', running: loadingTitleWrapper('Opening terminal') },
@@ -1316,6 +1395,13 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 			const toolParams = _toolParams as ToolCallParams['delete_file_or_folder']
 			return {
 				desc1: toolParams.isFolder ? getFolderName(toolParams.uri.fsPath) ?? '/' : getBasename(toolParams.uri.fsPath),
+				desc1Info: getRelative(toolParams.uri, accessor),
+			}
+		},
+		'rewrite_file': () => {
+			const toolParams = _toolParams as ToolCallParams['rewrite_file']
+			return {
+				desc1: getBasename(toolParams.uri.fsPath),
 				desc1Info: getRelative(toolParams.uri, accessor),
 			}
 		},
@@ -1463,10 +1549,10 @@ export const ListableToolItem = ({ name, onClick, isSmall, className, showDot }:
 
 
 
-const EditToolChildren = ({ uri, searchReplaceBlocks }: { uri: URI | undefined, searchReplaceBlocks: string }) => {
+const EditToolChildren = ({ uri, code }: { uri: URI | undefined, code: string }) => {
 	return <div className='!select-text cursor-auto'>
 		<SmallProseWrapper>
-			<ChatMarkdownRender string={searchReplaceBlocks} codeURI={uri} chatMessageLocation={undefined} />
+			<ChatMarkdownRender string={code} codeURI={uri} chatMessageLocation={undefined} />
 		</SmallProseWrapper>
 	</div>
 }
@@ -1977,84 +2063,14 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
+	'rewrite_file': {
+		resultWrapper: (params) => {
+			return <EditTool {...params} content={params.toolMessage.params.newContent} />
+		}
+	},
 	'edit_file': {
-		resultWrapper: ({ toolMessage, messageIdx, threadId }) => {
-			const accessor = useAccessor()
-			const isError = toolMessage.type === 'tool_error'
-			const isRejected = toolMessage.type === 'rejected'
-
-			const title = getTitle(toolMessage)
-
-			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
-			const icon = null
-
-			const { rawParams, params } = toolMessage
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
-
-			if (toolMessage.type === 'running_now' || toolMessage.type === 'tool_request') {
-				componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
-					<EditToolChildren
-						uri={params.uri}
-						searchReplaceBlocks={params.searchReplaceBlocks}
-					/>
-				</ToolChildrenWrapper>
-				componentParams.desc2 = <JumpToFileButton uri={params.uri} />
-			}
-			else if (toolMessage.type === 'success' || toolMessage.type === 'rejected' || toolMessage.type === 'tool_error') {
-				// add apply box
-				if (params) {
-					const applyBoxId = getApplyBoxId({
-						threadId: threadId,
-						messageIdx: messageIdx,
-						tokenIdx: 'N/A',
-					})
-
-					componentParams.desc2 = <EditToolHeaderButtons
-						applyBoxId={applyBoxId}
-						uri={params.uri}
-						codeStr={params.searchReplaceBlocks}
-					/>
-				}
-
-				// add children
-				if (toolMessage.type !== 'tool_error') {
-					const { result } = toolMessage
-
-					componentParams.bottomChildren = <EditToolLintErrors lintErrors={result?.lintErrors || []} />
-
-					componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
-						<EditToolChildren
-							uri={params.uri}
-							searchReplaceBlocks={params.searchReplaceBlocks}
-						/>
-					</ToolChildrenWrapper>
-				}
-				else {
-					// error
-					const { result } = toolMessage
-					if (params) {
-						componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
-							{/* error */}
-							<CodeChildren>
-								{result}
-							</CodeChildren>
-
-							{/* content */}
-							<EditToolChildren
-								uri={params.uri}
-								searchReplaceBlocks={params.searchReplaceBlocks}
-							/>
-						</ToolChildrenWrapper>
-					}
-					else {
-						componentParams.children = <CodeChildren>
-							{result}
-						</CodeChildren>
-					}
-				}
-			}
-
-			return <ToolHeaderWrapper {...componentParams} />
+		resultWrapper: (params) => {
+			return <EditTool {...params} content={params.toolMessage.params.searchReplaceBlocks} />
 		}
 	},
 
@@ -2635,7 +2651,7 @@ const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) =>
 
 	const uri = toolCallSoFar.rawParams.uri ? URI.file(toolCallSoFar.rawParams.uri) : undefined
 
-	const title = titleOfToolName['edit_file'].proposed
+	const title = titleOfToolName[toolCallSoFar.name].proposed
 
 	const uriDone = toolCallSoFar.doneParams.includes('uri')
 	const desc1 = <span className='flex items-center'>
@@ -2653,7 +2669,7 @@ const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) =>
 	>
 		<EditToolChildren
 			uri={uri}
-			searchReplaceBlocks={toolCallSoFar.rawParams.search_replace_blocks ?? ''}
+			code={toolCallSoFar.rawParams.search_replace_blocks ?? toolCallSoFar.rawParams.new_content ?? ''}
 		/>
 		<IconLoading />
 	</ToolHeaderWrapper>
@@ -2794,7 +2810,7 @@ export const SidebarChat = () => {
 
 	// the tool currently being generated
 	const generatingTool = toolIsGenerating ?
-		toolCallSoFar.name === 'edit_file' ? <EditToolSoFar
+		toolCallSoFar.name === 'edit_file' || toolCallSoFar.name === 'rewrite_file' ? <EditToolSoFar
 			key={'curr-streaming-tool'}
 			toolCallSoFar={toolCallSoFar}
 		/>

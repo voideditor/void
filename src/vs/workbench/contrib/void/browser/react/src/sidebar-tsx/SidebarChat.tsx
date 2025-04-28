@@ -1857,7 +1857,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 					if (rel) info.push(`Only searches in ${rel}`)
 				}
 				if (params.isRegex) {
-					info.push(`Uses regex in search`)
+					info.push(`Uses regex`)
 				}
 				componentParams.info = info.join('; ')
 			}
@@ -1904,7 +1904,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const isError = toolMessage.type === 'tool_error';
 			const { rawParams, params } = toolMessage;
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon };
-			if (params.isRegex) componentParams.info = 'Treat as regex'
+			if (params.isRegex) componentParams.info = 'Uses regex'
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage; // result is array of snippets

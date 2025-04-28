@@ -7,7 +7,7 @@ import { EndOfLinePreference } from '../../../../../editor/common/model.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { os } from '../helpers/systemInfo.js';
 import { RawToolParamsObj } from '../sendLLMMessageTypes.js';
-import { approvalTypeOfToolName, ToolResultType } from '../toolsServiceTypes.js';
+import { approvalTypeOfToolName, ToolCallParams, ToolResultType } from '../toolsServiceTypes.js';
 import { IVoidModelService } from '../voidModelService.js';
 import { ChatMode } from '../voidSettingsTypes.js';
 
@@ -27,10 +27,12 @@ export const MAX_CHILDREN_URIs_PAGE = 500
 // terminal tool info
 export const MAX_TERMINAL_CHARS = 100_000
 export const MAX_TERMINAL_INACTIVE_TIME = 8 // seconds
+export const MAX_TERMINAL_BG_COMMAND_TIME = 5
 
 
 // Maximum character limits for prefix and suffix context
 export const MAX_PREFIX_SUFFIX_CHARS = 20_000
+
 
 
 // ======================================================== tools ========================================================
@@ -43,12 +45,12 @@ const changesExampleContent = `\
 // {{change 3}}
 // ... existing code ...`
 
-const editToolDescriptionExample = `\
+const editToolDiffExample = `\
 ${tripleTick[0]}
 ${changesExampleContent}
 ${tripleTick[1]}`
 
-const fileNameEditExample = `${tripleTick[0]}typescript
+const chatSuggestionDiffExample = `${tripleTick[0]}typescript
 /Users/username/Dekstop/my_project/app.ts
 ${changesExampleContent}
 ${tripleTick[1]}`
@@ -74,173 +76,188 @@ const paginationParam = {
 } as const
 
 
+const terminalDescHelper = `You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`
 
+const cwdHelper = 'Optional. The directory in which to run the command. Defaults to the first workspace folder.'
 
-// export type SnakeCase<S extends string> =
-// 	// exact acronym URI
-// 	S extends 'URI' ? 'uri'
-// 	// suffix URI: e.g. 'rootURI' -> snakeCase('root') + '_uri'
-// 	: S extends `${infer Prefix}URI` ? `${SnakeCase<Prefix>}_uri`
-// 	// default: for each char, prefix '_' on uppercase letters
-// 	: S extends `${infer C}${infer Rest}`
-// 	? `${C extends Lowercase<C> ? C : `_${Lowercase<C>}`}${SnakeCase<Rest>}`
-// 	: S;
+export type SnakeCase<S extends string> =
+	// exact acronym URI
+	S extends 'URI' ? 'uri'
+	// suffix URI: e.g. 'rootURI' -> snakeCase('root') + '_uri'
+	: S extends `${infer Prefix}URI` ? `${SnakeCase<Prefix>}_uri`
+	// default: for each char, prefix '_' on uppercase letters
+	: S extends `${infer C}${infer Rest}`
+	? `${C extends Lowercase<C> ? C : `_${Lowercase<C>}`}${SnakeCase<Rest>}`
+	: S;
 
-// export type SnakeCaseKeys<T extends Record<string, any>> = {
-// 	[K in keyof T as SnakeCase<Extract<K, string>>]: T[K]
-// };
+export type SnakeCaseKeys<T extends Record<string, any>> = {
+	[K in keyof T as SnakeCase<Extract<K, string>>]: T[K]
+};
 
-
-
-export const voidTools = {
-	// export const voidTools
-	// : {
-	// 	[T in keyof ToolCallParams]: {
-	// 		name: string;
-	// 		description: string;
-	// 		params: {
-	// 			[paramName in keyof SnakeCaseKeys<ToolCallParams[T]>]: { description: string }
-	// 		}
-	// 	}
-	// }
-	//  = {
-	// --- context-gathering (read/search/list) ---
-
-	read_file: {
-		name: 'read_file',
-		description: `Returns full contents of a given file.`,
-		params: {
-			...uriParam('file'),
-			start_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to 1.' },
-			end_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to Infinity.' },
-			...paginationParam,
-		},
-	},
-
-	ls_dir: {
-		name: 'ls_dir',
-		description: `Lists all files and folders in the given URI.`,
-		params: {
-			uri: { description: `Optional. The FULL path to the ${'folder'}. Leave this as empty or "" to search all folders.` },
-			...paginationParam,
-		},
-	},
-
-	get_dir_tree: {
-		name: 'get_dir_tree',
-		description: `This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder. `,
-		params: {
-			...uriParam('folder')
-		}
-	},
-
-	// pathname_search: {
-	// 	name: 'pathname_search',
-	// 	description: `Returns all pathnames that match a given \`find\`-style query over the entire workspace. ONLY searches file names. ONLY searches the current workspace. You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
-
-	search_pathnames_only: {
-		name: 'search_pathnames_only',
-		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.`,
-		params: {
-			query: { description: `Your query for the search.` },
-			include_pattern: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
-			...paginationParam,
-		},
-	},
-
-
-
-	search_for_files: {
-		name: 'search_for_files',
-		description: `Returns a list of file names whose content matches the given query. The query can be any substring or regex.`,
-		params: {
-			query: { description: `Your query for the search.` },
-			search_in_folder: { description: 'Optional. Leave as blank by default. ONLY fill this in if your previous search with the same query was truncated. Searches descendants of this folder only.' },
-			is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' },
-			...paginationParam,
-		},
-	},
-
-	// add new search_in_file tool
-	search_in_file: {
-		name: 'search_in_file',
-		description: `Returns an array of all the start line numbers where the content appears in the file.`,
-		params: {
-			...uriParam('file'),
-			query: { description: 'The string or regex to search for in the file.' },
-			is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' }
-		}
-	},
-
-	read_lint_errors: {
-		name: 'read_lint_errors',
-		description: `Returns all lint errors on a given file.`,
-		params: {
-			...uriParam('file'),
-		},
-	},
-
-	// --- editing (create/delete) ---
-
-	create_file_or_folder: {
-		name: 'create_file_or_folder',
-		description: `Create a file or folder at the given path. To create a folder, the path MUST end with a trailing slash.`,
-		params: {
-			...uriParam('file or folder'),
-		},
-	},
-
-	delete_file_or_folder: {
-		name: 'delete_file_or_folder',
-		description: `Delete a file or folder at the given path.`,
-		params: {
-			...uriParam('file or folder'),
-			params: { description: 'Optional. Return -r here to delete recursively.' }
-		},
-	},
-
-	edit_file: { // APPLY TOOL
-		name: 'edit_file',
-		description: `Edits the contents of a file given the file's URI and a description.`,
-		params: {
-			...uriParam('file'),
-			change_diff: {
-				description: `\
-A code diff describing the change to make to the file. \
+const applyToolDescription = (type: 'edit tool' | 'chat suggestion') => `\
+${type === 'edit tool' ? 'A' : 'a'} code diff describing the change to make to the file. \
 Your DIFF is the only context that will be given to another LLM to apply the change, so it must be accurate and complete. \
 Your DIFF MUST be wrapped in triple backticks. \
 NEVER re-write the whole file. Always bias towards writing as little as possible. \
 Use comments like "// ... existing code ..." to condense your writing. \
-Here's an example of a good output:\n${editToolDescriptionExample}`
+Here's an example of a good output:\n${type === 'edit tool' ? editToolDiffExample : chatSuggestionDiffExample}`
+
+
+// export const voidTools = {
+export const voidTools
+	: {
+		[T in keyof ToolCallParams]: {
+			name: string;
+			description: string;
+			// more params can be generated than exist here, but these params must be a subset of them
+			params: Partial<{ [paramName in keyof SnakeCaseKeys<ToolCallParams[T]>]: { description: string } }>
+		}
+	}
+	= {
+		// --- context-gathering (read/search/list) ---
+
+		read_file: {
+			name: 'read_file',
+			description: `Returns full contents of a given file.`,
+			params: {
+				...uriParam('file'),
+				start_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to 1.' },
+				end_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to Infinity.' },
+				...paginationParam,
+			},
+		},
+
+		ls_dir: {
+			name: 'ls_dir',
+			description: `Lists all files and folders in the given URI.`,
+			params: {
+				uri: { description: `Optional. The FULL path to the ${'folder'}. Leave this as empty or "" to search all folders.` },
+				...paginationParam,
+			},
+		},
+
+		get_dir_tree: {
+			name: 'get_dir_tree',
+			description: `This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder. `,
+			params: {
+				...uriParam('folder')
 			}
 		},
-	},
 
-	run_command: {
-		name: 'run_command',
-		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`,
-		params: {
-			command: { description: 'The terminal command to run.' },
-			bg_terminal_id: { description: 'Optional. This only applies to terminals that have been opened with open_persistent_terminal. Runs the command in the terminal with the specified ID.' },
+		// pathname_search: {
+		// 	name: 'pathname_search',
+		// 	description: `Returns all pathnames that match a given \`find\`-style query over the entire workspace. ONLY searches file names. ONLY searches the current workspace. You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
+
+		search_pathnames_only: {
+			name: 'search_pathnames_only',
+			description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.`,
+			params: {
+				query: { description: `Your query for the search.` },
+				include_pattern: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
+				...paginationParam,
+			},
 		},
-	},
-
-	open_persistent_terminal: {
-		name: 'open_persistent_terminal',
-		description: `Use this tool when you want to run a terminal command indefinitely, like a dev server (eg \`npm run dev\`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.`,
-		params: {}
-	},
-	kill_persistent_terminal: {
-		name: 'kill_persistent_terminal',
-		description: `Closes a BG terminal with the given ID.`,
-		params: { terminal_id: { description: `The terminal ID to interrupt and close.` } }
-	}
 
 
-	// go_to_definition
-	// go_to_usages
 
-} satisfies { [T in keyof ToolResultType]: InternalToolInfo }
+		search_for_files: {
+			name: 'search_for_files',
+			description: `Returns a list of file names whose content matches the given query. The query can be any substring or regex.`,
+			params: {
+				query: { description: `Your query for the search.` },
+				search_in_folder: { description: 'Optional. Leave as blank by default. ONLY fill this in if your previous search with the same query was truncated. Searches descendants of this folder only.' },
+				is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' },
+				...paginationParam,
+			},
+		},
+
+		// add new search_in_file tool
+		search_in_file: {
+			name: 'search_in_file',
+			description: `Returns an array of all the start line numbers where the content appears in the file.`,
+			params: {
+				...uriParam('file'),
+				query: { description: 'The string or regex to search for in the file.' },
+				is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' }
+			}
+		},
+
+		read_lint_errors: {
+			name: 'read_lint_errors',
+			description: `Returns all lint errors on a given file.`,
+			params: {
+				...uriParam('file'),
+			},
+		},
+
+		// --- editing (create/delete) ---
+
+		create_file_or_folder: {
+			name: 'create_file_or_folder',
+			description: `Create a file or folder at the given path. To create a folder, the path MUST end with a trailing slash.`,
+			params: {
+				...uriParam('file or folder'),
+			},
+		},
+
+		delete_file_or_folder: {
+			name: 'delete_file_or_folder',
+			description: `Delete a file or folder at the given path.`,
+			params: {
+				...uriParam('file or folder'),
+				is_recursive: { description: 'Optional. Return true to delete recursively.' }
+			},
+		},
+
+		edit_file: { // APPLY TOOL
+			name: 'edit_file',
+			description: `Edits the contents of a file given the file's URI and a description.`,
+			params: {
+				...uriParam('file'),
+				change_diff: {
+					description: applyToolDescription('edit tool')
+				}
+			},
+		},
+
+		run_command: {
+			name: 'run_command',
+			description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). ${terminalDescHelper}`,
+			params: {
+				command: { description: 'The terminal command to run.' },
+				cwd: { description: cwdHelper },
+			},
+		},
+
+		run_persistent_command: {
+			name: 'run_persistent_command',
+			description: `Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after ${MAX_TERMINAL_BG_COMMAND_TIME} are returned, and command continues running in background). ${terminalDescHelper}`,
+			params: {
+				command: { description: 'The terminal command to run.' },
+				persistent_terminal_id: { description: 'The ID of the terminal created using open_persistent_terminal.' },
+			},
+		},
+
+
+
+		open_persistent_terminal: {
+			name: 'open_persistent_terminal',
+			description: `Use this tool when you want to run a terminal command indefinitely, like a dev server (eg \`npm run dev\`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.`,
+			params: {
+				cwd: { description: cwdHelper },
+			}
+		},
+		kill_persistent_terminal: {
+			name: 'kill_persistent_terminal',
+			description: `Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.`,
+			params: { persistent_terminal_id: { description: `The ID of the persistent terminal.` } }
+		}
+
+
+		// go_to_definition
+		// go_to_usages
+
+	} satisfies { [T in keyof ToolResultType]: InternalToolInfo }
 
 
 export type ToolName = keyof ToolResultType
@@ -329,16 +346,16 @@ Please assist the user with their query.`)
 <system_info>
 - ${os}
 
-- Open workspaces:
-${workspaceFolders.join('\n') || 'NO WORKSPACE OPEN'}
+- The user's workspace contains these folders:
+${workspaceFolders.join('\n') || 'NO FOLDERS OPEN'}
 
 - Active file:
 ${activeURI}
 
 - Open files:
-${openedURIs.join('\n') || 'NO OPENED EDITORS'}${''/* separator */}${mode === 'agent' && runningTerminalIds.length !== 0 ? `
+${openedURIs.join('\n') || 'NO OPENED FILES'}${''/* separator */}${mode === 'agent' && runningTerminalIds.length !== 0 ? `
 
-- Existing terminal IDs: ${runningTerminalIds.join(', ')}` : ''}
+- Existing persistent terminal IDs: ${runningTerminalIds.join(', ')}` : ''}
 </system_info>`)
 
 
@@ -368,7 +385,7 @@ ${directoryStr}
 		details.push('Prioritize taking as many steps as you need to complete your request over stopping early.')
 		details.push(`You will OFTEN need to gather context before making a change. Do not immediately make a change unless you have ALL relevant context.`)
 		details.push(`ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`)
-		details.push(`NEVER modify a file outside the user's workspace(s) without permission from the user.`)
+		details.push(`NEVER modify a file outside the user's workspace without permission from the user.`)
 	}
 
 	if (mode === 'gather') {
@@ -383,12 +400,8 @@ ${directoryStr}
 - The remaining contents of the file should proceed as usual.`)
 
 		details.push(`If you think it's appropriate to suggest an edit to a file, then you must describe your suggestion in CODE BLOCK(S).
-- The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).
-- The remaining contents should be \
-a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing. \
-NEVER re-write the whole file. Instead, use comments like  "// ... existing code ...". Bias towards writing as little as possible. \
-Here's an example of a good edit suggestion:
-${fileNameEditExample}.`)
+- The first line of the code block must be the FULL PATH of the related file.
+- The remaining contents should be ${applyToolDescription('chat suggestion')}`)
 	}
 
 	details.push(`NEVER write the FULL PATH of a file when speaking with the user. Just write the file name ONLY.`)

@@ -1,13 +1,13 @@
 {
 	"nameShort": "Void",
 	"nameLong": "Void",
-	"voidVersion": "1.2.6",
+	"voidVersion": "1.2.8",
 	"applicationName": "void",
 	"dataFolderName": ".void-editor",
-	"win32MutexName": "voideditor",
+	"win32MutexName": "voideditor-test",
 	"licenseName": "MIT",
-	"licenseUrl": "https://github.com/voideditor/void/blob/main/LICENSE.txt",
-	"serverLicenseUrl": "https://github.com/voideditor/void/blob/main/LICENSE.txt",
+	"licenseUrl": "https://github.com/voideditor-test/void/blob/main/LICENSE.txt",
+	"serverLicenseUrl": "https://github.com/voideditor-test/void/blob/main/LICENSE.txt",
 	"serverGreeting": [],
 	"serverLicense": [],
 	"serverLicensePrompt": "",
@@ -25,10 +25,10 @@
 	"win32ShellNameShort": "V&oid",
 	"win32TunnelServiceMutex": "void-tunnelservice",
 	"win32TunnelMutex": "void-tunnel",
-	"darwinBundleIdentifier": "com.voideditor.code",
+	"darwinBundleIdentifier": "com.voideditor-test.code",
 	"linuxIconName": "void-editor",
 	"licenseFileName": "LICENSE.txt",
-	"reportIssueUrl": "https://github.com/voideditor/void/issues/new",
+	"reportIssueUrl": "https://github.com/voideditor-test/void/issues/new",
 	"nodejsRepository": "https://nodejs.org",
 	"urlProtocol": "void",
 	"extensionsGallery": {
@@ -37,7 +37,7 @@
 	},
 	"builtInExtensions": [],
 	"linkProtectionTrustedDomains": [
-		"https://voideditor.com",
-		"https://voideditor.dev"
+		"https://voideditor-test.com",
+		"https://voideditor-test.dev"
 	]
 }

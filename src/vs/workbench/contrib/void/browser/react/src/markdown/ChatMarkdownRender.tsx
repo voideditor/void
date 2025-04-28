@@ -5,9 +5,6 @@
 
 import React, { JSX, useMemo, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
-import katex from 'katex'
-import 'katex/dist/katex.min.css'
-import dompurify from '../../../../../../../base/browser/dompurify/dompurify.js'
 
 import { convertToVscodeLang, detectLanguage } from '../../../../common/helpers/languageHelpers.js'
 import { BlockCodeApplyWrapper } from './ApplyBlockHoverButtons.js'
@@ -17,6 +14,7 @@ import { URI } from '../../../../../../../base/common/uri.js'
 import { isAbsolute } from '../../../../../../../base/common/path.js'
 import { separateOutFirstLine } from '../../../../common/helpers/util.js'
 import { BlockCode } from '../util/inputs.js'
+import { CodespanLocationLink } from '../../../../common/chatThreadServiceTypes.js'
 
 
 export type ChatMessageLocation = {
@@ -36,59 +34,59 @@ function isValidUri(s: string): boolean {
 
 // renders contiguous string of latex eg $e^{i\pi}$
 const LatexRender = ({ latex }: { latex: string }) => {
+	return <span className="katex-error text-red-500">{latex}</span>
+	// try {
+	// 	let formula = latex;
+	// 	let displayMode = false;
 
-	try {
-		let formula = latex;
-		let displayMode = false;
+	// 	// Extract the formula from delimiters
+	// 	if (latex.startsWith('$') && latex.endsWith('$')) {
+	// 		// Check if it's display math $$...$$
+	// 		if (latex.startsWith('$$') && latex.endsWith('$$')) {
+	// 			formula = latex.slice(2, -2);
+	// 			displayMode = true;
+	// 		} else {
+	// 			formula = latex.slice(1, -1);
+	// 		}
+	// 	} else if (latex.startsWith('\\(') && latex.endsWith('\\)')) {
+	// 		formula = latex.slice(2, -2);
+	// 	} else if (latex.startsWith('\\[') && latex.endsWith('\\]')) {
+	// 		formula = latex.slice(2, -2);
+	// 		displayMode = true;
+	// 	}
 
-		// Extract the formula from delimiters
-		if (latex.startsWith('$') && latex.endsWith('$')) {
-			// Check if it's display math $$...$$
-			if (latex.startsWith('$$') && latex.endsWith('$$')) {
-				formula = latex.slice(2, -2);
-				displayMode = true;
-			} else {
-				formula = latex.slice(1, -1);
-			}
-		} else if (latex.startsWith('\\(') && latex.endsWith('\\)')) {
-			formula = latex.slice(2, -2);
-		} else if (latex.startsWith('\\[') && latex.endsWith('\\]')) {
-			formula = latex.slice(2, -2);
-			displayMode = true;
-		}
+	// 	// Render LaTeX
+	// 	const html = katex.renderToString(formula, {
+	// 		displayMode: displayMode,
+	// 		throwOnError: false,
+	// 		output: 'html'
+	// 	});
 
-		// Render LaTeX
-		const html = katex.renderToString(formula, {
-			displayMode: displayMode,
-			throwOnError: false,
-			output: 'html'
-		});
+	// 	// Sanitize the HTML output with DOMPurify
+	// 	const sanitizedHtml = dompurify.sanitize(html, {
+	// 		RETURN_TRUSTED_TYPE: true,
+	// 		USE_PROFILES: { html: true, svg: true, mathMl: true }
+	// 	});
 
-		// Sanitize the HTML output with DOMPurify
-		const sanitizedHtml = dompurify.sanitize(html, {
-			RETURN_TRUSTED_TYPE: true,
-			USE_PROFILES: { html: true, svg: true, mathMl: true }
-		});
+	// 	// Add proper styling based on mode
+	// 	const className = displayMode
+	// 		? 'katex-block my-2 text-center'
+	// 		: 'katex-inline';
 
-		// Add proper styling based on mode
-		const className = displayMode
-			? 'katex-block my-2 text-center'
-			: 'katex-inline';
+	// 	// Use the ref approach to avoid dangerouslySetInnerHTML
+	// 	const mathRef = React.useRef<HTMLSpanElement>(null);
 
-		// Use the ref approach to avoid dangerouslySetInnerHTML
-		const mathRef = React.useRef<HTMLSpanElement>(null);
+	// 	React.useEffect(() => {
+	// 		if (mathRef.current) {
+	// 			mathRef.current.innerHTML = sanitizedHtml as unknown as string;
+	// 		}
+	// 	}, [sanitizedHtml]);
 
-		React.useEffect(() => {
-			if (mathRef.current) {
-				mathRef.current.innerHTML = sanitizedHtml as unknown as string;
-			}
-		}, [sanitizedHtml]);
-
-		return <span ref={mathRef} className={className}></span>;
-	} catch (error) {
-		console.error('KaTeX rendering error:', error);
-		return <span className="katex-error text-red-500">{latex}</span>;
-	}
+	// 	return <span ref={mathRef} className={className}></span>;
+	// } catch (error) {
+	// 	console.error('KaTeX rendering error:', error);
+	// 	return <span className="katex-error text-red-500">{latex}</span>;
+	// }
 }
 
 const Codespan = ({ text, className, onClick }: { text: string, className?: string, onClick?: () => void }) => {
@@ -116,7 +114,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 	const [didComputeCodespanLink, setDidComputeCodespanLink] = useState<boolean>(false)
 
-	let link = undefined
+	let link: CodespanLocationLink | undefined = undefined
 	if (rawText.endsWith('`')) { // if codespan was completed
 
 		// get link from cache
@@ -124,12 +122,12 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 		if (link === undefined) {
 			// if no link, generate link and add to cache
-			(chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
+			chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
 				.then(link => {
 					chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
 					setDidComputeCodespanLink(true) // rerender
 				})
-			)
+
 		}
 
 	}
@@ -546,6 +544,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 
 
 export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, codeURI?: URI, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
+	string = string.replaceAll('\n•', '\n\n•')
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>

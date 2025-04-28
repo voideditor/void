@@ -39,7 +39,7 @@ export class ServerInstallError extends Error {
 	}
 }
 
-const DEFAULT_DOWNLOAD_URL_TEMPLATE = 'https://github.com/voideditor/binaries/releases/download/${version}.${release}/void-reh-${os}-${arch}-${version}.${release}.tar.gz';
+const DEFAULT_DOWNLOAD_URL_TEMPLATE = 'https://github.com/voideditor-test/binaries/releases/download/${version}.${release}/void-reh-${os}-${arch}-${version}.${release}.tar.gz';
 
 export async function installCodeServer(conn: SSHConnection, serverDownloadUrlTemplate: string | undefined, extensionIds: string[], envVariables: string[], platform: string | undefined, useSocketPath: boolean, logger: Log): Promise<ServerInstallResult> {
 	let shell = 'powershell';

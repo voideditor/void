@@ -41,19 +41,17 @@ export const FINAL = `>>>>>>> UPDATED`
 
 
 const searchReplaceBlockTemplate = `\
-${tripleTick[0]}
 ${ORIGINAL}
-// ... original code 1 goes here
+// ... original code goes here
 ${DIVIDER}
-// ... final code 1 goes here
+// ... final code goes here
 ${FINAL}
+
 ${ORIGINAL}
-// ... original code 2 goes here
+// ... original code goes here
 ${DIVIDER}
-// ... final code 2 goes here
-${FINAL}
-...
-${tripleTick[1]}`
+// ... final code goes here
+${FINAL}`
 
 
 
@@ -63,7 +61,9 @@ You are a coding assistant that takes in a diff, and outputs SEARCH/REPLACE code
 The diff will be labeled \`DIFF\` and the original file will be labeled \`ORIGINAL_FILE\`.
 
 Format your SEARCH/REPLACE blocks as follows:
+${tripleTick[0]}
 ${searchReplaceBlockTemplate}
+${tripleTick[1]}
 
 1. Your SEARCH/REPLACE block(s) must implement the diff EXACTLY. Do NOT leave anything out.
 
@@ -106,18 +106,21 @@ ${tripleTick[1]}`
 
 
 const replaceTool_description = `\
-A string of SEARCH/REPLACE block(s) to apply to the given file.
-You are encouraged to output multiple changes in this string when possible. For example:
+A string of SEARCH/REPLACE block(s) which will be applied to the given file.
+Your SEARCH/REPLACE blocks string must be formatted as follows:
 ${searchReplaceBlockTemplate}
 
-Guidelines:
-1. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace or comments from the original code.
+## Guidelines:
 
-2. Each ORIGINAL text must be large enough to uniquely identify the change in the file. However, bias towards writing as little as possible.
+1. You are encouraged to output multiple changes whenever possible.
 
-3. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.
+2. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace or comments from the original code.
 
-4. This field is a STRING (not an array). You should wrap the string in triple backticks.`
+3. Each ORIGINAL text must be large enough to uniquely identify the change. However, bias towards writing as little as possible.
+
+4. Each ORIGINAL text must be DISJOINT from all other ORIGINAL text.
+
+5. This field is a STRING (not an array).`
 
 
 // ======================================================== tools ========================================================
@@ -300,7 +303,7 @@ export const voidTools = {
 		description: `Edits a file, deleting all the old contents and replacing them with your new contents. Use this tool if you want to edit a file you just created.`,
 		params: {
 			...uriParam('file'),
-			new_content: { description: `The new contents of the file.` }
+			new_content: { description: `The new contents of the file. Must be a string.` }
 		},
 	},
 
@@ -403,7 +406,7 @@ ${toolCallXMLGuidelines}`
 // ======================================================== chat (normal, gather, agent) ========================================================
 
 
-export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, runningTerminalIds, directoryStr, chatMode: mode, includeXMLToolDefinitions }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, runningTerminalIds: string[], chatMode: ChatMode, includeXMLToolDefinitions: boolean }) => {
+export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, persistentTerminalIDs, directoryStr, chatMode: mode, includeXMLToolDefinitions }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, persistentTerminalIDs: string[], chatMode: ChatMode, includeXMLToolDefinitions: boolean }) => {
 	const header = (`You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} whose job is \
 ${mode === 'agent' ? `to help the user develop, run, and make changes to their codebase.`
 			: mode === 'gather' ? `to search, understand, and reference files in the user's codebase.`
@@ -425,9 +428,9 @@ ${workspaceFolders.join('\n') || 'NO WORKSPACE OPEN'}
 ${activeURI}
 
 - Open files:
-${openedURIs.join('\n') || 'NO OPENED EDITORS'}${''/* separator */}${mode === 'agent' && runningTerminalIds.length !== 0 ? `
+${openedURIs.join('\n') || 'NO OPENED EDITORS'}${''/* separator */}${mode === 'agent' && persistentTerminalIDs.length !== 0 ? `
 
-- Existing terminal IDs: ${runningTerminalIds.join(', ')}` : ''}
+- Persistent terminal IDs available for you to run commands in: ${persistentTerminalIDs.join(', ')}` : ''}
 </system_info>`)
 
 
@@ -510,7 +513,7 @@ ${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
 // // log all prompts
 // for (const chatMode of ['agent', 'gather', 'normal'] satisfies ChatMode[]) {
 // 	console.log(`========================================= SYSTEM MESSAGE FOR ${chatMode} ===================================\n`,
-// 		chat_systemMessage({ chatMode, workspaceFolders: [], openedURIs: [], activeURI: 'pee', runningTerminalIds: [], directoryStr: 'lol', }))
+// 		chat_systemMessage({ chatMode, workspaceFolders: [], openedURIs: [], activeURI: 'pee', persistentTerminalIDs: [], directoryStr: 'lol', }))
 // }
 
 

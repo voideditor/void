@@ -136,7 +136,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 	async killTerminal(terminalId: string) {
 		const terminal = this.terminalInstanceOfId[terminalId]
-		if (!terminal) throw new Error(`Kill Terminal: Terminal with ID ${terminalId} did not exist.`);
+		if (!terminal) throw new Error(`Kill Terminal: Terminal with ID ${terminalId} does not exist.`);
 		terminal.dispose(TerminalExitReason.Extension)
 		delete this.terminalInstanceOfId[terminalId]
 		return
@@ -168,7 +168,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		let terminalId: string
 		if (isBG) { // BG process
 			terminal = this.terminalInstanceOfId[bgTerminalId];
-			if (!terminal) throw new Error(`Unexpected internal error: Terminal with ID ${bgTerminalId} did not exist.`);
+			if (!terminal) throw new Error(`Unexpected internal error: Terminal with ID ${bgTerminalId} does not exist.`);
 			terminalId = bgTerminalId
 		}
 		else {

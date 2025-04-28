@@ -1321,8 +1321,8 @@ const titleOfToolName = {
 	'search_for_files': { done: 'Searched', proposed: 'Search', running: loadingTitleWrapper('Searching') },
 	'create_file_or_folder': { done: `Created`, proposed: `Create`, running: loadingTitleWrapper(`Creating`) },
 	'delete_file_or_folder': { done: `Deleted`, proposed: `Delete`, running: loadingTitleWrapper(`Deleting`) },
-	'rewrite_file': { done: `Rewrote file`, proposed: 'Rewrite file', running: loadingTitleWrapper('Rewriting file') },
 	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
+	'rewrite_file': { done: `Wrote file`, proposed: 'Write file', running: loadingTitleWrapper('Writing file') },
 	'run_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
 	'open_persistent_terminal': { done: `Opened terminal`, proposed: 'Open terminal', running: loadingTitleWrapper('Opening terminal') },
 	'kill_persistent_terminal': { done: `Killed terminal`, proposed: 'Kill terminal', running: loadingTitleWrapper('Killing terminal') },
@@ -2065,12 +2065,12 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 	},
 	'rewrite_file': {
 		resultWrapper: (params) => {
-			return <EditTool {...params} content={params.toolMessage.params.newContent} />
+			return <EditTool {...params} content={`${'```\n'}${params.toolMessage.params.newContent}${'\n```'}`} />
 		}
 	},
 	'edit_file': {
 		resultWrapper: (params) => {
-			return <EditTool {...params} content={params.toolMessage.params.searchReplaceBlocks} />
+			return <EditTool {...params} content={`${'```\n'}${params.toolMessage.params.searchReplaceBlocks}${'\n```'}`} />
 		}
 	},
 

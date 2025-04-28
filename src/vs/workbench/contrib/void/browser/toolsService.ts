@@ -37,7 +37,7 @@ const isFalsy = (u: unknown) => {
 
 const validateStr = (argName: string, value: unknown) => {
 	if (value === null) throw new Error(`Invalid LLM output: ${argName} was null.`)
-	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string, but it's a(n) ${typeof value}. Value: ${JSON.stringify(value)}.`)
+	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string, but its type is "${typeof value}". Full value: ${JSON.stringify(value)}.`)
 	return value
 }
 
@@ -46,7 +46,7 @@ const validateStr = (argName: string, value: unknown) => {
 // TODO!!!! check to make sure folder/file exists
 const validateURI = (uriStr: unknown) => {
 	if (uriStr === null) throw new Error(`Invalid LLM output: uri was null.`)
-	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a(n) ${typeof uriStr}. Value: ${uriStr}.`)
+	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a(n) ${typeof uriStr}. Full value: ${JSON.stringify(uriStr)}.`)
 	const uri = URI.file(uriStr)
 	return uri
 }

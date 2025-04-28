@@ -1594,10 +1594,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		for (const b of blocks) {
 			const i = modelStr.indexOf(b.orig)
 			if (i === -1)
-				throw new Error(this._errContentOfInvalidStr('Not found', replacements[i].block.orig))
+				throw new Error(this._errContentOfInvalidStr('Not found', b.orig))
 			const j = modelStr.lastIndexOf(b.orig)
 			if (i !== j)
-				throw new Error(this._errContentOfInvalidStr('Not unique', replacements[i].block.orig))
+				throw new Error(this._errContentOfInvalidStr('Not unique', b.orig))
 
 			replacements.push({
 				origStart: i,
@@ -1611,9 +1611,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		// ensure no overlap
 		for (let i = 1; i < replacements.length; i++) {
-			if (replacements[i].origStart < replacements[i - 1].origEnd) {
-				// There's an overlap
-				throw new Error(this._errContentOfInvalidStr('Has overlap', replacements[i].block.orig))
+			if (replacements[i].origStart <= replacements[i - 1].origEnd) {
+				throw new Error(this._errContentOfInvalidStr('Has overlap', replacements[i]?.block?.orig))
 			}
 		}
 

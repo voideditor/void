@@ -48,9 +48,9 @@ export type ToolCallParams = {
 	'create_file_or_folder': { uri: URI, isFolder: boolean },
 	'delete_file_or_folder': { uri: URI, isRecursive: boolean, isFolder: boolean },
 	// ---
-	'run_command': { command: string; bgTerminalId: string | null },
+	'run_command': { command: string; persistentTerminalId: string | null },
 	'open_persistent_terminal': {},
-	'kill_persistent_terminal': { terminalId: string },
+	'kill_persistent_terminal': { persistentTerminalId: string },
 }
 
 // RESULT OF TOOL CALL
@@ -69,7 +69,7 @@ export type ToolResultType = {
 	'delete_file_or_folder': {},
 	// ---
 	'run_command': { result: string; resolveReason: TerminalResolveReason; },
-	'open_persistent_terminal': { terminalId: string },
+	'open_persistent_terminal': { persistentTerminalId: string },
 	'kill_persistent_terminal': {},
 }
 

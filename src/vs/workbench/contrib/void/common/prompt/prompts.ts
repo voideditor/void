@@ -27,6 +27,7 @@ export const MAX_CHILDREN_URIs_PAGE = 500
 // terminal tool info
 export const MAX_TERMINAL_CHARS = 100_000
 export const MAX_TERMINAL_INACTIVE_TIME = 8 // seconds
+export const MAX_TERMINAL_BG_COMMAND_TIME = 5
 
 
 // Maximum character limits for prefix and suffix context
@@ -133,12 +134,12 @@ const changesExampleContent = `\
 // {{change 3}}
 // ... existing code ...`
 
-// const editToolDescriptionExample = `\
-// ${tripleTick[0]}
-// ${changesExampleContent}
-// ${tripleTick[1]}`
+const editToolDescriptionExample = `\
+${tripleTick[0]}
+${changesExampleContent}
+${tripleTick[1]}`
 
-const fileNameEditExample = `${tripleTick[0]}typescript
+const chatSuggestionDiffExample = `${tripleTick[0]}typescript
 /Users/username/Dekstop/my_project/app.ts
 ${changesExampleContent}
 ${tripleTick[1]}`
@@ -180,6 +181,13 @@ const paginationParam = {
 // 	[K in keyof T as SnakeCase<Extract<K, string>>]: T[K]
 // };
 
+const applyToolDescription = (type: 'edit tool' | 'chat suggestion') => `\
+${type === 'edit tool' ? 'A' : 'a'} code diff describing the change to make to the file. \
+Your DIFF is the only context that will be given to another LLM to apply the change, so it must be accurate and complete. \
+Your DIFF MUST be wrapped in triple backticks. \
+NEVER re-write the whole file. Always bias towards writing as little as possible. \
+Use comments like "// ... existing code ..." to condense your writing. \
+Here's an example of a good output:\n${type === 'edit tool' ? editToolDescriptionExample : chatSuggestionDiffExample}`
 
 
 export const voidTools = {
@@ -313,7 +321,7 @@ export const voidTools = {
 		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`,
 		params: {
 			command: { description: 'The terminal command to run.' },
-			bg_terminal_id: { description: 'Optional. This only applies to terminals that have been opened with open_persistent_terminal. Runs the command in the terminal with the specified ID.' },
+			persistent_terminal_id: { description: 'Optional. Runs the command in the persistent terminal that you created with open_persistent_terminal.' },
 		},
 	},
 
@@ -324,8 +332,8 @@ export const voidTools = {
 	},
 	kill_persistent_terminal: {
 		name: 'kill_persistent_terminal',
-		description: `Closes a BG terminal with the given ID.`,
-		params: { terminal_id: { description: `The terminal ID to interrupt and close.` } }
+		description: `Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.`,
+		params: { persistent_terminal_id: { description: `The ID of the persistent terminal.` } }
 	}
 
 
@@ -421,14 +429,14 @@ Please assist the user with their query.`)
 <system_info>
 - ${os}
 
-- Open workspaces:
-${workspaceFolders.join('\n') || 'NO WORKSPACE OPEN'}
+- The user's workspace contains these folders:
+${workspaceFolders.join('\n') || 'NO FOLDERS OPEN'}
 
 - Active file:
 ${activeURI}
 
 - Open files:
-${openedURIs.join('\n') || 'NO OPENED EDITORS'}${''/* separator */}${mode === 'agent' && persistentTerminalIDs.length !== 0 ? `
+${openedURIs.join('\n') || 'NO OPENED FILES'}${''/* separator */}${mode === 'agent' && persistentTerminalIDs.length !== 0 ? `
 
 - Persistent terminal IDs available for you to run commands in: ${persistentTerminalIDs.join(', ')}` : ''}
 </system_info>`)
@@ -460,7 +468,7 @@ ${directoryStr}
 		details.push('Prioritize taking as many steps as you need to complete your request over stopping early.')
 		details.push(`You will OFTEN need to gather context before making a change. Do not immediately make a change unless you have ALL relevant context.`)
 		details.push(`ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`)
-		details.push(`NEVER modify a file outside the user's workspace(s) without permission from the user.`)
+		details.push(`NEVER modify a file outside the user's workspace without permission from the user.`)
 	}
 
 	if (mode === 'gather') {
@@ -475,12 +483,8 @@ ${directoryStr}
 - The remaining contents of the file should proceed as usual.`)
 
 		details.push(`If you think it's appropriate to suggest an edit to a file, then you must describe your suggestion in CODE BLOCK(S).
-- The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).
-- The remaining contents should be \
-a brief code description of the change you want to make, with comments like "// ... existing code ..." to condense your writing. \
-NEVER re-write the whole file. Instead, use comments like  "// ... existing code ...". Bias towards writing as little as possible. \
-Here's an example of a good edit suggestion:
-${fileNameEditExample}.`)
+- The first line of the code block must be the FULL PATH of the related file.
+- The remaining contents should be ${applyToolDescription('chat suggestion')}`)
 	}
 
 	details.push(`NEVER write the FULL PATH of a file when speaking with the user. Just write the file name ONLY.`)

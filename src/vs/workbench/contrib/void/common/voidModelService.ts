@@ -42,10 +42,15 @@ class VoidModelService extends Disposable implements IVoidModelService {
 	}
 
 	initializeModel = async (uri: URI) => {
-		if (uri.fsPath in this._modelRefOfURI) return;
-		const editorModelRef = await this._textModelService.createModelReference(uri);
-		// Keep a strong reference to prevent disposal
-		this._modelRefOfURI[uri.fsPath] = editorModelRef;
+		try {
+			if (uri.fsPath in this._modelRefOfURI) return;
+			const editorModelRef = await this._textModelService.createModelReference(uri);
+			// Keep a strong reference to prevent disposal
+			this._modelRefOfURI[uri.fsPath] = editorModelRef;
+		}
+		catch (e) {
+			console.log('InitializeModel error:', e)
+		}
 	};
 
 	getModelFromFsPath = (fsPath: string): VoidModelType => {

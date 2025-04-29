@@ -82,13 +82,14 @@ function buildWin32Setup(arch, target) {
 		productJson['target'] = target;
 		fs.writeFileSync(productJsonPath, JSON.stringify(productJson, undefined, '\t'));
 
+		console.log('RawVersion!!!!!!!!!!!!!!', pkg.version.replace(/-\w+$/, '')) // Void
 		const quality = product.quality || 'dev';
 		const definitions = {
 			NameLong: product.nameLong,
 			NameShort: product.nameShort,
 			DirName: product.win32DirName,
-			Version: `${pkg.version}.${pkg.release}`,
-			RawVersion: `${pkg.version.replace(/-\w+$/, '')}.${pkg.release}`,
+			Version: pkg.version,
+			RawVersion: pkg.version.replace(/-\w+$/, ''),
 			NameVersion: product.win32NameVersion + (target === 'user' ? ' (User)' : ''),
 			ExeBasename: product.nameShort,
 			RegValueName: product.win32RegValueName,

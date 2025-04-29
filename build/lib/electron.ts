@@ -68,7 +68,7 @@ function darwinBundleDocumentType(extensions: string[], icon: string, nameOrSuff
 		role: 'Editor',
 		ostypes: ['TEXT', 'utxt', 'TUTX', '****'],
 		extensions,
-		iconFile: 'resources/darwin/' + icon.toLowerCase() + '.icns', // <-- Void icon code.icns
+		iconFile: 'resources/darwin/' + icon.toLowerCase() + '.icns',
 		utis
 	};
 }
@@ -196,7 +196,7 @@ export const config = {
 	darwinForceDarkModeSupport: true,
 	darwinCredits: darwinCreditsTemplate ? Buffer.from(darwinCreditsTemplate({ commit: commit, date: new Date().toISOString() })) : undefined,
 	linuxExecutableName: product.applicationName,
-	winIcon: 'resources/win32/code.ico', // <-- Void icon
+	winIcon: 'resources/win32/code.ico',
 	token: process.env['GITHUB_TOKEN'],
 	repo: product.electronRepository || undefined,
 	validateChecksum: true,

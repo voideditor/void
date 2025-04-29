@@ -13,7 +13,6 @@ import { INativeHostService } from '../../../../platform/native/common/native.js
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { process } from '../../../../base/parts/sandbox/electron-sandbox/globals.js';
 import { getActiveWindow } from '../../../../base/browser/dom.js';
-import { getReleaseString } from '../../../../workbench/common/release.js';
 
 export class NativeDialogHandler extends AbstractDialogHandler {
 
@@ -72,7 +71,6 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 
 	async about(): Promise<void> {
 		let version = this.productService.version;
-		let voidVersion = this.productService.voidVersion; // Void added this
 		if (this.productService.target) {
 			version = `${version} (${this.productService.target} setup)`;
 		} else if (this.productService.darwinUniversalAssetId) {
@@ -80,13 +78,12 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 		}
 
 		const osProps = await this.nativeHostService.getOSProperties();
-		const releaseString = getReleaseString();
 
 		const detailString = (useAgo: boolean): string => {
 			return localize({ key: 'aboutDetail', comment: ['Electron, Chromium, Node.js and V8 are product names that need no translation'] },
-				"Void Version: {0}\nVSCode Version: {1}\nCommit: {2}\nDate: {3}\nElectron: {4}\nElectronBuildId: {5}\nChromium: {6}\nNode.js: {7}\nV8: {8}\nOS: {9}",
-				voidVersion || 'Unknown',
+				"VSCode Version: {0}\nVoid Version: {1}\nCommit: {2}\nDate: {3}\nElectron: {4}\nElectronBuildId: {5}\nChromium: {6}\nNode.js: {7}\nV8: {8}\nOS: {9}",
 				version,
+				this.productService.voidVersion || 'Unknown', // Void added this
 				this.productService.commit || 'Unknown',
 				this.productService.date ? `${this.productService.date}${useAgo ? ' (' + fromNow(new Date(this.productService.date), true) + ')' : ''}` : 'Unknown',
 				process.versions['electron'],
@@ -95,7 +92,7 @@ export class NativeDialogHandler extends AbstractDialogHandler {
 				process.versions['node'],
 				process.versions['v8'],
 				`${osProps.type} ${osProps.arch} ${osProps.release}${isLinuxSnap ? ' snap' : ''}`
-			).replace('\n', `\n${releaseString} ${this.productService.release || 'Unknown'}\n`);
+			);
 		};
 
 		const detail = detailString(true);

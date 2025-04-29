@@ -153,6 +153,7 @@ export const extractCodeFromFIM = ({ text, recentlyAddedTextLen, midTag, }: { te
 	const foundMid = pm.removePrefix(`<${midTag}>`)
 
 	if (foundMid) {
+		pm.removeSuffix(`\n`) // sometimes outputs \n
 		pm.removeSuffix(`</${midTag}>`)
 	}
 	const s = pm.value()

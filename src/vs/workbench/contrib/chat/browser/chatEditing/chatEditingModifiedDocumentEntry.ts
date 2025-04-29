@@ -5,7 +5,7 @@
 
 import { assert } from '../../../../../base/common/assert.js';
 import { RunOnceScheduler } from '../../../../../base/common/async.js';
-import { IReference, toDisposable } from '../../../../../base/common/lifecycle.js';
+import { IReference, MutableDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { observableValue, IObservable, ITransaction, autorun, transaction } from '../../../../../base/common/observable.js';
 import { isEqual } from '../../../../../base/common/resources.js';
 import { themeColorFromId } from '../../../../../base/common/themables.js';
@@ -28,15 +28,17 @@ import { IModelService } from '../../../../../editor/common/services/model.js';
 import { IResolvedTextEditorModel, ITextModelService } from '../../../../../editor/common/services/resolverService.js';
 import { IModelContentChangedEvent } from '../../../../../editor/common/textModelEvents.js';
 import { localize } from '../../../../../nls.js';
+import { AccessibilitySignal, IAccessibilitySignalService } from '../../../../../platform/accessibilitySignal/browser/accessibilitySignalService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
+import { IMarkerService } from '../../../../../platform/markers/common/markers.js';
 import { observableConfigValue } from '../../../../../platform/observable/common/platformObservableUtils.js';
 import { editorSelectionBackground } from '../../../../../platform/theme/common/colorRegistry.js';
-import { IUndoRedoService } from '../../../../../platform/undoRedo/common/undoRedo.js';
+import { IUndoRedoElement, IUndoRedoService } from '../../../../../platform/undoRedo/common/undoRedo.js';
 import { SaveReason, IEditorPane } from '../../../../common/editor.js';
 import { IFilesConfigurationService } from '../../../../services/filesConfiguration/common/filesConfigurationService.js';
-import { IResolvedTextFileEditorModel, stringToSnapshot } from '../../../../services/textfile/common/textfiles.js';
+import { IResolvedTextFileEditorModel, ITextFileService, stringToSnapshot } from '../../../../services/textfile/common/textfiles.js';
 import { ICellEditOperation } from '../../../notebook/common/notebookCommon.js';
 import { IModifiedFileEntry, ChatEditKind, WorkingSetEntryState, IModifiedFileEntryEditorIntegration } from '../../common/chatEditingService.js';
 import { IChatResponseModel } from '../../common/chatModel.js';
@@ -100,6 +102,7 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		telemetryInfo: IModifiedEntryTelemetryInfo,
 		kind: ChatEditKind,
 		initialContent: string | undefined,
+		@IMarkerService markerService: IMarkerService,
 		@IModelService modelService: IModelService,
 		@ITextModelService textModelService: ITextModelService,
 		@ILanguageService languageService: ILanguageService,
@@ -107,9 +110,11 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		@IFilesConfigurationService fileConfigService: IFilesConfigurationService,
 		@IChatService chatService: IChatService,
 		@IEditorWorkerService private readonly _editorWorkerService: IEditorWorkerService,
-		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService,
+		@ITextFileService private readonly _textFileService: ITextFileService,
 		@IFileService fileService: IFileService,
-		@IInstantiationService instantiationService: IInstantiationService
+		@IUndoRedoService undoRedoService: IUndoRedoService,
+		@IInstantiationService instantiationService: IInstantiationService,
+		@IAccessibilitySignalService private readonly _accessibilitySignalService: IAccessibilitySignalService,
 	) {
 		super(
 			resourceRef.object.textEditorModel.uri,
@@ -119,6 +124,7 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 			fileConfigService,
 			chatService,
 			fileService,
+			undoRedoService,
 			instantiationService
 		);
 
@@ -158,6 +164,17 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 			this._diffTrimWhitespace.read(r);
 			this._updateDiffInfoSeq();
 		}));
+
+		const resourceFilter = this._register(new MutableDisposable());
+		this._register(autorun(r => {
+			const res = this.isCurrentlyBeingModifiedBy.read(r);
+			if (res) {
+				const req = res.session.getRequests().find(value => value.id === res.requestId);
+				resourceFilter.value = markerService.installResourceFilter(this.modifiedURI, req?.message.text || localize('default', "Chat Edits"));
+			} else {
+				resourceFilter.clear();
+			}
+		}));
 	}
 
 	private _clearCurrentEditLineDecoration() {
@@ -187,10 +204,12 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		};
 	}
 
-	restoreFromSnapshot(snapshot: ISnapshotEntry) {
+	restoreFromSnapshot(snapshot: ISnapshotEntry, restoreToDisk = true) {
 		this._stateObs.set(snapshot.state, undefined);
 		this.originalModel.setValue(snapshot.original);
-		this._setDocValue(snapshot.current);
+		if (restoreToDisk) {
+			this._setDocValue(snapshot.current);
+		}
 		this._edit = snapshot.originalToCurrentEdit;
 		this._updateDiffInfoSeq();
 	}
@@ -199,12 +218,9 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		this._setDocValue(this.initialContent);
 	}
 
-	override async acceptStreamingEditsEnd(tx: ITransaction) {
+	protected override async _areOriginalAndModifiedIdentical(): Promise<boolean> {
 		const diff = await this._diffOperation;
-		super.acceptStreamingEditsEnd(tx);
-		if (diff?.identical) {
-			this.accept(tx);
-		}
+		return diff ? diff.identical : false;
 	}
 
 	protected override _resetEditsState(tx: ITransaction): void {
@@ -266,13 +282,10 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		}
 	}
 
-	override acceptStreamingEditsStart(responseModel: IChatResponseModel, tx: ITransaction) {
-		super.acceptStreamingEditsStart(responseModel, tx);
-
-		// push stack element whenever streaming starts
-		const request = responseModel.session.getRequests().find(req => req.id === responseModel.requestId);
+	protected override _createUndoRedoElement(response: IChatResponseModel): IUndoRedoElement {
+		const request = response.session.getRequests().find(req => req.id === response.requestId);
 		const label = request?.message.text ? localize('chatEditing1', "Chat Edit: '{0}'", request.message.text) : localize('chatEditing2', "Chat Edit");
-		this._undoRedoService.pushElement(new SingleModelEditStackElement(label, 'chat.edit', this.modifiedModel, null));
+		return new SingleModelEditStackElement(label, 'chat.edit', this.modifiedModel, null);
 	}
 
 	async acceptAgentEdits(resource: URI, textEdits: (TextEdit | ICellEditOperation)[], isLastEdits: boolean, responseModel: IChatResponseModel): Promise<void> {
@@ -335,6 +348,7 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		if (this._diffInfo.get().identical) {
 			this._stateObs.set(WorkingSetEntryState.Accepted, undefined);
 		}
+		this._accessibilitySignalService.playSignal(AccessibilitySignal.editsKept, { allowManyInParallel: true });
 		return true;
 	}
 
@@ -352,6 +366,7 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		if (this._diffInfo.get().identical) {
 			this._stateObs.set(WorkingSetEntryState.Rejected, undefined);
 		}
+		this._accessibilitySignalService.playSignal(AccessibilitySignal.editsUndone, { allowManyInParallel: true });
 		return true;
 	}
 
@@ -417,6 +432,21 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		this._diffInfo.set(nullDocumentDiff, tx);
 		this._edit = OffsetEdit.empty;
 		await this._collapse(tx);
+
+		const config = this._fileConfigService.getAutoSaveConfiguration(this.modifiedURI);
+		if (!config.autoSave || !this._textFileService.isDirty(this.modifiedURI)) {
+			// SAVE after accept for manual-savers, for auto-savers
+			// trigger explict save to get save participants going
+			try {
+				await this._textFileService.save(this.modifiedURI, {
+					reason: SaveReason.EXPLICIT,
+					force: true,
+					ignoreErrorHandler: true
+				});
+			} catch {
+				// ignored
+			}
+		}
 	}
 
 	protected override async _doReject(tx: ITransaction | undefined): Promise<void> {

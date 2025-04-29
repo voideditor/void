@@ -13,12 +13,11 @@ import { IEnvironmentMainService } from '../../environment/electron-main/environ
 import { ILifecycleMainService, IRelaunchHandler, IRelaunchOptions } from '../../lifecycle/electron-main/lifecycleMainService.js';
 import { ILogService } from '../../log/common/log.js';
 import { IProductService } from '../../product/common/productService.js';
-import { IRequestService, asJson } from '../../request/common/request.js';
+import { IRequestService } from '../../request/common/request.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { IUpdate, State, StateType, UpdateType } from '../common/update.js';
 import { AbstractUpdateService, createUpdateURL, UpdateErrorClassification } from './abstractUpdateService.js';
-import { CancellationToken } from '../../../base/common/cancellation.js';
-import * as semver from 'semver';
+
 export class DarwinUpdateService extends AbstractUpdateService implements IRelaunchHandler {
 
 	private readonly disposables = new DisposableStore();
@@ -74,9 +73,14 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		this.setState(State.Idle(UpdateType.Archive, message));
 	}
 
-	// Void: buildUpdateFeedUrl -> doBuildUpdateFeedUrl
-	protected doBuildUpdateFeedUrl(quality: string): string | undefined {
-		const url = createUpdateURL(this.productService, quality, process.platform, process.arch);
+	protected buildUpdateFeedUrl(quality: string): string | undefined {
+		let assetID: string;
+		if (!this.productService.darwinUniversalAssetId) {
+			assetID = process.arch === 'x64' ? 'darwin' : 'darwin-arm64';
+		} else {
+			assetID = this.productService.darwinUniversalAssetId;
+		}
+		const url = createUpdateURL(assetID, quality, this.productService);
 		try {
 			electron.autoUpdater.setFeedURL({ url });
 		} catch (e) {
@@ -88,36 +92,8 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 	}
 
 	protected doCheckForUpdates(context: any): void {
-		if (!this.url) {
-			return;
-		}
-
 		this.setState(State.CheckingForUpdates(context));
-		// electron.autoUpdater.checkForUpdates();
-
-		this.requestService.request({ url: this.url }, CancellationToken.None)
-			.then<IUpdate | null>(asJson)
-			.then(update => {
-				if (!update || !update.url || !update.version || !update.productVersion) {
-					this.setState(State.Idle(UpdateType.Setup));
-
-					return Promise.resolve(null);
-				}
-
-				const fetchedVersion = update.productVersion.replace(/(\d+\.\d+\.\d+)(?:\.(\d+))(\-\w+)?/, '$1$3+$2');
-				const currentVersion = `${this.productService.voidVersion}+${this.productService.release}`;
-				// Void compares voidVersion, not VSCode version
-				// const currentVersion = `${this.productService.version}+${this.productService.release}`;
-
-				if (semver.compareBuild(currentVersion, fetchedVersion) >= 0) {
-					this.setState(State.Idle(UpdateType.Setup));
-				}
-				else {
-					electron.autoUpdater.checkForUpdates();
-				}
-
-				return Promise.resolve(null);
-			})
+		electron.autoUpdater.checkForUpdates();
 	}
 
 	private onUpdateAvailable(): void {

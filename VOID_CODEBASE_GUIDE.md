@@ -132,7 +132,7 @@ If you want to know how our build pipeline works, see our build repo [here](http
 
 ## VSCode Codebase Guide
 
-The Void team put together this list of links (optional reading) to get up and running with VSCode, the foundation of Void. We hope it's helpful!
+For additional references, the Void team put together this list of links to get up and running with VSCode.
 <details>
 	
 

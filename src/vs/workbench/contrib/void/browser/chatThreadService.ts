@@ -485,10 +485,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
 
-		// interrupt any effects
-		const interrupt = await this.streamState[threadId]?.interrupt
-		interrupt?.()
-
 		// add assistant message
 		if (this.streamState[threadId]?.isRunning === 'LLM') {
 			const { displayContentSoFar, reasoningSoFar, toolCallSoFar } = this.streamState[threadId].llmInfo
@@ -505,6 +501,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		else if (this.streamState[threadId]?.isRunning === 'awaiting_user') {
 			this.rejectLatestToolRequest(threadId)
 		}
+
+		// interrupt any effects
+		const interrupt = await this.streamState[threadId]?.interrupt
+		interrupt?.()
+
 
 		this._setStreamState(threadId, undefined)
 	}

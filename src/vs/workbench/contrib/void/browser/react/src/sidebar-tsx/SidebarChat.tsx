@@ -30,8 +30,8 @@ import { MAX_FILE_CHARS_PAGE, MAX_TERMINAL_INACTIVE_TIME, ToolName, toolNames } 
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 import ErrorBoundary from './ErrorBoundary.js';
 import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
-import { terminalNameOfId } from '../../../terminalToolService.js';
 
+import { persistentTerminalNameOfId } from '../../../terminalToolService.js';
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -352,13 +352,12 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 					<div className='flex flex-col gap-y-1'>
 						<ReasoningOptionSlider featureName={featureName} />
 
-						<div className='flex items-center flex-wrap gap-x-2 gap-y-1 text-nowrap flex-nowrap'>
+						<div className='flex items-center flex-wrap gap-x-2 gap-y-1 text-nowrap '>
 							{featureName === 'Chat' && <ChatModeDropdown className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-2 rounded py-0.5 px-1' />}
 							<ModelDropdown featureName={featureName} className='text-xs text-void-fg-3 bg-void-bg-1 rounded' />
 						</div>
 					</div>
 				)}
-
 
 				<div className="flex items-center gap-2">
 
@@ -378,7 +377,6 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 		</div>
 	);
 };
-
 
 
 
@@ -500,6 +498,7 @@ export const getBasename = (pathStr: string, parts: number = 1) => {
 	if (allParts.length === 0) return pathStr
 	return allParts.slice(-parts).join('/')
 }
+
 
 export const SelectedFiles = (
 	{ type, selections, setSelections, showProspectiveSelections, messageIdx, }:
@@ -679,8 +678,6 @@ export const SelectedFiles = (
 
 	)
 }
-
-
 
 
 type ToolHeaderParams = {
@@ -1018,7 +1015,8 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 
 			// cancel any streams on this thread
 			const threadId = chatThreadsService.state.currentThreadId
-			chatThreadsService.stopRunning(threadId)
+
+			await chatThreadsService.abortRunning(threadId)
 
 			// update state
 			setIsBeingEdited(false)
@@ -1035,9 +1033,9 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			requestAnimationFrame(() => _scrollToBottom?.())
 		}
 
-		const onAbort = () => {
+		const onAbort = async () => {
 			const threadId = chatThreadsService.state.currentThreadId
-			chatThreadsService.stopRunning(threadId)
+			await chatThreadsService.abortRunning(threadId)
 		}
 
 		const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1065,244 +1063,244 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			setSelections={setStagingSelections}
 		>
 			<VoidInputBox2
-				enableAtToMention
-				ref={setTextAreaRef}
-				className='min-h-[81px] max-h-[500px] px-0.5'
-				placeholder="Edit your message..."
-				onChangeText={(text) => setIsDisabled(!text)}
-				onFocus={() => {
-					setIsFocused(true)
-					chatThreadsService.setCurrentlyFocusedMessageIdx(messageIdx);
-				}}
-				onBlur={() => {
-					setIsFocused(false)
-				}}
-				onKeyDown={onKeyDown}
-				fnsRef={textAreaFnsRef}
-				multiline={true}
-			/>
-		</VoidChatArea>
-	}
+            enableAtToMention
+            ref={setTextAreaRef}
+            className='min-h-[81px] max-h-[500px] px-0.5'
+            placeholder="Edit your message..."
+            onChangeText={(text) => setIsDisabled(!text)}
+            onFocus={() => {
+                setIsFocused(true)
+                chatThreadsService.setCurrentlyFocusedMessageIdx(messageIdx);
+            }}
+            onBlur={() => {
+                setIsFocused(false)
+            }}
+            onKeyDown={onKeyDown}
+            fnsRef={textAreaFnsRef}
+            multiline={true}
+        />
+    </VoidChatArea>
+}
 
-	const isMsgAfterCheckpoint = currCheckpointIdx !== undefined && currCheckpointIdx === messageIdx - 1
+const isMsgAfterCheckpoint = currCheckpointIdx !== undefined && currCheckpointIdx === messageIdx - 1
 
-	return <div
-		// align chatbubble accoridng to role
-		className={`
-			relative ml-auto
-			${mode === 'edit' ? 'w-full max-w-full'
-				: mode === 'display' ? `self-end w-fit max-w-full whitespace-pre-wrap` : '' // user words should be pre
-			}
+return <div
+    // align chatbubble accoridng to role
+    className={`
+        relative ml-auto
+        ${mode === 'edit' ? 'w-full max-w-full'
+            : mode === 'display' ? `self-end w-fit max-w-full whitespace-pre-wrap` : '' // user words should be pre
+        }
 
-			${isCheckpointGhost && !isMsgAfterCheckpoint ? 'opacity-50 pointer-events-none' : ''}
-		`}
-		onMouseEnter={() => setIsHovered(true)}
-		onMouseLeave={() => setIsHovered(false)}
-	>
-		<div
-			// style chatbubble according to role
-			className={`
-				text-left rounded-lg max-w-full
-				${mode === 'edit' ? ''
-					: mode === 'display' ? 'p-2 flex flex-col bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
-				}
-			`}
-			onClick={() => { if (mode === 'display') { onOpenEdit() } }}
-		>
-			{chatbubbleContents}
-		</div>
-
-
-
-		<div
-			className="absolute -top-1 -right-1 translate-x-0 -translate-y-0 z-1"
-		// data-tooltip-id='void-tooltip'
-		// data-tooltip-content='Edit message'
-		// data-tooltip-place='left'
-		>
-			<EditSymbol
-				size={18}
-				className={`
-						cursor-pointer
-						p-[2px]
-						bg-void-bg-1 border border-void-border-1 rounded-md
-						transition-opacity duration-200 ease-in-out
-						${isHovered || (isFocused && mode === 'edit') ? 'opacity-100' : 'opacity-0'}
-					`}
-				onClick={() => {
-					if (mode === 'display') {
-						onOpenEdit()
-					} else if (mode === 'edit') {
-						onCloseEdit()
-					}
-				}}
-			/>
-		</div>
+        ${isCheckpointGhost && !isMsgAfterCheckpoint ? 'opacity-50 pointer-events-none' : ''}
+    `}
+    onMouseEnter={() => setIsHovered(true)}
+    onMouseLeave={() => setIsHovered(false)}
+>
+    <div
+        // style chatbubble according to role
+        className={`
+            text-left rounded-lg max-w-full
+            ${mode === 'edit' ? ''
+                : mode === 'display' ? 'p-2 flex flex-col bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
+            }
+        `}
+        onClick={() => { if (mode === 'display') { onOpenEdit() } }}
+    >
+        {chatbubbleContents}
+    </div>
 
 
-	</div>
+
+    <div
+        className="absolute -top-1 -right-1 translate-x-0 -translate-y-0 z-1"
+    // data-tooltip-id='void-tooltip'
+    // data-tooltip-content='Edit message'
+    // data-tooltip-place='left'
+    >
+        <EditSymbol
+            size={18}
+            className={`
+                    cursor-pointer
+                    p-[2px]
+                    bg-void-bg-1 border border-void-border-1 rounded-md
+                    transition-opacity duration-200 ease-in-out
+                    ${isHovered || (isFocused && mode === 'edit') ? 'opacity-100' : 'opacity-0'}
+                `}
+            onClick={() => {
+                if (mode === 'display') {
+                    onOpenEdit()
+                } else if (mode === 'edit') {
+                    onCloseEdit()
+                }
+            }}
+        />
+    </div>
+
+
+</div>
 
 }
 
 const SmallProseWrapper = ({ children }: { children: React.ReactNode }) => {
-	return <div className='
-	text-void-fg-4
-	prose
-	prose-sm
-	break-words
-	max-w-none
-	leading-snug
-	text-[13px]
+return <div className='
+text-void-fg-4
+prose
+prose-sm
+break-words
+max-w-none
+leading-snug
+text-[13px]
 
-	[&>:first-child]:!mt-0
-	[&>:last-child]:!mb-0
+[&>:first-child]:!mt-0
+[&>:last-child]:!mb-0
 
-	prose-h1:text-[14px]
-	prose-h1:my-4
+prose-h1:text-[14px]
+prose-h1:my-4
 
-	prose-h2:text-[13px]
-	prose-h2:my-4
+prose-h2:text-[13px]
+prose-h2:my-4
 
-	prose-h3:text-[13px]
-	prose-h3:my-3
+prose-h3:text-[13px]
+prose-h3:my-3
 
-	prose-h4:text-[13px]
-	prose-h4:my-2
+prose-h4:text-[13px]
+prose-h4:my-2
 
-	prose-p:my-2
-	prose-p:leading-snug
-	prose-hr:my-2
+prose-p:my-2
+prose-p:leading-snug
+prose-hr:my-2
 
-	prose-ul:my-2
-	prose-ul:pl-4
-	prose-ul:list-outside
-	prose-ul:list-disc
-	prose-ul:leading-snug
+prose-ul:my-2
+prose-ul:pl-4
+prose-ul:list-outside
+prose-ul:list-disc
+prose-ul:leading-snug
 
 
-	prose-ol:my-2
-	prose-ol:pl-4
-	prose-ol:list-outside
-	prose-ol:list-decimal
-	prose-ol:leading-snug
+prose-ol:my-2
+prose-ol:pl-4
+prose-ol:list-outside
+prose-ol:list-decimal
+prose-ol:leading-snug
 
-	marker:text-inherit
+marker:text-inherit
 
-	prose-blockquote:pl-2
-	prose-blockquote:my-2
+prose-blockquote:pl-2
+prose-blockquote:my-2
 
-	prose-code:text-void-fg-3
-	prose-code:text-[12px]
-	prose-code:before:content-none
-	prose-code:after:content-none
+prose-code:text-void-fg-3
+prose-code:text-[12px]
+prose-code:before:content-none
+prose-code:after:content-none
 
-	prose-pre:text-[12px]
-	prose-pre:p-2
-	prose-pre:my-2
+prose-pre:text-[12px]
+prose-pre:p-2
+prose-pre:my-2
 
-	prose-table:text-[13px]
-	'>
-		{children}
-	</div>
+prose-table:text-[13px]
+'>
+    {children}
+</div>
 }
 
 const ProseWrapper = ({ children }: { children: React.ReactNode }) => {
-	return <div className='
-	text-void-fg-2
-	prose
-	prose-sm
-	break-words
-	prose-p:block
-	prose-hr:my-4
-	prose-pre:my-2
-	marker:text-inherit
-	prose-ol:list-outside
-	prose-ol:list-decimal
-	prose-ul:list-outside
-	prose-ul:list-disc
-	prose-li:my-0
-	prose-code:before:content-none
-	prose-code:after:content-none
-	prose-headings:prose-sm
-	prose-headings:font-bold
+return <div className='
+text-void-fg-2
+prose
+prose-sm
+break-words
+prose-p:block
+prose-hr:my-4
+prose-pre:my-2
+marker:text-inherit
+prose-ol:list-outside
+prose-ol:list-decimal
+prose-ul:list-outside
+prose-ul:list-disc
+prose-li:my-0
+prose-code:before:content-none
+prose-code:after:content-none
+prose-headings:prose-sm
+prose-headings:font-bold
 
-	prose-p:leading-normal
-	prose-ol:leading-normal
-	prose-ul:leading-normal
+prose-p:leading-normal
+prose-ol:leading-normal
+prose-ul:leading-normal
 
-	max-w-none
+max-w-none
 '
-	>
-		{children}
-	</div>
+>
+    {children}
+</div>
 }
 const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted, messageIdx }: { chatMessage: ChatMessage & { role: 'assistant' }, isCheckpointGhost: boolean, messageIdx: number, isCommitted: boolean }) => {
 
-	const accessor = useAccessor()
-	const chatThreadsService = accessor.get('IChatThreadService')
+const accessor = useAccessor()
+const chatThreadsService = accessor.get('IChatThreadService')
 
-	const reasoningStr = chatMessage.reasoning?.trim() || null
-	const hasReasoning = !!reasoningStr
-	const isDoneReasoning = !!chatMessage.displayContent
-	const thread = chatThreadsService.getCurrentThread()
+const reasoningStr = chatMessage.reasoning?.trim() || null
+const hasReasoning = !!reasoningStr
+const isDoneReasoning = !!chatMessage.displayContent
+const thread = chatThreadsService.getCurrentThread()
 
 
-	const chatMessageLocation: ChatMessageLocation = {
-		threadId: thread.id,
-		messageIdx: messageIdx,
-	}
+const chatMessageLocation: ChatMessageLocation = {
+    threadId: thread.id,
+    messageIdx: messageIdx,
+}
 
-	const isEmpty = !chatMessage.displayContent && !chatMessage.reasoning
-	if (isEmpty) return null
+const isEmpty = !chatMessage.displayContent && !chatMessage.reasoning
+if (isEmpty) return null
 
-	return <>
-		{/* reasoning token */}
-		{hasReasoning &&
-			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-				<ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
-					<SmallProseWrapper>
-						<ChatMarkdownRender
-							string={reasoningStr}
-							chatMessageLocation={chatMessageLocation}
-							isApplyEnabled={false}
-							isLinkDetectionEnabled={true}
-						/>
-					</SmallProseWrapper>
-				</ReasoningWrapper>
-			</div>
-		}
+return <>
+    {/* reasoning token */}
+    {hasReasoning &&
+        <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
+            <ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
+                <SmallProseWrapper>
+                    <ChatMarkdownRender
+                        string={reasoningStr}
+                        chatMessageLocation={chatMessageLocation}
+                        isApplyEnabled={false}
+                        isLinkDetectionEnabled={true}
+                    />
+                </SmallProseWrapper>
+            </ReasoningWrapper>
+        </div>
+    }
 
-		{/* assistant message */}
-		{chatMessage.displayContent &&
-			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-				<ProseWrapper>
-					<ChatMarkdownRender
-						string={chatMessage.displayContent || ''}
-						chatMessageLocation={chatMessageLocation}
-						isApplyEnabled={true}
-						isLinkDetectionEnabled={true}
-					/>
-				</ProseWrapper>
-			</div>
-		}
-	</>
+    {/* assistant message */}
+    {chatMessage.displayContent &&
+        <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
+            <ProseWrapper>
+                <ChatMarkdownRender
+                    string={chatMessage.displayContent || ''}
+                    chatMessageLocation={chatMessageLocation}
+                    isApplyEnabled={true}
+                    isLinkDetectionEnabled={true}
+                />
+            </ProseWrapper>
+        </div>
+    }
+</>
 
 }
 
 const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneReasoning: boolean, isStreaming: boolean, children: React.ReactNode }) => {
-	const isDone = isDoneReasoning || !isStreaming
-	const isWriting = !isDone
-	const [isOpen, setIsOpen] = useState(isWriting)
-	useEffect(() => {
-		if (!isWriting) setIsOpen(false) // if just finished reasoning, close
-	}, [isWriting])
-	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen} onClick={() => setIsOpen(v => !v)}>
-		<ToolChildrenWrapper>
-			<div className='!select-text cursor-auto'>
-				{children}
-			</div>
-		</ToolChildrenWrapper>
-	</ToolHeaderWrapper>
+const isDone = isDoneReasoning || !isStreaming
+const isWriting = !isDone
+const [isOpen, setIsOpen] = useState(isWriting)
+useEffect(() => {
+    if (!isWriting) setIsOpen(false) // if just finished reasoning, close
+}, [isWriting])
+return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen} onClick={() => setIsOpen(v => !v)}>
+    <ToolChildrenWrapper>
+        <div className='!select-text cursor-auto'>
+            {children}
+        </div>
+    </ToolChildrenWrapper>
+</ToolHeaderWrapper>
 }
 
 
@@ -1311,11 +1309,12 @@ const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneRe
 // should either be past or "-ing" tense, not present tense. Eg. when the LLM searches for something, the user expects it to say "I searched for X" or "I am searching for X". Not "I search X".
 
 const loadingTitleWrapper = (item: React.ReactNode): React.ReactNode => {
-	return <span className='flex items-center flex-nowrap'>
-		{item}
-		<IconLoading className='w-3 text-sm' />
-	</span>
+return <span className='flex items-center flex-nowrap'>
+    {item}
+    <IconLoading className='w-3 text-sm' />
+</span>
 }
+
 const titleOfToolName = {
 	'read_file': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
 	'ls_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
@@ -1327,11 +1326,15 @@ const titleOfToolName = {
 	'edit_file': { done: `Edited file`, proposed: 'Edit file', running: loadingTitleWrapper('Editing file') },
 	'rewrite_file': { done: `Wrote file`, proposed: 'Write file', running: loadingTitleWrapper('Writing file') },
 	'run_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
+	'run_persistent_command': { done: `Ran terminal`, proposed: 'Run terminal', running: loadingTitleWrapper('Running terminal') },
+
 	'open_persistent_terminal': { done: `Opened terminal`, proposed: 'Open terminal', running: loadingTitleWrapper('Opening terminal') },
 	'kill_persistent_terminal': { done: `Killed terminal`, proposed: 'Kill terminal', running: loadingTitleWrapper('Killing terminal') },
+
 	'read_lint_errors': { done: `Read lint errors`, proposed: 'Read lint errors', running: loadingTitleWrapper('Reading lint errors') },
 	'search_in_file': { done: 'Searched in file', proposed: 'Search in file', running: loadingTitleWrapper('Searching in file') },
 } as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
+
 
 const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'type'>): React.ReactNode => {
 	const t = toolMessage
@@ -1419,7 +1422,12 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 			const toolParams = _toolParams as ToolCallParams['run_command']
 			return {
 				desc1: `"${toolParams.command}"`,
-				desc1Info: toolParams.persistentTerminalId
+            }
+		},
+		'run_persistent_command': () => {
+			const toolParams = _toolParams as ToolCallParams['run_persistent_command']
+			return {
+				desc1: `"${toolParams.command}"`,
 			}
 		},
 		'open_persistent_terminal': () => {
@@ -1638,6 +1646,105 @@ const CanceledTool = ({ toolName }: { toolName: ToolName }) => {
 }
 
 
+const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
+	toolMessage: Exclude<ToolMessage<'run_command'>, { type: 'invalid_params' }>
+	type: 'run_command'
+} | {
+	toolMessage: Exclude<ToolMessage<'run_persistent_command'>, { type: 'invalid_params' }>
+	type: | 'run_persistent_command'
+})) => {
+	const accessor = useAccessor()
+
+	const commandService = accessor.get('ICommandService')
+	const terminalToolsService = accessor.get('ITerminalToolService')
+	const toolsService = accessor.get('IToolsService')
+	const terminalService = accessor.get('ITerminalService')
+	const isError = toolMessage.type === 'tool_error'
+	const title = getTitle(toolMessage)
+	const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
+	const icon = null
+	const streamState = useChatThreadsStreamState(threadId)
+
+	const divRef = useRef<HTMLDivElement | null>(null)
+
+	const isRejected = toolMessage.type === 'rejected'
+	const { rawParams, params } = toolMessage
+	const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
+
+
+	const effect = async () => {
+		if (streamState?.isRunning !== 'tool') return
+		if (type !== 'run_command' || toolMessage.type !== 'running_now') return;
+
+		// wait for the interruptor so we know it's running
+
+		await streamState?.interrupt
+		const container = divRef.current;
+		if (!container) return;
+
+		const terminal = terminalToolsService.getTemporaryTerminal(toolMessage.params.terminalId);
+		if (!terminal) return;
+
+		terminal.detachFromElement();
+		terminal.attachToElement(container);
+
+		// Listen for size changes
+		const resizeObserver = new ResizeObserver((entries) => {
+			const height = entries[0].borderBoxSize[0].blockSize
+			const width = entries[0].borderBoxSize[0].inlineSize
+			// Layout terminal to fit container dimensions
+			if (typeof terminal.layout === 'function') {
+				terminalService.setActiveInstance(terminal)
+				terminal.attachToElement(container);
+				terminal.layout({ width, height });
+
+			}
+		})
+
+		resizeObserver.observe(container);
+		return () => { terminal.detachFromElement(); resizeObserver?.disconnect(); }
+	}
+
+	useEffect(() => {
+		effect()
+	}, [terminalToolsService, toolMessage, toolMessage.type, type]);
+
+	if (toolMessage.type === 'success') {
+		const { result } = toolMessage
+
+		// it's unclear that this is a button and not an icon.
+		// componentParams.desc2 = <JumpToTerminalButton
+		// 	onClick={() => { terminalToolsService.openTerminal(terminalId) }}
+		// />
+
+		let msg: string
+		if (type === 'run_command') msg = toolsService.stringOfResult['run_command'](toolMessage.params, result)
+		else msg = toolsService.stringOfResult['run_persistent_command'](toolMessage.params, result)
+
+		componentParams.children = <ToolChildrenWrapper className='whitespace-pre text-nowrap overflow-auto text-sm'>
+			<div className='!select-text cursor-auto'>
+				<BlockCode initValue={`${msg.trim()}`} language='shellscript' />
+			</div>
+		</ToolChildrenWrapper>
+	}
+	else if (toolMessage.type === 'tool_error') {
+		const { result } = toolMessage
+		componentParams.children = <ToolChildrenWrapper>
+			{result}
+		</ToolChildrenWrapper>
+	}
+	else if (toolMessage.type === 'running_now') {
+		componentParams.children = <div ref={divRef} className='relative h-[300px] text-sm' />
+	}
+	else if (toolMessage.type === 'rejected' || toolMessage.type === 'tool_request') {
+	}
+
+	return <>
+		<ToolHeaderWrapper {...componentParams} isOpen={toolMessage.type === 'running_now' ? true : undefined} />
+	</>
+}
+
+
 type ResultWrapper<T extends ToolName> = (props: { toolMessage: Exclude<ToolMessage<T>, { type: 'invalid_params' }>, messageIdx: number, threadId: string }) => React.ReactNode
 const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>, } } = {
 	'read_file': {
@@ -1650,13 +1757,13 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor);
 			const icon = null
 
-			if (toolMessage.type === 'tool_request') return null
-			if (toolMessage.type === 'rejected') return null // will never happen, not rejectable
+			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
 			const isError = toolMessage.type === 'tool_error'
+			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
+			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
 			if (toolMessage.params.startLine !== null || toolMessage.params.endLine !== null) {
 				const start = toolMessage.params.startLine === null ? `1` : `${toolMessage.params.startLine}`
@@ -1695,17 +1802,17 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
 			const icon = null
 
-			if (toolMessage.type === 'tool_request') return null
-			if (toolMessage.type === 'rejected') return null // will never happen, not rejectable
+			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
 			const isError = toolMessage.type === 'tool_error'
+			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
+			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
 			if (params.uri) {
 				const rel = getRelative(params.uri, accessor)
-				if (rel) componentParams.info = `Searches inside ${rel}`
+				if (rel) componentParams.info = `Only search in ${rel}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1743,17 +1850,17 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
 			const icon = null
 
-			if (toolMessage.type === 'tool_request') return null
-			if (toolMessage.type === 'rejected') return null // will never happen, not rejectable
+			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
 			const isError = toolMessage.type === 'tool_error'
+			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
+			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
 			if (params.uri) {
 				const rel = getRelative(params.uri, accessor)
-				if (rel) componentParams.info = `Searches inside ${rel}`
+				if (rel) componentParams.info = `Only search in ${rel}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1793,19 +1900,19 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const isError = toolMessage.type === 'tool_error'
+			const isRejected = toolMessage.type === 'rejected'
 			const title = getTitle(toolMessage)
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
 			const icon = null
 
-			if (toolMessage.type === 'tool_request') return null
-			if (toolMessage.type === 'rejected') return null // will never happen, not rejectable
+			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
 			const { rawParams, params } = toolMessage
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
+			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
 			if (params.includePattern) {
-				componentParams.info = `Searches inside ${params.includePattern}`
+				componentParams.info = `Only search in ${params.includePattern}`
 			}
 
 			if (toolMessage.type === 'success') {
@@ -1842,26 +1949,24 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const isError = toolMessage.type === 'tool_error'
+			const isRejected = toolMessage.type === 'rejected'
 			const title = getTitle(toolMessage)
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
 			const icon = null
 
-			if (toolMessage.type === 'tool_request') return null
-			if (toolMessage.type === 'rejected') return null // will never happen, not rejectable
+			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
 			const { rawParams, params } = toolMessage
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
+			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
 			if (params.searchInFolder || params.isRegex) {
 				let info: string[] = []
 				if (params.searchInFolder) {
 					const rel = getRelative(params.searchInFolder, accessor)
-					if (rel) info.push(`Searches inside ${rel}`)
+					if (rel) info.push(`Only search in ${rel}`)
 				}
-				if (params.isRegex) {
-					info.push(`Uses regex search`)
-				}
+				if (params.isRegex) { info.push(`Uses regex search`) }
 				componentParams.info = info.join('; ')
 			}
 
@@ -1899,15 +2004,22 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const accessor = useAccessor();
 			const toolsService = accessor.get('IToolsService');
 			const title = getTitle(toolMessage);
+			const isError = toolMessage.type === 'tool_error';
+			const isRejected = toolMessage.type === 'rejected'
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor);
 			const icon = null;
 
-			if (toolMessage.type === 'tool_request' || toolMessage.type === 'rejected' || toolMessage.type === 'running_now') return null;
+			if (toolMessage.type === 'tool_request') return null // do not show past requests
+			if (toolMessage.type === 'running_now') return null // do not show running
 
-			const isError = toolMessage.type === 'tool_error';
 			const { rawParams, params } = toolMessage;
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon };
-			if (params.isRegex) componentParams.info = 'Uses regex search'
+			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected };
+
+			const infoarr: string[] = []
+			const uriStr = getRelative(params.uri, accessor)
+			if (uriStr) infoarr.push(uriStr)
+			if (params.isRegex) infoarr.push('Uses regex search')
+			componentParams.info = infoarr.join('; ')
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage; // result is array of snippets
@@ -1945,13 +2057,13 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
 			const icon = null
 
-			if (toolMessage.type === 'tool_request') return null
-			if (toolMessage.type === 'rejected') return null // will never happen, not rejectable
+			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
 			const isError = toolMessage.type === 'tool_error'
+			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
+			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
 			componentParams.info = getRelative(uri, accessor) // full path
 
@@ -2066,7 +2178,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-	'rewrite_file': {
+    'rewrite_file': {
 		resultWrapper: (params) => {
 			return <EditTool {...params} content={`${'```\n'}${params.toolMessage.params.newContent}${'\n```'}`} />
 		}
@@ -2080,82 +2192,39 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 	// ---
 
 	'run_command': {
+		resultWrapper: (params) => {
+			return <CommandTool {...params} type='run_command' />
+		}
+	},
+
+	'run_persistent_command': {
+		resultWrapper: (params) => {
+			return <CommandTool {...params} type='run_persistent_command' />
+		}
+	},
+    'open_persistent_terminal': {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
-			const commandService = accessor.get('ICommandService')
 			const terminalToolsService = accessor.get('ITerminalToolService')
-			const toolsService = accessor.get('IToolsService')
-			const isError = toolMessage.type === 'tool_error'
-			const title = getTitle(toolMessage)
+
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
+			const title = getTitle(toolMessage)
 			const icon = null
 
+			if (toolMessage.type === 'tool_request') return null // do not show past requests
+			if (toolMessage.type === 'running_now') return null // do not show running
+
+			const isError = toolMessage.type === 'tool_error'
 			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
-			const { command, persistentTerminalId } = params
-			if (persistentTerminalId) {
-				componentParams.desc2 = terminalNameOfId(persistentTerminalId)
-				componentParams.desc2OnClick = () => terminalToolsService.focusTerminal(persistentTerminalId)
-			}
-
-
-			if (toolMessage.type === 'success') {
-				const { result } = toolMessage
-
-				// it's unclear that this is a button and not an icon.
-				// componentParams.desc2 = <JumpToTerminalButton
-				// 	onClick={() => { terminalToolsService.openTerminal(terminalId) }}
-				// />
-				const msg = toolsService.stringOfResult['run_command'](params, result)
-
-				componentParams.children = <ToolChildrenWrapper className='whitespace-pre text-nowrap overflow-auto text-sm'>
-					<div className='!select-text cursor-auto'>
-						<div>
-							<span className="text-void-fg-1 font-sans">{`Ran command: `}</span>
-							<span className="font-mono">{command}</span>
-						</div>
-						{msg.length && <div>
-							<span className='text-void-fg-1'>{`Result: `}</span>
-							<span className="font-mono">{msg}</span>
-						</div>}
-					</div>
-				</ToolChildrenWrapper>
-			}
-			else if (toolMessage.type === 'rejected' || toolMessage.type === 'tool_error' || toolMessage.type === 'running_now' || toolMessage.type === 'tool_request') {
-				if (toolMessage.type === 'tool_error') {
-					const { result } = toolMessage
-					componentParams.children = <ToolChildrenWrapper>{result}</ToolChildrenWrapper>
-				}
-			}
-
-			return <ToolHeaderWrapper {...componentParams} />
-		}
-	},
-
-	'open_persistent_terminal': {
-		resultWrapper: ({ toolMessage }) => {
-			const accessor = useAccessor()
-			const terminalToolsService = accessor.get('ITerminalToolService')
-
-			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
-			const title = getTitle(toolMessage)
-			const icon = null
-
-			if (toolMessage.type === 'tool_request') return null
-			if (toolMessage.type === 'rejected') return null // will never happen, not rejectable
-			if (toolMessage.type === 'running_now') return null // do not show running
-
-			const isError = toolMessage.type === 'tool_error'
-			const { rawParams, params } = toolMessage
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
-
+			componentParams.info = params.cwd ? `Running in ${getRelative(URI.file(params.cwd), accessor)}` : ''
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
 				const { persistentTerminalId } = result
-				componentParams.desc1 = terminalNameOfId(persistentTerminalId)
-				componentParams.onClick = () => terminalToolsService.focusTerminal(persistentTerminalId)
+				componentParams.desc1 = persistentTerminalNameOfId(persistentTerminalId)
+				componentParams.onClick = () => terminalToolsService.focusPersistentTerminal(persistentTerminalId)
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
@@ -2179,18 +2248,18 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const title = getTitle(toolMessage)
 			const icon = null
 
-			if (toolMessage.type === 'tool_request') return null
-			if (toolMessage.type === 'rejected') return null // will never happen, not rejectable
+			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
 			const isError = toolMessage.type === 'tool_error'
+			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
-			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, }
+			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
 			if (toolMessage.type === 'success') {
 				const { persistentTerminalId } = params
-				componentParams.desc1 = terminalNameOfId(persistentTerminalId)
-				componentParams.onClick = () => terminalToolsService.focusTerminal(persistentTerminalId)
+				componentParams.desc1 = persistentTerminalNameOfId(persistentTerminalId)
+				componentParams.onClick = () => terminalToolsService.focusPersistentTerminal(persistentTerminalId)
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
@@ -2642,6 +2711,7 @@ const CommandBarInChat = () => {
 }
 
 
+
 const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) => {
 
 	const uri = toolCallSoFar.rawParams.uri ? URI.file(toolCallSoFar.rawParams.uri) : undefined
@@ -2672,6 +2742,7 @@ const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) =>
 
 
 }
+
 
 export const SidebarChat = () => {
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -2709,9 +2780,7 @@ export const SidebarChat = () => {
 	const currThreadStreamState = useChatThreadsStreamState(chatThreadsState.currentThreadId)
 	const isRunning = currThreadStreamState?.isRunning
 	const latestError = currThreadStreamState?.error
-	const displayContentSoFar = currThreadStreamState?.displayContentSoFar
-	const toolCallSoFar = currThreadStreamState?.toolCallSoFar
-	const reasoningSoFar = currThreadStreamState?.reasoningSoFar
+	const { displayContentSoFar, toolCallSoFar, reasoningSoFar } = currThreadStreamState?.llmInfo ?? {}
 
 	// this is just if it's currently being generated, NOT if it's currently running
 	const toolIsGenerating = toolCallSoFar && !toolCallSoFar.isDone && toolCallSoFar.name === 'edit_file' // show loading for slow tools (right now just edit)
@@ -2726,8 +2795,7 @@ export const SidebarChat = () => {
 
 	const sidebarRef = useRef<HTMLDivElement>(null)
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
-
-	const onSubmit = useCallback(async (_forceSubmit?: string) => {
+    const onSubmit = useCallback(async (_forceSubmit?: string) => {
 
 		if (isDisabled && !_forceSubmit) return
 		if (isRunning) return
@@ -2749,9 +2817,9 @@ export const SidebarChat = () => {
 
 	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState])
 
-	const onAbort = () => {
+    const onAbort = async () => {
 		const threadId = currentThread.id
-		chatThreadsService.stopRunning(threadId)
+		await chatThreadsService.abortRunning(threadId)
 	}
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_L_ACTION_ID)?.getLabel()
@@ -2863,7 +2931,6 @@ export const SidebarChat = () => {
 			onAbort()
 		}
 	}, [onSubmit, onAbort, isRunning])
-
 
 
 
@@ -2990,6 +3057,3 @@ export const SidebarChat = () => {
 		</Fragment>
 	)
 }
-
-
-

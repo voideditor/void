@@ -26,7 +26,7 @@ const gunzip = require('gulp-gunzip');
 const File = require('vinyl');
 const fs = require('fs');
 const glob = require('glob');
-const { compileBuildTask } = require('./gulpfile.compile');
+const { compileBuildWithManglingTask } = require('./gulpfile.compile');
 const { cleanExtensionsBuildTask, compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, compileExtensionMediaBuildTask } = require('./gulpfile.extensions');
 const { vscodeWebResourceIncludes, createVSCodeWebFileContentMapper } = require('./gulpfile.vscode.web');
 const cp = require('child_process');
@@ -154,20 +154,9 @@ function getNodeChecksum(expectedName) {
 }
 
 function extractAlpinefromDocker(nodeVersion, platform, arch) {
-	let imageName = 'node';
-	let dockerPlatform = '';
-
-	if (arch === 'arm64') {
-		imageName = 'arm64v8/node';
-
-		const architecture = cp.execSync(`docker info --format '{{json .Architecture}}'`, { encoding: 'utf8' }).trim();
-		if (architecture !== '"aarch64"') {
-			dockerPlatform = '--platform=linux/arm64';
-		}
-	}
-
+	const imageName = arch === 'arm64' ? 'arm64v8/node' : 'node';
 	log(`Downloading node.js ${nodeVersion} ${platform} ${arch} from docker image ${imageName}`);
-	const contents = cp.execSync(`docker run --rm ${dockerPlatform} ${imageName}:${nodeVersion}-alpine /bin/sh -c 'cat \`which node\`'`, { maxBuffer: 100 * 1024 * 1024, encoding: 'buffer' });
+	const contents = cp.execSync(`docker run --rm ${imageName}:${nodeVersion}-alpine /bin/sh -c 'cat \`which node\`'`, { maxBuffer: 100 * 1024 * 1024, encoding: 'buffer' });
 	return es.readArray([new File({ path: 'node', contents, stat: { mode: parseInt('755', 8) } })]);
 }
 
@@ -319,11 +308,10 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 		}
 
 		const name = product.nameShort;
-		const release = packageJson.release;
 
 		let packageJsonContents;
 		const packageJsonStream = gulp.src(['remote/package.json'], { base: 'remote' })
-			.pipe(json({ name, version, release, dependencies: undefined, optionalDependencies: undefined, type: 'module' }))
+			.pipe(json({ name, version, dependencies: undefined, optionalDependencies: undefined, type: 'module' }))
 			.pipe(es.through(function (file) {
 				packageJsonContents = file.contents.toString();
 				this.emit('data', file);
@@ -331,7 +319,7 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 
 		let productJsonContents;
 		const productJsonStream = gulp.src(['product.json'], { base: '.' })
-			.pipe(json({ commit, date: readISODate('out-build'), version, release }))
+			.pipe(json({ commit, date: readISODate('out-build'), version }))
 			.pipe(es.through(function (file) {
 				productJsonContents = file.contents.toString();
 				this.emit('data', file);
@@ -414,13 +402,7 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 			);
 		}
 
-		if (platform === 'linux' && process.env['VSCODE_NODE_GLIBC'] === '-glibc-2.17') {
-			result = es.merge(result,
-				gulp.src(`resources/server/bin/helpers/check-requirements-linux-legacy.sh`, { base: '.' })
-					.pipe(rename(`bin/helpers/check-requirements.sh`))
-					.pipe(util.setExecutableBit())
-			);
-		} else if (platform === 'linux' || platform === 'alpine') {
+		if (platform === 'linux' || platform === 'alpine') {
 			result = es.merge(result,
 				gulp.src(`resources/server/bin/helpers/check-requirements-linux.sh`, { base: '.' })
 					.pipe(rename(`bin/helpers/check-requirements.sh`))
@@ -491,7 +473,7 @@ function tweakProductForServerWeb(product) {
 			gulp.task(serverTaskCI);
 
 			const serverTask = task.define(`vscode-${type}${dashed(platform)}${dashed(arch)}${dashed(minified)}`, task.series(
-				compileBuildTask,
+				compileBuildWithManglingTask,
 				cleanExtensionsBuildTask,
 				compileNonNativeExtensionsBuildTask,
 				compileExtensionMediaBuildTask,

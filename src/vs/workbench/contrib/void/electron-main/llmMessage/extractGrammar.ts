@@ -64,7 +64,7 @@ export const extractReasoningWrapper = (
 		// until found the second think tag, keep adding to fullReasoning
 		if (!foundTag2) {
 			const endsWithTag2 = endsWithAnyPrefixOf(fullText_, thinkTags[1])
-			if (endsWithTag2) {
+			if (endsWithTag2 && endsWithTag2 !== thinkTags[1]) { // if ends with any partial part (full is fine)
 				// console.log('endsWith2', { fullTextSoFar, fullReasoningSoFar })
 				// wait until we get the full tag or know more
 				return

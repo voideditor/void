@@ -483,7 +483,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		})
 		const includeXMLToolDefinitions = !specialToolFormat
 
-		const persistentTerminalIDs = this.terminalToolService.listTerminalIds()
+		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()
 		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, includeXMLToolDefinitions })
 		return systemMessage
 	}

@@ -10,18 +10,14 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 import Severity from '../../../../base/common/severity.js';
 import { Dialog, IDialogResult } from '../../../../base/browser/ui/dialog/dialog.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
-import { StandardKeyboardEvent } from '../../../../base/browser/keyboardEvent.js';
-import { EventHelper } from '../../../../base/browser/dom.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { fromNow } from '../../../../base/common/date.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { MarkdownRenderer, openLinkFromMarkdown } from '../../../../editor/browser/widget/markdownRenderer/browser/markdownRenderer.js';
-import { defaultButtonStyles, defaultCheckboxStyles, defaultDialogStyles, defaultInputBoxStyles } from '../../../../platform/theme/browser/defaultStyles.js';
-import { ResultKind } from '../../../../platform/keybinding/common/keybindingResolver.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
-import { getReleaseString } from '../../../../workbench/common/release.js';
+import { createWorkbenchDialogOptions } from '../../../../platform/dialogs/browser/dialog.js';
 
 export class BrowserDialogHandler extends AbstractDialogHandler {
 
@@ -34,18 +30,20 @@ export class BrowserDialogHandler extends AbstractDialogHandler {
 		'editor.action.clipboardPasteAction'
 	];
 
-	private readonly markdownRenderer = this.instantiationService.createInstance(MarkdownRenderer, {});
+	private readonly markdownRenderer: MarkdownRenderer;
 
 	constructor(
 		@ILogService private readonly logService: ILogService,
 		@ILayoutService private readonly layoutService: ILayoutService,
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
-		@IInstantiationService private readonly instantiationService: IInstantiationService,
+		@IInstantiationService instantiationService: IInstantiationService,
 		@IProductService private readonly productService: IProductService,
 		@IClipboardService private readonly clipboardService: IClipboardService,
 		@IOpenerService private readonly openerService: IOpenerService
 	) {
 		super();
+
+		this.markdownRenderer = instantiationService.createInstance(MarkdownRenderer, {});
 	}
 
 	async prompt<T>(prompt: IPrompt<T>): Promise<IAsyncPromptResult<T>> {
@@ -80,14 +78,13 @@ export class BrowserDialogHandler extends AbstractDialogHandler {
 
 	async about(): Promise<void> {
 		const detailString = (useAgo: boolean): string => {
-			const releaseString = getReleaseString();
 			return localize('aboutDetail',
 				"Version: {0}\nCommit: {1}\nDate: {2}\nBrowser: {3}",
 				this.productService.version || 'Unknown',
 				this.productService.commit || 'Unknown',
 				this.productService.date ? `${this.productService.date}${useAgo ? ' (' + fromNow(new Date(this.productService.date), true) + ')' : ''}` : 'Unknown',
 				navigator.userAgent
-			).replace('\n', `\n${releaseString} ${this.productService.release || 'Unknown'}\n`);
+			);
 		};
 
 		const detail = detailString(true);
@@ -117,7 +114,12 @@ export class BrowserDialogHandler extends AbstractDialogHandler {
 			customOptions.markdownDetails?.forEach(markdownDetail => {
 				const result = this.markdownRenderer.render(markdownDetail.markdown, {
 					actionHandler: {
-						callback: link => openLinkFromMarkdown(this.openerService, link, markdownDetail.markdown.isTrusted, true /* skip URL validation to prevent another dialog from showing which is unsupported */),
+						callback: link => {
+							if (markdownDetail.dismissOnLinkClick) {
+								dialog.dispose();
+							}
+							return openLinkFromMarkdown(this.openerService, link, markdownDetail.markdown.isTrusted, true /* skip URL validation to prevent another dialog from showing which is unsupported */);
+						},
 						disposables: dialogDisposables
 					}
 				});
@@ -131,30 +133,18 @@ export class BrowserDialogHandler extends AbstractDialogHandler {
 			this.layoutService.activeContainer,
 			message,
 			buttons,
-			{
+			createWorkbenchDialogOptions({
 				detail,
 				cancelId,
 				type: this.getDialogType(type),
-				keyEventProcessor: (event: StandardKeyboardEvent) => {
-					const resolved = this.keybindingService.softDispatch(event, this.layoutService.activeContainer);
-					if (resolved.kind === ResultKind.KbFound && resolved.commandId) {
-						if (BrowserDialogHandler.ALLOWABLE_COMMANDS.indexOf(resolved.commandId) === -1) {
-							EventHelper.stop(event, true);
-						}
-					}
-				},
 				renderBody,
 				icon: customOptions?.icon,
 				disableCloseAction: customOptions?.disableCloseAction,
 				buttonDetails: customOptions?.buttonDetails,
 				checkboxLabel: checkbox?.label,
 				checkboxChecked: checkbox?.checked,
-				inputs,
-				buttonStyles: defaultButtonStyles,
-				checkboxStyles: defaultCheckboxStyles,
-				inputBoxStyles: defaultInputBoxStyles,
-				dialogStyles: defaultDialogStyles
-			}
+				inputs
+			}, this.keybindingService, this.layoutService, BrowserDialogHandler.ALLOWABLE_COMMANDS)
 		);
 
 		dialogDisposables.add(dialog);

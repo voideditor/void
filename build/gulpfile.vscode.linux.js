@@ -25,6 +25,7 @@ const exec = util.promisify(cp.exec);
 const root = path.dirname(__dirname);
 const commit = getVersion(root);
 
+const linuxPackageRevision = Math.floor(new Date().getTime() / 1000);
 
 /**
  * @param {string} arch
@@ -38,7 +39,9 @@ function prepareDebPackage(arch) {
 	const debArch = getDebPackageArch(arch);
 	const destination = '.build/linux/deb/' + debArch + '/' + product.applicationName + '-' + debArch;
 
-	return function () {
+	return async function () {
+		const dependencies = await dependenciesGenerator.getDependencies('deb', binaryDir, product.applicationName, debArch);
+
 		const desktop = gulp.src('resources/linux/code.desktop', { base: '.' })
 			.pipe(rename('usr/share/applications/' + product.applicationName + '.desktop'));
 
@@ -81,12 +84,11 @@ function prepareDebPackage(arch) {
 		let size = 0;
 		const control = code.pipe(es.through(
 			function (f) { size += f.isDirectory() ? 4096 : f.contents.length; },
-			async function () {
+			function () {
 				const that = this;
-				const dependencies = await dependenciesGenerator.getDependencies('deb', binaryDir, product.applicationName, debArch);
 				gulp.src('resources/linux/debian/control.template', { base: '.' })
 					.pipe(replace('@@NAME@@', product.applicationName))
-					.pipe(replace('@@VERSION@@', `${packageJson.version}.${packageJson.release}`))
+					.pipe(replace('@@VERSION@@', packageJson.version + '-' + linuxPackageRevision))
 					.pipe(replace('@@ARCHITECTURE@@', debArch))
 					.pipe(replace('@@DEPENDS@@', dependencies.join(', ')))
 					.pipe(replace('@@RECOMMENDS@@', debianRecommendedDependencies.join(', ')))
@@ -153,7 +155,9 @@ function prepareRpmPackage(arch) {
 	const rpmArch = getRpmPackageArch(arch);
 	const stripBinary = process.env['STRIP'] ?? '/usr/bin/strip';
 
-	return function () {
+	return async function () {
+		const dependencies = await dependenciesGenerator.getDependencies('rpm', binaryDir, product.applicationName, rpmArch);
+
 		const desktop = gulp.src('resources/linux/code.desktop', { base: '.' })
 			.pipe(rename('BUILD/usr/share/applications/' + product.applicationName + '.desktop'));
 
@@ -193,24 +197,19 @@ function prepareRpmPackage(arch) {
 		const code = gulp.src(binaryDir + '/**/*', { base: binaryDir })
 			.pipe(rename(function (p) { p.dirname = 'BUILD/usr/share/' + product.applicationName + '/' + p.dirname; }));
 
-		const spec = code.pipe(es.through(
-			async function () {
-				const that = this;
-				const dependencies = await dependenciesGenerator.getDependencies('rpm', binaryDir, product.applicationName, rpmArch);
-				gulp.src('resources/linux/rpm/code.spec.template', { base: '.' })
-					.pipe(replace('@@NAME@@', product.applicationName))
-					.pipe(replace('@@NAME_LONG@@', product.nameLong))
-					.pipe(replace('@@ICON@@', product.linuxIconName))
-					.pipe(replace('@@VERSION@@', `${packageJson.version}.${packageJson.release}`))
-					.pipe(replace('@@ARCHITECTURE@@', rpmArch))
-					.pipe(replace('@@LICENSE@@', product.licenseName))
-					.pipe(replace('@@QUALITY@@', product.quality || '@@QUALITY@@'))
-					.pipe(replace('@@UPDATEURL@@', product.updateUrl || '@@UPDATEURL@@'))
-					.pipe(replace('@@DEPENDENCIES@@', dependencies.join(', ')))
-					.pipe(replace('@@STRIP@@', stripBinary))
-					.pipe(rename('SPECS/' + product.applicationName + '.spec'))
-					.pipe(es.through(function (f) { that.emit('data', f); }, function () { that.emit('end'); }));
-			}));
+		const spec = gulp.src('resources/linux/rpm/code.spec.template', { base: '.' })
+			.pipe(replace('@@NAME@@', product.applicationName))
+			.pipe(replace('@@NAME_LONG@@', product.nameLong))
+			.pipe(replace('@@ICON@@', product.linuxIconName))
+			.pipe(replace('@@VERSION@@', packageJson.version))
+			.pipe(replace('@@RELEASE@@', linuxPackageRevision))
+			.pipe(replace('@@ARCHITECTURE@@', rpmArch))
+			.pipe(replace('@@LICENSE@@', product.licenseName))
+			.pipe(replace('@@QUALITY@@', product.quality || '@@QUALITY@@'))
+			.pipe(replace('@@UPDATEURL@@', product.updateUrl || '@@UPDATEURL@@'))
+			.pipe(replace('@@DEPENDENCIES@@', dependencies.join(', ')))
+			.pipe(replace('@@STRIP@@', stripBinary))
+			.pipe(rename('SPECS/' + product.applicationName + '.spec'));
 
 		const specIcon = gulp.src('resources/linux/rpm/code.xpm', { base: '.' })
 			.pipe(rename('SOURCES/' + product.applicationName + '.xpm'));
@@ -277,7 +276,7 @@ function prepareSnapPackage(arch) {
 
 		const snapcraft = gulp.src('resources/linux/snap/snapcraft.yaml', { base: '.' })
 			.pipe(replace('@@NAME@@', product.applicationName))
-			.pipe(replace('@@VERSION@@', `${packageJson.version}.${packageJson.release}`))
+			.pipe(replace('@@VERSION@@', commit.substr(0, 8)))
 			// Possible run-on values https://snapcraft.io/docs/architectures
 			.pipe(replace('@@ARCHITECTURE@@', arch === 'x64' ? 'amd64' : arch))
 			.pipe(rename('snap/snapcraft.yaml'));

@@ -64,7 +64,7 @@ Sending LLM messages from the main process avoids CSP issues with local provider
 
 
 
-**Notes:** `modelCapabilities` is an important file that must be updated when new models come out! 
+**Notes:** `modelCapabilities` is an important file that must be updated when new models come out!
 
 
 ### Apply
@@ -74,16 +74,16 @@ Void has two types of Apply: **Fast Apply** (uses Search/Replace, see below), an
 When you click Apply and Fast Apply is enabled, we prompt the LLM to output Search/Replace block(s) like this:
 ```
 <<<<<<< ORIGINAL
-// original code goes here 
+// original code goes here
 =======
 // replaced code goes here
 >>>>>>> UPDATED
 ```
-This is what allows Void to quickly apply code even on 1000-line files. It's the same as asking the LLM to press Ctrl+F and enter in a search/replace query. 
+This is what allows Void to quickly apply code even on 1000-line files. It's the same as asking the LLM to press Ctrl+F and enter in a search/replace query.
 
 ### Apply Inner Workings
 
-The `editCodeService` file runs Apply. The same exact code is also used when the LLM calls the Edit tool, and when you submit Cmd+K. Just different versions of Fast/Slow Apply mode. 
+The `editCodeService` file runs Apply. The same exact code is also used when the LLM calls the Edit tool, and when you submit Cmd+K. Just different versions of Fast/Slow Apply mode.
 
 Here is some important terminology:
 - A **DiffZone** is a {startLine, endLine} region of text where we compute and show red/green areas, or **Diffs**. When any changes are made to a file, we loop through all the DiffAreas on that file and refresh its Diffs.
@@ -110,7 +110,7 @@ Here's a guide to some of the terminology we're using:
 - **FeatureName**: Autocomplete | Chat | CtrlK | Apply
 - **ModelSelection**: a {providerName, modelName} pair.
 - **ProviderName**: The name of a provider: `'ollama'`, `'openAI'`, etc.
-- **ModelName**: The name of a model (string type, eg `'gpt-4o'`). 
+- **ModelName**: The name of a model (string type, eg `'gpt-4o'`).
 - **RefreshProvider**: a provider that we ping repeatedly to update the models list.
 - **ChatMode** = normal | gather | agent
 

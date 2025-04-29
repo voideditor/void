@@ -29,7 +29,7 @@
 				}
 			}
 		},
-		{
+		{   // Void added this
 			"type": "npm",
 			"script": "watchreactd",
 			"label": "React - Build",
@@ -89,8 +89,8 @@
 			"label": "VS Code - Build",
 			"dependsOn": [
 				"Core - Build",
-				"Ext - Build",
-				"React - Build"
+				"React - Build",
+				"Ext - Build"
 			],
 			"group": {
 				"kind": "build",

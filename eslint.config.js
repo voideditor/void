@@ -11,7 +11,6 @@ import { fileURLToPath } from 'url';
 import stylisticTs from '@stylistic/eslint-plugin-ts';
 import pluginLocal from 'eslint-plugin-local';
 import pluginJsdoc from 'eslint-plugin-jsdoc';
-// import pluginReact from 'eslint-plugin-react'; // Void
 
 import pluginHeader from 'eslint-plugin-header';
 pluginHeader.rules.header.meta.schema = false;
@@ -25,7 +24,10 @@ const ignores = fs.readFileSync(path.join(__dirname, '.eslint-ignore'), 'utf8')
 export default tseslint.config(
 	// Global ignores
 	{
-		ignores,
+		ignores: [
+			...ignores,
+			'!**/.eslint-plugin-local/**/*'
+		],
 	},
 	// All files (JS and TS)
 	{
@@ -81,7 +83,7 @@ export default tseslint.config(
 			'local/code-parameter-properties-must-have-explicit-accessibility': 'warn',
 			'local/code-no-nls-in-standalone-editor': 'warn',
 			'local/code-no-potentially-unsafe-disposables': 'warn',
-			'local/code-no-dangerous-type-assertions': 'off',
+			'local/code-no-dangerous-type-assertions': 'off', // Void warn -> off
 			'local/code-no-standalone-editor': 'warn',
 			'local/code-no-unexternalized-strings': 'warn',
 			'local/code-must-use-super-dispose': 'warn',
@@ -958,7 +960,7 @@ export default tseslint.config(
 					]
 				},
 				{
-					'target': 'src/vs/editor/editor.worker.ts',
+					'target': 'src/vs/editor/editor.worker.start.ts',
 					'layer': 'worker',
 					'restrictions': [
 						'vs/base/~',
@@ -999,6 +1001,7 @@ export default tseslint.config(
 				{
 					'target': 'src/vs/workbench/api/~',
 					'restrictions': [
+						'@c4312/eventsource-umd',
 						'vscode',
 						'vs/base/~',
 						'vs/base/parts/*/~',

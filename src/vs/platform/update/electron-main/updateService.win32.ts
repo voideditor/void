@@ -9,6 +9,7 @@ import { tmpdir } from 'os';
 import { timeout } from '../../../base/common/async.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { memoize } from '../../../base/common/decorators.js';
+import { hash } from '../../../base/common/hash.js';
 import * as path from '../../../base/common/path.js';
 import { URI } from '../../../base/common/uri.js';
 import { checksum } from '../../../base/node/crypto.js';
@@ -22,9 +23,8 @@ import { INativeHostMainService } from '../../native/electron-main/nativeHostMai
 import { IProductService } from '../../product/common/productService.js';
 import { asJson, IRequestService } from '../../request/common/request.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
-import { AvailableForDownload, DisablementReason, IUpdate, State, StateType, Target, UpdateType } from '../common/update.js';
-import { AbstractUpdateService, createUpdateURL } from './abstractUpdateService.js';
-import * as semver from 'semver';
+import { AvailableForDownload, DisablementReason, IUpdate, State, StateType, UpdateType } from '../common/update.js';
+import { AbstractUpdateService, createUpdateURL, UpdateErrorClassification } from './abstractUpdateService.js';
 
 async function pollUntil(fn: () => boolean, millis = 1000): Promise<void> {
 	while (!fn()) {
@@ -40,13 +40,9 @@ interface IAvailableUpdate {
 let _updateType: UpdateType | undefined = undefined;
 function getUpdateType(): UpdateType {
 	if (typeof _updateType === 'undefined') {
-		if (fs.existsSync(path.join(path.dirname(process.execPath), 'unins000.exe'))) {
-			_updateType = UpdateType.Setup;
-		} else if (path.basename(path.normalize(path.join(process.execPath, '..', '..'))) === 'Program Files') {
-			_updateType = UpdateType.WindowsInstaller;
-		} else {
-			_updateType = UpdateType.Archive;
-		}
+		_updateType = fs.existsSync(path.join(path.dirname(process.execPath), 'unins000.exe'))
+			? UpdateType.Setup
+			: UpdateType.Archive;
 	}
 
 	return _updateType;
@@ -65,7 +61,6 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 	constructor(
 		@ILifecycleMainService lifecycleMainService: ILifecycleMainService,
 		@IConfigurationService configurationService: IConfigurationService,
-		// @ts-expect-error
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@IEnvironmentMainService environmentMainService: IEnvironmentMainService,
 		@IRequestService requestService: IRequestService,
@@ -104,26 +99,16 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 		await super.initialize();
 	}
 
-	// Void: buildUpdateFeedUrl -> doBuildUpdateFeedUrl
-	protected doBuildUpdateFeedUrl(quality: string): string | undefined {
-		let target: Target;
-		switch (getUpdateType()) {
-			case UpdateType.Archive:
-				target = 'archive'
-				break;
-			case UpdateType.WindowsInstaller:
-				target = 'msi'
-				break;
-			default:
-				if (this.productService.target === 'user') {
-					target = 'user'
-				}
-				else {
-					target = 'system'
-				}
+	protected buildUpdateFeedUrl(quality: string): string | undefined {
+		let platform = `win32-${process.arch}`;
+
+		if (getUpdateType() === UpdateType.Archive) {
+			platform += '-archive';
+		} else if (this.productService.target === 'user') {
+			platform += '-user';
 		}
 
-		return createUpdateURL(this.productService, quality, process.platform, process.arch, target);
+		return createUpdateURL(platform, quality, this.productService);
 	}
 
 	protected doCheckForUpdates(context: any): void {
@@ -139,16 +124,6 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 				const updateType = getUpdateType();
 
 				if (!update || !update.url || !update.version || !update.productVersion) {
-					this.setState(State.Idle(updateType));
-					return Promise.resolve(null);
-				}
-
-				const fetchedVersion = update.productVersion.replace(/(\d+\.\d+\.\d+)(?:\.(\d+))(\-\w+)?/, '$1$3+$2');
-				const currentVersion = `${this.productService.voidVersion}+${this.productService.release}`;
-				// Void compares voidVersion, not VSCode version
-				// const currentVersion = `${this.productService.version}+${this.productService.release}`;
-
-				if (semver.compareBuild(currentVersion, fetchedVersion) >= 0) {
 					this.setState(State.Idle(updateType));
 					return Promise.resolve(null);
 				}
@@ -179,7 +154,7 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 						this.availableUpdate = { packagePath };
 						this.setState(State.Downloaded(update));
 
-						const fastUpdatesEnabled = getUpdateType() === UpdateType.Setup && this.configurationService.getValue('update.enableWindowsBackgroundUpdates');
+						const fastUpdatesEnabled = this.configurationService.getValue('update.enableWindowsBackgroundUpdates');
 						if (fastUpdatesEnabled) {
 							if (this.productService.target === 'user') {
 								this.doApplyUpdate();
@@ -191,6 +166,7 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 				});
 			})
 			.then(undefined, err => {
+				this.telemetryService.publicLog2<{ messageHash: string }, UpdateErrorClassification>('update:error', { messageHash: String(hash(String(err))) });
 				this.logService.error(err);
 
 				// only show message when explicitly checking for updates
@@ -274,18 +250,10 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 		if (this.availableUpdate.updateFilePath) {
 			fs.unlinkSync(this.availableUpdate.updateFilePath);
 		} else {
-			const type = getUpdateType();
-			if (type === UpdateType.WindowsInstaller) {
-				spawn('msiexec.exe', ['/i', this.availableUpdate.packagePath], {
-					detached: true,
-					stdio: ['ignore', 'ignore', 'ignore']
-				});
-			} else {
-				spawn(this.availableUpdate.packagePath, ['/silent', '/log', '/mergetasks=runcode,!desktopicon,!quicklaunchicon'], {
-					detached: true,
-					stdio: ['ignore', 'ignore', 'ignore']
-				});
-			}
+			spawn(this.availableUpdate.packagePath, ['/silent', '/log', '/mergetasks=runcode,!desktopicon,!quicklaunchicon'], {
+				detached: true,
+				stdio: ['ignore', 'ignore', 'ignore']
+			});
 		}
 	}
 

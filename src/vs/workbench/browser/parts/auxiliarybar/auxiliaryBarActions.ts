@@ -27,7 +27,7 @@ const auxiliaryBarLeftOffIcon = registerIcon('auxiliarybar-left-off-layout-icon'
 export class ToggleAuxiliaryBarAction extends Action2 {
 
 	static readonly ID = 'workbench.action.toggleAuxiliaryBar';
-	static readonly LABEL = localize2('toggleAuxiliaryBar', "Toggle Void Side Bar Visibility"); // Void renamed Secondary to Void
+	static readonly LABEL = localize2('toggleAuxiliaryBar', "Toggle Void Side Bar Visibility");
 
 	constructor() {
 		super({

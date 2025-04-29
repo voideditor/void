@@ -132,16 +132,25 @@ const FadeIn = ({ children, className, delayMs = 0, durationMs, ...props }: { ch
 // 		prev/next
 
 const NextButton = ({ onClick, ...props }: { onClick: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+
+	// Create a new props object without the disabled attribute
+	const { disabled, ...buttonProps } = props;
+
 	return (
 		<button
-			onClick={onClick}
-			className="px-6 py-2 bg-zinc-100 enabled:hover:bg-zinc-100 disabled:bg-zinc-100/40 disabled:cursor-not-allowed rounded text-black duration-600 transition-all"
-			{...props.disabled && {
+			onClick={disabled ? undefined : onClick}
+			onDoubleClick={onClick}
+			className={`px-6 py-2 bg-zinc-100 ${disabled
+				? 'bg-zinc-100/40 cursor-not-allowed'
+				: 'hover:bg-zinc-100'
+				} rounded text-black duration-600 transition-all
+			`}
+			{...disabled && {
 				'data-tooltip-id': 'void-tooltip',
-				'data-tooltip-content': 'Please enter all required fields or choose another provider',
-				'data-tooltip-place': 'top',
+				"data-tooltip-content": 'Please enter all required fields or choose another provider', // (double-click to proceed anyway, can come back in Settings)
+				"data-tooltip-place": 'top',
 			}}
-			{...props}
+			{...buttonProps}
 		>
 			Next
 		</button>
@@ -466,6 +475,7 @@ const VoidOnboardingContent = () => {
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidMetricsService = accessor.get('IMetricsService')
 
 	const voidSettingsState = useSettingsState()
 
@@ -536,7 +546,10 @@ const VoidOnboardingContent = () => {
 				onClick={() => { setPageIndex(pageIndex - 1) }}
 			/>
 			<PrimaryActionButton
-				onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
+				onClick={() => {
+					voidSettingsService.setGlobalSetting('isOnboardingComplete', true);
+					voidMetricsService.capture('Completed Onboarding', { selectedProviderName, wantToUseOption })
+				}}
 				ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
 			>Enter the Void</PrimaryActionButton>
 		</div>
@@ -619,15 +632,16 @@ const VoidOnboardingContent = () => {
 
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[800px] mx-auto mt-8">
+
 					<button
-						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
+						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
 						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
-							<Brain size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Intelligent</div>
+							<DollarSign size={24} className="text-void-fg-2 mr-2" />
+							<div className="text-lg font-medium text-void-fg-1">Affordable</div>
 						</div>
-						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['smart']}</div>
+						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['cheap']}</div>
 					</button>
 
 					<button
@@ -642,14 +656,14 @@ const VoidOnboardingContent = () => {
 					</button>
 
 					<button
-						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
+						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
 						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
-							<DollarSign size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Affordable</div>
+							<Brain size={24} className="text-void-fg-2 mr-2" />
+							<div className="text-lg font-medium text-void-fg-1">Intelligent</div>
 						</div>
-						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['cheap']}</div>
+						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['smart']}</div>
 					</button>
 				</div>
 

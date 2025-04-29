@@ -25,7 +25,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplace_systemMessage, searchReplace_userMessage, } from '../common/prompt/prompts.js';
+import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplaceGivenDescription_systemMessage, searchReplaceGivenDescription_userMessage, } from '../common/prompt/prompts.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -1164,6 +1164,57 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
+	public instantlyApplySearchReplaceBlocks({ uri, searchReplaceBlocks }: { uri: URI, searchReplaceBlocks: string }) {
+		// start diffzone
+		const res = this._startStreamingDiffZone({
+			uri,
+			streamRequestIdRef: { current: null },
+			startBehavior: 'keep-conflicts',
+			linkedCtrlKZone: null,
+			onWillUndo: () => { },
+		})
+		if (!res) return
+		const { diffZone, onFinishEdit } = res
+
+
+		const onDone = () => {
+			diffZone._streamState = { isStreaming: false, }
+			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._refreshStylesAndDiffsInURI(uri)
+			onFinishEdit()
+		}
+
+
+		this._instantlyApplySRBlocks(uri, searchReplaceBlocks)
+
+
+		onDone()
+	}
+
+
+	public instantlyApplyNewContent({ uri, newContent }: { uri: URI, newContent: string }) {
+		// start diffzone
+		const res = this._startStreamingDiffZone({
+			uri,
+			streamRequestIdRef: { current: null },
+			startBehavior: 'keep-conflicts',
+			linkedCtrlKZone: null,
+			onWillUndo: () => { },
+		})
+		if (!res) return
+		const { diffZone, onFinishEdit } = res
+
+
+		const onDone = () => {
+			diffZone._streamState = { isStreaming: false, }
+			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
+			this._refreshStylesAndDiffsInURI(uri)
+			onFinishEdit()
+		}
+
+		this._writeURIText(uri, newContent, 'wholeFileRange', { shouldRealignDiffAreas: false })
+		onDone()
+	}
 
 
 	private _findOverlappingDiffArea({ startLine, endLine, uri, filter }: { startLine: number, endLine: number, uri: URI, filter?: (diffArea: DiffArea) => boolean }): DiffArea | null {
@@ -1509,6 +1560,76 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
+	private _errContentOfInvalidStr = (str: 'Not found' | 'Not unique' | 'Has overlap', blockOrig: string) => {
+
+		const descStr = str === `Not found` ?
+			`The most recent ORIGINAL code could not be found in the file, so you were interrupted. The text in ORIGINAL must EXACTLY match lines of code. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
+			: str === `Not unique` ?
+				`The most recent ORIGINAL code shows up multiple times in the file, so you were interrupted. You might want to expand the ORIGINAL excerpt so it's unique. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
+				: str === 'Has overlap' ?
+					`The most recent ORIGINAL code has overlap with another ORIGINAL code block that you outputted. Do NOT output any overlapping edits. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
+					: ``
+
+		// string of <<<<< ORIGINAL >>>>> REPLACE blocks so far so LLM can understand what it currently has
+		// const blocksSoFarStr = blocks.slice(0, blockNum).map(block => `${ORIGINAL}\n${block.orig}\n${DIVIDER}\n${block.final}\n${FINAL}`).join('\n')
+		// const soFarStr = blocksSoFarStr ? `These are the Search/Replace blocks that have been applied so far:${tripleTick[0]}\n${blocksSoFarStr}\n${tripleTick[1]}` : ''
+		// const continueMsg = soFarStr ? `${soFarStr}Please continue outputting SEARCH/REPLACE blocks starting where this leaves off.` : ''
+		// const errMsg = `${descStr}${continueMsg ? `\n${continueMsg}` : ''}`
+		const soFarStr = 'All of your previous outputs have been ignored. Please re-output ALL SEARCH/REPLACE blocks starting from the first one, and avoid the error this time.'
+		const errMsg = `${descStr}\n${soFarStr}`
+		return errMsg
+
+	}
+
+
+	private _instantlyApplySRBlocks(uri: URI, blocksStr: string) {
+		const blocks = extractSearchReplaceBlocks(blocksStr)
+		if (blocks.length === 0) throw new Error(`No Search/Replace blocks were received!`)
+
+		const { model } = this._voidModelService.getModel(uri)
+		if (!model) throw new Error(`Error applying Search/Replace blocks: File does not exist.`)
+		const modelStr = model.getValue(EndOfLinePreference.LF)
+
+		const replacements: { origStart: number; origEnd: number; block: ExtractedSearchReplaceBlock }[] = []
+		for (const b of blocks) {
+			const i = modelStr.indexOf(b.orig)
+			if (i === -1)
+				throw new Error(this._errContentOfInvalidStr('Not found', b.orig))
+			const j = modelStr.lastIndexOf(b.orig)
+			if (i !== j)
+				throw new Error(this._errContentOfInvalidStr('Not unique', b.orig))
+
+			replacements.push({
+				origStart: i,
+				origEnd: i + b.orig.length - 1, // INCLUSIVE
+				block: b,
+			})
+		}
+
+		// sort in increasing order
+		replacements.sort((a, b) => a.origStart - b.origStart)
+
+		// ensure no overlap
+		for (let i = 1; i < replacements.length; i++) {
+			if (replacements[i].origStart <= replacements[i - 1].origEnd) {
+				throw new Error(this._errContentOfInvalidStr('Has overlap', replacements[i]?.block?.orig))
+			}
+		}
+
+		// apply each replacement from right to left (so indexes don't shift)
+		let newCode: string = modelStr
+		for (let i = replacements.length - 1; i >= 0; i--) {
+			const { origStart, origEnd, block } = replacements[i]
+			newCode = newCode.slice(0, origStart) + block.final + newCode.slice(origEnd + 1, Infinity)
+		}
+
+		this._writeURIText(uri, newCode,
+			'wholeFileRange',
+			{ shouldRealignDiffAreas: true }
+		)
+
+	}
+
 	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): [DiffZone, Promise<void>] | undefined {
 		const { from, applyStr, } = opts
 		const featureName: FeatureName = 'Apply'
@@ -1526,10 +1647,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		// build messages - ask LLM to generate search/replace block text
 		const originalFileCode = model.getValue(EndOfLinePreference.LF)
-		const userMessageContent = searchReplace_userMessage({ originalCode: originalFileCode, applyStr: applyStr })
+		const userMessageContent = searchReplaceGivenDescription_userMessage({ originalCode: originalFileCode, applyStr: applyStr })
 
 		const { messages, separateSystemMessage: separateSystemMessage } = this._convertToLLMMessageService.prepareLLMSimpleMessages({
-			systemMessage: searchReplace_systemMessage,
+			systemMessage: searchReplaceGivenDescription_systemMessage,
 			simpleMessages: [{ role: 'user', content: userMessageContent, }],
 			featureName,
 			modelSelection,
@@ -1576,27 +1697,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			return [originalStart + lineOffset, originalEnd + lineOffset]
 		}
 
-
-		const errContentOfInvalidStr = (str: 'Not found' | 'Not unique' | 'Has overlap', blockOrig: string) => {
-
-			const descStr = str === `Not found` ?
-				`The most recent ORIGINAL code could not be found in the file, so you were interrupted. The text in ORIGINAL must EXACTLY match lines of code. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
-				: str === `Not unique` ?
-					`The most recent ORIGINAL code shows up multiple times in the file, so you were interrupted. You might want to expand the ORIGINAL excerpt so it's unique. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
-					: str === 'Has overlap' ?
-						`The most recent ORIGINAL code has overlap with another ORIGINAL code block that you outputted. Do NOT output any overlapping edits. The problematic ORIGINAL code was:\n${JSON.stringify(blockOrig)}`
-						: ``
-
-			// string of <<<<< ORIGINAL >>>>> REPLACE blocks so far so LLM can understand what it currently has
-			// const blocksSoFarStr = blocks.slice(0, blockNum).map(block => `${ORIGINAL}\n${block.orig}\n${DIVIDER}\n${block.final}\n${FINAL}`).join('\n')
-			// const soFarStr = blocksSoFarStr ? `These are the Search/Replace blocks that have been applied so far:${tripleTick[0]}\n${blocksSoFarStr}\n${tripleTick[1]}` : ''
-			// const continueMsg = soFarStr ? `${soFarStr}Please continue outputting SEARCH/REPLACE blocks starting where this leaves off.` : ''
-			// const errMsg = `${descStr}${continueMsg ? `\n${continueMsg}` : ''}`
-			const soFarStr = 'All of your previous outputs have been ignored. Please re-output ALL SEARCH/REPLACE blocks starting from the first one, and avoid the error this time.'
-			const errMsg = `${descStr}\n${soFarStr}`
-			return errMsg
-
-		}
 
 		const onDone = () => {
 			diffZone._streamState = { isStreaming: false, }
@@ -1652,6 +1752,159 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				let resMessageDonePromise: () => void = () => { }
 				const messageDonePromise = new Promise<void>((res, rej) => { resMessageDonePromise = res })
 
+
+				const onText = (params: { fullText: string; fullReasoning: string }) => {
+					const { fullText } = params
+					// blocks are [done done done ... {writingFinal|writingOriginal}]
+					//               ^
+					//              currStreamingBlockNum
+
+					const blocks = extractSearchReplaceBlocks(fullText)
+
+					for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
+						const block = blocks[blockNum]
+
+						if (block.state === 'writingOriginal') {
+							// update stream state to the first line of original if some portion of original has been written
+							if (shouldUpdateOrigStreamStyle && block.orig.trim().length >= 20) {
+								const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
+								const originalRange = findTextInCode(block.orig, originalFileCode, false, startingAtLine)
+								if (typeof originalRange !== 'string') {
+									const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
+									diffZone._streamState.line = startLine
+									shouldUpdateOrigStreamStyle = false
+								}
+							}
+
+							// // starting line is at least the number of lines in the generated code minus 1
+							// const numLinesInOrig = numLinesOfStr(block.orig)
+							// const newLine = Math.max(numLinesInOrig - 1, 1, diffZone._streamState.line ?? 1)
+							// if (newLine !== diffZone._streamState.line) {
+							// 	diffZone._streamState.line = newLine
+							// 	this._refreshStylesAndDiffsInURI(uri)
+							// }
+
+
+							// must be done writing original to move on to writing streamed content
+							continue
+						}
+						shouldUpdateOrigStreamStyle = true
+
+
+						// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming in it
+						if (!(blockNum in addedTrackingZoneOfBlockNum)) {
+
+							const originalBounds = findTextInCode(block.orig, originalFileCode, true)
+							// if error
+							// Check for overlap with existing modified ranges
+							const hasOverlap = addedTrackingZoneOfBlockNum.some(trackingZone => {
+								const [existingStart, existingEnd] = trackingZone.metadata.originalBounds;
+								const hasNoOverlap = endLine < existingStart || startLine > existingEnd
+								return !hasNoOverlap
+							});
+
+							if (typeof originalBounds === 'string' || hasOverlap) {
+								const errorMessage = typeof originalBounds === 'string' ? originalBounds : 'Has overlap' as const
+
+								console.log('--------------Error finding text in code:')
+								console.log('originalFileCode', { originalFileCode })
+								console.log('fullText', { fullText })
+								console.log('error:', errorMessage)
+								console.log('block.orig:', block.orig)
+								console.log('---------')
+								const content = this._errContentOfInvalidStr(errorMessage, block.orig)
+								messages.push(
+									{ role: 'assistant', content: fullText }, // latest output
+									{ role: 'user', content: content } // user explanation of what's wrong
+								)
+
+								// REVERT ALL BLOCKS
+								currStreamingBlockNum = 0
+								latestStreamLocationMutable = null
+								shouldUpdateOrigStreamStyle = true
+								oldBlocks = []
+								for (const trackingZone of addedTrackingZoneOfBlockNum)
+									this._deleteTrackingZone(trackingZone)
+								addedTrackingZoneOfBlockNum.splice(0, Infinity)
+
+								this._writeURIText(uri, originalFileCode, 'wholeFileRange', { shouldRealignDiffAreas: true })
+
+								// abort and resolve
+								shouldSendAnotherMessage = true
+								if (streamRequestIdRef.current) {
+									weAreAborting = true
+									this._llmMessageService.abort(streamRequestIdRef.current)
+									weAreAborting = false
+								}
+								diffZone._streamState.line = 1
+								resMessageDonePromise()
+								this._refreshStylesAndDiffsInURI(uri)
+								return
+							}
+
+
+
+							const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
+
+							// console.log('---------adding-------')
+							// console.log('CURRENT TEXT!!!', { current: model?.getValue(EndOfLinePreference.LF) })
+							// console.log('block', deepClone(block))
+							// console.log('origBounds', originalBounds)
+							// console.log('start end', startLine, endLine)
+
+							// otherwise if no error, add the position as a diffarea
+							const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
+								type: 'TrackingZone',
+								startLine: startLine,
+								endLine: endLine,
+								_URI: uri,
+								metadata: {
+									originalBounds: [...originalBounds],
+									originalCode: block.orig,
+								},
+							}
+							const trackingZone = this._addDiffArea(adding)
+							addedTrackingZoneOfBlockNum.push(trackingZone)
+							latestStreamLocationMutable = { line: startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
+						} // end adding diffarea
+
+
+						// should always be in streaming state here
+						if (!diffZone._streamState.isStreaming) {
+							console.error('DiffZone was not in streaming state in _initializeSearchAndReplaceStream')
+							continue
+						}
+
+						// if a block is done, finish it by writing all
+						if (block.state === 'done') {
+							const { startLine: finalStartLine, endLine: finalEndLine } = addedTrackingZoneOfBlockNum[blockNum]
+							this._writeURIText(uri, block.final,
+								{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalEndLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+								{ shouldRealignDiffAreas: true }
+							)
+							diffZone._streamState.line = finalEndLine + 1
+							currStreamingBlockNum = blockNum + 1
+							continue
+						}
+
+						// write the added text to the file
+						if (!latestStreamLocationMutable) continue
+						const oldBlock = oldBlocks[blockNum]
+						const oldFinalLen = (oldBlock?.final ?? '').length
+						const deltaFinalText = block.final.substring(oldFinalLen, Infinity)
+
+						this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
+						oldBlocks = blocks // oldblocks is only used if writingFinal
+
+						// const { endLine: currentEndLine } = addedTrackingZoneOfBlockNum[blockNum] // would be bad to do this because a lot of the bottom lines might be the same. more accurate to go with latestStreamLocationMutable
+						// diffZone._streamState.line = currentEndLine
+						diffZone._streamState.line = latestStreamLocationMutable.line
+
+					} // end for
+
+					this._refreshStylesAndDiffsInURI(uri)
+				}
+
 				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
 					logging: { loggingName: `Edit (Search/Replace) - ${from}` },
@@ -1661,201 +1914,25 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					separateSystemMessage,
 					chatMode: null, // not chat
 					onText: (params) => {
-						const { fullText } = params
-						// blocks are [done done done ... {writingFinal|writingOriginal}]
-						//               ^
-						//              currStreamingBlockNum
-
-						const blocks = extractSearchReplaceBlocks(fullText)
-
-						for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
-							const block = blocks[blockNum]
-
-							if (block.state === 'writingOriginal') {
-								// update stream state to the first line of original if some portion of original has been written
-								if (shouldUpdateOrigStreamStyle && block.orig.trim().length >= 20) {
-									const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
-									const originalRange = findTextInCode(block.orig, originalFileCode, false, startingAtLine)
-									if (typeof originalRange !== 'string') {
-										const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
-										diffZone._streamState.line = startLine
-										shouldUpdateOrigStreamStyle = false
-									}
-								}
-
-								// // starting line is at least the number of lines in the generated code minus 1
-								// const numLinesInOrig = numLinesOfStr(block.orig)
-								// const newLine = Math.max(numLinesInOrig - 1, 1, diffZone._streamState.line ?? 1)
-								// if (newLine !== diffZone._streamState.line) {
-								// 	diffZone._streamState.line = newLine
-								// 	this._refreshStylesAndDiffsInURI(uri)
-								// }
-
-
-								// must be done writing original to move on to writing streamed content
-								continue
-							}
-							shouldUpdateOrigStreamStyle = true
-
-
-							// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming in it
-							if (!(blockNum in addedTrackingZoneOfBlockNum)) {
-
-								const originalBounds = findTextInCode(block.orig, originalFileCode, true)
-								// if error
-								// Check for overlap with existing modified ranges
-								const hasOverlap = addedTrackingZoneOfBlockNum.some(trackingZone => {
-									const [existingStart, existingEnd] = trackingZone.metadata.originalBounds;
-									const hasNoOverlap = endLine < existingStart || startLine > existingEnd
-									return !hasNoOverlap
-								});
-
-								if (typeof originalBounds === 'string' || hasOverlap) {
-									const errorMessage = typeof originalBounds === 'string' ? originalBounds : 'Has overlap' as const
-
-									console.log('--------------Error finding text in code:')
-									console.log('originalFileCode', { originalFileCode })
-									console.log('fullText', { fullText })
-									console.log('error:', errorMessage)
-									console.log('block.orig:', block.orig)
-									console.log('---------')
-									const content = errContentOfInvalidStr(errorMessage, block.orig)
-									messages.push(
-										{ role: 'assistant', content: fullText }, // latest output
-										{ role: 'user', content: content } // user explanation of what's wrong
-									)
-
-									// REVERT ALL BLOCKS
-									currStreamingBlockNum = 0
-									latestStreamLocationMutable = null
-									shouldUpdateOrigStreamStyle = true
-									oldBlocks = []
-									for (const trackingZone of addedTrackingZoneOfBlockNum)
-										this._deleteTrackingZone(trackingZone)
-									addedTrackingZoneOfBlockNum.splice(0, Infinity)
-
-									this._writeURIText(uri, originalFileCode, 'wholeFileRange', { shouldRealignDiffAreas: true })
-
-									// abort and resolve
-									shouldSendAnotherMessage = true
-									if (streamRequestIdRef.current) {
-										weAreAborting = true
-										this._llmMessageService.abort(streamRequestIdRef.current)
-										weAreAborting = false
-									}
-									diffZone._streamState.line = 1
-									resMessageDonePromise()
-									this._refreshStylesAndDiffsInURI(uri)
-									return
-								}
-
-
-
-								const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
-
-								// console.log('---------adding-------')
-								// console.log('CURRENT TEXT!!!', { current: model?.getValue() })
-								// console.log('block', deepClone(block))
-								// console.log('origBounds', originalBounds)
-								// console.log('start end', startLine, endLine)
-
-								// otherwise if no error, add the position as a diffarea
-								const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
-									type: 'TrackingZone',
-									startLine: startLine,
-									endLine: endLine,
-									_URI: uri,
-									metadata: {
-										originalBounds: [...originalBounds],
-										originalCode: block.orig,
-									},
-								}
-								const trackingZone = this._addDiffArea(adding)
-								addedTrackingZoneOfBlockNum.push(trackingZone)
-								latestStreamLocationMutable = { line: startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-							} // end adding diffarea
-
-
-							// should always be in streaming state here
-							if (!diffZone._streamState.isStreaming) {
-								console.error('DiffZone was not in streaming state in _initializeSearchAndReplaceStream')
-								continue
-							}
-
-							// if a block is done, finish it by writing all
-							if (block.state === 'done') {
-								const { startLine: finalStartLine, endLine: finalEndLine } = addedTrackingZoneOfBlockNum[blockNum]
-								this._writeURIText(uri, block.final,
-									{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalEndLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-									{ shouldRealignDiffAreas: true }
-								)
-								diffZone._streamState.line = finalEndLine + 1
-								currStreamingBlockNum = blockNum + 1
-								continue
-							}
-
-							// write the added text to the file
-							if (!latestStreamLocationMutable) continue
-							const oldBlock = oldBlocks[blockNum]
-							const oldFinalLen = (oldBlock?.final ?? '').length
-							const deltaFinalText = block.final.substring(oldFinalLen, Infinity)
-
-							this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
-							oldBlocks = blocks // oldblocks is only used if writingFinal
-
-							// const { endLine: currentEndLine } = addedTrackingZoneOfBlockNum[blockNum] // would be bad to do this because a lot of the bottom lines might be the same. more accurate to go with latestStreamLocationMutable
-							// diffZone._streamState.line = currentEndLine
-							diffZone._streamState.line = latestStreamLocationMutable.line
-
-						} // end for
-
-						this._refreshStylesAndDiffsInURI(uri)
+						onText(params)
 					},
 					onFinalMessage: async (params) => {
 						const { fullText } = params
+						onText(params)
 
-
-						// 1. wait 500ms and fix lint errors - call lint error workflow
-						// (update react state to say "Fixing errors")
 						const blocks = extractSearchReplaceBlocks(fullText)
-
 						if (blocks.length === 0) {
-							this._notificationService.info(`Void: We ran Apply, but the LLM didn't output any changes.`)
-						}
-						// writeover the whole file
-						let newCode = originalFileCode
-
-						// IMPORTANT - sort by lineNum
-						addedTrackingZoneOfBlockNum.sort((a, b) => a.metadata.originalBounds[0] - b.metadata.originalBounds[0])
-
-						// const { model } = this._voidModelService.getModel(uri)
-						// console.log('DONE - editCode!', { fullText })
-						// console.log('CURRENT TEXT!!!', { current: model?.getValue() })
-						// console.log('addedTrackingZoneOfBlockNum', addedTrackingZoneOfBlockNum)
-						// console.log('blocks', deepClone(blocks))
-
-						for (let blockNum = addedTrackingZoneOfBlockNum.length - 1; blockNum >= 0; blockNum -= 1) {
-							const { originalBounds } = addedTrackingZoneOfBlockNum[blockNum].metadata
-							const finalCode = blocks[blockNum].final
-
-							if (finalCode === null) continue
-
-							const [originalStart, originalEnd] = originalBounds
-							const lines = newCode.split('\n')
-							newCode = [
-								...lines.slice(0, (originalStart - 1)),
-								...finalCode.split('\n'),
-								...lines.slice((originalEnd - 1) + 1, Infinity)
-							].join('\n')
+							this._notificationService.info(`Void: We ran Fast Apply, but the LLM didn't output any changes.`)
 						}
 
-						this._writeURIText(uri, newCode,
-							'wholeFileRange',
-							{ shouldRealignDiffAreas: true }
-						)
-
-						onDone()
-						resMessageDonePromise()
+						try {
+							this._instantlyApplySRBlocks(uri, fullText)
+							onDone()
+							resMessageDonePromise()
+						}
+						catch (e) {
+							onError(e)
+						}
 					},
 					onError: (e) => {
 						onError(e)

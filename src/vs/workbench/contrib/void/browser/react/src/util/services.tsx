@@ -50,6 +50,7 @@ import { IEditCodeService } from '../../../editCodeServiceInterface.js'
 import { IToolsService } from '../../../toolsService.js'
 import { IConvertToLLMMessageService } from '../../../convertToLLMMessageService.js'
 import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
+import { ISearchService } from '../../../../../../services/search/common/search.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -205,6 +206,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageDetectionService: accessor.get(ILanguageDetectionService),
 		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
 		IKeybindingService: accessor.get(IKeybindingService),
+		ISearchService: accessor.get(ISearchService),
 
 		IExplorerService: accessor.get(IExplorerService),
 		IEnvironmentService: accessor.get(IEnvironmentService),

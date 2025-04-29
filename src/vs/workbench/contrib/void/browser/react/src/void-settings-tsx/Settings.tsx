@@ -8,7 +8,7 @@ import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, Voi
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
-import { X, RefreshCw, Loader2, Check, } from 'lucide-react'
+import { X, RefreshCw, Loader2, Check, Asterisk } from 'lucide-react'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
@@ -147,7 +147,7 @@ const AddButton = ({ disabled, text = 'Add', ...props }: { disabled?: boolean, t
 
 	return <button
 		disabled={disabled}
-		className={`bg-[#0e70c0] px-3 py-1 text-white dark:text-black rounded-sm ${!disabled ? 'hover:bg-[#1177cb] cursor-pointer' : 'opacity-50 cursor-not-allowed bg-opacity-70'}`}
+		className={`bg-[#0e70c0] px-3 py-1 text-white rounded-sm ${!disabled ? 'hover:bg-[#1177cb] cursor-pointer' : 'opacity-50 cursor-not-allowed bg-opacity-70'}`}
 		{...props}
 	>{text}</button>
 
@@ -206,7 +206,7 @@ export const AddModelInputBox = ({ providerName: permanentProviderName, classNam
 	const numModels = providerName === null ? 0 : settingsState.settingsOfProvider[providerName].models.length
 
 	if (showCheckmark) {
-		return <AnimatedCheckmarkButton text='Added' className={`bg-[#0e70c0] text-white dark:text-black px-3 py-1 rounded-sm ${className}`} />
+		return <AnimatedCheckmarkButton text='Added' className={`bg-[#0e70c0] text-white px-3 py-1 rounded-sm ${className}`} />
 	}
 
 	if (!isOpen) {
@@ -339,6 +339,13 @@ export const ModelDump = () => {
 						: 'Disabled'
 			)
 
+
+			const detailAboutModel = type === 'autodetected' ?
+				<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Detected locally' />
+				: type === 'default' ? undefined
+					: <Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Custom model' />
+
+
 			return <div key={`${modelName}${providerName}`}
 				className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate
 				`}
@@ -346,7 +353,7 @@ export const ModelDump = () => {
 				{/* left part is width:full */}
 				<div className={`flex-grow flex items-center gap-4`}>
 					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
-					<span className='w-fit truncate'>{modelName}</span>
+					<span className='w-fit truncate'>{modelName}{detailAboutModel}</span>
 				</div>
 				{/* right part is anything that fits */}
 				<div className='flex items-center gap-4'
@@ -356,7 +363,9 @@ export const ModelDump = () => {
 				// 	: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
 				// }
 				>
-					<span className='opacity-50 truncate'>{type === 'autodetected' ? '(detected locally)' : type === 'default' ? '' : '(custom model)'}</span>
+
+
+					{/* <span className='opacity-50 truncate'>{type === 'autodetected' ? '(detected locally)' : type === 'default' ? '' : '(custom model)'}</span> */}
 
 					<VoidSwitch
 						value={value}

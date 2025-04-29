@@ -176,8 +176,8 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 
 	return (
 		<div className={`flex flex-col mb-2 gap-2 w-full text-nowrap text-void-fg-3 select-none relative ${className}`}>
-			{displayThreads.length === 0
-				? <></> // No chats yet... Suggestion: Tell me about my codebase Suggestion: Create a new .voidrules file in the root of my repo
+			{displayThreads.length === 0 // this should never happen
+				? <></>
 				: displayThreads.map((threadId, i) => {
 					const pastThread = allThreads[threadId];
 					if (!pastThread) {
@@ -199,7 +199,7 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 
 			{hasMoreThreads && !showAll && (
 				<div
-					className="text-void-fg-3 opacity-60 hover:opacity-100 hover:brightness-115 cursor-pointer p-1 text-xs"
+					className="text-void-fg-3 opacity-80 hover:opacity-100 hover:brightness-115 cursor-pointer p-1 text-xs"
 					onClick={() => setShowAll(true)}
 				>
 					Show {sortedThreadIds.length - numInitialThreads} more...
@@ -207,7 +207,7 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 			)}
 			{hasMoreThreads && showAll && (
 				<div
-					className="text-void-fg-3 opacity-60 hover:opacity-100 hover:brightness-115 cursor-pointer p-1 text-xs"
+					className="text-void-fg-3 opacity-80 hover:opacity-100 hover:brightness-115 cursor-pointer p-1 text-xs"
 					onClick={() => setShowAll(false)}
 				>
 					Show less
@@ -384,6 +384,8 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 						null}
 				{/* name */}
 				<span className="truncate overflow-hidden text-ellipsis">{firstMsg}</span>
+
+				<span className='opacity-60'>{`(${numMessages})`}</span>
 			</span>
 
 			<div className="flex items-center gap-x-1 opacity-60">

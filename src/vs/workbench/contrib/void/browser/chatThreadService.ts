@@ -42,7 +42,7 @@ const CHAT_RETRIES = 3
 const RETRY_DELAY = 2500
 
 
-export const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
+const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
 	if (!currentSelections) return null
 
 	for (let i = 0; i < currentSelections.length; i += 1) {
@@ -234,6 +234,8 @@ export interface IChatThreadService {
 	getCurrentFocusedMessageIdx(): number | undefined;
 	isCurrentlyFocusingMessage(): boolean;
 	setCurrentlyFocusedMessageIdx(messageIdx: number | undefined): void;
+
+	addNewStagingSelection(newSelection: StagingSelectionItem): void;
 
 	dangerousSetState: (newState: ThreadsState) => void;
 	resetState: () => void;
@@ -543,6 +545,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 			// once validated, add checkpoint for edit
 			if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
+			if (toolName === 'rewrite_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['rewrite_file']).uri }) }
 
 			// 2. if tool requires approval, break from the loop, awaiting approval
 
@@ -842,7 +845,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		// 	if (fsPath in lastIdxOfURI) continue // if already visisted, don't visit again
 		// 	const { model } = this._voidModelService.getModelFromFsPath(fsPath)
 		// 	if (!model) continue
-		// 	currStrOfFsPath[fsPath] = model.getValue()
+		// 	currStrOfFsPath[fsPath] = model.getValue(EndOfLinePreference.LF)
 		// }
 
 		return { voidFileSnapshotOfURI }
@@ -1574,6 +1577,39 @@ We only need to do it for files that were edited since `from`, ie files between 
 		// if (messageIdx !== undefined)
 		// 	this.jumpToCheckpointBeforeMessageIdx({ threadId, messageIdx, jumpToUserModified: true })
 	}
+
+
+	addNewStagingSelection(newSelection: StagingSelectionItem): void {
+
+		const focusedMessageIdx = this.getCurrentFocusedMessageIdx()
+
+		// set the selections to the proper value
+		let selections: StagingSelectionItem[] = []
+		let setSelections = (s: StagingSelectionItem[]) => { }
+
+		if (focusedMessageIdx === undefined) {
+			selections = this.getCurrentThreadState().stagingSelections
+			setSelections = (s: StagingSelectionItem[]) => this.setCurrentThreadState({ stagingSelections: s })
+		} else {
+			selections = this.getCurrentMessageState(focusedMessageIdx).stagingSelections
+			setSelections = (s) => this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: s })
+		}
+
+		// if matches with existing selection, overwrite (since text may change)
+		const idx = findStagingSelectionIndex(selections, newSelection)
+		if (idx !== null && idx !== -1) {
+			setSelections([
+				...selections!.slice(0, idx),
+				newSelection,
+				...selections!.slice(idx + 1, Infinity)
+			])
+		}
+		// if no match, add it
+		else {
+			setSelections([...(selections ?? []), newSelection])
+		}
+	}
+
 
 	// set message.state
 	private _setCurrentMessageState(state: Partial<UserMessageState>, messageIdx: number): void {

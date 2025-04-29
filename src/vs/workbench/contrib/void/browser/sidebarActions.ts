@@ -30,31 +30,6 @@ import { getActiveWindow } from '../../../../base/browser/dom.js';
 // ---------- Register commands and keybindings ----------
 
 
-const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | undefined, newSelection: StagingSelectionItem): number | null => {
-	if (!currentSelections) return null
-
-	for (let i = 0; i < currentSelections.length; i += 1) {
-		const s = currentSelections[i]
-
-		if (s.uri.fsPath !== newSelection.uri.fsPath) continue
-
-		if (s.type === 'File' && newSelection.type === 'File') {
-			return i
-		}
-		if (s.type === 'CodeSelection' && newSelection.type === 'CodeSelection') {
-			if (s.uri.fsPath !== newSelection.uri.fsPath) continue
-			// if there's any collision return true
-			const [oldStart, oldEnd] = s.range
-			const [newStart, newEnd] = newSelection.range
-			if (oldStart !== newStart || oldEnd !== newEnd) continue
-			return i
-		}
-		if (s.type === 'Folder' && newSelection.type === 'Folder') {
-			return i
-		}
-	}
-	return null
-}
 
 export const roundRangeToLines = (range: IRange | null | undefined, options: { emptySelectionBehavior: 'null' | 'line' }) => {
 	if (!range)
@@ -104,8 +79,6 @@ registerAction2(class extends Action2 {
 })
 
 
-
-
 // Action: when press ctrl+L, show the sidebar chat and add to the selection
 const VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID = 'void.sidebar.select'
 registerAction2(class extends Action2 {
@@ -147,36 +120,9 @@ registerAction2(class extends Action2 {
 			state: { wasAddedAsCurrentFile: false }
 		}
 
-		// update the staging selections
 		const chatThreadService = accessor.get(IChatThreadService)
 
-		const focusedMessageIdx = chatThreadService.getCurrentFocusedMessageIdx()
-
-		// set the selections to the proper value
-		let selections: StagingSelectionItem[] = []
-		let setSelections = (s: StagingSelectionItem[]) => { }
-
-		if (focusedMessageIdx === undefined) {
-			selections = chatThreadService.getCurrentThreadState().stagingSelections
-			setSelections = (s: StagingSelectionItem[]) => chatThreadService.setCurrentThreadState({ stagingSelections: s })
-		} else {
-			selections = chatThreadService.getCurrentMessageState(focusedMessageIdx).stagingSelections
-			setSelections = (s) => chatThreadService.setCurrentMessageState(focusedMessageIdx, { stagingSelections: s })
-		}
-
-		// if matches with existing selection, overwrite (since text may change)
-		const idx = findStagingSelectionIndex(selections, newSelection)
-		if (idx !== null && idx !== -1) {
-			setSelections([
-				...selections!.slice(0, idx),
-				newSelection,
-				...selections!.slice(idx + 1, Infinity)
-			])
-		}
-		// if no match, add it
-		else {
-			setSelections([...(selections ?? []), newSelection])
-		}
+		chatThreadService.addNewStagingSelection(newSelection)
 
 	}
 });

@@ -4,7 +4,7 @@ The Void codebase is not as intimidating as it seems!
 
 Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
 
-The purpose of this document is to explain how Void's codebase works. If you want build instructions instead, see [Contributing](https://github.com/voideditor-test/void/blob/main/HOW_TO_CONTRIBUTE.md).
+The purpose of this document is to explain how Void's codebase works. If you want build instructions instead, see [Contributing](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
 
 
 
@@ -126,7 +126,7 @@ Here's a guide to some of the terminology we're using:
 
 
 ### Build process
-If you want to know how our build pipeline works, see our build repo [here](https://github.com/voideditor-test/void-builder).
+If you want to know how our build pipeline works, see our build repo [here](https://github.com/voideditor/void-builder).
 
 
 

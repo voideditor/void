@@ -14,6 +14,7 @@ import { URI } from '../../../../../../../base/common/uri.js'
 import { isAbsolute } from '../../../../../../../base/common/path.js'
 import { separateOutFirstLine } from '../../../../common/helpers/util.js'
 import { BlockCode } from '../util/inputs.js'
+import { CodespanLocationLink } from '../../../../common/chatThreadServiceTypes.js'
 
 
 export type ChatMessageLocation = {
@@ -113,7 +114,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 	const [didComputeCodespanLink, setDidComputeCodespanLink] = useState<boolean>(false)
 
-	let link = undefined
+	let link: CodespanLocationLink | undefined = undefined
 	if (rawText.endsWith('`')) { // if codespan was completed
 
 		// get link from cache
@@ -121,12 +122,12 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 		if (link === undefined) {
 			// if no link, generate link and add to cache
-			(chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
+			chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
 				.then(link => {
 					chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
 					setDidComputeCodespanLink(true) // rerender
 				})
-			)
+
 		}
 
 	}
@@ -543,6 +544,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 
 
 export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, codeURI?: URI, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
+	string = string.replaceAll('\n•', '\n\n•')
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>

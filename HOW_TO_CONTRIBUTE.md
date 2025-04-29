@@ -54,13 +54,15 @@ First, run `npm install -g node-gyp`. Then:
 
 1. `git clone https://github.com/voideditor/void` to clone the repo.
 2. `npm install` to install all dependencies.
-3. Build Void.
-	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
-   - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
+3. To build Void, open VSCode. Then:
+   - Windows: Press <kbd>Ctrl+Shift+B</kbd>.
+   - Mac: Press <kbd>Cmd+Shift+B</kbd>.
+   - Linux: Press <kbd>Ctrl+Shift+B</kbd>.
    - This step can take ~5 min. The build is done when you see two check marks (one of the items will continue spinning indefinitely - it compiles our React code).
-4. Run Void.
-   - Run `./scripts/code.sh` (Mac/Linux).
-   - Run `./scripts/code.bat` (Windows).
+4. To run Void:
+   - Windows: `./scripts/code.bat`.
+   - Mac: `./scripts/code.sh`.
+   - Linux: `./scripts/code.sh`.
 5. Nice-to-knows.
    - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
    - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.

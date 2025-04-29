@@ -133,6 +133,8 @@ If you want to know how our build pipeline works, see our build repo [here](http
 ## VSCode Codebase Guide
 
 The Void team put together this list of links to get up and running with VSCode's sourcecode, the foundation of Void. We hope it's helpful!
+<details>
+	
 
 #### Links for Beginners
 
@@ -169,3 +171,4 @@ Void is no longer an extension, so these links are no longer required, but they 
 - [Activation events](https://code.visualstudio.com/api/references/activation-events) you can define in `package.json` (not the most useful).
 
 
+</details>

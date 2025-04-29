@@ -38,7 +38,7 @@
 					"type": "string",
 					"description": "The URL from where the vscode server will be downloaded. You can use the following variables and they will be replaced dynamically:\n- ${quality}: vscode server quality, e.g. stable or insiders\n- ${version}: vscode server version, e.g. 1.69.0\n- ${commit}: vscode server release commit\n- ${arch}: vscode server arch, e.g. x64, armhf, arm64\n- ${release}: release number",
 					"scope": "application",
-					"default": "https://github.com/voideditor-test/binaries/releases/download/${version}.${release}/void-reh-${os}-${arch}-${version}.${release}.tar.gz"
+					"default": "https://github.com/voideditor/binaries/releases/download/${version}.${release}/void-reh-${os}-${arch}-${version}.${release}.tar.gz"
 				}
 			}
 		},

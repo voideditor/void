@@ -74,9 +74,9 @@ export const sendLLMMessage = async ({
 	}
 
 	const onFinalMessage: OnFinalMessage = (params) => {
-		const { fullText, fullReasoning } = params
+		const { fullText, fullReasoning, toolCall } = params
 		if (_didAbort) return
-		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, reasoningLength: fullReasoning?.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, reasoningLength: fullReasoning?.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds(), toolCallName: toolCall?.name })
 		onFinalMessage_(params)
 	}
 

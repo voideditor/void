@@ -205,7 +205,7 @@ MenuRegistry.appendMenuItems([{
 		group: '3_workbench_layout_move',
 		command: {
 			id: ToggleSidebarPositionAction.ID,
-			title: localize('move second sidebar left', "Move Void Side Bar Left") // Void renamed "Secondary" Side Bar to "Void" Side Bar
+			title: localize('move second sidebar left', "Move Void Side Bar Left")
 		},
 		when: ContextKeyExpr.and(ContextKeyExpr.notEquals('config.workbench.sideBar.location', 'right'), ContextKeyExpr.equals('viewContainerLocation', ViewContainerLocationToString(ViewContainerLocation.AuxiliaryBar))),
 		order: 1

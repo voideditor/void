@@ -30,7 +30,7 @@ const { getProductionDependencies } = require('./lib/dependencies');
 const { config } = require('./lib/electron');
 const createAsar = require('./lib/asar').createAsar;
 const minimist = require('minimist');
-const { compileBuildTask } = require('./gulpfile.compile');
+const { compileBuildWithoutManglingTask, compileBuildWithManglingTask } = require('./gulpfile.compile');
 const { compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, compileAllExtensionsBuildTask, compileExtensionMediaBuildTask, cleanExtensionsBuildTask } = require('./gulpfile.extensions');
 const { promisify } = require('util');
 const glob = promisify(require('glob'));
@@ -101,6 +101,9 @@ const vscodeResourceIncludes = [
 
 	// Tree Sitter highlights
 	'out-build/vs/editor/common/languages/highlights/*.scm',
+
+	// Tree Sitter injection queries
+	'out-build/vs/editor/common/languages/injections/*.scm',
 ];
 
 const vscodeResources = [
@@ -166,25 +169,25 @@ const minifyVSCodeTask = task.define('minify-vscode', task.series(
 ));
 gulp.task(minifyVSCodeTask);
 
-const core = task.define('core-ci', task.series(
-	gulp.task('compile-build'),
+const coreCI = task.define('core-ci', task.series(
+	gulp.task('compile-build-with-mangling'),
 	task.parallel(
 		gulp.task('minify-vscode'),
 		gulp.task('minify-vscode-reh'),
 		gulp.task('minify-vscode-reh-web'),
 	)
 ));
-gulp.task(core);
+gulp.task(coreCI);
 
-const corePr = task.define('core-ci-pr', task.series(
-	gulp.task('compile-build-pr'),
+const coreCIPR = task.define('core-ci-pr', task.series(
+	gulp.task('compile-build-without-mangling'),
 	task.parallel(
 		gulp.task('minify-vscode'),
 		gulp.task('minify-vscode-reh'),
 		gulp.task('minify-vscode-reh-web'),
 	)
 ));
-gulp.task(corePr);
+gulp.task(coreCIPR);
 
 /**
  * Compute checksums for some files.
@@ -267,8 +270,7 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 		}
 
 		const name = product.nameShort;
-		const release = packageJson.release;
-		const packageJsonUpdates = { name, version, release };
+		const packageJsonUpdates = { name, version };
 
 		if (platform === 'linux') {
 			packageJsonUpdates.desktopName = `${product.applicationName}.desktop`;
@@ -282,10 +284,9 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 				this.emit('data', file);
 			}));
 
-		// Void - this is important, creates the product.json in .app
 		let productJsonContents;
 		const productJsonStream = gulp.src(['product.json'], { base: '.' })
-			.pipe(json({ commit, date: readISODate('out-build'), checksums, version, release }))
+			.pipe(json({ commit, date: readISODate('out-build'), checksums, version }))
 			.pipe(es.through(function (file) {
 				productJsonContents = file.contents.toString();
 				this.emit('data', file);
@@ -373,9 +374,10 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 		} else if (platform === 'darwin') {
 			const shortcut = gulp.src('resources/darwin/bin/code.sh')
 				.pipe(replace('@@APPNAME@@', product.applicationName))
-				.pipe(rename('bin/' + product.applicationName));
-
-			all = es.merge(all, shortcut);
+				.pipe(rename('bin/code'));
+			const policyDest = gulp.src('.build/policies/darwin/**', { base: '.build/policies/darwin' })
+				.pipe(rename(f => f.dirname = `policies/${f.dirname}`));
+			all = es.merge(all, shortcut, policyDest);
 		}
 
 		let result = all
@@ -502,7 +504,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 		gulp.task(vscodeTaskCI);
 
 		const vscodeTask = task.define(`vscode${dashed(platform)}${dashed(arch)}${dashed(minified)}`, task.series(
-			compileBuildTask,
+			minified ? compileBuildWithManglingTask : compileBuildWithoutManglingTask,
 			cleanExtensionsBuildTask,
 			compileNonNativeExtensionsBuildTask,
 			compileExtensionMediaBuildTask,
@@ -540,7 +542,7 @@ const innoSetupConfig = {
 gulp.task(task.define(
 	'vscode-translations-export',
 	task.series(
-		core,
+		coreCI,
 		compileAllExtensionsBuildTask,
 		function () {
 			const pathToMetadata = './out-build/nls.metadata.json';

@@ -22,6 +22,7 @@ export const approvalTypeOfToolName: Partial<{ [T in ToolName]?: 'edits' | 'term
 	'rewrite_file': 'edits',
 	'edit_file': 'edits',
 	'run_command': 'terminal',
+	'run_persistent_command': 'terminal',
 }
 
 
@@ -48,8 +49,9 @@ export type ToolCallParams = {
 	'create_file_or_folder': { uri: URI, isFolder: boolean },
 	'delete_file_or_folder': { uri: URI, isRecursive: boolean, isFolder: boolean },
 	// ---
-	'run_command': { command: string; persistentTerminalId: string | null },
-	'open_persistent_terminal': {},
+	'run_command': { command: string; cwd: string | null, terminalId: string },
+	'open_persistent_terminal': { cwd: string | null },
+	'run_persistent_command': { command: string; persistentTerminalId: string },
 	'kill_persistent_terminal': { persistentTerminalId: string },
 }
 
@@ -69,6 +71,7 @@ export type ToolResultType = {
 	'delete_file_or_folder': {},
 	// ---
 	'run_command': { result: string; resolveReason: TerminalResolveReason; },
+	'run_persistent_command': { result: string; resolveReason: TerminalResolveReason; },
 	'open_persistent_terminal': { persistentTerminalId: string },
 	'kill_persistent_terminal': {},
 }

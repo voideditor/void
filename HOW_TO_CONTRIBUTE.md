@@ -4,15 +4,15 @@ This is the official guide on how to contribute to Void. We want to make it as e
 
 There are a few ways to contribute:
 
-- 💫 Complete items on the [Roadmap](https://github.com/orgs/voideditor/projects/2).
+- 💫 Complete items on the [Roadmap](https://github.com/orgs/voideditor-test/projects/2).
 - 💡 Make suggestions in our [Discord](https://discord.gg/RSNjgaugJs).
-- 🪴 Start new Issues - see [Issues](https://github.com/voideditor/void/issues).
+- 🪴 Start new Issues - see [Issues](https://github.com/voideditor-test/void/issues).
 
 
 
 ### Codebase Guide
 
-We [highly recommend reading this](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md) guide that we put together on Void's sourcecode if you'd like to contribute!
+We [highly recommend reading this](https://github.com/voideditor-test/void/blob/main/VOID_CODEBASE_GUIDE.md) guide that we put together on Void's sourcecode if you'd like to contribute!
 
 The repo is not as intimidating as it first seems if you read the guide!
 
@@ -23,11 +23,11 @@ Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
 
 ## Building Void
 
-### a. Mac - Build Prerequisites
+### a. Build Prerequisites - Mac
 
 If you're using a Mac, you need Python and XCode. You probably have these by default.
 
-### b. Windows - Build Prerequisites
+### b. Build Prerequisites - Windows
 
 If you're using a Windows computer, first get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community) (recommended) or [VS Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools) (not recommended). If you already have both, you might need to run the next few steps on both of them.
 
@@ -42,7 +42,7 @@ Go to the "Individual Components" tab and select:
 
 Finally, click Install.
 
-### c. Linux - Build Prerequisites
+### c. Build Prerequisites - Linux
 
 First, run `npm install -g node-gyp`. Then:
 
@@ -50,28 +50,27 @@ First, run `npm install -g node-gyp`. Then:
 - Red Hat (Fedora, etc): `sudo dnf install @development-tools gcc gcc-c++ make libsecret-devel krb5-devel libX11-devel libxkbfile-devel`.
 - Others: see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
-### d. Building Void from inside VSCode
+### d. Building Void
 
 To build Void, open `void/` inside VSCode. Then open your terminal and run:
 
 1. `npm install` to install all dependencies.
-2. Build Void.
+2. `npm run watchreact` to build Void's browser dependencies like React. (If this doesn't work, try `npm run buildreact`).
+3. Build Void.
 	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
    - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
    - This step can take ~5 min. The build is done when you see two check marks (one of the items will continue spinning indefinitely - it compiles our React code).
-3. Run Void.
+4. Run Void.
    - Run `./scripts/code.sh` (Mac/Linux).
    - Run `./scripts/code.bat` (Windows).
-4. Nice-to-knows.
+6. Nice-to-knows.
    - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
    - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
 	- You can kill any of the build scripts by pressing `Ctrl+D` in VSCode terminal. If you press `Ctrl+C` the script will close but will keep running in the background (to open all background scripts, just re-build).
 
-If you get any errors, scroll down for common fixes.
-
 #### Building Void from Terminal
 
-To build Void from the terminal instead of from inside VSCode, follow the steps above, but instead of pressing <kbd>Cmd+Shift+B</kbd>, run `npm run watch`. The build is done when you see something like this:
+Alternatively, if you want to build Void from the terminal, instead of pressing <kbd>Cmd+Shift+B</kbd> you can run `npm run watch`. The build is done when you see something like this:
 
 ```
 [watch-extensions] [00:37:39] Finished compilation extensions with 0 errors after 19303 ms
@@ -81,17 +80,15 @@ To build Void from the terminal instead of from inside VSCode, follow the steps 
 ```
 
 
+
 #### Common Fixes
 
-- Make sure you followed the prerequisite steps above.
+- Make sure you followed the prerequisite steps.
 - Make sure you have Node version `20.18.2` (the version in `.nvmrc`)!
 - If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
-- If you get an error with React, try running `NODE_OPTIONS="--max-old-space-size=8192" npm run buildreact`.
 - If you see missing styles, wait a few seconds and then reload.
-- If you get errors like `npm error libtool:   error: unrecognised option: '-static'`,  when running ./scripts/code.sh, make sure you have GNU libtool instead of BSD libtool (BSD is the default in macos)
-- If you get erorrs like `The SUID sandbox helper binary was found, but is not configured correctly` when running ./scripts/code.sh, run
-`sudo chown root:root .build/electron/chrome-sandbox && sudo chmod 4755 .build/electron/chrome-sandbox` and then run `./scripts/code.sh` again.
-- If you have any other questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+- If you have any questions, feel free to [submit an issue](https://github.com/voideditor-test/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+- If you get errors like `npm error libtool:   error: unrecognised option: '-static'`, make sure you have GNU libtool instead of BSD libtool (BSD is the default in macos)
 
 
 ## Packaging
@@ -122,7 +119,7 @@ workspace/
 ```
 
 ### Distributing
-Void's maintainers distribute Void on our website and in releases. Our build pipeline is a fork of VSCodium, and it works by running GitHub Actions which create the downloadables. The build repo with more instructions lives [here](https://github.com/voideditor/void-builder).
+Void's maintainers distribute Void on our website and in releases. Our build pipeline is a fork of VSCodium, and it works by running GitHub Actions which create the downloadables. The build repo with more instructions lives [here](https://github.com/voideditor-test/void-builder).
 
 ## Pull Request Guidelines
 

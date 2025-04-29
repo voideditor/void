@@ -46,6 +46,7 @@ export async function collectWorkspaceStats(folder: string, filter: string[]): P
 		{ tag: 'eslint.json', filePattern: /^eslint\.json$/i },
 		{ tag: 'tasks.json', filePattern: /^tasks\.json$/i },
 		{ tag: 'launch.json', filePattern: /^launch\.json$/i },
+		{ tag: 'mcp.json', filePattern: /^mcp\.json$/i },
 		{ tag: 'settings.json', filePattern: /^settings\.json$/i },
 		{ tag: 'webpack.config.js', filePattern: /^webpack\.config\.js$/i },
 		{ tag: 'project.json', filePattern: /^project\.json$/i },
@@ -230,7 +231,7 @@ export class DiagnosticsService implements IDiagnosticsService {
 
 	private formatEnvironment(info: IMainProcessDiagnostics): string {
 		const output: string[] = [];
-		output.push(`Version:          ${this.productService.nameShort} ${this.productService.version} ${this.productService.release || 'Release unknown'} (${this.productService.commit || 'Commit unknown'}, ${this.productService.date || 'Date unknown'})`);
+		output.push(`Version:          ${this.productService.nameShort} ${this.productService.version} (${this.productService.commit || 'Commit unknown'}, ${this.productService.date || 'Date unknown'})`);
 		output.push(`OS Version:       ${osLib.type()} ${osLib.arch()} ${osLib.release()}`);
 		const cpus = osLib.cpus();
 		if (cpus && cpus.length > 0) {

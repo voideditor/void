@@ -62,6 +62,9 @@ export interface IVoidSettingsService {
 	setOptionsOfModelSelection: SetOptionsOfModelSelection;
 	setGlobalSetting: SetGlobalSettingFn;
 
+	dangerousSetState(newState: VoidSettingsState): Promise<void>;
+	resetState(): Promise<void>;
+
 	setAutodetectedModels(providerName: ProviderName, modelNames: string[], logging: object): void;
 	toggleModelHidden(providerName: ProviderName, modelName: string): void;
 	addModel(providerName: ProviderName, modelName: string): void;
@@ -71,24 +74,22 @@ export interface IVoidSettingsService {
 
 
 
-const _updatedModelsAfterDefaultModelsChange = (defaultModelNames: string[], options: { existingModels: VoidStatefulModelInfo[], didAutoDetect: boolean }) => {
-	const { existingModels, didAutoDetect } = options
+const _modelsWithSwappedInNewModels = (options: { existingModels: VoidStatefulModelInfo[], models: string[], type: 'autodetected' | 'default' }) => {
+	const { existingModels, models, type } = options
 
 	const existingModelsMap: Record<string, VoidStatefulModelInfo> = {}
 	for (const existingModel of existingModels) {
 		existingModelsMap[existingModel.modelName] = existingModel
 	}
 
-	const newDefaultModels = defaultModelNames.map((modelName, i) => ({
-		modelName,
-		isDefault: true,
-		isAutodetected: didAutoDetect,
-		isHidden: !!existingModelsMap[modelName]?.isHidden,
-	}))
+	const newDefaultModels = models.map((modelName, i) => ({ modelName, type, isHidden: !!existingModelsMap[modelName]?.isHidden, }))
 
 	return [
-		...newDefaultModels, // swap out all the default models for the new default models
-		...existingModels.filter(m => !m.isDefault), // keep any non-default (custom) models
+		...newDefaultModels, // swap out all the models of this type for the new models of this type
+		...existingModels.filter(m => {
+			const keep = m.type !== type
+			return keep
+		})
 	]
 }
 
@@ -101,7 +102,7 @@ export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter:
 }
 
 
-const _stateWithUpdatedDefaultModels = (state: VoidSettingsState): VoidSettingsState => {
+const _stateWithMergedDefaultModels = (state: VoidSettingsState): VoidSettingsState => {
 	let newSettingsOfProvider = state.settingsOfProvider
 
 	// recompute default models
@@ -109,7 +110,7 @@ const _stateWithUpdatedDefaultModels = (state: VoidSettingsState): VoidSettingsS
 		const defaultModels = defaultSettingsOfProvider[providerName]?.models ?? []
 		const currentModels = newSettingsOfProvider[providerName]?.models ?? []
 		const defaultModelNames = defaultModels.map(m => m.modelName)
-		const newModels = _updatedModelsAfterDefaultModelsChange(defaultModelNames, { existingModels: currentModels, didAutoDetect: false })
+		const newModels = _modelsWithSwappedInNewModels({ existingModels: currentModels, models: defaultModelNames, type: 'default' })
 		newSettingsOfProvider = {
 			...newSettingsOfProvider,
 			[providerName]: {
@@ -233,36 +234,76 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		this.readAndInitializeState()
 	}
 
+
+
+
+	dangerousSetState = async (newState: VoidSettingsState) => {
+		this.state = _validatedModelState(newState)
+		await this._storeState()
+		this._onDidChangeState.fire()
+		this._onUpdate_syncApplyToChat()
+	}
+	async resetState() {
+		await this.dangerousSetState(defaultState())
+	}
+
+
+
+
 	async readAndInitializeState() {
 		let readS: VoidSettingsState
 		try {
 			readS = await this._readState();
 			// 1.0.3 addition, remove when enough users have had this code run
 			if (readS.globalSettings.includeToolLintErrors === undefined) readS.globalSettings.includeToolLintErrors = true
+
+			// autoapprove is now an obj not a boolean (1.2.5)
+			if (typeof readS.globalSettings.autoApprove === 'boolean') readS.globalSettings.autoApprove = {}
 		}
 		catch (e) {
 			readS = defaultState()
 		}
 
 		// the stored data structure might be outdated, so we need to update it here
-		readS = {
-			...readS,
-			settingsOfProvider: {
+		try {
+			readS = {
+				...readS,
 				...defaultSettingsOfProvider,
 				...readS.settingsOfProvider,
-				mistral: { // we added mistral
-					...defaultSettingsOfProvider.mistral,
-					...readS.settingsOfProvider.mistral,
-				},
-			} // we added mistral
+			}
+
+			for (const providerName of providerNames) {
+				readS.settingsOfProvider[providerName] = {
+					...defaultSettingsOfProvider[providerName],
+					...readS.settingsOfProvider[providerName],
+				} as any
+
+				// conversion from 1.0.3 to 1.2.5 (can remove this when enough people update)
+				for (const m of readS.settingsOfProvider[providerName].models) {
+					if (!m.type) {
+						const old = (m as { isAutodetected?: boolean; isDefault?: boolean })
+						if (old.isAutodetected)
+							m.type = 'autodetected'
+						else if (old.isDefault)
+							m.type = 'default'
+						else m.type = 'custom'
+					}
+				}
+			}
 		}
+
+		catch (e) {
+			readS = defaultState()
+		}
+
 		this.state = readS
-		this.state = _stateWithUpdatedDefaultModels(this.state)
+		this.state = _stateWithMergedDefaultModels(this.state)
 		this.state = _validatedModelState(this.state);
 
 
 		this._resolver();
 		this._onDidChangeState.fire();
+
 	}
 
 
@@ -389,7 +430,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const { models } = this.state.settingsOfProvider[providerName]
 		const oldModelNames = models.map(m => m.modelName)
 
-		const newModels = _updatedModelsAfterDefaultModelsChange(autodetectedModelNames, { existingModels: models, didAutoDetect: true })
+		const newModels = _modelsWithSwappedInNewModels({ existingModels: models, models: autodetectedModelNames, type: 'autodetected' })
 		this.setSettingOfProvider(providerName, 'models', newModels)
 
 		// if the models changed, log it
@@ -423,7 +464,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		if (existingIdx !== -1) return // if exists, do nothing
 		const newModels = [
 			...models,
-			{ modelName, isDefault: false, isHidden: false }
+			{ modelName, type: 'custom', isHidden: false } as const
 		]
 		this.setSettingOfProvider(providerName, 'models', newModels)
 

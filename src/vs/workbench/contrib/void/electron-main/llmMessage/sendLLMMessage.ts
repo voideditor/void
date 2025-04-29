@@ -9,7 +9,7 @@ import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';
 
 
-export const sendLLMMessage = ({
+export const sendLLMMessage = async ({
 	messagesType,
 	messages: messages_,
 	onText: onText_,
@@ -32,6 +32,15 @@ export const sendLLMMessage = ({
 
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
+
+		let totalTokens = 0
+		if (messagesType === 'chatMessages') {
+			for (const m of messages_) totalTokens += m.content.length
+		}
+		else {
+			totalTokens = messages_.prefix.length + messages_.suffix.length
+		}
+
 		metricsService.capture(eventId, {
 			providerName,
 			modelName,
@@ -40,14 +49,12 @@ export const sendLLMMessage = ({
 			...messagesType === 'chatMessages' ? {
 				numMessages: messages_?.length,
 				messagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
-				origNumMessages: messages_?.length,
-				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
 
 			} : messagesType === 'FIMMessage' ? {
 				prefixLength: messages_.prefix.length,
 				suffixLength: messages_.suffix.length,
 			} : {},
-
+			totalTokens,
 			...loggingExtras,
 			...extras,
 		})
@@ -67,9 +74,9 @@ export const sendLLMMessage = ({
 	}
 
 	const onFinalMessage: OnFinalMessage = (params) => {
-		const { fullText, fullReasoning } = params
+		const { fullText, fullReasoning, toolCall } = params
 		if (_didAbort) return
-		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, reasoningLength: fullReasoning?.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, reasoningLength: fullReasoning?.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds(), toolCallName: toolCall?.name })
 		onFinalMessage_(params)
 	}
 
@@ -94,10 +101,11 @@ export const sendLLMMessage = ({
 	}
 	abortRef_.current = onAbort
 
+
 	if (messagesType === 'chatMessages')
-		captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messages_?.[messages_.length - 1]?.content.length })
+		captureLLMEvent(`${loggingName} - Sending Message`, { userMessageLength: messages_?.[messages_.length - 1]?.content.length })
 	else if (messagesType === 'FIMMessage')
-		captureLLMEvent(`${loggingName} - Sending FIM`, { prefixLen: messages_?.prefix?.length, suffixLen: messages_?.suffix?.length }) // TODO!!! add more metrics for FIM
+		captureLLMEvent(`${loggingName} - Sending FIM`, { prefixLen: messages_?.prefix?.length, suffixLen: messages_?.suffix?.length })
 
 
 	try {
@@ -108,12 +116,12 @@ export const sendLLMMessage = ({
 		}
 		const { sendFIM, sendChat } = implementation
 		if (messagesType === 'chatMessages') {
-			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage, chatMode })
+			await sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage, chatMode })
 			return
 		}
 		if (messagesType === 'FIMMessage') {
 			if (sendFIM) {
-				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage })
+				await sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage })
 				return
 			}
 			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })

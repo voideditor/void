@@ -13,7 +13,7 @@ import { VOID_OPEN_SIDEBAR_ACTION_ID } from './sidebarPane.js';
 
 // service that manages sidebar's state
 export type VoidSidebarState = {
-	isHistoryOpen: boolean;
+	isHistoryOpen: boolean; // this isn't doing anything right now
 	currentTab: 'chat';
 }
 

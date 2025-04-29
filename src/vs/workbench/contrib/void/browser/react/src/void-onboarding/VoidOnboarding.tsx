@@ -9,8 +9,10 @@ import { Brain, Check, ChevronRight, DollarSign, ExternalLink, Lock, X } from 'l
 import { displayInfoOfProviderName, ProviderName, providerNames, refreshableProviderNames } from '../../../../common/voidSettingsTypes.js';
 import { getModelCapabilities, ollamaRecommendedModels } from '../../../../common/modelCapabilities.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
-import { AddModelInputBox, AnimatedCheckmarkButton, ollamaSetupInstructions, OneClickSwitchButton, SettingsForProvider } from '../void-settings-tsx/Settings.js';
+import { AddModelInputBox, AnimatedCheckmarkButton, OllamaSetupInstructions, OneClickSwitchButton, SettingsForProvider } from '../void-settings-tsx/Settings.js';
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js';
+import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js';
+import { isLinux } from '../../../../../../../base/common/platform.js';
 
 const OVERRIDE_VALUE = false
 
@@ -29,7 +31,9 @@ export const VoidOnboarding = () => {
 					transition-all duration-1000 ${isOnboardingComplete ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}
 				`}
 			>
-				<VoidOnboardingContent />
+				<ErrorBoundary>
+					<VoidOnboardingContent />
+				</ErrorBoundary>
 			</div>
 		</div>
 	)
@@ -128,16 +132,25 @@ const FadeIn = ({ children, className, delayMs = 0, durationMs, ...props }: { ch
 // 		prev/next
 
 const NextButton = ({ onClick, ...props }: { onClick: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+
+	// Create a new props object without the disabled attribute
+	const { disabled, ...buttonProps } = props;
+
 	return (
 		<button
-			onClick={onClick}
-			className="px-6 py-2 bg-zinc-100 enabled:hover:bg-zinc-100 disabled:bg-zinc-100/40 disabled:cursor-not-allowed rounded text-black duration-600 transition-all"
-			{...props.disabled && {
+			onClick={disabled ? undefined : onClick}
+			onDoubleClick={onClick}
+			className={`px-6 py-2 bg-zinc-100 ${disabled
+				? 'bg-zinc-100/40 cursor-not-allowed'
+				: 'hover:bg-zinc-100'
+				} rounded text-black duration-600 transition-all
+			`}
+			{...disabled && {
 				'data-tooltip-id': 'void-tooltip',
-				'data-tooltip-content': 'Please enter all required fields or choose another provider',
-				'data-tooltip-place': 'top',
+				"data-tooltip-content": 'Please enter all required fields or choose another provider', // (double-click to proceed anyway, can come back in Settings)
+				"data-tooltip-place": 'top',
 			}}
-			{...props}
+			{...buttonProps}
 		>
 			Next
 		</button>
@@ -303,11 +316,11 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 
 
 	// info used to show the table
-	const infoOfModelName: Record<string, { showAsDefault: boolean, isDownloaded: boolean }> = {}
+	const infoOfModelName: Record<string, { showAsDefault: boolean, isDownloaded: boolean } | undefined> = {}
 
 	voidSettingsState.settingsOfProvider[providerName].models.forEach(m => {
 		infoOfModelName[m.modelName] = {
-			showAsDefault: m.isDefault,
+			showAsDefault: m.type !== 'custom',
 			isDownloaded: true
 		}
 	})
@@ -317,7 +330,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 		for (const modelName of ollamaRecommendedModels) {
 			if (modelName in infoOfModelName) continue
 			infoOfModelName[modelName] = {
-				...infoOfModelName[modelName],
+				isDownloaded: infoOfModelName[modelName]?.isDownloaded ?? false,
 				showAsDefault: true,
 			}
 		}
@@ -339,7 +352,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 		</thead>
 		<tbody>
 			{Object.keys(infoOfModelName).map(modelName => {
-				const { showAsDefault, isDownloaded } = infoOfModelName[modelName]
+				const { showAsDefault, isDownloaded } = infoOfModelName[modelName] ?? {}
 
 
 				const capabilities = getModelCapabilities(providerName, modelName)
@@ -367,7 +380,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 
 
 				return (
-					<tr key={modelName} className="border-b border-void-border-1 hover:bg-void-bg-3/50">
+					<tr key={`${modelName}${providerName}`} className="border-b border-void-border-1 hover:bg-void-bg-3/50">
 						<td className="py-2 px-3 relative">
 							{!showAsDefault && removeModelButton}
 							{modelName}
@@ -380,7 +393,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 						{/* <td className="py-2 px-3"><YesNoText val={!!reasoningCapabilities} /></td> */}
 						{isDetectableLocally && <td className="py-2 px-3 flex items-center justify-center">{!!isDownloaded ? <Check className="w-4 h-4" /> : <></>}</td>}
 						{providerName === 'ollama' && <th className="py-2 px-3">
-							<OllamaDownloadOrRemoveModelButton modelName={modelName} isModelInstalled={infoOfModelName[modelName].isDownloaded} sizeGb={downloadable && downloadable.sizeGb} />
+							<OllamaDownloadOrRemoveModelButton modelName={modelName} isModelInstalled={!!infoOfModelName[modelName]?.isDownloaded} sizeGb={downloadable && downloadable.sizeGb} />
 						</th>}
 
 					</tr>
@@ -388,10 +401,13 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 			})}
 			<tr className="hover:bg-void-bg-3/50">
 				<td className="py-2 px-3 text-void-accent">
-					<AddModelInputBox
-						key={providerName}
-						providerName={providerName}
-						compact={true} />
+					<ErrorBoundary>
+						<AddModelInputBox
+							key={providerName}
+							providerName={providerName}
+							compact={true}
+						/>
+					</ErrorBoundary>
 				</td>
 				<td colSpan={4}></td>
 			</tr>
@@ -459,6 +475,7 @@ const VoidOnboardingContent = () => {
 
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidMetricsService = accessor.get('IMetricsService')
 
 	const voidSettingsState = useSettingsState()
 
@@ -497,7 +514,7 @@ const VoidOnboardingContent = () => {
 
 	const providerNamesOfWantToUseOption: { [wantToUseOption in WantToUseOption]: ProviderName[] } = {
 		smart: ['anthropic', 'openAI', 'gemini', 'openRouter'],
-		private: ['ollama', 'vLLM', 'openAICompatible'],
+		private: ['ollama', 'vLLM', 'openAICompatible', 'lmStudio'],
 		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM'],
 		all: providerNames,
 	}
@@ -529,7 +546,10 @@ const VoidOnboardingContent = () => {
 				onClick={() => { setPageIndex(pageIndex - 1) }}
 			/>
 			<PrimaryActionButton
-				onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
+				onClick={() => {
+					voidSettingsService.setGlobalSetting('isOnboardingComplete', true);
+					voidMetricsService.capture('Completed Onboarding', { selectedProviderName, wantToUseOption })
+				}}
 				ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
 			>Enter the Void</PrimaryActionButton>
 		</div>
@@ -584,7 +604,7 @@ const VoidOnboardingContent = () => {
 
 					{/* Slice of Void image */}
 					<div className='max-w-md w-full h-[30vh] mx-auto flex items-center justify-center'>
-						<VoidIcon />
+						{!isLinux && <VoidIcon />}
 					</div>
 
 
@@ -612,15 +632,16 @@ const VoidOnboardingContent = () => {
 
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[800px] mx-auto mt-8">
+
 					<button
-						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
+						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
 						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
-							<Brain size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Intelligent</div>
+							<DollarSign size={24} className="text-void-fg-2 mr-2" />
+							<div className="text-lg font-medium text-void-fg-1">Affordable</div>
 						</div>
-						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['smart']}</div>
+						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['cheap']}</div>
 					</button>
 
 					<button
@@ -635,14 +656,14 @@ const VoidOnboardingContent = () => {
 					</button>
 
 					<button
-						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
+						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
 						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
 					>
 						<div className="flex items-center mb-3">
-							<DollarSign size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Affordable</div>
+							<Brain size={24} className="text-void-fg-2 mr-2" />
+							<div className="text-lg font-medium text-void-fg-1">Intelligent</div>
 						</div>
-						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['cheap']}</div>
+						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['smart']}</div>
 					</button>
 				</div>
 
@@ -672,19 +693,22 @@ const VoidOnboardingContent = () => {
 							{ id: 'cheap', label: 'Affordable' },
 							{ id: 'all', label: 'All' }
 						].map(option => (
-							<button
+							<ErrorBoundary
 								key={option.id}
-								onClick={() => setWantToUseOption(option.id as WantToUseOption)}
-								className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors ${wantToUseOption === option.id
-									? 'dark:text-white text-black font-medium'
-									: 'text-void-fg-3 hover:text-void-fg-2'
-									}`}
-								data-tooltip-id='void-tooltip'
-								data-tooltip-content={`${option.label} providers`}
-								data-tooltip-place='bottom'
 							>
-								{option.label}
-							</button>
+								<button
+									onClick={() => setWantToUseOption(option.id as WantToUseOption)}
+									className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors ${wantToUseOption === option.id
+										? 'dark:text-white text-black font-medium'
+										: 'text-void-fg-3 hover:text-void-fg-2'
+										}`}
+									data-tooltip-id='void-tooltip'
+									data-tooltip-content={`${option.label} providers`}
+									data-tooltip-place='bottom'
+								>
+									{option.label}
+								</button>
+							</ErrorBoundary>
 						))}
 					</div>
 
@@ -693,108 +717,129 @@ const VoidOnboardingContent = () => {
 					{/* Provider Buttons - Modified to use separate components for each tab */}
 					<div className="mb-2 w-full">
 						{/* Intelligent tab */}
-						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'smart' ? 'flex' : 'hidden'}`}>
-							{providerNamesOfWantToUseOption['smart'].map((providerName) => {
-								const isSelected = selectedIntelligentProvider === providerName;
-								return (
-									<button
-										key={providerName}
-										onClick={() => setSelectedIntelligentProvider(providerName)}
-										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+						<ErrorBoundary>
+							<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'smart' ? 'flex' : 'hidden'}`}>
+								{providerNamesOfWantToUseOption['smart'].map((providerName) => {
+									const isSelected = selectedIntelligentProvider === providerName;
+									return (
+										<button
+											key={providerName}
+											onClick={() => setSelectedIntelligentProvider(providerName)}
+											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
 											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-									>
-										{displayInfoOfProviderName(providerName).title}
-									</button>
-								);
-							})}
-						</div>
+										>
+											{displayInfoOfProviderName(providerName).title}
+										</button>
+									);
+								})}
+							</div>
+						</ErrorBoundary>
+
 
 						{/* Private tab */}
-						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'private' ? 'flex' : 'hidden'}`}>
-							{providerNamesOfWantToUseOption['private'].map((providerName) => {
-								const isSelected = selectedPrivateProvider === providerName;
-								return (
-									<button
-										key={providerName}
-										onClick={() => setSelectedPrivateProvider(providerName)}
-										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+						<ErrorBoundary>
+							<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'private' ? 'flex' : 'hidden'}`}>
+								{providerNamesOfWantToUseOption['private'].map((providerName) => {
+									const isSelected = selectedPrivateProvider === providerName;
+									return (
+										<button
+											key={providerName}
+											onClick={() => setSelectedPrivateProvider(providerName)}
+											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
 											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-									>
-										{displayInfoOfProviderName(providerName).title}
-									</button>
-								);
-							})}
-						</div>
+										>
+											{displayInfoOfProviderName(providerName).title}
+										</button>
+									);
+								})}
+							</div>
+						</ErrorBoundary>
+
 
 						{/* Affordable tab */}
-						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'cheap' ? 'flex' : 'hidden'}`}>
-							{providerNamesOfWantToUseOption['cheap'].map((providerName) => {
-								const isSelected = selectedAffordableProvider === providerName;
-								return (
-									<button
-										key={providerName}
-										onClick={() => setSelectedAffordableProvider(providerName)}
-										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+						<ErrorBoundary>
+
+							<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'cheap' ? 'flex' : 'hidden'}`}>
+								{providerNamesOfWantToUseOption['cheap'].map((providerName) => {
+									const isSelected = selectedAffordableProvider === providerName;
+									return (
+										<button
+											key={providerName}
+											onClick={() => setSelectedAffordableProvider(providerName)}
+											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
 											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-									>
-										{displayInfoOfProviderName(providerName).title}
-									</button>
-								);
-							})}
-						</div>
+										>
+											{displayInfoOfProviderName(providerName).title}
+										</button>
+									);
+								})}
+							</div>
+						</ErrorBoundary>
+
 
 						{/* All tab */}
-						<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'all' ? 'flex' : 'hidden'}`}>
-							{providerNames.map((providerName) => {
-								const isSelected = selectedAllProvider === providerName;
-								return (
-									<button
-										key={providerName}
-										onClick={() => setSelectedAllProvider(providerName)}
-										className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
+						<ErrorBoundary>
+							<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'all' ? 'flex' : 'hidden'}`}>
+								{providerNames.map((providerName) => {
+									const isSelected = selectedAllProvider === providerName;
+									return (
+										<button
+											key={providerName}
+											onClick={() => setSelectedAllProvider(providerName)}
+											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
 											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-									>
-										{displayInfoOfProviderName(providerName).title}
-									</button>
-								);
-							})}
-						</div>
+										>
+											{displayInfoOfProviderName(providerName).title}
+										</button>
+									);
+								})}
+							</div>
+						</ErrorBoundary>
 					</div>
 
 					{/* Description */}
-					<div className="text-left self-start text-sm text-void-fg-3 px-2 py-1">
-						<ChatMarkdownRender string={detailedDescOfWantToUseOption[wantToUseOption]} chatMessageLocation={undefined} />
-					</div>
+					<ErrorBoundary>
+						<div className="text-left self-start text-sm text-void-fg-3 px-2 py-1">
+							<ChatMarkdownRender string={detailedDescOfWantToUseOption[wantToUseOption]} chatMessageLocation={undefined} />
+						</div>
+					</ErrorBoundary>
 
 
 					{/* ModelsTable and ProviderFields */}
 					{selectedProviderName && <div className='mt-4 w-fit mx-auto'>
-
-
 						{/* Models Table */}
-						<TableOfModelsForProvider providerName={selectedProviderName} />
+						<ErrorBoundary>
+							<TableOfModelsForProvider providerName={selectedProviderName} />
+						</ErrorBoundary>
 
 
 						{/* Add provider section - simplified styling */}
+
 						<div className='mb-5 mt-8 mx-auto'>
-							<div className=''>
-								Add {displayInfoOfProviderName(selectedProviderName).title}
+							<ErrorBoundary>
+								<div className=''>
+									Add {displayInfoOfProviderName(selectedProviderName).title}
 
-								<div className='my-4'>
-									{selectedProviderName === 'ollama' ? ollamaSetupInstructions : ''}
+									<div className='my-4'>
+										{selectedProviderName === 'ollama' ? <OllamaSetupInstructions /> : ''}
+									</div>
+
 								</div>
+							</ErrorBoundary>
 
-							</div>
-
-							{selectedProviderName &&
-								<SettingsForProvider providerName={selectedProviderName} showProviderTitle={false} showProviderSuggestions={false} />
-							}
+							<ErrorBoundary>
+								{selectedProviderName &&
+									<SettingsForProvider providerName={selectedProviderName} showProviderTitle={false} showProviderSuggestions={false} />
+								}
+							</ErrorBoundary>
 
 							{/* Button and status indicators */}
-							{!didFillInProviderSettings ? <p className="text-xs text-void-fg-3 mt-2">Please fill in all fields to continue</p>
-								: !isAtLeastOneModel ? <p className="text-xs text-void-fg-3 mt-2">Please add a model to continue</p>
-									: !isApiKeyLongEnoughIfApiKeyExists ? <p className="text-xs text-void-fg-3 mt-2">Please enter a valid API key</p>
-										: <AnimatedCheckmarkButton className='text-xs text-void-fg-3 mt-2' text='Added' />}
+							<ErrorBoundary>
+								{!didFillInProviderSettings ? <p className="text-xs text-void-fg-3 mt-2">Please fill in all fields to continue</p>
+									: !isAtLeastOneModel ? <p className="text-xs text-void-fg-3 mt-2">Please add a model to continue</p>
+										: !isApiKeyLongEnoughIfApiKeyExists ? <p className="text-xs text-void-fg-3 mt-2">Please enter a valid API key</p>
+											: <AnimatedCheckmarkButton className='text-xs text-void-fg-3 mt-2' text='Added' />}
+							</ErrorBoundary>
 						</div>
 
 					</div>}
@@ -802,10 +847,11 @@ const VoidOnboardingContent = () => {
 			}
 
 			bottom={
-				<FadeIn delayMs={50} durationMs={10}>
-					{prevAndNextButtons}
-				</FadeIn>
-
+				<ErrorBoundary>
+					<FadeIn delayMs={50} durationMs={10}>
+						{prevAndNextButtons}
+					</FadeIn>
+				</ErrorBoundary>
 			}
 
 		/>,
@@ -864,7 +910,9 @@ const VoidOnboardingContent = () => {
 
 
 	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-scroll flex flex-col items-center justify-around">
-		{contentOfIdx[pageIndex]}
+		<ErrorBoundary>
+			{contentOfIdx[pageIndex]}
+		</ErrorBoundary>
 	</div>
 
 }

@@ -54,11 +54,9 @@ async function main(buildDir) {
         ...defaultOpts,
         // TODO(deepak1556): Incorrectly declared type in electron-osx-sign
         ignore: (filePath) => {
-            const ext = path_1.default.extname(filePath);
             return filePath.includes(gpuHelperAppName) ||
                 filePath.includes(rendererHelperAppName) ||
-                filePath.includes(pluginHelperAppName) ||
-                ext === '.asar' || ext === '.dat' || ext === '.gif' || ext === '.icns' || ext === '.ico' || ext === '.json' || ext === '.mp3' || ext === '.nib' || ext === '.pak' || ext === '.png' || ext === '.scpt' || ext === '.ttf' || ext === '.wasm' || ext === '.woff' || ext === '.woff2';
+                filePath.includes(pluginHelperAppName);
         }
     };
     const gpuHelperOpts = {
@@ -83,7 +81,7 @@ async function main(buildDir) {
     // universal will get its copy from the x64 build.
     if (arch !== 'universal') {
         await (0, cross_spawn_promise_1.spawn)('plutil', [
-            '-replace', // Void changed this to replace
+            '-insert',
             'NSAppleEventsUsageDescription',
             '-string',
             'An application in Visual Studio Code wants to use AppleScript.',

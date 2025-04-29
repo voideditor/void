@@ -15,6 +15,7 @@ import { IDirectoryStrService } from './directoryStrService.js';
 import { ITerminalToolService } from './terminalToolService.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { URI } from '../../../../base/common/uri.js';
+import { EndOfLinePreference } from '../../../../editor/common/model.js';
 
 
 
@@ -438,27 +439,32 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		super()
 	}
 
-	// Read .voidinstructions files from workspace folders
-	private _getVoidInstructionsFileContents(): string {
-		const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
-		let voidInstructions = '';
-		for (const folder of workspaceFolders) {
-			const uri = URI.joinPath(folder.uri, '.voidinstructions')
-			const { model } = this.voidModelService.getModel(uri)
-			if (!model) continue
-			voidInstructions += model.getValue() + '\n\n';
+	// Read .voidrules files from workspace folders
+	private _getVoidRulesFileContents(): string {
+		try {
+			const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
+			let voidRules = '';
+			for (const folder of workspaceFolders) {
+				const uri = URI.joinPath(folder.uri, '.voidrules')
+				const { model } = this.voidModelService.getModel(uri)
+				if (!model) continue
+				voidRules += model.getValue(EndOfLinePreference.LF) + '\n\n';
+			}
+			return voidRules.trim();
 		}
-		return voidInstructions.trim();
+		catch (e) {
+			return ''
+		}
 	}
 
-	// Get combined AI instructions from settings and .voidinstructions files
+	// Get combined AI instructions from settings and .voidrules files
 	private _getCombinedAIInstructions(): string {
 		const globalAIInstructions = this.voidSettingsService.state.globalSettings.aiInstructions;
-		const voidInstructionsFileContent = this._getVoidInstructionsFileContents();
+		const voidRulesFileContent = this._getVoidRulesFileContents();
 
 		const ans: string[] = []
 		if (globalAIInstructions) ans.push(globalAIInstructions)
-		if (voidInstructionsFileContent) ans.push(voidInstructionsFileContent)
+		if (voidRulesFileContent) ans.push(voidRulesFileContent)
 		return ans.join('\n\n')
 	}
 
@@ -477,8 +483,8 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		})
 		const includeXMLToolDefinitions = !specialToolFormat
 
-		const runningTerminalIds = this.terminalToolService.listTerminalIds()
-		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, runningTerminalIds, chatMode, includeXMLToolDefinitions })
+		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()
+		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, includeXMLToolDefinitions })
 		return systemMessage
 	}
 

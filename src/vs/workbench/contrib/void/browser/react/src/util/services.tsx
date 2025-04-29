@@ -49,6 +49,8 @@ import { INativeHostService } from '../../../../../../../platform/native/common/
 import { IEditCodeService } from '../../../editCodeServiceInterface.js'
 import { IToolsService } from '../../../toolsService.js'
 import { IConvertToLLMMessageService } from '../../../convertToLLMMessageService.js'
+import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
+import { ISearchService } from '../../../../../../services/search/common/search.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -145,8 +147,8 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 
 	colorThemeState = themeService.getColorTheme().type
 	disposables.push(
-		themeService.onDidColorThemeChange(({ theme }) => {
-			colorThemeState = theme.type
+		themeService.onDidColorThemeChange(({ type }) => {
+			colorThemeState = type
 			colorThemeStateListeners.forEach(l => l(colorThemeState))
 		})
 	)
@@ -204,6 +206,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageDetectionService: accessor.get(ILanguageDetectionService),
 		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
 		IKeybindingService: accessor.get(IKeybindingService),
+		ISearchService: accessor.get(ISearchService),
 
 		IExplorerService: accessor.get(IExplorerService),
 		IEnvironmentService: accessor.get(IEnvironmentService),
@@ -219,6 +222,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		INativeHostService: accessor.get(INativeHostService),
 		IToolsService: accessor.get(IToolsService),
 		IConvertToLLMMessageService: accessor.get(IConvertToLLMMessageService),
+		ITerminalService: accessor.get(ITerminalService),
 
 	} as const
 	return reactAccessor
@@ -304,6 +308,16 @@ export const useChatThreadsStreamState = (threadId: string) => {
 	return s
 }
 
+export const useFullChatThreadsStreamState = () => {
+	const [s, ss] = useState(chatThreadsStreamState)
+	useEffect(() => {
+		ss(chatThreadsStreamState)
+		const listener = () => { ss(chatThreadsStreamState) }
+		chatThreadsStreamStateListeners.add(listener)
+		return () => { chatThreadsStreamStateListeners.delete(listener) }
+	}, [ss])
+	return s
+}
 
 
 

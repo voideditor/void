@@ -299,7 +299,7 @@ const openSourceModelOptions_assumingOAICompat = {
 		contextWindow: 128_000, maxOutputTokens: 8_192,
 	},
 	'qwen3': {
-		supportsFIM: false, // no FIM, yes reasoning
+		supportsFIM: false, // replaces QwQ
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 32_768, maxOutputTokens: 8_192,

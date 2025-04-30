@@ -2981,8 +2981,6 @@ export const SidebarChat = () => {
 	</div>
 
 
-	console.log('!!!', Object.keys(chatThreadsState.allThreads).length)
-
 
 	const threadPageInput = <div key={'input' + chatThreadsState.currentThreadId}>
 		<div className='px-4'>

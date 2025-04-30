@@ -82,7 +82,6 @@ function buildWin32Setup(arch, target) {
 		productJson['target'] = target;
 		fs.writeFileSync(productJsonPath, JSON.stringify(productJson, undefined, '\t'));
 
-		console.log('RawVersion!!!!!!!!!!!!!!', pkg.version.replace(/-\w+$/, '')) // Void
 		const quality = product.quality || 'dev';
 		const definitions = {
 			NameLong: product.nameLong,

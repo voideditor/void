@@ -12,7 +12,7 @@ There are a few ways to contribute:
 
 ### Codebase Guide
 
-We [highly recommend reading this](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md) guide that we put together on Void's sourcecode if you'd like to contribute!
+We [highly recommend reading this](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md) guide that we put together on Void's sourcecode if you'd like to add new features.
 
 The repo is not as intimidating as it first seems if you read the guide!
 
@@ -52,17 +52,18 @@ First, run `npm install -g node-gyp`. Then:
 
 ### d. Building Void from inside VSCode
 
-To build Void, open `void/` inside VSCode. Then open your terminal and run:
-
-1. `npm install` to install all dependencies.
-2. Build Void.
-	 - Press <kbd>Cmd+Shift+B</kbd> (Mac).
-   - Press <kbd>Ctrl+Shift+B</kbd> (Windows/Linux).
+1. `git clone https://github.com/voideditor/void` to clone the repo.
+2. `npm install` to install all dependencies.
+3. To build Void, open VSCode. Then:
+   - Windows: Press <kbd>Ctrl+Shift+B</kbd>.
+   - Mac: Press <kbd>Cmd+Shift+B</kbd>.
+   - Linux: Press <kbd>Ctrl+Shift+B</kbd>.
    - This step can take ~5 min. The build is done when you see two check marks (one of the items will continue spinning indefinitely - it compiles our React code).
-3. Run Void.
-   - Run `./scripts/code.sh` (Mac/Linux).
-   - Run `./scripts/code.bat` (Windows).
-4. Nice-to-knows.
+4. To run Void:
+   - Windows: `./scripts/code.bat`.
+   - Mac: `./scripts/code.sh`.
+   - Linux: `./scripts/code.sh`.
+5. Nice-to-knows.
    - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
    - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
 	- You can kill any of the build scripts by pressing `Ctrl+D` in VSCode terminal. If you press `Ctrl+C` the script will close but will keep running in the background (to open all background scripts, just re-build).
@@ -85,6 +86,7 @@ To build Void from the terminal instead of from inside VSCode, follow the steps 
 
 - Make sure you followed the prerequisite steps above.
 - Make sure you have Node version `20.18.2` (the version in `.nvmrc`)!
+- Make sure that the path to your Void folder does not have any spaces in it.
 - If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
 - If you get an error with React, try running `NODE_OPTIONS="--max-old-space-size=8192" npm run buildreact`.
 - If you see missing styles, wait a few seconds and then reload.

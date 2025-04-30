@@ -298,6 +298,12 @@ const openSourceModelOptions_assumingOAICompat = {
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 128_000, maxOutputTokens: 8_192,
 	},
+	'qwen3': {
+		supportsFIM: false, // no FIM, yes reasoning
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 128_000, maxOutputTokens: 8_192,
+	},
 	// FIM only
 	'starcoder2': {
 		supportsFIM: true,
@@ -359,6 +365,7 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 	if (lower.includes('llama')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['llama4-scout'] })
 
 	if (lower.includes('qwen') && lower.includes('2.5') && lower.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'] })
+	if (lower.includes('qwen') && lower.includes('3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen3'] })
 	if (lower.includes('qwq')) { return toFallback({ ...openSourceModelOptions_assumingOAICompat.qwq, }) }
 	if (lower.includes('phi4')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.phi4, })
 	if (lower.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral })

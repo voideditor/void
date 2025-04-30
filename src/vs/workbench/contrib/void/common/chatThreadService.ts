@@ -12,7 +12,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IRange } from '../../../../editor/common/core/range.js';
 import { ILLMMessageService } from './llmMessageService.js';
-import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo, chat_selectionsString } from '../browser/prompt/prompts.js';
+import { chat_userMessageContent, chat_systemMessage, chat_userMessageContentWithAllFilesToo as chat_userMessageContentWithAllFiles, chat_selectionsString } from '../browser/prompt/prompts.js';
 import { InternalToolInfo, IToolsService, ToolCallReturnType, ToolFns, ToolName, voidTools } from './toolsService.js';
 import { toLLMChatMessage } from './llmMessageTypes.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
@@ -153,11 +153,9 @@ export interface IChatThreadService {
 	onDidChangeCurrentThread: Event<void>;
 	onDidChangeStreamState: Event<{ threadId: string }>
 
-	getSortedThreadIdsByTime: () => string[]
 	getCurrentThread(): ChatThreads[string];
 	openNewThread(): void;
 	switchToThread(threadId: string): void;
-	deleteThreadById(threadId: string): void;
 
 	// you can edit multiple messages
 	// the one you're currently editing is "focused", and we add items to that one when you press cmd+L.
@@ -247,33 +245,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		);
 	}
 
-	public deleteThreadById(threadId: string): void {
-		const { allThreads, currentThreadId } = this.state
-
-		if (!(threadId in allThreads)) {
-			console.error('Void: Tried deleting thread with id that does not exist.')
-			return
-		}
-
-		// If we're on the thread we're about to delete, switch away from it
-		if (threadId === currentThreadId) {
-			const switchToThreadId = this.getSortedThreadIdsByTime().find(id => id !== threadId)
-			if (switchToThreadId !== undefined) {
-				this.switchToThread(switchToThreadId)
-			}
-			else {
-				this.openNewThread()
-			}
-		}
-
-		// Delete the thread ID
-		const newAllThreads = { ...allThreads }
-		delete newAllThreads[threadId]
-
-		this._storeAllThreads(newAllThreads)
-		this._setState({ allThreads: newAllThreads, }, false)
-
-	}
 
 	// this should be the only place this.state = ... appears besides constructor
 	private _setState(state: Partial<ThreadsState>, affectsCurrent: boolean) {
@@ -360,7 +331,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const instructions = userMessage
 		const userMessageContent = await chat_userMessageContent(instructions, currSelns)
 		const selectionsStr = await chat_selectionsString(prevSelns, currSelns, this._voidFileService)
-		const userMessageFullContent = chat_userMessageContentWithAllFilesToo(userMessageContent, selectionsStr)
+		const userMessageFullContent = chat_userMessageContentWithAllFiles(userMessageContent, selectionsStr)
 
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)
@@ -536,10 +507,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		this._setState({ allThreads: newThreads, currentThreadId: newThread.id }, true)
 	}
 
-	getSortedThreadIdsByTime() {
-		const allThreads = this.state.allThreads
-		return Object.keys(allThreads ?? {}).sort((threadId1, threadId2) => allThreads[threadId1].lastModified > allThreads[threadId2].lastModified ? -1 : 1)
-	}
 
 	_addMessageToThread(threadId: string, message: ChatMessage) {
 		const { allThreads } = this.state

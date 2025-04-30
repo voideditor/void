@@ -38,6 +38,6 @@ export async function getVSCodeServerConfig(): Promise<IServerConfig> {
 		release: productJson.release,
 		serverApplicationName: customServerBinaryName || productJson.serverApplicationName,
 		serverDataFolderName: productJson.serverDataFolderName,
-		serverDownloadUrlTemplate: productJson.serverDownloadUrlTemplate
+		serverDownloadUrlTemplate: productJson.serverDownloadUrlTemplate,
 	};
 }

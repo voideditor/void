@@ -32,13 +32,34 @@ import './media/void.css'
 // update (frontend part, also see platform/)
 import './voidUpdateActions.js'
 
+import './convertToLLMMessageWorkbenchContrib.js'
 
+// tools
+import './toolsService.js'
+import './terminalToolService.js'
 
+// register Thread History
+import './chatThreadService.js'
+
+// ping
+import './metricsPollService.js'
+
+// helper services
+import './helperServices/consistentItemService.js'
+
+// register selection helper
+import './voidSelectionHelperWidget.js'
+
+// register tooltip service
+import './tooltipService.js'
+
+// register onboarding service
+import './voidOnboardingService.js'
 
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
 
 // llmMessage
-import '../common/llmMessageService.js'
+import '../common/sendLLMMessageService.js'
 
 // voidSettings
 import '../common/voidSettingsService.js'
@@ -52,9 +73,5 @@ import '../common/metricsService.js'
 // updates
 import '../common/voidUpdateService.js'
 
-// tools
-import '../common/toolsService.js'
-
-// register Thread History
-import '../common/chatThreadService.js'
-
+// model service
+import '../common/voidModelService.js'

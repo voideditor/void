@@ -10,8 +10,9 @@ import { _VoidSelectBox, VoidCustomDropdownBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
 import { VOID_OPEN_SETTINGS_ACTION_ID, VOID_TOGGLE_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
-import { ModelOption } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
+import { modelFilterOfFeatureName, ModelOption } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { WarningBox } from './WarningBox.js'
+import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 
 const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
 	if (m1.length !== m2.length) return false
@@ -21,7 +22,7 @@ const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
 	return true
 }
 
-const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], featureName: FeatureName }) => {
+const ModelSelectBox = ({ options, featureName, className }: { options: ModelOption[], featureName: FeatureName, className: string }) => {
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 
@@ -38,64 +39,40 @@ const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], feat
 		onChangeOption={onChangeOption}
 		getOptionDisplayName={(option) => option.selection.modelName}
 		getOptionDropdownName={(option) => option.selection.modelName}
-		getOptionDropdownDetail={(option) => option.selection.providerName }
+		getOptionDropdownDetail={(option) => option.selection.providerName}
 		getOptionsEqual={(a, b) => optionsEqual([a], [b])}
-		className='text-xs text-void-fg-3 px-1'
+		className={className}
 		matchInputWidth={false}
 	/>
 }
-// const ModelSelectBox = ({ options, featureName }: { options: ModelOption[], featureName: FeatureName }) => {
-// 	const accessor = useAccessor()
-
-// 	const voidSettingsService = accessor.get('IVoidSettingsService')
-
-// 	let weChangedText = false
-
-// 	return <VoidSelectBox
-// 		className='@@[&_select]:!void-text-xs text-void-fg-3'
-// 		options={options}
-// 		onChangeSelection={useCallback((newVal: ModelSelection) => {
-// 			if (weChangedText) return
-// 			voidSettingsService.setModelSelectionOfFeature(featureName, newVal)
-// 		}, [voidSettingsService, featureName])}
-// 		// we are responsible for setting the initial state here. always sync instance when state changes.
-// 		onCreateInstance={useCallback((instance: SelectBox) => {
-// 			const syncInstance = () => {
-// 				const modelsListRef = voidSettingsService.state._modelOptions // as a ref
-// 				const settingsAtProvider = voidSettingsService.state.modelSelectionOfFeature[featureName]
-// 				const selectionIdx = settingsAtProvider === null ? -1 : modelsListRef.findIndex(v => modelSelectionsEqual(v.value, settingsAtProvider))
-// 				weChangedText = true
-// 				instance.select(selectionIdx === -1 ? 0 : selectionIdx)
-// 				weChangedText = false
-// 			}
-// 			syncInstance()
-// 			const disposable = voidSettingsService.onDidChangeState(syncInstance)
-// 			return [disposable]
-// 		}, [voidSettingsService, featureName])}
-// 	/>
-// }
 
 
-
-const MemoizedModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
+const MemoizedModelDropdown = ({ featureName, className }: { featureName: FeatureName, className: string }) => {
 	const settingsState = useSettingsState()
 	const oldOptionsRef = useRef<ModelOption[]>([])
 	const [memoizedOptions, setMemoizedOptions] = useState(oldOptionsRef.current)
 
+	const { filter, emptyMessage } = modelFilterOfFeatureName[featureName]
+
 	useEffect(() => {
 		const oldOptions = oldOptionsRef.current
-		const newOptions = settingsState._modelOptions
+		const newOptions = settingsState._modelOptions.filter((o) => filter(o.selection, { chatMode: settingsState.globalSettings.chatMode }))
+
 		if (!optionsEqual(oldOptions, newOptions)) {
 			setMemoizedOptions(newOptions)
 		}
 		oldOptionsRef.current = newOptions
-	}, [settingsState._modelOptions])
+	}, [settingsState._modelOptions, filter])
 
-	return <ModelSelectBox featureName={featureName} options={memoizedOptions} />
+	if (memoizedOptions.length === 0) { // Pretty sure this will never be reached unless filter is enabled
+		return <WarningBox text={emptyMessage?.message || 'No models available'} />
+	}
+
+	return <ModelSelectBox featureName={featureName} options={memoizedOptions} className={className} />
 
 }
 
-export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
+export const ModelDropdown = ({ featureName, className }: { featureName: FeatureName, className: string }) => {
 	const settingsState = useSettingsState()
 
 	const accessor = useAccessor()
@@ -103,14 +80,20 @@ export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => 
 
 	const openSettings = () => { commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID); };
 
+
+	const { emptyMessage } = modelFilterOfFeatureName[featureName]
+
 	const isDisabled = isFeatureNameDisabled(featureName, settingsState)
 	if (isDisabled)
 		return <WarningBox onClick={openSettings} text={
-			isDisabled === 'needToEnableModel' ? 'Enable a model'
-				: isDisabled === 'addModel' ? 'Add a model'
-					: (isDisabled === 'addProvider' || isDisabled === 'notFilledIn' || isDisabled === 'providerNotAutoDetected') ? 'Provider required'
-						: 'Provider required'
+			emptyMessage && emptyMessage.priority === 'always' ? emptyMessage.message :
+				isDisabled === 'needToEnableModel' ? 'Enable a model'
+					: isDisabled === 'addModel' ? 'Add a model'
+						: (isDisabled === 'addProvider' || isDisabled === 'notFilledIn' || isDisabled === 'providerNotAutoDetected') ? 'Provider required'
+							: 'Provider required'
 		} />
 
-	return <MemoizedModelDropdown featureName={featureName} />
+	return <ErrorBoundary>
+		<MemoizedModelDropdown featureName={featureName} className={className} />
+	</ErrorBoundary>
 }

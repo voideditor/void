@@ -34,7 +34,7 @@
 // 	// 			const result = await new Promise((res, rej) => {
 // 	// 				sendLLMMessage({
 // 	// 					messages,
-// 	// 					tools: ['search'],
+// 	// 					tools: ['search_for_files'],
 // 	// 					onFinalMessage: ({ result: r, }) => {
 // 	// 						res(r)
 // 	// 					},
@@ -73,7 +73,7 @@
 // 	// 	const result = new Promise((res, rej) => {
 // 	// 		sendLLMMessage({
 // 	// 			messages,
-// 	// 			tools: ['search'],
+// 	// 			tools: ['search_for_files'],
 // 	// 			onResult: (r) => {
 // 	// 				res(r)
 // 	// 			}

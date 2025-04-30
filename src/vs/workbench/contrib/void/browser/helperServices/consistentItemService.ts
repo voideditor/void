@@ -25,7 +25,7 @@ export interface IConsistentItemService {
 
 export const IConsistentItemService = createDecorator<IConsistentItemService>('ConsistentItemService');
 
-export class ConsistentItemService extends Disposable {
+export class ConsistentItemService extends Disposable implements IConsistentItemService {
 
 	readonly _serviceBrand: undefined
 

@@ -15,7 +15,7 @@ export const WarningBox = ({ text, onClick, className }: { text: string; onClick
 	>
 		<IconWarning
 			size={14}
-			className='mr-1'
+			className='mr-1 flex-shrink-0'
 		/>
 		<span>{text}</span>
 	</div>

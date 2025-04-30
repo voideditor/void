@@ -6,7 +6,7 @@
 import { refineServiceDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { Event } from '../../../../base/common/event.js';
 import { Color } from '../../../../base/common/color.js';
-import { IColorTheme, IThemeService, IFileIconTheme, IProductIconTheme, IThemeChangeEvent } from '../../../../platform/theme/common/themeService.js';
+import { IColorTheme, IThemeService, IFileIconTheme, IProductIconTheme } from '../../../../platform/theme/common/themeService.js';
 import { ConfigurationTarget } from '../../../../platform/configuration/common/configuration.js';
 import { isBoolean, isString } from '../../../../base/common/types.js';
 import { IconContribution, IconDefinition } from '../../../../platform/theme/common/iconRegistry.js';
@@ -39,12 +39,12 @@ export enum ThemeSettings {
 }
 
 export enum ThemeSettingDefaults {
-	COLOR_THEME_DARK = 'Default Dark+',
+	COLOR_THEME_DARK = 'Default Dark+', // Void changed this from 'Default Dark Modern'
 	COLOR_THEME_LIGHT = 'Default Light Modern',
 	COLOR_THEME_HC_DARK = 'Default High Contrast',
 	COLOR_THEME_HC_LIGHT = 'Default High Contrast Light',
 
-	COLOR_THEME_DARK_OLD = 'Default Dark Modern',
+	COLOR_THEME_DARK_OLD = 'Default Dark Modern', // Void changed this from 'Default Dark+'
 	COLOR_THEME_LIGHT_OLD = 'Default Light+',
 
 	FILE_ICON_THEME = 'vs-seti',
@@ -132,9 +132,7 @@ export interface IWorkbenchProductIconTheme extends IWorkbenchTheme, IProductIco
 }
 
 export type ThemeSettingTarget = ConfigurationTarget | undefined | 'auto' | 'preview';
-export interface IWorkbenchThemeChangeEvent extends IThemeChangeEvent {
-	target: ThemeSettingTarget;
-}
+
 
 export interface IWorkbenchThemeService extends IThemeService {
 	readonly _serviceBrand: undefined;
@@ -142,7 +140,7 @@ export interface IWorkbenchThemeService extends IThemeService {
 	getColorTheme(): IWorkbenchColorTheme;
 	getColorThemes(): Promise<IWorkbenchColorTheme[]>;
 	getMarketplaceColorThemes(publisher: string, name: string, version: string): Promise<IWorkbenchColorTheme[]>;
-	onDidColorThemeChange: Event<IWorkbenchThemeChangeEvent>;
+	onDidColorThemeChange: Event<IWorkbenchColorTheme>;
 
 	getPreferredColorScheme(): ColorScheme | undefined;
 

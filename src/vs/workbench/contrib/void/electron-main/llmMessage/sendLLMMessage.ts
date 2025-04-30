@@ -3,33 +3,44 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/llmMessageTypes.js';
+import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
-import { sendLLMMessageToProviderImplementation } from './MODELS.js';
+import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';
 
 
-export const sendLLMMessage = ({
+export const sendLLMMessage = async ({
 	messagesType,
-	aiInstructions,
 	messages: messages_,
 	onText: onText_,
 	onFinalMessage: onFinalMessage_,
 	onError: onError_,
 	abortRef: abortRef_,
-	logging: { loggingName },
+	logging: { loggingName, loggingExtras },
 	settingsOfProvider,
-	providerName,
-	modelName,
-	tools,
+	modelSelection,
+	modelSelectionOptions,
+	chatMode,
+	separateSystemMessage,
 }: SendLLMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
 
 
+	const { providerName, modelName } = modelSelection
+
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
+
+		let totalTokens = 0
+		if (messagesType === 'chatMessages') {
+			for (const m of messages_) totalTokens += m.content.length
+		}
+		else {
+			totalTokens = messages_.prefix.length + messages_.suffix.length
+		}
+
 		metricsService.capture(eventId, {
 			providerName,
 			modelName,
@@ -38,14 +49,13 @@ export const sendLLMMessage = ({
 			...messagesType === 'chatMessages' ? {
 				numMessages: messages_?.length,
 				messagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
-				origNumMessages: messages_?.length,
-				origMessagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
 
 			} : messagesType === 'FIMMessage' ? {
 				prefixLength: messages_.prefix.length,
 				suffixLength: messages_.suffix.length,
 			} : {},
-
+			totalTokens,
+			...loggingExtras,
 			...extras,
 		})
 	}
@@ -64,9 +74,9 @@ export const sendLLMMessage = ({
 	}
 
 	const onFinalMessage: OnFinalMessage = (params) => {
-		const { fullText, fullReasoning } = params
+		const { fullText, fullReasoning, toolCall } = params
 		if (_didAbort) return
-		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, reasoningLength: fullReasoning?.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds() })
+		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, reasoningLength: fullReasoning?.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds(), toolCallName: toolCall?.name })
 		onFinalMessage_(params)
 	}
 
@@ -82,6 +92,7 @@ export const sendLLMMessage = ({
 		onError_({ message: errorMessage, fullError })
 	}
 
+	// we should NEVER call onAbort internally, only from the outside
 	const onAbort = () => {
 		captureLLMEvent(`${loggingName} - Abort`, { messageLengthSoFar: _fullTextSoFar.length })
 		try { _aborter?.() } // aborter sometimes automatically throws an error
@@ -90,10 +101,11 @@ export const sendLLMMessage = ({
 	}
 	abortRef_.current = onAbort
 
+
 	if (messagesType === 'chatMessages')
-		captureLLMEvent(`${loggingName} - Sending Message`, { messageLength: messages_[messages_.length - 1]?.content.length })
+		captureLLMEvent(`${loggingName} - Sending Message`, { userMessageLength: messages_?.[messages_.length - 1]?.content.length })
 	else if (messagesType === 'FIMMessage')
-		captureLLMEvent(`${loggingName} - Sending FIM`, {}) // TODO!!! add more metrics
+		captureLLMEvent(`${loggingName} - Sending FIM`, { prefixLen: messages_?.prefix?.length, suffixLen: messages_?.suffix?.length })
 
 
 	try {
@@ -104,18 +116,19 @@ export const sendLLMMessage = ({
 		}
 		const { sendFIM, sendChat } = implementation
 		if (messagesType === 'chatMessages') {
-			sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions, tools })
+			await sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage, chatMode })
 			return
 		}
 		if (messagesType === 'FIMMessage') {
 			if (sendFIM) {
-				sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelName, _setAborter, providerName, aiInstructions })
+				await sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage })
 				return
 			}
 			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })
 			return
 		}
 		onError({ message: `Error: Message type "${messagesType}" not recognized.`, fullError: null })
+		return
 	}
 
 	catch (error) {

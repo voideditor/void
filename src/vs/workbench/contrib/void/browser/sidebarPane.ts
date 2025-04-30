@@ -38,7 +38,7 @@ import { mountSidebar } from './react/out/sidebar-tsx/index.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
 // import { IDisposable } from '../../../../base/common/lifecycle.js';
-import { IDisposable } from '../../../../base/common/lifecycle.js';
+import { toDisposable } from '../../../../base/common/lifecycle.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
@@ -80,8 +80,8 @@ class SidebarViewPane extends ViewPane {
 		// gets set immediately
 		this.instantiationService.invokeFunction(accessor => {
 			// mount react
-			const disposables: IDisposable[] | undefined = mountSidebar(parent, accessor);
-			disposables?.forEach(d => this._register(d))
+			const disposeFn: (() => void) | undefined = mountSidebar(parent, accessor)?.dispose;
+			this._register(toDisposable(() => disposeFn?.()))
 		});
 	}
 
@@ -108,7 +108,7 @@ export const VOID_VIEW_ID = VOID_VIEW_CONTAINER_ID
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 const container = viewContainerRegistry.registerViewContainer({
 	id: VOID_VIEW_CONTAINER_ID,
-	title: nls.localize2('voidContainer', 'Void Chat'), // this is used to say "Void" (Ctrl + L)
+	title: nls.localize2('voidContainer', 'Chat'), // this is used to say "Void" (Ctrl + L)
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [VOID_VIEW_CONTAINER_ID, {
 		mergeViewWithContainerWhenSingleView: true,
 		orientation: Orientation.HORIZONTAL,

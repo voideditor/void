@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { ErrorDisplay } from './ErrorDisplay.js';
+import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 
 interface Props {
 	children: ReactNode;
@@ -51,11 +51,12 @@ class ErrorBoundary extends Component<Props, State> {
 
 			// Use ErrorDisplay component as the default error UI
 			return (
-				<ErrorDisplay
-					message={this.state.error + ''}
-					fullError={this.state.error}
-					onDismiss={this.props.onDismiss || null}
-				/>
+				<WarningBox text={this.state.error + ''} />
+				// <ErrorDisplay
+				// 	message={this.state.error + ''}
+				// 	fullError={this.state.error}
+				// 	onDismiss={this.props.onDismiss || null}
+				// />
 			);
 		}
 

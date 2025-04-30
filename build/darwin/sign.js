@@ -81,7 +81,7 @@ async function main(buildDir) {
     // universal will get its copy from the x64 build.
     if (arch !== 'universal') {
         await (0, cross_spawn_promise_1.spawn)('plutil', [
-            '-replace', // Void changed this to replace
+            '-insert',
             'NSAppleEventsUsageDescription',
             '-string',
             'An application in Visual Studio Code wants to use AppleScript.',

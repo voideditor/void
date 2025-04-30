@@ -2722,7 +2722,7 @@ const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) =>
 	const desc1 = <span className='flex items-center'>
 		{uriDone ?
 			getBasename(toolCallSoFar.rawParams['uri'] ?? 'unknown')
-			: `Running`}
+			: `Generating`}
 		<IconLoading />
 	</span>
 

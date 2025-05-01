@@ -810,7 +810,7 @@ const ToolHeaderWrapper = ({
 
 const EditTool = ({ toolMessage, threadId, messageIdx, content }: Parameters<ResultWrapper<'edit_file' | 'rewrite_file'>>[0] & { content: string }) => {
 	const accessor = useAccessor()
-	const isError = toolMessage.type === 'tool_error'
+	const isError = false
 	const isRejected = toolMessage.type === 'rejected'
 
 	const title = getTitle(toolMessage)
@@ -851,19 +851,21 @@ const EditTool = ({ toolMessage, threadId, messageIdx, content }: Parameters<Res
 			/>
 		</ToolChildrenWrapper>
 
-		if (toolMessage.type !== 'tool_error') {
+		if (toolMessage.type === 'success' || toolMessage.type === 'rejected') {
 			const { result } = toolMessage
 			componentParams.bottomChildren = <BottomChildren title='Lint errors'>
 				{result?.lintErrors?.map((error, i) => (
-					<div key={i} className="">Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
+					<div key={i} className='whitespace-nowrap'>Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
 				))}
 			</BottomChildren>
 		}
-		else {
+		else if (toolMessage.type === 'tool_error') {
 			// error
 			const { result } = toolMessage
 			componentParams.bottomChildren = <BottomChildren title='Error'>
-				{result}
+				<CodeChildren>
+					{result}
+				</CodeChildren>
 			</BottomChildren>
 		}
 	}
@@ -1579,7 +1581,7 @@ const BottomChildren = ({ children, title }: { children: React.ReactNode, title:
 			<div
 				className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100' : 'max-h-0 opacity-0'} text-xs pl-4`}
 			>
-				<div className="flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap text-void-fg-4 opacity-90 border-l-2 border-void-warning px-2 py-0.5">
+				<div className="overflow-x-auto text-void-fg-4 opacity-90 border-l-2 border-void-warning px-2 py-0.5">
 					{children}
 				</div>
 			</div>
@@ -1641,7 +1643,7 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 	const terminalToolsService = accessor.get('ITerminalToolService')
 	const toolsService = accessor.get('IToolsService')
 	const terminalService = accessor.get('ITerminalService')
-	const isError = toolMessage.type === 'tool_error'
+	const isError = false
 	const title = getTitle(toolMessage)
 	const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
 	const icon = null
@@ -1711,9 +1713,11 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 	}
 	else if (toolMessage.type === 'tool_error') {
 		const { result } = toolMessage
-		componentParams.children = <ToolChildrenWrapper>
-			{result}
-		</ToolChildrenWrapper>
+		componentParams.bottomChildren = <BottomChildren title='Error'>
+			<CodeChildren>
+				{result}
+			</CodeChildren>
+		</BottomChildren>
 	}
 	else if (toolMessage.type === 'running_now') {
 		componentParams.children = <div ref={divRef} className='relative h-[300px] text-sm' />
@@ -1742,7 +1746,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
@@ -1765,11 +1769,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				componentParams.desc2 = <JumpToFileButton uri={params.uri} />
-				componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1787,7 +1791,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
@@ -1812,11 +1816,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			else {
 				const { result } = toolMessage
-				componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1835,7 +1839,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
@@ -1867,11 +1871,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			else {
 				const { result } = toolMessage
-				componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1881,7 +1885,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const title = getTitle(toolMessage)
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
@@ -1916,11 +1920,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			else {
 				const { result } = toolMessage
-				componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -1930,7 +1934,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const title = getTitle(toolMessage)
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
@@ -1971,11 +1975,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			else {
 				const { result } = toolMessage
-				componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 			return <ToolHeaderWrapper {...componentParams} />
 		}
@@ -1986,7 +1990,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const accessor = useAccessor();
 			const toolsService = accessor.get('IToolsService');
 			const title = getTitle(toolMessage);
-			const isError = toolMessage.type === 'tool_error';
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor);
 			const icon = null;
@@ -2015,13 +2019,13 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 						</CodeChildren>
 					</ToolChildrenWrapper>
 			}
-			else {
+			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage;
-				componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>;
+				</BottomChildren>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />;
@@ -2042,7 +2046,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
@@ -2061,11 +2065,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				if (params) componentParams.desc2 = <JumpToFileButton uri={params.uri} />
-				componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -2078,7 +2082,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const title = getTitle(toolMessage)
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
@@ -2100,11 +2104,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
-				componentParams.children = componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 			else if (toolMessage.type === 'running_now') {
 				// nothing more is needed
@@ -2121,7 +2125,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const accessor = useAccessor()
 			const commandService = accessor.get('ICommandService')
 			const isFolder = toolMessage.params?.isFolder ?? false
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const title = getTitle(toolMessage)
 			const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
@@ -2142,11 +2146,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
-				componentParams.children = componentParams.children = <ToolChildrenWrapper>
+				componentParams.children = componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 			else if (toolMessage.type === 'running_now') {
 				const { result } = toolMessage
@@ -2196,7 +2200,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
@@ -2210,11 +2214,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
-				componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -2233,7 +2237,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			if (toolMessage.type === 'tool_request') return null // do not show past requests
 			if (toolMessage.type === 'running_now') return null // do not show running
 
-			const isError = toolMessage.type === 'tool_error'
+			const isError = false
 			const isRejected = toolMessage.type === 'rejected'
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
@@ -2245,11 +2249,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
-				componentParams.children = <ToolChildrenWrapper>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
-				</ToolChildrenWrapper>
+				</BottomChildren>
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />

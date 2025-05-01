@@ -2589,12 +2589,12 @@ const CommandBarInChat = () => {
 					${isFinishedMakingFileChanges ? '' : 'opacity-0 pointer-events-none'}
 				`}
 			>
-				<JumpToFileButton
+				{/* <JumpToFileButton
 					uri={uri}
 					data-tooltip-id='void-tooltip'
 					data-tooltip-place='top'
 					data-tooltip-content='Go to file'
-				/>
+				/> */}
 				<IconShell1 // RejectAllButtonWrapper
 					Icon={X}
 					onClick={() => { editCodeService.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: "reject", _addToHistory: true, }); }}

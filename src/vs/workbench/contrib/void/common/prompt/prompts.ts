@@ -124,23 +124,18 @@ ${searchReplaceBlockTemplate}
 
 
 // ======================================================== tools ========================================================
-const changesExampleContent = `\
+
+
+const chatSuggestionDiffExample = `\
+${tripleTick[0]}typescript
+/Users/username/Dekstop/my_project/app.ts
 // ... existing code ...
 // {{change 1}}
 // ... existing code ...
 // {{change 2}}
 // ... existing code ...
 // {{change 3}}
-// ... existing code ...`
-
-const editToolDescriptionExample = `\
-${tripleTick[0]}
-${changesExampleContent}
-${tripleTick[1]}`
-
-const chatSuggestionDiffExample = `${tripleTick[0]}typescript
-/Users/username/Dekstop/my_project/app.ts
-${changesExampleContent}
+// ... existing code ...
 ${tripleTick[1]}`
 
 
@@ -185,15 +180,6 @@ export type SnakeCaseKeys<T extends Record<string, any>> = {
 
 
 
-const applyToolDescription = (type: 'edit tool' | 'chat suggestion') => `\
-${type === 'edit tool' ? 'A' : 'a'} code diff describing the change to make to the file. \
-Your DIFF is the only context that will be given to another LLM to apply the change, so it must be accurate and complete. \
-Your DIFF MUST be wrapped in triple backticks. \
-NEVER re-write the whole file. Always bias towards writing as little as possible. \
-Use comments like "// ... existing code ..." to condense your writing. \
-Here's an example of a good output:\n${type === 'edit tool' ? editToolDescriptionExample : chatSuggestionDiffExample}`
-
-
 // export const voidTools = {
 export const voidTools
 	: {
@@ -212,8 +198,8 @@ export const voidTools
 			description: `Returns full contents of a given file.`,
 			params: {
 				...uriParam('file'),
-				start_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to 1.' },
-				end_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to Infinity.' },
+				start_line: { description: 'Optional. Do NOT fill this field in unless you were specifically given exact line numbers to search. Defaults to the beginning of the file.' },
+				end_line: { description: 'Optional. Do NOT fill this field in unless you were specifically given exact line numbers to search. Defaults to the end of the file.' },
 				...paginationParam,
 			},
 		},
@@ -275,7 +261,7 @@ export const voidTools
 
 		read_lint_errors: {
 			name: 'read_lint_errors',
-			description: `Returns all lint errors on a given file.`,
+			description: `Use this tool to view all the lint errors on a file.`,
 			params: {
 				...uriParam('file'),
 			},
@@ -499,11 +485,13 @@ ${directoryStr}
 - The remaining contents of the file should proceed as usual.`)
 
 		details.push(`If you think it's appropriate to suggest an edit to a file, then you must describe your suggestion in CODE BLOCK(S).
-- The first line of the code block must be the FULL PATH of the related file.
-- The remaining contents should be ${applyToolDescription('chat suggestion')}`)
+- The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).
+- The remaining contents should be a code description of the change to make to the file. \
+Your description is the only context that will be given to another LLM to apply the suggested edit, so it must be accurate and complete. \
+Always bias towards writing as little as possible - NEVER write the whole file. Use comments like "// ... existing code ..." to condense your writing. \
+Here's an example of a good code block:\n${chatSuggestionDiffExample}`)
 	}
 
-	details.push(`NEVER write the FULL PATH of a file when speaking with the user. Just write the file name ONLY.`)
 	details.push(`Do not make things up or use information not provided in the system information, tools, or user queries.`)
 	details.push(`Always use MARKDOWN to format lists, bullet points, etc. Do NOT write tables.`)
 	details.push(`Today's date is ${new Date().toDateString()}.`)

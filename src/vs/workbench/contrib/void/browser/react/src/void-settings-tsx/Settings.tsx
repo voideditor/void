@@ -1053,7 +1053,7 @@ export const Settings = () => {
 
 						<div className='w-full'>
 							<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control the behavior of the Apply button and the Edit tool.</div>
+							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control the behavior of the Apply button.</div>
 
 							<div className='my-2'>
 								{/* Sync to Chat Switch */}
@@ -1126,7 +1126,7 @@ export const Settings = () => {
 
 					<div className='w-full'>
 						<h4 className={`text-base`}>Editor</h4>
-						<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of suggestions and widgets in the code editor.`}</div>
+						<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
 
 						<div className='my-2'>
 							{/* Auto Accept Switch */}
@@ -1162,10 +1162,9 @@ export const Settings = () => {
 				{/* Import/Export section, as its own block right after One-Click Switch */}
 				<div className='mt-12'>
 					<h2 className='text-3xl mb-2'>Import/Export</h2>
-					<div className='flex gap-8'>
+					<div className='flex flex-col gap-8'>
 						{/* Settings Subcategory */}
 						<div className='flex flex-col gap-2 max-w-48 w-full'>
-							<h3 className='text-xl mb-2'>Settings</h3>
 							<input key={2 * s} ref={fileInputSettingsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Settings')} />
 							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputSettingsRef.current?.click() }}>
 								Import Settings
@@ -1179,7 +1178,6 @@ export const Settings = () => {
 						</div>
 						{/* Chats Subcategory */}
 						<div className='flex flex-col gap-2 w-full max-w-48'>
-							<h3 className='text-xl mb-2'>Chat</h3>
 							<input key={2 * s + 1} ref={fileInputChatsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Chats')} />
 							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputChatsRef.current?.click() }}>
 								Import Chats

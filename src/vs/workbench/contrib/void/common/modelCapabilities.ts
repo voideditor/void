@@ -107,8 +107,8 @@ export const defaultModelsOfProvider = {
 		'anthropic/claude-3.5-sonnet',
 		'deepseek/deepseek-r1',
 		'deepseek/deepseek-r1-zero:free',
-		'openrouter/quasar-alpha',
-		'google/gemini-2.5-pro-preview-03-25',
+		// 'openrouter/quasar-alpha',
+		// 'google/gemini-2.5-pro-preview-03-25',
 		// 'mistralai/codestral-2501',
 		// 'qwen/qwen-2.5-coder-32b-instruct',
 		// 'mistralai/mistral-small-3.1-24b-instruct:free',
@@ -153,7 +153,7 @@ export type VoidStaticModelInfo = { // not stateful
 	}
 
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated'; // separated = anthropic where "system" is a special paramete
-	specialToolFormat?: 'openai-style' | 'anthropic-style', // null defaults to XML
+	specialToolFormat?: 'openai-style' | 'anthropic-style' | 'gemini-style', // null defaults to XML
 	supportsFIM: boolean;
 
 	reasoningCapabilities: false | {
@@ -298,6 +298,12 @@ const openSourceModelOptions_assumingOAICompat = {
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 128_000, maxOutputTokens: 8_192,
 	},
+	'qwen3': {
+		supportsFIM: false, // replaces QwQ
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 32_768, maxOutputTokens: 8_192,
+	},
 	// FIM only
 	'starcoder2': {
 		supportsFIM: true,
@@ -359,6 +365,8 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 	if (lower.includes('llama')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['llama4-scout'] })
 
 	if (lower.includes('qwen') && lower.includes('2.5') && lower.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'] })
+	if (lower.includes('qwen') && lower.includes('3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen3'] })
+	if (lower.includes('qwen')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen3'] })
 	if (lower.includes('qwq')) { return toFallback({ ...openSourceModelOptions_assumingOAICompat.qwq, }) }
 	if (lower.includes('phi4')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.phi4, })
 	if (lower.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral })
@@ -639,7 +647,8 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		cost: { input: 0.15, output: .60 }, // TODO $3.50 output with thinking not included
 		downloadable: false,
 		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-2.5-pro-exp-03-25': {
@@ -648,7 +657,8 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash': {
@@ -657,7 +667,8 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		cost: { input: 0.10, output: 0.40 },
 		downloadable: false,
 		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
@@ -666,7 +677,8 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		cost: { input: 0.075, output: 0.30 },
 		downloadable: false,
 		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-flash': {
@@ -675,7 +687,8 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		cost: { input: 0.075, output: 0.30 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		downloadable: false,
 		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-pro': {
@@ -684,7 +697,8 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		cost: { input: 1.25, output: 5.00 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		downloadable: false,
 		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-flash-8b': {
@@ -693,7 +707,8 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		cost: { input: 0.0375, output: 0.15 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		downloadable: false,
 		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }

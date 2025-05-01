@@ -51,8 +51,22 @@ export type OpenAILLMChatMessage = {
 	content: string;
 	tool_call_id: string;
 }
-export type LLMChatMessage = AnthropicLLMChatMessage | OpenAILLMChatMessage
 
+export type GeminiLLMChatMessage = {
+	role: 'model'
+	parts: (
+		| { text: string; }
+		| { functionCall: { name: ToolName, args: object } }
+	)[];
+} | {
+	role: 'user';
+	parts: (
+		| { text: string; }
+		| { functionResponse: { name: ToolName, response: { result: string } } }
+	)[];
+}
+
+export type LLMChatMessage = AnthropicLLMChatMessage | OpenAILLMChatMessage | GeminiLLMChatMessage
 
 
 

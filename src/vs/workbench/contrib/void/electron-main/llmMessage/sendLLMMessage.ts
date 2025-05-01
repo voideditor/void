@@ -33,13 +33,6 @@ export const sendLLMMessage = async ({
 	// only captures number of messages and message "shape", no actual code, instructions, prompts, etc
 	const captureLLMEvent = (eventId: string, extras?: object) => {
 
-		let totalTokens = 0
-		if (messagesType === 'chatMessages') {
-			for (const m of messages_) totalTokens += m.content.length
-		}
-		else {
-			totalTokens = messages_.prefix.length + messages_.suffix.length
-		}
 
 		metricsService.capture(eventId, {
 			providerName,
@@ -48,13 +41,10 @@ export const sendLLMMessage = async ({
 			numModelsAtEndpoint: settingsOfProvider[providerName]?.models?.length,
 			...messagesType === 'chatMessages' ? {
 				numMessages: messages_?.length,
-				messagesShape: messages_?.map(msg => ({ role: msg.role, length: msg.content.length })),
-
 			} : messagesType === 'FIMMessage' ? {
 				prefixLength: messages_.prefix.length,
 				suffixLength: messages_.suffix.length,
 			} : {},
-			totalTokens,
 			...loggingExtras,
 			...extras,
 		})
@@ -103,7 +93,7 @@ export const sendLLMMessage = async ({
 
 
 	if (messagesType === 'chatMessages')
-		captureLLMEvent(`${loggingName} - Sending Message`, { userMessageLength: messages_?.[messages_.length - 1]?.content.length })
+		captureLLMEvent(`${loggingName} - Sending Message`, {})
 	else if (messagesType === 'FIMMessage')
 		captureLLMEvent(`${loggingName} - Sending FIM`, { prefixLen: messages_?.prefix?.length, suffixLen: messages_?.suffix?.length })
 

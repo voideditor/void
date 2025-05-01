@@ -8,9 +8,9 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { ChatMessage } from '../common/chatThreadServiceTypes.js';
 import { getIsReasoningEnabledState, getMaxOutputTokens, getModelCapabilities } from '../common/modelCapabilities.js';
 import { reParsedToolXMLString, chat_systemMessage, ToolName } from '../common/prompt/prompts.js';
-import { AnthropicLLMChatMessage, AnthropicReasoning, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
+import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { ChatMode, FeatureName, ModelSelection } from '../common/voidSettingsTypes.js';
+import { ChatMode, FeatureName, ModelSelection, ProviderName } from '../common/voidSettingsTypes.js';
 import { IDirectoryStrService } from './directoryStrService.js';
 import { ITerminalToolService } from './terminalToolService.js';
 import { IVoidModelService } from '../common/voidModelService.js';
@@ -34,8 +34,6 @@ type SimpleLLMMessage = {
 	content: string;
 	anthropicReasoning: AnthropicReasoning[] | null;
 }
-
-
 
 
 const EMPTY_MESSAGE = '(empty message)'
@@ -69,7 +67,7 @@ openai on developer system message - https://cdn.openai.com/spec/model-spec-2024
 */
 
 
-const prepareMessages_openai_tools = (messages: SimpleLLMMessage[]): LLMChatMessage[] => {
+const prepareMessages_openai_tools = (messages: SimpleLLMMessage[]): AnthropicOrOpenAILLMMessage[] => {
 
 	const newMessages: OpenAILLMChatMessage[] = [];
 
@@ -136,8 +134,9 @@ assistant: ...content, call(name, id, params)
 user: ...content, result(id, content)
 */
 
+type AnthropicOrOpenAILLMMessage = AnthropicLLMChatMessage | OpenAILLMChatMessage
 
-const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsAnthropicReasoning: boolean): LLMChatMessage[] => {
+const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsAnthropicReasoning: boolean): AnthropicOrOpenAILLMMessage[] => {
 	const newMessages: (AnthropicLLMChatMessage | (SimpleLLMMessage & { role: 'tool' }))[] = messages;
 
 	for (let i = 0; i < messages.length; i += 1) {
@@ -195,9 +194,9 @@ const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsA
 }
 
 
-const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthropicReasoning: boolean): LLMChatMessage[] => {
+const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthropicReasoning: boolean): AnthropicOrOpenAILLMMessage[] => {
 
-	const llmChatMessages: LLMChatMessage[] = [];
+	const llmChatMessages: AnthropicOrOpenAILLMMessage[] = [];
 	for (let i = 0; i < messages.length; i += 1) {
 
 		const c = messages[i]
@@ -206,7 +205,7 @@ const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthrop
 		if (c.role === 'assistant') {
 			// if called a tool (message after it), re-add its XML to the message
 			// alternatively, could just hold onto the original output, but this way requires less piping raw strings everywhere
-			let content: LLMChatMessage['content'] = c.content
+			let content: AnthropicOrOpenAILLMMessage['content'] = c.content
 			if (next?.role === 'tool') {
 				content = `${content}\n\n${reParsedToolXMLString(next.name, next.rawParams)}`
 			}
@@ -239,24 +238,20 @@ const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthrop
 
 
 
-const prepareMessages_providerSpecific = (messages: SimpleLLMMessage[], specialToolFormat: 'openai-style' | 'anthropic-style' | undefined, supportsAnthropicReasoning: boolean): LLMChatMessage[] => {
-	const llmChatMessages: LLMChatMessage[] = []
-	if (!specialToolFormat) { // XML tool behavior
-		return prepareMessages_XML_tools(messages, supportsAnthropicReasoning)
-	}
-	else if (specialToolFormat === 'anthropic-style') {
-		return prepareMessages_anthropic_tools(messages, supportsAnthropicReasoning)
-	}
-	else if (specialToolFormat === 'openai-style') {
-		return prepareMessages_openai_tools(messages)
-	}
-	return llmChatMessages
-}
+
+export type GeminiMessage = {
+	role: 'user' | 'model'; // Gemini uses 'user' and 'model' roles
+	parts: (
+		| { text: string; }
+		| { functionCall: { tool_call: any } }
+		| { functionResponse: { name: ToolName, response: { result: string } } }
+	)[];
+};
 
 
 // --- CHAT ---
 
-const prepareMessages = ({
+const prepareOpenAIOrAnthropicMessages = ({
 	messages,
 	systemMessage,
 	aiInstructions,
@@ -274,7 +269,7 @@ const prepareMessages = ({
 	supportsAnthropicReasoning: boolean,
 	contextWindow: number,
 	maxOutputTokens: number | null | undefined,
-}): { messages: LLMChatMessage[], separateSystemMessage: string | undefined } => {
+}): { messages: AnthropicOrOpenAILLMMessage[], separateSystemMessage: string | undefined } => {
 	maxOutputTokens = maxOutputTokens ?? 4_096 // default to 4096
 
 	// ================ trim ================
@@ -350,7 +345,19 @@ const prepareMessages = ({
 	}
 
 	// ================ tools and anthropicReasoning ================
-	const llmMessages: LLMChatMessage[] = prepareMessages_providerSpecific(messages, specialToolFormat, supportsAnthropicReasoning)
+
+	let llmChatMessages: AnthropicOrOpenAILLMMessage[] = []
+	if (!specialToolFormat) { // XML tool behavior
+		llmChatMessages = prepareMessages_XML_tools(messages, supportsAnthropicReasoning)
+	}
+	else if (specialToolFormat === 'anthropic-style') {
+		llmChatMessages = prepareMessages_anthropic_tools(messages, supportsAnthropicReasoning)
+	}
+	else if (specialToolFormat === 'openai-style') {
+		llmChatMessages = prepareMessages_openai_tools(messages)
+	}
+	const llmMessages = llmChatMessages
+
 
 	// ================ system message concat ================
 
@@ -406,9 +413,83 @@ const prepareMessages = ({
 
 
 
+type GeminiUserPart = (GeminiLLMChatMessage & { role: 'user' })['parts'][0]
+type GeminiModelPart = (GeminiLLMChatMessage & { role: 'model' })['parts'][0]
+const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
+	let latestToolName: ToolName | undefined = undefined
+	const messages2: GeminiLLMChatMessage[] = messages.map((m): GeminiLLMChatMessage | null => {
+		if (m.role === 'assistant') {
+			if (typeof m.content === 'string') {
+				return { role: 'model', parts: [{ text: m.content }] }
+			}
+			else {
+				const parts: GeminiModelPart[] = m.content.map((c): GeminiModelPart | null => {
+					if (c.type === 'text') {
+						return { text: c.text }
+					}
+					else if (c.type === 'tool_use') {
+						latestToolName = c.name as ToolName
+						return { functionCall: { name: c.name as ToolName, args: c.input } }
+					}
+					else return null
+				}).filter(m => !!m)
+				return { role: 'model', parts, }
+			}
+		}
+		else if (m.role === 'user') {
+			if (typeof m.content === 'string') {
+				return { role: 'user', parts: [{ text: m.content }] } satisfies GeminiLLMChatMessage
+			}
+			else {
+				const parts: GeminiUserPart[] = m.content.map((c): GeminiUserPart | null => {
+					if (c.type === 'text') {
+						return { text: c.text }
+					}
+					else if (c.type === 'tool_result') {
+						if (!latestToolName) return null
+						return { functionResponse: { name: latestToolName, response: { result: c.content } } }
+					}
+					else return null
+				}).filter(m => !!m)
+				return { role: 'user', parts, }
+			}
+
+		}
+		else return null
+	}).filter(m => !!m)
+
+	return messages2
+}
 
 
+const prepareMessages = (params: {
+	messages: SimpleLLMMessage[],
+	systemMessage: string,
+	aiInstructions: string,
+	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
+	specialToolFormat: 'openai-style' | 'anthropic-style' | 'gemini-style' | undefined,
+	supportsAnthropicReasoning: boolean,
+	contextWindow: number,
+	maxOutputTokens: number | null | undefined,
+	providerName: ProviderName
+}): { messages: LLMChatMessage[], separateSystemMessage: string | undefined } => {
 
+	const specialFormat = params.specialToolFormat // this is just for ts idiocy
+	if (params.providerName === 'gemini') {
+		// treat as anthropic style, then convert to gemini style
+		const res = prepareOpenAIOrAnthropicMessages({ ...params, specialToolFormat: specialFormat === 'gemini-style' ? 'anthropic-style' : undefined })
+		const messages = res.messages as AnthropicLLMChatMessage[]
+		const messages2 = prepareGeminiMessages(messages)
+		return { messages: messages2, separateSystemMessage: res.separateSystemMessage }
+	}
+	else {
+		if (specialFormat === 'gemini-style') {
+			throw new Error(`Tried preparing messages with tool format ${params.specialToolFormat} but the provider was ${params.providerName}, not Gemini.`)
+		}
+	}
+
+	return prepareOpenAIOrAnthropicMessages({ ...params, specialToolFormat: specialFormat })
+}
 
 
 
@@ -418,7 +499,6 @@ export interface IConvertToLLMMessageService {
 	prepareLLMSimpleMessages: (opts: { simpleMessages: SimpleLLMMessage[], systemMessage: string, modelSelection: ModelSelection | null, featureName: FeatureName }) => { messages: LLMChatMessage[], separateSystemMessage: string | undefined }
 	prepareLLMChatMessages: (opts: { chatMessages: ChatMessage[], chatMode: ChatMode, modelSelection: ModelSelection | null }) => Promise<{ messages: LLMChatMessage[], separateSystemMessage: string | undefined }>
 	prepareFIMMessage(opts: { messages: LLMFIMMessage, }): { prefix: string, suffix: string, stopTokens: string[] }
-
 }
 
 export const IConvertToLLMMessageService = createDecorator<IConvertToLLMMessageService>('ConvertToLLMMessageService');
@@ -470,7 +550,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 
 
 	// system message
-	private _generateChatMessagesSystemMessage = async (chatMode: ChatMode, specialToolFormat: 'openai-style' | 'anthropic-style' | undefined) => {
+	private _generateChatMessagesSystemMessage = async (chatMode: ChatMode, specialToolFormat: 'openai-style' | 'anthropic-style' | 'gemini-style' | undefined) => {
 		const workspaceFolders = this.workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
 
 		const openedURIs = this.modelService.getModels().filter(m => m.isAttachedToEditor()).map(m => m.uri.fsPath) || [];
@@ -551,6 +631,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			supportsAnthropicReasoning: providerName === 'anthropic',
 			contextWindow,
 			maxOutputTokens,
+			providerName,
 		})
 		return { messages, separateSystemMessage };
 	}
@@ -582,6 +663,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			supportsAnthropicReasoning: providerName === 'anthropic',
 			contextWindow,
 			maxOutputTokens,
+			providerName,
 		})
 		return { messages, separateSystemMessage };
 	}

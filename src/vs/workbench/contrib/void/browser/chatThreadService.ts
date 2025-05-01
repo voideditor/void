@@ -1097,7 +1097,6 @@ We only need to do it for files that were edited since `from`, ie files between 
 
 		// interrupt existing stream
 		if (this.streamState[threadId]?.isRunning) {
-			console.log('stopping....')
 			await this.abortRunning(threadId)
 		}
 

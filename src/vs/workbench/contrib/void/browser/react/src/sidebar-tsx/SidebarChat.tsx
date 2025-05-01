@@ -314,11 +314,6 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			onClick={(e) => {
 				onClickAnywhere?.()
 			}}
-			onKeyDown={(e: React.KeyboardEvent) => {
-				if (e.key === 'Escape' && isStreaming && onAbort) {
-					onAbort();
-				}
-			}}
 		>
 			{/* Selections section */}
 			{showSelections && selections && setSelections && (

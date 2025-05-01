@@ -667,8 +667,6 @@ const sendGeminiChat = async ({
 	chatMode,
 }: SendChatParams_Internal) => {
 
-	console.log('MESSAGES', JSON.stringify(messages, null, 2))
-
 	if (providerName !== 'gemini') throw new Error(`Sending Gemini chat, but provider was ${providerName}`)
 
 	const thisConfig = settingsOfProvider[providerName]

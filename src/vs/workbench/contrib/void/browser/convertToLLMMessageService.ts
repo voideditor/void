@@ -363,7 +363,7 @@ const prepareOpenAIOrAnthropicMessages = ({
 
 	// find system messages and concatenate them
 	const newSystemMessage = aiInstructions ?
-		`${(systemMessage ? `${systemMessage}\n\n` : '')}GUIDELINES\n${aiInstructions}`
+		`${(systemMessage ? `${systemMessage}\n\n` : '')}GUIDELINES (from the user's .voidrules file):\n${aiInstructions}`
 		: systemMessage
 
 	let separateSystemMessageStr: string | undefined = undefined

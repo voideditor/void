@@ -818,19 +818,22 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 										key={o.fullName}
 										className={`
 											flex items-center gap-2
-											px-3 py-1 cursor-pointer bg-void-bg-2-alt
-											${oIdx === optionIdx ? 'bg-void-bg-2-hover' : ''}
+											px-3 py-1 cursor-pointer
+											${oIdx === optionIdx ? 'bg-blue-500 text-white/80' : 'bg-void-bg-2-alt text-void-fg-1'}
 										`}
 										onClick={() => { onSelectOption(); }}
 										onMouseMove={() => { setOptionIdx(oIdx) }}
 									>
 										{<o.iconInMenu size={12} />}
-										<span className="text-void-fg-1">{o.abbreviatedName}</span>
 
-										{o.fullName && o.fullName !== o.abbreviatedName && <span className="text-void-fg-1 opacity-60 text-sm">{o.fullName}</span>}
+										<span>{o.abbreviatedName}</span>
+
+										{o.fullName && o.fullName !== o.abbreviatedName && <span className="opacity-60 text-sm">{o.fullName}</span>}
+
 										{o.nextOptions || o.generateNextOptions ? (
 											<ChevronRight size={12} />
 										) : null}
+
 									</div>
 								)
 							})
@@ -1379,7 +1382,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 									key={optionName}
 									className={`flex items-center px-2 py-1 pr-4 cursor-pointer whitespace-nowrap
 									transition-all duration-100
-									${thisOptionIsSelected ? 'bg-void-bg-2-hover' : 'bg-void-bg-2-alt hover:bg-void-bg-2-hover'}
+									${thisOptionIsSelected ? 'bg-blue-500 text-white/80' : 'hover:bg-blue-500 hover:text-white/80'}
 								`}
 									onClick={() => {
 										onChangeOption(option);
@@ -1401,7 +1404,7 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 									</div>
 									<span className="flex justify-between items-center w-full gap-x-1">
 										<span>{optionName}</span>
-										<span className='text-void-fg-4 opacity-60'>{optionDetail}</span>
+										<span className='opacity-60'>{optionDetail}</span>
 									</span>
 								</div>
 							);

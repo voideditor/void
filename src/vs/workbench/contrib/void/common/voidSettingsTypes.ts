@@ -83,7 +83,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 		return { title: 'LM Studio', }
 	}
 	else if (providerName === 'openAICompatible') {
-		return { title: 'OpenAI-Compatible', }
+		return { title: 'Custom', }
 	}
 	else if (providerName === 'gemini') {
 		return { title: 'Gemini', }
@@ -117,7 +117,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'groq') return 'Get your [API Key here](https://console.groq.com/keys).'
 	if (providerName === 'xAI') return 'Get your [API Key here](https://console.x.ai).'
 	if (providerName === 'mistral') return 'Get your [API Key here](https://console.mistral.ai/api-keys).'
-	if (providerName === 'openAICompatible') return `Use any OpenAI-compatible endpoint (LM Studio, LiteLM, etc).`
+	if (providerName === 'openAICompatible') return `Use any provider that's OpenAI-compatible (most popular ones are).`
 	// if (providerName === 'googleVertex') return 'You must authenticate before using Vertex with Void. Read more about endpoints [here](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library), and regions [here](https://cloud.google.com/vertex-ai/docs/general/locations#available-regions).'
 	if (providerName === 'microsoftAzure') return 'Read more about endpoints [here](https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP), and get your API key [here](https://learn.microsoft.com/en-us/azure/search/search-security-api-keys?tabs=rest-use%2Cportal-find%2Cportal-query#find-existing-keys).'
 	if (providerName === 'ollama') return 'If you would like to change this endpoint, please read more about [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).'

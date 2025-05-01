@@ -591,7 +591,7 @@ export const SelectedFiles = (
 							select-none
 							text-xs text-nowrap
 							border rounded-sm
-							${isThisSelectionProspective ? 'bg-void-bg-1 text-void-fg-3 opacity-80' : 'bg-void-bg-3 hover:brightness-95 text-void-fg-1'}
+							${isThisSelectionProspective ? 'bg-void-bg-1 text-void-fg-3 opacity-80' : 'bg-void-bg-1 hover:brightness-95 text-void-fg-1'}
 							${isThisSelectionProspective
 								? 'border-void-border-2'
 								: 'border-void-border-1'

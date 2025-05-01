@@ -292,7 +292,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	className = '',
 	showModelDropdown = true,
 	showSelections = false,
-	showProspectiveSelections = true,
+	showProspectiveSelections = false,
 	selections,
 	setSelections,
 	featureName,
@@ -2923,7 +2923,7 @@ export const SidebarChat = () => {
 		isStreaming={!!isRunning}
 		isDisabled={isDisabled}
 		showSelections={true}
-		showProspectiveSelections={previousMessagesHTML.length === 0}
+		// showProspectiveSelections={previousMessagesHTML.length === 0}
 		selections={selections}
 		setSelections={setSelections}
 		onClickAnywhere={() => { textAreaRef.current?.focus() }}

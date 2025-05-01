@@ -55,12 +55,12 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 type GenerateNextOptions = (optionText: string) => Promise<Option[]>
 
 type Option = {
-	nameInMenu: string,
+	fullName: string,
 	iconInMenu: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>, // type for lucide-react components
 } & (
-		| { nextOptions: Option[], generateNextOptions?: undefined, nameToPaste?: undefined }
-		| { nextOptions?: undefined, generateNextOptions: GenerateNextOptions, nameToPaste?: undefined }
-		| { leafNodeType: 'File' | 'Folder', nameToPaste: string, uri: URI, nextOptions?: undefined, generateNextOptions?: undefined, }
+		| { nextOptions: Option[], generateNextOptions?: undefined, abbreviatedName?: undefined }
+		| { nextOptions?: undefined, generateNextOptions: GenerateNextOptions, abbreviatedName?: undefined }
+		| { leafNodeType: 'File' | 'Folder', abbreviatedName: string, uri: URI, nextOptions?: undefined, generateNextOptions?: undefined, }
 	)
 
 
@@ -173,6 +173,13 @@ export function getRelativeWorkspacePath(accessor: ReturnType<typeof useAccessor
 
 const numOptionsToShow = 100
 
+
+
+// TODO make this unique based on other options
+const getAbbreviatedName = (relativePath: string) => {
+	return getBasename(relativePath, 2)
+}
+
 const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: string[], optionText: string): Promise<Option[]> => {
 
 	const toolsService = accessor.get('IToolsService')
@@ -193,8 +200,8 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 						leafNodeType: 'File',
 						uri: uri,
 						iconInMenu: File,
-						nameInMenu: relativePath,
-						nameToPaste: getBasename(relativePath, 2),
+						fullName: relativePath,
+						abbreviatedName: getAbbreviatedName(relativePath),
 					}
 				})
 				return res
@@ -258,8 +265,8 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 					leafNodeType: 'Folder',
 					uri: uri,
 					iconInMenu: Folder, // Folder
-					nameInMenu: relativePath,
-					nameToPaste: getBasename(relativePath, 2)
+					fullName: relativePath,
+					abbreviatedName: getAbbreviatedName(relativePath),
 				})) satisfies Option[];
 			}
 		} catch (error) {
@@ -271,13 +278,13 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 
 	const allOptions: Option[] = [
 		{
-			nameInMenu: 'files',
+			fullName: 'files',
 			iconInMenu: File,
 			generateNextOptions: async (t) => (await searchForFilesOrFolders(t, 'files')) || [],
 		},
 		{
-			nameInMenu: 'folders',
-			iconInMenu: FolderClosed,
+			fullName: 'folders',
+			iconInMenu: Folder,
 			generateNextOptions: async (t) => (await searchForFilesOrFolders(t, 'folders')) || [],
 		},
 	]
@@ -289,7 +296,7 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 
 	for (const pn of path) {
 
-		const selectedOption = nextOptionsAtPath.find(o => o.nameInMenu.toLowerCase() === pn.toLowerCase())
+		const selectedOption = nextOptionsAtPath.find(o => o.fullName.toLowerCase() === pn.toLowerCase())
 
 		if (!selectedOption) return [];
 
@@ -304,10 +311,10 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 	}
 
 	const optionsAtPath = nextOptionsAtPath
-		.filter(o => isSubsequence(o.nameInMenu, optionText))
+		.filter(o => isSubsequence(o.fullName, optionText))
 		.sort((a, b) => { // this is a hack but good for now
-			const scoreA = scoreSubsequence(a.nameInMenu, optionText);
-			const scoreB = scoreSubsequence(b.nameInMenu, optionText);
+			const scoreA = scoreSubsequence(a.fullName, optionText);
+			const scoreB = scoreSubsequence(b.fullName, optionText);
 			return scoreB - scoreA;
 		})
 		.slice(0, numOptionsToShow) // should go last because sorting/filtering should happen on all datapoints
@@ -354,6 +361,12 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 	const [optionIdx, setOptionIdx] = useState<number>(0);
 	const [options, setOptions] = useState<Option[]>([]);
 	const [optionText, setOptionText] = useState<string>('');
+	const [didLoadInitialOptions, setDidLoadInitialOptions] = useState(false);
+
+	const currentPathRef = useRef<string>(JSON.stringify([]));
+	const areBreadcrumbsShowing = didLoadInitialOptions && optionPath.length >= 1;
+
+
 	const insertTextAtCursor = (text: string) => {
 		const textarea = textAreaRef.current;
 		if (!textarea) return;
@@ -379,15 +392,12 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 		if (!options.length) { return; }
 
 		const option = options[optionIdx];
-		const newPath = [...optionPath, option.nameInMenu]
+		const newPath = [...optionPath, option.fullName]
 		const isLastOption = !option.generateNextOptions && !option.nextOptions
-
-		setOptionPath(newPath)
-		setOptionText('')
-		setOptionIdx(0)
+		setDidLoadInitialOptions(false)
 		if (isLastOption) {
 			setIsMenuOpen(false)
-			insertTextAtCursor(option.nameToPaste)
+			insertTextAtCursor(option.abbreviatedName)
 
 			const newSelection: StagingSelectionItem = option.leafNodeType === 'File' ? {
 				type: 'File',
@@ -404,26 +414,39 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			console.log('selected', option.uri?.fsPath)
 		}
 		else {
+
+
+			currentPathRef.current = JSON.stringify(newPath);
 			const newOpts = await getOptionsAtPath(accessor, newPath, '') || []
+			if (currentPathRef.current !== JSON.stringify(newPath)) { return; }
+			setOptionPath(newPath)
+			setOptionText('')
+			setOptionIdx(0)
 			setOptions(newOpts)
+			setDidLoadInitialOptions(true)
 		}
 	}
 
 	const onRemoveOption = async () => {
 		const newPath = [...optionPath.slice(0, optionPath.length - 1)]
+		currentPathRef.current = JSON.stringify(newPath);
+		const newOpts = await getOptionsAtPath(accessor, newPath, '') || []
+		if (currentPathRef.current !== JSON.stringify(newPath)) { return; }
 		setOptionPath(newPath)
 		setOptionText('')
 		setOptionIdx(0)
-		const newOpts = await getOptionsAtPath(accessor, newPath, '') || []
 		setOptions(newOpts)
 	}
 
 	const onOpenOptionMenu = async () => {
-		setOptionPath([])
+		const newPath: [] = []
+		currentPathRef.current = JSON.stringify([]);
+		const newOpts = await getOptionsAtPath(accessor, [], '') || []
+		if (currentPathRef.current !== JSON.stringify([])) { return; }
+		setOptionPath(newPath)
 		setOptionText('')
 		setIsMenuOpen(true);
 		setOptionIdx(0);
-		const newOpts = await getOptionsAtPath(accessor, [], '') || []
 		setOptions(newOpts);
 	}
 	const onCloseOptionMenu = () => {
@@ -469,15 +492,19 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 	// debounced
 	const onPathTextChange = useCallback((newStr: string) => {
 
+
 		setOptionText(newStr);
 
 		if (debounceTimerRef.current !== null) {
 			window.clearTimeout(debounceTimerRef.current);
 		}
 
+		currentPathRef.current = JSON.stringify(optionPath);
+
 		// Set a new timeout to fetch options after a delay
 		debounceTimerRef.current = window.setTimeout(async () => {
 			const newOpts = await getOptionsAtPath(accessor, optionPath, newStr) || [];
+			if (currentPathRef.current !== JSON.stringify(optionPath)) { return; }
 			setOptions(newOpts);
 			setOptionIdx(0);
 			debounceTimerRef.current = null;
@@ -537,7 +564,9 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				// do nothing
 			}
 			else { // letter
-				onPathTextChange(optionText + e.key)
+				if (areBreadcrumbsShowing) {
+					onPathTextChange(optionText + e.key)
+				}
 			}
 		}
 
@@ -740,20 +769,20 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				onWheel={(e) => e.stopPropagation()}
 			>
 				{/* Breadcrumbs Header */}
-				<div className="px-2 py-1 text-void-fg-3 bg-void-bg-2-alt text-sm border-b border-void-border-3 sticky top-0 bg-void-bg-1 z-10 select-none pointer-events-none">
-					{optionPath.length || optionText ?
+				{areBreadcrumbsShowing && <div className="px-2 py-1 text-void-fg-3 bg-void-bg-2-alt text-sm border-b border-void-border-3 sticky top-0 bg-void-bg-1 z-10 select-none pointer-events-none">
+					{optionText ?
 						<div className="flex items-center">
-							{optionPath.map((path, index) => (
+							{/* {optionPath.map((path, index) => (
 								<React.Fragment key={index}>
 									<span>{path}</span>
 									<ChevronRight size={12} className="mx-1" />
 								</React.Fragment>
-							))}
+							))} */}
 							<span>{optionText}</span>
 						</div>
-						: <div className='opacity-60'>Enter text to filter...</div>
+						: <div className='opacity-50'>Enter text to filter...</div>
 					}
-				</div>
+				</div>}
 
 
 				{/* Options list */}
@@ -767,17 +796,17 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 									// Option
 									<div
 										ref={oIdx === optionIdx ? selectedOptionRef : null}
-										key={o.nameInMenu}
+										key={o.fullName}
 										className={`
 											flex items-center gap-2
 											px-3 py-0.5 cursor-pointer bg-void-bg-2-alt
 											${oIdx === optionIdx ? 'bg-void-bg-2-hover' : ''}
 										`}
 										onClick={() => { onSelectOption(); }}
-										onMouseOver={() => { setOptionIdx(oIdx) }}
+										onMouseMove={() => { setOptionIdx(oIdx) }}
 									>
 										{<o.iconInMenu size={12} />}
-										<span className="text-void-fg-1">{o.nameInMenu}</span>
+										<span className="text-void-fg-1">{o.fullName}</span>
 										{o.nextOptions || o.generateNextOptions ? (
 											<ChevronRight size={12} />
 										) : null}

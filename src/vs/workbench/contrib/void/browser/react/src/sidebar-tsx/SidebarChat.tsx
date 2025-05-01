@@ -832,55 +832,39 @@ const EditTool = ({ toolMessage, threadId, messageIdx, content }: Parameters<Res
 	}
 	else if (toolMessage.type === 'success' || toolMessage.type === 'rejected' || toolMessage.type === 'tool_error') {
 		// add apply box
-		if (params) {
-			const applyBoxId = getApplyBoxId({
-				threadId: threadId,
-				messageIdx: messageIdx,
-				tokenIdx: 'N/A',
-			})
-
-			componentParams.desc2 = <EditToolHeaderButtons
-				applyBoxId={applyBoxId}
-				uri={params.uri}
-				codeStr={content}
-			/>
-		}
+		const applyBoxId = getApplyBoxId({
+			threadId: threadId,
+			messageIdx: messageIdx,
+			tokenIdx: 'N/A',
+		})
+		componentParams.desc2 = <EditToolHeaderButtons
+			applyBoxId={applyBoxId}
+			uri={params.uri}
+			codeStr={content}
+		/>
 
 		// add children
+		componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
+			<EditToolChildren
+				uri={params.uri}
+				code={content}
+			/>
+		</ToolChildrenWrapper>
+
 		if (toolMessage.type !== 'tool_error') {
 			const { result } = toolMessage
-
-			componentParams.bottomChildren = <EditToolLintErrors lintErrors={result?.lintErrors || []} />
-
-			componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
-				<EditToolChildren
-					uri={params.uri}
-					code={content}
-				/>
-			</ToolChildrenWrapper>
+			componentParams.bottomChildren = <BottomChildren title='Lint errors'>
+				{result?.lintErrors?.map((error, i) => (
+					<div key={i} className="">Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
+				))}
+			</BottomChildren>
 		}
 		else {
 			// error
 			const { result } = toolMessage
-			if (params) {
-				componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
-					{/* error */}
-					<CodeChildren>
-						{result}
-					</CodeChildren>
-
-					{/* content */}
-					<EditToolChildren
-						uri={params.uri}
-						code={content}
-					/>
-				</ToolChildrenWrapper>
-			}
-			else {
-				componentParams.children = <CodeChildren>
-					{result}
-				</CodeChildren>
-			}
+			componentParams.bottomChildren = <BottomChildren title='Error'>
+				{result}
+			</BottomChildren>
 		}
 	}
 
@@ -1063,87 +1047,87 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			setSelections={setStagingSelections}
 		>
 			<VoidInputBox2
-            enableAtToMention
-            ref={setTextAreaRef}
-            className='min-h-[81px] max-h-[500px] px-0.5'
-            placeholder="Edit your message..."
-            onChangeText={(text) => setIsDisabled(!text)}
-            onFocus={() => {
-                setIsFocused(true)
-                chatThreadsService.setCurrentlyFocusedMessageIdx(messageIdx);
-            }}
-            onBlur={() => {
-                setIsFocused(false)
-            }}
-            onKeyDown={onKeyDown}
-            fnsRef={textAreaFnsRef}
-            multiline={true}
-        />
-    </VoidChatArea>
-}
+				enableAtToMention
+				ref={setTextAreaRef}
+				className='min-h-[81px] max-h-[500px] px-0.5'
+				placeholder="Edit your message..."
+				onChangeText={(text) => setIsDisabled(!text)}
+				onFocus={() => {
+					setIsFocused(true)
+					chatThreadsService.setCurrentlyFocusedMessageIdx(messageIdx);
+				}}
+				onBlur={() => {
+					setIsFocused(false)
+				}}
+				onKeyDown={onKeyDown}
+				fnsRef={textAreaFnsRef}
+				multiline={true}
+			/>
+		</VoidChatArea>
+	}
 
-const isMsgAfterCheckpoint = currCheckpointIdx !== undefined && currCheckpointIdx === messageIdx - 1
+	const isMsgAfterCheckpoint = currCheckpointIdx !== undefined && currCheckpointIdx === messageIdx - 1
 
-return <div
-    // align chatbubble accoridng to role
-    className={`
+	return <div
+		// align chatbubble accoridng to role
+		className={`
         relative ml-auto
         ${mode === 'edit' ? 'w-full max-w-full'
-            : mode === 'display' ? `self-end w-fit max-w-full whitespace-pre-wrap` : '' // user words should be pre
-        }
+				: mode === 'display' ? `self-end w-fit max-w-full whitespace-pre-wrap` : '' // user words should be pre
+			}
 
         ${isCheckpointGhost && !isMsgAfterCheckpoint ? 'opacity-50 pointer-events-none' : ''}
     `}
-    onMouseEnter={() => setIsHovered(true)}
-    onMouseLeave={() => setIsHovered(false)}
->
-    <div
-        // style chatbubble according to role
-        className={`
+		onMouseEnter={() => setIsHovered(true)}
+		onMouseLeave={() => setIsHovered(false)}
+	>
+		<div
+			// style chatbubble according to role
+			className={`
             text-left rounded-lg max-w-full
             ${mode === 'edit' ? ''
-                : mode === 'display' ? 'p-2 flex flex-col bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
-            }
+					: mode === 'display' ? 'p-2 flex flex-col bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
+				}
         `}
-        onClick={() => { if (mode === 'display') { onOpenEdit() } }}
-    >
-        {chatbubbleContents}
-    </div>
+			onClick={() => { if (mode === 'display') { onOpenEdit() } }}
+		>
+			{chatbubbleContents}
+		</div>
 
 
 
-    <div
-        className="absolute -top-1 -right-1 translate-x-0 -translate-y-0 z-1"
-    // data-tooltip-id='void-tooltip'
-    // data-tooltip-content='Edit message'
-    // data-tooltip-place='left'
-    >
-        <EditSymbol
-            size={18}
-            className={`
+		<div
+			className="absolute -top-1 -right-1 translate-x-0 -translate-y-0 z-1"
+		// data-tooltip-id='void-tooltip'
+		// data-tooltip-content='Edit message'
+		// data-tooltip-place='left'
+		>
+			<EditSymbol
+				size={18}
+				className={`
                     cursor-pointer
                     p-[2px]
                     bg-void-bg-1 border border-void-border-1 rounded-md
                     transition-opacity duration-200 ease-in-out
                     ${isHovered || (isFocused && mode === 'edit') ? 'opacity-100' : 'opacity-0'}
                 `}
-            onClick={() => {
-                if (mode === 'display') {
-                    onOpenEdit()
-                } else if (mode === 'edit') {
-                    onCloseEdit()
-                }
-            }}
-        />
-    </div>
+				onClick={() => {
+					if (mode === 'display') {
+						onOpenEdit()
+					} else if (mode === 'edit') {
+						onCloseEdit()
+					}
+				}}
+			/>
+		</div>
 
 
-</div>
+	</div>
 
 }
 
 const SmallProseWrapper = ({ children }: { children: React.ReactNode }) => {
-return <div className='
+	return <div className='
 text-void-fg-4
 prose
 prose-sm
@@ -1200,12 +1184,12 @@ prose-pre:my-2
 
 prose-table:text-[13px]
 '>
-    {children}
-</div>
+		{children}
+	</div>
 }
 
 const ProseWrapper = ({ children }: { children: React.ReactNode }) => {
-return <div className='
+	return <div className='
 text-void-fg-2
 prose
 prose-sm
@@ -1230,77 +1214,77 @@ prose-ul:leading-normal
 
 max-w-none
 '
->
-    {children}
-</div>
+	>
+		{children}
+	</div>
 }
 const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted, messageIdx }: { chatMessage: ChatMessage & { role: 'assistant' }, isCheckpointGhost: boolean, messageIdx: number, isCommitted: boolean }) => {
 
-const accessor = useAccessor()
-const chatThreadsService = accessor.get('IChatThreadService')
+	const accessor = useAccessor()
+	const chatThreadsService = accessor.get('IChatThreadService')
 
-const reasoningStr = chatMessage.reasoning?.trim() || null
-const hasReasoning = !!reasoningStr
-const isDoneReasoning = !!chatMessage.displayContent
-const thread = chatThreadsService.getCurrentThread()
+	const reasoningStr = chatMessage.reasoning?.trim() || null
+	const hasReasoning = !!reasoningStr
+	const isDoneReasoning = !!chatMessage.displayContent
+	const thread = chatThreadsService.getCurrentThread()
 
 
-const chatMessageLocation: ChatMessageLocation = {
-    threadId: thread.id,
-    messageIdx: messageIdx,
-}
+	const chatMessageLocation: ChatMessageLocation = {
+		threadId: thread.id,
+		messageIdx: messageIdx,
+	}
 
-const isEmpty = !chatMessage.displayContent && !chatMessage.reasoning
-if (isEmpty) return null
+	const isEmpty = !chatMessage.displayContent && !chatMessage.reasoning
+	if (isEmpty) return null
 
-return <>
-    {/* reasoning token */}
-    {hasReasoning &&
-        <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-            <ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
-                <SmallProseWrapper>
-                    <ChatMarkdownRender
-                        string={reasoningStr}
-                        chatMessageLocation={chatMessageLocation}
-                        isApplyEnabled={false}
-                        isLinkDetectionEnabled={true}
-                    />
-                </SmallProseWrapper>
-            </ReasoningWrapper>
-        </div>
-    }
+	return <>
+		{/* reasoning token */}
+		{hasReasoning &&
+			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
+				<ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
+					<SmallProseWrapper>
+						<ChatMarkdownRender
+							string={reasoningStr}
+							chatMessageLocation={chatMessageLocation}
+							isApplyEnabled={false}
+							isLinkDetectionEnabled={true}
+						/>
+					</SmallProseWrapper>
+				</ReasoningWrapper>
+			</div>
+		}
 
-    {/* assistant message */}
-    {chatMessage.displayContent &&
-        <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-            <ProseWrapper>
-                <ChatMarkdownRender
-                    string={chatMessage.displayContent || ''}
-                    chatMessageLocation={chatMessageLocation}
-                    isApplyEnabled={true}
-                    isLinkDetectionEnabled={true}
-                />
-            </ProseWrapper>
-        </div>
-    }
-</>
+		{/* assistant message */}
+		{chatMessage.displayContent &&
+			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
+				<ProseWrapper>
+					<ChatMarkdownRender
+						string={chatMessage.displayContent || ''}
+						chatMessageLocation={chatMessageLocation}
+						isApplyEnabled={true}
+						isLinkDetectionEnabled={true}
+					/>
+				</ProseWrapper>
+			</div>
+		}
+	</>
 
 }
 
 const ReasoningWrapper = ({ isDoneReasoning, isStreaming, children }: { isDoneReasoning: boolean, isStreaming: boolean, children: React.ReactNode }) => {
-const isDone = isDoneReasoning || !isStreaming
-const isWriting = !isDone
-const [isOpen, setIsOpen] = useState(isWriting)
-useEffect(() => {
-    if (!isWriting) setIsOpen(false) // if just finished reasoning, close
-}, [isWriting])
-return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen} onClick={() => setIsOpen(v => !v)}>
-    <ToolChildrenWrapper>
-        <div className='!select-text cursor-auto'>
-            {children}
-        </div>
-    </ToolChildrenWrapper>
-</ToolHeaderWrapper>
+	const isDone = isDoneReasoning || !isStreaming
+	const isWriting = !isDone
+	const [isOpen, setIsOpen] = useState(isWriting)
+	useEffect(() => {
+		if (!isWriting) setIsOpen(false) // if just finished reasoning, close
+	}, [isWriting])
+	return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> : ''} isOpen={isOpen} onClick={() => setIsOpen(v => !v)}>
+		<ToolChildrenWrapper>
+			<div className='!select-text cursor-auto'>
+				{children}
+			</div>
+		</ToolChildrenWrapper>
+	</ToolHeaderWrapper>
 }
 
 
@@ -1309,10 +1293,10 @@ return <ToolHeaderWrapper title='Reasoning' desc1={isWriting ? <IconLoading /> :
 // should either be past or "-ing" tense, not present tense. Eg. when the LLM searches for something, the user expects it to say "I searched for X" or "I am searching for X". Not "I search X".
 
 const loadingTitleWrapper = (item: React.ReactNode): React.ReactNode => {
-return <span className='flex items-center flex-nowrap'>
-    {item}
-    <IconLoading className='w-3 text-sm' />
-</span>
+	return <span className='flex items-center flex-nowrap'>
+		{item}
+		<IconLoading className='w-3 text-sm' />
+	</span>
 }
 
 const titleOfToolName = {
@@ -1422,7 +1406,7 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 			const toolParams = _toolParams as ToolCallParams['run_command']
 			return {
 				desc1: `"${toolParams.command}"`,
-            }
+			}
 		},
 		'run_persistent_command': () => {
 			const toolParams = _toolParams as ToolCallParams['run_persistent_command']
@@ -1577,8 +1561,8 @@ const LintErrorChildren = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => {
 	</div>
 }
 
-const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => {
-	if (lintErrors.length === 0) return null;
+const BottomChildren = ({ children, title }: { children: React.ReactNode, title: string }) => {
+	if (!children) return null;
 	const [isOpen, setIsOpen] = useState(false);
 	return (
 		<div className="w-full px-2 mt-0.5">
@@ -1590,15 +1574,13 @@ const EditToolLintErrors = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => 
 				<ChevronRight
 					className={`mr-1 h-3 w-3 flex-shrink-0 transition-transform duration-100 text-void-fg-4 group-hover:text-void-fg-3 ${isOpen ? 'rotate-90' : ''}`}
 				/>
-				<span className="font-medium text-void-fg-4 group-hover:text-void-fg-3 text-xs">Lint errors</span>
+				<span className="font-medium text-void-fg-4 group-hover:text-void-fg-3 text-xs">{title}</span>
 			</div>
 			<div
 				className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'opacity-100' : 'max-h-0 opacity-0'} text-xs pl-4`}
 			>
 				<div className="flex flex-col gap-0.5 overflow-x-auto whitespace-nowrap text-void-fg-4 opacity-90 border-l-2 border-void-warning px-2 py-0.5">
-					{lintErrors.map((error, i) => (
-						<div key={i} className="">Lines {error.startLineNumber}-{error.endLineNumber}: {error.message}</div>
-					))}
+					{children}
 				</div>
 			</div>
 		</div>
@@ -2178,7 +2160,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			return <ToolHeaderWrapper {...componentParams} />
 		}
 	},
-    'rewrite_file': {
+	'rewrite_file': {
 		resultWrapper: (params) => {
 			return <EditTool {...params} content={`${'```\n'}${params.toolMessage.params.newContent}${'\n```'}`} />
 		}
@@ -2202,7 +2184,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			return <CommandTool {...params} type='run_persistent_command' />
 		}
 	},
-    'open_persistent_terminal': {
+	'open_persistent_terminal': {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
 			const terminalToolsService = accessor.get('ITerminalToolService')
@@ -2795,7 +2777,7 @@ export const SidebarChat = () => {
 
 	const sidebarRef = useRef<HTMLDivElement>(null)
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
-    const onSubmit = useCallback(async (_forceSubmit?: string) => {
+	const onSubmit = useCallback(async (_forceSubmit?: string) => {
 
 		if (isDisabled && !_forceSubmit) return
 		if (isRunning) return
@@ -2817,7 +2799,7 @@ export const SidebarChat = () => {
 
 	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState])
 
-    const onAbort = async () => {
+	const onAbort = async () => {
 		const threadId = currentThread.id
 		await chatThreadsService.abortRunning(threadId)
 	}

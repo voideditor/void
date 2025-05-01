@@ -153,7 +153,7 @@ export type VoidStaticModelInfo = { // not stateful
 	}
 
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated'; // separated = anthropic where "system" is a special paramete
-	specialToolFormat?: 'openai-style' | 'anthropic-style', // null defaults to XML
+	specialToolFormat?: 'openai-style' | 'anthropic-style' | 'gemini-style', // null defaults to XML
 	supportsFIM: boolean;
 
 	reasoningCapabilities: false | {
@@ -648,6 +648,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-2.5-pro-exp-03-25': {
@@ -657,6 +658,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash': {
@@ -666,6 +668,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
@@ -675,6 +678,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-flash': {
@@ -684,6 +688,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-pro': {
@@ -693,6 +698,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-flash-8b': {
@@ -702,6 +708,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }

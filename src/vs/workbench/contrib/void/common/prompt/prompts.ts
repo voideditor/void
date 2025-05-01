@@ -212,8 +212,8 @@ export const voidTools
 			description: `Returns full contents of a given file.`,
 			params: {
 				...uriParam('file'),
-				start_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to 1.' },
-				end_line: { description: 'Optional. Do NOT fill this in unless you already know the line numbers you need to search. Defaults to Infinity.' },
+				start_line: { description: 'Optional. Do NOT fill this field in unless you were specifically given exact line numbers to search. Defaults to the beginning of the file.' },
+				end_line: { description: 'Optional. Do NOT fill this field in unless you were specifically given exact line numbers to search. Defaults to the end of the file.' },
 				...paginationParam,
 			},
 		},
@@ -275,7 +275,7 @@ export const voidTools
 
 		read_lint_errors: {
 			name: 'read_lint_errors',
-			description: `Returns all lint errors on a given file.`,
+			description: `Use this tool to view all the lint errors on a file.`,
 			params: {
 				...uriParam('file'),
 			},

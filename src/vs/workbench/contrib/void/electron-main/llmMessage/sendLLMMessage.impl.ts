@@ -10,6 +10,7 @@ import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
+import { GoogleGenerativeAI, Tool as GeminiTool, SchemaType, FunctionDeclaration, FunctionDeclarationSchemaProperty } from '@google/generative-ai';
 // import { GoogleAuth } from 'google-auth-library'
 /* eslint-enable */
 
@@ -18,6 +19,7 @@ import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, ProviderNam
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getMaxOutputTokens } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
 import { availableTools, InternalToolInfo, isAToolName, ToolParamName, voidTools } from '../../common/prompt/prompts.js';
+import { generateUuid } from '../../../../../base/common/uuid.js';
 
 
 
@@ -33,7 +35,11 @@ type InternalCommonMessageParams = {
 	_setAborter: (aborter: () => void) => void;
 }
 
-type SendChatParams_Internal = InternalCommonMessageParams & { messages: LLMChatMessage[]; separateSystemMessage: string | undefined; chatMode: ChatMode | null; }
+type SendChatParams_Internal = InternalCommonMessageParams & {
+	messages: LLMChatMessage[];
+	separateSystemMessage: string | undefined;
+	chatMode: ChatMode | null;
+}
 type SendFIMParams_Internal = InternalCommonMessageParams & { messages: LLMFIMMessage; separateSystemMessage: string | undefined; }
 export type ListParams_Internal<ModelResponse> = ModelListParams<ModelResponse>
 
@@ -42,13 +48,6 @@ const invalidApiKeyMessage = (providerName: ProviderName) => `Invalid ${displayI
 
 // ------------ OPENAI-COMPATIBLE (HELPERS) ------------
 
-// const getGoogleApiKey = async () => {
-// 	// module‑level singleton
-// 	const auth = new GoogleAuth({ scopes: `https://www.googleapis.com/auth/cloud-platform` });
-// 	const key = await auth.getAccessToken()
-// 	if (!key) throw new Error(`Google API failed to generate a key.`)
-// 	return key
-// }
 
 
 const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includeInPayload }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName, includeInPayload?: { [s: string]: any } }) => {
@@ -87,10 +86,6 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 			},
 			...commonPayloadOpts,
 		})
-	}
-	else if (providerName === 'gemini') {
-		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 	// else if (providerName === 'googleVertex') {
 	// 	// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
@@ -131,6 +126,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 
 
 const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, }: SendFIMParams_Internal) => {
+
 	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
@@ -193,7 +189,7 @@ const openAITools = (chatMode: ChatMode) => {
 	return openAITools
 }
 
-const openAIToolToRawToolCallObj = (name: string, toolParamsStr: string, id: string): RawToolCallObj | null => {
+const rawToolCallObjOf = (name: string, toolParamsStr: string, id: string): RawToolCallObj | null => {
 	if (!isAToolName(name)) return null
 	const rawParams: RawToolParamsObj = {}
 	let input: unknown
@@ -297,6 +293,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 					fullReasoningSoFar += newReasoning
 				}
 
+				// call onText
 				onText({
 					fullText: fullTextSoFar,
 					fullReasoning: fullReasoningSoFar,
@@ -309,7 +306,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			}
 			else {
-				const toolCall = openAIToolToRawToolCallObj(toolName, toolParamsStr, toolId)
+				const toolCall = rawToolCallObjOf(toolName, toolParamsStr, toolId)
 				const toolCallObj = toolCall ? { toolCall } : {}
 				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
 			}
@@ -438,7 +435,7 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 
 	})
 
-	// manually parse out tool results
+	// manually parse out tool results if XML
 	if (!specialToolFormat) {
 		const { newOnText, newOnFinalMessage } = extractXMLToolsWrapper(onText, onFinalMessage, chatMode)
 		onText = newOnText
@@ -544,6 +541,7 @@ const sendMistralFIM = ({ messages, onFinalMessage, onError, settingsOfProvider,
 			stop: messages.stopTokens,
 		})
 		.then(async response => {
+
 			// unfortunately, _setAborter() does not exist
 			let content = response?.ok ? response.value.choices?.[0]?.message?.content ?? '' : '';
 			const fullText = typeof content === 'string' ? content
@@ -620,6 +618,165 @@ const sendOllamaFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, 
 		})
 }
 
+// ---------------- GEMINI NATIVE IMPLEMENTATION ----------------
+
+
+
+const toGeminiFunctionDecl = (toolInfo: InternalToolInfo) => {
+	const { name, description, params } = toolInfo
+	const paramsWithType: { [k: string]: FunctionDeclarationSchemaProperty } = {}
+	for (const key in params) {
+		paramsWithType[key] = { type: SchemaType.STRING, ...params[key] }
+	}
+	return {
+		name,
+		description,
+		parameters: {
+			type: SchemaType.OBJECT,
+			properties: paramsWithType,
+		}
+	} satisfies FunctionDeclaration
+}
+
+
+const geminiTools = (chatMode: ChatMode): GeminiTool[] | null => {
+	const allowedTools = availableTools(chatMode)
+	if (!allowedTools || Object.keys(allowedTools).length === 0) return null
+	const functionDecls: FunctionDeclaration[] = []
+	for (const t in allowedTools ?? {}) {
+		functionDecls.push(toGeminiFunctionDecl(allowedTools[t]))
+	}
+	const tools: GeminiTool = { functionDeclarations: functionDecls, }
+	return [tools]
+}
+
+
+
+// Implementation for Gemini using Google's native API
+const sendGeminiChat = async ({
+	messages,
+	separateSystemMessage,
+	onText,
+	onFinalMessage,
+	onError,
+	settingsOfProvider,
+	modelName: modelName_,
+	_setAborter,
+	providerName,
+	modelSelectionOptions,
+	chatMode,
+}: SendChatParams_Internal) => {
+
+	console.log('MESSAGES', JSON.stringify(messages, null, 2))
+
+	if (providerName !== 'gemini') throw new Error(`Sending Gemini chat, but provider was ${providerName}`)
+
+	const thisConfig = settingsOfProvider[providerName]
+
+	const {
+		modelName,
+		specialToolFormat,
+		// reasoningCapabilities,
+	} = getModelCapabilities(providerName, modelName_)
+
+	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
+
+	// reasoning
+	// const { canIOReasoning, openSourceThinkTags, } = reasoningCapabilities || {}
+	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
+	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
+
+	// tools
+	const potentialTools = chatMode !== null ? geminiTools(chatMode) : null
+	const nativeToolsObj = potentialTools && specialToolFormat === 'gemini-style' ?
+		{ tools: potentialTools } as const
+		: {}
+
+	// instance
+	const genAI = new GoogleGenerativeAI(
+		thisConfig.apiKey
+	);
+	const model = genAI.getGenerativeModel({
+		systemInstruction: separateSystemMessage,
+		model: modelName,
+	});
+
+	// manually parse out tool results if XML
+	if (!specialToolFormat) {
+		const { newOnText, newOnFinalMessage } = extractXMLToolsWrapper(onText, onFinalMessage, chatMode)
+		onText = newOnText
+		onFinalMessage = newOnFinalMessage
+	}
+
+	// when receive text
+	let fullReasoningSoFar = ''
+	let fullTextSoFar = ''
+
+	let toolName = ''
+	let toolParamsStr = ''
+
+	model.generateContentStream({
+		systemInstruction: separateSystemMessage ?? undefined,
+		contents: messages as any,
+		...includeInPayload,
+		...nativeToolsObj,
+	})
+		.then(async ({ stream, response }) => {
+			_setAborter(() => { stream.return(fullTextSoFar); });
+
+			// Process the stream
+			for await (const chunk of stream) {
+				// message
+				const newText = chunk.text() ?? ''
+				fullTextSoFar += newText
+
+				// tool call
+				const functionCalls = chunk.functionCalls()
+				if (functionCalls && functionCalls.length > 0) {
+					const functionCall = functionCalls[0] // Get the first function call
+					toolName = functionCall.name ?? ''
+					toolParamsStr = JSON.stringify(functionCall.args ?? {})
+				}
+
+				// (do not handle reasoning yet)
+
+				// call onText
+				onText({
+					fullText: fullTextSoFar,
+					fullReasoning: fullReasoningSoFar,
+					toolCall: isAToolName(toolName) ? { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' } : undefined,
+				})
+			}
+
+			// on final
+			if (!fullTextSoFar && !fullReasoningSoFar && !toolName) {
+				onError({ message: 'Void: Response from model was empty.', fullError: null })
+			} else {
+				const toolId = generateUuid() // gemini does not generate tool IDs. Generate one
+				const toolCall = rawToolCallObjOf(toolName, toolParamsStr, toolId)
+				const toolCallObj = toolCall ? { toolCall } : {}
+				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
+			}
+		})
+		.catch(error => {
+			const message = error?.message
+			if (typeof message === 'string') {
+
+				if (error.message?.includes('API key')) {
+					onError({ message: invalidApiKeyMessage(providerName), fullError: error });
+				}
+				else if (error?.message?.includes('429')) {
+					onError({ message: 'Rate limit reached. ' + error, fullError: error });
+				}
+				else
+					onError({ message: error + '', fullError: error });
+			}
+			else {
+				onError({ message: error + '', fullError: error });
+			}
+		})
+};
+
 
 
 type CallFnOfProvider = {
@@ -647,7 +804,7 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 	gemini: {
-		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendChat: (params) => sendGeminiChat(params),
 		sendFIM: null,
 		list: null,
 	},

@@ -57,7 +57,7 @@ export type ToolCallParams = {
 
 // RESULT OF TOOL CALL
 export type ToolResultType = {
-	'read_file': { fileContents: string, totalFileLen: number, hasNextPage: boolean },
+	'read_file': { fileContents: string, totalFileLen: number, totalNumLines: number, hasNextPage: boolean },
 	'ls_dir': { children: ShallowDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
 	'get_dir_tree': { str: string, },
 	'search_pathnames_only': { uris: URI[], hasNextPage: boolean },

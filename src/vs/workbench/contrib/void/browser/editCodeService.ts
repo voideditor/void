@@ -14,8 +14,6 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 import { findDiffs } from './helpers/findDiffs.js';
 import { EndOfLinePreference, IModelDecorationOptions, ITextModel } from '../../../../editor/common/model.js';
 import { IRange } from '../../../../editor/common/core/range.js';
-import { registerColor } from '../../../../platform/theme/common/colorUtils.js';
-import { Color, RGBA } from '../../../../base/common/color.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { RenderOptions } from '../../../../editor/browser/widget/diffEditor/components/diffEditorViewZones/renderLines.js';
@@ -47,27 +45,6 @@ import { DiffArea, Diff, CtrlKZone, VoidFileSnapshot, DiffAreaSnapshotEntry, dif
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
 // import { isMacintosh } from '../../../../base/common/platform.js';
 // import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
-
-const configOfBG = (color: Color) => {
-	return { dark: color, light: color, hcDark: color, hcLight: color, }
-}
-// gets converted to --vscode-void-greenBG, see void.css, asCssVariable
-const greenBG = new Color(new RGBA(155, 185, 85, .2)); // default is RGBA(155, 185, 85, .2)
-registerColor('void.greenBG', configOfBG(greenBG), '', true);
-
-const redBG = new Color(new RGBA(255, 0, 0, .2)); // default is RGBA(255, 0, 0, .2)
-registerColor('void.redBG', configOfBG(redBG), '', true);
-
-const sweepBG = new Color(new RGBA(100, 100, 100, .2));
-registerColor('void.sweepBG', configOfBG(sweepBG), '', true);
-
-const highlightBG = new Color(new RGBA(100, 100, 100, .1));
-registerColor('void.highlightBG', configOfBG(highlightBG), '', true);
-
-const sweepIdxBG = new Color(new RGBA(100, 100, 100, .5));
-registerColor('void.sweepIdxBG', configOfBG(sweepIdxBG), '', true);
-
-
 
 const numLinesOfStr = (str: string) => str.split('\n').length
 
@@ -129,10 +106,10 @@ const removeWhitespaceExceptNewlines = (str: string): string => {
 
 // finds block.orig in fileContents and return its range in file
 // startingAtLine is 1-indexed and inclusive
-const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveWhitespace: boolean, startingAtLine?: number) => {
+const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveWhitespace: boolean, opts: { startingAtLine?: number, returnType: 'lines' | 'indices' }) => {
 
-	const startLineIdx = (fileContents: string) => startingAtLine !== undefined ?
-		fileContents.split('\n').slice(0, startingAtLine).join('\n').length // num characters in all lines before startingAtLine
+	const startLineIdx = (fileContents: string) => opts?.startingAtLine !== undefined ?
+		fileContents.split('\n').slice(0, opts.startingAtLine).join('\n').length // num characters in all lines before startingAtLine
 		: 0
 
 	// idx = starting index in fileContents
@@ -148,10 +125,18 @@ const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveW
 	if (idx === -1) return 'Not found' as const
 	const lastIdx = fileContents.lastIndexOf(text)
 	if (lastIdx !== idx) return 'Not unique' as const
-	const startLine = fileContents.substring(0, idx).split('\n').length
-	const numLines = numLinesOfStr(text)
-	const endLine = startLine + numLines - 1
-	return [startLine, endLine] as const
+
+	if (opts.returnType === 'lines') {
+		const startLine = fileContents.substring(0, idx).split('\n').length
+		const numLines = numLinesOfStr(text)
+		const endLine = startLine + numLines - 1
+		return [startLine, endLine] as const
+	}
+
+	else if (opts.returnType === 'indices') {
+		return [idx, idx + text.length] as const
+	}
+	else throw new Error(`findTextInCode: Invalid returnType ${opts.returnType}`)
 }
 
 
@@ -1573,14 +1558,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	private _errContentOfInvalidStr = (str: 'Not found' | 'Not unique' | 'Has overlap', blockOrig: string) => {
 
-		const problematicCode = `The problematic ORIGINAL code was:\n${tripleTick[0]}\n${JSON.stringify(blockOrig)}\n${tripleTick[1]}`
+		const problematicCode = `${tripleTick[0]}\n${JSON.stringify(blockOrig)}\n${tripleTick[1]}`
 
 		const descStr = str === `Not found` ?
-			`The most recent ORIGINAL code could not be found in the file, so you were interrupted. The text in ORIGINAL must EXACTLY match lines of code. ${problematicCode}`
+			`The edit was not applied. The text in ORIGINAL must EXACTLY match lines of code in the file, but there was no match for:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code matches a code excerpt exactly.`
 			: str === `Not unique` ?
-				`The most recent ORIGINAL code shows up multiple times in the file, so you were interrupted. You might want to expand the ORIGINAL excerpt so it's unique. ${problematicCode}`
+				`The edit was not applied. The text in ORIGINAL must be unique, but the following ORIGINAL code appears multiple times in the file:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code is unique.`
 				: str === 'Has overlap' ?
-					`The most recent ORIGINAL code has overlap with another ORIGINAL code block that you outputted. Do NOT output any overlapping edits. ${problematicCode}`
+					`The edit was not applied. The text in the ORIGINAL blocks must not overlap, but the following ORIGINAL code had overlap with another ORIGINAL string:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code blocks do not overlap.`
 					: ``
 		return descStr
 	}
@@ -1594,14 +1579,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		if (!model) throw new Error(`Error applying Search/Replace blocks: File does not exist.`)
 		const modelStr = model.getValue(EndOfLinePreference.LF)
 
+
 		const replacements: { origStart: number; origEnd: number; block: ExtractedSearchReplaceBlock }[] = []
 		for (const b of blocks) {
-			const i = modelStr.indexOf(b.orig)
-			if (i === -1)
-				throw new Error(this._errContentOfInvalidStr('Not found', b.orig))
-			const j = modelStr.lastIndexOf(b.orig)
-			if (i !== j)
-				throw new Error(this._errContentOfInvalidStr('Not unique', b.orig))
+			const res = findTextInCode(b.orig, modelStr, true, { returnType: 'indices' })
+			if (typeof res === 'string')
+				throw new Error(this._errContentOfInvalidStr(res, b.orig))
+			const [i, _] = res
 
 			replacements.push({
 				origStart: i,
@@ -1772,7 +1756,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 							// update stream state to the first line of original if some portion of original has been written
 							if (shouldUpdateOrigStreamStyle && block.orig.trim().length >= 20) {
 								const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
-								const originalRange = findTextInCode(block.orig, originalFileCode, false, startingAtLine)
+								const originalRange = findTextInCode(block.orig, originalFileCode, false, { startingAtLine, returnType: 'lines' })
 								if (typeof originalRange !== 'string') {
 									const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
 									diffZone._streamState.line = startLine
@@ -1798,7 +1782,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming in it
 						if (!(blockNum in addedTrackingZoneOfBlockNum)) {
 
-							const originalBounds = findTextInCode(block.orig, originalFileCode, true)
+							const originalBounds = findTextInCode(block.orig, originalFileCode, true, { returnType: 'lines' })
 							// if error
 							// Check for overlap with existing modified ranges
 							const hasOverlap = addedTrackingZoneOfBlockNum.some(trackingZone => {

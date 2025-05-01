@@ -827,12 +827,16 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 			'rooveterinaryinc.roo-cline', // roo
 		];
 		for (const { from, to } of transferTheseFiles) {
+			console.log('Transferring...', from)
 			try {
 				// find a blacklisted item
 				const isBlacklisted = extensionBlacklist.find(blacklistItem => {
 					return from.fsPath?.includes(blacklistItem)
 				})
-				if (isBlacklisted) continue
+				if (isBlacklisted) {
+					console.log(`Skipping conflicting item (${isBlacklisted})`)
+					continue
+				}
 
 			} catch { }
 

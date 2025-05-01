@@ -235,6 +235,7 @@ export interface IChatThreadService {
 	isCurrentlyFocusingMessage(): boolean;
 	setCurrentlyFocusedMessageIdx(messageIdx: number | undefined): void;
 
+	popStagingSelections(numPops?: number): void;
 	addNewStagingSelection(newSelection: StagingSelectionItem): void;
 
 	dangerousSetState: (newState: ThreadsState) => void;
@@ -1611,6 +1612,31 @@ We only need to do it for files that were edited since `from`, ie files between 
 		}
 	}
 
+
+	// Pops the staging selections from the current thread's state
+	popStagingSelections(numPops: number): void {
+
+		numPops = numPops ?? 1;
+
+		const focusedMessageIdx = this.getCurrentFocusedMessageIdx()
+
+		// set the selections to the proper value
+		let selections: StagingSelectionItem[] = []
+		let setSelections = (s: StagingSelectionItem[]) => { }
+
+		if (focusedMessageIdx === undefined) {
+			selections = this.getCurrentThreadState().stagingSelections
+			setSelections = (s: StagingSelectionItem[]) => this.setCurrentThreadState({ stagingSelections: s })
+		} else {
+			selections = this.getCurrentMessageState(focusedMessageIdx).stagingSelections
+			setSelections = (s) => this.setCurrentMessageState(focusedMessageIdx, { stagingSelections: s })
+		}
+
+		setSelections([
+			...selections.slice(0, selections.length - numPops)
+		])
+
+	}
 
 	// set message.state
 	private _setCurrentMessageState(state: Partial<UserMessageState>, messageIdx: number): void {

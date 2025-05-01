@@ -17,7 +17,7 @@ import { asCssVariable } from '../../../../../../../platform/theme/common/colorU
 import { inputBackground, inputForeground } from '../../../../../../../platform/theme/common/colorRegistry.js';
 import { useFloating, autoUpdate, offset, flip, shift, size, autoPlacement } from '@floating-ui/react';
 import { URI } from '../../../../../../../base/common/uri.js';
-import { getBasename } from '../sidebar-tsx/SidebarChat.js';
+import { getBasename, getFolderName } from '../sidebar-tsx/SidebarChat.js';
 import { ChevronRight, File, Folder, FolderClosed, LucideProps } from 'lucide-react';
 import { StagingSelectionItem } from '../../../../common/chatThreadServiceTypes.js';
 
@@ -56,11 +56,12 @@ type GenerateNextOptions = (optionText: string) => Promise<Option[]>
 
 type Option = {
 	fullName: string,
+	abbreviatedName: string,
 	iconInMenu: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>, // type for lucide-react components
 } & (
-		| { nextOptions: Option[], generateNextOptions?: undefined, abbreviatedName?: undefined }
-		| { nextOptions?: undefined, generateNextOptions: GenerateNextOptions, abbreviatedName?: undefined }
-		| { leafNodeType: 'File' | 'Folder', abbreviatedName: string, uri: URI, nextOptions?: undefined, generateNextOptions?: undefined, }
+		| { leafNodeType?: undefined, nextOptions: Option[], generateNextOptions?: undefined, }
+		| { leafNodeType?: undefined, nextOptions?: undefined, generateNextOptions: GenerateNextOptions, }
+		| { leafNodeType: 'File' | 'Folder', uri: URI, nextOptions?: undefined, generateNextOptions?: undefined, }
 	)
 
 
@@ -177,7 +178,7 @@ const numOptionsToShow = 100
 
 // TODO make this unique based on other options
 const getAbbreviatedName = (relativePath: string) => {
-	return getBasename(relativePath, 2)
+	return getBasename(relativePath, 1)
 }
 
 const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: string[], optionText: string): Promise<Option[]> => {
@@ -279,11 +280,13 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 	const allOptions: Option[] = [
 		{
 			fullName: 'files',
+			abbreviatedName: 'files',
 			iconInMenu: File,
 			generateNextOptions: async (t) => (await searchForFilesOrFolders(t, 'files')) || [],
 		},
 		{
 			fullName: 'folders',
+			abbreviatedName: 'folders',
 			iconInMenu: Folder,
 			generateNextOptions: async (t) => (await searchForFilesOrFolders(t, 'folders')) || [],
 		},
@@ -744,6 +747,16 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 					return;
 				}
 
+				if (e.key === 'Backspace') { // TODO allow user to undo this.
+					if (!e.currentTarget.value) { // if there is no text, remove a selection
+						if (e.metaKey || e.ctrlKey) { // Ctrl+Backspace = remove all
+							chatThreadService.popStagingSelections(Number.MAX_SAFE_INTEGER)
+						} else { // Backspace = pop 1 selection
+							chatThreadService.popStagingSelections(1)
+						}
+						return;
+					}
+				}
 				if (e.key === 'Enter') {
 					// Shift + Enter when multiline = newline
 					const shouldAddNewline = e.shiftKey && multiline
@@ -769,7 +782,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				onWheel={(e) => e.stopPropagation()}
 			>
 				{/* Breadcrumbs Header */}
-				{areBreadcrumbsShowing && <div className="px-2 py-1 text-void-fg-3 bg-void-bg-2-alt text-sm border-b border-void-border-3 sticky top-0 bg-void-bg-1 z-10 select-none pointer-events-none">
+				{areBreadcrumbsShowing && <div className="px-2 py-1 text-void-fg-1 bg-void-bg-2-alt border-b border-void-border-3 sticky top-0 bg-void-bg-1 z-10 select-none pointer-events-none">
 					{optionText ?
 						<div className="flex items-center">
 							{/* {optionPath.map((path, index) => (
@@ -787,7 +800,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 				{/* Options list */}
 				<div className='max-h-[400px] w-full max-w-full overflow-y-auto overflow-x-auto'>
-					<div className="w-max min-w-full flex flex-col gap-0 text-nowrap flex-nowrap text-sm opacity-70">
+					<div className="w-max min-w-full flex flex-col gap-0 text-nowrap flex-nowrap">
 						{options.length === 0 ?
 							<div className="text-void-fg-3 px-3 py-0.5">No results found</div>
 							: options.map((o, oIdx) => {
@@ -799,14 +812,16 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 										key={o.fullName}
 										className={`
 											flex items-center gap-2
-											px-3 py-0.5 cursor-pointer bg-void-bg-2-alt
+											px-3 py-1 cursor-pointer bg-void-bg-2-alt
 											${oIdx === optionIdx ? 'bg-void-bg-2-hover' : ''}
 										`}
 										onClick={() => { onSelectOption(); }}
 										onMouseMove={() => { setOptionIdx(oIdx) }}
 									>
 										{<o.iconInMenu size={12} />}
-										<span className="text-void-fg-1">{o.fullName}</span>
+										<span className="text-void-fg-1">{o.abbreviatedName}</span>
+
+										{o.fullName && o.fullName !== o.abbreviatedName && <span className="text-void-fg-1 opacity-60 text-sm">{o.fullName}</span>}
 										{o.nextOptions || o.generateNextOptions ? (
 											<ChevronRight size={12} />
 										) : null}

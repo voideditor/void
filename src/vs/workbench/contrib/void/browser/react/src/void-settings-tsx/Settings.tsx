@@ -1006,14 +1006,13 @@ export const Settings = () => {
 
 
 				<h2 className={`text-3xl mt-12`}>Feature Options</h2>
-				{/* L1 */}
 
-				<div className='flex items-start justify-around my-4 gap-x-8'>
+				<div className='flex flex-col gap-y-8 my-4'>
 					<ErrorBoundary>
 						{/* FIM */}
-						<div className='w-full'>
+						<div>
 							<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>
+							<div className='text-sm italic text-void-fg-3 mt-1'>
 								<span>
 									Experimental.{' '}
 								</span>
@@ -1057,7 +1056,7 @@ export const Settings = () => {
 
 						<div className='w-full'>
 							<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control the behavior of the Apply button.</div>
+							<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the Apply button.</div>
 
 							<div className='my-2'>
 								{/* Sync to Chat Switch */}
@@ -1087,18 +1086,14 @@ export const Settings = () => {
 						</div>
 					</ErrorBoundary>
 
-				</div>
 
 
 
-				{/* L2 */}
-
-				<div className='flex items-start justify-around my-4 gap-x-8'>
 
 					{/* Tools Section */}
-					<div className='w-full'>
+					<div>
 						<h4 className={`text-base`}>Tools</h4>
-						<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
+						<div className='text-sm italic text-void-fg-3 mt-1'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
 
 						<div className='my-2'>
 							{/* Auto Accept Switch */}
@@ -1130,7 +1125,7 @@ export const Settings = () => {
 
 					<div className='w-full'>
 						<h4 className={`text-base`}>Editor</h4>
-						<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
+						<div className='text-sm italic text-void-fg-3 mt-1'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
 
 						<div className='my-2'>
 							{/* Auto Accept Switch */}

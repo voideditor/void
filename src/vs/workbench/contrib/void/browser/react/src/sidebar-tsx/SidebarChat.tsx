@@ -2881,7 +2881,7 @@ export const SidebarChat = () => {
 		{generatingTool}
 
 		{/* loading indicator */}
-		{isRunning === 'LLM' && !toolIsGenerating ? <ProseWrapper>
+		{isRunning === 'LLM' || isRunning === 'idle' && !toolIsGenerating ? <ProseWrapper>
 			{<IconLoading className='opacity-50 text-sm' />}
 		</ProseWrapper> : null}
 

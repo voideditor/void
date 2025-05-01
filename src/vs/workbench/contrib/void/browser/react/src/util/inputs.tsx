@@ -312,6 +312,11 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 	if (generateNextOptionsAtPath) {
 		nextOptionsAtPath = await generateNextOptionsAtPath(optionText)
 	}
+	else if (path.length === 0 && optionText.trim().length > 0) { // (special case): directly search for both files and folders if optionsPath is empty and there's a search term
+		const filesResults = await searchForFilesOrFolders(optionText, 'files') || [];
+		const foldersResults = await searchForFilesOrFolders(optionText, 'folders') || [];
+		nextOptionsAtPath = [...foldersResults, ...filesResults,]
+	}
 
 	const optionsAtPath = nextOptionsAtPath
 		.filter(o => isSubsequence(o.fullName, optionText))
@@ -367,7 +372,8 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 	const [didLoadInitialOptions, setDidLoadInitialOptions] = useState(false);
 
 	const currentPathRef = useRef<string>(JSON.stringify([]));
-	const areBreadcrumbsShowing = didLoadInitialOptions && optionPath.length >= 1;
+	// Show breadcrumbs when we have options loaded AND we're either at root level OR in a subfolder
+	const areBreadcrumbsShowing = true
 
 
 	const insertTextAtCursor = (text: string) => {

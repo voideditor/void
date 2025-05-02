@@ -2913,11 +2913,9 @@ export const SidebarChat = () => {
 		}
 	}, [onSubmit, onAbort, isRunning])
 
-
-
 	const inputChatArea = <VoidChatArea
 		featureName='Chat'
-		onSubmit={onSubmit}
+		onSubmit={() => onSubmit()}
 		onAbort={onAbort}
 		isStreaming={!!isRunning}
 		isDisabled={isDisabled}

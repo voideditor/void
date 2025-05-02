@@ -1148,7 +1148,7 @@ export const Settings = () => {
 				<div className='mt-12'>
 					<ErrorBoundary>
 						<h2 className='text-3xl mb-2 mt-12'>One-Click Switch</h2>
-						<h4 className='text-void-fg-3 mb-4'>{`Transfer your editor settings from another editor to Void in one click.`}</h4>
+						<h4 className='text-void-fg-3 mb-4'>{`Transfer your editor settings into Void.`}</h4>
 
 						<div className='flex flex-col gap-2'>
 							<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
@@ -1161,7 +1161,7 @@ export const Settings = () => {
 				{/* Import/Export section, as its own block right after One-Click Switch */}
 				<div className='mt-12'>
 					<h2 className='text-3xl mb-2'>Import/Export</h2>
-					<h4 className='text-void-fg-3 mb-4'>{`Transfer your settings and chats in and out of Void.`}</h4>
+					<h4 className='text-void-fg-3 mb-4'>{`Transfer Void's settings and chats in and out of Void.`}</h4>
 					<div className='flex flex-col gap-8'>
 						{/* Settings Subcategory */}
 						<div className='flex flex-col gap-2 max-w-48 w-full'>

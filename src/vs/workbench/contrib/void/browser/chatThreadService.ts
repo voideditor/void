@@ -682,8 +682,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			let shouldRetryLLM = true
 			let nAttempts = 0
 			while (shouldRetryLLM) {
-
 				shouldRetryLLM = false
+				nAttempts += 1
 
 				let resMessageIsDonePromise: (res: { type: 'llmDone', toolCall?: RawToolCallObj } | { type: 'llmError', error?: { message: string; fullError: Error | null; } } | { type: 'llmAborted' }) => void // resolves when user approves this tool use (or if tool doesn't require approval)
 				const messageIsDonePromise = new Promise<{ type: 'llmDone', toolCall?: RawToolCallObj } | { type: 'llmError', error?: { message: string; fullError: Error | null; } } | { type: 'llmAborted' }>((res, rej) => { resMessageIsDonePromise = res })
@@ -737,7 +737,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				else if (llmRes.type === 'llmError') {
 					// error, should retry
 					if (nAttempts < CHAT_RETRIES) {
-						nAttempts += 1
 						shouldRetryLLM = true
 						this._setStreamState(threadId, { isRunning: 'idle', interrupt: idleInterruptor })
 						await timeout(RETRY_DELAY)

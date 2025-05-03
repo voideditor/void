@@ -114,7 +114,7 @@ export const sendLLMMessage = async ({
 				await sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage })
 				return
 			}
-			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })
+			onError({ message: `Error running Autocomplete with ${providerName} - ${modelName}.`, fullError: null })
 			return
 		}
 		onError({ message: `Error: Message type "${messagesType}" not recognized.`, fullError: null })

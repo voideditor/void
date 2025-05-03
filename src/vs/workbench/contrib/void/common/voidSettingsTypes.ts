@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { defaultModelsOfProvider, defaultProviderSettings } from './modelCapabilities.js';
+import { defaultModelsOfProvider, defaultProviderSettings, ModelOverrideOptions } from './modelCapabilities.js';
 import { ToolApprovalType } from './toolsServiceTypes.js';
 import { VoidSettingsState } from './voidSettingsService.js'
 
@@ -97,9 +97,9 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'mistral') {
 		return { title: 'Mistral', }
 	}
-	// else if (providerName === 'googleVertex') {
-	// 	return { title: 'Google Vertex AI', }
-	// }
+	else if (providerName === 'googleVertex') {
+		return { title: 'Google Vertex AI', }
+	}
 	else if (providerName === 'microsoftAzure') {
 		return { title: 'Microsoft Azure OpenAI', }
 	}
@@ -118,7 +118,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'xAI') return 'Get your [API Key here](https://console.x.ai).'
 	if (providerName === 'mistral') return 'Get your [API Key here](https://console.mistral.ai/api-keys).'
 	if (providerName === 'openAICompatible') return `Use any provider that's OpenAI-compatible (use this for llama.cpp and more).`
-	// if (providerName === 'googleVertex') return 'You must authenticate before using Vertex with Void. Read more about endpoints [here](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library), and regions [here](https://cloud.google.com/vertex-ai/docs/general/locations#available-regions).'
+	if (providerName === 'googleVertex') return 'You must authenticate before using Vertex with Void. Read more about endpoints [here](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library), and regions [here](https://cloud.google.com/vertex-ai/docs/general/locations#available-regions).'
 	if (providerName === 'microsoftAzure') return 'Read more about endpoints [here](https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP), and get your API key [here](https://learn.microsoft.com/en-us/azure/search/search-security-api-keys?tabs=rest-use%2Cportal-find%2Cportal-query#find-existing-keys).'
 	if (providerName === 'ollama') return 'If you would like to change this endpoint, please read more about [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).'
 	if (providerName === 'vLLM') return 'If you would like to change this endpoint, please read more about [Endpoints here](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).'
@@ -149,9 +149,9 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 									providerName === 'openAICompatible' ? 'sk-key...' :
 										providerName === 'xAI' ? 'xai-key...' :
 											providerName === 'mistral' ? 'api-key...' :
-												// providerName === 'googleVertex' ? 'AIzaSy...' :
-												providerName === 'microsoftAzure' ? 'key-...' :
-													'',
+												providerName === 'googleVertex' ? 'AIzaSy...' :
+													providerName === 'microsoftAzure' ? 'key-...' :
+														'',
 
 			isPasswordField: true,
 		}
@@ -162,10 +162,10 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				providerName === 'vLLM' ? 'Endpoint' :
 					providerName === 'lmStudio' ? 'Endpoint' :
 						providerName === 'openAICompatible' ? 'baseURL' : // (do not include /chat/completions)
-							// providerName === 'googleVertex' ? 'baseURL' :
-							providerName === 'microsoftAzure' ? 'baseURL' :
-								providerName === 'liteLLM' ? 'baseURL' :
-									'(never)',
+							providerName === 'googleVertex' ? 'baseURL' :
+								providerName === 'microsoftAzure' ? 'baseURL' :
+									providerName === 'liteLLM' ? 'baseURL' :
+										'(never)',
 
 			placeholder: providerName === 'ollama' ? defaultProviderSettings.ollama.endpoint
 				: providerName === 'vLLM' ? defaultProviderSettings.vLLM.endpoint
@@ -177,14 +177,17 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 
 		}
 	}
-	// else if (settingName === 'region') {
-	// 	// vertex only
-	// 	return {
-	// 		title: 'Region',
-	// 		placeholder: providerName === 'googleVertex' ? defaultProviderSettings.googleVertex.region
-	// 			: ''
-	// 	}
-	// }
+	else if (settingName === 'headersJSON') {
+		return { title: 'Custom Headers', placeholder: '{ "X-Request-Id": "..." }' }
+	}
+	else if (settingName === 'region') {
+		// vertex only
+		return {
+			title: 'Region',
+			placeholder: providerName === 'googleVertex' ? defaultProviderSettings.googleVertex.region
+				: ''
+		}
+	}
 	else if (settingName === 'azureApiVersion') {
 		// azure only
 		return {
@@ -196,11 +199,11 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	else if (settingName === 'project') {
 		return {
 			title: providerName === 'microsoftAzure' ? 'Resource'
-				// : providerName === 'googleVertex' ? 'Project'
-				: '',
+				: providerName === 'googleVertex' ? 'Project'
+					: '',
 			placeholder: providerName === 'microsoftAzure' ? 'my-resource'
-				// : providerName === 'googleVertex' ? 'my-project'
-				: ''
+				: providerName === 'googleVertex' ? 'my-project'
+					: ''
 
 		}
 
@@ -228,9 +231,10 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 const defaultCustomSettings: Record<CustomSettingName, undefined> = {
 	apiKey: undefined,
 	endpoint: undefined,
-	// region: undefined, // googleVertex
+	region: undefined, // googleVertex
 	project: undefined,
 	azureApiVersion: undefined,
+	headersJSON: undefined,
 }
 
 
@@ -324,12 +328,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.vLLM),
 		_didFillInProviderSettings: undefined,
 	},
-	// googleVertex: { // aggregator (serves models from multiple providers)
-	// 	...defaultCustomSettings,
-	// 	...defaultProviderSettings.googleVertex,
-	// 	...modelInfoOfDefaultModelNames(defaultModelsOfProvider.googleVertex),
-	// 	_didFillInProviderSettings: undefined,
-	// },
+	googleVertex: { // aggregator (serves models from multiple providers)
+		...defaultCustomSettings,
+		...defaultProviderSettings.googleVertex,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.googleVertex),
+		_didFillInProviderSettings: undefined,
+	},
 	microsoftAzure: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.microsoftAzure,
@@ -467,8 +471,22 @@ export type ModelSelectionOptions = {
 export type OptionsOfModelSelection = {
 	[featureName in FeatureName]: Partial<{
 		[providerName in ProviderName]: {
-			[modelName: string]:
-			ModelSelectionOptions | undefined
+			[modelName: string]: ModelSelectionOptions | undefined
 		}
 	}>
 }
+
+
+
+
+
+export type OverridesOfModel = {
+	[providerName in ProviderName]: {
+		[modelName: string]: ModelOverrideOptions | undefined
+	}
+}
+
+
+const overridesOfModel = {} as OverridesOfModel
+for (const providerName of providerNames) { overridesOfModel[providerName] = {} }
+export const defaultOverridesOfModel = overridesOfModel

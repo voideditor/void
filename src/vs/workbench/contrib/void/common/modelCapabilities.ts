@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { FeatureName, ModelSelectionOptions, ProviderName } from './voidSettingsTypes.js';
+import { FeatureName, ModelSelectionOptions, OverridesOfModel, ProviderName } from './voidSettingsTypes.js';
 
 
 
@@ -31,6 +31,7 @@ export const defaultProviderSettings = {
 	openAICompatible: {
 		endpoint: '',
 		apiKey: '',
+		headersJSON: '',
 	},
 	gemini: {
 		apiKey: '',
@@ -50,10 +51,10 @@ export const defaultProviderSettings = {
 	liteLLM: { // https://docs.litellm.ai/docs/providers/openai_compatible
 		endpoint: '',
 	},
-	// googleVertex: { // google https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
-	// 	region: 'us-west2',
-	// 	project: '',
-	// },
+	googleVertex: { // google https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
+		region: 'us-west2',
+		project: '',
+	},
 	microsoftAzure: { // microsoft Azure Foundry
 		project: '', // really 'resource'
 		apiKey: '',
@@ -129,7 +130,7 @@ export const defaultModelsOfProvider = {
 		'ministral-8b-latest',
 	],
 	openAICompatible: [], // fallback
-	// googleVertex: [],
+	googleVertex: [],
 	microsoftAzure: [],
 	liteLLM: [],
 
@@ -161,7 +162,7 @@ export type VoidStaticModelInfo = { // not stateful
 		// reasoning options if supports reasoning
 		readonly canTurnOffReasoning: boolean; // whether or not the user can disable reasoning mode (false if the model only supports reasoning)
 		readonly canIOReasoning: boolean; // whether or not the model actually outputs reasoning (eg o1 lets us control reasoning but not output it)
-		readonly reasoningMaxOutputTokens?: number; // overrides normal maxOutputTokens 																			// <-- UNUSED (except anthropic)
+		readonly reasoningMaxOutputTokens?: number; // overrides normal maxOutputTokens
 		readonly reasoningBudgetSlider?: { type: 'slider'; min: number; max: number; default: number };
 
 		// options related specifically to model output
@@ -170,6 +171,26 @@ export type VoidStaticModelInfo = { // not stateful
 		readonly openSourceThinkTags?: [string, string];
 	};
 }
+
+
+export type ModelOverrideOptions = Partial<{
+	contextWindow: number; // input tokens
+	maxOutputTokens: number; // output tokens, defaults to 4092
+	supportsTools: 'openai-style' | undefined;
+	supportsSystemMessage: 'system-role' | 'developer-role' | false;
+	supportsFIM: boolean;
+	reasoningCapabilities: false | {
+		readonly supportsReasoning: true;
+		readonly canTurnOffReasoning: boolean;
+		readonly canIOReasoning: boolean;
+		readonly reasoningMaxOutputTokens?: number;
+		readonly openSourceThinkTags?: [string, string];
+	}
+}>
+
+
+
+
 
 type ProviderReasoningIOSettings = {
 	// include this in payload to get reasoning
@@ -189,15 +210,15 @@ type VoidStaticProviderInfo = { // doesn't change (not stateful)
 
 
 
-const modelOptionsDefaults: VoidStaticModelInfo = {
-	contextWindow: 16_000,
+export const defaultModelOptions = {
+	contextWindow: 4_096,
 	maxOutputTokens: 4_096,
 	cost: { input: 0, output: 0 },
 	downloadable: false,
 	supportsSystemMessage: false,
 	supportsFIM: false,
 	reasoningCapabilities: false,
-}
+} as const satisfies VoidStaticModelInfo
 
 // TODO!!! double check all context sizes below
 // TODO!!! add openrouter common models
@@ -396,7 +417,7 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 	if (Object.keys(openSourceModelOptions_assumingOAICompat).map(k => k.toLowerCase()).includes(lower))
 		return toFallback(openSourceModelOptions_assumingOAICompat[lower as keyof typeof openSourceModelOptions_assumingOAICompat])
 
-	return toFallback(modelOptionsDefaults)
+	return toFallback(defaultModelOptions)
 }
 
 
@@ -485,7 +506,7 @@ const anthropicSettings: VoidStaticProviderInfo = {
 		if (lower.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
 		if (lower.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
 		if (fallbackName) return { modelName: fallbackName, ...anthropicModelOptions[fallbackName] }
-		return { modelName, ...modelOptionsDefaults, maxOutputTokens: 4_096 }
+		return { modelName, ...defaultModelOptions, maxOutputTokens: 4_096 }
 	},
 }
 
@@ -854,12 +875,12 @@ const groqSettings: VoidStaticProviderInfo = {
 
 
 // ---------------- GOOGLE VERTEX ----------------
-// const googleVertexModelOptions = {
-// } as const satisfies Record<string, VoidStaticModelInfo>
-// const googleVertexSettings: VoidStaticProviderInfo = {
-// 	modelOptions: googleVertexModelOptions,
-// 	modelOptionsFallback: (modelName) => { return null }
-// }
+const googleVertexModelOptions = {
+} as const satisfies Record<string, VoidStaticModelInfo>
+const googleVertexSettings: VoidStaticProviderInfo = {
+	modelOptions: googleVertexModelOptions,
+	modelOptionsFallback: (modelName) => { return null }
+}
 
 // ---------------- MICROSOFT AZURE ----------------
 const microsoftAzureModelOptions = {
@@ -872,11 +893,29 @@ const microsoftAzureSettings: VoidStaticProviderInfo = {
 
 // ---------------- VLLM, OLLAMA, OPENAICOMPAT (self-hosted / local) ----------------
 const ollamaModelOptions = {
-	'qwen2.5-coder:1.5b': {
+	'qwen2.5-coder:7b': {
 		contextWindow: 32_000,
 		maxOutputTokens: null,
 		cost: { input: 0, output: 0 },
 		downloadable: { sizeGb: 1.9 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'qwen2.5-coder:3b': {
+		contextWindow: 32_000,
+		maxOutputTokens: null,
+		cost: { input: 0, output: 0 },
+		downloadable: { sizeGb: 1.9 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'qwen2.5-coder:1.5b': {
+		contextWindow: 32_000,
+		maxOutputTokens: null,
+		cost: { input: 0, output: 0 },
+		downloadable: { sizeGb: .986 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
@@ -1105,7 +1144,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	liteLLM: liteLLMSettings,
 	lmStudio: lmStudioSettings,
 
-	// googleVertex: googleVertexSettings,
+	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
 } as const
 
@@ -1113,22 +1152,33 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 // ---------------- exports ----------------
 
 // returns the capabilities and the adjusted modelName if it was a fallback
-export const getModelCapabilities = (providerName: ProviderName, modelName: string): VoidStaticModelInfo & { modelName: string; isUnrecognizedModel: boolean } => {
+export const getModelCapabilities = (
+	providerName: ProviderName,
+	modelName: string,
+	overridesOfModel?: OverridesOfModel
+): VoidStaticModelInfo & { modelName: string; isUnrecognizedModel: boolean } => {
 
 	const lowercaseModelName = modelName.toLowerCase()
 
 	const { modelOptions, modelOptionsFallback } = modelSettingsOfProvider[providerName]
 
+	// Get any override settings for this model
+	const overrides = overridesOfModel?.[providerName]?.[modelName];
+
 	// search model options object directly first
 	for (const modelName_ in modelOptions) {
 		const lowercaseModelName_ = modelName_.toLowerCase()
-		if (lowercaseModelName === lowercaseModelName_)
-			return { modelName, ...modelOptions[modelName], isUnrecognizedModel: false }
+		if (lowercaseModelName === lowercaseModelName_) {
+			return { ...modelOptions[modelName], ...overrides, modelName, isUnrecognizedModel: false };
+		}
 	}
 
 	const result = modelOptionsFallback(modelName)
-	if (result) return { ...result, isUnrecognizedModel: false }
-	return { modelName, ...modelOptionsDefaults, isUnrecognizedModel: true }
+	if (result) {
+		return { ...result, ...overrides, modelName: result.modelName, isUnrecognizedModel: false };
+	}
+
+	return { modelName, ...defaultModelOptions, ...overrides, isUnrecognizedModel: true };
 }
 
 // non-model settings

@@ -8,7 +8,7 @@ import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, Voi
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
-import { X, RefreshCw, Loader2, Check, Asterisk } from 'lucide-react'
+import { X, RefreshCw, Loader2, Check, Asterisk, Settings as SettingsIcon } from 'lucide-react'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
@@ -302,12 +302,264 @@ export const AddModelInputBox = ({ providerName: permanentProviderName, classNam
 }
 
 
-export const ModelDump = () => {
+// Import the getModelCapabilities function to access default values
+import { defaultModelOptions, getModelCapabilities, ModelOverrideOptions } from '../../../../common/modelCapabilities.js';
 
+// Modal dialog to show model settings
+const ModelSettingsDialog = ({
+	isOpen,
+	onClose,
+	modelInfo
+}: {
+	isOpen: boolean,
+	onClose: () => void,
+	modelInfo: { modelName: string, providerName: ProviderName, type: string } | null
+}) => {
+	if (!isOpen || !modelInfo) return null;
+
+	const { modelName, providerName } = modelInfo;
+	const accessor = useAccessor();
+	const settingsStateService = accessor.get('IVoidSettingsService');
+	const settingsState = useSettingsState();
+
+	// Get current model capabilities and override settings
+	const modelCapabilities = getModelCapabilities(providerName, modelName, settingsState.overridesOfModel);
+
+	// Initialize form state for all potential override options
+	const [formValues, setFormValues] = useState<{
+		contextWindow: string;
+		maxOutputTokens: string;
+		supportsTools: 'openai-style' | undefined | '';
+		supportsSystemMessage: 'system-role' | 'developer-role' | false | '';
+		supportsFIM: boolean | null;
+		reasoningCapabilities: boolean | null;
+	}>({
+		contextWindow: '',
+		maxOutputTokens: '',
+		supportsTools: '',
+		supportsSystemMessage: '',
+		supportsFIM: null,
+		reasoningCapabilities: null
+	});
+
+	// When dialog opens or model changes, reset form values
+	useEffect(() => {
+		if (isOpen && modelInfo) {
+
+			// Get current overrides
+			const overrides = settingsState.overridesOfModel?.[providerName]?.[modelName] || {};
+
+			setFormValues({
+				contextWindow: (overrides.contextWindow !== undefined) ? overrides.contextWindow?.toString() : '',
+				maxOutputTokens: (overrides.maxOutputTokens !== undefined) ? overrides.maxOutputTokens?.toString() : '',
+				supportsTools: overrides.supportsTools !== undefined ? overrides.supportsTools : '',
+				supportsSystemMessage: overrides.supportsSystemMessage !== undefined ? overrides.supportsSystemMessage : '',
+				supportsFIM: overrides.supportsFIM !== undefined ? overrides.supportsFIM : null,
+				reasoningCapabilities: overrides.reasoningCapabilities !== undefined ?
+					!!overrides.reasoningCapabilities : null
+			});
+		}
+	}, [isOpen, modelInfo, settingsState.overridesOfModel, providerName, modelName]);
+
+	// Update a single field in the form
+	const updateField = (field: string, value: any) => {
+		setFormValues(prev => ({
+			...prev,
+			[field]: value
+		}));
+	};
+
+	// Handle saving settings
+	const handleSave = async () => {
+		const settings: ModelOverrideOptions = {};
+
+		// Only add fields to the override if they have been changed from defaults
+		if (formValues.contextWindow) {
+			const tokens = parseInt(formValues.contextWindow);
+			if (!isNaN(tokens)) settings.contextWindow = tokens;
+		}
+
+		if (formValues.maxOutputTokens) {
+			const tokens = parseInt(formValues.maxOutputTokens);
+			if (!isNaN(tokens)) settings.maxOutputTokens = tokens;
+		}
+
+		if (formValues.supportsTools !== '') {
+			settings.supportsTools = formValues.supportsTools as any;
+		}
+
+		if (formValues.supportsSystemMessage !== '') {
+			settings.supportsSystemMessage = formValues.supportsSystemMessage as any;
+		}
+
+		if (formValues.supportsFIM !== null) {
+			settings.supportsFIM = formValues.supportsFIM;
+		}
+
+		if (formValues.reasoningCapabilities !== null) {
+			if (formValues.reasoningCapabilities) {
+				settings.reasoningCapabilities = {
+					supportsReasoning: true,
+					canTurnOffReasoning: true,
+					canIOReasoning: true
+				};
+			} else {
+				settings.reasoningCapabilities = false;
+			}
+		}
+
+		await settingsStateService.setOverridesOfModel(providerName, modelName, settings);
+		onClose();
+	};
+
+	return (
+		<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+			<div className="bg-void-bg-1 rounded-md p-4 max-w-md w-full shadow-xl overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+				<div className="flex justify-between items-center mb-4">
+					<h3 className="text-lg font-medium">Override defaults for {modelName} ({displayInfoOfProviderName(providerName).title})</h3>
+					<button onClick={onClose} className="text-void-fg-3 hover:text-void-fg-1">
+						<X className="size-5" />
+					</button>
+				</div>
+
+				<div className="mb-4">
+					{/* Model-specific settings */}
+					<div className="border border-void-border-2 rounded-sm p-3">
+
+						{/* Context window */}
+						<div className="flex items-center justify-between py-1">
+							<span className="text-void-fg-2">Context window (tokens)</span>
+							<VoidSimpleInputBox
+								value={formValues.contextWindow}
+								onChangeValue={(value) => updateField('contextWindow', value)}
+								placeholder={(modelCapabilities.contextWindow || defaultModelOptions.contextWindow) + ''}
+								compact={true}
+								className="max-w-24"
+							/>
+						</div>
+
+						{/* Maximum output tokens */}
+						<div className="flex items-center justify-between py-1">
+							<span className="text-void-fg-2">Maximum output tokens</span>
+							<VoidSimpleInputBox
+								value={formValues.maxOutputTokens}
+								onChangeValue={(value) => updateField('maxOutputTokens', value)}
+								placeholder={(modelCapabilities.maxOutputTokens || defaultModelOptions.maxOutputTokens) + ''}
+								compact={true}
+								className="max-w-24"
+							/>
+						</div>
+
+						{/* Supports Tools */}
+						<div className="flex items-center justify-between py-1">
+							<span className="text-void-fg-2">Supports tools</span>
+							<VoidCustomDropdownBox
+								options={['', 'openai-style']}
+								selectedOption={formValues.supportsTools}
+								onChangeOption={(value) => updateField('supportsTools', value)}
+								getOptionDisplayName={(opt) => {
+									if (opt === '') return `Default (${modelCapabilities.specialToolFormat || 'No'})`;
+									return opt;
+								}}
+								getOptionDropdownName={(opt) => {
+									if (opt === '') return `Default`;
+									return opt;
+								}}
+								getOptionsEqual={(a, b) => a === b}
+								className="max-w-32 text-xs"
+							/>
+						</div>
+
+						{/* Supports System Message */}
+						<div className="flex items-center justify-between py-1">
+							<span className="text-void-fg-2">Supports system message</span>
+							<VoidCustomDropdownBox
+								options={['', 'system-role', 'developer-role', false]}
+								selectedOption={formValues.supportsSystemMessage}
+								onChangeOption={(value) => updateField('supportsSystemMessage', value)}
+								getOptionDisplayName={(opt) => {
+									if (opt === '') return `Default (${modelCapabilities.supportsSystemMessage || 'No'})`;
+									if (opt === false) return 'No'
+									if (opt === true) return 'Yes' // should never happen
+									return opt;
+								}}
+								getOptionDropdownName={(opt) => {
+									if (opt === '') return `Default`;
+									if (opt === false) return 'No'
+									if (opt === true) return 'Yes' // should never happen
+									return opt;
+								}}
+								getOptionsEqual={(a, b) => a === b}
+								className="max-w-32 text-xs"
+							/>
+						</div>
+
+						{/* Supports FIM */}
+						<div className="flex items-center justify-between py-1">
+							<span className="text-void-fg-2">Supports fill-in-the-middle (autocomplete)</span>
+							<VoidCustomDropdownBox
+								options={[null, true, false]}
+								selectedOption={formValues.supportsFIM}
+								onChangeOption={(value) => updateField('supportsFIM', value)}
+								getOptionDisplayName={(opt) => {
+									if (opt === null) return `Default (${modelCapabilities.supportsFIM ? 'Yes' : 'No'})`;
+									return opt ? 'Yes' : 'No';
+								}}
+								getOptionDropdownName={(opt) => {
+									if (opt === null) return 'Default';
+									return opt ? 'Yes' : 'No';
+								}}
+								getOptionsEqual={(a, b) => a === b}
+								className="max-w-32 text-xs"
+							/>
+						</div>
+
+						{/* Supports Reasoning */}
+						<div className="flex items-center justify-between py-1">
+							<span className="text-void-fg-2">Supports reasoning</span>
+							<VoidCustomDropdownBox
+								options={[null, true, false]}
+								selectedOption={formValues.reasoningCapabilities}
+								onChangeOption={(value) => updateField('reasoningCapabilities', value)}
+								getOptionDisplayName={(opt) => {
+									if (opt === null) return `Default (${modelCapabilities.reasoningCapabilities ? 'Yes' : 'No'})`;
+									return opt ? 'Yes' : 'No';
+								}}
+								getOptionDropdownName={(opt) => {
+									if (opt === null) return 'Default';
+									return opt ? 'Yes' : 'No';
+								}}
+								getOptionsEqual={(a, b) => a === b}
+								className="max-w-32 text-xs"
+							/>
+						</div>
+					</div>
+				</div>
+
+				<div className="flex justify-end gap-2">
+					<VoidButtonBgDarken onClick={onClose} className="px-3 py-1">
+						Cancel
+					</VoidButtonBgDarken>
+					<VoidButtonBgDarken onClick={handleSave} className="px-3 py-1 bg-[#0e70c0] text-white">
+						Save
+					</VoidButtonBgDarken>
+				</div>
+			</div>
+		</div>
+	);
+};
+
+export const ModelDump = () => {
 	const accessor = useAccessor()
 	const settingsStateService = accessor.get('IVoidSettingsService')
-
 	const settingsState = useSettingsState()
+
+	// State to track which model's settings dialog is open
+	const [openSettingsModel, setOpenSettingsModel] = useState<{
+		modelName: string,
+		providerName: ProviderName,
+		type: string
+	} | null>(null);
 
 	// a dump of all the enabled providers' models
 	const modelDump: (VoidStatefulModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
@@ -342,8 +594,10 @@ export const ModelDump = () => {
 
 			const detailAboutModel = type === 'autodetected' ?
 				<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Detected locally' />
-				: type === 'default' ? undefined
-					: <Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Custom model' />
+				: type === 'custom' ?
+					<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Custom model' />
+					: undefined
+
 
 
 			return <div key={`${modelName}${providerName}`}
@@ -367,6 +621,27 @@ export const ModelDump = () => {
 
 					{/* <span className='opacity-50 truncate'>{type === 'autodetected' ? '(detected locally)' : type === 'default' ? '' : '(custom model)'}</span> */}
 
+					{/* Settings button - only for custom or locally detected models */}
+					{(type === 'autodetected' || type === 'custom') && (
+						<div className="w-5 flex items-center justify-center">
+							<button
+								onClick={() => {
+									setOpenSettingsModel({
+										modelName,
+										providerName,
+										type
+									})
+								}}
+								data-tooltip-id='void-tooltip'
+								data-tooltip-place='right'
+								data-tooltip-content="Model Settings"
+							>
+								<SettingsIcon size={14} className="text-void-fg-3" />
+							</button>
+						</div>
+					)}
+
+
 					<VoidSwitch
 						value={value}
 						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}
@@ -384,6 +659,13 @@ export const ModelDump = () => {
 				</div>
 			</div>
 		})}
+
+		{/* Model Settings Dialog */}
+		<ModelSettingsDialog
+			isOpen={openSettingsModel !== null}
+			onClose={() => setOpenSettingsModel(null)}
+			modelInfo={openSettingsModel}
+		/>
 	</div>
 }
 

@@ -15,24 +15,32 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 const ALLOWED_COMMANDS = new Set<string>([
 	'workbench.action.openSettings',
 	'workbench.action.openSettingsJson',
-	'settings.action.search'
 ]);
 
 // Service interface
-export const ISettingsToolService = createDecorator<ISettingsToolService>('SettingsToolService');
-export interface ISettingsToolService {
+export const ICommandPalleteService = createDecorator<ICommandPalleteService>('CommandPalleteService');
+export interface ICommandPalleteService {
 	readonly _serviceBrand: undefined;
 	safeExecuteCommand(commandId: string, ...args: any[]): Promise<any>;
 }
 
 // Implementation
-export class SettingsToolService extends Disposable implements ISettingsToolService {
+export class CommandPalleteService extends Disposable implements ICommandPalleteService {
 	readonly _serviceBrand: undefined;
 
 	constructor(
 		@ICommandService private readonly _commandService: ICommandService
 	) {
 		super();
+		// Initialize the service
+		this._initialize().catch(err => {
+			console.error('Failed to initialize CommandPalleteService:', err);
+		});
+	}
+
+	private async _initialize(): Promise<void> {
+		// Initialization logic if needed
+		console.log('CommandPalleteService initialized');
 	}
 
 	public async safeExecuteCommand(
@@ -48,4 +56,4 @@ export class SettingsToolService extends Disposable implements ISettingsToolServ
 }
 
 // Register singleton for DI
-registerSingleton(ISettingsToolService, SettingsToolService, InstantiationType.Delayed);
+registerSingleton(ICommandPalleteService, CommandPalleteService, InstantiationType.Delayed);

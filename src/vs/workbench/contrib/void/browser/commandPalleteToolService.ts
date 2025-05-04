@@ -18,14 +18,14 @@ const ALLOWED_COMMANDS = new Set<string>([
 ]);
 
 // Service interface
-export const ICommandPalleteService = createDecorator<ICommandPalleteService>('CommandPalleteService');
-export interface ICommandPalleteService {
+export const ICommandPalleteToolService = createDecorator<ICommandPalleteToolService>('CommandPalleteToolService');
+export interface ICommandPalleteToolService {
 	readonly _serviceBrand: undefined;
 	safeExecuteCommand(commandId: string, ...args: any[]): Promise<any>;
 }
 
 // Implementation
-export class CommandPalleteService extends Disposable implements ICommandPalleteService {
+export class CommandPalleteToolService extends Disposable implements ICommandPalleteToolService {
 	readonly _serviceBrand: undefined;
 
 	constructor(
@@ -34,13 +34,13 @@ export class CommandPalleteService extends Disposable implements ICommandPallete
 		super();
 		// Initialize the service
 		this._initialize().catch(err => {
-			console.error('Failed to initialize CommandPalleteService:', err);
+			console.error('Failed to initialize CommandPalleteToolService:', err);
 		});
 	}
 
 	private async _initialize(): Promise<void> {
 		// Initialization logic if needed
-		console.log('CommandPalleteService initialized');
+		console.log('CommandPalleteToolService initialized');
 	}
 
 	public async safeExecuteCommand(
@@ -56,4 +56,4 @@ export class CommandPalleteService extends Disposable implements ICommandPallete
 }
 
 // Register singleton for DI
-registerSingleton(ICommandPalleteService, CommandPalleteService, InstantiationType.Delayed);
+registerSingleton(ICommandPalleteToolService, CommandPalleteToolService, InstantiationType.Delayed);

@@ -51,7 +51,7 @@ import { IToolsService } from '../../../toolsService.js'
 import { IConvertToLLMMessageService } from '../../../convertToLLMMessageService.js'
 import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
 import { ISearchService } from '../../../../../../services/search/common/search.js'
-import { ICommandPalleteService } from '../../../commandPalleteToolService.js'
+import { ICommandPalleteToolService } from '../../../commandPalleteToolService.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -218,7 +218,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageService: accessor.get(ILanguageService),
 		IVoidModelService: accessor.get(IVoidModelService),
 		IWorkspaceContextService: accessor.get(IWorkspaceContextService),
-		ICommandPalleteService: accessor.get(ICommandPalleteService),
+		ICommandPalleteService: accessor.get(ICommandPalleteToolService),
 
 		IVoidCommandBarService: accessor.get(IVoidCommandBarService),
 		INativeHostService: accessor.get(INativeHostService),

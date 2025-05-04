@@ -754,7 +754,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				}
 
 				if (e.key === 'Backspace') { // TODO allow user to undo this.
-					if (!e.currentTarget.value) { // if there is no text, remove a selection
+					if (!e.currentTarget.value || (e.currentTarget.selectionStart === 0 && e.currentTarget.selectionEnd === 0)) { // if there is no text or cursor is at position 0, remove a selection
 						if (e.metaKey || e.ctrlKey) { // Ctrl+Backspace = remove all
 							chatThreadService.popStagingSelections(Number.MAX_SAFE_INTEGER)
 						} else { // Backspace = pop 1 selection

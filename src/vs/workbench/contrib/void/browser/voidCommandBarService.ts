@@ -164,10 +164,14 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 				const newSortedDiffIds = this._computeSortedDiffs(newSortedDiffZoneIds)
 				const isStreaming = this._isAnyDiffZoneStreaming(currentDiffZones)
 
+				// When diffZones are added/removed, reset the diffIdx to 0 if we have diffs
+				const newDiffIdx = newSortedDiffIds.length > 0 ? 0 : null;
+
 				this._setState(uri, {
 					sortedDiffZoneIds: newSortedDiffZoneIds,
 					sortedDiffIds: newSortedDiffIds,
-					isStreaming: isStreaming
+					isStreaming: isStreaming,
+					diffIdx: newDiffIdx
 				})
 				this._onDidChangeState.fire({ uri })
 			}
@@ -182,9 +186,24 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 				const currState = this.stateOfURI[uri.fsPath]
 				if (!currState) continue // should never happen
 				const { sortedDiffZoneIds } = currState
+				const oldSortedDiffIds = currState.sortedDiffIds;
 				const newSortedDiffIds = this._computeSortedDiffs(sortedDiffZoneIds)
+
+				// Handle diffIdx adjustment when diffs change
+				let newDiffIdx = currState.diffIdx;
+
+				// Check if diffs were removed
+				if (oldSortedDiffIds.length > newSortedDiffIds.length && currState.diffIdx !== null) {
+					// If currently selected diff was removed or we have fewer diffs than the current index
+					if (currState.diffIdx >= newSortedDiffIds.length) {
+						// Select the last diff if available, otherwise null
+						newDiffIdx = newSortedDiffIds.length > 0 ? newSortedDiffIds.length - 1 : null;
+					}
+				}
+
 				this._setState(uri, {
 					sortedDiffIds: newSortedDiffIds,
+					diffIdx: newDiffIdx
 					// sortedDiffZoneIds, // no change
 					// isStreaming, // no change
 				})
@@ -298,9 +317,9 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 		}
 
 		// make sure diffIdx is always correct
-		if (newState.diffIdx && newState.diffIdx > newState.sortedDiffIds.length) {
+		if (newState.diffIdx !== null && newState.diffIdx > newState.sortedDiffIds.length) {
 			newState.diffIdx = newState.sortedDiffIds.length
-			if (newState.diffIdx < 0) newState.diffIdx = null
+			if (newState.diffIdx <= 0) newState.diffIdx = null
 		}
 
 		this.stateOfURI = {
@@ -437,5 +456,3 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 		super.dispose();
 	}
 }
-
-

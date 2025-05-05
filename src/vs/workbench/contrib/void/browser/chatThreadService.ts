@@ -726,7 +726,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				const llmRes = await messageIsDonePromise // wait for message to complete
 				if (this.streamState[threadId]?.isRunning !== 'LLM') {
 					console.log('Unexpected chat agent state when', this.streamState[threadId]?.isRunning)
-					this._setStreamState(threadId, undefined)
 					return
 				}
 

@@ -315,49 +315,32 @@ const SimpleModelSettingsDialog = ({
 					{type === 'default' ? `${modelName} comes packaged with Void, so you shouldn't need to change these settings.`
 						: isUnrecognizedModel
 							? `Model not recognized by Void.`
-							: `Void knows about this model ("${recognizedModelName}")!`}
+							: `Void recognizes ${modelName} ("${recognizedModelName}").`}
 				</div>
 
 
 				{/* override toggle */}
 				<div className="flex items-center gap-2 mb-4">
-					<VoidSwitch size='sm' value={overrideEnabled} onChange={setOverrideEnabled} />
-					<span className="text-void-fg-2">Override Model Defaults</span>
+					<VoidSwitch size='xs' value={overrideEnabled} onChange={setOverrideEnabled} />
+<span className="text-void-fg-3 text-sm">Override model defaults</span>
 				</div>
 
+				{/* Informational link */}
+				{overrideEnabled && <div className="text-sm text-void-fg-3 mb-4">
+					<ChatMarkdownRender string={"See the [sourcecode](https://github.com/voideditor/void/blob/cf0728f4c605bff49c34c923e15ae649f053d3e7/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L142C1-L171C4) for a reference on how to set this JSON (advanced)."} chatMessageLocation={undefined} />
+				</div>}
 
-
-				{overrideEnabled ? (
-					<VoidInputBox2
-						multiline
-						className="w-full min-h-[200px] p-2 rounded-sm border border-void-border-2"
-						initValue={jsonText}
-						placeholder={placeholder}
-						onChangeText={setJsonText}
-					/>
-				) : (
-					<textarea
-						readOnly
-						className="w-full min-h-[200px] p-2 rounded-sm border border-void-border-2 bg-void-bg-2 text-void-fg-3 resize-none font-mono text-sm"
-						value={placeholder}
-						style={readOnlyHeight ? { height: readOnlyHeight } : undefined}
-						onLoad={(e) => {
-							// autosize height once
-							if (!readOnlyHeight) {
-								const h = (e.target as HTMLTextAreaElement).scrollHeight;
-								setReadOnlyHeight(h);
-							}
-						}}
-					/>
-				)}
+				<textarea
+					className={`w-full min-h-[200px] p-2 rounded-sm border border-void-border-2 bg-void-bg-2 resize-none font-mono text-sm ${!overrideEnabled ? 'text-void-fg-3' : ''}`}
+					value={overrideEnabled ? jsonText : placeholder}
+					placeholder={placeholder}
+					onChange={overrideEnabled ? (e) => setJsonText(e.target.value) : undefined}
+					readOnly={!overrideEnabled}
+				/>
 				{errorMsg && (
 					<div className="text-red-500 mt-2 text-sm">{errorMsg}</div>
 				)}
 
-				{/* Informational link */}
-				<div className="text-sm text-void-fg-3 mt-4">
-					<ChatMarkdownRender string={"For more information on what you can customize, see [this page](https://github.com/voideditor/void/blob/cf0728f4c605bff49c34c923e15ae649f053d3e7/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L142C1-L171C4)."} chatMessageLocation={undefined} />
-				</div>
 
 				<div className="flex justify-end gap-2 mt-4">
 					<VoidButtonBgDarken onClick={onClose} className="px-3 py-1">

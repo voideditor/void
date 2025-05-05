@@ -319,12 +319,12 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 			return <BlockCodeApplyWrapper
 				canApply={isCodeblockClosed}
 				applyBoxId={applyBoxId}
-				initValue={contents}
+				codeStr={contents}
 				language={language}
 				uri={uri || 'current'}
 			>
 				<BlockCode
-					initValue={contents}
+					initValue={contents.trimEnd()} // \n\n adds a permanent newline which creates a flash
 					language={language}
 				/>
 			</BlockCodeApplyWrapper>

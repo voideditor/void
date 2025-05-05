@@ -168,7 +168,7 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 		return <div className='flex items-center gap-x-2'>
 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
 			<VoidSwitch
-				size='xs'
+				size='xxs'
 				value={isReasoningEnabled}
 				onChange={(newVal) => {
 					const isOff = canTurnOffReasoning && !newVal

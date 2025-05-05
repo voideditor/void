@@ -325,13 +325,13 @@ export const ApplyButtonsHTML = ({ codeStr, applyBoxId, uri }: { codeStr: string
 
 export const BlockCodeApplyWrapper = ({
 	children,
-	initValue,
+	codeStr,
 	applyBoxId,
 	language,
 	canApply,
 	uri,
 }: {
-	initValue: string;
+	codeStr: string;
 	children: React.ReactNode;
 	applyBoxId: string;
 	canApply: boolean;
@@ -364,8 +364,8 @@ export const BlockCodeApplyWrapper = ({
 			</div>
 			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>
 				<JumpToFileButton uri={uri} />
-				{currStreamState === 'idle-no-changes' && <CopyButton codeStr={initValue} toolTipName='Copy' />}
-				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={initValue} />
+				{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} toolTipName='Copy' />}
+				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={codeStr} />
 			</div>
 		</div>
 

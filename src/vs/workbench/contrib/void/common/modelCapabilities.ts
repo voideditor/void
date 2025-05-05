@@ -487,7 +487,9 @@ const anthropicSettings: VoidStaticProviderInfo = {
 	providerReasoningIOSettings: {
 		input: {
 			includeInPayload: (reasoningInfo) => {
-				if (reasoningInfo?.type === 'budget_slider_value') {
+				if (!reasoningInfo?.isReasoningEnabled) return null
+
+				if (reasoningInfo.type === 'budget_slider_value') {
 					return { thinking: { type: 'enabled', budget_tokens: reasoningInfo.reasoningBudget } }
 				}
 				return null
@@ -626,7 +628,9 @@ const openAISettings: VoidStaticProviderInfo = {
 		input: {
 			// https://platform.openai.com/docs/guides/reasoning?api-mode=chat
 			includeInPayload: (reasoningInfo) => {
-				if (reasoningInfo?.type === 'effort_slider_value') {
+				if (!reasoningInfo?.isReasoningEnabled) return null
+
+				if (reasoningInfo.type === 'effort_slider_value') {
 					return { reasoning_effort: reasoningInfo.reasoningEffort }
 				}
 				return null
@@ -902,7 +906,9 @@ const groqSettings: VoidStaticProviderInfo = {
 	providerReasoningIOSettings: {
 		input: {
 			includeInPayload: (reasoningInfo) => {
-				if (reasoningInfo?.type === 'budget_slider_value') {
+				if (!reasoningInfo?.isReasoningEnabled) return null
+
+				if (reasoningInfo.type === 'budget_slider_value') {
 					return { reasoning_format: 'parsed' }
 				}
 				return null
@@ -1153,14 +1159,16 @@ const openRouterSettings: VoidStaticProviderInfo = {
 		input: {
 			// https://openrouter.ai/docs/use-cases/reasoning-tokens
 			includeInPayload: (reasoningInfo) => {
-				if (reasoningInfo?.type === 'budget_slider_value') {
+				if (!reasoningInfo?.isReasoningEnabled) return null
+
+				if (reasoningInfo.type === 'budget_slider_value') {
 					return {
 						reasoning: {
 							max_tokens: reasoningInfo.reasoningBudget
 						}
 					}
 				}
-				if (reasoningInfo?.type === 'effort_slider_value')
+				if (reasoningInfo.type === 'effort_slider_value')
 					return {
 						reasoning: {
 							effort: reasoningInfo.reasoningEffort

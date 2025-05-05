@@ -218,8 +218,8 @@ const nameOfChatMode = {
 
 const detailOfChatMode = {
 	'normal': 'Normal chat',
-	'gather': 'Discover relevant files',
-	'agent': 'Edit files and use tools',
+	'gather': 'Reads files, but can\'t edit',
+	'agent': 'Edits files and uses tools',
 }
 
 

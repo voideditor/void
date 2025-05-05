@@ -1216,7 +1216,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			onFinishEdit()
 		}
 
-		this._writeURIText(uri, newContent, 'wholeFileRange', { shouldRealignDiffAreas: false })
+		this._writeURIText(uri, newContent, 'wholeFileRange', { shouldRealignDiffAreas: true })
 		onDone()
 	}
 
@@ -1947,6 +1947,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						if (blocks.length === 0) {
 							this._notificationService.info(`Void: We ran Fast Apply, but the LLM didn't output any changes.`)
 						}
+						this._writeURIText(uri, originalFileCode, 'wholeFileRange', { shouldRealignDiffAreas: true })
+
 
 						try {
 							this._instantlyApplySRBlocks(uri, fullText)

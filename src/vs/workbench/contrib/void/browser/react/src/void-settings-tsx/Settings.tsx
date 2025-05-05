@@ -3,12 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'; // Added useRef import just in case it was missed, though likely already present
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
-import { X, RefreshCw, Loader2, Check, Asterisk } from 'lucide-react'
+import { X, RefreshCw, Loader2, Check, Asterisk, Plus } from 'lucide-react'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
@@ -18,6 +18,7 @@ import { os } from '../../../../common/helpers/systemInfo.js'
 import { IconLoading } from '../sidebar-tsx/SidebarChat.js'
 import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js'
 import Severity from '../../../../../../../base/common/severity.js'
+import { getModelCapabilities, ModelOverrides } from '../../../../common/modelCapabilities.js';
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
@@ -183,6 +184,180 @@ const ConfirmButton = ({ children, onConfirm, className }: { children: React.Rea
 	);
 };
 
+// ---------------- Simplified Model Settings Dialog ------------------
+// This new dialog replaces the verbose UI with a single JSON override box.
+const SimpleModelSettingsDialog = ({
+	isOpen,
+	onClose,
+	modelInfo,
+}: {
+	isOpen: boolean;
+	onClose: () => void;
+	modelInfo: { modelName: string; providerName: ProviderName; type: 'autodetected' | 'custom' | 'default' } | null;
+}) => {
+	if (!isOpen || !modelInfo) return null;
+
+	const { modelName, providerName, type } = modelInfo;
+	const accessor = useAccessor();
+	const settingsState = useSettingsState();
+	const mouseDownInsideModal = useRef(false); // Ref to track mousedown origin
+	const settingsStateService = accessor.get('IVoidSettingsService');
+
+	// current overrides and defaults
+	const defaultModelCapabilities = getModelCapabilities(providerName, modelName, undefined);
+	const currentOverrides = settingsState.overridesOfModel?.[providerName]?.[modelName] ?? undefined;
+	const { recognizedModelName, isUnrecognizedModel } = defaultModelCapabilities
+
+	// keys of ModelOverrides we allow the user to override
+	const allowedKeys: (string & (keyof ModelOverrides))[] = [
+		'contextWindow',
+		'reservedOutputTokenSpace',
+		'supportsSystemMessage',
+		'specialToolFormat',
+		'supportsFIM',
+		'reasoningCapabilities',
+	];
+
+	// Create the placeholder with the default values for allowed keys
+	const partialDefaults: Partial<ModelOverrides> = {};
+	for (const k of allowedKeys) { if (defaultModelCapabilities[k]) partialDefaults[k] = defaultModelCapabilities[k] as any; }
+	const placeholder = JSON.stringify(partialDefaults, null, 2);
+
+	const [overrideEnabled, setOverrideEnabled] = useState<boolean>(() => !!currentOverrides);
+	const [jsonText, setJsonText] = useState<string>(() => currentOverrides ? JSON.stringify(currentOverrides, null, 2) : placeholder);
+
+	const [readOnlyHeight, setReadOnlyHeight] = useState<number | undefined>(undefined);
+	const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+	// reset when dialog toggles
+	useEffect(() => {
+		if (!isOpen) return;
+		const cur = settingsState.overridesOfModel?.[providerName]?.[modelName];
+		setOverrideEnabled(!!cur);
+		// If there are overrides, show them; otherwise use default values
+		setJsonText(cur ? JSON.stringify(cur, null, 2) : placeholder);
+		setErrorMsg(null);
+	}, [isOpen, providerName, modelName, settingsState.overridesOfModel, placeholder]);
+
+	const onSave = async () => {
+
+		// if disabled override, reset overrides
+		if (!overrideEnabled) {
+			await settingsStateService.setOverridesOfModel(providerName, modelName, undefined);
+			onClose();
+			return;
+		}
+
+		// enabled overrides
+		// parse json
+		let parsedInput: Record<string, unknown>
+		if (jsonText.trim()) {
+			try {
+				parsedInput = JSON.parse(jsonText);
+			} catch (e) {
+				setErrorMsg('Invalid JSON');
+				return;
+			}
+		} else {
+			setErrorMsg('Invalid JSON');
+			return;
+		}
+
+		// only keep allowed keys
+		const cleaned: Partial<ModelOverrides> = {};
+		for (const k of allowedKeys) {
+			if (!(k in parsedInput)) continue
+			const isEmpty = parsedInput[k] === '' || parsedInput[k] === null || parsedInput[k] === undefined;
+			if (!isEmpty && (k in partialDefaults)) {
+				cleaned[k] = parsedInput[k] as any;
+			}
+		}
+		await settingsStateService.setOverridesOfModel(providerName, modelName, cleaned);
+		onClose();
+	};
+
+	return (
+		<div // Backdrop
+			className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999999]"
+			onMouseDown={() => {
+				mouseDownInsideModal.current = false;
+			}}
+			onMouseUp={() => {
+				if (!mouseDownInsideModal.current) {
+					onClose();
+				}
+				mouseDownInsideModal.current = false;
+			}}
+		>
+			{/* MODAL */}
+			<div
+				className="bg-void-bg-1 rounded-md p-4 max-w-xl w-full shadow-xl overflow-y-auto max-h-[90vh]"
+				onClick={(e) => e.stopPropagation()} // Keep stopping propagation for normal clicks inside
+				onMouseDown={(e) => {
+					mouseDownInsideModal.current = true;
+					e.stopPropagation();
+				}}
+			>
+				<div className="flex justify-between items-center mb-4">
+					<h3 className="text-lg font-medium">
+						Change Defaults for {modelName} ({displayInfoOfProviderName(providerName).title})
+					</h3>
+					<button
+						onClick={onClose}
+						className="text-void-fg-3 hover:text-void-fg-1"
+					>
+						<X className="size-5" />
+					</button>
+				</div>
+
+				{/* Display model recognition status */}
+				<div className="text-sm text-void-fg-3 mb-4">
+					{type === 'default' ? `${modelName} comes packaged with Void, so you shouldn't need to change these settings.`
+						: isUnrecognizedModel
+							? `Model not recognized by Void.`
+							: `Void recognizes ${modelName} ("${recognizedModelName}").`}
+				</div>
+
+
+				{/* override toggle */}
+				<div className="flex items-center gap-2 mb-4">
+					<VoidSwitch size='xs' value={overrideEnabled} onChange={setOverrideEnabled} />
+<span className="text-void-fg-3 text-sm">Override model defaults</span>
+				</div>
+
+				{/* Informational link */}
+				{overrideEnabled && <div className="text-sm text-void-fg-3 mb-4">
+					<ChatMarkdownRender string={"See the [sourcecode](https://github.com/voideditor/void/blob/d125d8698bf6ccd46c9367c1445e4adfe9aa2c1c/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L144C1-L168C1) for a reference on how to set this JSON (advanced)."} chatMessageLocation={undefined} />
+				</div>}
+
+				<textarea
+					className={`w-full min-h-[200px] p-2 rounded-sm border border-void-border-2 bg-void-bg-2 resize-none font-mono text-sm ${!overrideEnabled ? 'text-void-fg-3' : ''}`}
+					value={overrideEnabled ? jsonText : placeholder}
+					placeholder={placeholder}
+					onChange={overrideEnabled ? (e) => setJsonText(e.target.value) : undefined}
+					readOnly={!overrideEnabled}
+				/>
+				{errorMsg && (
+					<div className="text-red-500 mt-2 text-sm">{errorMsg}</div>
+				)}
+
+
+				<div className="flex justify-end gap-2 mt-4">
+					<VoidButtonBgDarken onClick={onClose} className="px-3 py-1">
+						Cancel
+					</VoidButtonBgDarken>
+					<VoidButtonBgDarken
+						onClick={onSave}
+						className="px-3 py-1 bg-[#0e70c0] text-white"
+					>
+						Save
+					</VoidButtonBgDarken>
+				</div>
+			</div>
+		</div>
+	);
+};
+
 
 // shows a providerName dropdown if no `providerName` is given
 export const AddModelInputBox = ({ providerName: permanentProviderName, className, compact }: { providerName?: ProviderName, className?: string, compact?: boolean }) => {
@@ -302,12 +477,19 @@ export const AddModelInputBox = ({ providerName: permanentProviderName, classNam
 }
 
 
-export const ModelDump = () => {
 
+
+export const ModelDump = () => {
 	const accessor = useAccessor()
 	const settingsStateService = accessor.get('IVoidSettingsService')
-
 	const settingsState = useSettingsState()
+
+	// State to track which model's settings dialog is open
+	const [openSettingsModel, setOpenSettingsModel] = useState<{
+		modelName: string,
+		providerName: ProviderName,
+		type: 'autodetected' | 'custom' | 'default'
+	} | null>(null);
 
 	// a dump of all the enabled providers' models
 	const modelDump: (VoidStatefulModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
@@ -335,41 +517,55 @@ export const ModelDump = () => {
 
 			const tooltipName = (
 				disabled ? `Add ${providerTitle} to enable`
-					: value === true ? 'Enabled'
-						: 'Disabled'
+					: value === true ? 'Show in Dropdown'
+						: 'Hide from Dropdown'
 			)
 
 
 			const detailAboutModel = type === 'autodetected' ?
 				<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Detected locally' />
-				: type === 'default' ? undefined
-					: <Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Custom model' />
+				: type === 'custom' ?
+					<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Custom model' />
+					: undefined
 
+			const hasOverrides = !!settingsState.overridesOfModel?.[providerName]?.[modelName]
 
 			return <div key={`${modelName}${providerName}`}
-				className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate
+				className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate group
 				`}
 			>
 				{/* left part is width:full */}
-				<div className={`flex-grow flex items-center gap-4`}>
+				<div className={`flex flex-grow items-center gap-4`}>
 					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
-					<span className='w-fit truncate'>{modelName}{detailAboutModel}</span>
+					<span className='w-fit truncate'>{modelName}</span>
 				</div>
+
 				{/* right part is anything that fits */}
-				<div className='flex items-center gap-4'
-				// data-tooltip-id='void-tooltip'
-				// data-tooltip-place='top'
-				// data-tooltip-content={disabled ? `${displayInfoOfProviderName(providerName).title} is disabled`
-				// 	: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
-				// }
-				>
+				<div className="flex items-center gap-2 w-fit">
+
+					{/* Advanced Settings button (gear). Hide entirely when provider/model disabled. */}
+					{disabled ? null : (
+						<div className="w-5 flex items-center justify-center">
+							<button
+								onClick={() => { setOpenSettingsModel({ modelName, providerName, type }) }}
+								data-tooltip-id='void-tooltip'
+								data-tooltip-place='right'
+								data-tooltip-content='Advanced Settings'
+								className={`${hasOverrides ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+							>
+								<Plus size={12} className="text-void-fg-3 opacity-50" />
+							</button>
+						</div>
+					)}
+
+					{/* Blue star */}
+					{detailAboutModel}
 
 
-					{/* <span className='opacity-50 truncate'>{type === 'autodetected' ? '(detected locally)' : type === 'default' ? '' : '(custom model)'}</span> */}
-
+					{/* Switch */}
 					<VoidSwitch
 						value={value}
-						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}
+						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName); }}
 						disabled={disabled}
 						size='sm'
 
@@ -378,12 +574,20 @@ export const ModelDump = () => {
 						data-tooltip-content={tooltipName}
 					/>
 
+					{/* X button */}
 					<div className={`w-5 flex items-center justify-center`}>
-						{type === 'default' || type === 'autodetected' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
+						{type === 'default' || type === 'autodetected' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}><X className="size-4" /></button>}
 					</div>
 				</div>
 			</div>
 		})}
+
+		{/* Model Settings Dialog */}
+		<SimpleModelSettingsDialog
+			isOpen={openSettingsModel !== null}
+			onClose={() => setOpenSettingsModel(null)}
+			modelInfo={openSettingsModel}
+		/>
 	</div>
 }
 
@@ -514,8 +718,8 @@ export const SettingsForProvider = ({ providerName, showProviderTitle, showProvi
 
 			{showProviderSuggestions && needsModel ?
 				providerName === 'ollama' ?
-					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
-					: <WarningBox text={`Please add a model for ${providerTitle} (Models section).`} />
+					<WarningBox className="mt-1" text={`Please install an Ollama model. We'll auto-detect it.`} />
+					: <WarningBox className="mt-1" text={`Please add a model for ${providerTitle} (Models section).`} />
 				: null}
 		</div>
 	</div >
@@ -1006,21 +1210,20 @@ export const Settings = () => {
 
 
 				<h2 className={`text-3xl mt-12`}>Feature Options</h2>
-				{/* L1 */}
 
-				<div className='flex items-start justify-around my-4 gap-x-8'>
+				<div className='flex flex-col gap-y-8 my-4'>
 					<ErrorBoundary>
 						{/* FIM */}
-						<div className='w-full'>
+						<div>
 							<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>
+							<div className='text-sm italic text-void-fg-3 mt-1'>
 								<span>
 									Experimental.{' '}
 								</span>
 								<span
 									className='hover:brightness-110'
 									data-tooltip-id='void-tooltip'
-									data-tooltip-content='We recommend using qwen2.5-coder:1.5b with Ollama.'
+									data-tooltip-content='We recommend using the largest qwen2.5-coder model you can with Ollama (try qwen2.5-coder:3b).'
 									data-tooltip-class-name='void-max-w-[20px]'
 								>
 									Only works with FIM models.*
@@ -1057,7 +1260,7 @@ export const Settings = () => {
 
 						<div className='w-full'>
 							<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>Settings that control the behavior of the Apply button.</div>
+							<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the Apply button.</div>
 
 							<div className='my-2'>
 								{/* Sync to Chat Switch */}
@@ -1087,18 +1290,14 @@ export const Settings = () => {
 						</div>
 					</ErrorBoundary>
 
-				</div>
 
 
 
-				{/* L2 */}
-
-				<div className='flex items-start justify-around my-4 gap-x-8'>
 
 					{/* Tools Section */}
-					<div className='w-full'>
+					<div>
 						<h4 className={`text-base`}>Tools</h4>
-						<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
+						<div className='text-sm italic text-void-fg-3 mt-1'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
 
 						<div className='my-2'>
 							{/* Auto Accept Switch */}
@@ -1130,7 +1329,7 @@ export const Settings = () => {
 
 					<div className='w-full'>
 						<h4 className={`text-base`}>Editor</h4>
-						<div className='text-sm italic text-void-fg-3 mt-1 mb-4'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
+						<div className='text-sm italic text-void-fg-3 mt-1'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
 
 						<div className='my-2'>
 							{/* Auto Accept Switch */}
@@ -1153,7 +1352,7 @@ export const Settings = () => {
 				<div className='mt-12'>
 					<ErrorBoundary>
 						<h2 className='text-3xl mb-2 mt-12'>One-Click Switch</h2>
-						<h4 className='text-void-fg-3 mb-4'>{`Transfer your settings from another editor to Void in one click.`}</h4>
+						<h4 className='text-void-fg-3 mb-4'>{`Transfer your editor settings into Void.`}</h4>
 
 						<div className='flex flex-col gap-2'>
 							<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
@@ -1166,6 +1365,7 @@ export const Settings = () => {
 				{/* Import/Export section, as its own block right after One-Click Switch */}
 				<div className='mt-12'>
 					<h2 className='text-3xl mb-2'>Import/Export</h2>
+					<h4 className='text-void-fg-3 mb-4'>{`Transfer Void's settings and chats in and out of Void.`}</h4>
 					<div className='flex flex-col gap-8'>
 						{/* Settings Subcategory */}
 						<div className='flex flex-col gap-2 max-w-48 w-full'>

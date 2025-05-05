@@ -44,7 +44,6 @@ const validateStr = (argName: string, value: unknown) => {
 
 
 // We are NOT checking to make sure in workspace
-// TODO!!!! check to make sure folder/file exists
 const validateURI = (uriStr: unknown) => {
 	if (uriStr === null) throw new Error(`Invalid LLM output: uri was null.`)
 	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a(n) ${typeof uriStr}. Full value: ${JSON.stringify(uriStr)}.`)

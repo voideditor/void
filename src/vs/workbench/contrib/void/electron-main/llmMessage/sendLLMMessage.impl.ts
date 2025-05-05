@@ -11,15 +11,23 @@ import OpenAI, { ClientOptions } from 'openai';
 import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
 import { GoogleGenerativeAI, Tool as GeminiTool, SchemaType, FunctionDeclaration, FunctionDeclarationSchemaProperty } from '@google/generative-ai';
-// import { GoogleAuth } from 'google-auth-library'
+import { GoogleAuth } from 'google-auth-library'
 /* eslint-enable */
 
 import { AnthropicLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
-import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
-import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getMaxOutputTokens } from '../../common/modelCapabilities.js';
+import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, OverridesOfModel, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getReservedOutputTokenSpace } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
 import { availableTools, InternalToolInfo, isAToolName, ToolParamName, voidTools } from '../../common/prompt/prompts.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
+
+const getGoogleApiKey = async () => {
+	// module‑level singleton
+	const auth = new GoogleAuth({ scopes: `https://www.googleapis.com/auth/cloud-platform` });
+	const key = await auth.getAccessToken()
+	if (!key) throw new Error(`Google API failed to generate a key.`)
+	return key
+}
 
 
 
@@ -31,6 +39,7 @@ type InternalCommonMessageParams = {
 	providerName: ProviderName;
 	settingsOfProvider: SettingsOfProvider;
 	modelSelectionOptions: ModelSelectionOptions | undefined;
+	overridesOfModel: OverridesOfModel | undefined;
 	modelName: string;
 	_setAborter: (aborter: () => void) => void;
 }
@@ -49,6 +58,15 @@ const invalidApiKeyMessage = (providerName: ProviderName) => `Invalid ${displayI
 // ------------ OPENAI-COMPATIBLE (HELPERS) ------------
 
 
+
+const parseHeadersJSON = (s: string | undefined): Record<string, string | null | undefined> | undefined => {
+	if (!s) return undefined
+	try {
+		return JSON.parse(s)
+	} catch (e) {
+		throw new Error(`Error parsing OpenAI-Compatible headers: ${s} is not a valid JSON.`)
+	}
+}
 
 const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includeInPayload }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName, includeInPayload?: { [s: string]: any } }) => {
 	const commonPayloadOpts: ClientOptions = {
@@ -87,12 +105,13 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 			...commonPayloadOpts,
 		})
 	}
-	// else if (providerName === 'googleVertex') {
-	// 	// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
-	// 	const thisConfig = settingsOfProvider[providerName]
-	// 	const baseURL = `https://${thisConfig.region}-aiplatform.googleapis.com/v1/projects/${thisConfig.project}/locations/${thisConfig.region}/endpoints/${'openapi'}`
-	// 	return new OpenAI({ baseURL: baseURL, apiKey: apiKey, ...commonPayloadOpts })
-	// }
+	else if (providerName === 'googleVertex') {
+		// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library
+		const thisConfig = settingsOfProvider[providerName]
+		const baseURL = `https://${thisConfig.region}-aiplatform.googleapis.com/v1/projects/${thisConfig.project}/locations/${thisConfig.region}/endpoints/${'openapi'}`
+		const apiKey = await getGoogleApiKey()
+		return new OpenAI({ baseURL: baseURL, apiKey: apiKey, ...commonPayloadOpts })
+	}
 	else if (providerName === 'microsoftAzure') {
 		// https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP
 		const thisConfig = settingsOfProvider[providerName]
@@ -106,7 +125,8 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	}
 	else if (providerName === 'openAICompatible') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		const headers = parseHeadersJSON(thisConfig.headersJSON)
+		return new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, defaultHeaders: headers, ...commonPayloadOpts })
 	}
 	else if (providerName === 'groq') {
 		const thisConfig = settingsOfProvider[providerName]
@@ -125,9 +145,9 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 }
 
 
-const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, }: SendFIMParams_Internal) => {
+const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, overridesOfModel }: SendFIMParams_Internal) => {
 
-	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
+	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_, overridesOfModel)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
 			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
@@ -211,20 +231,22 @@ const rawToolCallObjOf = (name: string, toolParamsStr: string, id: string): RawT
 // ------------ OPENAI-COMPATIBLE ------------
 
 
-const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, chatMode, separateSystemMessage }: SendChatParams_Internal) => {
+const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, chatMode, separateSystemMessage, overridesOfModel }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		specialToolFormat,
 		reasoningCapabilities,
-	} = getModelCapabilities(providerName, modelName_)
+	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	// reasoning
-	const { canIOReasoning, openSourceThinkTags, } = reasoningCapabilities || {}
-	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
+	const { canIOReasoning, openSourceThinkTags } = reasoningCapabilities || {}
+	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
+	console.log('include', includeInPayload)
+	console.log('reasoningInfo', reasoningInfo)
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
 	const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?
@@ -396,21 +418,21 @@ const anthropicToolToRawToolCallObj = (toolBlock: Anthropic.Messages.ToolUseBloc
 }
 
 // ------------ ANTHROPIC ------------
-const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, separateSystemMessage, chatMode }: SendChatParams_Internal) => {
+const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, overridesOfModel, modelName: modelName_, _setAborter, separateSystemMessage, chatMode }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		specialToolFormat,
-	} = getModelCapabilities(providerName, modelName_)
+	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
 	const thisConfig = settingsOfProvider.anthropic
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	// reasoning
-	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
+	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
 	// anthropic-specific - max tokens
-	const maxTokens = getMaxOutputTokens(providerName, modelName_, { isReasoningEnabled: !!reasoningInfo?.isReasoningEnabled })
+	const maxTokens = getReservedOutputTokenSpace(providerName, modelName_, { isReasoningEnabled: !!reasoningInfo?.isReasoningEnabled, overridesOfModel })
 
 	// tools
 	const potentialTools = chatMode !== null ? anthropicTools(chatMode) : null
@@ -520,8 +542,8 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 
 // ------------ MISTRAL ------------
 // https://docs.mistral.ai/api/#tag/fim
-const sendMistralFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName }: SendFIMParams_Internal) => {
-	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
+const sendMistralFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, overridesOfModel, modelName: modelName_, _setAborter, providerName }: SendFIMParams_Internal) => {
+	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_, overridesOfModel)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
 			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
@@ -660,6 +682,7 @@ const sendGeminiChat = async ({
 	onFinalMessage,
 	onError,
 	settingsOfProvider,
+	overridesOfModel,
 	modelName: modelName_,
 	_setAborter,
 	providerName,
@@ -675,13 +698,13 @@ const sendGeminiChat = async ({
 		modelName,
 		specialToolFormat,
 		// reasoningCapabilities,
-	} = getModelCapabilities(providerName, modelName_)
+	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	// reasoning
 	// const { canIOReasoning, openSourceThinkTags, } = reasoningCapabilities || {}
-	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
+	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
 	// tools
@@ -843,20 +866,21 @@ export const sendLLMMessageToProviderImplementation = {
 	},
 
 	lmStudio: {
+		// lmStudio has no suffix parameter in /completions, so sendFIM might not work
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
-		sendFIM: null, // lmStudio has no suffix parameter in /completions
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
 		list: (params) => _openaiCompatibleList(params),
 	},
 	liteLLM: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
+		list: null,
+	},
+	googleVertex: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
 		list: null,
 	},
-	// googleVertex: {
-	// 	sendChat: (params) => _sendOpenAICompatibleChat(params),
-	// 	sendFIM: null,
-	// 	list: null,
-	// },
 	microsoftAzure: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,

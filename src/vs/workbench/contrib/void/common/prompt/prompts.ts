@@ -112,7 +112,7 @@ ${searchReplaceBlockTemplate}
 
 ## Guidelines:
 
-1. You are encouraged to output multiple changes whenever possible.
+1. You may output multiple search replace blocks if needed.
 
 2. The ORIGINAL code in each SEARCH/REPLACE block must EXACTLY match lines in the original file. Do not add or remove any whitespace or comments from the original code.
 

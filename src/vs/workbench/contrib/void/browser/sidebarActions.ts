@@ -143,7 +143,7 @@ registerAction2(class extends Action2 {
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const commandService = accessor.get(ICommandService)
 		await commandService.executeCommand(VOID_OPEN_SIDEBAR_ACTION_ID)
-		await commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
+		// await commandService.executeCommand(VOID_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
 	}
 })
 

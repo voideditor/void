@@ -6,7 +6,7 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ChatMessage } from '../common/chatThreadServiceTypes.js';
-import { getIsReasoningEnabledState, getMaxOutputTokens, getModelCapabilities } from '../common/modelCapabilities.js';
+import { getIsReasoningEnabledState, getReservedOutputTokenSpace, getModelCapabilities } from '../common/modelCapabilities.js';
 import { reParsedToolXMLString, chat_systemMessage, ToolName } from '../common/prompt/prompts.js';
 import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
@@ -39,7 +39,7 @@ type SimpleLLMMessage = {
 const EMPTY_MESSAGE = '(empty message)'
 
 const CHARS_PER_TOKEN = 4
-const TRIM_TO_LEN = 60
+const TRIM_TO_LEN = 120
 
 
 
@@ -252,14 +252,14 @@ export type GeminiMessage = {
 // --- CHAT ---
 
 const prepareOpenAIOrAnthropicMessages = ({
-	messages,
+	messages: messages_,
 	systemMessage,
 	aiInstructions,
 	supportsSystemMessage,
 	specialToolFormat,
 	supportsAnthropicReasoning,
 	contextWindow,
-	maxOutputTokens,
+	reservedOutputTokenSpace,
 }: {
 	messages: SimpleLLMMessage[],
 	systemMessage: string,
@@ -268,20 +268,32 @@ const prepareOpenAIOrAnthropicMessages = ({
 	specialToolFormat: 'openai-style' | 'anthropic-style' | undefined,
 	supportsAnthropicReasoning: boolean,
 	contextWindow: number,
-	maxOutputTokens: number | null | undefined,
+	reservedOutputTokenSpace: number | null | undefined,
 }): { messages: AnthropicOrOpenAILLMMessage[], separateSystemMessage: string | undefined } => {
-	maxOutputTokens = maxOutputTokens ?? 4_096 // default to 4096
+
+	reservedOutputTokenSpace = reservedOutputTokenSpace ?? 4_096 // default to 4096
+	let messages: (SimpleLLMMessage | { role: 'system', content: string })[] = deepClone(messages_)
+
+	// ================ system message ================
+	// A COMPLETE HACK: last message is system message for context purposes
+
+	const sysMsgParts: string[] = []
+	if (aiInstructions) sysMsgParts.push(`GUIDELINES (from the user's .voidrules file):\n${aiInstructions}`)
+	if (systemMessage) sysMsgParts.push(systemMessage)
+	const combinedSystemMessage = sysMsgParts.join('\n\n')
+
+	messages.unshift({ role: 'system', content: combinedSystemMessage })
 
 	// ================ trim ================
-
-	messages = deepClone(messages)
 	messages = messages.map(m => ({ ...m, content: m.role !== 'tool' ? m.content.trim() : m.content }))
+
+	type MesType = (typeof messages)[0]
 
 	// ================ fit into context ================
 
 	// the higher the weight, the higher the desire to truncate - TRIM HIGHEST WEIGHT MESSAGES
 	const alreadyTrimmedIdxes = new Set<number>()
-	const weight = (message: SimpleLLMMessage, messages: SimpleLLMMessage[], idx: number) => {
+	const weight = (message: MesType, messages: MesType[], idx: number) => {
 		const base = message.content.length
 
 		let multiplier: number
@@ -289,22 +301,30 @@ const prepareOpenAIOrAnthropicMessages = ({
 		if (message.role === 'user') {
 			multiplier *= 1
 		}
+		else if (message.role === 'system') {
+			multiplier *= .01 // very low weight
+		}
 		else {
 			multiplier *= 10 // llm tokens are far less valuable than user tokens
 		}
-		// 1st message, last 3 msgs, any already modified message should be low in weight
-		if (idx === 0 || idx >= messages.length - 1 - 3 || alreadyTrimmedIdxes.has(idx)) {
+
+		// any already modified message should not be trimmed again
+		if (alreadyTrimmedIdxes.has(idx)) {
+			multiplier = 0
+		}
+		// 1st and last messages should be very low weight
+		if (idx <= 1 || idx >= messages.length - 1 - 3) {
 			multiplier *= .05
 		}
 		return base * multiplier
 	}
 
-	const _findLargestByWeight = (messages: SimpleLLMMessage[]) => {
+	const _findLargestByWeight = (messages_: MesType[]) => {
 		let largestIndex = -1
 		let largestWeight = -Infinity
 		for (let i = 0; i < messages.length; i += 1) {
 			const m = messages[i]
-			const w = weight(m, messages, i)
+			const w = weight(m, messages_, i)
 			if (w > largestWeight) {
 				largestWeight = w
 				largestIndex = i
@@ -315,7 +335,11 @@ const prepareOpenAIOrAnthropicMessages = ({
 
 	let totalLen = 0
 	for (const m of messages) { totalLen += m.content.length }
-	const charsNeedToTrim = totalLen - (contextWindow - maxOutputTokens) * CHARS_PER_TOKEN
+	const charsNeedToTrim = totalLen - Math.max(
+		(contextWindow - reservedOutputTokenSpace) * CHARS_PER_TOKEN, // can be 0, in which case charsNeedToTrim=everything, bad
+		4_096 // ensure we don't trim at least 4096 chars (just a random small value)
+	)
+
 
 	// <----------------------------------------->
 	// 0                      |    |             |
@@ -335,53 +359,53 @@ const prepareOpenAIOrAnthropicMessages = ({
 		// if can finish here, do
 		const numCharsWillTrim = m.content.length - TRIM_TO_LEN
 		if (numCharsWillTrim > remainingCharsToTrim) {
-			m.content = m.content.slice(0, m.content.length - remainingCharsToTrim).trim()
+			m.content = m.content.slice(0, m.content.length - remainingCharsToTrim - '...'.length).trim() + '...'
 			break
 		}
 
 		remainingCharsToTrim -= numCharsWillTrim
-		m.content = m.content.substring(0, TRIM_TO_LEN - 3) + '...'
+		m.content = m.content.substring(0, TRIM_TO_LEN - '...'.length) + '...'
 		alreadyTrimmedIdxes.add(trimIdx)
 	}
 
+	// ================ system message hack ================
+	const newSysMsg = messages.shift()!.content
+
+
 	// ================ tools and anthropicReasoning ================
+	// SYSTEM MESSAGE HACK: we shifted (removed) the system message role, so now SimpleLLMMessage[] is valid
 
 	let llmChatMessages: AnthropicOrOpenAILLMMessage[] = []
 	if (!specialToolFormat) { // XML tool behavior
-		llmChatMessages = prepareMessages_XML_tools(messages, supportsAnthropicReasoning)
+		llmChatMessages = prepareMessages_XML_tools(messages as SimpleLLMMessage[], supportsAnthropicReasoning)
 	}
 	else if (specialToolFormat === 'anthropic-style') {
-		llmChatMessages = prepareMessages_anthropic_tools(messages, supportsAnthropicReasoning)
+		llmChatMessages = prepareMessages_anthropic_tools(messages as SimpleLLMMessage[], supportsAnthropicReasoning)
 	}
 	else if (specialToolFormat === 'openai-style') {
-		llmChatMessages = prepareMessages_openai_tools(messages)
+		llmChatMessages = prepareMessages_openai_tools(messages as SimpleLLMMessage[])
 	}
 	const llmMessages = llmChatMessages
 
 
-	// ================ system message concat ================
-
-	// find system messages and concatenate them
-	const newSystemMessage = aiInstructions ?
-		`${(systemMessage ? `${systemMessage}\n\n` : '')}GUIDELINES (from the user's .voidrules file):\n${aiInstructions}`
-		: systemMessage
+	// ================ system message add as first llmMessage ================
 
 	let separateSystemMessageStr: string | undefined = undefined
 
 	// if supports system message
 	if (supportsSystemMessage) {
 		if (supportsSystemMessage === 'separated')
-			separateSystemMessageStr = newSystemMessage
+			separateSystemMessageStr = newSysMsg
 		else if (supportsSystemMessage === 'system-role')
-			llmMessages.unshift({ role: 'system', content: newSystemMessage }) // add new first message
+			llmMessages.unshift({ role: 'system', content: newSysMsg }) // add new first message
 		else if (supportsSystemMessage === 'developer-role')
-			llmMessages.unshift({ role: 'developer', content: newSystemMessage }) // add new first message
+			llmMessages.unshift({ role: 'developer', content: newSysMsg }) // add new first message
 	}
 	// if does not support system message
 	else {
 		const newFirstMessage = {
 			role: 'user',
-			content: `<SYSTEM_MESSAGE>\n${newSystemMessage}\n</SYSTEM_MESSAGE>\n${llmMessages[0].content}`
+			content: `<SYSTEM_MESSAGE>\n${newSysMsg}\n</SYSTEM_MESSAGE>\n${llmMessages[0].content}`
 		} as const
 		llmMessages.splice(0, 1) // delete first message
 		llmMessages.unshift(newFirstMessage) // add new first message
@@ -470,7 +494,7 @@ const prepareMessages = (params: {
 	specialToolFormat: 'openai-style' | 'anthropic-style' | 'gemini-style' | undefined,
 	supportsAnthropicReasoning: boolean,
 	contextWindow: number,
-	maxOutputTokens: number | null | undefined,
+	reservedOutputTokenSpace: number | null | undefined,
 	providerName: ProviderName
 }): { messages: LLMChatMessage[], separateSystemMessage: string | undefined } => {
 
@@ -607,20 +631,23 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 
 	prepareLLMSimpleMessages: IConvertToLLMMessageService['prepareLLMSimpleMessages'] = ({ simpleMessages, systemMessage, modelSelection, featureName }) => {
 		if (modelSelection === null) return { messages: [], separateSystemMessage: undefined }
+
+		const { overridesOfModel } = this.voidSettingsService.state
+
 		const { providerName, modelName } = modelSelection
 		const {
 			specialToolFormat,
 			contextWindow,
 			supportsSystemMessage,
-		} = getModelCapabilities(providerName, modelName)
+		} = getModelCapabilities(providerName, modelName, overridesOfModel)
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]
 
 		// Get combined AI instructions
 		const aiInstructions = this._getCombinedAIInstructions();
 
-		const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions)
-		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled })
+		const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
+		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 
 		const { messages, separateSystemMessage } = prepareMessages({
 			messages: simpleMessages,
@@ -630,19 +657,22 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			specialToolFormat,
 			supportsAnthropicReasoning: providerName === 'anthropic',
 			contextWindow,
-			maxOutputTokens,
+			reservedOutputTokenSpace,
 			providerName,
 		})
 		return { messages, separateSystemMessage };
 	}
 	prepareLLMChatMessages: IConvertToLLMMessageService['prepareLLMChatMessages'] = async ({ chatMessages, chatMode, modelSelection }) => {
 		if (modelSelection === null) return { messages: [], separateSystemMessage: undefined }
+
+		const { overridesOfModel } = this.voidSettingsService.state
+
 		const { providerName, modelName } = modelSelection
 		const {
 			specialToolFormat,
 			contextWindow,
 			supportsSystemMessage,
-		} = getModelCapabilities(providerName, modelName)
+		} = getModelCapabilities(providerName, modelName, overridesOfModel)
 		const systemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection['Chat'][modelSelection.providerName]?.[modelSelection.modelName]
@@ -650,8 +680,8 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		// Get combined AI instructions
 		const aiInstructions = this._getCombinedAIInstructions();
 
-		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions)
-		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled })
+		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions, overridesOfModel)
+		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 		const llmMessages = this._chatMessagesToSimpleMessages(chatMessages)
 
 		const { messages, separateSystemMessage } = prepareMessages({
@@ -662,7 +692,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			specialToolFormat,
 			supportsAnthropicReasoning: providerName === 'anthropic',
 			contextWindow,
-			maxOutputTokens,
+			reservedOutputTokenSpace,
 			providerName,
 		})
 		return { messages, separateSystemMessage };

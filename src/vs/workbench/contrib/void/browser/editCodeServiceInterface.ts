@@ -54,6 +54,8 @@ export interface IEditCodeService {
 	diffOfId: Record<string, Diff>;
 
 	acceptOrRejectAllDiffAreas(opts: { uri: URI, removeCtrlKs: boolean, behavior: 'reject' | 'accept', _addToHistory?: boolean }): void;
+	acceptDiff({ diffid }: { diffid: number }): void;
+	rejectDiff({ diffid }: { diffid: number }): void;
 
 	// events
 	onDidAddOrDeleteDiffZones: Event<{ uri: URI }>;

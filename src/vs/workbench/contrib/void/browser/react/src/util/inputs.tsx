@@ -160,7 +160,7 @@ export function getRelativeWorkspacePath(accessor: ReturnType<typeof useAccessor
 			if (relativePath.startsWith('/')) {
 				relativePath = relativePath.slice(1);
 			}
-			console.log({ folderPath, relativePath, uriPath });
+			// console.log({ folderPath, relativePath, uriPath });
 
 			return relativePath;
 		}
@@ -383,9 +383,8 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 		// Focus the textarea first
 		textarea.focus();
 
-		// The most reliable way to simulate typing is to use execCommand
-		// which will trigger all the appropriate native events
-		document.execCommand('insertText', false, text + ' '); // add space after too
+		// Insert the @ to mention text in the editor (we decided not to do this for now)
+		// document.execCommand('insertText', false, text + ' '); // add space after too
 
 		// React's onChange relies on a SyntheticEvent system
 		// The best way to ensure it runs is to call callbacks directly
@@ -754,7 +753,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				}
 
 				if (e.key === 'Backspace') { // TODO allow user to undo this.
-					if (!e.currentTarget.value) { // if there is no text, remove a selection
+					if (!e.currentTarget.value || (e.currentTarget.selectionStart === 0 && e.currentTarget.selectionEnd === 0)) { // if there is no text or cursor is at position 0, remove a selection
 						if (e.metaKey || e.ctrlKey) { // Ctrl+Backspace = remove all
 							chatThreadService.popStagingSelections(Number.MAX_SAFE_INTEGER)
 						} else { // Backspace = pop 1 selection

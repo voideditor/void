@@ -11,9 +11,9 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultProviderSettings, getModelCapabilities } from './modelCapabilities.js';
+import { defaultProviderSettings, getModelCapabilities, ModelOverrides } from './modelCapabilities.js';
 import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, OverridesOfModel, defaultOverridesOfModel } from './voidSettingsTypes.js';
 
 
 // name is the name in the dropdown
@@ -41,6 +41,7 @@ export type VoidSettingsState = {
 	readonly settingsOfProvider: SettingsOfProvider; // optionsOfProvider
 	readonly modelSelectionOfFeature: ModelSelectionOfFeature; // stateOfFeature
 	readonly optionsOfModelSelection: OptionsOfModelSelection;
+	readonly overridesOfModel: OverridesOfModel;
 	readonly globalSettings: GlobalSettings;
 
 	readonly _modelOptions: ModelOption[] // computed based on the two above items
@@ -61,6 +62,9 @@ export interface IVoidSettingsService {
 	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn;
 	setOptionsOfModelSelection: SetOptionsOfModelSelection;
 	setGlobalSetting: SetGlobalSettingFn;
+
+	// setting to undefined CLEARS it, unlike others:
+	setOverridesOfModel(providerName: ProviderName, modelName: string, overrides: Partial<ModelOverrides> | undefined): Promise<void>;
 
 	dangerousSetState(newState: VoidSettingsState): Promise<void>;
 	resetState(): Promise<void>;
@@ -94,8 +98,15 @@ const _modelsWithSwappedInNewModels = (options: { existingModels: VoidStatefulMo
 }
 
 
-export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter: (o: ModelSelection, opts: { chatMode: ChatMode }) => boolean; emptyMessage: null | { message: string, priority: 'always' | 'fallback' } } } = {
-	'Autocomplete': { filter: (o) => getModelCapabilities(o.providerName, o.modelName).supportsFIM, emptyMessage: { message: 'No models support FIM', priority: 'always' } },
+export const modelFilterOfFeatureName: {
+	[featureName in FeatureName]: {
+		filter: (
+			o: ModelSelection,
+			opts: { chatMode: ChatMode, overridesOfModel: OverridesOfModel }
+		) => boolean;
+		emptyMessage: null | { message: string, priority: 'always' | 'fallback' }
+	} } = {
+	'Autocomplete': { filter: (o, opts) => getModelCapabilities(o.providerName, o.modelName, opts.overridesOfModel).supportsFIM, emptyMessage: { message: 'No models support FIM', priority: 'always' } },
 	'Chat': { filter: o => true, emptyMessage: null, },
 	'Ctrl+K': { filter: o => true, emptyMessage: null, },
 	'Apply': { filter: o => true, emptyMessage: null, },
@@ -163,7 +174,7 @@ const _validatedModelState = (state: Omit<VoidSettingsState, '_modelOptions'>): 
 	for (const featureName of featureNames) {
 
 		const { filter } = modelFilterOfFeatureName[featureName]
-		const filterOpts = { chatMode: state.globalSettings.chatMode }
+		const filterOpts = { chatMode: state.globalSettings.chatMode, overridesOfModel: state.overridesOfModel }
 		const modelOptionsForThisFeature = newModelOptions.filter((o) => filter(o.selection, filterOpts))
 
 		const modelSelectionAtFeature = newModelSelectionOfFeature[featureName]
@@ -182,6 +193,7 @@ const _validatedModelState = (state: Omit<VoidSettingsState, '_modelOptions'>): 
 		...state,
 		settingsOfProvider: newSettingsOfProvider,
 		modelSelectionOfFeature: newModelSelectionOfFeature,
+		overridesOfModel: state.overridesOfModel,
 		_modelOptions: newModelOptions,
 	} satisfies VoidSettingsState
 
@@ -198,6 +210,7 @@ const defaultState = () => {
 		modelSelectionOfFeature: { 'Chat': null, 'Ctrl+K': null, 'Autocomplete': null, 'Apply': null },
 		globalSettings: deepClone(defaultGlobalSettings),
 		optionsOfModelSelection: { 'Chat': {}, 'Ctrl+K': {}, 'Autocomplete': {}, 'Apply': {} },
+		overridesOfModel: deepClone(defaultOverridesOfModel),
 		_modelOptions: [], // computed later
 	}
 	return d
@@ -267,9 +280,11 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		// the stored data structure might be outdated, so we need to update it here
 		try {
 			readS = {
+				...defaultState(),
 				...readS,
-				...defaultSettingsOfProvider,
-				...readS.settingsOfProvider,
+				// no idea why this was here, seems like a bug
+				// ...defaultSettingsOfProvider,
+				// ...readS.settingsOfProvider,
 			}
 
 			for (const providerName of providerNames) {
@@ -314,7 +329,8 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			return defaultState()
 
 		const stateStr = await this._encryptionService.decrypt(encryptedState)
-		return JSON.parse(stateStr)
+		const state = JSON.parse(stateStr)
+		return state
 	}
 
 
@@ -339,12 +355,14 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		}
 
 		const newGlobalSettings = this.state.globalSettings
+		const newOverridesOfModel = this.state.overridesOfModel
 
 		const newState = {
 			modelSelectionOfFeature: newModelSelectionOfFeature,
 			optionsOfModelSelection: newOptionsOfModelSelection,
 			settingsOfProvider: newSettingsOfProvider,
 			globalSettings: newGlobalSettings,
+			overridesOfModel: newOverridesOfModel,
 		}
 
 		this.state = _validatedModelState(newState)
@@ -420,6 +438,28 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		await this._storeState()
 		this._onDidChangeState.fire()
+	}
+
+	setOverridesOfModel = async (providerName: ProviderName, modelName: string, overrides: Partial<ModelOverrides> | undefined) => {
+		const newState: VoidSettingsState = {
+			...this.state,
+			overridesOfModel: {
+				...this.state.overridesOfModel,
+				[providerName]: {
+					...this.state.overridesOfModel[providerName],
+					[modelName]: overrides === undefined ? undefined : {
+						...this.state.overridesOfModel[providerName][modelName],
+						...overrides
+					},
+				}
+			}
+		};
+
+		this.state = _validatedModelState(newState);
+		await this._storeState();
+		this._onDidChangeState.fire();
+
+		this._metricsService.capture('Update Model Overrides', { providerName, modelName, overrides });
 	}
 
 

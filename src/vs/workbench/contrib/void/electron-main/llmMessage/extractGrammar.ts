@@ -23,6 +23,9 @@ export const extractReasoningWrapper = (
 	let fullTextSoFar = ''
 	let fullReasoningSoFar = ''
 
+
+	if (!thinkTags[0] || !thinkTags[1]) throw new Error(`thinkTags must not be empty if provided. Got ${JSON.stringify(thinkTags)}.`)
+
 	let onText_ = onText
 	onText = (params) => {
 		onText_(params)

@@ -18,6 +18,14 @@ import { IEditCodeService } from './editCodeServiceInterface.js';
 import { ITextModel } from '../../../../editor/common/model.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
+import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { VOID_ACCEPT_DIFF_ACTION_ID, VOID_REJECT_DIFF_ACTION_ID } from './actionIDs.js';
+import { localize2 } from '../../../../nls.js';
+import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
+import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
+import { IMetricsService } from '../common/metricsService.js';
+import { KeyMod } from '../../../../editor/common/services/editorBaseApi.js';
+import { KeyCode } from '../../../../base/common/keyCodes.js';
 
 
 
@@ -164,10 +172,14 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 				const newSortedDiffIds = this._computeSortedDiffs(newSortedDiffZoneIds)
 				const isStreaming = this._isAnyDiffZoneStreaming(currentDiffZones)
 
+				// When diffZones are added/removed, reset the diffIdx to 0 if we have diffs
+				const newDiffIdx = newSortedDiffIds.length > 0 ? 0 : null;
+
 				this._setState(uri, {
 					sortedDiffZoneIds: newSortedDiffZoneIds,
 					sortedDiffIds: newSortedDiffIds,
-					isStreaming: isStreaming
+					isStreaming: isStreaming,
+					diffIdx: newDiffIdx
 				})
 				this._onDidChangeState.fire({ uri })
 			}
@@ -182,9 +194,24 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 				const currState = this.stateOfURI[uri.fsPath]
 				if (!currState) continue // should never happen
 				const { sortedDiffZoneIds } = currState
+				const oldSortedDiffIds = currState.sortedDiffIds;
 				const newSortedDiffIds = this._computeSortedDiffs(sortedDiffZoneIds)
+
+				// Handle diffIdx adjustment when diffs change
+				let newDiffIdx = currState.diffIdx;
+
+				// Check if diffs were removed
+				if (oldSortedDiffIds.length > newSortedDiffIds.length && currState.diffIdx !== null) {
+					// If currently selected diff was removed or we have fewer diffs than the current index
+					if (currState.diffIdx >= newSortedDiffIds.length) {
+						// Select the last diff if available, otherwise null
+						newDiffIdx = newSortedDiffIds.length > 0 ? newSortedDiffIds.length - 1 : null;
+					}
+				}
+
 				this._setState(uri, {
 					sortedDiffIds: newSortedDiffIds,
+					diffIdx: newDiffIdx
 					// sortedDiffZoneIds, // no change
 					// isStreaming, // no change
 				})
@@ -298,9 +325,9 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 		}
 
 		// make sure diffIdx is always correct
-		if (newState.diffIdx && newState.diffIdx > newState.sortedDiffIds.length) {
+		if (newState.diffIdx !== null && newState.diffIdx > newState.sortedDiffIds.length) {
 			newState.diffIdx = newState.sortedDiffIds.length
-			if (newState.diffIdx < 0) newState.diffIdx = null
+			if (newState.diffIdx <= 0) newState.diffIdx = null
 		}
 
 		this.stateOfURI = {
@@ -390,8 +417,8 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 
 		// Style the container
 		// root.style.backgroundColor = 'rgb(248 113 113)';
-		root.style.height = '16rem'; // make a fixed size, and all contents go on the bottom right. this fixes annoying VS Code mounting issues
-		root.style.width = '16rem';
+		root.style.height = '256px'; // make a fixed size, and all contents go on the bottom right. this fixes annoying VS Code mounting issues
+		root.style.width = '100%';
 		root.style.flexDirection = 'column';
 		root.style.justifyContent = 'flex-end';
 		root.style.alignItems = 'flex-end';
@@ -439,3 +466,74 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 }
 
 
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_ACCEPT_DIFF_ACTION_ID,
+			f1: true,
+			title: localize2('voidAcceptDiffAction', 'Void: Accept Diff'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyMod.Shift | KeyCode.Enter,
+				mac: { primary: KeyMod.WinCtrl | KeyMod.Alt | KeyCode.Enter },
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const editCodeService = accessor.get(IEditCodeService);
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+
+		const activeURI = commandBarService.activeURI;
+		if (!activeURI) return;
+
+		const commandBarState = commandBarService.stateOfURI[activeURI.fsPath];
+		if (!commandBarState) return;
+		const diffIdx = commandBarState.diffIdx ?? 0;
+
+		const diffid = commandBarState.sortedDiffIds[diffIdx];
+		if (!diffid) return;
+
+		metricsService.capture('Accept Diff', { diffid, keyboard: true });
+		editCodeService.acceptDiff({ diffid: parseInt(diffid) })
+
+	}
+});
+
+
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_REJECT_DIFF_ACTION_ID,
+			f1: true,
+			title: localize2('voidRejectDiffAction', 'Void: Reject Diff'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyMod.Shift | KeyCode.Backspace,
+				mac: { primary: KeyMod.WinCtrl | KeyMod.Alt | KeyCode.Backspace },
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const editCodeService = accessor.get(IEditCodeService);
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+		const activeURI = commandBarService.activeURI;
+		if (!activeURI) return;
+
+		const commandBarState = commandBarService.stateOfURI[activeURI.fsPath];
+		if (!commandBarState) return;
+		const diffIdx = commandBarState.diffIdx ?? 0;
+
+		const diffid = commandBarState.sortedDiffIds[diffIdx];
+		if (!diffid) return;
+
+		metricsService.capture('Reject Diff', { diffid, keyboard: true });
+		editCodeService.rejectDiff({ diffid: parseInt(diffid) })
+	}
+});

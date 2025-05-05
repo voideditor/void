@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { ToolName, ToolParamName } from './prompt/prompts.js'
-import { ChatMode, ModelSelection, ModelSelectionOptions, ProviderName, RefreshableProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
+import { ChatMode, ModelSelection, ModelSelectionOptions, OverridesOfModel, ProviderName, RefreshableProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
 
 export const errorDetails = (fullError: Error | null): string | null => {
@@ -116,6 +116,7 @@ export type ServiceSendLLMMessageParams = {
 	logging: { loggingName: string, loggingExtras?: { [k: string]: any } };
 	modelSelection: ModelSelection | null;
 	modelSelectionOptions: ModelSelectionOptions | undefined;
+	overridesOfModel: OverridesOfModel | undefined;
 	onAbort: OnAbort;
 } & SendLLMType;
 
@@ -129,6 +130,7 @@ export type SendLLMMessageParams = {
 
 	modelSelection: ModelSelection;
 	modelSelectionOptions: ModelSelectionOptions | undefined;
+	overridesOfModel: OverridesOfModel | undefined;
 
 	settingsOfProvider: SettingsOfProvider;
 } & SendLLMType

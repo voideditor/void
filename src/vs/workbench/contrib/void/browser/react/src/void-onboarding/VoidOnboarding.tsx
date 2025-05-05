@@ -355,7 +355,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 				const { showAsDefault, isDownloaded } = infoOfModelName[modelName] ?? {}
 
 
-				const capabilities = getModelCapabilities(providerName, modelName)
+				const capabilities = getModelCapabilities(providerName, modelName, undefined)
 				const {
 					downloadable,
 					cost,
@@ -364,7 +364,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 					contextWindow,
 
 					isUnrecognizedModel,
-					maxOutputTokens,
+					reservedOutputTokenSpace,
 					supportsSystemMessage,
 				} = capabilities
 

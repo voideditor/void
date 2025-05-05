@@ -24,6 +24,9 @@ import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
 import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplaceGivenDescription_systemMessage, searchReplaceGivenDescription_userMessage, tripleTick, } from '../common/prompt/prompts.js';
+import { IVoidCommandBarService } from './voidCommandBarService.js';
+import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
+import { VOID_ACCEPT_DIFF_ACTION_ID, VOID_REJECT_DIFF_ACTION_ID } from './actionIDs.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -106,37 +109,42 @@ const removeWhitespaceExceptNewlines = (str: string): string => {
 
 // finds block.orig in fileContents and return its range in file
 // startingAtLine is 1-indexed and inclusive
-const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveWhitespace: boolean, opts: { startingAtLine?: number, returnType: 'lines' | 'indices' }) => {
+// returns 1-indexed lines
+const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveWhitespace: boolean, opts: { startingAtLine?: number, returnType: 'lines' }) => {
 
-	const startLineIdx = (fileContents: string) => opts?.startingAtLine !== undefined ?
+	const returnAns = (fileContents: string, idx: number) => {
+		const startLine = numLinesOfStr(fileContents.substring(0, idx + 1))
+		const numLines = numLinesOfStr(text)
+		const endLine = startLine + numLines - 1
+
+		return [startLine, endLine] as const
+	}
+
+	const startingAtLineIdx = (fileContents: string) => opts?.startingAtLine !== undefined ?
 		fileContents.split('\n').slice(0, opts.startingAtLine).join('\n').length // num characters in all lines before startingAtLine
 		: 0
 
 	// idx = starting index in fileContents
-	let idx = fileContents.indexOf(text, startLineIdx(fileContents))
+	let idx = fileContents.indexOf(text, startingAtLineIdx(fileContents))
+
+	// if idx was found
+	if (idx !== -1) {
+		return returnAns(fileContents, idx)
+	}
+
+	if (!canFallbackToRemoveWhitespace)
+		return 'Not found' as const
 
 	// try to find it ignoring all whitespace this time
-	if (idx === -1 && canFallbackToRemoveWhitespace) {
-		text = removeWhitespaceExceptNewlines(text)
-		fileContents = removeWhitespaceExceptNewlines(fileContents)
-		idx = fileContents.indexOf(text, startLineIdx(fileContents));
-	}
+	text = removeWhitespaceExceptNewlines(text)
+	fileContents = removeWhitespaceExceptNewlines(fileContents)
+	idx = fileContents.indexOf(text, startingAtLineIdx(fileContents));
 
 	if (idx === -1) return 'Not found' as const
 	const lastIdx = fileContents.lastIndexOf(text)
 	if (lastIdx !== idx) return 'Not unique' as const
 
-	if (opts.returnType === 'lines') {
-		const startLine = fileContents.substring(0, idx).split('\n').length
-		const numLines = numLinesOfStr(text)
-		const endLine = startLine + numLines - 1
-		return [startLine, endLine] as const
-	}
-
-	else if (opts.returnType === 'indices') {
-		return [idx, idx + text.length] as const
-	}
-	else throw new Error(`findTextInCode: Invalid returnType ${opts.returnType}`)
+	return returnAns(fileContents, idx)
 }
 
 
@@ -575,7 +583,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					}
 					else { throw new Error('Void 1') }
 
-					const buttonsWidget = new AcceptRejectInlineWidget({
+					const buttonsWidget = this._instantiationService.createInstance(AcceptRejectInlineWidget, {
 						editor,
 						onAccept: () => {
 							this.acceptDiff({ diffid })
@@ -1208,7 +1216,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			onFinishEdit()
 		}
 
-		this._writeURIText(uri, newContent, 'wholeFileRange', { shouldRealignDiffAreas: false })
+		this._writeURIText(uri, newContent, 'wholeFileRange', { shouldRealignDiffAreas: true })
 		onDone()
 	}
 
@@ -1331,6 +1339,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const { from, } = opts
 		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
+		const overridesOfModel = this._settingsService.state.overridesOfModel
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
@@ -1482,6 +1491,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					overridesOfModel,
 					separateSystemMessage,
 					chatMode: null, // not chat
 					onText: (params) => {
@@ -1556,17 +1566,30 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
-	private _errContentOfInvalidStr = (str: 'Not found' | 'Not unique' | 'Has overlap', blockOrig: string) => {
-
+	/**
+	 * Generates a human-readable error message for an invalid ORIGINAL search block.
+	 */
+	private _errContentOfInvalidStr = (
+		str: 'Not found' | 'Not unique' | 'Has overlap',
+		blockOrig: string,
+	): string => {
 		const problematicCode = `${tripleTick[0]}\n${JSON.stringify(blockOrig)}\n${tripleTick[1]}`
 
-		const descStr = str === `Not found` ?
-			`The edit was not applied. The text in ORIGINAL must EXACTLY match lines of code in the file, but there was no match for:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code matches a code excerpt exactly.`
-			: str === `Not unique` ?
-				`The edit was not applied. The text in ORIGINAL must be unique, but the following ORIGINAL code appears multiple times in the file:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code is unique.`
-				: str === 'Has overlap' ?
-					`The edit was not applied. The text in the ORIGINAL blocks must not overlap, but the following ORIGINAL code had overlap with another ORIGINAL string:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code blocks do not overlap.`
-					: ``
+		// use a switch for better readability / exhaustiveness check
+		let descStr: string
+		switch (str) {
+			case 'Not found':
+				descStr = `The edit was not applied. The text in ORIGINAL must EXACTLY match lines of code in the file, but there was no match for:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code matches a code excerpt exactly.`
+				break
+			case 'Not unique':
+				descStr = `The edit was not applied. The text in ORIGINAL must be unique in the file being edited, but the following ORIGINAL code appears multiple times in the file:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code is unique.`
+				break
+			case 'Has overlap':
+				descStr = `The edit was not applied. The text in the ORIGINAL blocks must not overlap, but the following ORIGINAL code had overlap with another ORIGINAL string:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code blocks do not overlap.`
+				break
+			default:
+				descStr = ''
+		}
 		return descStr
 	}
 
@@ -1578,22 +1601,31 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) throw new Error(`Error applying Search/Replace blocks: File does not exist.`)
 		const modelStr = model.getValue(EndOfLinePreference.LF)
+		// .split('\n').map(l => '\t' + l).join('\n') // for testing purposes only, remember to remove this
+		const modelStrLines = modelStr.split('\n')
+
+
 
 
 		const replacements: { origStart: number; origEnd: number; block: ExtractedSearchReplaceBlock }[] = []
 		for (const b of blocks) {
-			const res = findTextInCode(b.orig, modelStr, true, { returnType: 'indices' })
+			const res = findTextInCode(b.orig, modelStr, true, { returnType: 'lines' })
 			if (typeof res === 'string')
 				throw new Error(this._errContentOfInvalidStr(res, b.orig))
-			const [i, _] = res
+			let [startLine, endLine] = res
+			startLine -= 1 // 0-index
+			endLine -= 1
 
-			replacements.push({
-				origStart: i,
-				origEnd: i + b.orig.length - 1, // INCLUSIVE
-				block: b,
-			})
+			// including newline before start
+			const origStart = (startLine !== 0 ?
+				modelStrLines.slice(0, startLine).join('\n') + '\n'
+				: '').length
+
+			// including endline at end
+			const origEnd = modelStrLines.slice(0, endLine + 1).join('\n').length - 1
+
+			replacements.push({ origStart, origEnd, block: b });
 		}
-
 		// sort in increasing order
 		replacements.sort((a, b) => a.origStart - b.origStart)
 
@@ -1615,12 +1647,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			'wholeFileRange',
 			{ shouldRealignDiffAreas: true }
 		)
-
 	}
 
 	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): [DiffZone, Promise<void>] | undefined {
 		const { from, applyStr, } = opts
 		const featureName: FeatureName = 'Apply'
+		const overridesOfModel = this._settingsService.state.overridesOfModel
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
@@ -1900,6 +1932,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					overridesOfModel,
 					separateSystemMessage,
 					chatMode: null, // not chat
 					onText: (params) => {
@@ -1913,6 +1946,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						if (blocks.length === 0) {
 							this._notificationService.info(`Void: We ran Fast Apply, but the LLM didn't output any changes.`)
 						}
+						this._writeURIText(uri, originalFileCode, 'wholeFileRange', { shouldRealignDiffAreas: true })
+
 
 						try {
 							this._instantlyApplySRBlocks(uri, fullText)
@@ -2220,30 +2255,80 @@ registerSingleton(IEditCodeService, EditCodeService, InstantiationType.Eager);
 
 
 
+const processRawKeybindingText = (keybindingStr: string) => {
+	return keybindingStr
+		.replace(/Enter/g, '↵') // ⏎
+		.replace(/Backspace/g, '⌫')
 
-
-
+}
 
 class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 
-	public getId() { return this.ID }
-	public getDomNode() { return this._domNode; }
-	public getPosition() { return null }
+	public getId(): string {
+		return this.ID || ''; // Ensure we always return a string
+	}
+	public getDomNode(): HTMLElement {
+		return this._domNode;
+	}
+	public getPosition() {
+		return null;
+	}
 
-	private readonly _domNode: HTMLElement;
-	private readonly editor
-	private readonly ID
-	private readonly startLine
+	private readonly _domNode: HTMLElement; // Using the definite assignment assertion
+	private readonly editor: ICodeEditor;
+	private readonly ID: string;
+	private readonly startLine: number;
 
-	constructor({ editor, onAccept, onReject, diffid, startLine, offsetLines }: { editor: ICodeEditor; onAccept: () => void; onReject: () => void; diffid: string, startLine: number, offsetLines: number }) {
-		super()
+	constructor(
+		{ editor, onAccept, onReject, diffid, startLine, offsetLines }: {
+			editor: ICodeEditor;
+			onAccept: () => void;
+			onReject: () => void;
+			diffid: string,
+			startLine: number,
+			offsetLines: number
+		},
+		@IVoidCommandBarService private readonly _voidCommandBarService: IVoidCommandBarService,
+		@IKeybindingService private readonly _keybindingService: IKeybindingService
+	) {
+		super();
 
-
-		this.ID = editor.getModel()?.uri.fsPath + diffid;
+		const uri = editor.getModel()?.uri;
+		// Initialize with default values
+		this.ID = ''
 		this.editor = editor;
 		this.startLine = startLine;
 
+		if (!uri) {
+			const { dummyDiv } = dom.h('div@dummyDiv');
+			this._domNode = dummyDiv
+			return;
+		}
+
+		this.ID = uri.fsPath + diffid;
+
 		const lineHeight = editor.getOption(EditorOption.lineHeight);
+
+		const getAcceptRejectText = () => {
+			const acceptKeybinding = this._keybindingService.lookupKeybinding(VOID_ACCEPT_DIFF_ACTION_ID);
+			const rejectKeybinding = this._keybindingService.lookupKeybinding(VOID_REJECT_DIFF_ACTION_ID);
+
+			const acceptKeybindLabel = processRawKeybindingText(acceptKeybinding && acceptKeybinding.getLabel() || '');
+			const rejectKeybindLabel = processRawKeybindingText(rejectKeybinding && rejectKeybinding.getLabel() || '')
+
+			const commandBarStateAtUri = this._voidCommandBarService.stateOfURI[uri.fsPath];
+			const selectedDiffIdx = commandBarStateAtUri?.diffIdx ?? 0; // 0th item is selected by default
+			const thisDiffIdx = commandBarStateAtUri?.sortedDiffIds.indexOf(diffid) ?? null;
+
+			const showLabel = thisDiffIdx === selectedDiffIdx
+
+			const acceptText = `Accept${showLabel ? ` ` + acceptKeybindLabel : ''}`;
+			const rejectText = `Reject${showLabel ? ` ` + rejectKeybindLabel : ''}`;
+
+			return { acceptText, rejectText }
+		}
+
+		const { acceptText, rejectText } = getAcceptRejectText()
 
 		// Create container div with buttons
 		const { acceptButton, rejectButton, buttons } = dom.h('div@buttons', [
@@ -2258,11 +2343,14 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		buttons.style.paddingRight = '4px';
 		buttons.style.zIndex = '1';
 		buttons.style.transform = `translateY(${offsetLines * lineHeight}px)`;
+		buttons.style.justifyContent = 'flex-end';
+		buttons.style.width = '100%';
+		buttons.style.pointerEvents = 'none';
 
 
 		// Style accept button
 		acceptButton.onclick = onAccept;
-		acceptButton.textContent = 'Accept';
+		acceptButton.textContent = acceptText;
 		acceptButton.style.backgroundColor = acceptBg;
 		acceptButton.style.border = acceptBorder;
 		acceptButton.style.color = buttonTextColor;
@@ -2276,10 +2364,12 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		acceptButton.style.cursor = 'pointer';
 		acceptButton.style.height = '100%';
 		acceptButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
+		acceptButton.style.pointerEvents = 'auto';
+
 
 		// Style reject button
 		rejectButton.onclick = onReject;
-		rejectButton.textContent = 'Reject';
+		rejectButton.textContent = rejectText;
 		rejectButton.style.backgroundColor = rejectBg;
 		rejectButton.style.border = rejectBorder;
 		rejectButton.style.color = buttonTextColor;
@@ -2293,6 +2383,7 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		rejectButton.style.cursor = 'pointer';
 		rejectButton.style.height = '100%';
 		rejectButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
+		rejectButton.style.pointerEvents = 'auto';
 
 
 
@@ -2313,15 +2404,27 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		}
 
 		// Mount first, then update positions
-		editor.addOverlayWidget(this);
-
-
-		updateTop()
-		updateLeft()
+		setTimeout(() => {
+			updateTop()
+			updateLeft()
+		}, 0)
 
 		this._register(editor.onDidScrollChange(e => { updateTop() }))
 		this._register(editor.onDidChangeModelContent(e => { updateTop() }))
 		this._register(editor.onDidLayoutChange(e => { updateTop(); updateLeft() }))
+
+
+		// Listen for state changes in the command bar service
+		this._register(this._voidCommandBarService.onDidChangeState(e => {
+			if (uri && e.uri.fsPath === uri.fsPath) {
+
+				const { acceptText, rejectText } = getAcceptRejectText()
+
+				acceptButton.textContent = acceptText;
+				rejectButton.textContent = rejectText;
+
+			}
+		}));
 
 		// mount this widget
 
@@ -2330,8 +2433,8 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 	}
 
 	public override dispose(): void {
-		this.editor.removeOverlayWidget(this)
-		super.dispose()
+		this.editor.removeOverlayWidget(this);
+		super.dispose();
 	}
 
 }

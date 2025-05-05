@@ -641,6 +641,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// above just defines helpers, below starts the actual function
 		const { chatMode } = this._settingsService.state.globalSettings // should not change as we loop even if user changes it, so it goes here
+		const { overridesOfModel } = this._settingsService.state
 
 		let nMessagesSent = 0
 		let shouldSendAnotherMessage = true
@@ -682,8 +683,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			let shouldRetryLLM = true
 			let nAttempts = 0
 			while (shouldRetryLLM) {
-
 				shouldRetryLLM = false
+				nAttempts += 1
 
 				let resMessageIsDonePromise: (res: { type: 'llmDone', toolCall?: RawToolCallObj } | { type: 'llmError', error?: { message: string; fullError: Error | null; } } | { type: 'llmAborted' }) => void // resolves when user approves this tool use (or if tool doesn't require approval)
 				const messageIsDonePromise = new Promise<{ type: 'llmDone', toolCall?: RawToolCallObj } | { type: 'llmError', error?: { message: string; fullError: Error | null; } } | { type: 'llmAborted' }>((res, rej) => { resMessageIsDonePromise = res })
@@ -694,6 +695,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					messages: messages,
 					modelSelection,
 					modelSelectionOptions,
+					overridesOfModel,
 					logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },
 					separateSystemMessage: separateSystemMessage,
 					onText: ({ fullText, fullReasoning, toolCall }) => {
@@ -724,7 +726,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				const llmRes = await messageIsDonePromise // wait for message to complete
 				if (this.streamState[threadId]?.isRunning !== 'LLM') {
 					console.log('Unexpected chat agent state when', this.streamState[threadId]?.isRunning)
-					this._setStreamState(threadId, undefined)
 					return
 				}
 
@@ -737,7 +738,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				else if (llmRes.type === 'llmError') {
 					// error, should retry
 					if (nAttempts < CHAT_RETRIES) {
-						nAttempts += 1
 						shouldRetryLLM = true
 						this._setStreamState(threadId, { isRunning: 'idle', interrupt: idleInterruptor })
 						await timeout(RETRY_DELAY)

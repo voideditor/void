@@ -4,3 +4,7 @@
 export const VOID_CTRL_L_ACTION_ID = 'void.ctrlLAction'
 
 export const VOID_CTRL_K_ACTION_ID = 'void.ctrlKAction'
+
+export const VOID_ACCEPT_DIFF_ACTION_ID = 'void.acceptDiff'
+
+export const VOID_REJECT_DIFF_ACTION_ID = 'void.rejectDiff'

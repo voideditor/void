@@ -2,4 +2,7 @@ This is a fork of the VSCode repo called Void.
 
 Most code we care about lives in src/vs/workbench/contrib/void.
 
-You may sometimes need to explore the full repo to find relevant parts of code.
+You may often need to explore the full repo to find relevant parts of code.
+Look for services and built-in functions that you might need to use to solve the problem.
+
+NEVER lazily cast to 'any' in typescript. Find the correct type to apply and use it.

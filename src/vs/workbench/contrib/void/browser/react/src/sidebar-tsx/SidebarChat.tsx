@@ -153,27 +153,32 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 	const voidSettingsState = useSettingsState()
 
 	const modelSelection = voidSettingsState.modelSelectionOfFeature[featureName]
+	const overridesOfModel = voidSettingsState.overridesOfModel
+
 	if (!modelSelection) return null
 
 	const { modelName, providerName } = modelSelection
-	const { reasoningCapabilities } = getModelCapabilities(providerName, modelName)
-	const { canTurnOffReasoning, reasoningBudgetSlider } = reasoningCapabilities || {}
+	const { reasoningCapabilities } = getModelCapabilities(providerName, modelName, overridesOfModel)
+	const { canTurnOffReasoning, reasoningSlider: reasoningBudgetSlider } = reasoningCapabilities || {}
 
 	const modelSelectionOptions = voidSettingsState.optionsOfModelSelection[featureName][providerName]?.[modelName]
-	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions)
-	if (canTurnOffReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider (no models right now)
-		return null // unused right now
-		// return <div className='flex items-center gap-x-2'>
-		// 	<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isReasoningEnabled ? 'Thinking' : 'Thinking'}</span>
-		// 	<VoidSwitch
-		// 		size='xs'
-		// 		value={isReasoningEnabled}
-		// 		onChange={(newVal) => { } }
-		// 	/>
-		// </div>
+	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
+
+	if (canTurnOffReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider
+		return <div className='flex items-center gap-x-2'>
+			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
+			<VoidSwitch
+				size='xxs'
+				value={isReasoningEnabled}
+				onChange={(newVal) => {
+					const isOff = canTurnOffReasoning && !newVal
+					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff })
+				}}
+			/>
+		</div>
 	}
 
-	if (reasoningBudgetSlider?.type === 'slider') { // if it's a slider
+	if (reasoningBudgetSlider?.type === 'budget_slider') { // if it's a slider
 		const { min: min_, max, default: defaultVal } = reasoningBudgetSlider
 
 		const nSteps = 8 // only used in calculating stepSize, stepSize is what actually matters
@@ -183,7 +188,6 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 		const min = canTurnOffReasoning ? valueIfOff : min_
 		const value = isReasoningEnabled ? voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
 			: valueIfOff
-
 
 		return <div className='flex items-center gap-x-2'>
 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
@@ -195,11 +199,42 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 				step={stepSize}
 				value={value}
 				onChange={(newVal) => {
-					const disabled = newVal === min && canTurnOffReasoning
-					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
+					const isOff = canTurnOffReasoning && newVal === valueIfOff
+					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff, reasoningBudget: newVal })
 				}}
 			/>
 			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${value} tokens` : 'Thinking disabled'}</span>
+		</div>
+	}
+
+	if (reasoningBudgetSlider?.type === 'effort_slider') {
+
+		const { values, default: defaultVal } = reasoningBudgetSlider
+
+		const min = canTurnOffReasoning ? -1 : 0
+		const max = values.length - 1
+
+		const currentEffort = voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEffort ?? defaultVal
+		const valueIfOff = -1
+		const value = isReasoningEnabled && currentEffort ? values.indexOf(currentEffort) : valueIfOff
+
+		const currentEffortCapitalized = currentEffort.charAt(0).toUpperCase() + currentEffort.slice(1, Infinity)
+
+		return <div className='flex items-center gap-x-2'>
+			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
+			<VoidSlider
+				width={30}
+				size='xs'
+				min={min}
+				max={max}
+				step={1}
+				value={value}
+				onChange={(newVal) => {
+					const isOff = canTurnOffReasoning && newVal === valueIfOff
+					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff, reasoningEffort: values[newVal] ?? undefined })
+				}}
+			/>
+			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${currentEffortCapitalized}` : 'Thinking disabled'}</span>
 		</div>
 	}
 
@@ -216,8 +251,8 @@ const nameOfChatMode = {
 
 const detailOfChatMode = {
 	'normal': 'Normal chat',
-	'gather': 'Discover relevant files',
-	'agent': 'Edit files and use tools',
+	'gather': 'Reads files, but can\'t edit',
+	'agent': 'Edits files and uses tools',
 }
 
 
@@ -726,6 +761,7 @@ const ToolHeaderWrapper = ({
 				<div className={`flex items-center w-full gap-x-2 overflow-hidden justify-between ${isRejected ? 'line-through' : ''}`}>
 					{/* left */}
 					<div className={`
+							ml-1
 							flex items-center min-w-0 overflow-hidden grow
 							${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''}
 						`}
@@ -2764,7 +2800,7 @@ export const SidebarChat = () => {
 	const { displayContentSoFar, toolCallSoFar, reasoningSoFar } = currThreadStreamState?.llmInfo ?? {}
 
 	// this is just if it's currently being generated, NOT if it's currently running
-	const toolIsGenerating = toolCallSoFar && !toolCallSoFar.isDone && toolCallSoFar.name === 'edit_file' // show loading for slow tools (right now just edit)
+	const toolIsGenerating = toolCallSoFar && !toolCallSoFar.isDone // show loading for slow tools (right now just edit)
 
 	// ----- SIDEBAR CHAT state (local) -----
 
@@ -2913,11 +2949,9 @@ export const SidebarChat = () => {
 		}
 	}, [onSubmit, onAbort, isRunning])
 
-
-
 	const inputChatArea = <VoidChatArea
 		featureName='Chat'
-		onSubmit={onSubmit}
+		onSubmit={() => onSubmit()}
 		onAbort={onAbort}
 		isStreaming={!!isRunning}
 		isDisabled={isDisabled}
@@ -2986,14 +3020,14 @@ export const SidebarChat = () => {
 			{landingPageInput}
 		</ErrorBoundary>
 
-		{Object.keys(chatThreadsState.allThreads).length > 1 ? // show if there are threads
+			{Object.keys(chatThreadsState.allThreads).length > 1 ? // show if there are threads
 			<ErrorBoundary>
-				<div className='pt-8 mb-2 text-void-fg-1 text-root'>Previous Threads</div>
+				<div className='pt-8 mb-2 text-void-fg-3 text-root select-none pointer-events-none'>Previous Threads</div>
 				<PastThreadsList />
 			</ErrorBoundary>
 			:
 			<ErrorBoundary>
-				<div className='pt-8 mb-2 text-void-fg-1 text-root'>Suggestions</div>
+				<div className='pt-8 mb-2 text-void-fg-3 text-root select-none pointer-events-none'>Suggestions</div>
 				{initiallySuggestedPromptsHTML}
 			</ErrorBoundary>
 		}

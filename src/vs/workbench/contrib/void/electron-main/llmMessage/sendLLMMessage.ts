@@ -20,6 +20,7 @@ export const sendLLMMessage = async ({
 	settingsOfProvider,
 	modelSelection,
 	modelSelectionOptions,
+	overridesOfModel,
 	chatMode,
 	separateSystemMessage,
 }: SendLLMMessageParams,
@@ -106,15 +107,15 @@ export const sendLLMMessage = async ({
 		}
 		const { sendFIM, sendChat } = implementation
 		if (messagesType === 'chatMessages') {
-			await sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage, chatMode })
+			await sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, overridesOfModel, modelName, _setAborter, providerName, separateSystemMessage, chatMode })
 			return
 		}
 		if (messagesType === 'FIMMessage') {
 			if (sendFIM) {
-				await sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName, _setAborter, providerName, separateSystemMessage })
+				await sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, overridesOfModel, modelName, _setAborter, providerName, separateSystemMessage })
 				return
 			}
-			onError({ message: `Error: This provider does not support Autocomplete yet.`, fullError: null })
+			onError({ message: `Error running Autocomplete with ${providerName} - ${modelName}.`, fullError: null })
 			return
 		}
 		onError({ message: `Error: Message type "${messagesType}" not recognized.`, fullError: null })

@@ -111,7 +111,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		const { model } = await voidModelService.getModelSafe(nextURI)
 		if (model) {
 			// switch to the URI
-			editorService.openCodeEditor({ resource: model.uri, options: { revealIfVisible: true } }, editor)
+			editorService.openCodeEditor({ resource: nextURI, options: { revealIfVisible: true } }, editor)
 		}
 	}
 

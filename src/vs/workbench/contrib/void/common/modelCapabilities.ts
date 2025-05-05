@@ -141,8 +141,7 @@ export const defaultModelsOfProvider = {
 
 
 export type VoidStaticModelInfo = { // not stateful
-	// for examples, see openAIModelOptions and anthropicModelOptions below.
-
+	// for some examples, see openAIModelOptions and anthropicModelOptions below.
 	contextWindow: number; // input tokens
 	reservedOutputTokenSpace: number | null; // reserve this much space in the context window for output, defaults to 4096 if null
 

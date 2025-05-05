@@ -12,6 +12,7 @@ import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { VoidCommandBarProps } from '../../../voidCommandBarService.js';
 import { AcceptAllButtonWrapper, RejectAllButtonWrapper } from '../sidebar-tsx/SidebarChat.js';
+import { MoveDown, MoveLeft, MoveRight, MoveUp } from 'lucide-react';
 
 export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
@@ -148,7 +149,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToDiffIdx(prevDiffIdx);
 			}
 		}}
-	>↑</button>
+	><MoveUp /></button>
 
 	const downButton = <button
 		className={`
@@ -163,7 +164,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToDiffIdx(nextDiffIdx);
 			}
 		}}
-	>↓</button>
+	><MoveDown /></button>
 
 	const leftButton = <button
 		className={`
@@ -178,7 +179,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToURIIdx(prevURIIdx);
 			}
 		}}
-	>←</button>
+	><MoveLeft /></button>
 
 	const rightButton = <button
 		className={`
@@ -193,7 +194,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToURIIdx(nextURIIdx);
 			}
 		}}
-	>→</button>
+	><MoveRight /></button>
 
 
 

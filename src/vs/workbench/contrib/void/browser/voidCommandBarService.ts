@@ -473,7 +473,8 @@ registerAction2(class extends Action2 {
 			f1: true,
 			title: localize2('voidAcceptDiffAction', 'Void: Accept Diff'),
 			keybinding: {
-				primary: KeyMod.Alt | KeyMod.Shift | KeyCode.Enter,
+				primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyMod.Shift | KeyCode.Enter,
+				mac: { primary: KeyMod.WinCtrl | KeyMod.Alt | KeyCode.Enter },
 				weight: KeybindingWeight.VoidExtension,
 			}
 		});
@@ -510,7 +511,8 @@ registerAction2(class extends Action2 {
 			f1: true,
 			title: localize2('voidRejectDiffAction', 'Void: Reject Diff'),
 			keybinding: {
-				primary: KeyMod.Alt | KeyMod.Shift | KeyCode.Backspace,
+				primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyMod.Shift | KeyCode.Backspace,
+				mac: { primary: KeyMod.WinCtrl | KeyMod.Alt | KeyCode.Backspace },
 				weight: KeybindingWeight.VoidExtension,
 			}
 		});

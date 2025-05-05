@@ -140,40 +140,42 @@ export const defaultModelsOfProvider = {
 
 
 export type VoidStaticModelInfo = { // not stateful
-	cost: { // just informative, not used in sending / receiving
+	// for examples, see openAIModelOptions and anthropicModelOptions below.
+
+	contextWindow: number; // input tokens
+	reservedOutputTokenSpace: number | null; // reserve this much space in the context window for output, defaults to 4096 if null
+
+	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated'; // typically you should use 'system-role'. 'separated' means the system message is passed as a separate field (e.g. anthropic)
+	specialToolFormat?: 'openai-style' | 'anthropic-style' | 'gemini-style', // typically you should use 'openai-style'. null means "can't call tools by default", and asks the LLM to output XML in agent mode
+	supportsFIM: boolean;
+
+	// reasoning options
+	reasoningCapabilities: false | {
+		readonly supportsReasoning: true; // for clarity, this must be true if anything below is specified
+		readonly canTurnOffReasoning: boolean; // whether or not the user can disable reasoning mode (false if the model only supports reasoning)
+		readonly canIOReasoning: boolean; // whether or not the model actually outputs reasoning (eg o1 lets us control reasoning but not output it)
+		readonly reasoningReservedOutputTokenSpace?: number; // overrides normal reservedOutputTokenSpace
+		readonly reasoningSlider?:
+		| undefined
+		| { type: 'budget_slider'; min: number; max: number; default: number } // anthropic supports this (reasoning budget)
+		| { type: 'effort_slider'; values: string[]; default: string } // openai-compatible supports this (reasoning effort)
+
+		// if it's open source and specifically outputs think tags, put the think tags here and we'll parse them out (e.g. ollama)
+		readonly openSourceThinkTags?: [string, string];
+	};
+
+	// --- below is just informative, not used in sending / receiving, cannot be customized in settings ---
+	cost: {
 		input: number;
 		output: number;
 		cache_read?: number;
 		cache_write?: number;
 	}
-
-	downloadable: false | { // just informative, not used in sending / receiving
+	downloadable: false | {
 		sizeGb: number | 'not-known'
 	}
-
-	contextWindow: number; // input tokens
-	reservedOutputTokenSpace: number | null; // reserve this much space in the context window for output, defaults to 4092 if null
-
-	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated'; // separated = anthropic where "system" is a special paramete
-	specialToolFormat?: 'openai-style' | 'anthropic-style' | 'gemini-style', // null defaults to XML
-	supportsFIM: boolean;
-
-	// reasoning options if supports reasoning
-	reasoningCapabilities: false | {
-		readonly supportsReasoning: true; // this must be true for clarity
-		readonly canTurnOffReasoning: boolean; // whether or not the user can disable reasoning mode (false if the model only supports reasoning)
-		readonly canIOReasoning: boolean; // whether or not the model actually outputs reasoning (eg o1 lets us control reasoning but not output it)
-		readonly reasoningReservedOutputTokenSpace?: number; // overrides normal reservedOutputTokenSpace
-		readonly reasoningBudgetSlider?:
-		| undefined
-		| { type: 'number_slider'; min: number; max: number; default: number } // anthropic only supports this
-		| { type: 'string_slider'; values: string[]; default: string } // openai-compatible only supports this
-
-		// options related specifically to model output
-		// if it's open source, put the think tags here and we'll parse them out in e.g. ollama
-		readonly openSourceThinkTags?: [string, string];
-	};
 }
+// if you change the above type, remember to update the Settings link
 
 
 export type ModelOverrides = Pick<VoidStaticModelInfo,
@@ -434,7 +436,7 @@ const anthropicModelOptions = {
 			canTurnOffReasoning: true,
 			canIOReasoning: true,
 			reasoningReservedOutputTokenSpace: 64_000, // can bump it to 128_000 with beta mode output-128k-2025-02-19
-			reasoningBudgetSlider: { type: 'number_slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000. we cap at 8192 because above is typically not necessary (often even buggy)
 		},
 
 	},
@@ -483,7 +485,7 @@ const anthropicSettings: VoidStaticProviderInfo = {
 	providerReasoningIOSettings: {
 		input: {
 			includeInPayload: (reasoningInfo) => {
-				if (reasoningInfo?.type === 'budgetEnabled') {
+				if (reasoningInfo?.type === 'budget_slider_value') {
 					return { thinking: { type: 'enabled', budget_tokens: reasoningInfo.reasoningBudget } }
 				}
 				return null
@@ -617,7 +619,18 @@ const openAISettings: VoidStaticProviderInfo = {
 		if (lower.includes('gpt-4o')) { fallbackName = 'gpt-4o' }
 		if (fallbackName) return { modelName: fallbackName, ...openAIModelOptions[fallbackName] }
 		return null
-	}
+	},
+	providerReasoningIOSettings: {
+		input: {
+			// https://platform.openai.com/docs/guides/reasoning?api-mode=chat
+			includeInPayload: (reasoningInfo) => {
+				if (reasoningInfo?.type === 'effort_slider_value') {
+					return { reasoning_effort: reasoningInfo.reasoningEffort }
+				}
+				return null
+			}
+		},
+	},
 }
 
 // ---------------- XAI ----------------
@@ -855,7 +868,7 @@ const groqSettings: VoidStaticProviderInfo = {
 	providerReasoningIOSettings: {
 		input: {
 			includeInPayload: (reasoningInfo) => {
-				if (reasoningInfo?.type === 'budgetEnabled') {
+				if (reasoningInfo?.type === 'budget_slider_value') {
 					return { reasoning_format: 'parsed' }
 				}
 				return null
@@ -1046,7 +1059,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 			canTurnOffReasoning: false,
 			canIOReasoning: true,
 			reasoningReservedOutputTokenSpace: 64_000,
-			reasoningBudgetSlider: { type: 'number_slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000.
 		},
 	},
 	'anthropic/claude-3.7-sonnet': {
@@ -1095,14 +1108,21 @@ const openRouterSettings: VoidStaticProviderInfo = {
 	// reasoning: OAICompat + response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
 	providerReasoningIOSettings: {
 		input: {
+			// https://openrouter.ai/docs/use-cases/reasoning-tokens
 			includeInPayload: (reasoningInfo) => {
-				if (reasoningInfo?.type === 'budgetEnabled') {
+				if (reasoningInfo?.type === 'budget_slider_value') {
 					return {
 						reasoning: {
 							max_tokens: reasoningInfo.reasoningBudget
 						}
 					}
 				}
+				if (reasoningInfo?.type === 'effort_slider_value')
+					return {
+						reasoning: {
+							effort: reasoningInfo.reasoningEffort
+						}
+					}
 				return null
 			}
 		},
@@ -1183,9 +1203,13 @@ export const getProviderCapabilities = (providerName: ProviderName) => {
 
 
 export type SendableReasoningInfo = {
-	type: 'budgetEnabled',
+	type: 'budget_slider_value',
 	isReasoningEnabled: true,
 	reasoningBudget: number,
+} | {
+	type: 'effort_slider_value',
+	isReasoningEnabled: true,
+	reasoningEffort: string,
 } | null
 
 
@@ -1225,15 +1249,22 @@ export const getSendableReasoningInfo = (
 	overridesOfModel: OverridesOfModel | undefined,
 ): SendableReasoningInfo => {
 
-	const { canIOReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName, overridesOfModel).reasoningCapabilities || {}
+	const { canIOReasoning, reasoningSlider: reasoningBudgetSlider } = getModelCapabilities(providerName, modelName, overridesOfModel).reasoningCapabilities || {}
 	if (!canIOReasoning) return null
 	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
 	if (!isReasoningEnabled) return null
 
 	// check for reasoning budget
-	const reasoningBudget = reasoningBudgetSlider?.type === 'number_slider' ? modelSelectionOptions?.reasoningBudget ?? reasoningBudgetSlider?.default : undefined
+	const reasoningBudget = reasoningBudgetSlider?.type === 'budget_slider' ? modelSelectionOptions?.reasoningBudget ?? reasoningBudgetSlider?.default : undefined
 	if (reasoningBudget) {
-		return { type: 'budgetEnabled', isReasoningEnabled: isReasoningEnabled, reasoningBudget: reasoningBudget }
+		return { type: 'budget_slider_value', isReasoningEnabled: isReasoningEnabled, reasoningBudget: reasoningBudget }
 	}
+
+	// check for reasoning effort
+	const reasoningEffort = reasoningBudgetSlider?.type === 'effort_slider' ? modelSelectionOptions?.reasoningEffort ?? reasoningBudgetSlider?.default : undefined
+	if (reasoningEffort) {
+		return { type: 'effort_slider_value', isReasoningEnabled: isReasoningEnabled, reasoningEffort: reasoningEffort }
+	}
+
 	return null
 }

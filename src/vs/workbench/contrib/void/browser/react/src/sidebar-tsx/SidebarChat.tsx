@@ -159,23 +159,26 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 
 	const { modelName, providerName } = modelSelection
 	const { reasoningCapabilities } = getModelCapabilities(providerName, modelName, overridesOfModel)
-	const { canTurnOffReasoning, reasoningBudgetSlider } = reasoningCapabilities || {}
+	const { canTurnOffReasoning, reasoningSlider: reasoningBudgetSlider } = reasoningCapabilities || {}
 
 	const modelSelectionOptions = voidSettingsState.optionsOfModelSelection[featureName][providerName]?.[modelName]
 	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
-	if (canTurnOffReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider (no models right now)
-		return null // unused right now
-		// return <div className='flex items-center gap-x-2'>
-		// 	<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10'>{isReasoningEnabled ? 'Thinking' : 'Thinking'}</span>
-		// 	<VoidSwitch
-		// 		size='xs'
-		// 		value={isReasoningEnabled}
-		// 		onChange={(newVal) => { } }
-		// 	/>
-		// </div>
+
+	if (canTurnOffReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider
+		return <div className='flex items-center gap-x-2'>
+			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
+			<VoidSwitch
+				size='xs'
+				value={isReasoningEnabled}
+				onChange={(newVal) => {
+					const isOff = canTurnOffReasoning && !newVal
+					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff })
+				}}
+			/>
+		</div>
 	}
 
-	if (reasoningBudgetSlider?.type === 'slider') { // if it's a slider
+	if (reasoningBudgetSlider?.type === 'budget_slider') { // if it's a slider
 		const { min: min_, max, default: defaultVal } = reasoningBudgetSlider
 
 		const nSteps = 8 // only used in calculating stepSize, stepSize is what actually matters
@@ -185,7 +188,6 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 		const min = canTurnOffReasoning ? valueIfOff : min_
 		const value = isReasoningEnabled ? voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningBudget ?? defaultVal
 			: valueIfOff
-
 
 		return <div className='flex items-center gap-x-2'>
 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
@@ -197,11 +199,42 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 				step={stepSize}
 				value={value}
 				onChange={(newVal) => {
-					const disabled = newVal === min && canTurnOffReasoning
-					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !disabled, reasoningBudget: newVal })
+					const isOff = canTurnOffReasoning && newVal === min
+					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff, reasoningBudget: newVal })
 				}}
 			/>
 			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${value} tokens` : 'Thinking disabled'}</span>
+		</div>
+	}
+
+	if (reasoningBudgetSlider?.type === 'effort_slider') {
+
+		const { values, default: defaultVal } = reasoningBudgetSlider
+
+		const min = canTurnOffReasoning ? -1 : 0
+		const max = values.length - 1
+
+		const valueIfOff = -1
+
+		const value = isReasoningEnabled ?
+			values.indexOf(voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEffort ?? defaultVal)
+			: valueIfOff
+
+		return <div className='flex items-center gap-x-2'>
+			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
+			<VoidSlider
+				width={50}
+				size='xs'
+				min={min}
+				max={max}
+				step={1}
+				value={value}
+				onChange={(newVal) => {
+					const isOff = canTurnOffReasoning && newVal === min
+					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff, reasoningBudget: newVal })
+				}}
+			/>
+			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${value}` : 'Thinking disabled'}</span>
 		</div>
 	}
 

@@ -24,6 +24,7 @@ import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
 import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplaceGivenDescription_systemMessage, searchReplaceGivenDescription_userMessage, tripleTick, } from '../common/prompt/prompts.js';
+import { IVoidCommandBarService } from './voidCommandBarService.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -580,7 +581,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					}
 					else { throw new Error('Void 1') }
 
-					const buttonsWidget = new AcceptRejectInlineWidget({
+					const buttonsWidget = this._instantiationService.createInstance(AcceptRejectInlineWidget, {
 						editor,
 						onAccept: () => {
 							this.acceptDiff({ diffid })
@@ -2257,22 +2258,47 @@ registerSingleton(IEditCodeService, EditCodeService, InstantiationType.Eager);
 
 class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 
-	public getId() { return this.ID }
-	public getDomNode() { return this._domNode; }
-	public getPosition() { return null }
+	public getId(): string {
+		return this.ID || ''; // Ensure we always return a string
+	}
+	public getDomNode(): HTMLElement {
+		return this._domNode;
+	}
+	public getPosition() {
+		return null;
+	}
 
-	private readonly _domNode: HTMLElement;
-	private readonly editor
-	private readonly ID
-	private readonly startLine
+	private readonly _domNode: HTMLElement; // Using the definite assignment assertion
+	private readonly editor: ICodeEditor;
+	private readonly ID: string;
+	private readonly startLine: number;
 
-	constructor({ editor, onAccept, onReject, diffid, startLine, offsetLines }: { editor: ICodeEditor; onAccept: () => void; onReject: () => void; diffid: string, startLine: number, offsetLines: number }) {
-		super()
+	constructor(
+		{ editor, onAccept, onReject, diffid, startLine, offsetLines }: {
+			editor: ICodeEditor;
+			onAccept: () => void;
+			onReject: () => void;
+			diffid: string,
+			startLine: number,
+			offsetLines: number
+		},
+		@IVoidCommandBarService private readonly _voidCommandBarService: IVoidCommandBarService
+	) {
+		super();
 
-
-		this.ID = editor.getModel()?.uri.fsPath + diffid;
+		const uri = editor.getModel()?.uri;
+		// Initialize with default values
+		this.ID = ''
 		this.editor = editor;
 		this.startLine = startLine;
+
+		if (!uri) {
+			const { dummyDiv } = dom.h('div@dummyDiv');
+			this._domNode = dummyDiv
+			return;
+		}
+
+		this.ID = uri.fsPath + diffid;
 
 		const lineHeight = editor.getOption(EditorOption.lineHeight);
 
@@ -2354,6 +2380,25 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		this._register(editor.onDidChangeModelContent(e => { updateTop() }))
 		this._register(editor.onDidLayoutChange(e => { updateTop(); updateLeft() }))
 
+
+		// Listen for state changes in the command bar service
+		this._register(this._voidCommandBarService.onDidChangeState(e => {
+			if (uri && e.uri.fsPath === uri.fsPath) {
+				const commandBarStateAtUri = this._voidCommandBarService.stateOfURI[uri.fsPath];
+				const selectedDiffIdx = commandBarStateAtUri?.diffIdx ?? null;
+				const thisDiffIdx = commandBarStateAtUri?.sortedDiffIds.indexOf(diffid) ?? null;
+
+				// Update button text based on styles
+				if (thisDiffIdx !== null && selectedDiffIdx === thisDiffIdx) {
+					acceptButton.textContent = 'Accept';
+					rejectButton.textContent = 'Reject';
+				} else {
+					acceptButton.textContent = 'Accept';
+					rejectButton.textContent = 'Reject';
+				}
+			}
+		}));
+
 		// mount this widget
 
 		editor.addOverlayWidget(this);
@@ -2361,8 +2406,8 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 	}
 
 	public override dispose(): void {
-		this.editor.removeOverlayWidget(this)
-		super.dispose()
+		this.editor.removeOverlayWidget(this);
+		super.dispose();
 	}
 
 }

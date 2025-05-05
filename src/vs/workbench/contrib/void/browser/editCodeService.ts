@@ -2404,11 +2404,10 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		}
 
 		// Mount first, then update positions
-		editor.addOverlayWidget(this);
-
-
-		updateTop()
-		updateLeft()
+		setTimeout(() => {
+			updateTop()
+			updateLeft()
+		}, 0)
 
 		this._register(editor.onDidScrollChange(e => { updateTop() }))
 		this._register(editor.onDidChangeModelContent(e => { updateTop() }))

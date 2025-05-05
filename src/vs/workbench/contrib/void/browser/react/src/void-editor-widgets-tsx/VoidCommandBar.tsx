@@ -138,7 +138,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 	const upButton = <button
 		className={`
-			size-2 rounded cursor-default
+			size-4 rounded cursor-default
 			hover:bg-void-bg-1-alt
 		`}// --border border-void-border-3 focus:border-void-border-1
 		disabled={upDownDisabled}
@@ -149,11 +149,11 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToDiffIdx(prevDiffIdx);
 			}
 		}}
-	><MoveUp className='size-2' /></button>
+	><MoveUp className='size-4' /></button>
 
 	const downButton = <button
 		className={`
-			size-2 rounded cursor-default
+			size-4 rounded cursor-default
 			hover:bg-void-bg-1-alt
 		`}
 		disabled={upDownDisabled}
@@ -164,11 +164,11 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToDiffIdx(nextDiffIdx);
 			}
 		}}
-	><MoveDown className='size-2' /></button>
+	><MoveDown className='size-4' /></button>
 
 	const leftButton = <button
 		className={`
-			size-2 rounded cursor-default
+			size-4 rounded cursor-default
 			hover:bg-void-bg-1-alt
 		`}
 		disabled={leftRightDisabled}
@@ -179,11 +179,11 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToURIIdx(prevURIIdx);
 			}
 		}}
-	><MoveLeft className='size-2' /></button>
+	><MoveLeft className='size-4' /></button>
 
 	const rightButton = <button
 		className={`
-			size-2 rounded cursor-default
+			size-4 rounded cursor-default
 			hover:bg-void-bg-1-alt
 		`}
 		disabled={leftRightDisabled}
@@ -194,7 +194,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				goToURIIdx(nextURIIdx);
 			}
 		}}
-	><MoveRight className='size-2' /></button>
+	><MoveRight className='size-4' /></button>
 
 
 

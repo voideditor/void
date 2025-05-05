@@ -327,7 +327,7 @@ const SimpleModelSettingsDialog = ({
 
 				{/* Informational link */}
 				{overrideEnabled && <div className="text-sm text-void-fg-3 mb-4">
-					<ChatMarkdownRender string={"See the [sourcecode](https://github.com/voideditor/void/blob/cf0728f4c605bff49c34c923e15ae649f053d3e7/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L142C1-L171C4) for a reference on how to set this JSON (advanced)."} chatMessageLocation={undefined} />
+					<ChatMarkdownRender string={"See the [sourcecode](https://github.com/voideditor/void/blob/d125d8698bf6ccd46c9367c1445e4adfe9aa2c1c/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L144C1-L168C1) for a reference on how to set this JSON (advanced)."} chatMessageLocation={undefined} />
 				</div>}
 
 				<textarea

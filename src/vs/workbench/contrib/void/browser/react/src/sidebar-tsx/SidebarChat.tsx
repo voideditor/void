@@ -217,6 +217,9 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 		const currentEffort = voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEffort ?? defaultVal
 		const valueIfOff = -1
 		const value = isReasoningEnabled && currentEffort ? values.indexOf(currentEffort) : valueIfOff
+
+		const currentEffortCapitalized = currentEffort.charAt(0).toUpperCase() + currentEffort.slice(1, Infinity)
+
 		return <div className='flex items-center gap-x-2'>
 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
 			<VoidSlider
@@ -231,7 +234,7 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff, reasoningEffort: values[newVal] ?? undefined })
 				}}
 			/>
-			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${currentEffort}` : 'Thinking disabled'}</span>
+			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${currentEffortCapitalized}` : 'Thinking disabled'}</span>
 		</div>
 	}
 

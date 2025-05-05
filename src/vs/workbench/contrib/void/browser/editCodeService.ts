@@ -1642,7 +1642,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const { origStart, origEnd, block } = replacements[i]
 			newCode = newCode.slice(0, origStart) + block.final + newCode.slice(origEnd + 1, Infinity)
 		}
-		console.log('REPLACEMENTS', replacements, newCode)
 
 		this._writeURIText(uri, newCode,
 			'wholeFileRange',

@@ -160,7 +160,7 @@ export function getRelativeWorkspacePath(accessor: ReturnType<typeof useAccessor
 			if (relativePath.startsWith('/')) {
 				relativePath = relativePath.slice(1);
 			}
-			console.log({ folderPath, relativePath, uriPath });
+			// console.log({ folderPath, relativePath, uriPath });
 
 			return relativePath;
 		}

@@ -8,7 +8,7 @@ import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, Voi
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
-import { X, RefreshCw, Loader2, Check, Asterisk, Settings as SettingsIcon } from 'lucide-react'
+import { X, RefreshCw, Loader2, Check, Asterisk, Plus } from 'lucide-react'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
@@ -321,7 +321,7 @@ const SimpleModelSettingsDialog = ({
 
 				{/* override toggle */}
 				<div className="flex items-center gap-2 mb-4">
-					<VoidSwitch size="xs" value={overrideEnabled} onChange={setOverrideEnabled} />
+					<VoidSwitch size='sm' value={overrideEnabled} onChange={setOverrideEnabled} />
 					<span className="text-void-fg-2">Override Model Defaults</span>
 				</div>
 
@@ -356,7 +356,7 @@ const SimpleModelSettingsDialog = ({
 
 				{/* Informational link */}
 				<div className="text-sm text-void-fg-3 mt-4">
-					<ChatMarkdownRender string={"For more information on what you can customize, see [here](https://github.com/voideditor/void/blob/cf0728f4c605bff49c34c923e15ae649f053d3e7/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L142C1-L171C4)"} chatMessageLocation={undefined} />
+					<ChatMarkdownRender string={"For more information on what you can customize, see [this page](https://github.com/voideditor/void/blob/cf0728f4c605bff49c34c923e15ae649f053d3e7/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L142C1-L171C4)."} chatMessageLocation={undefined} />
 				</div>
 
 				<div className="flex justify-end gap-2 mt-4">
@@ -545,7 +545,7 @@ export const ModelDump = () => {
 					<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Custom model' />
 					: undefined
 
-
+			const hasOverrides = !!settingsState.overridesOfModel?.[providerName]?.[modelName]
 
 			return <div key={`${modelName}${providerName}`}
 				className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate group
@@ -558,20 +558,22 @@ export const ModelDump = () => {
 				</div>
 
 				{/* right part is anything that fits */}
-				<div className="flex items-center gap-4 w-fit">
+				<div className="flex items-center gap-2 w-fit">
 
-					{/* Advanced Settings button - only for custom or locally detected models */}
-					<div className="w-5 flex items-center justify-center">
-						<button
-							onClick={() => { setOpenSettingsModel({ modelName, providerName, type }) }}
-							data-tooltip-id='void-tooltip'
-							data-tooltip-place='right'
-							data-tooltip-content='Advanced Settings'
-							className="opacity-0 group-hover:opacity-100 transition-opacity"
-						>
-							<SettingsIcon size={14} className="text-void-fg-3" />
-						</button>
-					</div>
+					{/* Advanced Settings button (gear). Hide entirely when provider/model disabled. */}
+					{disabled ? null : (
+						<div className="w-5 flex items-center justify-center">
+							<button
+								onClick={() => { setOpenSettingsModel({ modelName, providerName, type }) }}
+								data-tooltip-id='void-tooltip'
+								data-tooltip-place='right'
+								data-tooltip-content='Advanced Settings'
+								className={`${hasOverrides ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+							>
+								<Plus size={12} className="text-void-fg-3 opacity-50" />
+							</button>
+						</div>
+					)}
 
 					{/* Blue star */}
 					{detailAboutModel}
@@ -733,8 +735,8 @@ export const SettingsForProvider = ({ providerName, showProviderTitle, showProvi
 
 			{showProviderSuggestions && needsModel ?
 				providerName === 'ollama' ?
-					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
-					: <WarningBox text={`Please add a model for ${providerTitle} (Models section).`} />
+					<WarningBox className="mt-1" text={`Please install an Ollama model. We'll auto-detect it.`} />
+					: <WarningBox className="mt-1" text={`Please add a model for ${providerTitle} (Models section).`} />
 				: null}
 		</div>
 	</div >

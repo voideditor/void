@@ -38,6 +38,7 @@
 	"builtInExtensions": [],
 	"linkProtectionTrustedDomains": [
 		"https://voideditor.com",
-		"https://voideditor.dev"
+		"https://voideditor.dev",
+		"https://github.com/voideditor/void"
 	]
 }

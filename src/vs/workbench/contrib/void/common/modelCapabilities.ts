@@ -104,6 +104,7 @@ export const defaultModelsOfProvider = {
 
 	openRouter: [ // https://openrouter.ai/models
 		// 'anthropic/claude-3.7-sonnet:thinking',
+		'qwen/qwen3-235b-a22b',
 		'anthropic/claude-3.7-sonnet',
 		'anthropic/claude-3.5-sonnet',
 		'deepseek/deepseek-r1',
@@ -198,7 +199,7 @@ type ProviderReasoningIOSettings = {
 type VoidStaticProviderInfo = { // doesn't change (not stateful)
 	providerReasoningIOSettings?: ProviderReasoningIOSettings; // input/output settings around thinking (allowed to be empty) - only applied if the model supports reasoning output
 	modelOptions: { [key: string]: VoidStaticModelInfo };
-	modelOptionsFallback: (modelName: string, fallbackKnownValues?: Partial<VoidStaticModelInfo>) => (VoidStaticModelInfo & { modelName: string }) | null;
+	modelOptionsFallback: (modelName: string, fallbackKnownValues?: Partial<VoidStaticModelInfo>) => (VoidStaticModelInfo & { modelName: string, recognizedModelName: string }) | null;
 }
 
 
@@ -344,17 +345,18 @@ const openSourceModelOptions_assumingOAICompat = {
 
 
 
-const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (modelName, fallbackKnownValues) => {
-
+// keep modelName, but use the fallback's defaults
+const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (modelName, fallbackKnownValues) => {
 
 	const lower = modelName.toLowerCase()
 
 	const toFallback = <T extends { [s: string]: Omit<VoidStaticModelInfo, 'cost' | 'downloadable'> },>(obj: T, recognizedModelName: string & keyof T)
-		: VoidStaticModelInfo & { modelName: string } => {
+		: VoidStaticModelInfo & { modelName: string, recognizedModelName: string } => {
 
 		const opts = obj[recognizedModelName]
 		return {
-			modelName: recognizedModelName,
+			recognizedModelName,
+			modelName,
 			...opts,
 			supportsSystemMessage: opts.supportsSystemMessage ? 'system-role' : false,
 			cost: { input: 0, output: 0 },
@@ -501,8 +503,8 @@ const anthropicSettings: VoidStaticProviderInfo = {
 		if (lower.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
 		if (lower.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
 		if (lower.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
-		if (fallbackName) return { modelName: fallbackName, ...anthropicModelOptions[fallbackName] }
-		return { modelName, ...defaultModelOptions, reservedOutputTokenSpace: 4_096 }
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...anthropicModelOptions[fallbackName] }
+		return null
 	},
 }
 
@@ -617,7 +619,7 @@ const openAISettings: VoidStaticProviderInfo = {
 		if (lower.includes('o1')) { fallbackName = 'o1' }
 		if (lower.includes('o3-mini')) { fallbackName = 'o3-mini' }
 		if (lower.includes('gpt-4o')) { fallbackName = 'gpt-4o' }
-		if (fallbackName) return { modelName: fallbackName, ...openAIModelOptions[fallbackName] }
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...openAIModelOptions[fallbackName] }
 		return null
 	},
 	providerReasoningIOSettings: {
@@ -691,7 +693,7 @@ const xAISettings: VoidStaticProviderInfo = {
 		const lower = modelName.toLowerCase()
 		let fallbackName: keyof typeof xAIModelOptions | null = null
 		if (lower.includes('grok-2')) fallbackName = 'grok-2'
-		if (fallbackName) return { modelName: fallbackName, ...xAIModelOptions[fallbackName] }
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...xAIModelOptions[fallbackName] }
 		return null
 	},
 	// same implementation as openai
@@ -1004,38 +1006,47 @@ export const ollamaRecommendedModels = ['qwen2.5-coder:1.5b', 'llama3.1', 'qwq',
 const vLLMSettings: VoidStaticProviderInfo = {
 	// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
 	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: {}, // TODO
 }
 
 const lmStudioSettings: VoidStaticProviderInfo = {
 	providerReasoningIOSettings: { output: { needsManualParse: true }, },
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' }, contextWindow: 4_096 }),
+	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' }, contextWindow: 4_096 }),
 	modelOptions: {}, // TODO
 }
 
 const ollamaSettings: VoidStaticProviderInfo = {
 	// reasoning: we need to filter out reasoning <think> tags manually
 	providerReasoningIOSettings: { output: { needsManualParse: true }, },
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: ollamaModelOptions,
 }
 
 const openaiCompatible: VoidStaticProviderInfo = {
 	// reasoning: we have no idea what endpoint they used, so we can't consistently parse out reasoning
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
+	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName),
 	modelOptions: {},
 }
 
 const liteLLMSettings: VoidStaticProviderInfo = { // https://docs.litellm.ai/docs/reasoning_content
 	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' } },
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: {}, // TODO
 }
 
 
 // ---------------- OPENROUTER ----------------
 const openRouterModelOptions_assumingOpenAICompat = {
+	'qwen/qwen3-235b-a22b': {
+		contextWindow: 40_960,
+		reservedOutputTokenSpace: null,
+		cost: { input: .10, output: .10 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true },
+	},
 	'mistralai/mistral-small-3.1-24b-instruct:free': {
 		contextWindow: 128_000,
 		reservedOutputTokenSpace: null,
@@ -1162,7 +1173,7 @@ const openRouterSettings: VoidStaticProviderInfo = {
 	},
 	modelOptions: openRouterModelOptions_assumingOpenAICompat,
 	// TODO!!! send a query to openrouter to get the price, etc.
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName),
+	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName),
 }
 
 
@@ -1202,7 +1213,10 @@ export const getModelCapabilities = (
 	providerName: ProviderName,
 	modelName: string,
 	overridesOfModel: OverridesOfModel | undefined
-): VoidStaticModelInfo & { modelName: string; isUnrecognizedModel: boolean } => {
+): VoidStaticModelInfo & (
+	| { modelName: string; recognizedModelName: string; isUnrecognizedModel: false }
+	| { modelName: string; recognizedModelName?: undefined; isUnrecognizedModel: true }
+) => {
 
 	const lowercaseModelName = modelName.toLowerCase()
 
@@ -1215,7 +1229,7 @@ export const getModelCapabilities = (
 	for (const modelName_ in modelOptions) {
 		const lowercaseModelName_ = modelName_.toLowerCase()
 		if (lowercaseModelName === lowercaseModelName_) {
-			return { ...modelOptions[modelName], ...overrides, modelName, isUnrecognizedModel: false };
+			return { ...modelOptions[modelName], ...overrides, modelName, recognizedModelName: modelName, isUnrecognizedModel: false };
 		}
 	}
 

@@ -206,7 +206,7 @@ const SimpleModelSettingsDialog = ({
 	// current overrides and defaults
 	const defaultModelCapabilities = getModelCapabilities(providerName, modelName, undefined);
 	const currentOverrides = settingsState.overridesOfModel?.[providerName]?.[modelName] ?? undefined;
-	const { modelName: recognizedModelName, isUnrecognizedModel } = defaultModelCapabilities
+	const { recognizedModelName, isUnrecognizedModel } = defaultModelCapabilities
 
 	// keys of ModelOverrides we allow the user to override
 	const allowedKeys: (string & (keyof ModelOverrides))[] = [

@@ -728,6 +728,7 @@ const ToolHeaderWrapper = ({
 				<div className={`flex items-center w-full gap-x-2 overflow-hidden justify-between ${isRejected ? 'line-through' : ''}`}>
 					{/* left */}
 					<div className={`
+							ml-1
 							flex items-center min-w-0 overflow-hidden grow
 							${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''}
 						`}

@@ -11,7 +11,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultProviderSettings, getModelCapabilities, ModelOverrideOptions } from './modelCapabilities.js';
+import { defaultProviderSettings, getModelCapabilities, ModelOverrides } from './modelCapabilities.js';
 import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
 import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, OverridesOfModel, defaultOverridesOfModel } from './voidSettingsTypes.js';
 
@@ -62,7 +62,9 @@ export interface IVoidSettingsService {
 	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn;
 	setOptionsOfModelSelection: SetOptionsOfModelSelection;
 	setGlobalSetting: SetGlobalSettingFn;
-	setOverridesOfModel(providerName: ProviderName, modelName: string, overrides: ModelOverrideOptions): Promise<void>;
+
+	// setting to undefined CLEARS it, unlike others:
+	setOverridesOfModel(providerName: ProviderName, modelName: string, overrides: Partial<ModelOverrides> | undefined): Promise<void>;
 
 	dangerousSetState(newState: VoidSettingsState): Promise<void>;
 	resetState(): Promise<void>;
@@ -438,19 +440,17 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		this._onDidChangeState.fire()
 	}
 
-	setOverridesOfModel = async (providerName: ProviderName, modelName: string, overrides: ModelOverrideOptions) => {
-		const currentProviderSettings = this.state.overridesOfModel[providerName] || {};
-
+	setOverridesOfModel = async (providerName: ProviderName, modelName: string, overrides: Partial<ModelOverrides> | undefined) => {
 		const newState: VoidSettingsState = {
 			...this.state,
 			overridesOfModel: {
 				...this.state.overridesOfModel,
 				[providerName]: {
-					...currentProviderSettings,
-					[modelName]: {
-						...currentProviderSettings[modelName],
+					...this.state.overridesOfModel[providerName],
+					[modelName]: overrides === undefined ? undefined : {
+						...this.state.overridesOfModel[providerName][modelName],
 						...overrides
-					}
+					},
 				}
 			}
 		};
@@ -459,7 +459,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		await this._storeState();
 		this._onDidChangeState.fire();
 
-		this._metricsService.capture('Update Model Settings', { providerName, modelName, overrides });
+		this._metricsService.capture('Update Model Overrides', { providerName, modelName, overrides });
 	}
 
 

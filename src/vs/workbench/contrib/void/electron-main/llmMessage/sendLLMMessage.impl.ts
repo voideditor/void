@@ -241,7 +241,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	// reasoning
-	const { canIOReasoning, openSourceThinkTags, } = reasoningCapabilities || {}
+	const { canIOReasoning, openSourceThinkTags } = reasoningCapabilities || {}
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 

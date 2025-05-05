@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { defaultModelsOfProvider, defaultProviderSettings, ModelOverrideOptions } from './modelCapabilities.js';
+import { defaultModelsOfProvider, defaultProviderSettings, ModelOverrides } from './modelCapabilities.js';
 import { ToolApprovalType } from './toolsServiceTypes.js';
 import { VoidSettingsState } from './voidSettingsService.js'
 
@@ -482,7 +482,7 @@ export type OptionsOfModelSelection = {
 
 export type OverridesOfModel = {
 	[providerName in ProviderName]: {
-		[modelName: string]: ModelOverrideOptions | undefined
+		[modelName: string]: Partial<ModelOverrides> | undefined
 	}
 }
 

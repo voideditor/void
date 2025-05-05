@@ -140,42 +140,46 @@ export const defaultModelsOfProvider = {
 
 
 export type VoidStaticModelInfo = { // not stateful
-	contextWindow: number; // input tokens
-	reservedOutputTokenSpace: number | null; // output tokens, defaults to 4092
-	cost: { // <-- UNUSED
+	cost: { // just informative, not used in sending / receiving
 		input: number;
 		output: number;
 		cache_read?: number;
 		cache_write?: number;
 	}
 
-	downloadable: false | {
+	downloadable: false | { // just informative, not used in sending / receiving
 		sizeGb: number | 'not-known'
 	}
+
+	contextWindow: number; // input tokens
+	reservedOutputTokenSpace: number | null; // reserve this much space in the context window for output, defaults to 4092 if null
 
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated'; // separated = anthropic where "system" is a special paramete
 	specialToolFormat?: 'openai-style' | 'anthropic-style' | 'gemini-style', // null defaults to XML
 	supportsFIM: boolean;
 
+	// reasoning options if supports reasoning
 	reasoningCapabilities: false | {
-		readonly supportsReasoning: true;
-		// reasoning options if supports reasoning
+		readonly supportsReasoning: true; // this must be true for clarity
 		readonly canTurnOffReasoning: boolean; // whether or not the user can disable reasoning mode (false if the model only supports reasoning)
 		readonly canIOReasoning: boolean; // whether or not the model actually outputs reasoning (eg o1 lets us control reasoning but not output it)
 		readonly reasoningReservedOutputTokenSpace?: number; // overrides normal reservedOutputTokenSpace
-		readonly reasoningBudgetSlider?: { type: 'slider'; min: number; max: number; default: number };
+		readonly reasoningBudgetSlider?:
+		| undefined
+		| { type: 'number_slider'; min: number; max: number; default: number } // anthropic only supports this
+		| { type: 'string_slider'; values: string[]; default: string } // openai-compatible only supports this
 
 		// options related specifically to model output
-		// you are allowed to not include openSourceThinkTags if it's not open source (no such cases as of writing)
-		// if it's open source, put the think tags here so we parse them out in e.g. ollama
+		// if it's open source, put the think tags here and we'll parse them out in e.g. ollama
 		readonly openSourceThinkTags?: [string, string];
 	};
 }
 
 
-export type ModelOverrideOptions = Partial<Pick<VoidStaticModelInfo,
+export type ModelOverrides = Pick<VoidStaticModelInfo,
 	'contextWindow' | 'reservedOutputTokenSpace' | 'specialToolFormat' | 'supportsSystemMessage' | 'supportsFIM' | 'reasoningCapabilities'
->>
+>
+
 
 
 
@@ -343,9 +347,12 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 
 	const lower = modelName.toLowerCase()
 
-	const toFallback = (opts: Omit<VoidStaticModelInfo, 'cost' | 'downloadable'>): VoidStaticModelInfo & { modelName: string } => {
+	const toFallback = <T extends { [s: string]: Omit<VoidStaticModelInfo, 'cost' | 'downloadable'> },>(obj: T, recognizedModelName: string & keyof T)
+		: VoidStaticModelInfo & { modelName: string } => {
+
+		const opts = obj[recognizedModelName]
 		return {
-			modelName,
+			modelName: recognizedModelName,
 			...opts,
 			supportsSystemMessage: opts.supportsSystemMessage ? 'system-role' : false,
 			cost: { input: 0, output: 0 },
@@ -353,58 +360,58 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 			...fallbackKnownValues
 		}
 	}
-	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions['gemini-2.5-pro-exp-03-25'])
+	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions, 'gemini-2.5-pro-exp-03-25')
 
-	if (lower.includes('claude-3-5') || lower.includes('claude-3.5')) return toFallback(anthropicModelOptions['claude-3-5-sonnet-20241022'])
-	if (lower.includes('claude')) return toFallback(anthropicModelOptions['claude-3-7-sonnet-20250219'])
+	if (lower.includes('claude-3-5') || lower.includes('claude-3.5')) return toFallback(anthropicModelOptions, 'claude-3-5-sonnet-20241022')
+	if (lower.includes('claude')) return toFallback(anthropicModelOptions, 'claude-3-7-sonnet-20250219')
 
-	if (lower.includes('grok')) return toFallback(xAIModelOptions['grok-2'])
+	if (lower.includes('grok')) return toFallback(xAIModelOptions, 'grok-2')
 
-	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekR1 })
-	if (lower.includes('deepseek') && lower.includes('v2')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV2 })
-	if (lower.includes('deepseek')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.deepseekCoderV3 })
+	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) return toFallback(openSourceModelOptions_assumingOAICompat, 'deepseekR1')
+	if (lower.includes('deepseek') && lower.includes('v2')) return toFallback(openSourceModelOptions_assumingOAICompat, 'deepseekCoderV2')
+	if (lower.includes('deepseek')) return toFallback(openSourceModelOptions_assumingOAICompat, 'deepseekCoderV3')
 
-	if (lower.includes('llama3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.llama3, })
-	if (lower.includes('llama3.1')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['llama3.1'], })
-	if (lower.includes('llama3.2')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['llama3.2'], })
-	if (lower.includes('llama3.3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['llama3.3'], })
-	if (lower.includes('llama') || lower.includes('scout')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['llama4-scout'] })
-	if (lower.includes('llama') || lower.includes('maverick')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['llama4-scout'] })
-	if (lower.includes('llama')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['llama4-scout'] })
+	if (lower.includes('llama3')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama3')
+	if (lower.includes('llama3.1')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama3.1')
+	if (lower.includes('llama3.2')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama3.2')
+	if (lower.includes('llama3.3')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama3.3')
+	if (lower.includes('llama') || lower.includes('scout')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama4-scout')
+	if (lower.includes('llama') || lower.includes('maverick')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama4-scout')
+	if (lower.includes('llama')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama4-scout')
 
-	if (lower.includes('qwen') && lower.includes('2.5') && lower.includes('coder')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen2.5coder'] })
-	if (lower.includes('qwen') && lower.includes('3')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen3'] })
-	if (lower.includes('qwen')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['qwen3'] })
-	if (lower.includes('qwq')) { return toFallback({ ...openSourceModelOptions_assumingOAICompat.qwq, }) }
-	if (lower.includes('phi4')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.phi4, })
-	if (lower.includes('codestral')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.codestral })
+	if (lower.includes('qwen') && lower.includes('2.5') && lower.includes('coder')) return toFallback(openSourceModelOptions_assumingOAICompat, 'qwen2.5coder')
+	if (lower.includes('qwen') && lower.includes('3')) return toFallback(openSourceModelOptions_assumingOAICompat, 'qwen3')
+	if (lower.includes('qwen')) return toFallback(openSourceModelOptions_assumingOAICompat, 'qwen3')
+	if (lower.includes('qwq')) { return toFallback(openSourceModelOptions_assumingOAICompat, 'qwq') }
+	if (lower.includes('phi4')) return toFallback(openSourceModelOptions_assumingOAICompat, 'phi4')
+	if (lower.includes('codestral')) return toFallback(openSourceModelOptions_assumingOAICompat, 'codestral')
 
-	if (lower.includes('gemma')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.gemma, })
+	if (lower.includes('gemma')) return toFallback(openSourceModelOptions_assumingOAICompat, 'gemma')
 
-	if (lower.includes('starcoder2')) return toFallback({ ...openSourceModelOptions_assumingOAICompat.starcoder2, })
+	if (lower.includes('starcoder2')) return toFallback(openSourceModelOptions_assumingOAICompat, 'starcoder2')
 
-	if (lower.includes('openhands')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['openhands-lm-32b'], }) // max output unclear
+	if (lower.includes('openhands')) return toFallback(openSourceModelOptions_assumingOAICompat, 'openhands-lm-32b') // max output uncler
 
-	if (lower.includes('quasar') || lower.includes('quaser')) return toFallback({ ...openSourceModelOptions_assumingOAICompat['quasar'] })
+	if (lower.includes('quasar') || lower.includes('quaser')) return toFallback(openSourceModelOptions_assumingOAICompat, 'quasar')
 
-	if (lower.includes('gpt') && lower.includes('mini') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions['gpt-4.1-mini'])
-	if (lower.includes('gpt') && lower.includes('nano') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions['gpt-4.1-nano'])
-	if (lower.includes('gpt') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions['gpt-4.1'])
+	if (lower.includes('gpt') && lower.includes('mini') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions, 'gpt-4.1-mini')
+	if (lower.includes('gpt') && lower.includes('nano') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions, 'gpt-4.1-nano')
+	if (lower.includes('gpt') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions, 'gpt-4.1')
 
-	if (lower.includes('4o') && lower.includes('mini')) return toFallback(openAIModelOptions['gpt-4o-mini'])
-	if (lower.includes('4o')) return toFallback(openAIModelOptions['gpt-4o'])
+	if (lower.includes('4o') && lower.includes('mini')) return toFallback(openAIModelOptions, 'gpt-4o-mini')
+	if (lower.includes('4o')) return toFallback(openAIModelOptions, 'gpt-4o')
 
-	if (lower.includes('o1') && lower.includes('mini')) return toFallback(openAIModelOptions['o1-mini'])
-	if (lower.includes('o1')) return toFallback(openAIModelOptions['o1'])
-	if (lower.includes('o3') && lower.includes('mini')) return toFallback(openAIModelOptions['o3-mini'])
-	if (lower.includes('o3')) return toFallback(openAIModelOptions['o3'])
-	if (lower.includes('o4') && lower.includes('mini')) return toFallback(openAIModelOptions['o4-mini'])
+	if (lower.includes('o1') && lower.includes('mini')) return toFallback(openAIModelOptions, 'o1-mini')
+	if (lower.includes('o1')) return toFallback(openAIModelOptions, 'o1')
+	if (lower.includes('o3') && lower.includes('mini')) return toFallback(openAIModelOptions, 'o3-mini')
+	if (lower.includes('o3')) return toFallback(openAIModelOptions, 'o3')
+	if (lower.includes('o4') && lower.includes('mini')) return toFallback(openAIModelOptions, 'o4-mini')
 
 
 	if (Object.keys(openSourceModelOptions_assumingOAICompat).map(k => k.toLowerCase()).includes(lower))
-		return toFallback(openSourceModelOptions_assumingOAICompat[lower as keyof typeof openSourceModelOptions_assumingOAICompat])
+		return toFallback(openSourceModelOptions_assumingOAICompat, lower as keyof typeof openSourceModelOptions_assumingOAICompat)
 
-	return toFallback(defaultModelOptions)
+	return null
 }
 
 
@@ -427,7 +434,7 @@ const anthropicModelOptions = {
 			canTurnOffReasoning: true,
 			canIOReasoning: true,
 			reasoningReservedOutputTokenSpace: 64_000, // can bump it to 128_000 with beta mode output-128k-2025-02-19
-			reasoningBudgetSlider: { type: 'slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
+			reasoningBudgetSlider: { type: 'number_slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
 		},
 
 	},
@@ -1039,7 +1046,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 			canTurnOffReasoning: false,
 			canIOReasoning: true,
 			reasoningReservedOutputTokenSpace: 64_000,
-			reasoningBudgetSlider: { type: 'slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
+			reasoningBudgetSlider: { type: 'number_slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
 		},
 	},
 	'anthropic/claude-3.7-sonnet': {
@@ -1224,7 +1231,7 @@ export const getSendableReasoningInfo = (
 	if (!isReasoningEnabled) return null
 
 	// check for reasoning budget
-	const reasoningBudget = reasoningBudgetSlider?.type === 'slider' ? modelSelectionOptions?.reasoningBudget ?? reasoningBudgetSlider?.default : undefined
+	const reasoningBudget = reasoningBudgetSlider?.type === 'number_slider' ? modelSelectionOptions?.reasoningBudget ?? reasoningBudgetSlider?.default : undefined
 	if (reasoningBudget) {
 		return { type: 'budgetEnabled', isReasoningEnabled: isReasoningEnabled, reasoningBudget: reasoningBudget }
 	}
